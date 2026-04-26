@@ -232,11 +232,21 @@ class GreedyPlayer(PlayerInterface):
         ctx = legal_actions[0].choice_context
         prompt = (ctx.prompt if ctx else "").lower()
 
-        # If placing damage / selecting opponent target: pick lowest HP
+        # Selecting an opponent target (Boss's Orders, Prime Catcher opp side, etc.)
         if "damage" in prompt or "opponent" in prompt or "opp" in prompt:
             best = min(
                 legal_actions,
                 key=lambda a: self._target_hp(state, a.target_instance_id),
+                default=legal_actions[0],
+            )
+            return best
+
+        # Self-switch (Prime Catcher, retreat choice, etc.): prefer bench Pokémon
+        # with the most energy already attached so we don't lose attack tempo.
+        if "switch in" in prompt or ("bench" in prompt and "opponent" not in prompt):
+            best = max(
+                legal_actions,
+                key=lambda a: self._energy_count(state, a.target_instance_id),
                 default=legal_actions[0],
             )
             return best
@@ -252,6 +262,16 @@ class GreedyPlayer(PlayerInterface):
                 if c.instance_id == instance_id:
                     return c.current_hp
         return 9999
+
+    def _energy_count(self, state, instance_id: str) -> int:
+        """Return the number of energy cards attached to the Pokémon with this id."""
+        if not instance_id:
+            return 0
+        for player in (state.p1, state.p2):
+            for c in ([player.active] if player.active else []) + player.bench:
+                if c.instance_id == instance_id:
+                    return len(c.energy_attached)
+        return 0
 
     def _best_energy_target(self, state, actions):
         """Pick the ATTACH_ENERGY action that targets the highest-value Pokémon.
@@ -429,11 +449,13 @@ class GreedyPlayer(PlayerInterface):
             """Lower score = more willing to discard."""
             ctype = c.card_type.lower()
             if ctype == "energy":
-                return 0   # discard energies first
+                # Energy is precious — keep it to enable attacks. Only discard
+                # as a last resort, never to power search cards like Ultra Ball.
+                return 20
             elif ctype == "trainer":
                 csub = c.card_subtype.lower()
                 if csub == "item":
-                    return 1
+                    return 1  # discard duplicate/excess items first
                 elif csub == "stadium":
                     return 2
                 elif csub == "supporter":

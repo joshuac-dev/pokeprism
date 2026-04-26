@@ -46,20 +46,24 @@ Phase 2 — Card Effect Registry (157 cards) — **Substantially complete. Heuri
 | +Ability preconditions | 41.2 | 49% | — | — |
 | +Retreat-if-blocked V1 | 41.2 | 49% | — | — |
 | +Power Saver checks | 41.5 | 53% | 40% | 471 |
-| **+Trapped-active energy fix** | **38.2** | **32%** | **60%** | **488** |
+| +Trapped-active energy fix | 38.2 | 32% | 60% | 488 |
+| +Energy discard bug fix | ~40 | 30% | 57% | — |
+| **+Prime Catcher self-switch fix** | **35.0** | **16%** | **69%** | **520** |
 
-**Adjusted Greedy baseline:** ~38–44 avg turns, ~30–40% deck-out, ~55–65% prize wins.
-These decks are item-heavy (Dragapult ~30 trainers, TR ~22 trainers), which causes deck
-cycling independent of player quality. The 15-30 avg / <5% deck-out targets from PROJECT.md
-Section 7 are not achievable with the Greedy player for these specific decks. This is
-expected — Phase 3's HeuristicPlayer should push toward those targets with better sequencing.
+**Adjusted Greedy baseline:** 35 avg turns, 16% deck-out, 69% prize wins.
+The remaining gap vs Phase 1 (16% vs 12% deck-out, 69% vs 74% prize wins) is explained by
+effects now actually cycling the deck via search/draw cards that were no-ops in Phase 1.
+This is expected. Phase 3 HeuristicPlayer should push toward the PROJECT.md targets (<5%
+deck-out, 15-30 avg turns) with smarter card-play sequencing.
 
 ## Active Files Changed This Session
 - `backend/app/engine/effects/registry.py` — Ability precondition infrastructure
 - `backend/app/engine/actions.py` — `_get_ability_actions` uses `ability_can_activate`
 - `backend/app/engine/effects/abilities.py` — 6 ability conditions registered; `power_saver_blocks_attack` helper
 - `backend/app/engine/effects/attacks.py` — Fixed TR Energy ID (`sv10-175` → `sv10-182`)
-- `backend/app/players/base.py` — Energy target heuristic, `_retreat_if_blocked`, trapped-active fix
+- `backend/app/players/base.py` — Energy target heuristic, `_retreat_if_blocked`, trapped-active fix,
+  energy discard bug fix (`_discard_priority` now scores energy 20, not 0), Prime Catcher
+  self-switch fix (`_choose_target` now picks bench Pokémon with most energy for self-switch)
 
 ## Known Issues / Gaps
 - **Copy-attack stubs (Priority: before Phase 5):**
@@ -96,7 +100,7 @@ expected — Phase 3's HeuristicPlayer should push toward those targets with bet
 - SET_CODE_MAP uses zero-padded TCGDex IDs (sv01 not sv1)
 
 ## Phase 2 Baseline Metrics
-- **Greedy vs Greedy (100 games):** 38.2 avg turns, 60% prize wins, 32% deck_out, 8% no_bench
+- **Greedy vs Greedy (100 games):** 35.0 avg turns, 69% prize wins, 16% deck_out, 15% no_bench
 - **Random vs Random (100 games):** 94.6 avg turns, 100% deck_out (from Phase 1 — not re-run)
 - All 42 tests pass. Run `cd backend && pytest tests/ -q` to confirm.
 
