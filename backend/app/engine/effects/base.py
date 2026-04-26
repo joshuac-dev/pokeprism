@@ -1,0 +1,418 @@
+"""Shared helpers for effect implementations.
+
+These are pure functions used by both the EffectRegistry's default resolver
+and by individual card effect handlers.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.engine.state import CardInstance
+
+from app.engine.state import (
+    CardInstance,
+    EnergyType,
+    GameState,
+    Phase,
+    PlayerState,
+    Zone,
+)
+from app.cards import registry as card_registry
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Choice request (yielded by generator-based effect handlers)
+# ──────────────────────────────────────────────────────────────────────────────
+
+@dataclass
+class ChoiceRequest:
+    """Emitted by effect handlers (via ``yield``) to request a player decision.
+
+    Effect handlers that need choices are Python generators.  They ``yield``
+    a ChoiceRequest and receive back the Action the chosen player selected.
+
+    The runner drives the generator via :func:`_drive_effect` in the registry,
+    asking the appropriate player object for each choice.
+    """
+
+    choice_type: str        # "choose_cards" | "choose_target" | "choose_option"
+    player_id: str          # Which player makes this choice
+    prompt: str             # Human-readable label (used by AI players for reasoning)
+
+    # For "choose_cards":
+    cards: list = field(default_factory=list)    # CardInstance objects available
+    min_count: int = 0
+    max_count: int = 1
+
+    # For "choose_target":
+    targets: list = field(default_factory=list)  # CardInstance objects
+
+    # For "choose_option":
+    options: list = field(default_factory=list)  # str labels for each option
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Damage parsing
+# ──────────────────────────────────────────────────────────────────────────────
+
+def parse_damage(damage_str: str) -> int:
+    """Extract the base numeric damage from a TCGDex damage string.
+
+    Examples:
+      "60"   → 60
+      "60+"  → 60   (effect handler adds extra)
+      "30×"  → 0    (multiplicative — effect handler must compute)
+      ""     → 0
+    """
+    if not damage_str:
+        return 0
+    m = re.match(r"(\d+)", damage_str.strip())
+    if m:
+        val = int(m.group(1))
+        # If it's a multiplier attack, return 0 — the effect handler resolves it
+        if "×" in damage_str or "x" in damage_str.lower():
+            return 0
+        return val
+    return 0
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Damage calculation (Appendix A)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def apply_weakness_resistance(
+    base_damage: int,
+    attacker: CardInstance,
+    defender: CardInstance,
+) -> int:
+    """Apply weakness and resistance to base damage.
+
+    Formula (Appendix A):
+      base_damage
+      × 2   if attacker's type is in defender's weakness
+      - 30  if attacker's type is in defender's resistance
+      (minimum 0)
+    """
+    attacker_def = card_registry.get(attacker.card_def_id)
+    defender_def = card_registry.get(defender.card_def_id)
+
+    if not attacker_def or not defender_def:
+        return base_damage
+
+    attacker_types = {t.lower() for t in attacker_def.types}
+
+    damage = base_damage
+
+    # Weakness × 2
+    for weakness in defender_def.weaknesses:
+        if weakness.type.lower() in attacker_types:
+            mult_str = weakness.value  # e.g. "×2"
+            try:
+                mult = float(re.sub(r"[×x*]", "", mult_str)) if mult_str else 2.0
+            except ValueError:
+                mult = 2.0
+            damage = int(damage * mult)
+            break
+
+    # Resistance − value
+    for resistance in defender_def.resistances:
+        if resistance.type.lower() in attacker_types:
+            sub_str = resistance.value  # e.g. "-30"
+            try:
+                sub = int(re.sub(r"[^0-9]", "", sub_str))
+            except ValueError:
+                sub = 30
+            damage -= sub
+            break
+
+    return max(0, damage)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# KO checking and prize taking
+# ──────────────────────────────────────────────────────────────────────────────
+
+def draw_cards(state: GameState, player_id: str, count: int) -> int:
+    """Draw `count` cards from deck to hand for player_id.
+
+    Returns the number of cards actually drawn (may be less than count if deck
+    runs out — the deck-out check in the runner handles win condition).
+    """
+    player = state.get_player(player_id)
+    drawn = 0
+    for _ in range(count):
+        if not player.deck:
+            break
+        card = player.deck.pop(0)
+        card.zone = Zone.HAND
+        player.hand.append(card)
+        drawn += 1
+    if drawn > 0:
+        state.emit_event("draw", player=player_id, count=drawn,
+                         hand_size=len(player.hand))
+    return drawn
+
+
+def check_ko(
+    state: GameState,
+    target: CardInstance,
+    target_player_id: str,
+) -> None:
+    """Check if target is KO'd and process the aftermath.
+
+    Mutates state in place:
+    - Moves KO'd Pokémon to discard
+    - Awards prizes to the attacker
+    - Sets winner/win_condition if game ends
+    """
+    if target.current_hp > 0:
+        return  # Still alive
+
+    target_player = state.get_player(target_player_id)
+    attacker_id = state.opponent_id(target_player_id)
+    attacker_player = state.get_player(attacker_id)
+
+    # Determine prize count
+    cdef = card_registry.get(target.card_def_id)
+    prizes_to_take = cdef.prize_value if cdef else 1
+
+    # Legacy Energy (sv06-167): take 1 fewer prize (once per game)
+    _LEGACY_ENERGY_ID = "sv06-167"
+    for att in target.energy_attached:
+        if att.card_def_id == _LEGACY_ENERGY_ID and not state.legacy_prize_reduction_used:
+            prizes_to_take = max(0, prizes_to_take - 1)
+            state.legacy_prize_reduction_used = True
+            state.emit_event("legacy_energy_triggered",
+                             ko_player=target_player_id,
+                             card_name=target.card_name)
+            break
+
+    # Lillie's Pearl (sv09-151): take 1 fewer prize (per KO, not once per game)
+    _LILLIES_PEARL_ID = "sv09-151"
+    if _LILLIES_PEARL_ID in target.tools_attached:
+        prizes_to_take = max(0, prizes_to_take - 1)
+        state.emit_event("lillies_pearl_triggered",
+                         ko_player=target_player_id,
+                         card_name=target.card_name)
+
+    # Briar (sv07-132): take 1 extra prize when KO'ing opponent's Active Pokémon
+    if (state.briar_active
+            and attacker_id == state.active_player
+            and target_player.active is not None
+            and target_player.active.instance_id == target.instance_id):
+        prizes_to_take += 1
+        state.emit_event("briar_triggered",
+                         ko_player=target_player_id,
+                         card_name=target.card_name)
+
+    state.emit_event(
+        "ko",
+        ko_player=target_player_id,
+        card_name=target.card_name,
+        prizes_to_take=prizes_to_take,
+    )
+
+    # Move KO'd Pokémon (and attached cards) to discard
+    _move_to_discard(target_player, target)
+
+    # Remove from active / bench
+    if target_player.active and target_player.active.instance_id == target.instance_id:
+        target_player.active = None
+    else:
+        target_player.bench = [
+            b for b in target_player.bench
+            if b.instance_id != target.instance_id
+        ]
+
+    # Award prizes
+    actual_taken = 0
+    for _ in range(prizes_to_take):
+        if attacker_player.prizes:
+            prize_card = attacker_player.prizes.pop(0)
+            prize_card.zone = Zone.HAND
+            attacker_player.hand.append(prize_card)
+            attacker_player.prizes_remaining = max(
+                0, attacker_player.prizes_remaining - 1
+            )
+            actual_taken += 1
+
+    state.emit_event(
+        "prizes_taken",
+        taking_player=attacker_id,
+        count=actual_taken,
+        remaining=attacker_player.prizes_remaining,
+    )
+
+    # Check win: all prizes taken
+    if attacker_player.prizes_remaining == 0:
+        state.winner = attacker_id
+        state.win_condition = "prizes"
+        state.phase = Phase.GAME_OVER
+        state.emit_event("game_over", winner=attacker_id, condition="prizes")
+        return
+
+    # Check win: defender has no bench and was the active
+    if target_player.active is None and not target_player.bench:
+        state.winner = attacker_id
+        state.win_condition = "no_bench"
+        state.phase = Phase.GAME_OVER
+        state.emit_event("game_over", winner=attacker_id, condition="no_bench")
+
+
+def _move_to_discard(player: PlayerState, pokemon: CardInstance) -> None:
+    """Move a KO'd Pokémon and its attached energy to the discard pile.
+
+    Tool cards are cleared from the Pokémon's attachment list. The tool card
+    instances themselves are not tracked in zone lists after attachment, so no
+    separate discard step is needed for them.
+    """
+    # Clear tools (the card instances were removed from all zone lists on attach)
+    pokemon.tools_attached.clear()
+
+    # Detach and discard energy
+    for att in pokemon.energy_attached:
+        energy_card = _find_card_anywhere(player, att.source_card_id)
+        if energy_card:
+            energy_card.zone = Zone.DISCARD
+            if energy_card not in player.discard:
+                player.discard.append(energy_card)
+    pokemon.energy_attached.clear()
+
+    pokemon.zone = Zone.DISCARD
+    player.discard.append(pokemon)
+
+
+def _find_card_anywhere(player: PlayerState, instance_id: str) -> Optional[CardInstance]:
+    all_cards = (
+        player.deck
+        + player.hand
+        + player.discard
+        + ([] if player.active is None else [player.active])
+        + player.bench
+    )
+    for c in all_cards:
+        if c.instance_id == instance_id:
+            return c
+    return None
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Card lookup helpers (used by action validation and effect handlers)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def get_card_types(card: CardInstance) -> list[str]:
+    cdef = card_registry.get(card.card_def_id)
+    return cdef.types if cdef else []
+
+
+def get_card_weaknesses(card: CardInstance) -> list[str]:
+    cdef = card_registry.get(card.card_def_id)
+    return [w.type for w in cdef.weaknesses] if cdef else []
+
+
+def get_card_resistances(card: CardInstance) -> list[str]:
+    cdef = card_registry.get(card.card_def_id)
+    return [r.type for r in cdef.resistances] if cdef else []
+
+
+def get_card_stage(card: CardInstance) -> str:
+    cdef = card_registry.get(card.card_def_id)
+    return cdef.stage if cdef else "Basic"
+
+
+def get_prize_value(card: CardInstance) -> int:
+    cdef = card_registry.get(card.card_def_id)
+    return cdef.prize_value if cdef else 1
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Tool helpers (called from attack/retreat/damage resolution)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def has_tool(pokemon: CardInstance, tool_def_id: str) -> bool:
+    """True if the given tool (by card_def_id) is attached to this Pokémon."""
+    return tool_def_id in pokemon.tools_attached
+
+
+def get_tool_damage_bonus(
+    attacker: CardInstance,
+    defender: CardInstance,
+    attack_index: int,
+    state: "GameState",
+    attacker_player_id: str,
+) -> int:
+    """Return the net damage modifier from tools on attacker and defender.
+
+    Called AFTER weakness/resistance.  Returns a signed integer to add to
+    final_damage.
+
+    Tools checked:
+      Attacker's tools:
+        - Maximum Belt (sv05-154): +50 vs Pokémon ex
+        - Binding Mochi (sv08.5-095): +40 if attacker is Poisoned
+        - Brave Bangle (sv10.5w-080): +30 vs Pokémon ex (non-rule-box attacker)
+      Defender's tools:
+        - Payapa Berry (sv07-141): -60 from {P} attacks
+      Jamming Tower neutralizes all tools.
+    """
+    # Jamming Tower (sv06-153): all tools have no effect
+    if state.active_stadium and state.active_stadium.card_def_id == "sv06-153":
+        return 0
+
+    from app.engine.state import StatusCondition
+    bonus = 0
+
+    # Maximum Belt (sv05-154): +50 to Pokémon ex
+    if has_tool(attacker, "sv05-154"):
+        defender_def = card_registry.get(defender.card_def_id)
+        if defender_def and getattr(defender_def, "is_ex", False):
+            bonus += 50
+
+    # Brave Bangle (sv10.5w-080): non-rule-box attacker does +30 to Pokémon ex
+    if has_tool(attacker, "sv10.5w-080"):
+        attacker_def = card_registry.get(attacker.card_def_id)
+        defender_def = card_registry.get(defender.card_def_id)
+        if (attacker_def and not getattr(attacker_def, "has_rule_box", False)
+                and defender_def and getattr(defender_def, "is_ex", False)):
+            bonus += 30
+
+    # Binding Mochi (sv08.5-095): +40 if attacker is Poisoned
+    if has_tool(attacker, "sv08.5-095"):
+        if StatusCondition.POISONED in attacker.status_conditions:
+            bonus += 40
+
+    # Payapa Berry (sv07-141): -60 from Psychic attacks
+    if has_tool(defender, "sv07-141"):
+        attacker_def = card_registry.get(attacker.card_def_id)
+        if attacker_def and "Psychic" in (attacker_def.types or []):
+            bonus -= 60
+
+    return bonus
+
+
+def get_retreat_cost_reduction(pokemon: CardInstance, state: "GameState") -> int:
+    """Return the retreat cost reduction from tools.
+
+    Tools checked:
+      - Air Balloon (me02.5-181): -2 retreat cost
+      - N's Castle (sv09-152): N's Pokémon free retreat (full reduction)
+    """
+    # Jamming Tower neutralizes tools
+    if state.active_stadium and state.active_stadium.card_def_id == "sv06-153":
+        return 0
+
+    reduction = 0
+
+    if has_tool(pokemon, "me02.5-181"):  # Air Balloon
+        reduction += 2
+
+    # N's Castle (sv09-152): free retreat for N's Pokémon
+    if (state.active_stadium and state.active_stadium.card_def_id == "sv09-152"
+            and pokemon.card_name.startswith("N's")):
+        return 9999  # Effectively free retreat (≥ any retreat cost)
+
+    return reduction

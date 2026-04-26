@@ -1,0 +1,297 @@
+"""Effect registry singleton.
+
+Phase 1: Only the default flat-damage resolver is active.
+Phase 2: All ~120 card effects are registered here.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import inspect
+import logging
+from dataclasses import dataclass, field
+from typing import Callable, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.engine.state import GameState
+    from app.engine.actions import Action
+
+logger = logging.getLogger(__name__)
+
+
+class EffectRegistry:
+    """Singleton registry mapping card IDs to effect handler functions.
+
+    Keys:
+      attack  — "{tcgdex_id}:{attack_index}"
+      ability — "{tcgdex_id}:{ability_name}"
+      trainer — "{tcgdex_id}"
+      energy  — "{tcgdex_id}"
+
+    Effect handlers may be either:
+    - Regular functions ``(state, action) -> None``: state mutated in place, no choices.
+    - Generator functions ``(state, action) -> Generator[ChoiceRequest, Action, None]``:
+      yield a :class:`ChoiceRequest`, receive back the Action the player chose.
+
+    The registry's async resolve methods drive generator handlers via
+    :func:`_drive_effect`, asking the appropriate player for each choice.
+    """
+
+    _instance: "EffectRegistry | None" = None
+
+    def __init__(self) -> None:
+        self._attack_effects:  dict[str, Callable] = {}
+        self._ability_effects: dict[str, Callable] = {}
+        self._trainer_effects: dict[str, Callable] = {}
+        self._energy_effects:  dict[str, Callable] = {}
+
+    @classmethod
+    def instance(cls) -> "EffectRegistry":
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    @classmethod
+    def reset(cls) -> None:
+        """Create a fresh registry (used in tests)."""
+        cls._instance = cls()
+
+    # ── Registration ──────────────────────────────────────────────────────────
+
+    def register_attack(self, card_id: str, attack_index: int,
+                        handler: Callable) -> None:
+        key = f"{card_id}:{attack_index}"
+        self._attack_effects[key] = handler
+
+    def register_ability(self, card_id: str, ability_name: str,
+                         handler: Callable) -> None:
+        key = f"{card_id}:{ability_name}"
+        self._ability_effects[key] = handler
+
+    def register_trainer(self, card_id: str, handler: Callable) -> None:
+        self._trainer_effects[card_id] = handler
+
+    def register_energy(self, card_id: str, handler: Callable) -> None:
+        self._energy_effects[card_id] = handler
+
+    # ── Resolution (all async — handlers may yield ChoiceRequests) ────────────
+
+    async def resolve_attack(self, card_id: str, attack_index: int,
+                             state: "GameState", action: "Action",
+                             get_player: Optional[Callable] = None) -> "GameState":
+        key = f"{card_id}:{attack_index}"
+        handler = self._attack_effects.get(key)
+        if handler:
+            await _drive_effect(handler, state, action, get_player)
+            return state
+        return self._default_damage(state, action)
+
+    async def resolve_trainer(self, card_id: str,
+                              state: "GameState", action: "Action",
+                              get_player: Optional[Callable] = None) -> "GameState":
+        handler = self._trainer_effects.get(card_id)
+        if handler:
+            await _drive_effect(handler, state, action, get_player)
+            return state
+        logger.warning("No trainer effect registered for %s — no-op", card_id)
+        return state
+
+    async def resolve_ability(self, card_id: str, ability_name: str,
+                              state: "GameState", action: "Action",
+                              get_player: Optional[Callable] = None) -> "GameState":
+        key = f"{card_id}:{ability_name}"
+        handler = self._ability_effects.get(key)
+        if handler:
+            await _drive_effect(handler, state, action, get_player)
+            return state
+        logger.debug("No ability effect registered for %s:%s — no-op",
+                     card_id, ability_name)
+        return state
+
+    async def resolve_energy(self, card_id: str,
+                             state: "GameState", action: "Action",
+                             get_player: Optional[Callable] = None) -> "GameState":
+        handler = self._energy_effects.get(card_id)
+        if handler:
+            await _drive_effect(handler, state, action, get_player)
+        return state
+
+    # ── Introspection ─────────────────────────────────────────────────────────
+
+    def has_effect(self, card_id: str,
+                   effect_type: str = "attack", index: int = 0) -> bool:
+        if effect_type == "attack":
+            return f"{card_id}:{index}" in self._attack_effects
+        elif effect_type == "ability":
+            return any(k.startswith(f"{card_id}:") for k in self._ability_effects)
+        elif effect_type == "trainer":
+            return card_id in self._trainer_effects
+        elif effect_type == "energy":
+            return card_id in self._energy_effects
+        return False
+
+    # ── Default flat-damage resolver ──────────────────────────────────────────
+
+    def _default_damage(self, state: "GameState", action: "Action") -> "GameState":
+        """Apply base attack damage with weakness/resistance and tool modifiers.
+
+        Used for every attack that lacks a custom handler.
+        Called by Phase 1 engine for all attacks.
+        """
+        from app.engine.effects.base import (
+            apply_weakness_resistance,
+            check_ko,
+            get_tool_damage_bonus,
+            parse_damage,
+        )
+        from app.cards import registry as card_registry
+
+        player = state.get_player(action.player_id)
+        opponent = state.get_opponent(action.player_id)
+
+        if not player.active or not opponent.active:
+            return state
+
+        cdef = card_registry.get(player.active.card_def_id)
+        if not cdef or action.attack_index is None:
+            return state
+
+        if action.attack_index >= len(cdef.attacks):
+            return state
+
+        attack = cdef.attacks[action.attack_index]
+        base_damage = parse_damage(attack.damage) + state.active_player_damage_bonus
+
+        if base_damage > 0:
+            final_damage = apply_weakness_resistance(
+                base_damage, player.active, opponent.active
+            )
+            final_damage += get_tool_damage_bonus(
+                player.active, opponent.active, action.attack_index, state, action.player_id
+            )
+            final_damage = max(0, final_damage)
+            opponent.active.current_hp -= final_damage
+            opponent.active.damage_counters += final_damage // 10
+
+            state.emit_event(
+                "attack_damage",
+                attacker=player.active.card_name,
+                defender=opponent.active.card_name,
+                attack_name=attack.name,
+                base_damage=base_damage,
+                final_damage=final_damage,
+            )
+
+            check_ko(state, opponent.active, state.opponent_id(action.player_id))
+        else:
+            state.emit_event(
+                "attack_no_damage",
+                attacker=player.active.card_name,
+                attack_name=attack.name,
+            )
+
+        return state
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Generator driver — runs an effect handler, asking players for choices
+# ──────────────────────────────────────────────────────────────────────────────
+
+async def _drive_effect(
+    handler: Callable,
+    state: "GameState",
+    action: "Action",
+    get_player: Optional[Callable] = None,
+) -> None:
+    """Run an effect handler, driving any ChoiceRequest yields.
+
+    If ``handler`` is a generator function, it may yield
+    :class:`~app.engine.effects.base.ChoiceRequest` objects.  For each yield,
+    this function asks the appropriate player for a choice and sends the chosen
+    Action back into the generator.
+
+    Regular (non-generator) handlers are called normally.
+    """
+    result = handler(state, action)
+
+    if not inspect.isgenerator(result):
+        # Coroutine support (shouldn't be needed but handle gracefully)
+        if asyncio.iscoroutine(result):
+            await result
+        return
+
+    # Drive the generator
+    try:
+        request = next(result)
+        while request is not None:
+            chosen = None
+            if get_player is not None:
+                player_obj = get_player(request.player_id)
+                if player_obj is not None:
+                    legal = _choice_to_legal_actions(request)
+                    chosen = await player_obj.choose_action(state, legal)
+
+            if chosen is None:
+                chosen = _default_choice(request)
+
+            try:
+                request = result.send(chosen)
+            except StopIteration:
+                break
+    except StopIteration:
+        pass
+
+
+def _choice_to_legal_actions(request) -> list:
+    """Convert a ChoiceRequest into a list of legal Action objects for the player."""
+    from app.engine.actions import Action, ActionType
+
+    if request.choice_type == "choose_cards":
+        # Single action carrying the full list; player picks from it
+        return [Action(
+            action_type=ActionType.CHOOSE_CARDS,
+            player_id=request.player_id,
+            selected_cards=[c.instance_id for c in request.cards],
+            choice_context=request,
+        )]
+    elif request.choice_type == "choose_target":
+        return [
+            Action(
+                action_type=ActionType.CHOOSE_TARGET,
+                player_id=request.player_id,
+                target_instance_id=t.instance_id,
+                choice_context=request,
+            )
+            for t in request.targets
+        ] or [Action(action_type=ActionType.CHOOSE_TARGET, player_id=request.player_id,
+                     choice_context=request)]
+    elif request.choice_type == "choose_option":
+        return [
+            Action(
+                action_type=ActionType.CHOOSE_OPTION,
+                player_id=request.player_id,
+                selected_option=i,
+                choice_context=request,
+            )
+            for i in range(len(request.options))
+        ] or [Action(action_type=ActionType.CHOOSE_OPTION, player_id=request.player_id,
+                     selected_option=0, choice_context=request)]
+    return []
+
+
+def _default_choice(request) -> "Action":
+    """Fallback choice when no player object is available (e.g., in unit tests)."""
+    from app.engine.actions import Action, ActionType
+
+    if request.choice_type == "choose_cards":
+        chosen = [c.instance_id for c in request.cards[:request.max_count]]
+        return Action(ActionType.CHOOSE_CARDS, request.player_id, selected_cards=chosen,
+                      choice_context=request)
+    elif request.choice_type == "choose_target":
+        iid = request.targets[0].instance_id if request.targets else None
+        return Action(ActionType.CHOOSE_TARGET, request.player_id,
+                      target_instance_id=iid, choice_context=request)
+    elif request.choice_type == "choose_option":
+        return Action(ActionType.CHOOSE_OPTION, request.player_id,
+                      selected_option=0, choice_context=request)
+    return Action(ActionType.CHOOSE_CARDS, request.player_id)

@@ -1,0 +1,196 @@
+"""Game state data model for the PokéPrism engine.
+
+Follows §6.1 of PROJECT.md exactly, with one approved addition:
+  CardInstance.energy_provides: list[str]  (approved Q3)
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from enum import Enum, auto
+from typing import Optional
+import uuid
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Enumerations
+# ──────────────────────────────────────────────────────────────────────────────
+
+class Zone(Enum):
+    DECK = auto()
+    HAND = auto()
+    ACTIVE = auto()
+    BENCH = auto()
+    DISCARD = auto()
+    PRIZES = auto()
+    LOST_ZONE = auto()
+    STADIUM = auto()
+
+
+class Phase(Enum):
+    SETUP = auto()          # Initial setup: draw 7, place basics, set prizes
+    DRAW = auto()           # Mandatory draw at turn start
+    MAIN = auto()           # Play trainers, attach energy, evolve, use abilities
+    ATTACK = auto()         # Declare and resolve attack
+    BETWEEN_TURNS = auto()  # Check status conditions (poison, burn, etc.)
+    GAME_OVER = auto()      # Terminal state
+
+
+class StatusCondition(Enum):
+    POISONED = auto()
+    BURNED = auto()
+    ASLEEP = auto()
+    CONFUSED = auto()
+    PARALYZED = auto()
+
+
+class EnergyType(Enum):
+    GRASS = "Grass"
+    FIRE = "Fire"
+    WATER = "Water"
+    LIGHTNING = "Lightning"
+    PSYCHIC = "Psychic"
+    FIGHTING = "Fighting"
+    DARKNESS = "Darkness"
+    METAL = "Metal"
+    DRAGON = "Dragon"
+    FAIRY = "Fairy"
+    COLORLESS = "Colorless"
+    ANY = "Any"   # Wildcard — provided by Prism Energy, Legacy Energy, etc.
+
+    @classmethod
+    def from_str(cls, s: str) -> "EnergyType":
+        """Case-insensitive lookup with Colorless as default."""
+        s = s.strip().capitalize()
+        for member in cls:
+            if member.value.lower() == s.lower():
+                return member
+        return cls.COLORLESS
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Data classes
+# ──────────────────────────────────────────────────────────────────────────────
+
+@dataclass
+class EnergyAttachment:
+    energy_type: EnergyType
+    source_card_id: str            # The energy card's unique instance ID
+    card_def_id: str = ""          # The energy card's definition ID (for effect lookups)
+    provides: list[EnergyType] = field(default_factory=list)  # What it actually provides
+    discard_at_end_of_turn: bool = False  # For Ignition Energy
+
+
+@dataclass
+class CardInstance:
+    """A specific instance of a card in a game.
+
+    card_def_id references the CardDefinition (tcgdex_id).
+    instance_id is unique per game so two copies of the same card are distinct.
+
+    ADDITION (Q3 approved): energy_provides populated at deck-build time so
+    the transition layer can read it without a registry lookup on every attach.
+    """
+
+    instance_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    card_def_id: str = ""       # e.g. "sv06-130"
+    card_name: str = ""
+    card_type: str = ""         # "Pokemon", "Trainer", "Energy"
+    card_subtype: str = ""      # "Item", "Supporter", "Stadium", "Tool",
+                                # "Basic", "Special"
+    zone: Zone = Zone.DECK
+
+    # Pokémon-specific ─────────────────────────────────────────────────────────
+    current_hp: int = 0
+    max_hp: int = 0
+    energy_attached: list[EnergyAttachment] = field(default_factory=list)
+    status_conditions: list[StatusCondition] = field(default_factory=list)
+    tools_attached: list[str] = field(default_factory=list)  # card_def_ids of attached tools
+    evolved_from: Optional[str] = None     # instance_id of the card this evolved from
+    evolution_stage: int = 0              # 0=Basic, 1=Stage 1, 2=Stage 2
+    turn_played: int = -1                  # Turn number this card entered play
+    retreated_this_turn: bool = False
+    ability_used_this_turn: bool = False
+    damage_counters: int = 0              # Each counter = 10 damage dealt
+
+    # Multi-turn restriction flags (reset at end of turn)
+    cant_attack_next_turn: bool = False   # Set by attacks like Iron Leaves ex, Bloodmoon Ursaluna ex
+    cant_retreat_next_turn: bool = False  # Set by attacks like Dusknoir Shadow Bind, Yveltal
+    protected_from_ex: bool = False       # Set by Acerola's Mischief; cleared at start of your turn
+
+    # Energy-card-specific ─────────────────────────────────────────────────────
+    # Populated from CardDefinition.energy_provides at deck-build time.
+    # Basic energy: ["Fire"]; special energy: ["Darkness"] or ["Any"], etc.
+    energy_provides: list[str] = field(default_factory=list)
+
+    # Trainer/tool-specific ────────────────────────────────────────────────────
+    is_tool_attached: bool = False         # True when this card is attached as a Tool
+
+
+@dataclass
+class PlayerState:
+    player_id: str                         # "p1" or "p2"
+    deck: list[CardInstance] = field(default_factory=list)
+    hand: list[CardInstance] = field(default_factory=list)
+    active: Optional[CardInstance] = None
+    bench: list[CardInstance] = field(default_factory=list)    # Max 5
+    discard: list[CardInstance] = field(default_factory=list)
+    prizes: list[CardInstance] = field(default_factory=list)   # 6 prizes
+    lost_zone: list[CardInstance] = field(default_factory=list)
+
+    prizes_remaining: int = 6
+    supporter_played_this_turn: bool = False
+    energy_attached_this_turn: bool = False
+    retreat_used_this_turn: bool = False
+    gx_used: bool = False
+    vstar_used: bool = False
+    items_locked_this_turn: bool = False  # Set by Budew's "Stun Spore" attack
+    tr_supporter_played_this_turn: bool = False  # For Team Rocket's Factory stadium
+
+
+@dataclass
+class GameState:
+    game_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    turn_number: int = 0
+    active_player: str = "p1"    # Whose turn it is
+    phase: Phase = Phase.SETUP
+    p1: PlayerState = field(default_factory=lambda: PlayerState(player_id="p1"))
+    p2: PlayerState = field(default_factory=lambda: PlayerState(player_id="p2"))
+    first_player: str = ""       # Determined during setup via coin flip
+    winner: Optional[str] = None
+    win_condition: Optional[str] = None  # "prizes", "deck_out", "no_bench"
+
+    # Global effects
+    active_stadium: Optional[CardInstance] = None
+
+    # One-time game flags
+    legacy_prize_reduction_used: bool = False  # Legacy Energy: only once per game
+
+    # Per-turn damage / effect flags (reset in _end_turn)
+    active_player_damage_bonus: int = 0   # Kieran +30, etc. — added to base_damage
+    briar_active: bool = False             # Briar (sv07-132): +1 prize on active KO
+
+    # Event log
+    events: list[dict] = field(default_factory=list)
+
+    # ── Helpers ────────────────────────────────────────────────────────────────
+
+    def get_player(self, player_id: str) -> PlayerState:
+        return self.p1 if player_id == "p1" else self.p2
+
+    def get_opponent(self, player_id: str) -> PlayerState:
+        return self.p2 if player_id == "p1" else self.p1
+
+    def opponent_id(self, player_id: str) -> str:
+        return "p2" if player_id == "p1" else "p1"
+
+    def emit_event(self, event_type: str, **kwargs) -> dict:
+        event = {
+            "event_type": event_type,
+            "turn": self.turn_number,
+            "active_player": self.active_player,
+            "phase": self.phase.name,
+            **kwargs,
+        }
+        self.events.append(event)
+        return event
