@@ -4,7 +4,7 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-Phase 3 — Heuristic Player & H/H Simulation Loop — **Substantially complete (2026-04-26)**
+Phase 4 — Database Layer & Memory Stack — **In progress (started 2026-04-26)**
 
 ## Last Session
 - **Date:** 2026-04-26
@@ -34,7 +34,7 @@ Phase 3 — Heuristic Player & H/H Simulation Loop — **Substantially complete 
 - [x] Phase 1: Game Engine Core (state machine, actions, transitions, runner)
 - [x] Phase 2: Card Effect Registry (all handlers implemented; see Known Issues below)
 - [x] Phase 3: Heuristic Player & H/H Loop — **complete**
-- [ ] Phase 4+: Not started
+- [ ] Phase 4: Database Layer & Memory Stack — **in progress**
 
 ## Current Phase Progress
 
@@ -79,7 +79,8 @@ deck-out, 15-30 avg turns) with smarter card-play sequencing.
 - `backend/app/players/heuristic.py` — **New:** `HeuristicPlayer(BasePlayer)`, Appendix I
   8-step priority chain
 - `backend/app/engine/batch.py` — **New:** `run_hh_batch()` + `BatchResult`
-- `backend/scripts/__init__.py` + `backend/scripts/run_hh.py` — **New:** CLI benchmark runner
+- `backend/scripts/__init__.py` + `backend/scripts/run_hh.py` — **New:** CLI benchmark runner;
+  added `--swap` flag (P1=TR Mewtwo, P2=Dragapult) for matchup asymmetry analysis
 - `backend/tests/test_players/test_heuristic.py` — **New:** 7 HeuristicPlayer tests
 - `docs/STATUS.md` — Phase 3 results recorded
 
@@ -131,9 +132,15 @@ deck-out, 15-30 avg turns) with smarter card-play sequencing.
 
 ## Phase 3 Benchmark Results (2026-04-26)
 
-### H/H — HeuristicPlayer vs HeuristicPlayer (100 games, Dragapult vs TR Mewtwo)
+### H/H — HeuristicPlayer vs HeuristicPlayer (100 games, Dragapult P1 vs TR Mewtwo P2)
 - **P1 win rate: 82%** | Avg turns: 42.0 | **Deck-out: 4%** ✅ | No-bench: 8%
-- Deck-out improvement: 21% (G/G) → 4% (H/H) — major quality gain
+
+### H/H swapped — HeuristicPlayer vs HeuristicPlayer (100 games, TR Mewtwo P1 vs Dragapult P2)
+- **P1 (TR Mewtwo) win rate: 23%** = **Dragapult (P2) win rate: 77%** | Avg turns: 43.2 | Deck-out: 7% | No-bench: 9%
+
+### Matchup asymmetry analysis
+Dragapult wins ~80% regardless of seat (82% as P1, 77% as P2). First-player advantage
+is only ~5 points. The 82% in normal H/H is primarily deck matchup asymmetry, not seating.
 
 ### H/G — HeuristicPlayer (P1 Dragapult) vs GreedyPlayer (P2 TR Mewtwo) (100 games)
 - **P1 win rate: 58%** | Avg turns: 43.0 | Deck-out: 19% | No-bench: 6%

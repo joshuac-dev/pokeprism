@@ -113,6 +113,12 @@ async def _run(args: argparse.Namespace) -> None:
     p1_deck = p1_defs
     p2_deck = p2_defs
 
+    if args.swap:
+        p1_deck, p2_deck = p2_deck, p1_deck
+        p1_name, p2_name = "TR-Mewtwo", "Dragapult"
+    else:
+        p1_name, p2_name = "Dragapult", "TR-Mewtwo"
+
     if args.greedy:
         p1_cls, p2_cls = GreedyPlayer, GreedyPlayer
         mode = "G/G"
@@ -123,15 +129,16 @@ async def _run(args: argparse.Namespace) -> None:
         p1_cls, p2_cls = HeuristicPlayer, HeuristicPlayer
         mode = "H/H"
 
+    swap_label = " (swapped)" if args.swap else ""
     print(f"Running {args.num_games} × {mode} games "
-          f"(Dragapult vs TR Mewtwo) …\n")
+          f"({p1_name} vs {p2_name}){swap_label} …\n")
 
     result = await run_hh_batch(
         p1_deck=p1_deck,
         p2_deck=p2_deck,
         num_games=args.num_games,
-        p1_deck_name="Dragapult",
-        p2_deck_name="TR-Mewtwo",
+        p1_deck_name=p1_name,
+        p2_deck_name=p2_name,
         p1_player_class=p1_cls,
         p2_player_class=p2_cls,
         verbose=True,
@@ -152,6 +159,8 @@ def main() -> None:
                         help="G/G mode: both players use GreedyPlayer")
     parser.add_argument("--p2-greedy", action="store_true",
                         help="H/G mode: P1=Heuristic, P2=Greedy")
+    parser.add_argument("--swap", action="store_true",
+                        help="Swap decks: P1=TR Mewtwo, P2=Dragapult")
     args = parser.parse_args()
 
     asyncio.run(_run(args))
