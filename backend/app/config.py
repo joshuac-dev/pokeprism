@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = Field(default="INFO")
 
     class Config:
-        env_file = ".env"
+        env_file = [".env", "../.env"]
         extra = "ignore"
 
 

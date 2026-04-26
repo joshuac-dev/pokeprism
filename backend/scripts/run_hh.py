@@ -142,10 +142,12 @@ async def _run(args: argparse.Namespace) -> None:
         p1_player_class=p1_cls,
         p2_player_class=p2_cls,
         verbose=True,
+        persist=args.persist,
     )
 
+    persist_label = "  [persisted to DB]" if args.persist else ""
     print(f"\n{'─' * 40}")
-    print(f"  Mode: {mode}  |  {args.num_games} games")
+    print(f"  Mode: {mode}  |  {args.num_games} games{persist_label}")
     print(f"{'─' * 40}")
     print(result.summary())
     print(f"{'─' * 40}")
@@ -161,6 +163,8 @@ def main() -> None:
                         help="H/G mode: P1=Heuristic, P2=Greedy")
     parser.add_argument("--swap", action="store_true",
                         help="Swap decks: P1=TR Mewtwo, P2=Dragapult")
+    parser.add_argument("--persist", action="store_true",
+                        help="Write match results to Postgres + Neo4j (Phase 4)")
     args = parser.parse_args()
 
     asyncio.run(_run(args))

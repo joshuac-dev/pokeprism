@@ -3,7 +3,8 @@
 Orchestrates N MatchRunner games and returns aggregate statistics.
 
 Phase 3: output is an in-memory BatchResult.
-Phase 7: app/tasks/simulation.py wraps this as a Celery task, adds DB writes.
+Phase 4: accepts optional memory writers to persist results to Postgres + Neo4j.
+Phase 7: app/tasks/simulation.py wraps this as a Celery task.
 
 Usage (programmatic):
     from app.engine.batch import run_hh_batch
@@ -17,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import uuid
 from dataclasses import dataclass, field
 from typing import Callable, Optional, Type
 
@@ -62,6 +64,8 @@ async def run_hh_batch(
     p1_player_class: Optional[Type[PlayerInterface]] = None,
     p2_player_class: Optional[Type[PlayerInterface]] = None,
     verbose: bool = True,
+    simulation_id: Optional[uuid.UUID] = None,
+    persist: bool = False,
 ) -> BatchResult:
     """Run ``num_games`` matches and return aggregate statistics.
 
@@ -73,6 +77,10 @@ async def run_hh_batch(
         p1_player_class: Player class for P1 (default: HeuristicPlayer).
         p2_player_class: Player class for P2 (default: same as P1).
         verbose: Print progress every 100 games.
+        simulation_id: UUID to group results under in the DB. Auto-generated
+            if persist=True and no ID is supplied.
+        persist: If True, write each match to Postgres + Neo4j via
+            MatchMemoryWriter and GraphMemoryWriter.
 
     Returns:
         BatchResult with win rates, average turns, and all MatchResult objects.
@@ -84,6 +92,39 @@ async def run_hh_batch(
 
     p1_player = PlayerCls1()
     p2_player = PlayerCls2()
+
+    # --- memory writers (lazily imported to avoid import cycles) ---
+    pg_writer = None
+    graph_writer = None
+    db_session_cm = None
+    p1_deck_db_id: Optional[uuid.UUID] = None
+    p2_deck_db_id: Optional[uuid.UUID] = None
+    round_id: Optional[uuid.UUID] = None
+
+    if persist:
+        from app.db.session import AsyncSessionLocal
+        from app.memory.postgres import MatchMemoryWriter
+        from app.memory.graph import GraphMemoryWriter
+
+        if simulation_id is None:
+            simulation_id = uuid.uuid4()
+        round_id = uuid.uuid4()
+        pg_writer = MatchMemoryWriter()
+        graph_writer = GraphMemoryWriter()
+
+        # Bootstrap: ensure simulation, round, cards, and deck rows exist.
+        async with AsyncSessionLocal() as db:
+            await pg_writer.ensure_cards(
+                list({c.tcgdex_id: c for c in p1_deck + p2_deck}.values()), db
+            )
+            p1_deck_db_id = await pg_writer.ensure_deck(p1_deck_name, p1_deck, db)
+            p2_deck_db_id = await pg_writer.ensure_deck(p2_deck_name, p2_deck, db)
+            await pg_writer.ensure_simulation(simulation_id, db)
+            await pg_writer.ensure_round(
+                round_id, simulation_id, 1,
+                {"p1": p1_deck_name, "p2": p2_deck_name}, db
+            )
+            await db.commit()
 
     results: list[MatchResult] = []
 
@@ -99,6 +140,27 @@ async def run_hh_batch(
         )
         result = await runner.run()
         results.append(result)
+
+        if persist and pg_writer and graph_writer:
+            async with AsyncSessionLocal() as db:
+                match_id = await pg_writer.write_match(
+                    result=result,
+                    simulation_id=simulation_id,
+                    round_id=round_id,
+                    round_number=1,
+                    p1_deck_id=p1_deck_db_id,
+                    p2_deck_id=p2_deck_db_id,
+                    db=db,
+                )
+                await db.commit()
+            await graph_writer.write_match(
+                result=result,
+                match_id=match_id,
+                p1_deck_id=p1_deck_db_id,
+                p2_deck_id=p2_deck_db_id,
+                p1_card_defs=p1_deck,
+                p2_card_defs=p2_deck,
+            )
 
         if verbose and (i + 1) % 100 == 0:
             logger.info("Completed %d/%d games", i + 1, num_games)
