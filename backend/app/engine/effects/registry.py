@@ -42,6 +42,7 @@ class EffectRegistry:
     def __init__(self) -> None:
         self._attack_effects:  dict[str, Callable] = {}
         self._ability_effects: dict[str, Callable] = {}
+        self._ability_conditions: dict[str, Callable] = {}  # optional precondition
         self._trainer_effects: dict[str, Callable] = {}
         self._energy_effects:  dict[str, Callable] = {}
 
@@ -64,9 +65,20 @@ class EffectRegistry:
         self._attack_effects[key] = handler
 
     def register_ability(self, card_id: str, ability_name: str,
-                         handler: Callable) -> None:
+                         handler: Callable,
+                         condition: Optional[Callable] = None) -> None:
+        """Register an activatable ability handler.
+
+        Args:
+            condition: Optional ``(state, player_id) -> bool`` that returns
+                       False when the ability cannot currently activate (e.g.
+                       Lunar Cycle without Solrock in play).  When False,
+                       USE_ABILITY is not offered as a legal action.
+        """
         key = f"{card_id}:{ability_name}"
         self._ability_effects[key] = handler
+        if condition is not None:
+            self._ability_conditions[key] = condition
 
     def register_trainer(self, card_id: str, handler: Callable) -> None:
         self._trainer_effects[card_id] = handler
@@ -130,6 +142,28 @@ class EffectRegistry:
             return card_id in self._energy_effects
         return False
 
+    def ability_can_activate(self, card_id: str, ability_name: str,
+                             state: "GameState", player_id: str,
+                             poke: object = None) -> bool:
+        """Return False if a registered condition says the ability cannot fire now.
+
+        Args:
+            poke: The specific in-play Pokémon instance being evaluated.
+                  Condition functions that accept 3 positional arguments will
+                  receive it; 2-argument conditions are called without it.
+        """
+        key = f"{card_id}:{ability_name}"
+        cond = self._ability_conditions.get(key)
+        if cond is None:
+            return True  # no precondition registered → always offerable
+        try:
+            sig = inspect.signature(cond)
+            if len(sig.parameters) >= 3:
+                return bool(cond(state, player_id, poke))
+            return bool(cond(state, player_id))
+        except Exception:
+            return True  # fail open: offer the action if condition check errors
+
     # ── Default flat-damage resolver ──────────────────────────────────────────
 
     def _default_damage(self, state: "GameState", action: "Action") -> "GameState":
@@ -148,6 +182,7 @@ class EffectRegistry:
 
         player = state.get_player(action.player_id)
         opponent = state.get_opponent(action.player_id)
+        opp_id = state.opponent_id(action.player_id)
 
         if not player.active or not opponent.active:
             return state
@@ -162,14 +197,41 @@ class EffectRegistry:
         attack = cdef.attacks[action.attack_index]
         base_damage = parse_damage(attack.damage) + state.active_player_damage_bonus
 
+        # Growl / attack_damage_reduction: defender's attacks do less damage this turn
+        base_damage = max(0, base_damage - player.active.attack_damage_reduction)
+
+        # Adrena-Power (sv06-111 Okidogi): +100 damage when {D} energy attached
+        from app.engine.effects.abilities import (
+            has_adrena_power, has_cornerstone_stance, has_mysterious_rock_inn,
+            has_adrena_pheromone,
+        )
+        if has_adrena_power(player.active):
+            base_damage += 100
+
         if base_damage > 0:
             final_damage = apply_weakness_resistance(
-                base_damage, player.active, opponent.active
+                base_damage, player.active, opponent.active,
+                state=state, defender_player_id=opp_id,
             )
             final_damage += get_tool_damage_bonus(
                 player.active, opponent.active, action.attack_index, state, action.player_id
             )
             final_damage = max(0, final_damage)
+
+            # Passive ability damage blocks (in priority order)
+            if opponent.active.protected_from_ex and cdef.is_ex:
+                final_damage = 0
+            elif has_cornerstone_stance(opponent.active, player.active):
+                final_damage = 0
+            elif has_mysterious_rock_inn(opponent.active, player.active):
+                final_damage = 0
+            elif has_adrena_pheromone(opponent.active):
+                import random as _random
+                if _random.choice([True, False]):  # Heads = no damage
+                    state.emit_event("adrena_pheromone_blocked",
+                                     player=opp_id, card=opponent.active.card_name)
+                    final_damage = 0
+
             opponent.active.current_hp -= final_damage
             opponent.active.damage_counters += final_damage // 10
 
@@ -242,6 +304,19 @@ async def _drive_effect(
         pass
 
 
+def _card_choice_id(c) -> str:
+    """Return the canonical ID for a card in a ChoiceRequest.
+
+    CardInstance objects use instance_id; EnergyAttachment objects (passed by
+    energy-discard handlers) use source_card_id as the unique identifier.
+    """
+    if hasattr(c, "instance_id"):
+        return c.instance_id
+    if hasattr(c, "source_card_id"):
+        return c.source_card_id
+    return str(id(c))
+
+
 def _choice_to_legal_actions(request) -> list:
     """Convert a ChoiceRequest into a list of legal Action objects for the player."""
     from app.engine.actions import Action, ActionType
@@ -251,7 +326,7 @@ def _choice_to_legal_actions(request) -> list:
         return [Action(
             action_type=ActionType.CHOOSE_CARDS,
             player_id=request.player_id,
-            selected_cards=[c.instance_id for c in request.cards],
+            selected_cards=[_card_choice_id(c) for c in request.cards],
             choice_context=request,
         )]
     elif request.choice_type == "choose_target":
@@ -284,7 +359,7 @@ def _default_choice(request) -> "Action":
     from app.engine.actions import Action, ActionType
 
     if request.choice_type == "choose_cards":
-        chosen = [c.instance_id for c in request.cards[:request.max_count]]
+        chosen = [_card_choice_id(c) for c in request.cards[:request.max_count]]
         return Action(ActionType.CHOOSE_CARDS, request.player_id, selected_cards=chosen,
                       choice_context=request)
     elif request.choice_type == "choose_target":

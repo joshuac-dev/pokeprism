@@ -1,0 +1,53 @@
+{
+  "category": "Energy",
+  "id": "sv06-167",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/167",
+  "localId": "167",
+  "name": "Legacy Energy",
+  "rarity": "ACE SPEC Rare",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "effect": "As long as this card is attached to a Pokémon, it provides every type of Energy but provides only 1 Energy at a time.\n\nIf the Pokémon this card is attached to is Knocked Out by damage from an attack from your opponent's Pokémon, that player takes 1 fewer Prize card. This effect of your Legacy Energy can't be applied more than once per game.",
+  "energyType": "Special",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 769341,
+      "avg": 1.71,
+      "low": 1,
+      "trend": 2.37,
+      "avg1": 2.59,
+      "avg7": 2.16,
+      "avg30": 1.89,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

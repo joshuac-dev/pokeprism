@@ -1,0 +1,148 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-024",
+  "illustrator": "takuyoa",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/024",
+  "localId": "024",
+  "name": "Blaziken ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 817176,
+          "avg": 1.58,
+          "low": 0.8,
+          "trend": 3.43,
+          "avg1": 4.9,
+          "avg7": 3.48,
+          "avg30": 2.11,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "555jb0efopmyclvkikic41",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 841284,
+          "avg": 1.77,
+          "low": 2,
+          "trend": 1.26,
+          "avg1": 1.97,
+          "avg7": 1.77,
+          "avg30": 2.09,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "jumbo",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "7g4cbxtmtngwhnkbcgz"
+    },
+    {
+      "type": "holo",
+      "size": "jumbo",
+      "variantId": "slwlv6rn87"
+    }
+  ],
+  "dexId": [
+    257
+  ],
+  "hp": 320,
+  "types": [
+    "Fire"
+  ],
+  "evolveFrom": "Combusken",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Seething Spirit",
+      "effect": "Once during your turn, you may attach a Basic Energy card from your discard pile to 1 of your Pokémon."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Fire",
+        "Colorless"
+      ],
+      "name": "Smolder-sault",
+      "effect": "During your next turn, this Pokémon can't attack.",
+      "damage": 200
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 817176,
+      "avg": 1.58,
+      "low": 0.8,
+      "trend": 3.43,
+      "avg1": 4.9,
+      "avg7": 3.48,
+      "avg30": 2.11,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

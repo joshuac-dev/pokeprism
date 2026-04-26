@@ -1,0 +1,154 @@
+{
+  "category": "Pokemon",
+  "id": "me02.5-039",
+  "illustrator": "Jiro Sasumo",
+  "image": "https://assets.tcgdex.net/en/me/me02.5/039",
+  "localId": "039",
+  "name": "Psyduck",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 217,
+      "total": 295
+    },
+    "id": "me02.5",
+    "logo": "https://assets.tcgdex.net/en/me/me02.5/logo",
+    "name": "Ascended Heroes",
+    "symbol": "https://assets.tcgdex.net/univ/me/me02.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 869650,
+          "avg": 0.09,
+          "low": 0.02,
+          "trend": 0.08,
+          "avg1": 0.06,
+          "avg7": 0.08,
+          "avg30": 0.09,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "loveball",
+      "variantId": "334f6ffhbf3bxitz7va48fs9a",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 870199,
+          "avg": null,
+          "low": 0.03,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 0.3,
+          "low-holo": 0.03,
+          "trend-holo": 0.21,
+          "avg1-holo": 0.23,
+          "avg7-holo": 0.25,
+          "avg30-holo": 0.29
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "energy",
+      "variantId": "3wehmjjju11cdaad92gj82f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 870200,
+          "avg": null,
+          "low": 0.02,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 0.3,
+          "low-holo": 0.02,
+          "trend-holo": 0.22,
+          "avg1-holo": 0.28,
+          "avg7-holo": 0.29,
+          "avg30-holo": 0.29
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "hp": 70,
+  "types": [
+    "Water"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Damp",
+      "effect": "Pokémon in play (both yours and your opponent's) lose any Ability that requires the Pokémon using it to Knock Out itself."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Ram",
+      "damage": 20
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-04-15T19:47:06Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 869650,
+      "avg": 0.09,
+      "low": 0.02,
+      "trend": 0.08,
+      "avg1": 0.06,
+      "avg7": 0.08,
+      "avg30": 0.09,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

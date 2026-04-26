@@ -1,0 +1,79 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-053",
+  "illustrator": "Makura Tami",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/053",
+  "localId": "053",
+  "name": "Froslass",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    478
+  ],
+  "hp": 90,
+  "types": [
+    "Water"
+  ],
+  "evolveFrom": "Snorunt",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Freezing Shroud",
+      "effect": "During Pokémon Checkup, put 1 damage counter on each Pokémon that has an Ability (both yours and your opponent's), except any Froslass."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Water",
+        "Colorless"
+      ],
+      "name": "Frost Smash",
+      "damage": 60
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:13+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 769227,
+      "avg": 0.21,
+      "low": 0.02,
+      "trend": 0.24,
+      "avg1": 0.23,
+      "avg7": 0.22,
+      "avg30": 0.22,
+      "avg-holo": 0.26,
+      "low-holo": 0.02,
+      "trend-holo": 0.34,
+      "avg1-holo": 0.25,
+      "avg7-holo": 0.32,
+      "avg30-holo": 0.28
+    },
+    "tcgplayer": null
+  }
+}

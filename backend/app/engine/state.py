@@ -42,6 +42,7 @@ class StatusCondition(Enum):
     ASLEEP = auto()
     CONFUSED = auto()
     PARALYZED = auto()
+    TOXIC = auto()       # Heavy Poison: 3 damage counters between turns (Pecharunt Poison Chain)
 
 
 class EnergyType(Enum):
@@ -104,7 +105,7 @@ class CardInstance:
     current_hp: int = 0
     max_hp: int = 0
     energy_attached: list[EnergyAttachment] = field(default_factory=list)
-    status_conditions: list[StatusCondition] = field(default_factory=list)
+    status_conditions: set[StatusCondition] = field(default_factory=set)
     tools_attached: list[str] = field(default_factory=list)  # card_def_ids of attached tools
     evolved_from: Optional[str] = None     # instance_id of the card this evolved from
     evolution_stage: int = 0              # 0=Basic, 1=Stage 1, 2=Stage 2
@@ -117,6 +118,7 @@ class CardInstance:
     cant_attack_next_turn: bool = False   # Set by attacks like Iron Leaves ex, Bloodmoon Ursaluna ex
     cant_retreat_next_turn: bool = False  # Set by attacks like Dusknoir Shadow Bind, Yveltal
     protected_from_ex: bool = False       # Set by Acerola's Mischief; cleared at start of your turn
+    attack_damage_reduction: int = 0     # Set by Growl etc.; reduces this Pokémon's attack damage
 
     # Energy-card-specific ─────────────────────────────────────────────────────
     # Populated from CardDefinition.energy_provides at deck-build time.

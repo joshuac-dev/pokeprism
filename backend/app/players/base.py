@@ -108,78 +108,18 @@ class RandomPlayer(PlayerInterface):
         return active_id, bench_ids
 
 
-class GreedyPlayer(PlayerInterface):
-    """Greedy heuristic player — used as the stronger baseline in Phase 1 tests.
+class BasePlayer(PlayerInterface):
+    """Shared helper layer for rule-based players (GreedyPlayer, HeuristicPlayer, etc.).
 
-    Priority order for normal actions:
-      1. ATTACK if possible (in ATTACK phase)
-      2. EVOLVE
-      3. USE_ABILITY
-      4. ATTACH_ENERGY
-      5. PLAY_BASIC
-      6. PLAY_SUPPORTER
-      7. PLAY_ITEM
-      8. PASS  (moves to ATTACK phase so #1 can fire next)
-      9. END_TURN
-      10. RETREAT (last resort — discards energy used for retreat cost)
-      11. SWITCH_ACTIVE
-
-    For CHOOSE_* actions (effect handler choices):
-      CHOOSE_CARDS: heuristic based on prompt context
-      CHOOSE_TARGET: pick highest-priority target
-      CHOOSE_OPTION: pick option 0 (first / default)
+    Subclasses must implement ``choose_action``.  All helpers here are
+    deck-agnostic and have no side effects on state.
     """
 
-    from app.engine.actions import ActionType as _AT
+    # ── Shared choice handlers (CHOOSE_* interrupts) ──────────────────────────
 
-    _PRIORITY = [
-        "ATTACK",
-        "EVOLVE",
-        "USE_ABILITY",
-        "ATTACH_ENERGY",
-        "PLAY_BASIC",
-        "PLAY_SUPPORTER",
-        "PLAY_ITEM",
-        "PASS",
-        "END_TURN",
-        "RETREAT",
-        "SWITCH_ACTIVE",
-    ]
-
-    async def choose_action(self, state, legal_actions: list):
-        from app.engine.actions import ActionType, Action
-
-        if not legal_actions:
-            return None
-
-        first = legal_actions[0]
-
-        # ── Effect-driven choice actions ───────────────────────────────────────
-        if first.action_type == ActionType.CHOOSE_CARDS:
-            return self._choose_cards(state, first)
-        if first.action_type == ActionType.CHOOSE_TARGET:
-            return self._choose_target(state, legal_actions)
-        if first.action_type == ActionType.CHOOSE_OPTION:
-            return legal_actions[0]  # default: first/best option
-
-        # ── Normal action priority ─────────────────────────────────────────────
-        for preferred in self._PRIORITY:
-            matching = [a for a in legal_actions if a.action_type.name == preferred]
-            if not matching:
-                continue
-            if preferred == "ATTACH_ENERGY":
-                return self._best_energy_target(state, matching)
-            if preferred == "ATTACK":
-                return self._best_attack(state, matching)
-            if preferred == "PASS":
-                # Before passing to ATTACK phase, check whether we'd have any
-                # valid attack actions.  If not, retreat to a bench Pokémon
-                # that can attack instead of wasting the turn.
-                retreat = self._retreat_if_blocked(state, legal_actions)
-                if retreat is not None:
-                    return retreat
-            return matching[0]
-        return legal_actions[0]
+    def _find_action(self, legal_actions: list, action_type) -> Optional[object]:
+        """Return the first legal action of the given ActionType, or None."""
+        return next((a for a in legal_actions if a.action_type == action_type), None)
 
     def _choose_cards(self, state, action):
         """Heuristic card selection for CHOOSE_CARDS effects."""
@@ -490,3 +430,55 @@ class GreedyPlayer(PlayerInterface):
         active_id = basics[0].instance_id
         bench_ids = [b.instance_id for b in basics[1:5]]
         return active_id, bench_ids
+
+
+class GreedyPlayer(BasePlayer):
+    """Greedy heuristic player — Phase 1/2 test baseline.
+
+    Uses a fixed priority list.  All helper logic lives in BasePlayer.
+    HeuristicPlayer is the production player for H/H simulation.
+    """
+
+    _PRIORITY = [
+        "ATTACK",
+        "EVOLVE",
+        "USE_ABILITY",
+        "ATTACH_ENERGY",
+        "PLAY_BASIC",
+        "PLAY_SUPPORTER",
+        "PLAY_ITEM",
+        "PASS",
+        "END_TURN",
+        "RETREAT",
+        "SWITCH_ACTIVE",
+    ]
+
+    async def choose_action(self, state, legal_actions: list):
+        from app.engine.actions import ActionType
+
+        if not legal_actions:
+            return None
+
+        first = legal_actions[0]
+
+        if first.action_type == ActionType.CHOOSE_CARDS:
+            return self._choose_cards(state, first)
+        if first.action_type == ActionType.CHOOSE_TARGET:
+            return self._choose_target(state, legal_actions)
+        if first.action_type == ActionType.CHOOSE_OPTION:
+            return legal_actions[0]
+
+        for preferred in self._PRIORITY:
+            matching = [a for a in legal_actions if a.action_type.name == preferred]
+            if not matching:
+                continue
+            if preferred == "ATTACH_ENERGY":
+                return self._best_energy_target(state, matching)
+            if preferred == "ATTACK":
+                return self._best_attack(state, matching)
+            if preferred == "PASS":
+                retreat = self._retreat_if_blocked(state, legal_actions)
+                if retreat is not None:
+                    return retreat
+            return matching[0]
+        return legal_actions[0]

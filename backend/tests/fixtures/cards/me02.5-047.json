@@ -1,0 +1,106 @@
+{
+  "category": "Pokemon",
+  "id": "me02.5-047",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/me/me02.5/047",
+  "localId": "047",
+  "name": "Mega Froslass ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 217,
+      "total": 295
+    },
+    "id": "me02.5",
+    "logo": "https://assets.tcgdex.net/en/me/me02.5/logo",
+    "name": "Ascended Heroes",
+    "symbol": "https://assets.tcgdex.net/univ/me/me02.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 869658,
+          "avg": 3.88,
+          "low": 1.9,
+          "trend": 6.97,
+          "avg1": 6.26,
+          "avg7": 6.51,
+          "avg30": 4.6,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "hp": 310,
+  "types": [
+    "Water"
+  ],
+  "evolveFrom": "Snorunt",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Water"
+      ],
+      "name": "Resentful Refrain",
+      "effect": "This attack does 50 damage for each card in your opponent's hand.",
+      "damage": "50×"
+    },
+    {
+      "cost": [
+        "Water",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Absolute Snow",
+      "effect": "Your opponent's Active Pokémon is now Asleep.",
+      "damage": 150
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-04-15T19:47:06Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 869658,
+      "avg": 3.88,
+      "low": 1.9,
+      "trend": 6.97,
+      "avg1": 6.26,
+      "avg7": 6.51,
+      "avg30": 4.6,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-116",
+  "illustrator": "rika",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/116",
+  "localId": "116",
+  "name": "N's Reshiram",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 817268,
+          "avg": 0.09,
+          "low": 0.02,
+          "trend": 0.13,
+          "avg1": 0.04,
+          "avg7": 0.13,
+          "avg30": 0.09,
+          "avg-holo": 0.34,
+          "low-holo": 0.02,
+          "trend-holo": 0.43,
+          "avg1-holo": 0.27,
+          "avg7-holo": 0.41,
+          "avg30-holo": 0.37
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 817268,
+          "avg": 0.09,
+          "low": 0.02,
+          "trend": 0.13,
+          "avg1": 0.04,
+          "avg7": 0.13,
+          "avg30": 0.09,
+          "avg-holo": 0.34,
+          "low-holo": 0.02,
+          "trend-holo": 0.43,
+          "avg1-holo": 0.27,
+          "avg7-holo": 0.41,
+          "avg30-holo": 0.37
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "foil": "cosmos",
+      "variantId": "6x9wic2vzb5bfzn0gz10e76xy60nqt2vwbzzupgwp6"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "gx8bq2hegum3q6irsxlvqxm955ikw9gd1h311"
+    }
+  ],
+  "dexId": [
+    643
+  ],
+  "hp": 130,
+  "types": [
+    "Dragon"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fire",
+        "Lightning"
+      ],
+      "name": "Powerful Rage",
+      "effect": "This attack does 20 damage for each damage counter on this Pokémon.",
+      "damage": "20×"
+    },
+    {
+      "cost": [
+        "Fire",
+        "Fire",
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "Virtuous Flame",
+      "damage": 170
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 817268,
+      "avg": 0.09,
+      "low": 0.02,
+      "trend": 0.13,
+      "avg1": 0.04,
+      "avg7": 0.13,
+      "avg30": 0.09,
+      "avg-holo": 0.34,
+      "low-holo": 0.02,
+      "trend-holo": 0.43,
+      "avg1-holo": 0.27,
+      "avg7-holo": 0.41,
+      "avg30-holo": 0.37
+    },
+    "tcgplayer": null
+  }
+}

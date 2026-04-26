@@ -1,0 +1,90 @@
+{
+  "category": "Pokemon",
+  "id": "me03-042",
+  "illustrator": "nagimiso",
+  "image": "https://assets.tcgdex.net/en/me/me03/042",
+  "localId": "042",
+  "name": "Binacle",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 88,
+      "total": 124
+    },
+    "id": "me03",
+    "logo": "https://assets.tcgdex.net/en/me/me03/logo",
+    "name": "Perfect Order",
+    "symbol": "https://assets.tcgdex.net/univ/me/me03/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    688
+  ],
+  "hp": 80,
+  "types": [
+    "Fighting"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting"
+      ],
+      "name": "Double Draw",
+      "effect": "Draw 2 cards."
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Fighting"
+      ],
+      "name": "Scratch",
+      "damage": 30
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "J",
+  "legal": {
+    "standard": false,
+    "expanded": false
+  },
+  "updated": "2026-04-03T13:05:42+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 877456,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.06,
+      "avg7": 0.05,
+      "avg30": 0.06,
+      "avg-holo": 0.16,
+      "low-holo": 0.02,
+      "trend-holo": 0.08,
+      "avg1-holo": 0.1,
+      "avg7-holo": 0.11,
+      "avg30-holo": 0.16
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "category": "Trainer",
+  "id": "sv10.5w-084",
+  "illustrator": "yuu",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/084",
+  "localId": "084",
+  "name": "Hilda",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "effect": "Search your deck for an Evolution Pokémon and an Energy card, reveal them, and put them into your hand. Then, shuffle your deck.",
+  "trainerType": "Supporter",
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 836059,
+      "avg": 1.09,
+      "low": 0.02,
+      "trend": 1.67,
+      "avg1": 1.93,
+      "avg7": 1.6,
+      "avg30": 1.28,
+      "avg-holo": 1.53,
+      "low-holo": 0.05,
+      "trend-holo": 1.79,
+      "avg1-holo": 1.88,
+      "avg7-holo": 2.06,
+      "avg30-holo": 1.71
+    },
+    "tcgplayer": null
+  }
+}

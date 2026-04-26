@@ -1,0 +1,82 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-141",
+  "illustrator": "aky CG Works",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/141",
+  "localId": "141",
+  "name": "Bloodmoon Ursaluna ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    901
+  ],
+  "hp": 260,
+  "types": [
+    "Colorless"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Seasoned Skill",
+      "effect": "Blood Moon used by this Pokémon costs {C} less for each Prize card your opponent has taken."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Blood Moon",
+      "effect": "During your next turn, this Pokémon can't attack.",
+      "damage": 240
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 769315,
+      "avg": 1.62,
+      "low": 0.5,
+      "trend": 1.46,
+      "avg1": 1.5,
+      "avg7": 1.52,
+      "avg30": 1.52,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "category": "Trainer",
+  "id": "sv07-132",
+  "illustrator": "Naoki Saito",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/132",
+  "localId": "132",
+  "name": "Briar",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "effect": "You can use this card only if your opponent has exactly 2 Prize cards remaining.\n\nDuring this turn, if your opponent's Active Pokémon is Knocked Out by damage from an attack used by your Tera Pokémon, take 1 more Prize card.",
+  "trainerType": "Supporter",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 785986,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.07,
+      "avg1": 0.04,
+      "avg7": 0.05,
+      "avg30": 0.06,
+      "avg-holo": 0.14,
+      "low-holo": 0.02,
+      "trend-holo": 0.19,
+      "avg1-holo": 0.1,
+      "avg7-holo": 0.19,
+      "avg30-holo": 0.15
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "category": "Pokemon",
+  "id": "me01-086",
+  "illustrator": "aky CG Works",
+  "image": "https://assets.tcgdex.net/en/me/me01/086",
+  "localId": "086",
+  "name": "Mega Absol ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 132,
+      "total": 188
+    },
+    "id": "me01",
+    "logo": "https://assets.tcgdex.net/en/me/me01/logo",
+    "name": "Mega Evolution",
+    "symbol": "https://assets.tcgdex.net/univ/me/me01/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "mtltux8quqoc7vwp24c9zzhgmzduu8xcik8"
+    }
+  ],
+  "dexId": [
+    351
+  ],
+  "hp": 280,
+  "types": [
+    "Darkness"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Terminal Period",
+      "effect": "If your opponent's Active Pokémon has exactly 6 damage counters on it, that Pokémon is Knocked Out."
+    },
+    {
+      "cost": [
+        "Darkness",
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Claw of Darkness",
+      "effect": "Your opponent reveals their hand, and you discard a card you find there.",
+      "damage": 200
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-01-07T13:25:47+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 851157,
+      "avg": 0.69,
+      "low": 0.08,
+      "trend": 0.69,
+      "avg1": 0.78,
+      "avg7": 0.72,
+      "avg30": 0.7,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

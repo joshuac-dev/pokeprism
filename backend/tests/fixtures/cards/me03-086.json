@@ -1,0 +1,49 @@
+{
+  "category": "Energy",
+  "id": "me03-086",
+  "image": "https://assets.tcgdex.net/en/me/me03/086",
+  "localId": "086",
+  "name": "Growing Grass Energy",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 88,
+      "total": 124
+    },
+    "id": "me03",
+    "logo": "https://assets.tcgdex.net/en/me/me03/logo",
+    "name": "Perfect Order",
+    "symbol": "https://assets.tcgdex.net/univ/me/me03/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "effect": "As long as this card is attached to a Pokémon, it provides {G} Energy.\nThe {G} Pokémon this card is attached to gets +20 HP.",
+  "energyType": "Normal",
+  "regulationMark": "J",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-02T18:17:13+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

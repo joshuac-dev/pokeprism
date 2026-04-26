@@ -1,0 +1,95 @@
+{
+  "category": "Pokemon",
+  "id": "me01-104",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/me/me01/104",
+  "localId": "104",
+  "name": "Mega Kangaskhan ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 132,
+      "total": 188
+    },
+    "id": "me01",
+    "logo": "https://assets.tcgdex.net/en/me/me01/logo",
+    "name": "Mega Evolution",
+    "symbol": "https://assets.tcgdex.net/univ/me/me01/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "gx8bq2hegum3q6irsxlvqxm955ikw9gd1h311"
+    }
+  ],
+  "dexId": [
+    115
+  ],
+  "hp": 300,
+  "types": [
+    "Colorless"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Run Errand",
+      "effect": "Once during your turn, if this Pokémon is in the Active Spot, you may use this Ability. Draw 2 cards. You can't use more than 1 Run Errand Ability each turn."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Rapid-Fire Combo",
+      "effect": "Flip a coin until you get tails. This attack does 50 more damage for each heads.",
+      "damage": "200+"
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-01-07T13:25:47+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 851175,
+      "avg": 0.84,
+      "low": 0.15,
+      "trend": 0.8,
+      "avg1": 0.85,
+      "avg7": 0.8,
+      "avg30": 0.84,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

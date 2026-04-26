@@ -1,0 +1,107 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-081",
+  "illustrator": "aky CG Works",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/081",
+  "localId": "081",
+  "name": "Team Rocket's Mewtwo ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 825955,
+          "avg": 1.16,
+          "low": 0.15,
+          "trend": 1.19,
+          "avg1": 1.75,
+          "avg7": 1.25,
+          "avg30": 1.18,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    150
+  ],
+  "hp": 280,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Power Saver",
+      "effect": "This Pokémon can't attack unless you have 4 or more Team Rocket's Pokémon in play."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Psychic",
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Erasure Ball",
+      "effect": "You may discard up to 2 Energy from your Benched Pokémon. This attack does 60 more damage for each card you discarded in this way.",
+      "damage": "160+"
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 825955,
+      "avg": 1.16,
+      "low": 0.15,
+      "trend": 1.19,
+      "avg1": 1.75,
+      "avg7": 1.25,
+      "avg30": 1.18,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

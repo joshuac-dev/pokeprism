@@ -1,0 +1,85 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-036",
+  "illustrator": "Aya Kusube",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/036",
+  "localId": "036",
+  "name": "Dusclops",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    356
+  ],
+  "hp": 90,
+  "types": [
+    "Psychic"
+  ],
+  "evolveFrom": "Duskull",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Cursed Blast",
+      "effect": "Once during your turn, you may put 5 damage counters on 1 of your opponent's Pokémon. If you use this Ability, this Pokémon is Knocked Out."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Psychic",
+        "Psychic"
+      ],
+      "name": "Will-O-Wisp",
+      "damage": 50
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:44+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 805425,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.09,
+      "avg1": 0.05,
+      "avg7": 0.07,
+      "avg30": 0.06,
+      "avg-holo": 0.17,
+      "low-holo": 0.02,
+      "trend-holo": 0.19,
+      "avg1-holo": 0.2,
+      "avg7-holo": 0.16,
+      "avg30-holo": 0.17
+    },
+    "tcgplayer": null
+  }
+}

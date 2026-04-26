@@ -1,0 +1,106 @@
+{
+  "category": "Trainer",
+  "id": "sv10-170",
+  "illustrator": "Hideki Ishikawa",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/170",
+  "localId": "170",
+  "name": "Team Rocket's Archer",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 826044,
+          "avg": 0.1,
+          "low": 0.02,
+          "trend": 0.13,
+          "avg1": 0.21,
+          "avg7": 0.13,
+          "avg30": 0.11,
+          "avg-holo": 0.28,
+          "low-holo": 0.02,
+          "trend-holo": 0.25,
+          "avg1-holo": 0.3,
+          "avg7-holo": 0.3,
+          "avg30-holo": 0.28
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 826044,
+          "avg": 0.1,
+          "low": 0.02,
+          "trend": 0.13,
+          "avg1": 0.21,
+          "avg7": 0.13,
+          "avg30": 0.11,
+          "avg-holo": 0.28,
+          "low-holo": 0.02,
+          "trend-holo": 0.25,
+          "avg1-holo": 0.3,
+          "avg7-holo": 0.3,
+          "avg30-holo": 0.28
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "effect": "You can use this card only if any of your Team Rocket's Pokémon were Knocked Out during your opponent's last turn.\n\nEach player shuffles their hand into their deck. Then, you draw 5 cards, and your opponent draws 3 cards.",
+  "trainerType": "Supporter",
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 826044,
+      "avg": 0.1,
+      "low": 0.02,
+      "trend": 0.13,
+      "avg1": 0.21,
+      "avg7": 0.13,
+      "avg30": 0.11,
+      "avg-holo": 0.28,
+      "low-holo": 0.02,
+      "trend-holo": 0.25,
+      "avg1-holo": 0.3,
+      "avg7-holo": 0.3,
+      "avg30-holo": 0.28
+    },
+    "tcgplayer": null
+  }
+}

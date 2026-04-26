@@ -88,6 +88,8 @@ def apply_weakness_resistance(
     base_damage: int,
     attacker: CardInstance,
     defender: CardInstance,
+    state: "GameState" = None,
+    defender_player_id: str = None,
 ) -> int:
     """Apply weakness and resistance to base damage.
 
@@ -96,6 +98,8 @@ def apply_weakness_resistance(
       × 2   if attacker's type is in defender's weakness
       - 30  if attacker's type is in defender's resistance
       (minimum 0)
+    Fairy Zone (sv09-056 Lillie's Clefairy ex): Colorless Pokémon have
+    Psychic × 2 weakness (applied here if not already on the card).
     """
     attacker_def = card_registry.get(attacker.card_def_id)
     defender_def = card_registry.get(defender.card_def_id)
@@ -108,6 +112,7 @@ def apply_weakness_resistance(
     damage = base_damage
 
     # Weakness × 2
+    weakness_applied = False
     for weakness in defender_def.weaknesses:
         if weakness.type.lower() in attacker_types:
             mult_str = weakness.value  # e.g. "×2"
@@ -116,7 +121,20 @@ def apply_weakness_resistance(
             except ValueError:
                 mult = 2.0
             damage = int(damage * mult)
+            weakness_applied = True
             break
+
+    # Fairy Zone (sv09-056 Lillie's Clefairy ex): Colorless Pokémon have Psychic × 2
+    if not weakness_applied and state is not None and defender_player_id is not None:
+        from app.engine.effects.abilities import has_fairy_zone
+        attacker_player_id = state.opponent_id(defender_player_id)
+        defender_types = {t.lower() for t in (defender_def.types or [])}
+        if (
+            "psychic" in attacker_types
+            and "colorless" in defender_types
+            and has_fairy_zone(state, attacker_player_id)
+        ):
+            damage = int(damage * 2)
 
     # Resistance − value
     for resistance in defender_def.resistances:
@@ -169,7 +187,13 @@ def check_ko(
     - Awards prizes to the attacker
     - Sets winner/win_condition if game ends
     """
-    if target.current_hp > 0:
+    # Adrena-Power (sv06-111 Okidogi): +100 effective HP when {D} energy attached
+    effective_hp = target.current_hp
+    if target.card_def_id == "sv06-111":
+        from app.engine.effects.abilities import has_adrena_power
+        if has_adrena_power(target):
+            effective_hp += 100
+    if effective_hp > 0:
         return  # Still alive
 
     target_player = state.get_player(target_player_id)
@@ -394,16 +418,27 @@ def get_tool_damage_bonus(
     return bonus
 
 
-def get_retreat_cost_reduction(pokemon: CardInstance, state: "GameState") -> int:
-    """Return the retreat cost reduction from tools.
+def get_retreat_cost_reduction(pokemon: CardInstance, state: "GameState", player_id: str = None) -> int:
+    """Return the retreat cost reduction from tools and passive abilities.
 
     Tools checked:
       - Air Balloon (me02.5-181): -2 retreat cost
       - N's Castle (sv09-152): N's Pokémon free retreat (full reduction)
+    Passive abilities checked:
+      - Skyliner (sv08-076 Latias ex): Basic Pokémon have free retreat
     """
     # Jamming Tower neutralizes tools
     if state.active_stadium and state.active_stadium.card_def_id == "sv06-153":
         return 0
+
+    # Skyliner (sv08-076 Latias ex): Basic Pokémon have free retreat
+    if player_id is not None:
+        from app.engine.effects.abilities import has_skyliner
+        poke_def = card_registry.get(pokemon.card_def_id)
+        if (has_skyliner(state, player_id)
+                and poke_def
+                and poke_def.stage.lower() == "basic"):
+            return 9999
 
     reduction = 0
 

@@ -1,0 +1,53 @@
+{
+  "category": "Trainer",
+  "id": "sv07-136",
+  "illustrator": "AYUMI ODASHIMA",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/136",
+  "localId": "136",
+  "name": "Grand Tree",
+  "rarity": "ACE SPEC Rare",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "effect": "Once during each player's turn, that player may search their deck for a Stage 1 Pokémon that evolves from 1 of their Basic Pokémon and put it onto that Pokémon to evolve it. If that Pokémon was evolved in this way, that player may search their deck for a Stage 2 Pokémon that evolves from that Pokémon and put it onto that Pokémon to evolve it. Then, that player shuffles their deck. (Players can't evolve a Basic Pokémon during their first turn or a Basic Pokémon that was put into play this turn.)",
+  "trainerType": "Stadium",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 785990,
+      "avg": 0.52,
+      "low": 0.03,
+      "trend": 0.53,
+      "avg1": 0.4,
+      "avg7": 0.52,
+      "avg30": 0.56,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

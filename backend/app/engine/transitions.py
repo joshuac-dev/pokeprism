@@ -129,7 +129,7 @@ def _mulligan_redraw(state: GameState, action: Action, get_player=None) -> GameS
 # Main phase transitions
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _play_basic(state: GameState, action: Action, get_player=None) -> GameState:
+async def _play_basic(state: GameState, action: Action, get_player=None) -> GameState:
     """Play a Basic Pokémon from hand to bench."""
     player = state.get_player(action.player_id)
     card = _find_in_hand(player, action.card_instance_id)
@@ -151,6 +151,17 @@ def _play_basic(state: GameState, action: Action, get_player=None) -> GameState:
         if cdef_rr and "Darkness" not in (cdef_rr.types or []):
             card.current_hp = max(0, card.current_hp - 20)
             card.damage_counters += 2
+    # On-bench trigger abilities (fire automatically when the Pokémon is played to bench)
+    cdef_card = card_registry.get(card.card_def_id)
+    if cdef_card and cdef_card.abilities:
+        from app.engine.effects.abilities import BENCH_TRIGGER_ABILITIES
+        for ability in cdef_card.abilities:
+            if ability.name in BENCH_TRIGGER_ABILITIES:
+                bench_action = Action(action.action_type, action.player_id,
+                                      card_instance_id=card.instance_id)
+                await EffectRegistry.instance().resolve_ability(
+                    card.card_def_id, ability.name, state, bench_action, get_player
+                )
     return state
 
 
@@ -279,7 +290,7 @@ async def _attach_energy(state: GameState, action: Action, get_player=None) -> G
     return state
 
 
-def _evolve(state: GameState, action: Action, get_player=None) -> GameState:
+async def _evolve(state: GameState, action: Action, get_player=None) -> GameState:
     player = state.get_player(action.player_id)
     evo_card = _find_in_hand(player, action.card_instance_id)
     target = _find_in_play(player, action.target_instance_id)
@@ -295,7 +306,7 @@ def _evolve(state: GameState, action: Action, get_player=None) -> GameState:
     # Copy battle data from pre-evolution to evolution
     evo_card.energy_attached = target.energy_attached
     evo_card.tools_attached = target.tools_attached
-    evo_card.status_conditions = target.status_conditions
+    evo_card.status_conditions = set(target.status_conditions)
     evo_card.damage_counters = target.damage_counters  # Carry damage over
     evo_card.evolved_from = target.instance_id
     evo_card.turn_played = state.turn_number
@@ -328,6 +339,16 @@ def _evolve(state: GameState, action: Action, get_player=None) -> GameState:
         from_card=target.card_name,
         to_card=evo_card.card_name,
     )
+    # On-evolve trigger abilities (fire automatically when Pokémon evolves)
+    if cdef and cdef.abilities:
+        from app.engine.effects.abilities import EVOLVE_TRIGGER_ABILITIES
+        for ability in cdef.abilities:
+            if ability.name in EVOLVE_TRIGGER_ABILITIES:
+                evo_action = Action(action.action_type, action.player_id,
+                                    card_instance_id=evo_card.instance_id)
+                await EffectRegistry.instance().resolve_ability(
+                    evo_card.card_def_id, ability.name, state, evo_action, get_player
+                )
     return state
 
 

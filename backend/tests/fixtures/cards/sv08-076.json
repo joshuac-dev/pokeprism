@@ -1,0 +1,118 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-076",
+  "illustrator": "takuyoa",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/076",
+  "localId": "076",
+  "name": "Latias ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "mtltux8quqoc7vwp24c9zzhgmzduu8xcik8"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "555jb0efopmyclvkikic41"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "gym-challenge"
+      ],
+      "variantId": "2fnyg4g5376d7w3hlmh9pk4ay0k"
+    },
+    {
+      "type": "holo",
+      "size": "jumbo",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "7g4cbxtmtngwhnkbcgz"
+    }
+  ],
+  "dexId": [
+    380
+  ],
+  "hp": 210,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Skyliner",
+      "effect": "Your Basic Pokémon in play have no Retreat Cost."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Psychic",
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Eon Blade",
+      "effect": "During your next turn, this Pokémon can't attack.",
+      "damage": 200
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 794373,
+      "avg": 4.94,
+      "low": 2.99,
+      "trend": 5.38,
+      "avg1": 5.39,
+      "avg7": 5.34,
+      "avg30": 5.07,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

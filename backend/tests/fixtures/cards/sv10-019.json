@@ -1,0 +1,123 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-019",
+  "illustrator": "Saboteri",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/019",
+  "localId": "019",
+  "name": "Team Rocket's Tarountula",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 825893,
+          "avg": 0.07,
+          "low": 0.02,
+          "trend": 0.08,
+          "avg1": 0.11,
+          "avg7": 0.07,
+          "avg30": 0.07,
+          "avg-holo": 0.14,
+          "low-holo": 0.02,
+          "trend-holo": 0.14,
+          "avg1-holo": 0.2,
+          "avg7-holo": 0.15,
+          "avg30-holo": 0.14
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 825893,
+          "avg": 0.07,
+          "low": 0.02,
+          "trend": 0.08,
+          "avg1": 0.11,
+          "avg7": 0.07,
+          "avg30": 0.07,
+          "avg-holo": 0.14,
+          "low-holo": 0.02,
+          "trend-holo": 0.14,
+          "avg1-holo": 0.2,
+          "avg7-holo": 0.15,
+          "avg30-holo": 0.14
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    917
+  ],
+  "hp": 50,
+  "types": [
+    "Grass"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Take Down",
+      "effect": "This Pokémon also does 10 damage to itself.",
+      "damage": 30
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 825893,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.08,
+      "avg1": 0.11,
+      "avg7": 0.07,
+      "avg30": 0.07,
+      "avg-holo": 0.14,
+      "low-holo": 0.02,
+      "trend-holo": 0.14,
+      "avg1-holo": 0.2,
+      "avg7-holo": 0.15,
+      "avg30-holo": 0.14
+    },
+    "tcgplayer": null
+  }
+}

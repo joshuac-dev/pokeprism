@@ -1,0 +1,180 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-087",
+  "illustrator": "DOM",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/087",
+  "localId": "087",
+  "name": "Team Rocket's Mimikyu",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 825961,
+          "avg": 0.07,
+          "low": 0.02,
+          "trend": 0.08,
+          "avg1": 0.09,
+          "avg7": 0.09,
+          "avg30": 0.07,
+          "avg-holo": 0.37,
+          "low-holo": 0.02,
+          "trend-holo": 0.28,
+          "avg1-holo": 0.34,
+          "avg7-holo": 0.36,
+          "avg30-holo": 0.35
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 825961,
+          "avg": 0.07,
+          "low": 0.02,
+          "trend": 0.08,
+          "avg1": 0.09,
+          "avg7": 0.09,
+          "avg30": 0.07,
+          "avg-holo": 0.37,
+          "low-holo": 0.02,
+          "trend-holo": 0.28,
+          "avg1-holo": 0.34,
+          "avg7-holo": 0.36,
+          "avg30-holo": 0.35
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "555jb0efopmyclvkikic41",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 826182,
+          "avg": 16.43,
+          "low": 8.75,
+          "trend": 14.97,
+          "avg1": 17.5,
+          "avg7": 15.17,
+          "avg30": 16.99,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo",
+        "staff"
+      ],
+      "variantId": "2fnyg4g5382k6pl1ij0u1km1pdn",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 833946,
+          "avg": 43.58,
+          "low": 14.95,
+          "trend": 49.37,
+          "avg1": 29.93,
+          "avg7": 46.27,
+          "avg30": 42.23,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    778
+  ],
+  "hp": 60,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Gemstone Mimicry",
+      "effect": "Choose 1 of your opponent's Active Tera Pokémon's attacks and use it as this attack."
+    }
+  ],
+  "retreat": 0,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 825961,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.08,
+      "avg1": 0.09,
+      "avg7": 0.09,
+      "avg30": 0.07,
+      "avg-holo": 0.37,
+      "low-holo": 0.02,
+      "trend-holo": 0.28,
+      "avg1-holo": 0.34,
+      "avg7-holo": 0.36,
+      "avg30-holo": 0.35
+    },
+    "tcgplayer": null
+  }
+}

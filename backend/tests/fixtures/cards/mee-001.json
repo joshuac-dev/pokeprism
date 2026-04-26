@@ -1,0 +1,39 @@
+{
+  "category": "Energy",
+  "id": "mee-001",
+  "localId": "001",
+  "name": "Grass Energy",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 8,
+      "total": 8
+    },
+    "id": "mee",
+    "name": "Mega Evolution Energy"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "energyType": "Normal",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-06T18:15:02Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "category": "Trainer",
+  "id": "sv10-180",
+  "illustrator": "AYUMI ODASHIMA",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/180",
+  "localId": "180",
+  "name": "Team Rocket's Watchtower",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 826054,
+          "avg": 0.12,
+          "low": 0.02,
+          "trend": 0.13,
+          "avg1": 0.13,
+          "avg7": 0.13,
+          "avg30": 0.11,
+          "avg-holo": 0.37,
+          "low-holo": 0.02,
+          "trend-holo": 0.57,
+          "avg1-holo": 0.34,
+          "avg7-holo": 0.45,
+          "avg30-holo": 0.39
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 826054,
+          "avg": 0.12,
+          "low": 0.02,
+          "trend": 0.13,
+          "avg1": 0.13,
+          "avg7": 0.13,
+          "avg30": 0.11,
+          "avg-holo": 0.37,
+          "low-holo": 0.02,
+          "trend-holo": 0.57,
+          "avg1-holo": 0.34,
+          "avg7-holo": 0.45,
+          "avg30-holo": 0.39
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "effect": "{C} Pokémon in play (both yours and your opponent's) have no Abilities.",
+  "trainerType": "Stadium",
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 826054,
+      "avg": 0.12,
+      "low": 0.02,
+      "trend": 0.13,
+      "avg1": 0.13,
+      "avg7": 0.13,
+      "avg30": 0.11,
+      "avg-holo": 0.37,
+      "low-holo": 0.02,
+      "trend-holo": 0.57,
+      "avg1-holo": 0.34,
+      "avg7-holo": 0.45,
+      "avg30-holo": 0.39
+    },
+    "tcgplayer": null
+  }
+}

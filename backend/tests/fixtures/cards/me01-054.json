@@ -1,0 +1,83 @@
+{
+  "category": "Pokemon",
+  "id": "me01-054",
+  "illustrator": "Orca",
+  "image": "https://assets.tcgdex.net/en/me/me01/054",
+  "localId": "054",
+  "name": "Abra",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 132,
+      "total": 188
+    },
+    "id": "me01",
+    "logo": "https://assets.tcgdex.net/en/me/me01/logo",
+    "name": "Mega Evolution",
+    "symbol": "https://assets.tcgdex.net/univ/me/me01/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    63
+  ],
+  "hp": 50,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Psychic"
+      ],
+      "name": "Teleportation Attack",
+      "effect": "Switch this Pokémon with 1 of your Benched Pokémon.",
+      "damage": 10
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-01-07T13:25:47+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 851125,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.07,
+      "avg1": 0.06,
+      "avg7": 0.07,
+      "avg30": 0.07,
+      "avg-holo": 0.15,
+      "low-holo": 0.02,
+      "trend-holo": 0.12,
+      "avg1-holo": 0.02,
+      "avg7-holo": 0.16,
+      "avg30-holo": 0.15
+    },
+    "tcgplayer": null
+  }
+}

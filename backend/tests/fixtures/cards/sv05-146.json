@@ -1,0 +1,65 @@
+{
+  "category": "Trainer",
+  "id": "sv05-146",
+  "illustrator": "GOSSAN",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/146",
+  "localId": "146",
+  "name": "Eri",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "effect": "Your opponent reveals their hand, and you discard up to 2 Item cards you find there.",
+  "trainerType": "Supporter",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 760776,
+      "avg": 0.1,
+      "low": 0.02,
+      "trend": 0.12,
+      "avg1": 0.06,
+      "avg7": 0.13,
+      "avg30": 0.12,
+      "avg-holo": 0.21,
+      "low-holo": 0.02,
+      "trend-holo": 0.3,
+      "avg1-holo": 0.35,
+      "avg7-holo": 0.21,
+      "avg30-holo": 0.2
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "category": "Trainer",
+  "id": "sv06-155",
+  "illustrator": "Atsushi Furusawa",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/155",
+  "localId": "155",
+  "name": "Lana's Aid",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "effect": "Put up to 3 in any combination of Pokémon that don't have a Rule Box and Basic Energy cards from your discard pile into your hand. (Pokémon ex, Pokémon V, etc. have Rule Boxes.)",
+  "trainerType": "Supporter",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 769329,
+      "avg": 0.11,
+      "low": 0.02,
+      "trend": 0.1,
+      "avg1": 0.08,
+      "avg7": 0.1,
+      "avg30": 0.11,
+      "avg-holo": 0.29,
+      "low-holo": 0.02,
+      "trend-holo": 0.28,
+      "avg1-holo": 0.28,
+      "avg7-holo": 0.24,
+      "avg30-holo": 0.29
+    },
+    "tcgplayer": null
+  }
+}

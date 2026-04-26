@@ -1,0 +1,60 @@
+{
+  "category": "Trainer",
+  "id": "sv08.5-115",
+  "illustrator": "hncl",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/115",
+  "localId": "115",
+  "name": "Larry's Skill",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "effect": "Discard your hand and search your deck for a Pokémon, a Supporter card, and a Basic Energy card, reveal them, and put them into your hand. Then, shuffle your deck.",
+  "trainerType": "Supporter",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 805509,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.06,
+      "avg1": 0.04,
+      "avg7": 0.05,
+      "avg30": 0.06,
+      "avg-holo": 0.13,
+      "low-holo": 0.02,
+      "trend-holo": 0.14,
+      "avg1-holo": 0.07,
+      "avg7-holo": 0.13,
+      "avg30-holo": 0.13
+    },
+    "tcgplayer": null
+  }
+}

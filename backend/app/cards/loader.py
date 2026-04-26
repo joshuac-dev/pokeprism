@@ -57,6 +57,8 @@ SET_CODE_MAP: dict[str, str] = {
     "MEE":  "mee",     # Mega Evolution Energy
     # NOTE: "M4" (Chaos Rising) intentionally absent — not yet released.
     #       Cards with set_abbrev "M4" are silently skipped.
+    # Promos
+    "PR-SV": "svp",    # Scarlet & Violet promos (e.g. Pecharunt PR-SV 149 → svp-149)
 }
 
 # Sets we know exist in TCGDex but that also appear in CARDLIST via alternate IDs

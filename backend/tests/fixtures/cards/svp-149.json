@@ -1,0 +1,65 @@
+{
+  "category": "Pokemon",
+  "id": "svp-149",
+  "illustrator": "Misa Tsutsui",
+  "image": "https://assets.tcgdex.net/en/sv/svp/149",
+  "localId": "149",
+  "name": "Pecharunt",
+  "rarity": "Promo",
+  "set": {
+    "cardCount": {
+      "official": 230,
+      "total": 230
+    },
+    "id": "svp",
+    "logo": "https://assets.tcgdex.net/en/sv/svp/logo",
+    "name": "Scarlet & Violet Promos",
+    "symbol": "https://assets.tcgdex.net/univ/sv/svp/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    1025
+  ],
+  "hp": 80,
+  "types": [
+    "Darkness"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Toxic Subjugation",
+      "effect": "When you play this Pokémon from your hand to your Bench during your turn, you may put a Poison counter and a Confusion counter on your opponent's Active Pokémon."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Poison Chain",
+      "effect": "Your opponent's Active Pokémon is now Poisoned. Put 3 damage counters instead of 1 on that Pokémon between turns.",
+      "damage": 40
+    }
+  ],
+  "weaknesses": [
+    {
+      "type": "Fighting",
+      "value": "+20"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2024-09-13T00:00:00+00:00"
+}

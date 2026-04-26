@@ -1,0 +1,87 @@
+{
+  "category": "Pokemon",
+  "id": "me03-062",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/me/me03/062",
+  "localId": "062",
+  "name": "Meowth ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 88,
+      "total": 124
+    },
+    "id": "me03",
+    "logo": "https://assets.tcgdex.net/en/me/me03/logo",
+    "name": "Perfect Order",
+    "symbol": "https://assets.tcgdex.net/univ/me/me03/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    52
+  ],
+  "hp": 170,
+  "types": [
+    "Colorless"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Last-Ditch Catch",
+      "effect": "Once during your turn, when you play this Pokémon from your hand onto your Bench, you may use this Ability. Search your deck for a Supporter card, reveal it, and put it into your hand. Then, shuffle your deck. You can't use more than 1 Ability that has \"Last-Ditch\" in its name each turn."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Tuck Tail",
+      "effect": "Put this Pokémon and all attached cards into your hand.",
+      "damage": 60
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "J",
+  "legal": {
+    "standard": false,
+    "expanded": false
+  },
+  "updated": "2026-04-03T13:05:42+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 877478,
+      "avg": 9.12,
+      "low": 5.8,
+      "trend": 8.27,
+      "avg1": 7.49,
+      "avg7": 7.81,
+      "avg30": 8.92,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

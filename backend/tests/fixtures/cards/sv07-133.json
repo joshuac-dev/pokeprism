@@ -1,0 +1,60 @@
+{
+  "category": "Trainer",
+  "id": "sv07-133",
+  "illustrator": "GIDORA",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/133",
+  "localId": "133",
+  "name": "Crispin",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "effect": "Search your deck for up to 2 Basic Energy cards of different types, reveal them, and put 1 of them into your hand. Attach the other to 1 of your Pokémon. Then, shuffle your deck.",
+  "trainerType": "Supporter",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 785987,
+      "avg": 0.13,
+      "low": 0.02,
+      "trend": 0.2,
+      "avg1": 0.23,
+      "avg7": 0.2,
+      "avg30": 0.15,
+      "avg-holo": 0.25,
+      "low-holo": 0.02,
+      "trend-holo": 0.16,
+      "avg1-holo": 0.23,
+      "avg7-holo": 0.19,
+      "avg30-holo": 0.23
+    },
+    "tcgplayer": null
+  }
+}

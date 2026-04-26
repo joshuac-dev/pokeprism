@@ -1,0 +1,81 @@
+{
+  "category": "Energy",
+  "id": "sv05-161",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/161",
+  "localId": "161",
+  "name": "Mist Energy",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "foil": "cosmos",
+      "variantId": "4f6221d6q70q1pd5gz5mpleqajtabtd6nalq8mg91zztu"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "gx8bq2hegum3q6irsxlvqxm955ikw9gd1h311"
+    }
+  ],
+  "effect": "As long as this card is attached to a Pokémon, it provides {C} Energy.\n\nPrevent all effects of attacks used by your opponent's Pokémon done to the Pokémon this card is attached to. (Existing effects are not removed. Damage is not an effect.)",
+  "energyType": "Special",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 760791,
+      "avg": 0.19,
+      "low": 0.02,
+      "trend": 0.25,
+      "avg1": 0.19,
+      "avg7": 0.24,
+      "avg30": 0.22,
+      "avg-holo": 0.55,
+      "low-holo": 0.02,
+      "trend-holo": 0.47,
+      "avg1-holo": 0.28,
+      "avg7-holo": 0.4,
+      "avg30-holo": 0.46
+    },
+    "tcgplayer": null
+  }
+}

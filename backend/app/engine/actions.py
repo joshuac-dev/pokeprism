@@ -99,11 +99,13 @@ def _in_play(player: PlayerState) -> list[CardInstance]:
     return result
 
 
-def _can_pay_energy_cost(pokemon: CardInstance, cost: list[str]) -> bool:
+def _can_pay_energy_cost(pokemon: CardInstance, cost: list[str],
+                         state=None, player_id: str = None) -> bool:
     """Return True if the attached energy satisfies the attack's energy cost.
 
     "Any" energy (provided by Prism Energy, Legacy Energy) satisfies one typed
     requirement as a wildcard — it acts like any single energy type.
+    Wild Growth (me01-010 Meganium): each Basic Grass Energy provides 2G.
     """
     if not cost:
         return True
@@ -118,6 +120,18 @@ def _can_pay_energy_cost(pokemon: CardInstance, cost: list[str]) -> bool:
     for e in available:
         if e != "Any":
             typed_available[e] = typed_available.get(e, 0) + 1
+
+    # Wild Growth (me01-010 Meganium): each Basic Grass Energy provides 2G instead of 1G
+    if state is not None and player_id is not None:
+        from app.engine.effects.abilities import has_wild_growth
+        if has_wild_growth(state, player_id):
+            for att in pokemon.energy_attached:
+                if att.energy_type.value == "Grass":
+                    cdef_e = card_registry.get(att.card_def_id)
+                    if (cdef_e
+                            and cdef_e.category.lower() == "energy"
+                            and cdef_e.subcategory.lower() == "basic"):
+                        typed_available["Grass"] = typed_available.get("Grass", 0) + 1
 
     colorless_needed = 0
     wildcards_used = 0
@@ -139,14 +153,14 @@ def _can_pay_energy_cost(pokemon: CardInstance, cost: list[str]) -> bool:
     return total_remaining >= colorless_needed
 
 
-def _can_pay_retreat(pokemon: CardInstance, retreat_cost: int, state: GameState = None) -> bool:
+def _can_pay_retreat(pokemon: CardInstance, retreat_cost: int, state: GameState = None, player_id: str = None) -> bool:
     """Return True if the Pokémon has enough total energy for its retreat cost.
 
-    Accounts for tool-based retreat cost reductions (Air Balloon, N's Castle).
+    Accounts for tool-based and ability-based retreat cost reductions.
     """
     from app.engine.effects.base import get_retreat_cost_reduction
     if state:
-        reduction = get_retreat_cost_reduction(pokemon, state)
+        reduction = get_retreat_cost_reduction(pokemon, state, player_id)
         effective_cost = max(0, retreat_cost - reduction)
     else:
         effective_cost = retreat_cost
@@ -411,7 +425,7 @@ class ActionValidator:
 
         cdef = card_registry.get(player.active.card_def_id)
         retreat_cost = cdef.retreat_cost if cdef else 0
-        if not _can_pay_retreat(player.active, retreat_cost, state):  # Rule 7
+        if not _can_pay_retreat(player.active, retreat_cost, state, player_id):  # Rule 7
             return []
 
         return [
@@ -424,21 +438,34 @@ class ActionValidator:
     def _get_ability_actions(
         state: GameState, player: PlayerState, player_id: str
     ) -> list[Action]:
+        from app.engine.effects.registry import EffectRegistry
+        registry = EffectRegistry.instance()
         actions: list[Action] = []
         for poke in _in_play(player):
             if poke.ability_used_this_turn:
                 continue
             cdef = card_registry.get(poke.card_def_id)
-            if cdef and cdef.abilities:
-                # Watchtower (sv10-180): Colorless Pokémon cannot use abilities
-                if (state.active_stadium
-                        and state.active_stadium.card_def_id == "sv10-180"
-                        and "Colorless" in (cdef.types or [])):
-                    continue
-                actions.append(
-                    Action(ActionType.USE_ABILITY, player_id,
-                           card_instance_id=poke.instance_id)
-                )
+            if not (cdef and cdef.abilities):
+                continue
+            ability_name = cdef.abilities[0].name
+            # Only offer USE_ABILITY for abilities with a registered handler.
+            # Passive abilities (e.g. Damp, Power Saver) have no handler and
+            # must never appear as player actions.
+            if not registry.has_effect(cdef.tcgdex_id, "ability"):
+                continue
+            # If a precondition is registered, check it before offering.
+            if not registry.ability_can_activate(cdef.tcgdex_id, ability_name,
+                                                 state, player_id, poke):
+                continue
+            # Watchtower (sv10-180): Colorless Pokémon cannot use abilities
+            if (state.active_stadium
+                    and state.active_stadium.card_def_id == "sv10-180"
+                    and "Colorless" in (cdef.types or [])):
+                continue
+            actions.append(
+                Action(ActionType.USE_ABILITY, player_id,
+                       card_instance_id=poke.instance_id)
+            )
         return actions
 
     # ── Attack phase ──────────────────────────────────────────────────────────
@@ -456,14 +483,27 @@ class ActionValidator:
         # Multi-turn lock (e.g. Iron Leaves ex Mach Claw, Bloodmoon Ursaluna ex)
         if player.active.cant_attack_next_turn:
             return []
+        # Power Saver (sv10-081 TR Mewtwo ex): cannot attack unless 4+ TR Pokémon in play
+        from app.engine.effects.abilities import power_saver_blocks_attack
+        if power_saver_blocks_attack(state, player.active, player_id):
+            return []
 
         cdef = card_registry.get(player.active.card_def_id)
         if not cdef or not cdef.attacks:
             return []
 
         actions: list[Action] = []
+        opp = state.get_opponent(player_id)
         for i, attack in enumerate(cdef.attacks):
-            if _can_pay_energy_cost(player.active, attack.cost):  # Rule 8
+            effective_cost = list(attack.cost) if attack.cost else []
+            # Seasoned Skill (sv06-141 Bloodmoon Ursaluna ex): costs 1 less {C}
+            # per prize card the opponent has taken.
+            if cdef.tcgdex_id == "sv06-141":
+                prizes_taken = 6 - opp.prizes_remaining
+                for _ in range(prizes_taken):
+                    if "Colorless" in effective_cost:
+                        effective_cost.remove("Colorless")
+            if _can_pay_energy_cost(player.active, effective_cost, state, player_id):
                 actions.append(
                     Action(ActionType.ATTACK, player_id, attack_index=i)
                 )

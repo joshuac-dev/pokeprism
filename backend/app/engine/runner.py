@@ -333,7 +333,15 @@ class MatchRunner:
             if not active:
                 continue
 
-            if StatusCondition.POISONED in active.status_conditions:
+            if StatusCondition.TOXIC in active.status_conditions:
+                active.current_hp -= 30
+                active.damage_counters += 3
+                state.emit_event("toxic_damage", player=pid, card=active.card_name)
+                from app.engine.effects.base import check_ko
+                check_ko(state, active, pid)
+                if state.phase == Phase.GAME_OVER:
+                    return state
+            elif StatusCondition.POISONED in active.status_conditions:
                 active.current_hp -= 10
                 active.damage_counters += 1
                 state.emit_event("poison_damage", player=pid, card=active.card_name)
@@ -363,6 +371,13 @@ class MatchRunner:
                 active.status_conditions.remove(StatusCondition.PARALYZED)
                 state.emit_event("paralysis_removed", player=pid, card=active.card_name)
 
+        # Freezing Shroud (sv06-053 Froslass): place 1 damage counter on each
+        # Pokémon with an Ability (except Froslass itself) during Pokémon Checkup.
+        from app.engine.effects.abilities import apply_froslass_shroud
+        apply_froslass_shroud(state)
+        if state.phase == Phase.GAME_OVER:
+            return state
+
         return state
 
     def _end_turn(self, state: GameState) -> GameState:
@@ -379,10 +394,12 @@ class MatchRunner:
                 # Reset multi-turn restriction flags
                 player.active.cant_attack_next_turn = False
                 player.active.cant_retreat_next_turn = False
+                player.active.attack_damage_reduction = 0
                 # Discard energy cards flagged for end-of-turn removal (Ignition Energy)
                 self._discard_expiring_energy(state, player.active)
             for b in player.bench:
                 b.ability_used_this_turn = False
+                b.attack_damage_reduction = 0
                 self._discard_expiring_energy(state, b)
 
         state.active_player_damage_bonus = 0

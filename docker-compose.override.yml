@@ -1,0 +1,11 @@
+# Local dev overrides — not committed to production
+services:
+  backend:
+    environment:
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ./backend:/app  # Full source mount for hot-reload
+
+  celery-worker:
+    environment:
+      LOG_LEVEL: DEBUG

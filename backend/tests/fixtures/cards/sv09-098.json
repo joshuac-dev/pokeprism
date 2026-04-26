@@ -1,0 +1,122 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-098",
+  "illustrator": "takuyoa",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/098",
+  "localId": "098",
+  "name": "N's Zoroark ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 817250,
+          "avg": 2.08,
+          "low": 0.75,
+          "trend": 2.14,
+          "avg1": 1.81,
+          "avg7": 2.28,
+          "avg30": 2.16,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "master-ball-league"
+      ],
+      "variantId": "15i9grynjdxau75syagwy0sbajyffiph"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "mtltux8quqoc7vwp24c9zzhgmzduu8xcik8"
+    }
+  ],
+  "dexId": [
+    571
+  ],
+  "hp": 280,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "N's Zorua",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Trade",
+      "effect": "You must discard a card from your hand in order to use this Ability. Once during your turn, you may draw 2 cards."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Darkness"
+      ],
+      "name": "Night Joker",
+      "effect": "Choose 1 of your Benched N's Pokémon's attacks and use it as this attack."
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 817250,
+      "avg": 2.08,
+      "low": 0.75,
+      "trend": 2.14,
+      "avg1": 1.81,
+      "avg7": 2.28,
+      "avg30": 2.16,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

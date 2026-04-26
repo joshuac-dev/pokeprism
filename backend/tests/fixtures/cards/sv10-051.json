@@ -1,0 +1,211 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-051",
+  "illustrator": "Mitsuhiro Arita",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/051",
+  "localId": "051",
+  "name": "Team Rocket's Articuno",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 825925,
+          "avg": 0.17,
+          "low": 0.02,
+          "trend": 0.19,
+          "avg1": 0.18,
+          "avg7": 0.2,
+          "avg30": 0.17,
+          "avg-holo": 0.32,
+          "low-holo": 0.02,
+          "trend-holo": 0.3,
+          "avg1-holo": 0.49,
+          "avg7-holo": 0.37,
+          "avg30-holo": 0.31
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 825925,
+          "avg": 0.17,
+          "low": 0.02,
+          "trend": 0.19,
+          "avg1": 0.18,
+          "avg7": 0.2,
+          "avg30": 0.17,
+          "avg-holo": 0.32,
+          "low-holo": 0.02,
+          "trend-holo": 0.3,
+          "avg1-holo": 0.49,
+          "avg7-holo": 0.37,
+          "avg30-holo": 0.31
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "555jb0efopmyclvkikic41",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 826177,
+          "avg": 27.24,
+          "low": 24.99,
+          "trend": 24.64,
+          "avg1": 24.99,
+          "avg7": 27.24,
+          "avg30": 32.49,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "foil": "cosmos",
+      "variantId": "5zs5af49g93yryvw1ftj",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 862170,
+          "avg": 2.03,
+          "low": 0.09,
+          "trend": 6.28,
+          "avg1": 5.92,
+          "avg7": 2.93,
+          "avg30": 2.42,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-26T00:42:00.000Z",
+          "unit": "EUR",
+          "idProduct": 871155,
+          "avg": 19.79,
+          "low": 15,
+          "trend": 22.92,
+          "avg1": 19.68,
+          "avg7": 19.77,
+          "avg30": 16.73,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    144
+  ],
+  "hp": 120,
+  "types": [
+    "Water"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Repelling Veil",
+      "effect": "Prevent all effects of attacks used by your opponent's Pokémon done to your Basic Team Rocket's Pokémon. (Existing effects are not removed. Damage is not an effect.)"
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Water",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Dark Frost",
+      "effect": "If this Pokémon has any Team Rocket's Energy attached, this attack does 60 more damage.",
+      "damage": "60+"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-26T00:42:00.000Z",
+      "unit": "EUR",
+      "idProduct": 825925,
+      "avg": 0.17,
+      "low": 0.02,
+      "trend": 0.19,
+      "avg1": 0.18,
+      "avg7": 0.2,
+      "avg30": 0.17,
+      "avg-holo": 0.32,
+      "low-holo": 0.02,
+      "trend-holo": 0.3,
+      "avg1-holo": 0.49,
+      "avg7-holo": 0.37,
+      "avg30-holo": 0.31
+    },
+    "tcgplayer": null
+  }
+}
