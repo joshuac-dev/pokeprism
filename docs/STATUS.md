@@ -4,16 +4,18 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-Phase 8 — Frontend: Core Layout & Simulation Setup — **Verified & Accepted**
-Next: Phase 9 — Simulation Live Console (xterm.js)
+Phase 8 — Frontend: Core Layout & Simulation Setup — **Code committed, visual QA pending**
+Next: Phase 9 — Simulation Live Console (xterm.js) — **do not start until user confirms Phase 8 visually**
 
 ## Last Session
-- **Date:** 2026-04-29
-- Phase 8 (Frontend: Core Layout & Simulation Setup) implemented and build-validated.
+- **Date:** 2026-04-27
+- Phase 8 (Frontend: Core Layout & Simulation Setup) implemented and build-validated. **Visual QA not yet completed.**
 - All 36 frontend files created: config, utils, API layer, Zustand stores, hooks, layout components, simulation components, and pages.
 - `npm run build` passes with **zero TypeScript errors** (tsc + vite build, 1619 modules).
 - Backend cards API replaced 501 stub with real pg_trgm search, paginated list, and detail endpoints. 9 new tests; full suite **135 passed, 0 failures**.
 - SimulationLive stub subscribes to WebSocket via `useSocket` and logs `sim_event` messages to browser console — proves full loop (form → API → Celery → Redis → WebSocket → browser) wired before Phase 9.
+- Confirmed dev stack running: Docker (Postgres/Redis/Neo4j/Ollama), uvicorn on :8000, Celery worker, Vite on :5173.
+- `GET /api/cards/search?q=boss` returns Boss's Orders correctly (was serving stale 501 until uvicorn restart).
 - **Note:** One of two Gemma deck naming calls hit the fallback path — likely Ollama timeout. Monitor; increase 5s timeout if frequent.
 
 ## Previous Session (2026-04-28)
@@ -43,7 +45,7 @@ Next: Phase 9 — Simulation Live Console (xterm.js)
 - [x] Phase 5: AI Player (Qwen3.5-9B decisions) — **complete (2026-04-27)**
 - [x] Phase 6: Coach/Analyst (Gemma 4 E4B, card swaps, DeckMutation) — **complete & owner-verified (2026-04-27)**
 - [x] Phase 7: Task Queue & Simulation Orchestration — **complete & owner-verified (2026-04-28)**
-- [x] Phase 8: Frontend Core Layout & Simulation Setup — **complete & owner-verified (2026-04-29)**
+- [x] Phase 8: Frontend Core Layout & Simulation Setup — **committed, visual QA pending (2026-04-27)**
 - [ ] Phase 9: Simulation Live Console (xterm.js) — **next**
 
 ## Phase 7 Exit Criteria — Verified (2026-04-28)
@@ -60,7 +62,7 @@ Next: Phase 9 — Simulation Live Console (xterm.js)
 | Scheduled H/H | Celery Beat at 2AM UTC | `crontab(hour=2, minute=0)` confirmed ✅ | ✅ |
 | Tests | All prior + new tests pass | **126 passed, 0 failures** ✅ | ✅ |
 
-## Phase 8 Exit Criteria — Verified (2026-04-29)
+## Phase 8 Exit Criteria — Build verified, visual QA pending (2026-04-27)
 
 | Criterion | Target | Result | Status |
 |---|---|---|---|
@@ -73,6 +75,7 @@ Next: Phase 9 — Simulation Live Console (xterm.js)
 | WebSocket stub | SimulationLive logs events | ✅ useSocket subscribes, logs sim_event to console | ✅ |
 | Cards API | Real pg_trgm search | ✅ /cards/search, /cards, /cards/:id implemented | ✅ |
 | Tests | All prior + new cards tests | **135 passed, 0 failures** ✅ | ✅ |
+| **Visual QA** | User browser test | **⏳ Pending — user has not run yet** | ⏳ |
 
 
 | Criterion | Target | Result | Status |
@@ -135,12 +138,24 @@ Next: Phase 9 — Simulation Live Console (xterm.js)
 
 ## Current Phase Progress
 
-### Phase 6 Completed & Re-Verified (2026-04-27)
-- Re-verification run confirmed all Phase 6 components functioning end-to-end (see Last Session)
-- Embedding count grew: 1,348 → 1,614 rows after today's 5-game validation run
-- No regressions; no code changes required
+### Phase 8 — In Progress (2026-04-27)
 
-### Phase 6 Completed (2026-04-29) — Original Build Verified
+**Completed this session:**
+- All 36 frontend source files built and committed (`frontend/` directory)
+- `npm run build` passes with zero TypeScript errors (1619 modules, tsc + vite build)
+- Backend cards API (`/api/cards/search`, `/api/cards`, `/api/cards/:id`) replacing 501 stubs
+- 9 new cards API tests; full suite 135 passed, 0 failures
+- Dev stack confirmed running: Vite :5173, FastAPI :8000, Celery worker, Docker services
+- `GET /api/cards/search?q=boss` returns results (uvicorn restarted to pick up new code)
+
+**Remaining this session (visual QA — user-driven):**
+- [ ] Simulation Setup page layout and dark mode appearance
+- [ ] Paste a Dragapult deck list — verify card count parses correctly
+- [ ] Type "Boss" in excluded cards — verify search dropdown + chip add/remove
+- [ ] Submit full simulation (Dragapult vs TR Mewtwo, H/H, 1 round, 5 matches) — verify 201 + redirect
+- [ ] Open `/simulation/:id` — verify WebSocket events appear in browser DevTools console
+- [ ] Submit with empty deck in Full Deck mode — verify 422 message shown in UI
+- [ ] Toggle dark/light mode — verify no broken styling
 - `CardPerformanceQueries`: `get_card_performance`, `get_top_performing_cards`, `get_total_historical_games`
 - `GraphQueries`: `get_synergies` (top/weak SYNERGIZES_WITH pairs), `record_swap` (SWAPPED_FOR edges)
 - `SimilarSituationFinder`: pgvector cosine distance search over `source_type='decision'` embeddings
@@ -162,14 +177,29 @@ Next: Phase 9 — Simulation Live Console (xterm.js)
 - 17 unit tests; 71 total tests pass
 
 ## Active Files Changed This Session (2026-04-27)
-- **None.** This was a read-only re-verification session. No source files were modified.
 
-## Active Files Changed Last Code Session (2026-04-29)
-- `backend/app/coach/analyst.py` — `/api/chat` endpoint fix, `num_predict=-1`, dedup deck_ids
-- `backend/app/memory/embeddings.py` — `SimilarSituationFinder.find_similar` IVFFlat probes fix
-- `backend/app/memory/postgres.py` — `not_in([])` guard, dead query fix
-- `backend/scripts/validate_phase6.py` — **New:** Phase 6 end-to-end validation script
-- `docs/STATUS.md` — This file
+**New files (frontend):**
+- `frontend/package.json`, `tsconfig.json`, `vite.config.ts`, `tailwind.config.js`, `postcss.config.js`
+- `frontend/index.html`, `frontend/Dockerfile`, `frontend/nginx.conf`
+- `frontend/src/main.tsx`, `src/index.css`, `src/App.tsx`, `src/router.tsx`, `src/vite-env.d.ts`
+- `frontend/src/utils/deckParser.ts` — full PTCG parser (section headers, card lines, fallback, 60-card check)
+- `frontend/src/utils/formatters.ts`
+- `frontend/src/api/client.ts`, `simulations.ts`, `cards.ts`, `decks.ts`, `history.ts`, `memory.ts`
+- `frontend/src/stores/uiStore.ts` — dark/light toggle + localStorage persistence
+- `frontend/src/stores/simulationStore.ts`, `historyStore.ts`
+- `frontend/src/hooks/useCardSearch.ts`, `useSocket.ts`, `useSimulation.ts`
+- `frontend/src/components/layout/Sidebar.tsx`, `TopBar.tsx`, `PageShell.tsx`
+- `frontend/src/components/simulation/DeckUploader.tsx`, `ParamForm.tsx`, `OpponentDeckList.tsx`
+- `frontend/src/pages/SimulationSetup.tsx`, `SimulationLive.tsx`, `Dashboard.tsx`, `History.tsx`, `Memory.tsx`
+
+**Modified files (backend):**
+- `backend/app/api/cards.py` — replaced 501 stub; `_card_summary()`, `_card_detail()`, pg_trgm search
+
+**New files (backend):**
+- `backend/tests/test_api/test_cards.py` — 9 tests for all 3 card endpoints
+
+**Modified files (docs):**
+- `docs/STATUS.md` — this file
 
 ## Known Issues / Gaps
 - **Coach cross-deck swap behaviour (observed 2026-04-27):** When the Coach has limited
@@ -210,6 +240,14 @@ Next: Phase 9 — Simulation Live Console (xterm.js)
   expected — win rate is attributed to whichever player wins, and with only two archetypes both
   sides' cards converge to the same mean. Coach swap quality will improve naturally as more
   diverse matchups are simulated in later phases. No fix needed.
+- **Phase 8 visual QA not yet performed (2026-04-27):** Code is committed and builds cleanly, but the
+  user has not tested the UI in a browser. Phase 9 must not begin until user confirms visual QA pass.
+- **Ollama "unhealthy" in Docker health check (2026-04-27):** Docker reports Ollama container as
+  unhealthy, but it is functional (Gemma and Qwen calls succeed). The health check script likely
+  uses an endpoint that doesn't exist on this Ollama version. Non-blocking.
+- **uvicorn no hot-reload (2026-04-27):** uvicorn is started without `--reload`. Backend code changes
+  require a manual kill + restart to take effect. Discovered when cards.py changes weren't served
+  until uvicorn was restarted.
 
 ## Key Decisions Made
 - Test decks: Dragapult ex/Dusknoir (P1) vs Team Rocket's Mewtwo ex (P2)
@@ -237,6 +275,17 @@ Next: Phase 9 — Simulation Live Console (xterm.js)
   `/api/chat` endpoint (NOT `/api/generate`). No `{"` prefill. `num_predict=-1` required
   because model uses internal thinking tokens before output; small num_predict → 0-length
   response. Parse raw response: strip markdown fences, then `json.loads()`.
+- **Frontend stack (2026-04-27):** React 18 + Vite 5 + TypeScript + Tailwind 3 (`darkMode: 'class'`)
+  + Zustand 4 + React Router 6 + Axios 1 + socket.io-client 4. Dark-mode-first (slate-950 palette,
+  electric blue `#3b82f6` accent). Theme toggle in TopBar, persisted to localStorage.
+- **Vite proxy (2026-04-27):** `/api` → `http://localhost:8000`, `/socket.io` → `http://localhost:8000`
+  (ws: true). No CORS configuration needed in dev. socket.io client connects to `window.location.origin`
+  with path `/socket.io` — works behind both Vite proxy (dev) and nginx (prod).
+- **FastAPI route order (2026-04-27):** `/api/cards/search` MUST be defined before `/api/cards/{card_id}`
+  in cards.py. FastAPI matches routes in definition order; "search" would be captured as card_id otherwise.
+- **Test dependency_overrides pattern (2026-04-27):** `create_app()` returns `socketio.ASGIApp`, not
+  `FastAPI`. Inner app exposed as `asgi_app.fastapi_app`. All tests must use
+  `app.fastapi_app.dependency_overrides[...]`, not `app.dependency_overrides[...]`.
 
 ## Benchmark History
 
@@ -270,76 +319,42 @@ The asymmetry is deck matchup, not seating. Deck-out dropped 21% → 4% (G/G →
   Enhanced Hammer→TR Mewtwo ex, Duskull→TR Sneasel
 - 1348 decision embeddings, 768 dims. SimilarSituationFinder returns results (dist~0.17).
 
-## Notes for Next Session — Phase 7 (Task Queue & Simulation Orchestration)
+## Notes for Next Session — Phase 9 (Simulation Live Console)
 
-**Phase 6 is done and owner-verified (2026-04-27).** Start Phase 7 by reading PROJECT.md §12.
+**⚠️ DO NOT START PHASE 9 UNTIL THE USER CONFIRMS PHASE 8 IS VISUALLY VERIFIED.**
 
-### What Phase 7 Builds (from PROJECT.md §12)
-1. `backend/app/tasks/celery_app.py` — Celery config, Redis broker, Beat schedule (nightly H/H 2AM)
-2. `backend/app/tasks/simulation.py` — `run_simulation` Celery task: rounds loop, Coach calls,
-   Redis pub/sub event streaming
-3. `backend/app/tasks/scheduled.py` — `run_scheduled_hh` periodic task
-4. `backend/app/api/ws.py` — socket.io WebSocket bridge (Redis pub/sub → client)
-5. `backend/app/api/simulations.py` — REST endpoints: create, status, list simulations
-6. `backend/app/main.py` — FastAPI app factory wiring all routers + socket.io mount
-7. New DB models for `simulations` table (status, config, round tracking)
+Phase 8 code is committed and all 135 tests pass, but the user has not yet tested the UI in a browser. The next session must begin by asking the user if they completed visual QA and what they found. If issues were reported, fix them first.
 
-### Infrastructure
-- `docker compose up -d postgres neo4j ollama` to start all services
-- Run tests: `cd backend && python3 -m pytest tests/ -x -q` (81 tests pass)
+### Visual QA checklist (what the user will run at http://localhost:5173):
+1. Simulation Setup page layout and dark mode appearance
+2. Paste a Dragapult deck list — verify card count parses correctly (shows "60 cards")
+3. Type "Boss" in excluded cards — verify search dropdown appears and chip adds/removes
+4. Submit full simulation (Dragapult vs TR Mewtwo, H/H, 1 round, 5 matches) — verify 201 + redirect to `/simulation/:id`
+5. Open `/simulation/:id` in browser — verify WebSocket events appear in DevTools console
+6. Submit with empty deck in Full Deck mode — verify 422 error message shown in UI
+7. Toggle dark/light mode — verify no broken styling
 
-### DB state entering Phase 7
-- `matches`: 572 rows (566 prior + 5 new validation games + 1 other)
-- `embeddings (decision)`: 1,614 rows (768-dim nomic-embed-text)
-- `deck_mutations`: populated with coach swaps from multiple validation runs
+### Dev stack setup (not containerized for dev)
+- Docker (Postgres, Redis, Neo4j, Ollama): `cd ~/pokeprism && docker compose up -d`
+- Backend: `cd ~/pokeprism/backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
+- Celery: `python3 -m celery -A app.tasks.celery_app worker --loglevel=warning --concurrency=2`
+- Frontend: `cd ~/pokeprism/frontend && npm run dev`
+- Frontend URL: **http://localhost:5173** (NOT :3000)
+- uvicorn has no `--reload`; must be manually restarted after backend code changes
+- Vite proxy handles `/api` → `:8000` and `/socket.io` → `:8000` (ws: true) — no CORS config needed
 
-### Priority tasks at Phase 7 start
-1. **Memory test isolation (explicitly flagged):** Add rollback teardown to
-   `tests/test_memory/conftest.py` `db_session` fixture — do this before writing any
-   new Phase 7 tests that touch the DB.
-2. **Coach excluded_ids fix:** When wiring `run_simulation` task, pass opponent deck card IDs
-   as `excluded_ids` to `CoachAnalyst.analyze_and_mutate()` to prevent cross-deck swaps.
+### What Phase 9 builds (from PROJECT.md §14)
+- xterm.js terminal pane in SimulationLive: renders streaming `match_event` lines colour-coded by event type
+- Progress bar / round tracker above terminal
+- Simulation controls: pause/resume via POST `/api/simulations/:id/pause`
+- Export button: download simulation log as JSON
 
-### Key API/model facts for Phase 7 code
-- `app/tasks/` and `app/api/` directories exist but are empty stubs (`__init__.py` only)
-- `app/config.py` has `REDIS_URL` and all DB settings — import `settings` from there
-- Celery must use `asyncio.new_event_loop()` + `loop.run_until_complete()` to run async code
-  (Celery workers are synchronous; see PROJECT.md §12.2 pattern)
-- WebSocket: use `python-socketio` `AsyncServer(async_mode="asgi")` mounted on FastAPI app
-
-
-## Last Session
-- **Date:** 2026-04-28
-- **Phase 5 retrospective validation passed.** Ran 10 AI/H games with full instrumentation:
-  100% completion, 0.0% fallback rate (0/421 decisions), avg 2325ms Ollama inference, 97.9s avg game.
-  Reasoning text confirmed in `decisions` table (5 rows inspected).
-- **Bug fixed (Phase 5 — data integrity):** `run_hh.py` had `ASC-39` (Psyduck) at 2 copies instead of 1
-  in the Dragapult deck (61 cards). Fixed to 1 copy (60 cards). `validate_phase5.py` also fixed.
-- **Phase 6 complete.** Coach/Analyst system built end-to-end:
-  - `backend/app/config.py` — fixed `OLLAMA_COACH_MODEL` default to `gemma4-E4B-it-Q6_K:latest`
-  - `backend/app/memory/postgres.py` — `_update_card_performance()` UPSERT wired into `write_match()`;
-    `write_decisions()` now returns `[(uuid, summary)]` for embedding pipeline;
-    `write_mutations()` added; `CardPerformanceQueries` class added
-  - `backend/app/memory/graph.py` — `GraphQueries` class added (`get_synergies`, `record_swap`)
-  - `backend/app/memory/embeddings.py` — `SimilarSituationFinder` class added (pgvector cosine search)
-  - `backend/app/engine/batch.py` — EmbeddingService wired: AI decisions embedded into pgvector per game
-  - `backend/app/coach/prompts.py` — `COACH_EVOLUTION_PROMPT`, `DECK_NAME_PROMPT` templates
-  - `backend/app/coach/analyst.py` — `CoachAnalyst` class: queries Postgres+Neo4j, calls Gemma 4,
-    proposes 0–N card swaps, writes `DeckMutation` rows; own `_parse_response` (no `{"` prefill)
-  - `backend/app/coach/deck_builder.py` — `DeckBuilder` scaffold (`NotImplementedError`,
-    `MINIMUM_MATCHES_RECOMMENDED = 5000`)
-  - `backend/scripts/run_coach.py` — CLI driver: runs N AI/H games then calls `CoachAnalyst`
-  - `backend/tests/test_coach/test_analyst.py` — 6 unit tests for `CoachAnalyst`
-  - **81 tests pass** (71 engine/player/memory + 10 coach unit tests)
-
-## What Was Built (Cumulative)
-- [x] Phase 1: Game Engine Core (state machine, actions, transitions, runner) — **complete (2026-04-26)**
-- [x] Phase 2: Card Effect Registry (all handlers implemented) — **complete (2026-04-26)**
-- [x] Phase 3: Heuristic Player & H/H Loop — **complete (2026-04-26)**
-- [x] Phase 4: Database Layer & Memory Stack — **complete (2026-04-26)**
-- [x] Phase 5: AI Player (Qwen3.5-9B decisions) — **complete (2026-04-27)**
-- [x] Phase 6: Coach/Analyst (Gemma 4 E4B, card swaps, DeckMutation) — **complete (2026-04-28)**
-- [ ] Phase 7: Evolution Loop & Self-Play — next
+### Key frontend architecture facts (established Phase 8)
+- `simulationStore.ts` (Zustand) holds events array, capped at 500 to prevent memory leak
+- `useSimulation(id)` hook: wraps `useSocket` + `simulationStore` + REST polling for status
+- `useSocket(simulationId, onEvent)`: connects to `window.location.origin`, path `/socket.io`, emits `subscribe_simulation`, listens on `sim_event`
+- Tests use `app.fastapi_app.dependency_overrides` (NOT `app.dependency_overrides`) — `create_app()` returns `socketio.ASGIApp`, not `FastAPI`; inner app exposed as `.fastapi_app`
+- All frontend TypeScript is strict (`noUnusedLocals`, `noUnusedParameters` in tsconfig) — stub files must export something real
 
 ## Phase 5 Exit Criteria — Verified (2026-04-27)
 
