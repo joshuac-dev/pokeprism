@@ -168,6 +168,11 @@ Next: Phase 7 — Task Queue & Simulation Orchestration
   `lists=100`. On <1000 rows, `probes=1` (default) scanned too few clusters and missed all
   results. Fixed by setting `SET LOCAL ivfflat.probes = 20` in `find_similar()`. For Phase 7,
   consider recreating the index with fewer lists once dataset grows beyond 10k rows.
+- **Uniform card_performance data (data volume, not a bug):** Top cards all show ~54.3% win rate
+  because all historical data comes from two test decks (Dragapult P1 vs TR Mewtwo P2). This is
+  expected — win rate is attributed to whichever player wins, and with only two archetypes both
+  sides' cards converge to the same mean. Coach swap quality will improve naturally as more
+  diverse matchups are simulated in later phases. No fix needed.
 
 ## Key Decisions Made
 - Test decks: Dragapult ex/Dusknoir (P1) vs Team Rocket's Mewtwo ex (P2)

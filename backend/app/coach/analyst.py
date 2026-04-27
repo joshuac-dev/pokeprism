@@ -57,35 +57,46 @@ class CoachAnalyst:
         simulation_id: uuid.UUID,
         round_number: int,
         candidate_card_ids: list[str] | None = None,
+        excluded_ids: list[str] | None = None,
     ) -> list[dict]:
         """Analyze *round_results* and return a list of applied swap dicts.
 
         Each swap dict: {remove, add, reasoning, round_number, simulation_id}.
         Mutations are written to the DB before returning.
+
+        Args:
+            excluded_ids: Card IDs that must never be suggested as additions
+                (e.g., opponent deck cards). Enforced at both query level and
+                prompt level for belt-and-suspenders safety.
         """
         if not round_results:
             return []
 
+        excluded = list(excluded_ids or [])
         deck_ids = list(dict.fromkeys(c.tcgdex_id for c in current_deck))  # deduplicated, order preserved
         card_stats = await self._card_perf.get_card_performance(deck_ids)
         synergies = await self._graph.get_synergies(deck_ids)
         summary_text = self._summarize_round(card_stats, round_results)
         similar = await self._similar.find_similar(summary_text, k=5)
 
+        # Merge deck_ids + excluded_ids so neither set appears as candidates
+        all_excluded = list(dict.fromkeys(deck_ids + excluded))
+
         if candidate_card_ids is None:
             top_cards = await self._card_perf.get_top_performing_cards(
-                exclude_ids=deck_ids, limit=20
+                exclude_ids=all_excluded, limit=20
             )
         else:
             perf = await self._card_perf.get_card_performance(candidate_card_ids)
             top_cards = [
                 {"tcgdex_id": k, "name": k, **v}
                 for k, v in perf.items()
-                if k not in deck_ids
+                if k not in all_excluded
             ]
 
         prompt = self._build_prompt(
             deck=current_deck,
+            excluded_ids=excluded,
             round_results=round_results,
             card_stats=card_stats,
             top_cards=top_cards,
@@ -129,6 +140,7 @@ class CoachAnalyst:
         top_cards: list[dict],
         synergies: dict,
         similar: list[dict],
+        excluded_ids: list[str] | None = None,
     ) -> str:
         wins = sum(1 for r in round_results if r.winner == "p1")
         total = len(round_results)
@@ -151,6 +163,11 @@ class CoachAnalyst:
         ) or "none"
         similar_text = self._format_similar(similar)
 
+        excluded_cards_text = (
+            "\n".join(f"  - {eid}" for eid in excluded_ids)
+            if excluded_ids else "  (none)"
+        )
+
         return COACH_EVOLUTION_PROMPT.format(
             max_swaps=self._max_swaps,
             deck_list=deck_list,
@@ -164,6 +181,7 @@ class CoachAnalyst:
             top_synergies=top_syn_text,
             weak_synergies=weak_syn_text,
             similar_situations=similar_text,
+            excluded_cards=excluded_cards_text,
         )
 
     async def _get_swap_decisions(self, prompt: str, retries: int = 3) -> list[dict]:

@@ -25,6 +25,9 @@ Weak synergies (candidates for removal): {weak_synergies}
 ## Similar Past Situations
 {similar_situations}
 
+## Excluded Cards (DO NOT suggest these as additions)
+{excluded_cards}
+
 ## Instructions
 - Propose between 0 and {max_swaps} swaps (remove one card, add one card per swap).
 - Prefer removing cards with low win_rate AND low synergy with the rest of the deck.
