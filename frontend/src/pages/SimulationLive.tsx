@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
 import { useSimulation } from '../hooks/useSimulation';
 import { cancelSimulation } from '../api/simulations';
@@ -29,6 +29,7 @@ export default function SimulationLive() {
 
   const [cancelling, setCancelling] = useState(false);
   const [decisionOpen, setDecisionOpen] = useState(false);
+  const navigate = useNavigate();
 
   const handleCancel = async () => {
     if (!id) return;
@@ -79,6 +80,16 @@ export default function SimulationLive() {
           />
 
           <DeckChangesTile mutations={mutations} numRounds={numRounds} />
+
+          {/* View Report button — only when complete */}
+          {status === 'complete' && id && (
+            <button
+              onClick={() => navigate(`/dashboard/${id}`)}
+              className="w-full py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
+            >
+              View Report
+            </button>
+          )}
 
           {/* AI decisions button — only useful for ai_h / ai_ai */}
           {isAiMode && id && (

@@ -1,5 +1,6 @@
 import api from './client';
 import type { MatchEventRow, DecisionRow, SimulationDetail } from '../types/simulation';
+import type { MatchRow, RoundRow, PrizeRaceData, MutationRow } from '../types/dashboard';
 
 export type { SimulationDetail };
 
@@ -69,4 +70,24 @@ export async function getSimulationDecisions(
 export async function cancelSimulation(id: string): Promise<{ cancelled: boolean; id: string }> {
   const resp = await api.post(`/api/simulations/${id}/cancel`);
   return resp.data;
+}
+
+export async function getSimulationRounds(id: string): Promise<RoundRow[]> {
+  const resp = await api.get(`/api/simulations/${id}/rounds`);
+  return resp.data as RoundRow[];
+}
+
+export async function getSimulationMatches(id: string): Promise<MatchRow[]> {
+  const resp = await api.get(`/api/simulations/${id}/matches`);
+  return resp.data as MatchRow[];
+}
+
+export async function getSimulationPrizeRace(id: string): Promise<PrizeRaceData> {
+  const resp = await api.get(`/api/simulations/${id}/prize-race`);
+  return resp.data as PrizeRaceData;
+}
+
+export async function getSimulationMutations(id: string): Promise<MutationRow[]> {
+  const resp = await api.get(`/api/simulations/${id}/mutations`);
+  return resp.data as MutationRow[];
 }

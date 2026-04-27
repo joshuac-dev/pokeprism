@@ -4,21 +4,23 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-Phase 9 — Frontend: Live Console & Match Viewer — **Code committed, build clean (145 tests pass). Visual QA pending.**
-Next: Phase 10 — History & Analytics Dashboard
+Phase 10 — Frontend: Reporting Dashboard — **Code committed, build clean (153 tests pass). Visual QA pending.**
+Next: Phase 11 — History Page & Navigation
 
 ## Last Session
-- **Date:** 2026-04-27
-- Phase 9 visual QA attempted. Found and fixed three data-loading bugs:
-  1. **"1 / 0" round progress / 0 matches / 0% win rate on status tile:** `SimulationLive.tsx` had `total_matches`, `matches_per_opponent`, `target_win_rate`, and `game_mode` hardcoded to 0/empty — these fields were never stored in the simulationStore. Fixed by adding them to the store and wiring them through `useSimulation`.
-  2. **Silent init failure:** `useSimulation` init used `Promise.all([getSimulation, getSimulationEvents])` — when `/events` returned 404 (uvicorn running old code), the whole init threw and was swallowed by `catch {}`, so `numRounds` was never set. Fixed by fetching sim detail and events independently so a failure on one doesn't block the other.
-  3. **uvicorn running old code:** uvicorn (PID 2805555, started 19:14) was running before the Phase 9 commit (committed ~19:46). The new endpoints (`/events`, `/decisions`, `/cancel`) were not registered. Restarted uvicorn — confirmed all new routes in `/openapi.json`.
-- Discovered: Phase 8 test simulation `288fbb94` genuinely has 0 match_events in the DB. The Celery task completed in 26ms with `total_matches=0` — it was submitted before the deck parser bug was fixed, with "Boss" as a raw excluded card string. No DB data to show.
-- **Visual QA NOT complete** — fixes committed at end of session, user has not re-tested yet.
-- Dev stack state at close: Docker up, uvicorn restarted (new PID), Celery running, Vite dev server running on :5173.
+- **Date:** 2026-05-01
+- Phase 9 visual QA accepted by user. All three bugs fixed and verified in browser.
+- Phase 10 (Reporting Dashboard) fully implemented and committed:
+  - 2 new backend endpoints: `GET /{id}/matches` (per-match metadata for tiles 5/7/8/9), `GET /{id}/prize-race` (derives prize curves from `prizes_taken` events since `prize_progression` column is always NULL)
+  - 10 new backend tests — 153 total
+  - Installed: recharts, d3, @types/d3, @tanstack/react-table
+  - 14 new/modified frontend files: `src/types/dashboard.ts`, 4 new API functions in `src/api/simulations.ts`, full `src/pages/Dashboard.tsx` with 12-tile grid, 10 components in `src/components/dashboard/`, "View Report" button in `SimulationLive.tsx`
+- Dashboard route `/dashboard/:id` was already registered in Phase 8 — no router change needed
+- **Visual QA NOT yet complete** — user has not browser-tested Phase 10 tiles
+- Dev stack state at close: Docker up, uvicorn must be restarted to serve new endpoints, Celery running, Vite dev server on :5173
 
-## Previous Session (2026-04-29)
-- Phase 8 visual QA completed and accepted. Phase 9 (Frontend: Live Console & Match Viewer) fully implemented and committed.
+## Previous Session (2026-04-27 – 2026-04-29)
+- Phase 8 visual QA completed. Phase 9 (Frontend: Live Console & Match Viewer) fully implemented, committed, and visual QA accepted.
 - Three new backend endpoints: GET /events, GET /decisions, POST /cancel. Cancellation check in Celery task. 10 new backend tests. 145 tests total.
 - xterm.js installed. LiveConsole.tsx, SimulationStatus.tsx, DeckChangesTile.tsx, DecisionDetail.tsx, full SimulationLive.tsx created.
 
@@ -32,7 +34,8 @@ Next: Phase 10 — History & Analytics Dashboard
 - [x] Phase 7: Task Queue & Simulation Orchestration — **complete & owner-verified (2026-04-28)**
 - [x] Phase 8: Frontend Core Layout & Simulation Setup — **complete & owner-verified (2026-04-29)**
 - [x] Phase 9: Simulation Live Console (xterm.js) — **committed, visual QA pending (2026-04-29)**
-- [ ] Phase 10: History & Analytics Dashboard — **next**
+- [x] Phase 10: History & Analytics Dashboard — **committed, visual QA pending**
+- [ ] Phase 11: History Page & Navigation — **next**
 
 ## Phase 7 Exit Criteria — Verified (2026-04-28)
 
@@ -48,7 +51,29 @@ Next: Phase 10 — History & Analytics Dashboard
 | Scheduled H/H | Celery Beat at 2AM UTC | `crontab(hour=2, minute=0)` confirmed ✅ | ✅ |
 | Tests | All prior + new tests pass | **126 passed, 0 failures** ✅ | ✅ |
 
-## Phase 9 Exit Criteria — Build verified, visual QA pending (2026-04-29)
+## Phase 10 Exit Criteria — Build verified, visual QA pending (2026-05-01)
+
+| Criterion | Target | Result | Status |
+|---|---|---|---|
+| GET /{id}/matches endpoint | Per-match metadata (outcome, turns, prizes) | ✅ Returns array of match rows | ✅ |
+| GET /{id}/prize-race endpoint | Per-match prize curves from events | ✅ Derived from `prizes_taken` events | ✅ |
+| Dashboard page | 12-tile grid at `/dashboard/:id` | ✅ Dashboard.tsx, parallel data fetch | ✅ |
+| Tiles 1–3 (SummaryCards) | Round/match/win-rate summary | ✅ SummaryCards.tsx | ✅ |
+| Tile 4 (WinRateDonut) | Win/loss donut (Recharts) | ✅ WinRateDonut.tsx | ✅ |
+| Tile 5 (OpponentWinRateBar) | Per-opponent win rate bar chart | ✅ OpponentWinRateBar.tsx | ✅ |
+| Tile 6 (WinRateProgress) | Win-rate-over-rounds line chart | ✅ WinRateProgress.tsx | ✅ |
+| Tile 7 (MatchupMatrix) | Deck vs opponent win rate table | ✅ MatchupMatrix.tsx | ✅ |
+| Tile 8 (WinRateDistribution) | Win-rate distribution histogram | ✅ WinRateDistribution.tsx | ✅ |
+| Tile 9 (PrizeRaceGraph) | Prize race area chart per match | ✅ PrizeRaceGraph.tsx | ✅ |
+| Tile 10 (DecisionMap) | D3 force graph of AI decisions | ✅ DecisionMap.tsx; empty state for H/H | ✅ |
+| Tile 11 (CardSwapHeatMap) | Card swap frequency heatmap | ✅ CardSwapHeatMap.tsx | ✅ |
+| Tile 12 (MutationDiffLog) | Expandable mutation table (TanStack) | ✅ MutationDiffLog.tsx | ✅ |
+| "View Report" button | Visible on complete sim, nav to /dashboard/:id | ✅ SimulationLive.tsx | ✅ |
+| TypeScript build | Zero errors | ✅ 0 errors | ✅ |
+| Tests | All prior + 10 new | **153 passed, 0 failures** ✅ | ✅ |
+| **Visual QA** | User browser test | **⏳ Pending** | ⏳ |
+
+## Phase 9 Exit Criteria — Visual QA accepted (2026-04-30)
 
 | Criterion | Target | Result | Status |
 |---|---|---|---|

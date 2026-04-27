@@ -699,3 +699,180 @@ async def cancel_simulation(
         logger.warning("Redis publish failed during cancel: %s", exc)
 
     return {"cancelled": True, "id": simulation_id}
+
+
+# ---------------------------------------------------------------------------
+# GET /api/simulations/{id}/matches
+# ---------------------------------------------------------------------------
+
+@router.get("/{simulation_id}/matches")
+async def get_simulation_matches(
+    simulation_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> list[dict]:
+    """Return all matches for a simulation with outcome and prize data.
+
+    Used by the reporting dashboard for tiles 5 (opponent win rates),
+    7 (matchup matrix), 8 (win-rate distribution), and 9 (prize race).
+    """
+    import uuid as _uuid_mod
+
+    try:
+        sim_uuid = _uuid_mod.UUID(simulation_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid simulation_id format")
+
+    sim_exists = (await db.execute(
+        select(Simulation.id).where(Simulation.id == sim_uuid)
+    )).scalar_one_or_none()
+    if sim_exists is None:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+
+    rows = (await db.execute(
+        select(Match)
+        .where(Match.simulation_id == sim_uuid)
+        .order_by(Match.round_number, Match.created_at)
+    )).scalars().all()
+
+    return [
+        {
+            "id": str(m.id),
+            "round_number": m.round_number,
+            "winner": m.winner,
+            "win_condition": m.win_condition,
+            "total_turns": m.total_turns,
+            "p1_prizes_taken": m.p1_prizes_taken,
+            "p2_prizes_taken": m.p2_prizes_taken,
+            "p1_deck_name": m.p1_deck_name,
+            "p2_deck_name": m.p2_deck_name,
+            "opponent_deck_id": str(m.opponent_deck_id) if m.opponent_deck_id else None,
+        }
+        for m in rows
+    ]
+
+
+# ---------------------------------------------------------------------------
+# GET /api/simulations/{id}/prize-race
+# ---------------------------------------------------------------------------
+
+@router.get("/{simulation_id}/prize-race")
+async def get_simulation_prize_race(
+    simulation_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Return prize progression data for the prize race graph (Tile 9).
+
+    Derives per-match prize curves from ``prizes_taken`` match events.
+    Returns:
+      - ``matches``: list of {match_id, round_number, p1_deck_name,
+        p2_deck_name, turns: [{turn, p1_cumulative, p2_cumulative}]}
+      - ``average``: [{turn, p1_avg, p2_avg}] averaged across all matches
+    """
+    import uuid as _uuid_mod
+
+    try:
+        sim_uuid = _uuid_mod.UUID(simulation_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid simulation_id format")
+
+    sim_exists = (await db.execute(
+        select(Simulation.id).where(Simulation.id == sim_uuid)
+    )).scalar_one_or_none()
+    if sim_exists is None:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+
+    # Fetch all matches for this simulation
+    match_rows = (await db.execute(
+        select(Match).where(Match.simulation_id == sim_uuid).order_by(Match.created_at)
+    )).scalars().all()
+
+    if not match_rows:
+        return {"matches": [], "average": []}
+
+    match_ids = [m.id for m in match_rows]
+    match_meta = {m.id: m for m in match_rows}
+
+    # Fetch all prizes_taken events for these matches in one query
+    events = (await db.execute(
+        select(
+            MatchEvent.match_id,
+            MatchEvent.turn,
+            MatchEvent.data,
+        )
+        .where(
+            MatchEvent.match_id.in_(match_ids),
+            MatchEvent.event_type == "prizes_taken",
+        )
+        .order_by(MatchEvent.match_id, MatchEvent.id)
+    )).all()
+
+    # Build per-match turn-indexed prize curves
+    from collections import defaultdict
+    events_by_match: dict = defaultdict(list)
+    for ev in events:
+        events_by_match[ev.match_id].append(ev)
+
+    per_match = []
+    max_turn = 0
+
+    for m in match_rows:
+        p1_cum = 0
+        p2_cum = 0
+        turns: list[dict] = []
+        last_turn = 0
+
+        for ev in events_by_match.get(m.id, []):
+            turn = ev.turn or 0
+            data = ev.data or {}
+            count = int(data.get("count", 1))
+            taker = data.get("taking_player", "p1")
+
+            if taker == "p1":
+                p1_cum += count
+            else:
+                p2_cum += count
+
+            # Extend to current turn if there are gaps
+            if turn > last_turn + 1:
+                turns.append({"turn": last_turn + 1, "p1_cumulative": p1_cum - (count if taker == "p1" else 0), "p2_cumulative": p2_cum - (count if taker == "p2" else 0)})
+            turns.append({"turn": turn, "p1_cumulative": p1_cum, "p2_cumulative": p2_cum})
+            last_turn = turn
+
+        # Extend curve to final turn if needed
+        total_turns = m.total_turns or last_turn
+        if total_turns > last_turn:
+            turns.append({"turn": total_turns, "p1_cumulative": p1_cum, "p2_cumulative": p2_cum})
+
+        max_turn = max(max_turn, total_turns)
+
+        per_match.append({
+            "match_id": str(m.id),
+            "round_number": m.round_number,
+            "p1_deck_name": m.p1_deck_name,
+            "p2_deck_name": m.p2_deck_name,
+            "turns": turns,
+        })
+
+    # Compute average curve across all matches
+    average: list[dict] = []
+    if per_match and max_turn > 0:
+        for t in range(1, max_turn + 1):
+            p1_vals = []
+            p2_vals = []
+            for pm in per_match:
+                # Find last known value at or before turn t
+                p1_at_t = 0
+                p2_at_t = 0
+                for pt in pm["turns"]:
+                    if pt["turn"] <= t:
+                        p1_at_t = pt["p1_cumulative"]
+                        p2_at_t = pt["p2_cumulative"]
+                p1_vals.append(p1_at_t)
+                p2_vals.append(p2_at_t)
+            average.append({
+                "turn": t,
+                "p1_avg": round(sum(p1_vals) / len(p1_vals), 2),
+                "p2_avg": round(sum(p2_vals) / len(p2_vals), 2),
+            })
+
+    return {"matches": per_match, "average": average}
