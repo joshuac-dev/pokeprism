@@ -8,39 +8,19 @@ Phase 9 — Frontend: Live Console & Match Viewer — **Code committed, build cl
 Next: Phase 10 — History & Analytics Dashboard
 
 ## Last Session
-- **Date:** 2026-04-29
-- Phase 8 visual QA completed and accepted by user. Three bugs fixed: (1) excluded-cards dropdown not appearing (useCardSearch wiring), (2) 500 on form submit (deck parser format mismatch + "Boss" raw string sent as excluded card), (3) light/dark toggle not working (dark class not applied to `<html>`).
-- Phase 9 (Frontend: Live Console & Match Viewer) fully implemented and committed.
-- Three new backend endpoints: `GET /api/simulations/:id/events` (buffered replay, cursor pagination), `GET /api/simulations/:id/decisions` (AI decisions, offset pagination), `POST /api/simulations/:id/cancel` (sets DB status, publishes Redis event).
-- Cancellation check in Celery task: polls DB status at start of each round, breaks cleanly if `cancelled`.
-- 10 new backend tests; full suite **145 passed, 0 failures**.
-- xterm.js installed (`@xterm/xterm`, `@xterm/addon-fit`).
-- New frontend files: `src/types/simulation.ts`, `LiveConsole.tsx`, `SimulationStatus.tsx`, `DeckChangesTile.tsx`, `DecisionDetail.tsx`, full `SimulationLive.tsx`.
-- `useSimulation` hook rewritten: fetches buffered events + sim detail on mount (resolving H/H blank-console issue), polls status, handles live WS events via `appendEvent`.
-- `simulationStore` extended: `prependEvents`, `totalEvents`, `hasMore`, `firstEventId`, `mutations`, `roundsCompleted`, `numRounds`, `finalWinRate`.
-- `npm run build` passes with **zero TypeScript errors** (1627 modules).
-- **Note:** "CUSTOM DECK" fallback deck naming still observed (Gemma inconsistent). Monitor.
+- **Date:** 2026-04-27
+- Phase 9 visual QA attempted. Found and fixed three data-loading bugs:
+  1. **"1 / 0" round progress / 0 matches / 0% win rate on status tile:** `SimulationLive.tsx` had `total_matches`, `matches_per_opponent`, `target_win_rate`, and `game_mode` hardcoded to 0/empty — these fields were never stored in the simulationStore. Fixed by adding them to the store and wiring them through `useSimulation`.
+  2. **Silent init failure:** `useSimulation` init used `Promise.all([getSimulation, getSimulationEvents])` — when `/events` returned 404 (uvicorn running old code), the whole init threw and was swallowed by `catch {}`, so `numRounds` was never set. Fixed by fetching sim detail and events independently so a failure on one doesn't block the other.
+  3. **uvicorn running old code:** uvicorn (PID 2805555, started 19:14) was running before the Phase 9 commit (committed ~19:46). The new endpoints (`/events`, `/decisions`, `/cancel`) were not registered. Restarted uvicorn — confirmed all new routes in `/openapi.json`.
+- Discovered: Phase 8 test simulation `288fbb94` genuinely has 0 match_events in the DB. The Celery task completed in 26ms with `total_matches=0` — it was submitted before the deck parser bug was fixed, with "Boss" as a raw excluded card string. No DB data to show.
+- **Visual QA NOT complete** — fixes committed at end of session, user has not re-tested yet.
+- Dev stack state at close: Docker up, uvicorn restarted (new PID), Celery running, Vite dev server running on :5173.
 
-## Previous Session (2026-04-27/28)
-- Phase 7 live-validated: ALL 7 CHECKS PASSED.
-- Phase 8 built: all 36 frontend files + backend cards API.
-- Phase 7 implemented and live-validated against full Docker stack (Celery, Redis, WebSocket, Gemma, Postgres).
-- All 6 live validation deliverables confirmed:
-  1. **validate_phase7.py**: ALL 7 CHECKS PASSED (simulation completes in ~3s)
-  2. **Redis pub/sub**: 6 distinct Appendix F event types — `round_start` (3), `match_start` (20), `match_event` (4337), `match_end` (20), `round_end` (2), `simulation_complete` (1). `deck_mutation` fires when `deck_locked=False`.
-  3. **WebSocket bridge**: Live socket.io client received 54 events in real-time (polling transport). `round_start`, `match_start`, `match_event` all delivered.
-  4. **Deck naming**: Gemma path produces creative names ("Ghostly Strike Force"); fallback path produces `"<ex card> Deck"` (e.g. "Dragapult ex Deck") when Ollama times out.
-  5. **Celery Beat**: `pokeprism.run_scheduled_hh` confirmed at `crontab(hour=2, minute=0)`.
-  6. **Input validation**: `deck_locked=True + deck_mode="none"` → 422 with clear message. `deck_mode="partial"` with <5000 DB matches → 201 with `warning` field (654 matches available).
-- **Bugs fixed during live validation:**
-  - Celery task discovery: `autodiscover_tasks(["app.tasks"])` → `conf.imports`
-  - Engine `game_start`/`turn_limit` events not reaching event callback → added `self._emit()` calls
-  - `ensure_deck()` MultipleResultsFound on duplicate deck names → `.scalars().first()`
-  - Event key `"type"` → `"event_type"` in match event callback
-  - socket.io 404: `app.mount("/ws")` → `socketio.ASGIApp(sio, other_asgi_app=fastapi_app)` wrapper
-  - `main.py` `create_app()` exposes `.fastapi_app` attribute for test `dependency_overrides`
-- **Test suite: 126 passed, 0 failures** ✅
-- **Note**: `card_performance` data is currently uniform (~54.3% across top cards) because all data comes from two test decks. Coach swap quality will improve with more diverse matchups in later phases. Not a bug — data volume limitation.
+## Previous Session (2026-04-29)
+- Phase 8 visual QA completed and accepted. Phase 9 (Frontend: Live Console & Match Viewer) fully implemented and committed.
+- Three new backend endpoints: GET /events, GET /decisions, POST /cancel. Cancellation check in Celery task. 10 new backend tests. 145 tests total.
+- xterm.js installed. LiveConsole.tsx, SimulationStatus.tsx, DeckChangesTile.tsx, DecisionDetail.tsx, full SimulationLive.tsx created.
 
 ## What Was Built (Cumulative)
 - [x] Phase 1: Game Engine Core (state machine, actions, transitions, runner) — **complete (2026-04-26)**
@@ -162,57 +142,39 @@ Next: Phase 10 — History & Analytics Dashboard
 
 ## Current Phase Progress
 
-### Phase 9 — Frontend: Live Console & Match Viewer (2026-04-29)
+### Phase 9 — Frontend: Live Console & Match Viewer (2026-04-27/29)
 
-**Completed this session:**
+**Completed:**
 - Backend: GET /events, GET /decisions, POST /cancel — all 3 endpoints with tests
 - Celery cancellation check at round start
-- `src/types/simulation.ts` — shared TS types + `normaliseEvent()` (handles WS `event` vs REST `event_type` field)
+- `src/types/simulation.ts` — shared TS types + `normaliseEvent()`
 - `src/api/simulations.ts` — added `getSimulationEvents`, `getSimulationDecisions`, `cancelSimulation`
-- `src/stores/simulationStore.ts` — Phase 9 state extensions
-- `src/hooks/useSimulation.ts` — init fetch, `loadEarlierEvents`, live WS handler
-- `LiveConsole.tsx` — xterm.js + FitAddon, color-coded event formatter, "Load earlier events" button
-- `SimulationStatus.tsx` — round progress bar, win-rate bar with target line, cancel button
-- `DeckChangesTile.tsx` — swap history with win-rate deltas
-- `DecisionDetail.tsx` — slide-over AI decision log with pagination
-- `SimulationLive.tsx` — full page assembly (replaces stub)
-- `npm run build`: 0 errors, 1627 modules
-- 145 tests pass (up from 135)
+- `src/stores/simulationStore.ts` — Phase 9 state extensions (incl. `totalMatches`, `matchesPerOpponent`, `targetWinRate`, `gameMode` added during QA fix)
+- `src/hooks/useSimulation.ts` — decoupled init fetch, `loadEarlierEvents`, live WS handler
+- `LiveConsole.tsx`, `SimulationStatus.tsx`, `DeckChangesTile.tsx`, `DecisionDetail.tsx`, `SimulationLive.tsx`
+- `npm run build`: 0 errors, 1627 modules | 145 tests pass
 
 **Remaining (visual QA — user-driven):**
-- [ ] Open a completed H/H simulation — verify buffered events appear in xterm console
-- [ ] Verify "Load earlier events" button appears and loads older events
-- [ ] Submit a new simulation, watch events stream live in the console
-- [ ] Verify cancel button appears for running simulations and works
+- [ ] Navigate to `/simulation/e24d2266-7ada-45e7-80ab-7ddc598dc16c` — verify xterm console shows 500 buffered events, "Load earlier events" button visible (3,860 total)
+- [ ] Verify status tile shows: "Phantom Strike Dragapult", "1/1 rounds", "10 matches", "30% win rate", "40% target"
+- [ ] Submit a new simulation (Dragapult vs TR Mewtwo, H/H, 1 round, 5 matches) and watch events stream live
+- [ ] Verify cancel button appears for `running`/`pending` simulations
 - [ ] Verify DeckChangesTile shows swaps after a run with `deck_locked=false`
-- [ ] Verify SimulationStatus tile shows correct round/win-rate progress
 
-## Active Files Changed This Session (2026-04-29)
+## Active Files Changed This Session (2026-04-27)
 
-**Modified files (backend):**
-- `backend/app/api/simulations.py` — added GET /events, GET /decisions, POST /cancel; added `redis_module`, `Decision`, `MatchEvent` imports
-- `backend/app/tasks/simulation.py` — added cancellation status check at start of each round
-
-**New files (backend tests):**
-- `backend/tests/test_api/test_simulations.py` — 10 new tests: `TestGetSimulationEvents` (4), `TestGetSimulationDecisions` (2), `TestCancelSimulation` (4)
-
-**New files (frontend):**
-- `frontend/src/types/simulation.ts` — `MatchEventRow`, `LiveEvent`, `NormalisedEvent`, `DecisionRow`, `SimulationDetail`, `DeckMutation`, `normaliseEvent()`
-- `frontend/src/components/simulation/LiveConsole.tsx` — xterm.js console component
-- `frontend/src/components/simulation/SimulationStatus.tsx` — status/progress/cancel tile
-- `frontend/src/components/simulation/DeckChangesTile.tsx` — swap history tile
-- `frontend/src/components/simulation/DecisionDetail.tsx` — AI decision log slide-over
-
-**Modified files (frontend):**
-- `frontend/src/api/simulations.ts` — added `getSimulationEvents`, `getSimulationDecisions`, `cancelSimulation`, re-exported `SimulationDetail` from types
-- `frontend/src/stores/simulationStore.ts` — Phase 9 state extensions; `prependEvents`, `appendEvent`, `addMutation`, `totalEvents`, `firstEventId`, `hasMore`, `mutations`, etc.
-- `frontend/src/hooks/useSimulation.ts` — init fetch, `loadEarlierEvents`, live WS with mutation tracking
-- `frontend/src/pages/SimulationLive.tsx` — full Phase 9 implementation (replaces stub)
+**Modified files (frontend — QA bug fixes):**
+- `frontend/src/stores/simulationStore.ts` — added `totalMatches`, `matchesPerOpponent`, `targetWinRate`, `gameMode` fields
+- `frontend/src/hooks/useSimulation.ts` — decoupled sim detail / events fetches in init; added new fields to return; poll also updates `totalMatches`
+- `frontend/src/pages/SimulationLive.tsx` — replaced hardcoded zeros with real store values; `isAiMode` now uses `gameMode` from store
 
 **Modified files (docs):**
 - `docs/STATUS.md` — this file
 
 ## Known Issues / Gaps
+- **Phase 8 test simulation `288fbb94` has 0 match_events (data issue, not a display bug):** This simulation was submitted in Phase 8 before the deck parser fix. The excluded cards field still had "Boss" as a raw string. Celery completed in 26ms with `total_matches=0`. Do not use this simulation for Phase 9 QA — use `e24d2266-7ada-45e7-80ab-7ddc598dc16c` (10 matches, 3,860 events) instead.
+- **30 "running" stuck simulations in DB:** Accumulated from Phase 7 validate script + Phase 8 testing. These simulations were queued when the Celery worker was not running or was restarted. Their status is `running` but no task is processing them. Non-blocking — they don't affect new simulations. Clear with `UPDATE simulations SET status='failed' WHERE status='running'` if desired.
+- **uvicorn no hot-reload:** Changing backend code requires manually killing the uvicorn process and restarting it. Always verify new endpoints appear in `/openapi.json` after restart before reporting a 404.
 - **Coach cross-deck swap behaviour (observed 2026-04-27):** When the Coach has limited
   per-deck data, it may propose adding cards from the *opponent's* pool (e.g., TR Mewtwo ex,
   TR Giovanni into Dragapult deck) because those cards rank highest in the global win-rate DB
@@ -251,14 +213,10 @@ Next: Phase 10 — History & Analytics Dashboard
   expected — win rate is attributed to whichever player wins, and with only two archetypes both
   sides' cards converge to the same mean. Coach swap quality will improve naturally as more
   diverse matchups are simulated in later phases. No fix needed.
-- **Phase 8 visual QA not yet performed (2026-04-27):** Code is committed and builds cleanly, but the
-  user has not tested the UI in a browser. Phase 9 must not begin until user confirms visual QA pass.
+- **Phase 8 visual QA not yet performed** — stale, Phase 8 was accepted 2026-04-29. Remove this note.
 - **Ollama "unhealthy" in Docker health check (2026-04-27):** Docker reports Ollama container as
   unhealthy, but it is functional (Gemma and Qwen calls succeed). The health check script likely
   uses an endpoint that doesn't exist on this Ollama version. Non-blocking.
-- **uvicorn no hot-reload (2026-04-27):** uvicorn is started without `--reload`. Backend code changes
-  require a manual kill + restart to take effect. Discovered when cards.py changes weren't served
-  until uvicorn was restarted.
 
 ## Key Decisions Made
 - Test decks: Dragapult ex/Dusknoir (P1) vs Team Rocket's Mewtwo ex (P2)
@@ -297,6 +255,8 @@ Next: Phase 10 — History & Analytics Dashboard
 - **Test dependency_overrides pattern (2026-04-27):** `create_app()` returns `socketio.ASGIApp`, not
   `FastAPI`. Inner app exposed as `asgi_app.fastapi_app`. All tests must use
   `app.fastapi_app.dependency_overrides[...]`, not `app.dependency_overrides[...]`.
+- **useSimulation decoupled fetches (2026-04-27):** `Promise.all([getSimulation, getSimulationEvents])` was replaced with two independent `try/catch` blocks. Sim detail failure (renders error state) and events failure (shows empty console) are now isolated — one does not prevent the other from setting state.
+- **Store fields must be explicit (2026-04-27):** Fields not added to `simulationStore` state + `INITIAL` literal cannot be returned from hooks derived from that store. When `SimulationStatus` needs `total_matches`/`game_mode`/etc from the API, those fields must be explicitly stored — the raw API response shape cannot be destructured directly from the hook.
 
 ## Benchmark History
 
@@ -332,15 +292,20 @@ The asymmetry is deck matchup, not seating. Deck-out dropped 21% → 4% (G/G →
 
 ## Notes for Next Session — Phase 9 Visual QA then Phase 10
 
-**⚠️ Phase 9 code is committed and 145 tests pass, but visual QA has NOT been completed. The user must test the UI before Phase 10 begins.**
+**⚠️ Phase 9 QA bugs were found and fixed. The user stopped before re-testing. Visual QA MUST be completed before Phase 10 begins.**
 
-### Phase 9 Visual QA checklist (what the user will run):
-1. Open a completed H/H simulation at `/simulation/:id` — verify buffered events load in xterm console (not blank)
-2. Verify the "Load earlier events" button appears at top of console if >500 events exist
-3. Submit a new simulation and watch events stream live
-4. Verify cancel button appears for `running`/`pending` simulations and marks them cancelled
-5. Verify DeckChangesTile shows swaps after a run with `deck_locked=false`
-6. Verify SimulationStatus tile shows correct round progress bar and win rate
+### Phase 9 Visual QA checklist — use simulation `e24d2266-7ada-45e7-80ab-7ddc598dc16c`
+> Do NOT use `288fbb94` — it has 0 match data (bad Phase 8 test submission).
+1. Navigate to `/simulation/e24d2266-7ada-45e7-80ab-7ddc598dc16c` — verify xterm console shows buffered events (not blank)
+2. Verify status tile shows: "Phantom Strike Dragapult" (or similar), "1 / 1 rounds", "10 matches", correct win rate
+3. Verify "Load earlier events" button appears (3,860 total events; only last 500 loaded on mount)
+4. Submit a new simulation (Dragapult vs TR Mewtwo, H/H, 1 round, 5 matches) and watch events stream live in console
+5. Verify cancel button appears for `running`/`pending` simulations
+6. Verify DeckChangesTile shows swaps after a run with `deck_locked=false`
+
+### Phase 9 bugs fixed before close
+1. **Status tile hardcoded zeros** — `total_matches`, `matches_per_opponent`, `target_win_rate`, `game_mode` were hardcoded to 0/'' in `SimulationLive.tsx`. Added these fields to `simulationStore` and wired them through `useSimulation`.
+2. **Silent init failure** — `useSimulation` init used `Promise.all([getSimulation, getSimulationEvents])`. When `/events` 404'd (old uvicorn), entire init threw and was silently caught. Fixed: two independent `try/catch` blocks. Sim detail loading now succeeds even if events fail.
 
 ### Key architecture decisions from Phase 9
 - `normaliseEvent()` in `types/simulation.ts` unifies WS events (`event` field) and REST events (`event_type` field) into a single `NormalisedEvent` shape. Always use this on raw events before storing in the store.
@@ -349,12 +314,13 @@ The asymmetry is deck matchup, not seating. Deck-out dropped 21% → 4% (G/G →
 - `useSimulation` resets store + re-fetches on `simulationId` change. The `bufferedRef` prevents double-fetching in React StrictMode.
 - Cancel flow: POST /cancel → DB `cancelled` → Redis publish → WebSocket client sees `simulation_cancelled` event → polling sees new status. The Celery task stops at next round boundary (not instantly).
 
-### Dev stack setup (unchanged from Phase 8)
-- Docker: `cd ~/pokeprism && docker compose up -d`
-- Backend: `cd ~/pokeprism/backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
-- Celery: `python3 -m celery -A app.tasks.celery_app worker --loglevel=warning --concurrency=2`
+### Dev stack state at end of session
+- Docker: up (Postgres, Redis, Neo4j, Ollama)
+- uvicorn: restarted at end of session. Restart with: `cd ~/pokeprism/backend && nohup python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/uvicorn.log 2>&1 &`
+- Celery: check with `ps aux | grep celery`. Start with: `cd ~/pokeprism/backend && nohup python3 -m celery -A app.tasks.celery_app worker --loglevel=warning --concurrency=2 > /tmp/celery.log 2>&1 &`
 - Frontend: `cd ~/pokeprism/frontend && npm run dev`
 - Frontend URL: **http://localhost:5173** or **https://pokeprism.joshuac.dev**
+- All Phase 9 routes confirmed in `/openapi.json` (after uvicorn restart)
 
 ### What Phase 10 builds (from PROJECT.md §15)
 - History page: paginated list of past simulations with filter/sort
