@@ -1,5 +1,60 @@
 # PokéPrism Changelog
 
+## Phase 9 — Frontend: Live Console & Match Viewer (2026-04-29)
+
+### Summary
+Built the full SimulationLive page with xterm.js console for event streaming and replay.
+Added three backend endpoints (buffered event history, AI decision log, cancel). Implemented
+event normalisation to bridge the WS (`event` field) vs REST (`event_type` field) shape
+mismatch. H/H simulations (which complete before the browser subscribes) now load their full
+event history on page mount via GET /events. Console supports "Load earlier events" for
+large runs (>500 events). Cancel sets DB status; the Celery task polls and stops at the
+next round boundary.
+
+### Key Files Created
+- `backend/` — GET /api/simulations/:id/events, GET /decisions, POST /cancel (in simulations.py)
+- `frontend/src/types/simulation.ts` — shared TS types + `normaliseEvent()`
+- `frontend/src/components/simulation/LiveConsole.tsx` — xterm.js terminal with color-coded events
+- `frontend/src/components/simulation/SimulationStatus.tsx` — status + round progress + cancel button
+- `frontend/src/components/simulation/DeckChangesTile.tsx` — deck swap history with win-rate deltas
+- `frontend/src/components/simulation/DecisionDetail.tsx` — AI decisions slide-over panel
+
+### Key Files Modified
+- `backend/app/api/simulations.py` — added 3 endpoints, redis/Decision/MatchEvent imports
+- `backend/app/tasks/simulation.py` — cancellation check at start of each round
+- `frontend/src/api/simulations.ts` — getSimulationEvents, getSimulationDecisions, cancelSimulation
+- `frontend/src/stores/simulationStore.ts` — Phase 9 state (prependEvents, mutations, etc.)
+- `frontend/src/hooks/useSimulation.ts` — init fetch + loadEarlierEvents + WS mutation tracking
+- `frontend/src/pages/SimulationLive.tsx` — full page (replaces Phase 8 stub)
+
+### Test Results
+- **145 tests pass** (was 135; +10: TestGetSimulationEvents×4, TestGetSimulationDecisions×2, TestCancelSimulation×4)
+- `npm run build`: 0 TypeScript errors, 1627 modules
+
+---
+
+## Phase 8 — Frontend: Core Layout & Simulation Setup (2026-04-27/29)
+
+### Summary
+Built the complete React/Vite/TypeScript frontend from scratch. Dark-mode-first design
+(slate-950 palette, electric blue accent). Full routing, layout components, and Simulation
+Setup page with deck paste/parse, opponent deck management, excluded-cards chip UI, and
+POST /api/simulations submit flow. Backend cards API replaced 501 stub with real pg_trgm
+search. Three bugs found and fixed during visual QA: excluded-cards dropdown wiring,
+500 on form submit (deck parser format mismatch), and dark/light toggle not applying to `<html>`.
+
+### Key Files Created
+- `frontend/` — all 36 source files (config, components, pages, stores, hooks, utils)
+- `backend/app/api/cards.py` — pg_trgm search, paginated list, detail endpoints
+- `backend/tests/test_api/test_cards.py` — 9 tests
+
+### Test Results
+- **135 tests pass** entering Phase 9 (was 126 after Phase 7)
+- `npm run build`: 0 TypeScript errors, 1627 modules (post-Phase-9 xterm install)
+- Visual QA: all 7 checklist items pass (2026-04-29)
+
+---
+
 ## Phase 5 — AI Player (2026-04-27)
 
 ### Summary

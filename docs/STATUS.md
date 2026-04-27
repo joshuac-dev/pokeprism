@@ -4,21 +4,26 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-Phase 8 — Frontend: Core Layout & Simulation Setup — **Code committed, visual QA pending**
-Next: Phase 9 — Simulation Live Console (xterm.js) — **do not start until user confirms Phase 8 visually**
+Phase 9 — Frontend: Live Console & Match Viewer — **Code committed, build clean (145 tests pass). Visual QA pending.**
+Next: Phase 10 — History & Analytics Dashboard
 
 ## Last Session
-- **Date:** 2026-04-27
-- Phase 8 (Frontend: Core Layout & Simulation Setup) implemented and build-validated. **Visual QA not yet completed.**
-- All 36 frontend files created: config, utils, API layer, Zustand stores, hooks, layout components, simulation components, and pages.
-- `npm run build` passes with **zero TypeScript errors** (tsc + vite build, 1619 modules).
-- Backend cards API replaced 501 stub with real pg_trgm search, paginated list, and detail endpoints. 9 new tests; full suite **135 passed, 0 failures**.
-- SimulationLive stub subscribes to WebSocket via `useSocket` and logs `sim_event` messages to browser console — proves full loop (form → API → Celery → Redis → WebSocket → browser) wired before Phase 9.
-- Confirmed dev stack running: Docker (Postgres/Redis/Neo4j/Ollama), uvicorn on :8000, Celery worker, Vite on :5173.
-- `GET /api/cards/search?q=boss` returns Boss's Orders correctly (was serving stale 501 until uvicorn restart).
-- **Note:** One of two Gemma deck naming calls hit the fallback path — likely Ollama timeout. Monitor; increase 5s timeout if frequent.
+- **Date:** 2026-04-29
+- Phase 8 visual QA completed and accepted by user. Three bugs fixed: (1) excluded-cards dropdown not appearing (useCardSearch wiring), (2) 500 on form submit (deck parser format mismatch + "Boss" raw string sent as excluded card), (3) light/dark toggle not working (dark class not applied to `<html>`).
+- Phase 9 (Frontend: Live Console & Match Viewer) fully implemented and committed.
+- Three new backend endpoints: `GET /api/simulations/:id/events` (buffered replay, cursor pagination), `GET /api/simulations/:id/decisions` (AI decisions, offset pagination), `POST /api/simulations/:id/cancel` (sets DB status, publishes Redis event).
+- Cancellation check in Celery task: polls DB status at start of each round, breaks cleanly if `cancelled`.
+- 10 new backend tests; full suite **145 passed, 0 failures**.
+- xterm.js installed (`@xterm/xterm`, `@xterm/addon-fit`).
+- New frontend files: `src/types/simulation.ts`, `LiveConsole.tsx`, `SimulationStatus.tsx`, `DeckChangesTile.tsx`, `DecisionDetail.tsx`, full `SimulationLive.tsx`.
+- `useSimulation` hook rewritten: fetches buffered events + sim detail on mount (resolving H/H blank-console issue), polls status, handles live WS events via `appendEvent`.
+- `simulationStore` extended: `prependEvents`, `totalEvents`, `hasMore`, `firstEventId`, `mutations`, `roundsCompleted`, `numRounds`, `finalWinRate`.
+- `npm run build` passes with **zero TypeScript errors** (1627 modules).
+- **Note:** "CUSTOM DECK" fallback deck naming still observed (Gemma inconsistent). Monitor.
 
-## Previous Session (2026-04-28)
+## Previous Session (2026-04-27/28)
+- Phase 7 live-validated: ALL 7 CHECKS PASSED.
+- Phase 8 built: all 36 frontend files + backend cards API.
 - Phase 7 implemented and live-validated against full Docker stack (Celery, Redis, WebSocket, Gemma, Postgres).
 - All 6 live validation deliverables confirmed:
   1. **validate_phase7.py**: ALL 7 CHECKS PASSED (simulation completes in ~3s)
@@ -45,8 +50,9 @@ Next: Phase 9 — Simulation Live Console (xterm.js) — **do not start until us
 - [x] Phase 5: AI Player (Qwen3.5-9B decisions) — **complete (2026-04-27)**
 - [x] Phase 6: Coach/Analyst (Gemma 4 E4B, card swaps, DeckMutation) — **complete & owner-verified (2026-04-27)**
 - [x] Phase 7: Task Queue & Simulation Orchestration — **complete & owner-verified (2026-04-28)**
-- [x] Phase 8: Frontend Core Layout & Simulation Setup — **committed, visual QA pending (2026-04-27)**
-- [ ] Phase 9: Simulation Live Console (xterm.js) — **next**
+- [x] Phase 8: Frontend Core Layout & Simulation Setup — **complete & owner-verified (2026-04-29)**
+- [x] Phase 9: Simulation Live Console (xterm.js) — **committed, visual QA pending (2026-04-29)**
+- [ ] Phase 10: History & Analytics Dashboard — **next**
 
 ## Phase 7 Exit Criteria — Verified (2026-04-28)
 
@@ -62,7 +68,25 @@ Next: Phase 9 — Simulation Live Console (xterm.js) — **do not start until us
 | Scheduled H/H | Celery Beat at 2AM UTC | `crontab(hour=2, minute=0)` confirmed ✅ | ✅ |
 | Tests | All prior + new tests pass | **126 passed, 0 failures** ✅ | ✅ |
 
-## Phase 8 Exit Criteria — Build verified, visual QA pending (2026-04-27)
+## Phase 9 Exit Criteria — Build verified, visual QA pending (2026-04-29)
+
+| Criterion | Target | Result | Status |
+|---|---|---|---|
+| GET /events endpoint | Paginated buffered events (cursor) | ✅ Returns `{events, total, has_more}` | ✅ |
+| GET /decisions endpoint | AI decision log (offset pagination) | ✅ Returns `{decisions, total}` | ✅ |
+| POST /cancel endpoint | Marks cancelled, publishes Redis event | ✅ 200 running/pending; 409 terminal | ✅ |
+| Celery cancellation check | Polls DB at round start | ✅ Breaks cleanly on `cancelled` status | ✅ |
+| xterm.js console | Colour-coded event rendering | ✅ LiveConsole.tsx with FitAddon | ✅ |
+| Buffered event replay | H/H completes before WS → load on mount | ✅ init fetch in useSimulation | ✅ |
+| Load earlier events | Cursor button prepends older events | ✅ `loadEarlierEvents` + `prependEvents` | ✅ |
+| SimulationStatus tile | Round progress + win-rate bar + cancel | ✅ SimulationStatus.tsx | ✅ |
+| DeckChangesTile | Per-round swap history | ✅ DeckChangesTile.tsx | ✅ |
+| DecisionDetail | AI decisions slide-over panel | ✅ DecisionDetail.tsx | ✅ |
+| TypeScript build | Zero errors | ✅ 1627 modules | ✅ |
+| Tests | All prior + new | **145 passed, 0 failures** ✅ | ✅ |
+| **Visual QA** | User browser test | **⏳ Pending** | ⏳ |
+
+## Phase 8 Exit Criteria — Verified (2026-04-29)
 
 | Criterion | Target | Result | Status |
 |---|---|---|---|
@@ -75,7 +99,7 @@ Next: Phase 9 — Simulation Live Console (xterm.js) — **do not start until us
 | WebSocket stub | SimulationLive logs events | ✅ useSocket subscribes, logs sim_event to console | ✅ |
 | Cards API | Real pg_trgm search | ✅ /cards/search, /cards, /cards/:id implemented | ✅ |
 | Tests | All prior + new cards tests | **135 passed, 0 failures** ✅ | ✅ |
-| **Visual QA** | User browser test | **⏳ Pending — user has not run yet** | ⏳ |
+| **Visual QA** | User browser test | **✅ Verified 2026-04-29** | ✅ |
 
 
 | Criterion | Target | Result | Status |
@@ -138,46 +162,52 @@ Next: Phase 9 — Simulation Live Console (xterm.js) — **do not start until us
 
 ## Current Phase Progress
 
-### Phase 8 — In Progress (2026-04-27)
+### Phase 9 — Frontend: Live Console & Match Viewer (2026-04-29)
 
 **Completed this session:**
-- All 36 frontend source files built and committed (`frontend/` directory)
-- `npm run build` passes with zero TypeScript errors (1619 modules, tsc + vite build)
-- Backend cards API (`/api/cards/search`, `/api/cards`, `/api/cards/:id`) replacing 501 stubs
-- 9 new cards API tests; full suite 135 passed, 0 failures
-- Dev stack confirmed running: Vite :5173, FastAPI :8000, Celery worker, Docker services
-- `GET /api/cards/search?q=boss` returns results (uvicorn restarted to pick up new code)
+- Backend: GET /events, GET /decisions, POST /cancel — all 3 endpoints with tests
+- Celery cancellation check at round start
+- `src/types/simulation.ts` — shared TS types + `normaliseEvent()` (handles WS `event` vs REST `event_type` field)
+- `src/api/simulations.ts` — added `getSimulationEvents`, `getSimulationDecisions`, `cancelSimulation`
+- `src/stores/simulationStore.ts` — Phase 9 state extensions
+- `src/hooks/useSimulation.ts` — init fetch, `loadEarlierEvents`, live WS handler
+- `LiveConsole.tsx` — xterm.js + FitAddon, color-coded event formatter, "Load earlier events" button
+- `SimulationStatus.tsx` — round progress bar, win-rate bar with target line, cancel button
+- `DeckChangesTile.tsx` — swap history with win-rate deltas
+- `DecisionDetail.tsx` — slide-over AI decision log with pagination
+- `SimulationLive.tsx` — full page assembly (replaces stub)
+- `npm run build`: 0 errors, 1627 modules
+- 145 tests pass (up from 135)
 
-**Remaining this session (visual QA — user-driven):**
-- [ ] Simulation Setup page layout and dark mode appearance
-- [ ] Paste a Dragapult deck list — verify card count parses correctly
-- [ ] Type "Boss" in excluded cards — verify search dropdown + chip add/remove
-- [ ] Submit full simulation (Dragapult vs TR Mewtwo, H/H, 1 round, 5 matches) — verify 201 + redirect
-- [ ] Open `/simulation/:id` — verify WebSocket events appear in browser DevTools console
-- [ ] Submit with empty deck in Full Deck mode — verify 422 message shown in UI
-- [ ] Toggle dark/light mode — verify no broken styling
+**Remaining (visual QA — user-driven):**
+- [ ] Open a completed H/H simulation — verify buffered events appear in xterm console
+- [ ] Verify "Load earlier events" button appears and loads older events
+- [ ] Submit a new simulation, watch events stream live in the console
+- [ ] Verify cancel button appears for running simulations and works
+- [ ] Verify DeckChangesTile shows swaps after a run with `deck_locked=false`
+- [ ] Verify SimulationStatus tile shows correct round/win-rate progress
 
-## Active Files Changed This Session (2026-04-27)
-
-**New files (frontend):**
-- `frontend/package.json`, `tsconfig.json`, `vite.config.ts`, `tailwind.config.js`, `postcss.config.js`
-- `frontend/index.html`, `frontend/Dockerfile`, `frontend/nginx.conf`
-- `frontend/src/main.tsx`, `src/index.css`, `src/App.tsx`, `src/router.tsx`, `src/vite-env.d.ts`
-- `frontend/src/utils/deckParser.ts` — full PTCG parser (section headers, card lines, fallback, 60-card check)
-- `frontend/src/utils/formatters.ts`
-- `frontend/src/api/client.ts`, `simulations.ts`, `cards.ts`, `decks.ts`, `history.ts`, `memory.ts`
-- `frontend/src/stores/uiStore.ts` — dark/light toggle + localStorage persistence
-- `frontend/src/stores/simulationStore.ts`, `historyStore.ts`
-- `frontend/src/hooks/useCardSearch.ts`, `useSocket.ts`, `useSimulation.ts`
-- `frontend/src/components/layout/Sidebar.tsx`, `TopBar.tsx`, `PageShell.tsx`
-- `frontend/src/components/simulation/DeckUploader.tsx`, `ParamForm.tsx`, `OpponentDeckList.tsx`
-- `frontend/src/pages/SimulationSetup.tsx`, `SimulationLive.tsx`, `Dashboard.tsx`, `History.tsx`, `Memory.tsx`
+## Active Files Changed This Session (2026-04-29)
 
 **Modified files (backend):**
-- `backend/app/api/cards.py` — replaced 501 stub; `_card_summary()`, `_card_detail()`, pg_trgm search
+- `backend/app/api/simulations.py` — added GET /events, GET /decisions, POST /cancel; added `redis_module`, `Decision`, `MatchEvent` imports
+- `backend/app/tasks/simulation.py` — added cancellation status check at start of each round
 
-**New files (backend):**
-- `backend/tests/test_api/test_cards.py` — 9 tests for all 3 card endpoints
+**New files (backend tests):**
+- `backend/tests/test_api/test_simulations.py` — 10 new tests: `TestGetSimulationEvents` (4), `TestGetSimulationDecisions` (2), `TestCancelSimulation` (4)
+
+**New files (frontend):**
+- `frontend/src/types/simulation.ts` — `MatchEventRow`, `LiveEvent`, `NormalisedEvent`, `DecisionRow`, `SimulationDetail`, `DeckMutation`, `normaliseEvent()`
+- `frontend/src/components/simulation/LiveConsole.tsx` — xterm.js console component
+- `frontend/src/components/simulation/SimulationStatus.tsx` — status/progress/cancel tile
+- `frontend/src/components/simulation/DeckChangesTile.tsx` — swap history tile
+- `frontend/src/components/simulation/DecisionDetail.tsx` — AI decision log slide-over
+
+**Modified files (frontend):**
+- `frontend/src/api/simulations.ts` — added `getSimulationEvents`, `getSimulationDecisions`, `cancelSimulation`, re-exported `SimulationDetail` from types
+- `frontend/src/stores/simulationStore.ts` — Phase 9 state extensions; `prependEvents`, `appendEvent`, `addMutation`, `totalEvents`, `firstEventId`, `hasMore`, `mutations`, etc.
+- `frontend/src/hooks/useSimulation.ts` — init fetch, `loadEarlierEvents`, live WS with mutation tracking
+- `frontend/src/pages/SimulationLive.tsx` — full Phase 9 implementation (replaces stub)
 
 **Modified files (docs):**
 - `docs/STATUS.md` — this file
@@ -300,40 +330,35 @@ The asymmetry is deck matchup, not seating. Deck-out dropped 21% → 4% (G/G →
   Enhanced Hammer→TR Mewtwo ex, Duskull→TR Sneasel
 - 1348 decision embeddings, 768 dims. SimilarSituationFinder returns results (dist~0.17).
 
-## Notes for Next Session — Phase 9 (Simulation Live Console)
+## Notes for Next Session — Phase 9 Visual QA then Phase 10
 
-**⚠️ DO NOT START PHASE 9 UNTIL THE USER CONFIRMS PHASE 8 IS VISUALLY VERIFIED.**
+**⚠️ Phase 9 code is committed and 145 tests pass, but visual QA has NOT been completed. The user must test the UI before Phase 10 begins.**
 
-Phase 8 code is committed and all 135 tests pass, but the user has not yet tested the UI in a browser. The next session must begin by asking the user if they completed visual QA and what they found. If issues were reported, fix them first.
+### Phase 9 Visual QA checklist (what the user will run):
+1. Open a completed H/H simulation at `/simulation/:id` — verify buffered events load in xterm console (not blank)
+2. Verify the "Load earlier events" button appears at top of console if >500 events exist
+3. Submit a new simulation and watch events stream live
+4. Verify cancel button appears for `running`/`pending` simulations and marks them cancelled
+5. Verify DeckChangesTile shows swaps after a run with `deck_locked=false`
+6. Verify SimulationStatus tile shows correct round progress bar and win rate
 
-### Visual QA checklist (what the user will run at http://localhost:5173):
-1. Simulation Setup page layout and dark mode appearance
-2. Paste a Dragapult deck list — verify card count parses correctly (shows "60 cards")
-3. Type "Boss" in excluded cards — verify search dropdown appears and chip adds/removes
-4. Submit full simulation (Dragapult vs TR Mewtwo, H/H, 1 round, 5 matches) — verify 201 + redirect to `/simulation/:id`
-5. Open `/simulation/:id` in browser — verify WebSocket events appear in DevTools console
-6. Submit with empty deck in Full Deck mode — verify 422 error message shown in UI
-7. Toggle dark/light mode — verify no broken styling
+### Key architecture decisions from Phase 9
+- `normaliseEvent()` in `types/simulation.ts` unifies WS events (`event` field) and REST events (`event_type` field) into a single `NormalisedEvent` shape. Always use this on raw events before storing in the store.
+- xterm.js is imperative. The `Terminal` object lives in a `useRef`. The effect that writes events tracks last written index via `writtenRef.current` — it only appends new events, never rewrites (except on prepend/reset).
+- `prependEvents()` in simulationStore prepends older events to front of array. The LiveConsole effect detects `writtenRef.current > events.length` (array shrank = prepend reset), clears terminal, and rewrites all.
+- `useSimulation` resets store + re-fetches on `simulationId` change. The `bufferedRef` prevents double-fetching in React StrictMode.
+- Cancel flow: POST /cancel → DB `cancelled` → Redis publish → WebSocket client sees `simulation_cancelled` event → polling sees new status. The Celery task stops at next round boundary (not instantly).
 
-### Dev stack setup (not containerized for dev)
-- Docker (Postgres, Redis, Neo4j, Ollama): `cd ~/pokeprism && docker compose up -d`
+### Dev stack setup (unchanged from Phase 8)
+- Docker: `cd ~/pokeprism && docker compose up -d`
 - Backend: `cd ~/pokeprism/backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
 - Celery: `python3 -m celery -A app.tasks.celery_app worker --loglevel=warning --concurrency=2`
 - Frontend: `cd ~/pokeprism/frontend && npm run dev`
-- Frontend URL: **http://localhost:5173** (NOT :3000)
-- uvicorn has no `--reload`; must be manually restarted after backend code changes
-- Vite proxy handles `/api` → `:8000` and `/socket.io` → `:8000` (ws: true) — no CORS config needed
+- Frontend URL: **http://localhost:5173** or **https://pokeprism.joshuac.dev**
 
-### What Phase 9 builds (from PROJECT.md §14)
-- xterm.js terminal pane in SimulationLive: renders streaming `match_event` lines colour-coded by event type
-- Progress bar / round tracker above terminal
-- Simulation controls: pause/resume via POST `/api/simulations/:id/pause`
-- Export button: download simulation log as JSON
-
-### Key frontend architecture facts (established Phase 8)
-- `simulationStore.ts` (Zustand) holds events array, capped at 500 to prevent memory leak
-- `useSimulation(id)` hook: wraps `useSocket` + `simulationStore` + REST polling for status
-- `useSocket(simulationId, onEvent)`: connects to `window.location.origin`, path `/socket.io`, emits `subscribe_simulation`, listens on `sim_event`
-- Tests use `app.fastapi_app.dependency_overrides` (NOT `app.dependency_overrides`) — `create_app()` returns `socketio.ASGIApp`, not `FastAPI`; inner app exposed as `.fastapi_app`
-- All frontend TypeScript is strict (`noUnusedLocals`, `noUnusedParameters` in tsconfig) — stub files must export something real
+### What Phase 10 builds (from PROJECT.md §15)
+- History page: paginated list of past simulations with filter/sort
+- Analytics charts: win rate over time, top cards, deck performance comparisons
+- GET /api/history endpoints (list, filter by date/deck/status)
+- Recharts or Chart.js for visualisation
 
