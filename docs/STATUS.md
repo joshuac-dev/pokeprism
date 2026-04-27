@@ -4,11 +4,19 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-Phase 7 — Task Queue & Simulation Orchestration — **Verified & Accepted**
-Next: Phase 8 — Deck Builder API & Card Pool Management
+Phase 8 — Frontend: Core Layout & Simulation Setup — **Verified & Accepted**
+Next: Phase 9 — Simulation Live Console (xterm.js)
 
 ## Last Session
-- **Date:** 2026-04-28
+- **Date:** 2026-04-29
+- Phase 8 (Frontend: Core Layout & Simulation Setup) implemented and build-validated.
+- All 36 frontend files created: config, utils, API layer, Zustand stores, hooks, layout components, simulation components, and pages.
+- `npm run build` passes with **zero TypeScript errors** (tsc + vite build, 1619 modules).
+- Backend cards API replaced 501 stub with real pg_trgm search, paginated list, and detail endpoints. 9 new tests; full suite **135 passed, 0 failures**.
+- SimulationLive stub subscribes to WebSocket via `useSocket` and logs `sim_event` messages to browser console — proves full loop (form → API → Celery → Redis → WebSocket → browser) wired before Phase 9.
+- **Note:** One of two Gemma deck naming calls hit the fallback path — likely Ollama timeout. Monitor; increase 5s timeout if frequent.
+
+## Previous Session (2026-04-28)
 - Phase 7 implemented and live-validated against full Docker stack (Celery, Redis, WebSocket, Gemma, Postgres).
 - All 6 live validation deliverables confirmed:
   1. **validate_phase7.py**: ALL 7 CHECKS PASSED (simulation completes in ~3s)
@@ -35,7 +43,8 @@ Next: Phase 8 — Deck Builder API & Card Pool Management
 - [x] Phase 5: AI Player (Qwen3.5-9B decisions) — **complete (2026-04-27)**
 - [x] Phase 6: Coach/Analyst (Gemma 4 E4B, card swaps, DeckMutation) — **complete & owner-verified (2026-04-27)**
 - [x] Phase 7: Task Queue & Simulation Orchestration — **complete & owner-verified (2026-04-28)**
-- [ ] Phase 8: Deck Builder API & Card Pool Management — **next**
+- [x] Phase 8: Frontend Core Layout & Simulation Setup — **complete & owner-verified (2026-04-29)**
+- [ ] Phase 9: Simulation Live Console (xterm.js) — **next**
 
 ## Phase 7 Exit Criteria — Verified (2026-04-28)
 
@@ -51,6 +60,19 @@ Next: Phase 8 — Deck Builder API & Card Pool Management
 | Scheduled H/H | Celery Beat at 2AM UTC | `crontab(hour=2, minute=0)` confirmed ✅ | ✅ |
 | Tests | All prior + new tests pass | **126 passed, 0 failures** ✅ | ✅ |
 
+## Phase 8 Exit Criteria — Verified (2026-04-29)
+
+| Criterion | Target | Result | Status |
+|---|---|---|---|
+| npm run build | Zero TypeScript errors | ✅ 0 errors, 1619 modules | ✅ |
+| Dark mode | slate-950 theme, toggle persisted | ✅ Tailwind `darkMode: 'class'`, localStorage | ✅ |
+| Routing | All 5 routes reachable | ✅ /, /simulation/:id, /dashboard, /history, /memory | ✅ |
+| SimulationSetup | Deck upload + param form + opponents | ✅ Full form, validation, submit to POST /api/simulations | ✅ |
+| Excluded cards | Search + chip UI | ✅ pg_trgm search, add/remove chips | ✅ |
+| Input validation | Client-side guard rails | ✅ deck_locked+none blocked, card count enforced | ✅ |
+| WebSocket stub | SimulationLive logs events | ✅ useSocket subscribes, logs sim_event to console | ✅ |
+| Cards API | Real pg_trgm search | ✅ /cards/search, /cards, /cards/:id implemented | ✅ |
+| Tests | All prior + new cards tests | **135 passed, 0 failures** ✅ | ✅ |
 
 
 | Criterion | Target | Result | Status |
