@@ -62,8 +62,29 @@ def _parse_deck_text(deck_text: str) -> list[tuple[int, str]]:
 
 
 def count_deck_cards(deck_text: str) -> int:
-    """Return the total number of cards described in *deck_text*."""
-    return sum(count for count, _ in _parse_deck_text(deck_text))
+    """Return the total number of cards described in *deck_text*.
+
+    Handles both TCGdex format (``4 Dragapult ex sv06-130``) and
+    PTCGO/PTCGL export format (``4 Dragapult ex SVI 186``).  Any line
+    whose first token is a positive integer is counted; section headers
+    such as ``Pokémon: 14`` are skipped because their first token is
+    not a plain integer.
+    """
+    total = 0
+    for raw_line in deck_text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        tokens = line.split()
+        if len(tokens) < 2:
+            continue
+        try:
+            count = int(tokens[0])
+            if count > 0:
+                total += count
+        except ValueError:
+            continue
+    return total
 
 
 # ---------------------------------------------------------------------------
