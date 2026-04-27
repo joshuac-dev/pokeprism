@@ -17,6 +17,10 @@ export function useSimulation(simulationId: string | null) {
     roundsCompleted,
     numRounds,
     finalWinRate,
+    totalMatches,
+    matchesPerOpponent,
+    targetWinRate,
+    gameMode,
     setSimulation,
     prependEvents,
     appendEvent,
@@ -38,11 +42,11 @@ export function useSimulation(simulationId: string | null) {
     bufferedRef.current = true;
 
     const init = async () => {
+      // Fetch sim detail and events independently so a /events failure
+      // doesn't block the status tile from populating.
+      let detail;
       try {
-        const [detail, evResp] = await Promise.all([
-          getSimulation(simulationId),
-          getSimulationEvents(simulationId, { limit: 500 }),
-        ]);
+        detail = await getSimulation(simulationId);
         setSimulation({
           simulationId: detail.id,
           status: detail.status,
@@ -50,14 +54,24 @@ export function useSimulation(simulationId: string | null) {
           numRounds: detail.num_rounds,
           roundsCompleted: detail.rounds_completed,
           finalWinRate: detail.final_win_rate,
+          totalMatches: detail.total_matches,
+          matchesPerOpponent: detail.matches_per_opponent,
+          targetWinRate: detail.target_win_rate,
+          gameMode: detail.game_mode,
         });
+      } catch {
+        // ignore — status tile will remain at defaults
+      }
+
+      try {
+        const evResp = await getSimulationEvents(simulationId, { limit: 500 });
         prependEvents(
           evResp.events.map(normaliseEvent),
           evResp.total,
           evResp.has_more
         );
       } catch {
-        // ignore — polling will catch updates
+        // ignore — console stays empty, not a fatal error
       }
     };
 
@@ -78,6 +92,7 @@ export function useSimulation(simulationId: string | null) {
           deckName: data.user_deck_name,
           roundsCompleted: data.rounds_completed,
           finalWinRate: data.final_win_rate,
+          totalMatches: data.total_matches,
         });
       } catch {
         // ignore transient errors
@@ -132,6 +147,10 @@ export function useSimulation(simulationId: string | null) {
     roundsCompleted,
     numRounds,
     finalWinRate,
+    totalMatches,
+    matchesPerOpponent,
+    targetWinRate,
+    gameMode,
     loadEarlierEvents,
   };
 }

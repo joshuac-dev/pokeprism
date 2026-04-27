@@ -8,6 +8,10 @@ interface SimulationState {
   numRounds: number;
   roundsCompleted: number;
   finalWinRate: number | null;
+  totalMatches: number;
+  matchesPerOpponent: number;
+  targetWinRate: number;
+  gameMode: string;
 
   /** All events (buffered REST + live WS), oldest-first */
   events: NormalisedEvent[];
@@ -43,6 +47,10 @@ const INITIAL: Omit<SimulationState, keyof SimulationActions> = {
   numRounds: 0,
   roundsCompleted: 0,
   finalWinRate: null,
+  totalMatches: 0,
+  matchesPerOpponent: 0,
+  targetWinRate: 0,
+  gameMode: '',
   events: [],
   totalEvents: 0,
   firstEventId: null,

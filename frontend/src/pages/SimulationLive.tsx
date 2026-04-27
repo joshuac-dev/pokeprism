@@ -20,6 +20,10 @@ export default function SimulationLive() {
     roundsCompleted,
     numRounds,
     finalWinRate,
+    totalMatches,
+    matchesPerOpponent,
+    targetWinRate,
+    gameMode,
     loadEarlierEvents,
   } = useSimulation(id ?? null);
 
@@ -38,21 +42,20 @@ export default function SimulationLive() {
     }
   };
 
-  // Build a minimal SimulationDetail-shaped object from hook state
   const detailProps = {
     status: (status ?? 'pending') as 'pending' | 'running' | 'complete' | 'failed' | 'cancelled',
     num_rounds: numRounds,
     rounds_completed: roundsCompleted,
-    matches_per_opponent: 0,
-    total_matches: 0,
-    target_win_rate: 0,
+    matches_per_opponent: matchesPerOpponent,
+    total_matches: totalMatches,
+    target_win_rate: targetWinRate,
     final_win_rate: finalWinRate,
-    game_mode: '',
+    game_mode: gameMode,
     user_deck_name: deckName,
     error_message: null,
   };
 
-  const isAiMode = detailProps.game_mode === 'ai_h' || detailProps.game_mode === 'ai_ai';
+  const isAiMode = gameMode === 'ai_h' || gameMode === 'ai_ai';
 
   return (
     <PageShell title={deckName ?? 'Simulation Live'}>
