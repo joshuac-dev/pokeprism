@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # Ollama
     OLLAMA_BASE_URL: str = Field(default="http://localhost:11434")
     OLLAMA_PLAYER_MODEL: str = Field(default="qwen3.5:9b-q4_K_M")
-    OLLAMA_COACH_MODEL: str = Field(default="gemma4-e4b:q6_K")
+    OLLAMA_COACH_MODEL: str = Field(default="gemma4-E4B-it-Q6_K:latest")
     OLLAMA_EMBED_MODEL: str = Field(default="nomic-embed-text")
 
     # TCGDex

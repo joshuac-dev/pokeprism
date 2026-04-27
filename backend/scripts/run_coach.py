@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
-"""CLI entry point for H/H (and H/G) batch simulation.
+"""CLI entry point for the Coach/Analyst end-to-end pipeline.
+
+Runs N AI/H games with the Dragapult deck, then feeds results to CoachAnalyst
+(Gemma 4 E4B) to generate 0–4 card swap proposals with reasoning.
 
 Run from the backend/ directory:
-    python3 -m scripts.run_hh [options]
+    python3 -m scripts.run_coach [options]
 
 Examples:
-    # 100-game H/H benchmark (default decks)
-    python3 -m scripts.run_hh --num-games 100
-
-    # H/G comparison: HeuristicPlayer (P1) vs GreedyPlayer (P2)
-    python3 -m scripts.run_hh --num-games 100 --p2-greedy
-
-    # G/G baseline
-    python3 -m scripts.run_hh --num-games 100 --greedy
+    python3 -m scripts.run_coach --num-games 5
+    python3 -m scripts.run_coach --num-games 10 --max-swaps 2
 """
 
 from __future__ import annotations
@@ -21,18 +18,18 @@ import argparse
 import asyncio
 import logging
 import sys
+import uuid
 from pathlib import Path
 
-# Ensure the backend package root is on the path when called directly.
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.cards.loader import CardListLoader, SET_CODE_MAP  # noqa: E402
 from app.cards import registry as card_registry            # noqa: E402
-from app.engine.batch import run_hh_batch                 # noqa: E402
 
 logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
 
-# ── Canonical deck lists (mirrors tests/conftest.py) ─────────────────────────
+# ── Deck lists (mirrors run_hh.py / tests/conftest.py) ───────────────────────
 
 DRAGAPULT_DECK_LIST: list[tuple[str, str, int]] = [
     ("TWM", "128", 4), ("TWM", "129", 3), ("TWM", "130", 3),
@@ -48,18 +45,15 @@ DRAGAPULT_DECK_LIST: list[tuple[str, str, int]] = [
 ]
 
 TR_MEWTWO_DECK_LIST: list[tuple[str, str, int]] = [
-    # Pokémon (18)
     ("DRI", "81",  3), ("DRI", "87",  3), ("DRI", "128", 2),
     ("DRI", "51",  2), ("DRI", "10",  2), ("ASC", "39",  2),
     ("MEG", "88",  2), ("MEG", "86",  1), ("MEG", "74",  1),
-    # Trainers (33)
     ("DRI", "178", 3), ("DRI", "174", 3), ("DRI", "173", 3),
     ("DRI", "177", 2), ("DRI", "170", 2), ("DRI", "171", 2),
     ("DRI", "176", 2), ("DRI", "180", 2), ("DRI", "169", 2),
     ("DRI", "168", 2), ("DRI", "164", 2), ("MEG", "131", 2),
     ("MEG", "114", 2), ("MEG", "119", 1), ("MEG", "115", 1),
     ("SVI", "186", 1), ("SFA", "57",  1),
-    # Energy (9)
     ("MEE", "5",   3), ("MEE", "7",   3), ("DRI", "182", 2),
     ("ASC", "216", 1),
 ]
@@ -88,91 +82,95 @@ def _load_deck(deck_list: list[tuple[str, str, int]]):
             print(f"  WARNING: fixture missing for {set_abbrev} {number}", file=sys.stderr)
             continue
         cdef = loader._transform(raw, {"set_abbrev": set_abbrev, "number": number,
-                                       "name": raw.get("name", "")})
+                                        "name": raw.get("name", "")})
         cards.extend([cdef] * copies)
     return cards
 
 
 async def _run(args: argparse.Namespace) -> None:
-    from app.players.heuristic import HeuristicPlayer
-    from app.players.base import GreedyPlayer
     from app.players.ai_player import AIPlayer
+    from app.players.heuristic import HeuristicPlayer
+    from app.engine.batch import run_hh_batch
+    from app.db.session import AsyncSessionLocal
+    from app.coach.analyst import CoachAnalyst
 
     print("Loading decks …")
     p1_defs = _load_deck(DRAGAPULT_DECK_LIST)
     p2_defs = _load_deck(TR_MEWTWO_DECK_LIST)
 
-    if len(p1_defs) == 0 or len(p2_defs) == 0:
+    if not p1_defs or not p2_defs:
         print("ERROR: deck loading failed — run capture_fixtures.py first.", file=sys.stderr)
         sys.exit(1)
 
-    # Register all unique card definitions so the engine can look them up.
     for cdef in {c.tcgdex_id: c for c in p1_defs + p2_defs}.values():
         if not card_registry.get(cdef.tcgdex_id):
             card_registry.register(cdef)
 
-    p1_deck = p1_defs
-    p2_deck = p2_defs
+    print(f"P1 deck: {len(p1_defs)} cards  |  P2 deck: {len(p2_defs)} cards")
 
-    if args.swap:
-        p1_deck, p2_deck = p2_deck, p1_deck
-        p1_name, p2_name = "TR-Mewtwo", "Dragapult"
-    else:
-        p1_name, p2_name = "Dragapult", "TR-Mewtwo"
+    simulation_id = uuid.uuid4()
+    print(f"Simulation ID: {simulation_id}")
 
-    if args.greedy:
-        p1_cls, p2_cls = GreedyPlayer, GreedyPlayer
-        mode = "G/G"
-    elif args.p2_greedy:
-        p1_cls, p2_cls = HeuristicPlayer, GreedyPlayer
-        mode = "H/G"
-    elif args.ai:
-        p1_cls, p2_cls = AIPlayer, HeuristicPlayer
-        mode = "AI/H"
-    else:
-        p1_cls, p2_cls = HeuristicPlayer, HeuristicPlayer
-        mode = "H/H"
-
-    swap_label = " (swapped)" if args.swap else ""
-    print(f"Running {args.num_games} × {mode} games "
-          f"({p1_name} vs {p2_name}){swap_label} …\n")
-
-    result = await run_hh_batch(
-        p1_deck=p1_deck,
-        p2_deck=p2_deck,
+    print(f"\nRunning {args.num_games} AI/H game(s) …")
+    batch = await run_hh_batch(
+        p1_deck=p1_defs,
+        p2_deck=p2_defs,
+        p1_deck_name="Dragapult",
+        p2_deck_name="TR-Mewtwo",
+        p1_player_class=AIPlayer,
+        p2_player_class=HeuristicPlayer,
         num_games=args.num_games,
-        p1_deck_name=p1_name,
-        p2_deck_name=p2_name,
-        p1_player_class=p1_cls,
-        p2_player_class=p2_cls,
+        persist=True,
+        simulation_id=simulation_id,
         verbose=True,
-        persist=args.persist,
     )
+    results = batch.results
 
-    persist_label = "  [persisted to DB]" if args.persist else ""
-    print(f"\n{'─' * 40}")
-    print(f"  Mode: {mode}  |  {args.num_games} games{persist_label}")
-    print(f"{'─' * 40}")
-    print(result.summary())
-    print(f"{'─' * 40}")
+    wins = batch.p1_wins
+    print(f"\nRound complete: {wins}/{len(results)} wins ({wins/len(results):.1%})")
+    print(f"Average turns: {batch.avg_turns:.1f}")
+
+    if args.skip_coach:
+        print("\n--skip-coach: not running CoachAnalyst.")
+        return
+
+    print(f"\nRunning CoachAnalyst (model={args.model or 'from env'}, max_swaps={args.max_swaps}) …")
+    async with AsyncSessionLocal() as db:
+        analyst = CoachAnalyst(
+            db=db,
+            model=args.model or None,
+            max_swaps=args.max_swaps,
+        )
+        mutations = await analyst.analyze_and_mutate(
+            current_deck=p1_defs,
+            round_results=results,
+            simulation_id=simulation_id,
+            round_number=1,
+        )
+        await db.commit()
+
+    if not mutations:
+        print("\nCoach proposes 0 swaps (deck performing well or insufficient data).")
+    else:
+        print(f"\nCoach proposes {len(mutations)} swap(s):")
+        for i, m in enumerate(mutations, 1):
+            print(f"  [{i}] REMOVE {m['card_removed']}  →  ADD {m['card_added']}")
+            print(f"      Reasoning: {m['reasoning']}")
+
+    print("\nDone.")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="PokéPrism batch simulator")
-    parser.add_argument("--num-games", type=int, default=100,
-                        help="Number of games to simulate (default: 100)")
-    parser.add_argument("--greedy", action="store_true",
-                        help="G/G mode: both players use GreedyPlayer")
-    parser.add_argument("--p2-greedy", action="store_true",
-                        help="H/G mode: P1=Heuristic, P2=Greedy")
-    parser.add_argument("--swap", action="store_true",
-                        help="Swap decks: P1=TR Mewtwo, P2=Dragapult")
-    parser.add_argument("--persist", action="store_true",
-                        help="Write match results to Postgres + Neo4j (Phase 4)")
-    parser.add_argument("--ai", action="store_true",
-                        help="AI/H mode: P1=AIPlayer (Qwen3.5), P2=HeuristicPlayer")
+    parser = argparse.ArgumentParser(description="Run Coach/Analyst pipeline")
+    parser.add_argument("--num-games", type=int, default=5,
+                        help="Number of AI/H games to play before analyzing (default: 5)")
+    parser.add_argument("--max-swaps", type=int, default=4,
+                        help="Maximum swaps the Coach may propose (default: 4)")
+    parser.add_argument("--model", type=str, default=None,
+                        help="Override OLLAMA_COACH_MODEL (default: read from env)")
+    parser.add_argument("--skip-coach", action="store_true",
+                        help="Run games only, skip CoachAnalyst inference")
     args = parser.parse_args()
-
     asyncio.run(_run(args))
 
 

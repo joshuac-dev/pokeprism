@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING
 
 import httpx
+from sqlalchemy import select
+from sqlalchemy import text as sa_text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db.models import Embedding
 from app.db.session import AsyncSessionLocal
-
-if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class EmbeddingService:
@@ -78,3 +77,48 @@ class EmbeddingService:
             f"Opponent bench size: {opp_bench_count}. "
             f"Opponent prizes: {opp_prizes_remaining}."
         )
+
+
+class SimilarSituationFinder:
+    """Find past AI decisions with similar game states using pgvector cosine search."""
+
+    def __init__(self, db: AsyncSession) -> None:
+        self._db = db
+        self._embed_svc = EmbeddingService()
+
+    async def find_similar(
+        self,
+        text: str,
+        k: int = 5,
+        source_type: str = "decision",
+    ) -> list[dict]:
+        """Embed *text* and return the k nearest stored embeddings.
+
+        Returns list of {source_id, content_text, distance}.
+        Returns empty list if no embeddings exist for the given source_type.
+        """
+        query_vector = await self._embed_svc.embed(text)
+
+        # Increase IVFFlat probes so small datasets are fully scanned.
+        # Default probes=1 misses most results when lists >> sqrt(n).
+        await self._db.execute(sa_text("SET LOCAL ivfflat.probes = 20"))
+
+        rows = (await self._db.execute(
+            select(
+                Embedding.source_id,
+                Embedding.content_text,
+                Embedding.embedding.cosine_distance(query_vector).label("distance"),
+            )
+            .where(Embedding.source_type == source_type)
+            .order_by(Embedding.embedding.cosine_distance(query_vector))
+            .limit(k)
+        )).all()
+
+        return [
+            {
+                "source_id": row.source_id,
+                "content_text": row.content_text,
+                "distance": float(row.distance),
+            }
+            for row in rows
+        ]

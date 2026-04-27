@@ -190,3 +190,76 @@ class GraphMemoryWriter:
             winner_id=winner_id,
             loser_id=loser_id,
         )
+
+
+class GraphQueries:
+    """Read synergy data and record Coach swap decisions in Neo4j."""
+
+    async def get_synergies(
+        self,
+        card_ids: list[str],
+        top_n: int = 10,
+    ) -> dict:
+        """Return top and weak SYNERGIZES_WITH pairs for the given deck.
+
+        Returns:
+            {"top": [(card_a_id, card_a_name, card_b_id, card_b_name, weight), ...],
+             "weak": [...]}
+        """
+        if len(card_ids) < 2:
+            return {"top": [], "weak": []}
+
+        async with graph_session() as session:
+            result = await session.run(
+                """
+                MATCH (a:Card)-[r:SYNERGIZES_WITH]-(b:Card)
+                WHERE a.tcgdex_id IN $ids AND b.tcgdex_id IN $ids
+                  AND a.tcgdex_id < b.tcgdex_id
+                RETURN a.tcgdex_id AS id_a, a.name AS name_a,
+                       b.tcgdex_id AS id_b, b.name AS name_b,
+                       r.weight AS weight
+                ORDER BY r.weight DESC
+                """,
+                ids=card_ids,
+            )
+            records = [r.data() async for r in result]
+
+        if not records:
+            return {"top": [], "weak": []}
+
+        pairs = [
+            (r["id_a"], r.get("name_a", r["id_a"]),
+             r["id_b"], r.get("name_b", r["id_b"]),
+             r["weight"])
+            for r in records
+        ]
+        return {
+            "top": pairs[:top_n],
+            "weak": pairs[-top_n:] if len(pairs) > top_n else [],
+        }
+
+    async def record_swap(
+        self,
+        removed_id: str,
+        added_id: str,
+        round_number: int,
+        reasoning: str,
+    ) -> None:
+        """Create or update a SWAPPED_FOR edge between two cards."""
+        async with graph_session() as session:
+            await session.run(
+                """
+                MERGE (removed:Card {tcgdex_id: $removed_id})
+                MERGE (added:Card {tcgdex_id: $added_id})
+                MERGE (removed)-[r:SWAPPED_FOR]->(added)
+                ON CREATE SET r.count = 1, r.last_round = $round_num,
+                              r.reasoning = $reasoning
+                ON MATCH SET  r.count = r.count + 1,
+                              r.last_round = $round_num,
+                              r.reasoning = $reasoning
+                """,
+                removed_id=removed_id,
+                added_id=added_id,
+                round_num=round_number,
+                reasoning=reasoning,
+            )

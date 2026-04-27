@@ -5,10 +5,13 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Card, Deck, DeckCard, Decision, Match, MatchEvent, Round, Simulation
+from app.db.models import (
+    Card, CardPerformance, Deck, DeckCard, DeckMutation,
+    Decision, Match, MatchEvent, Round, Simulation,
+)
 
 if TYPE_CHECKING:
     from app.engine.runner import MatchResult
@@ -195,7 +198,39 @@ class MatchMemoryWriter:
             )
             await db.flush()
 
+        await self._update_card_performance(result, p1_deck_id, p2_deck_id, db)
         return match_id
+
+    async def _update_card_performance(
+        self,
+        result: MatchResult,
+        p1_deck_id: uuid.UUID,
+        p2_deck_id: uuid.UUID,
+        db: AsyncSession,
+    ) -> None:
+        """Upsert card_performance rows for both decks after a match."""
+        p1_cards = list((await db.execute(
+            select(DeckCard.card_tcgdex_id).where(DeckCard.deck_id == p1_deck_id)
+        )).scalars().all())
+        p2_cards = list((await db.execute(
+            select(DeckCard.card_tcgdex_id).where(DeckCard.deck_id == p2_deck_id)
+        )).scalars().all())
+
+        winning_cards = p1_cards if result.winner == "p1" else p2_cards
+        losing_cards = p2_cards if result.winner == "p1" else p1_cards
+
+        upsert_sql = text(
+            "INSERT INTO card_performance (card_tcgdex_id, games_included, games_won) "
+            "VALUES (:card_id, 1, :games_won) "
+            "ON CONFLICT (card_tcgdex_id) DO UPDATE SET "
+            "games_included = card_performance.games_included + 1, "
+            "games_won = card_performance.games_won + EXCLUDED.games_won"
+        )
+        for card_id in winning_cards:
+            await db.execute(upsert_sql, {"card_id": card_id, "games_won": 1})
+        for card_id in losing_cards:
+            await db.execute(upsert_sql, {"card_id": card_id, "games_won": 0})
+        await db.flush()
 
     async def write_decisions(
         self,
@@ -203,11 +238,11 @@ class MatchMemoryWriter:
         match_id: uuid.UUID,
         simulation_id: uuid.UUID,
         db: AsyncSession,
-    ) -> None:
-        """Bulk-insert AI decision records for a single match."""
+    ) -> list[tuple[uuid.UUID, str | None]]:
+        """Bulk-insert AI decision records. Returns list of (id, game_state_summary) for embedding."""
         if not decisions:
-            return
-        db.add_all(
+            return []
+        rows = [
             Decision(
                 match_id=match_id,
                 simulation_id=simulation_id,
@@ -221,5 +256,108 @@ class MatchMemoryWriter:
                 game_state_summary=d.get("game_state_summary"),
             )
             for d in decisions
+        ]
+        db.add_all(rows)
+        await db.flush()
+        return [(row.id, row.game_state_summary) for row in rows]
+
+    async def write_mutations(
+        self,
+        mutations: list[dict],
+        simulation_id: uuid.UUID,
+        db: AsyncSession,
+    ) -> None:
+        """Bulk-insert DeckMutation records produced by the Coach."""
+        if not mutations:
+            return
+        db.add_all(
+            DeckMutation(
+                simulation_id=simulation_id,
+                round_number=m["round_number"],
+                card_removed=m["card_removed"],
+                card_added=m["card_added"],
+                reasoning=m.get("reasoning"),
+            )
+            for m in mutations
         )
         await db.flush()
+
+
+class CardPerformanceQueries:
+    """Read card performance stats from Postgres for the Coach/Analyst."""
+
+    def __init__(self, db: AsyncSession) -> None:
+        self._db = db
+
+    async def get_card_performance(
+        self, card_ids: list[str]
+    ) -> dict[str, dict]:
+        """Return performance stats for each card ID.
+
+        Returns a mapping tcgdex_id → {games_included, games_won, win_rate,
+        total_kos, total_damage, total_prizes}.  Missing cards get zero stats.
+        """
+        if not card_ids:
+            return {}
+        rows = (await self._db.execute(
+            select(CardPerformance).where(
+                CardPerformance.card_tcgdex_id.in_(card_ids)
+            )
+        )).scalars().all()
+
+        result: dict[str, dict] = {cid: {
+            "games_included": 0, "games_won": 0, "win_rate": 0.0,
+            "total_kos": 0, "total_damage": 0, "total_prizes": 0,
+        } for cid in card_ids}
+
+        for row in rows:
+            win_rate = (row.games_won / row.games_included) if row.games_included else 0.0
+            result[row.card_tcgdex_id] = {
+                "games_included": row.games_included,
+                "games_won": row.games_won,
+                "win_rate": round(win_rate, 3),
+                "total_kos": row.total_kos or 0,
+                "total_damage": row.total_damage or 0,
+                "total_prizes": row.total_prizes or 0,
+            }
+        return result
+
+    async def get_top_performing_cards(
+        self,
+        exclude_ids: list[str],
+        limit: int = 20,
+    ) -> list[dict]:
+        """Return top-performing cards NOT in the current deck.
+
+        Ordered by win_rate descending, filtered to cards with at least 5 games.
+        Returns list of {tcgdex_id, name, games_included, win_rate}.
+        """
+        conditions = [CardPerformance.games_included >= 5]
+        if exclude_ids:
+            conditions.append(CardPerformance.card_tcgdex_id.not_in(exclude_ids))
+        rows = (await self._db.execute(
+            select(CardPerformance, Card.name)
+            .join(Card, Card.tcgdex_id == CardPerformance.card_tcgdex_id)
+            .where(*conditions)
+            .order_by(
+                (CardPerformance.games_won / CardPerformance.games_included).desc()
+            )
+            .limit(limit)
+        )).all()
+
+        return [
+            {
+                "tcgdex_id": perf.card_tcgdex_id,
+                "name": name,
+                "games_included": perf.games_included,
+                "win_rate": round(perf.games_won / perf.games_included, 3),
+            }
+            for perf, name in rows
+        ]
+
+    async def get_total_historical_games(self) -> int:
+        """Return the total number of matches recorded in the DB."""
+        result = await self._db.execute(
+            select(text("COUNT(*)")).select_from(Match)
+        )
+        return result.scalar() or 0

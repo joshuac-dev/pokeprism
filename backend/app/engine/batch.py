@@ -151,6 +151,7 @@ async def run_hh_batch(
                 p2_player.drain_decisions()
                 if hasattr(p2_player, "drain_decisions") else []
             )
+            all_decisions = p1_decisions + p2_decisions
             async with AsyncSessionLocal() as db:
                 match_id = await pg_writer.write_match(
                     result=result,
@@ -161,13 +162,25 @@ async def run_hh_batch(
                     p2_deck_id=p2_deck_db_id,
                     db=db,
                 )
-                if p1_decisions or p2_decisions:
-                    await pg_writer.write_decisions(
-                        p1_decisions + p2_decisions,
+                stored = []
+                if all_decisions:
+                    stored = await pg_writer.write_decisions(
+                        all_decisions,
                         match_id=match_id,
                         simulation_id=simulation_id,
                         db=db,
                     )
+                if stored:
+                    from app.memory.embeddings import EmbeddingService
+                    embed_svc = EmbeddingService()
+                    for decision_id, summary in stored:
+                        if summary:
+                            await embed_svc.embed_and_store(
+                                text=summary,
+                                source_type="decision",
+                                source_id=str(decision_id),
+                                db=db,
+                            )
                 await db.commit()
             await graph_writer.write_match(
                 result=result,
