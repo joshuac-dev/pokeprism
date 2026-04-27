@@ -19,7 +19,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.db.models import Deck, DeckCard, DeckMutation, Match, Round, Simulation, SimulationOpponent
+import redis as redis_module
+from app.db.models import Deck, DeckCard, DeckMutation, Decision, Match, MatchEvent, Round, Simulation, SimulationOpponent
 from app.db.session import AsyncSessionLocal
 from app.tasks.simulation import count_deck_cards, run_simulation
 
@@ -481,3 +482,220 @@ async def delete_simulation(
     await db.delete(row)
     await db.commit()
     return Response(status_code=204)
+
+
+# ---------------------------------------------------------------------------
+# GET /api/simulations/{id}/events
+# ---------------------------------------------------------------------------
+
+@router.get("/{simulation_id}/events")
+async def get_simulation_events(
+    simulation_id: str,
+    limit: int = 500,
+    before_id: Optional[int] = None,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Return paginated match events for a simulation, newest-last (chronological).
+
+    Pagination: use ``before_id=<smallest id from previous page>`` to load earlier events.
+    Response: ``{ events, total, has_more }``
+    """
+    import uuid as _uuid_mod
+
+    try:
+        sim_uuid = _uuid_mod.UUID(simulation_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid simulation_id format")
+
+    # Verify simulation exists
+    sim_exists = (await db.execute(
+        select(Simulation.id).where(Simulation.id == sim_uuid)
+    )).scalar_one_or_none()
+    if sim_exists is None:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+
+    limit = max(1, min(limit, 1000))
+
+    # Total event count for this simulation
+    total_q = (
+        select(func.count(MatchEvent.id))
+        .join(Match, MatchEvent.match_id == Match.id)
+        .where(Match.simulation_id == sim_uuid)
+    )
+    total: int = (await db.execute(total_q)).scalar() or 0
+
+    # Build base query
+    base_q = (
+        select(
+            MatchEvent.id,
+            MatchEvent.event_type,
+            MatchEvent.turn,
+            MatchEvent.player,
+            MatchEvent.data,
+            Match.round_number,
+            Match.id.label("match_id"),
+            Match.p1_deck_name,
+            Match.p2_deck_name,
+        )
+        .join(Match, MatchEvent.match_id == Match.id)
+        .where(Match.simulation_id == sim_uuid)
+    )
+
+    if before_id is not None:
+        # Load events older than before_id (cursor-based, going backwards)
+        events_q = (
+            base_q
+            .where(MatchEvent.id < before_id)
+            .order_by(MatchEvent.id.desc())
+            .limit(limit)
+        )
+    else:
+        # Initial load: return the last `limit` events (newest)
+        events_q = (
+            base_q
+            .order_by(MatchEvent.id.desc())
+            .limit(limit)
+        )
+
+    rows = (await db.execute(events_q)).all()
+    # Reverse so oldest-first (chronological) for frontend display
+    rows = list(reversed(rows))
+
+    events = [
+        {
+            "id": int(r.id),
+            "type": "match_event",
+            "event_type": r.event_type,
+            "round_number": r.round_number,
+            "match_id": str(r.match_id),
+            "p1_deck_name": r.p1_deck_name,
+            "p2_deck_name": r.p2_deck_name,
+            "turn": r.turn,
+            "player": r.player,
+            "data": r.data or {},
+        }
+        for r in rows
+    ]
+
+    # has_more: are there events older than the oldest one we returned?
+    has_more = False
+    if events:
+        oldest_id = events[0]["id"]
+        count_older = (await db.execute(
+            select(func.count(MatchEvent.id))
+            .join(Match, MatchEvent.match_id == Match.id)
+            .where(Match.simulation_id == sim_uuid, MatchEvent.id < oldest_id)
+        )).scalar() or 0
+        has_more = count_older > 0
+
+    return {"events": events, "total": total, "has_more": has_more}
+
+
+# ---------------------------------------------------------------------------
+# GET /api/simulations/{id}/decisions
+# ---------------------------------------------------------------------------
+
+@router.get("/{simulation_id}/decisions")
+async def get_simulation_decisions(
+    simulation_id: str,
+    limit: int = 50,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Return paginated AI decisions for a simulation.
+
+    Only populated for ai_h / ai_ai game modes.
+    """
+    import uuid as _uuid_mod
+
+    try:
+        sim_uuid = _uuid_mod.UUID(simulation_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid simulation_id format")
+
+    limit = max(1, min(limit, 200))
+    offset = max(0, offset)
+
+    total: int = (await db.execute(
+        select(func.count(Decision.id)).where(Decision.simulation_id == sim_uuid)
+    )).scalar() or 0
+
+    rows = (await db.execute(
+        select(Decision)
+        .where(Decision.simulation_id == sim_uuid)
+        .order_by(Decision.created_at.asc())
+        .limit(limit)
+        .offset(offset)
+    )).scalars().all()
+
+    return {
+        "decisions": [
+            {
+                "id": str(d.id),
+                "match_id": str(d.match_id) if d.match_id else None,
+                "turn_number": d.turn_number,
+                "player_id": d.player_id,
+                "action_type": d.action_type,
+                "card_played": d.card_played,
+                "target": d.target,
+                "reasoning": d.reasoning,
+                "legal_action_count": d.legal_action_count,
+                "game_state_summary": d.game_state_summary,
+                "created_at": d.created_at.isoformat() if d.created_at else None,
+            }
+            for d in rows
+        ],
+        "total": total,
+    }
+
+
+# ---------------------------------------------------------------------------
+# POST /api/simulations/{id}/cancel
+# ---------------------------------------------------------------------------
+
+@router.post("/{simulation_id}/cancel")
+async def cancel_simulation(
+    simulation_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Cancel a running or pending simulation.
+
+    Sets status to 'cancelled' in the DB and publishes a cancellation event
+    to the Redis channel.  The Celery task checks for cancellation at the
+    start of each round and will stop cleanly on the next check.
+    """
+    import uuid as _uuid_mod
+
+    try:
+        sim_uuid = _uuid_mod.UUID(simulation_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid simulation_id format")
+
+    row = (await db.execute(
+        select(Simulation).where(Simulation.id == sim_uuid)
+    )).scalar_one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+
+    if row.status not in ("pending", "running"):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Cannot cancel simulation with status '{row.status}'"
+        )
+
+    row.status = "cancelled"
+    await db.commit()
+
+    # Publish cancellation to Redis so the WebSocket client sees it immediately
+    try:
+        r = redis_module.Redis.from_url(settings.REDIS_URL)
+        channel = f"simulation:{simulation_id}"
+        r.publish(channel, json.dumps({
+            "type": "simulation_cancelled",
+            "simulation_id": simulation_id,
+        }))
+        r.close()
+    except Exception as exc:
+        logger.warning("Redis publish failed during cancel: %s", exc)
+
+    return {"cancelled": True, "id": simulation_id}

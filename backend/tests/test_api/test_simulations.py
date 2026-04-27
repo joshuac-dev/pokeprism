@@ -401,3 +401,299 @@ class TestGetSimulation:
         data = resp.json()
         assert data["id"] == str(sim_id)
         assert data["status"] == "pending"
+
+
+# ---------------------------------------------------------------------------
+# GET /api/simulations/{id}/events
+# ---------------------------------------------------------------------------
+
+class TestGetSimulationEvents:
+    """Tests for GET /api/simulations/:id/events."""
+
+    def _make_events_session(self, sim_id, events, total):
+        """Session mock that returns sim_id for existence check, events, and total."""
+        import uuid as _uuid
+
+        session = AsyncMock()
+        session.commit = AsyncMock()
+
+        call_count = {"n": 0}
+
+        def make_result(value=None, rows=None):
+            m = MagicMock()
+            m.scalar_one_or_none.return_value = value
+            m.scalar.return_value = value
+            m.all.return_value = rows or []
+            return m
+
+        async def _execute(query, *a, **kw):
+            call_count["n"] += 1
+            n = call_count["n"]
+            if n == 1:
+                # existence check
+                return make_result(sim_id)
+            elif n == 2:
+                # total count
+                return make_result(total)
+            elif n == 3:
+                # events query
+                return make_result(rows=events)
+            else:
+                # has_more count
+                return make_result(0)
+
+        session.execute = AsyncMock(side_effect=_execute)
+        return session
+
+    def test_missing_simulation_returns_404(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        async def override_db():
+            session = AsyncMock()
+            m = MagicMock()
+            m.scalar_one_or_none.return_value = None
+            session.execute = AsyncMock(return_value=m)
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get(f"/api/simulations/{uuid.uuid4()}/events")
+        app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 404
+
+    def test_invalid_uuid_returns_422(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        async def override_db():
+            session = AsyncMock()
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get("/api/simulations/not-a-uuid/events")
+        app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 422
+
+    def test_empty_simulation_returns_empty_events(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim_id = uuid.uuid4()
+
+        async def override_db():
+            yield self._make_events_session(sim_id, [], 0)
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get(f"/api/simulations/{sim_id}/events")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["events"] == []
+        assert data["total"] == 0
+        assert data["has_more"] is False
+
+    def test_returns_events_with_expected_shape(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim_id = uuid.uuid4()
+        match_id = uuid.uuid4()
+
+        # Build a mock row that looks like a SQLAlchemy Row
+        mock_row = MagicMock()
+        mock_row.id = 999
+        mock_row.event_type = "energy_attached"
+        mock_row.turn = 3
+        mock_row.player = "p1"
+        mock_row.data = {"card": "sv06-130"}
+        mock_row.round_number = 1
+        mock_row.match_id = match_id
+        mock_row.p1_deck_name = "Dragapult ex Deck"
+        mock_row.p2_deck_name = "TR Mewtwo Deck"
+
+        async def override_db():
+            yield self._make_events_session(sim_id, [mock_row], 1)
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get(f"/api/simulations/{sim_id}/events")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["events"]) == 1
+        ev = data["events"][0]
+        assert ev["id"] == 999
+        assert ev["type"] == "match_event"
+        assert ev["event_type"] == "energy_attached"
+        assert ev["round_number"] == 1
+        assert ev["p1_deck_name"] == "Dragapult ex Deck"
+        assert ev["turn"] == 3
+
+
+# ---------------------------------------------------------------------------
+# GET /api/simulations/{id}/decisions
+# ---------------------------------------------------------------------------
+
+class TestGetSimulationDecisions:
+    """Tests for GET /api/simulations/:id/decisions."""
+
+    def test_invalid_uuid_returns_422(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        async def override_db():
+            session = AsyncMock()
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get("/api/simulations/not-a-uuid/decisions")
+        app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 422
+
+    def test_no_decisions_returns_empty(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim_id = uuid.uuid4()
+
+        async def override_db():
+            session = AsyncMock()
+            call_n = {"n": 0}
+
+            async def _exec(*a, **kw):
+                call_n["n"] += 1
+                m = MagicMock()
+                m.scalar.return_value = 0
+                m.scalars.return_value.all.return_value = []
+                return m
+
+            session.execute = AsyncMock(side_effect=_exec)
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get(f"/api/simulations/{sim_id}/decisions")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["decisions"] == []
+        assert data["total"] == 0
+
+
+# ---------------------------------------------------------------------------
+# POST /api/simulations/{id}/cancel
+# ---------------------------------------------------------------------------
+
+class TestCancelSimulation:
+    """Tests for POST /api/simulations/:id/cancel."""
+
+    def test_invalid_uuid_returns_422(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        async def override_db():
+            session = AsyncMock()
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.post("/api/simulations/not-a-uuid/cancel")
+        app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 422
+
+    def test_missing_simulation_returns_404(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        async def override_db():
+            session = AsyncMock()
+            m = MagicMock()
+            m.scalar_one_or_none.return_value = None
+            session.execute = AsyncMock(return_value=m)
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.post(f"/api/simulations/{uuid.uuid4()}/cancel")
+        app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 404
+
+    def test_cancel_running_simulation_succeeds(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim_id = uuid.uuid4()
+        mock_sim = MagicMock()
+        mock_sim.id = sim_id
+        mock_sim.status = "running"
+
+        async def override_db():
+            session = AsyncMock()
+            session.commit = AsyncMock()
+            m = MagicMock()
+            m.scalar_one_or_none.return_value = mock_sim
+            session.execute = AsyncMock(return_value=m)
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with patch("app.api.simulations.redis_module.Redis") as mock_redis:
+            mock_r = MagicMock()
+            mock_redis.from_url.return_value = mock_r
+            with TestClient(app) as c:
+                resp = c.post(f"/api/simulations/{sim_id}/cancel")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["cancelled"] is True
+        assert data["id"] == str(sim_id)
+        assert mock_sim.status == "cancelled"
+
+    def test_cancel_completed_simulation_returns_409(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim_id = uuid.uuid4()
+        mock_sim = MagicMock()
+        mock_sim.id = sim_id
+        mock_sim.status = "complete"
+
+        async def override_db():
+            session = AsyncMock()
+            m = MagicMock()
+            m.scalar_one_or_none.return_value = mock_sim
+            session.execute = AsyncMock(return_value=m)
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.post(f"/api/simulations/{sim_id}/cancel")
+        app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 409

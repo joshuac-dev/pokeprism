@@ -180,6 +180,17 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
 
         # ── 5. Round loop ───────────────────────────────────────────────────
         for round_number in range(1, num_rounds + 1):
+            # Check if simulation was cancelled between rounds
+            async with SessionFactory() as db:
+                status_row = await db.execute(
+                    select(Simulation.status).where(Simulation.id == sim_uuid)
+                )
+                current_status = status_row.scalar_one_or_none()
+                if current_status == "cancelled":
+                    logger.info("Simulation %s cancelled — stopping at round %d", simulation_id, round_number)
+                    _publish({"type": "simulation_cancelled", "simulation_id": simulation_id})
+                    return {"status": "cancelled"}
+
             if task_self is not None and hasattr(task_self, "update_state"):
                 task_self.update_state(
                     state="PROGRESS",
