@@ -96,6 +96,7 @@ def _load_deck(deck_list: list[tuple[str, str, int]]):
 async def _run(args: argparse.Namespace) -> None:
     from app.players.heuristic import HeuristicPlayer
     from app.players.base import GreedyPlayer
+    from app.players.ai_player import AIPlayer
 
     print("Loading decks …")
     p1_defs = _load_deck(DRAGAPULT_DECK_LIST)
@@ -125,6 +126,9 @@ async def _run(args: argparse.Namespace) -> None:
     elif args.p2_greedy:
         p1_cls, p2_cls = HeuristicPlayer, GreedyPlayer
         mode = "H/G"
+    elif args.ai:
+        p1_cls, p2_cls = AIPlayer, HeuristicPlayer
+        mode = "AI/H"
     else:
         p1_cls, p2_cls = HeuristicPlayer, HeuristicPlayer
         mode = "H/H"
@@ -165,6 +169,8 @@ def main() -> None:
                         help="Swap decks: P1=TR Mewtwo, P2=Dragapult")
     parser.add_argument("--persist", action="store_true",
                         help="Write match results to Postgres + Neo4j (Phase 4)")
+    parser.add_argument("--ai", action="store_true",
+                        help="AI/H mode: P1=AIPlayer (Qwen3.5), P2=HeuristicPlayer")
     args = parser.parse_args()
 
     asyncio.run(_run(args))

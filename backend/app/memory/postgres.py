@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Card, Deck, DeckCard, Match, MatchEvent, Round, Simulation
+from app.db.models import Card, Deck, DeckCard, Decision, Match, MatchEvent, Round, Simulation
 
 if TYPE_CHECKING:
     from app.engine.runner import MatchResult
@@ -196,3 +196,30 @@ class MatchMemoryWriter:
             await db.flush()
 
         return match_id
+
+    async def write_decisions(
+        self,
+        decisions: list[dict],
+        match_id: uuid.UUID,
+        simulation_id: uuid.UUID,
+        db: AsyncSession,
+    ) -> None:
+        """Bulk-insert AI decision records for a single match."""
+        if not decisions:
+            return
+        db.add_all(
+            Decision(
+                match_id=match_id,
+                simulation_id=simulation_id,
+                turn_number=d["turn_number"],
+                player_id=d["player_id"],
+                action_type=d["action_type"],
+                card_played=d.get("card_played"),
+                target=d.get("target"),
+                reasoning=d.get("reasoning"),
+                legal_action_count=d.get("legal_action_count"),
+                game_state_summary=d.get("game_state_summary"),
+            )
+            for d in decisions
+        )
+        await db.flush()

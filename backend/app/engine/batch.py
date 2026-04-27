@@ -142,6 +142,15 @@ async def run_hh_batch(
         results.append(result)
 
         if persist and pg_writer and graph_writer:
+            # Drain AI decisions before opening the DB session.
+            p1_decisions = (
+                p1_player.drain_decisions()
+                if hasattr(p1_player, "drain_decisions") else []
+            )
+            p2_decisions = (
+                p2_player.drain_decisions()
+                if hasattr(p2_player, "drain_decisions") else []
+            )
             async with AsyncSessionLocal() as db:
                 match_id = await pg_writer.write_match(
                     result=result,
@@ -152,6 +161,13 @@ async def run_hh_batch(
                     p2_deck_id=p2_deck_db_id,
                     db=db,
                 )
+                if p1_decisions or p2_decisions:
+                    await pg_writer.write_decisions(
+                        p1_decisions + p2_decisions,
+                        match_id=match_id,
+                        simulation_id=simulation_id,
+                        db=db,
+                    )
                 await db.commit()
             await graph_writer.write_match(
                 result=result,
