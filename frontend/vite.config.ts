@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0',
+    allowedHosts: ['pokeprism.joshuac.dev'],
     proxy: {
       '/api': 'http://localhost:8000',
       '/socket.io': {
