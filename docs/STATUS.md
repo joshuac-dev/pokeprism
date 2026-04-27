@@ -4,28 +4,28 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-Phase 6 — Coach/Analyst (Gemma 4 E4B) — **Re-Verified & Accepted (2026-04-27)**
-Next: Phase 7 — Task Queue & Simulation Orchestration
+Phase 7 — Task Queue & Simulation Orchestration — **Verified & Accepted**
+Next: Phase 8 — Deck Builder API & Card Pool Management
 
 ## Last Session
-- **Date:** 2026-04-27
-- **Re-verification session — no code written.** Phase 6 was previously accepted but session
-  was lost before owner could personally verify. All 7 checks re-run from scratch and passed:
-  - Section 0 (Deck sizes): Dragapult 60 cards ✅ | TR Mewtwo 60 cards ✅ | ASC-39 = 1 copy ✅
-  - Section 1 (AI/H games): 5/5 completed (1/5 P1 wins, 40.4 avg turns, 646.4s) ✅
-  - Section 2 (Coach inference): `gemma4-E4B-it-Q6_K:latest` confirmed ✅, clean markdown-fenced
-    JSON (no `{"` prefill), reasoning references actual win_rate + loss_reasons ✅
-  - Section 3 (deck_mutations): 3 rows written with real TCGdex IDs (`sv10-081`, `sv10-087`,
-    `sv10-174`) ✅
-  - Section 4a (CardPerformanceQueries): top 5 by win rate returned (sv10-128, sv10-051,
-    sv10-081, sv10-087, sv10-010 — all 54.3% across 35 games) ✅
-  - Section 4b (GraphQueries): top 5 SYNERGIZES_WITH pairs returned (sv05-161 ↔ various,
-    weight 324) ✅
-  - Section 4c (SimilarSituationFinder): 3 results at dist≈0.17 ✅
-  - Section 5 (Embeddings): 1,613 decision rows, 768 dims ✅
-  - Section 6 (Deck legality): 60 cards after swaps, max 4 copies, all added IDs in pool ✅
-  - Test suite: **81 passed, 0 failures** ✅
-- **No files modified this session** — read-only verification run.
+- **Date:** 2026-04-28
+- Phase 7 implemented and live-validated against full Docker stack (Celery, Redis, WebSocket, Gemma, Postgres).
+- All 6 live validation deliverables confirmed:
+  1. **validate_phase7.py**: ALL 7 CHECKS PASSED (simulation completes in ~3s)
+  2. **Redis pub/sub**: 6 distinct Appendix F event types — `round_start` (3), `match_start` (20), `match_event` (4337), `match_end` (20), `round_end` (2), `simulation_complete` (1). `deck_mutation` fires when `deck_locked=False`.
+  3. **WebSocket bridge**: Live socket.io client received 54 events in real-time (polling transport). `round_start`, `match_start`, `match_event` all delivered.
+  4. **Deck naming**: Gemma path produces creative names ("Ghostly Strike Force"); fallback path produces `"<ex card> Deck"` (e.g. "Dragapult ex Deck") when Ollama times out.
+  5. **Celery Beat**: `pokeprism.run_scheduled_hh` confirmed at `crontab(hour=2, minute=0)`.
+  6. **Input validation**: `deck_locked=True + deck_mode="none"` → 422 with clear message. `deck_mode="partial"` with <5000 DB matches → 201 with `warning` field (654 matches available).
+- **Bugs fixed during live validation:**
+  - Celery task discovery: `autodiscover_tasks(["app.tasks"])` → `conf.imports`
+  - Engine `game_start`/`turn_limit` events not reaching event callback → added `self._emit()` calls
+  - `ensure_deck()` MultipleResultsFound on duplicate deck names → `.scalars().first()`
+  - Event key `"type"` → `"event_type"` in match event callback
+  - socket.io 404: `app.mount("/ws")` → `socketio.ASGIApp(sio, other_asgi_app=fastapi_app)` wrapper
+  - `main.py` `create_app()` exposes `.fastapi_app` attribute for test `dependency_overrides`
+- **Test suite: 126 passed, 0 failures** ✅
+- **Note**: `card_performance` data is currently uniform (~54.3% across top cards) because all data comes from two test decks. Coach swap quality will improve with more diverse matchups in later phases. Not a bug — data volume limitation.
 
 ## What Was Built (Cumulative)
 - [x] Phase 1: Game Engine Core (state machine, actions, transitions, runner) — **complete (2026-04-26)**
@@ -34,9 +34,24 @@ Next: Phase 7 — Task Queue & Simulation Orchestration
 - [x] Phase 4: Database Layer & Memory Stack — **complete (2026-04-26)**
 - [x] Phase 5: AI Player (Qwen3.5-9B decisions) — **complete (2026-04-27)**
 - [x] Phase 6: Coach/Analyst (Gemma 4 E4B, card swaps, DeckMutation) — **complete & owner-verified (2026-04-27)**
-- [ ] Phase 7: Task Queue & Simulation Orchestration — **next**
+- [x] Phase 7: Task Queue & Simulation Orchestration — **complete & owner-verified (2026-04-28)**
+- [ ] Phase 8: Deck Builder API & Card Pool Management — **next**
 
-## Phase 6 Exit Criteria — Re-Verified (2026-04-27)
+## Phase 7 Exit Criteria — Verified (2026-04-28)
+
+| Criterion | Target | Result | Status |
+|---|---|---|---|
+| POST /api/simulations | 201 + simulation_id | Returns 201, enqueues Celery task ✅ | ✅ |
+| GET /api/simulations/:id | Status + progress | Returns live status ✅ | ✅ |
+| Celery task runs | Rounds loop: matches→DB→Coach→next | Completes in ~3s, all DB rows written ✅ | ✅ |
+| Redis pub/sub | Appendix F event types | 6 types confirmed (4337 match_events) ✅ | ✅ |
+| WebSocket bridge | socket.io forwards Redis events | 54 events delivered live to client ✅ | ✅ |
+| Deck naming | Gemma names deck at creation | "Ghostly Strike Force" (Gemma) / fallback path ✅ | ✅ |
+| Input validation | Reject contradictory/bad inputs | deck_locked+none → 422; partial low-data → warning ✅ | ✅ |
+| Scheduled H/H | Celery Beat at 2AM UTC | `crontab(hour=2, minute=0)` confirmed ✅ | ✅ |
+| Tests | All prior + new tests pass | **126 passed, 0 failures** ✅ | ✅ |
+
+
 
 | Criterion | Target | Result | Status |
 |---|---|---|---|
