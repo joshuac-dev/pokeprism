@@ -221,7 +221,7 @@ class TestPostSimulation:
 
         from app.main import create_app
         app = create_app()
-        app.dependency_overrides[get_db] = override_db
+        app.fastapi_app.dependency_overrides[get_db] = override_db
         from fastapi.testclient import TestClient
         with TestClient(app) as c:
             resp = c.post(
@@ -232,7 +232,7 @@ class TestPostSimulation:
                     "game_mode": "hh",
                 },
             )
-        app.dependency_overrides.clear()
+        app.fastapi_app.dependency_overrides.clear()
         assert resp.status_code == 422
 
     def test_valid_none_deck_mode_returns_201(self, client, mock_celery):
@@ -269,7 +269,7 @@ class TestPostSimulation:
 
         from app.main import create_app
         app = create_app()
-        app.dependency_overrides[get_db] = override_db
+        app.fastapi_app.dependency_overrides[get_db] = override_db
         from fastapi.testclient import TestClient
         with TestClient(app) as c:
             resp = c.post(
@@ -281,7 +281,7 @@ class TestPostSimulation:
                     "matches_per_opponent": 5,
                 },
             )
-        app.dependency_overrides.clear()
+        app.fastapi_app.dependency_overrides.clear()
 
         assert resp.status_code == 201
         data = resp.json()
@@ -317,14 +317,14 @@ class TestPostSimulation:
 
         from app.main import create_app
         app = create_app()
-        app.dependency_overrides[get_db] = override_db
+        app.fastapi_app.dependency_overrides[get_db] = override_db
         from fastapi.testclient import TestClient
         with TestClient(app) as c:
             resp = c.post(
                 "/api/simulations",
                 json={"deck_mode": "none", "game_mode": "hh"},
             )
-        app.dependency_overrides.clear()
+        app.fastapi_app.dependency_overrides.clear()
 
         assert resp.status_code == 201
         mock_celery.delay.assert_called_once()
@@ -345,11 +345,11 @@ class TestGetSimulation:
 
         from app.main import create_app
         app = create_app()
-        app.dependency_overrides[get_db] = override_db
+        app.fastapi_app.dependency_overrides[get_db] = override_db
         from fastapi.testclient import TestClient
         with TestClient(app) as c:
             resp = c.get(f"/api/simulations/{uuid.uuid4()}")
-        app.dependency_overrides.clear()
+        app.fastapi_app.dependency_overrides.clear()
         assert resp.status_code == 404
 
     def test_invalid_uuid_returns_422(self, client, mock_celery):
@@ -391,11 +391,11 @@ class TestGetSimulation:
 
         from app.main import create_app
         app = create_app()
-        app.dependency_overrides[get_db] = override_db
+        app.fastapi_app.dependency_overrides[get_db] = override_db
         from fastapi.testclient import TestClient
         with TestClient(app) as c:
             resp = c.get(f"/api/simulations/{sim_id}")
-        app.dependency_overrides.clear()
+        app.fastapi_app.dependency_overrides.clear()
 
         assert resp.status_code == 200
         data = resp.json()

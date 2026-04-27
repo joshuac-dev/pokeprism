@@ -29,5 +29,8 @@ celery_app.conf.beat_schedule = {
     },
 }
 
-# Auto-discover tasks from the tasks package
-celery_app.autodiscover_tasks(["app.tasks"])
+# Explicitly import task modules so Celery registers all tasks
+celery_app.conf.imports = [
+    "app.tasks.simulation",
+    "app.tasks.scheduled",
+]

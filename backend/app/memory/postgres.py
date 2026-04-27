@@ -85,7 +85,7 @@ class MatchMemoryWriter:
     ) -> uuid.UUID:
         """Upsert a deck (by name) and return its UUID."""
         result = await db.execute(select(Deck).where(Deck.name == deck_name))
-        deck = result.scalar_one_or_none()
+        deck = result.scalars().first()
         if deck is None:
             counts: dict[str, int] = {}
             for c in card_defs:

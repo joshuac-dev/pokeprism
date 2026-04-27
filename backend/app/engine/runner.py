@@ -135,6 +135,7 @@ class MatchRunner:
             state.win_condition = "turn_limit"
             state.phase = Phase.GAME_OVER
             state.emit_event("game_over", winner="p1", condition="turn_limit")
+            self._emit(state.events[-1])
 
         return self._build_result(state)
 
@@ -159,6 +160,7 @@ class MatchRunner:
         state.p2.deck = p2_instances
 
         state.emit_event("game_start", p1_deck=self.p1_deck_name, p2_deck=self.p2_deck_name)
+        self._emit(state.events[-1])
         return state
 
     def _get_player(self, player_id: str):

@@ -200,6 +200,45 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                 if not opp_cards:
                     continue
 
+                match_counter = {"n": 0}
+
+                def _make_match_event_callback(
+                    _sim_id: str,
+                    _round_num: int,
+                    _counter: dict,
+                ) -> None:
+                    def _cb(event: dict) -> None:
+                        etype = event.get("event_type", "") or event.get("type", "")
+                        if etype == "game_start":
+                            _counter["n"] += 1
+                            _publish({
+                                "type": "match_start",
+                                "simulation_id": _sim_id,
+                                "round_number": _round_num,
+                                "match_number": _counter["n"],
+                                "p1_deck": event.get("p1_deck"),
+                                "p2_deck": event.get("p2_deck"),
+                            })
+                        elif etype == "game_over":
+                            _publish({
+                                "type": "match_end",
+                                "simulation_id": _sim_id,
+                                "round_number": _round_num,
+                                "match_number": _counter["n"],
+                                "winner": event.get("winner"),
+                                "condition": event.get("condition"),
+                            })
+                        else:
+                            _publish({
+                                "type": "match_event",
+                                "simulation_id": _sim_id,
+                                "round_number": _round_num,
+                                "match_number": _counter["n"],
+                                "event": etype,
+                                "data": {k: v for k, v in event.items() if k != "event_type"},
+                            })
+                    return _cb
+
                 batch = await run_hh_batch(
                     p1_deck=current_deck_cards,
                     p2_deck=opp_cards,
@@ -208,6 +247,9 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                     p2_deck_name=opp_name,
                     p1_player_class=player_classes[0],
                     p2_player_class=player_classes[1],
+                    event_callback=_make_match_event_callback(
+                        simulation_id, round_number, match_counter
+                    ),
                     verbose=False,
                 )
 
@@ -306,6 +348,15 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                         }
                         for m in mutations
                     ]
+                    for mut in mutations_for_event:
+                        _publish({
+                            "type": "deck_mutation",
+                            "simulation_id": simulation_id,
+                            "round_number": round_number,
+                            "remove": mut["remove"],
+                            "add": mut["add"],
+                            "reasoning": mut["reasoning"],
+                        })
                 except Exception as exc:
                     logger.warning("Coach mutation failed (round %d): %s", round_number, exc)
 
