@@ -4,37 +4,28 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-Phase 6 — Coach/Analyst (Gemma 4 E4B) — **Verified & Accepted (2026-04-29)**
+Phase 6 — Coach/Analyst (Gemma 4 E4B) — **Re-Verified & Accepted (2026-04-27)**
+Next: Phase 7 — Task Queue & Simulation Orchestration
 
 ## Last Session
-- **Date:** 2026-04-29
-- **Phase 6 end-to-end validation passed.** All 6 sections verified:
-  - Section 0: Both decks 60 cards ✅
-  - Section 1: 5/5 AI/H games completed (2/5 P1 wins, 36.0 avg turns, 524.6s) ✅
-  - Section 2: Gemma `gemma4-E4B-it-Q6_K:latest` confirmed, clean JSON (no `{"` prefill), swap
-    reasoning references actual deck performance data (win_rate, loss_reasons) ✅
-  - Section 3: 4 deck_mutations rows with real TCGdex IDs (`sv10-087`, `me01-086`, `sv10-081`,
-    `sv10-128`) ✅
-  - Section 4a/4b/4c: CardPerformanceQueries, GraphQueries, SimilarSituationFinder all return
-    results ✅
-  - Section 5: 1348 decision embeddings at 768 dims ✅
-  - Section 6: Post-swap deck = 60 cards, max 4 copies, all added card IDs in known pool ✅
-- **Bugs fixed this session:**
-  - `analyst._call_ollama`: Gemma4 is instruction-tuned — changed to `/api/chat` endpoint
-    (previously `/api/generate`, which returned empty for -it models)
-  - `analyst._call_ollama`: `num_predict=512` → `num_predict=-1`; Gemma4 uses internal
-    thinking tokens before generating output; small `num_predict` values produced 0-length
-    responses
-  - `analyst.analyze_and_mutate`: `deck_ids` now deduplicated before DB queries
-  - `embeddings.SimilarSituationFinder.find_similar`: Added `SET LOCAL ivfflat.probes = 20`
-    before cosine_distance query; default `probes=1` with `lists=100` IVFFlat index missed
-    all results on small datasets
-  - `postgres.py` `not_in([])` guard and dead query in `get_total_historical_games` fixed
-  - Validate script: `vector_dims` SQL alias fixed (`AS dims`), column access corrected
-- **Test isolation issue documented (pre-existing):** memory integration tests commit to
-  production DB without rollback; `test-001`/`test-002` fixture cards leaked into
-  `card_performance`. Manually cleaned from DB. Tests need rollback isolation in Phase 7.
-- **81 tests pass.**
+- **Date:** 2026-04-27
+- **Re-verification session — no code written.** Phase 6 was previously accepted but session
+  was lost before owner could personally verify. All 7 checks re-run from scratch and passed:
+  - Section 0 (Deck sizes): Dragapult 60 cards ✅ | TR Mewtwo 60 cards ✅ | ASC-39 = 1 copy ✅
+  - Section 1 (AI/H games): 5/5 completed (1/5 P1 wins, 40.4 avg turns, 646.4s) ✅
+  - Section 2 (Coach inference): `gemma4-E4B-it-Q6_K:latest` confirmed ✅, clean markdown-fenced
+    JSON (no `{"` prefill), reasoning references actual win_rate + loss_reasons ✅
+  - Section 3 (deck_mutations): 3 rows written with real TCGdex IDs (`sv10-081`, `sv10-087`,
+    `sv10-174`) ✅
+  - Section 4a (CardPerformanceQueries): top 5 by win rate returned (sv10-128, sv10-051,
+    sv10-081, sv10-087, sv10-010 — all 54.3% across 35 games) ✅
+  - Section 4b (GraphQueries): top 5 SYNERGIZES_WITH pairs returned (sv05-161 ↔ various,
+    weight 324) ✅
+  - Section 4c (SimilarSituationFinder): 3 results at dist≈0.17 ✅
+  - Section 5 (Embeddings): 1,613 decision rows, 768 dims ✅
+  - Section 6 (Deck legality): 60 cards after swaps, max 4 copies, all added IDs in pool ✅
+  - Test suite: **81 passed, 0 failures** ✅
+- **No files modified this session** — read-only verification run.
 
 ## What Was Built (Cumulative)
 - [x] Phase 1: Game Engine Core (state machine, actions, transitions, runner) — **complete (2026-04-26)**
@@ -42,10 +33,10 @@ Phase 6 — Coach/Analyst (Gemma 4 E4B) — **Verified & Accepted (2026-04-29)**
 - [x] Phase 3: Heuristic Player & H/H Loop — **complete (2026-04-26)**
 - [x] Phase 4: Database Layer & Memory Stack — **complete (2026-04-26)**
 - [x] Phase 5: AI Player (Qwen3.5-9B decisions) — **complete (2026-04-27)**
-- [x] Phase 6: Coach/Analyst (Gemma 4 E4B, card swaps, DeckMutation) — **complete & verified (2026-04-29)**
-- [ ] Phase 7: Evolution Loop & Self-Play — next
+- [x] Phase 6: Coach/Analyst (Gemma 4 E4B, card swaps, DeckMutation) — **complete & owner-verified (2026-04-27)**
+- [ ] Phase 7: Task Queue & Simulation Orchestration — **next**
 
-## Phase 6 Exit Criteria — Verified (2026-04-29)
+## Phase 6 Exit Criteria — Re-Verified (2026-04-27)
 
 | Criterion | Target | Result | Status |
 |---|---|---|---|
@@ -107,7 +98,12 @@ Phase 6 — Coach/Analyst (Gemma 4 E4B) — **Verified & Accepted (2026-04-29)**
 
 ## Current Phase Progress
 
-### Phase 6 Completed (2026-04-29) — Verified
+### Phase 6 Completed & Re-Verified (2026-04-27)
+- Re-verification run confirmed all Phase 6 components functioning end-to-end (see Last Session)
+- Embedding count grew: 1,348 → 1,614 rows after today's 5-game validation run
+- No regressions; no code changes required
+
+### Phase 6 Completed (2026-04-29) — Original Build Verified
 - `CardPerformanceQueries`: `get_card_performance`, `get_top_performing_cards`, `get_total_historical_games`
 - `GraphQueries`: `get_synergies` (top/weak SYNERGIZES_WITH pairs), `record_swap` (SWAPPED_FOR edges)
 - `SimilarSituationFinder`: pgvector cosine distance search over `source_type='decision'` embeddings
@@ -128,7 +124,10 @@ Phase 6 — Coach/Analyst (Gemma 4 E4B) — **Verified & Accepted (2026-04-29)**
 - `--ai` CLI flag added to run_hh.py
 - 17 unit tests; 71 total tests pass
 
-## Active Files Changed This Session (2026-04-29)
+## Active Files Changed This Session (2026-04-27)
+- **None.** This was a read-only re-verification session. No source files were modified.
+
+## Active Files Changed Last Code Session (2026-04-29)
 - `backend/app/coach/analyst.py` — `/api/chat` endpoint fix, `num_predict=-1`, dedup deck_ids
 - `backend/app/memory/embeddings.py` — `SimilarSituationFinder.find_similar` IVFFlat probes fix
 - `backend/app/memory/postgres.py` — `not_in([])` guard, dead query fix
@@ -136,6 +135,14 @@ Phase 6 — Coach/Analyst (Gemma 4 E4B) — **Verified & Accepted (2026-04-29)**
 - `docs/STATUS.md` — This file
 
 ## Known Issues / Gaps
+- **Coach cross-deck swap behaviour (observed 2026-04-27):** When the Coach has limited
+  per-deck data, it may propose adding cards from the *opponent's* pool (e.g., TR Mewtwo ex,
+  TR Giovanni into Dragapult deck) because those cards rank highest in the global win-rate DB
+  (they're on the winning side of Dragapult-loses games). Legality checks pass — cards are
+  real IDs, deck stays 60 cards, ≤4 copies — but the swaps are semantically wrong (polluting
+  a Dragapult archetype with TR cards). Fix in Phase 7: pass `excluded_ids` drawn from the
+  opponent deck to `analyze_and_mutate`, OR update the Coach prompt to restrict swaps to
+  same-archetype cards only.
 - **Copy-attack stubs (non-blocking for Phase 5, defer to Phase 6 or as needed):**
   - N's Zoroark ex: "Mimic" attack stubbed to 0 damage with WARN log.
   - TR Mimikyu (sv10-087): "Gemstone Mimicry" stubbed to 0 damage with WARN log.
@@ -208,28 +215,55 @@ The asymmetry is deck matchup, not seating. Deck-out dropped 21% → 4% (G/G →
 ### Phase 5 — AI/H results (2026-04-27)
 - **5 games (Dragapult AI P1 vs TR Mewtwo H P2):** 80% P1 win rate | 35.4 avg turns | 0 crashes
 
+### Phase 6 — AI/H re-verification run (2026-04-27)
+- **5 games (Dragapult AI P1 vs TR Mewtwo H P2):** 20% P1 win rate | 40.4 avg turns | 0 crashes
+- Note: lower win rate vs prior runs is expected non-determinism (uuid seeds vary each run)
+- Coach proposed 3 swaps: Psyduck→TR Mewtwo ex, Munkidori→TR Mimikyu, Prism Energy→TR Giovanni
+- Cross-deck swap issue confirmed (see Known Issues). Legality still passes.
+- 1,614 decision embeddings total after run (was 1,348 entering session). 768 dims confirmed.
+
 ### Phase 6 — AI/H results (2026-04-29)
 - **5 games (Dragapult AI P1 vs TR Mewtwo H P2):** 40% P1 win rate | 36.0 avg turns | 0 crashes
 - Coach proposed 4 swaps: Psyduck→TR Mimikyu, Ultra Ball→Mega Absol ex,
   Enhanced Hammer→TR Mewtwo ex, Duskull→TR Sneasel
 - 1348 decision embeddings, 768 dims. SimilarSituationFinder returns results (dist~0.17).
 
-## Notes for Next Session — Phase 7 (Evolution Loop & Self-Play)
+## Notes for Next Session — Phase 7 (Task Queue & Simulation Orchestration)
 
-**Phase 6 is done and committed.** Start Phase 7 by reading PROJECT.md §12.
+**Phase 6 is done and owner-verified (2026-04-27).** Start Phase 7 by reading PROJECT.md §12.
+
+### What Phase 7 Builds (from PROJECT.md §12)
+1. `backend/app/tasks/celery_app.py` — Celery config, Redis broker, Beat schedule (nightly H/H 2AM)
+2. `backend/app/tasks/simulation.py` — `run_simulation` Celery task: rounds loop, Coach calls,
+   Redis pub/sub event streaming
+3. `backend/app/tasks/scheduled.py` — `run_scheduled_hh` periodic task
+4. `backend/app/api/ws.py` — socket.io WebSocket bridge (Redis pub/sub → client)
+5. `backend/app/api/simulations.py` — REST endpoints: create, status, list simulations
+6. `backend/app/main.py` — FastAPI app factory wiring all routers + socket.io mount
+7. New DB models for `simulations` table (status, config, round tracking)
 
 ### Infrastructure
 - `docker compose up -d postgres neo4j ollama` to start all services
 - Run tests: `cd backend && python3 -m pytest tests/ -x -q` (81 tests pass)
 
 ### DB state entering Phase 7
-- `matches`: 566 rows
-- `decisions`: 1348 embeddings (768-dim nomic-embed-text)
-- `deck_mutations`: populated with coach swaps from validation runs
+- `matches`: 572 rows (566 prior + 5 new validation games + 1 other)
+- `embeddings (decision)`: 1,614 rows (768-dim nomic-embed-text)
+- `deck_mutations`: populated with coach swaps from multiple validation runs
 
-### Priority fix in Phase 7
-- **Memory test isolation:** Add rollback teardown to `tests/test_memory/conftest.py`
-  `db_session` fixture to prevent fixture cards leaking into production DB.
+### Priority tasks at Phase 7 start
+1. **Memory test isolation (explicitly flagged):** Add rollback teardown to
+   `tests/test_memory/conftest.py` `db_session` fixture — do this before writing any
+   new Phase 7 tests that touch the DB.
+2. **Coach excluded_ids fix:** When wiring `run_simulation` task, pass opponent deck card IDs
+   as `excluded_ids` to `CoachAnalyst.analyze_and_mutate()` to prevent cross-deck swaps.
+
+### Key API/model facts for Phase 7 code
+- `app/tasks/` and `app/api/` directories exist but are empty stubs (`__init__.py` only)
+- `app/config.py` has `REDIS_URL` and all DB settings — import `settings` from there
+- Celery must use `asyncio.new_event_loop()` + `loop.run_until_complete()` to run async code
+  (Celery workers are synchronous; see PROJECT.md §12.2 pattern)
+- WebSocket: use `python-socketio` `AsyncServer(async_mode="asgi")` mounted on FastAPI app
 
 
 ## Last Session
