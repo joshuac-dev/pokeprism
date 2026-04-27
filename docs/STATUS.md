@@ -156,25 +156,6 @@ Next: Phase 9 — Simulation Live Console (xterm.js) — **do not start until us
 - [ ] Open `/simulation/:id` — verify WebSocket events appear in browser DevTools console
 - [ ] Submit with empty deck in Full Deck mode — verify 422 message shown in UI
 - [ ] Toggle dark/light mode — verify no broken styling
-- `CardPerformanceQueries`: `get_card_performance`, `get_top_performing_cards`, `get_total_historical_games`
-- `GraphQueries`: `get_synergies` (top/weak SYNERGIZES_WITH pairs), `record_swap` (SWAPPED_FOR edges)
-- `SimilarSituationFinder`: pgvector cosine distance search over `source_type='decision'` embeddings
-  (with `SET LOCAL ivfflat.probes = 20` to fix missed results on small datasets)
-- `EmbeddingService` wired into `batch.py`: AI decisions embedded per game after `write_decisions()`
-- `CoachAnalyst`: queries all three memory sources, calls Gemma 4 E4B via `/api/chat`,
-  proposes 0–4 swaps, writes `DeckMutation` rows, records `SWAPPED_FOR` edges in Neo4j
-- `DeckBuilder` scaffold: `NotImplementedError` with `MINIMUM_MATCHES_RECOMMENDED = 5000`
-- `run_coach.py` CLI: `--num-games`, `--max-swaps`, `--skip-coach`, `--model` flags
-- 10 unit tests; 81 total tests pass
-
-### Phase 5 Completed (2026-04-27)
-- `AIPlayer(BasePlayer)` fully implemented and benchmarked
-- `_parse_response` prefill bug found and fixed (`{"` not `{`)
-- regex fallback added for truncated responses
-- `num_predict` increased to 200 to reduce truncation frequency
-- `write_decisions()` wired through batch.py into Postgres
-- `--ai` CLI flag added to run_hh.py
-- 17 unit tests; 71 total tests pass
 
 ## Active Files Changed This Session (2026-04-27)
 
