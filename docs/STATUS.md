@@ -4,11 +4,33 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-Phase 10 — Frontend: Reporting Dashboard — **Visual QA accepted. Phase complete.**
-Next: Phase 11 — History Page & Navigation
+Phase 12 — Card Pool Expansion — **Complete.**
+Next: Phase 13 — (see PROJECT.md)
 
 ## Last Session
-- **Date:** 2026-04-28
+- **Date:** 2026-05-02
+- Phase 12 (Card Pool Expansion) fully implemented:
+  1. **Card DB expanded**: 55 → 160 cards. `scripts/seed_cards.py` bulk-loads all fixture JSONs via `CardListLoader._transform()` + `MatchMemoryWriter.ensure_cards()`. Run: `cd backend && python3 -m scripts.seed_cards` (or `make seed-cards` in Docker).
+  2. **Budew item-lock implemented**: `me02.5-016` Itchy Pollen (10 dmg + next-turn item lock). `runner.py _end_turn` now resets `items_locked_this_turn = False`; `actions.py _get_play_actions` suppresses PLAY_ITEM when `player.items_locked_this_turn` is True. The field existed in `state.py` since Phase 2 but was never wired.
+  3. **Pecharunt promo resolved** (`svp-149`): Fixture captured from TCGDex. Toxic Subjugation (passive ability: +50 damage to Poisoned Pokémon during checkup) implemented in `runner.py _handle_between_turns`. Poison Chain attack (10 dmg + Poison + can't retreat next turn) implemented in `attacks.py`.
+  4. **`ensure_cards` serialization fix**: `weaknesses` and `resistances` fields now call `.model_dump()` before DB upsert — fixes `TypeError: Object of type WeaknessDef is not JSON serializable` on bulk seed.
+  5. **Regression batch**: 100 H/H games (Budew-Froslass vs Dragapult) — 0 crashes, 63% P1 win rate, 30.0 avg turns, 1% deck-out. `--budew` flag added to `run_hh.py`.
+- **Tests**: 167 pass (unchanged from Phase 11).
+- **Card pool**: 160 cards in DB. Only M4 (Chaos Rising) deferred — unreleased until 2026-05-22.
+- **`generate_cardlist_stubs.py`**: Not built. Deferred until card pool grows significantly (≥200 new cards with missing fixtures).
+
+## Previous Session (2026-05-02)
+- Phase 11 (History Page & Memory Explorer) fully implemented:
+  1. **Data model fix**: Alembic migration `8ac02d648b4f` adds `card_def_id TEXT` + index to `decisions` table. `ai_player._record_decision()` now persists the tcgdex_id alongside the instance UUID. Unblocks Phase 13 Decision Map card labels.
+  2. **Paginated simulation list**: `GET /api/simulations/` replaced with paginated+filtered version (page, per_page, status, search, starred, date_from, date_to, min_win_rate, max_win_rate). Returns `{items, total, page, per_page}` envelope. Opponent names fetched via JOIN.
+  3. **Delete cascade fixed**: `DELETE /api/simulations/:id` now explicitly deletes orphaned embeddings (no FK) before cascade. All other child tables have ON DELETE CASCADE FKs.
+  4. **Memory API**: 4 endpoints implemented (`/api/memory/top-card`, `/api/memory/card/{id}/profile`, `/api/memory/graph`, `/api/memory/card/{id}/decisions`). Postgres + Neo4j integration with graceful fallback.
+  5. **Frontend — History page**: Full `History.tsx` with TanStack Table, server-side pagination, 7-filter FilterBar, compare toolbar (up to 3 sims), delete confirmation modal, star toggle.
+  6. **Frontend — Memory page**: `Memory.tsx` with card search (typeahead), `CardProfile.tsx` (stats + partners), `MindMapGraph.tsx` (D3 force-directed graph with zoom/drag/click navigation), `DecisionHistory.tsx` (load-more paginated table).
+- **Tests**: 167 pass (was 153). 9 new memory API tests, 5 new list/delete simulation tests.
+- **Build**: 0 TypeScript errors.
+
+## Previous Session (2026-04-28)
 - Phase 10 (Reporting Dashboard) visual QA completed and accepted. Three QA bugs found and fixed during review:
   1. **Prize Race flat lines**: `prize_progression` DB column is always NULL; endpoint was deriving data from `prizes_taken` events, but the test simulation (`e24d2266`) had all 10 games end by deck-out (zero KOs, no prize events). Fixed: backend now returns `average: []` when no events exist; frontend empty state triggers on `average.length === 0`.
   2. **Decision Map showing H/H empty state for AI sim**: `game_mode` column stores `'hh'` for ALL simulations (including AI/H runs from Phase 5). Component was gating on `game_mode === 'hh'`. Fixed: always fetch decisions; show graph when data exists.
@@ -31,7 +53,9 @@ Next: Phase 11 — History Page & Navigation
 - [x] Phase 8: Frontend Core Layout & Simulation Setup — **complete & owner-verified (2026-04-29)**
 - [x] Phase 9: Simulation Live Console (xterm.js) — **complete & owner-verified (2026-04-30)**
 - [x] Phase 10: History & Analytics Dashboard — **complete & owner-verified (2026-04-28)**
-- [ ] Phase 11: History Page & Navigation — **next**
+- [x] Phase 11: History Page & Memory Explorer — **complete (2026-05-02)**
+- [x] Phase 12: Card Pool Expansion — **complete (2026-05-02)**
+- [ ] Phase 13: (see PROJECT.md) — **next**
 
 ## Phase 7 Exit Criteria — Verified (2026-04-28)
 
@@ -69,6 +93,46 @@ Next: Phase 11 — History Page & Navigation
 | Tests | All prior + 10 new | **153 passed, 0 failures** ✅ | ✅ |
 | **Visual QA** | User browser test | **✅ Accepted 2026-04-28** | ✅ |
 
+## Phase 11 Exit Criteria — Verified (2026-05-02)
+
+| Criterion | Target | Result | Status |
+|---|---|---|---|
+| `card_def_id` migration | Alembic migration applied, ai_player persists tcgdex_id | ✅ Migration `8ac02d648b4f` applied; `_find_card_def_id()` added | ✅ |
+| Paginated simulation list | GET /api/simulations/ with filters + envelope | ✅ All 7 filter params; `{items, total, page, per_page}` | ✅ |
+| Delete cascade | All child rows removed including embeddings | ✅ Explicit embeddings delete + FK cascade confirmed | ✅ |
+| Memory API | 4 endpoints (top-card, profile, graph, decisions) | ✅ Implemented with Postgres+Neo4j | ✅ |
+| History page | TanStack Table, pagination, filters, compare, delete | ✅ History.tsx complete | ✅ |
+| Memory page | Card search, profile, D3 graph, decision history | ✅ Memory.tsx + 3 components | ✅ |
+| TypeScript build | Zero errors | ✅ 0 errors | ✅ |
+| Tests | 167 pass (was 153) | **167 passed, 0 failures** ✅ | ✅ |
+
+## Active Files Changed This Session (2026-05-02)
+
+### Created
+- `backend/alembic/versions/8ac02d648b4f_add_card_def_id_to_decisions.py`
+- `backend/tests/test_api/test_memory.py` — 9 tests for memory endpoints
+- `frontend/src/types/history.ts` — SimulationRow, PaginatedSimulations, etc.
+- `frontend/src/types/memory.ts` — CardProfile, MemoryNode, MemoryEdge, MemoryGraph, etc.
+- `frontend/src/components/history/StatusBadge.tsx`
+- `frontend/src/components/history/ModeBadge.tsx`
+- `frontend/src/components/history/FilterBar.tsx`
+- `frontend/src/components/history/CompareModal.tsx`
+- `frontend/src/components/memory/CardProfile.tsx`
+- `frontend/src/components/memory/MindMapGraph.tsx`
+- `frontend/src/components/memory/DecisionHistory.tsx`
+
+### Modified
+- `backend/app/db/models.py` — `card_def_id = Column(Text)` added to Decision
+- `backend/app/players/ai_player.py` — `_find_card_def_id()` helper; `_record_decision()` persists `card_def_id`
+- `backend/app/memory/postgres.py` — `write_decisions()` passes `card_def_id`
+- `backend/app/api/simulations.py` — paginated list endpoint; delete cascade + embeddings cleanup
+- `backend/app/api/memory.py` — full implementation (4 endpoints)
+- `backend/tests/test_api/test_simulations.py` — TestListSimulations (5 tests)
+- `frontend/src/api/history.ts` — listSimulations, starSimulation, deleteSimulation, getCompareStats
+- `frontend/src/api/memory.ts` — getTopCard, getCardProfile, getMemoryGraph, getCardDecisions
+- `frontend/src/pages/History.tsx` — full implementation
+- `frontend/src/pages/Memory.tsx` — full implementation
+
 ## Active Files Changed This Session (2026-04-28)
 
 ### Created
@@ -95,11 +159,12 @@ Next: Phase 11 — History Page & Navigation
 
 ## Known Issues / Gaps
 
-- **Decision Map node labels** — nodes show generic action type (ATTACK, PLAY_SUPPORTER) not specific card names. `card_played` stores game-instance UUIDs, not tcgdex IDs; resolving to card names needs a new lookup table. Deferred to Phase 13 polish.
-- **game_mode column** — all simulations in DB store `game_mode='hh'` regardless of actual mode (AI/H Phase 5 runs also stored as 'hh'). Phase 11 history page should not filter by game_mode for "AI simulations" — filter by presence of decisions rows instead.
+- **Decision Map node labels** — nodes show generic action type (ATTACK, PLAY_SUPPORTER) not specific card names. `card_played` stores game-instance UUIDs, not tcgdex IDs. New `card_def_id` column now populated for future runs; Phase 13 should resolve historical UUIDs too (may need lookup mapping in match_events or decisions schema).
+- **game_mode column** — all simulations in DB store `game_mode='hh'` regardless of actual mode (AI/H Phase 5 runs also stored as 'hh'). History page shows game_mode as-is; don't filter AI simulations by this column.
 - **prize_progression column** — always NULL on Match rows; permanent. Prize data is derived from match_events. Not a bug.
 - **30 stuck simulations** — status='running' in DB from Phase 7 testing. Clear with: `UPDATE simulations SET status='failed' WHERE status='running' AND created_at < '2026-04-28';`
 - **git gc warning** — "too many unreachable loose objects". Run `git prune && git gc` when convenient.
+- **embeddings FK gap** — `embeddings` table still has no FK constraint to any parent table. Deletes are handled explicitly in the API but schema-level constraint is missing.
 
 ## Key Decisions Made (2026-04-28)
 
@@ -108,15 +173,15 @@ Next: Phase 11 — History Page & Navigation
 - **Decision Map is data-driven, not mode-driven**: Fetches decisions and renders if any exist; does not use `game_mode` field (unreliable in DB).
 - **TanStack Table installed in Phase 10**: Used for MutationDiffLog; also available for Phase 11 history table.
 
-## Notes for Next Session (Phase 11 — History Page & Navigation)
+## Notes for Next Session (Phase 13)
 
-- **Phase 11 goal**: History page at `/history` — searchable, filterable, paginated list of all simulations with links to their dashboards.
-- **Backend needed**: `GET /api/simulations` list endpoint with pagination, search (deck name), status filter, date range. Currently only `GET /api/simulations/:id` (single) exists.
-- **Frontend**: `History.tsx` page (currently a stub). Use TanStack Table (already installed). Link each row to `/dashboard/:id`.
-- **Good test sim IDs**: `e24d2266-7ada-45e7-80ab-7ddc598dc16c` (10 matches, deck-out games, no prize race data); `a479a0ec-5783-4804-a6d4-2d7b75c28874` (AI decisions, status=running/stuck).
-- **Dev stack restart**: uvicorn and Vite do not survive shell exits. Start both with `detach: true`. Verify with `ss -tlnp | grep 8000` and `ss -tlnp | grep 5173`.
-- **Test baseline**: 153 tests pass. `cd backend && python3 -m pytest tests/ -q`.
+- **Test baseline**: 167 tests pass. `cd backend && python3 -m pytest tests/ -q`.
 - **Build baseline**: `cd frontend && npm run build` → 0 TypeScript errors.
+- **Dev stack restart**: uvicorn and Vite do not survive shell exits. Always start uvicorn with `--reload` so file changes are picked up automatically: `cd ~/pokeprism/backend && nohup python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload > /tmp/uvicorn.log 2>&1 &`. Or use `make dev-backend` / `make dev-frontend`. Verify with `ss -tlnp | grep 8000` and `ss -tlnp | grep 5173`.
+- **Card pool**: 160 cards in DB. M4 (Chaos Rising) deferred until 2026-05-22 release. Re-run `make seed-cards` after each `make capture-fixtures` run.
+- **Decision Map card labels**: `card_def_id` column now populated in `decisions` table (since Phase 11 migration `8ac02d648b4f`). Phase 13 should resolve historical instance UUIDs to card names for pre-migration decisions.
+- **Good test sim IDs**: `e24d2266-7ada-45e7-80ab-7ddc598dc16c` (10 matches, deck-out games, no prize race data).
+- See PROJECT.md for Phase 13 details.
 
 ## Phase 9 Exit Criteria — Visual QA accepted (2026-04-30)
 
@@ -244,7 +309,7 @@ Next: Phase 11 — History Page & Navigation
 ## Known Issues / Gaps
 - **Phase 8 test simulation `288fbb94` has 0 match_events (data issue, not a display bug):** This simulation was submitted in Phase 8 before the deck parser fix. The excluded cards field still had "Boss" as a raw string. Celery completed in 26ms with `total_matches=0`. Do not use this simulation for Phase 9 QA — use `e24d2266-7ada-45e7-80ab-7ddc598dc16c` (10 matches, 3,860 events) instead.
 - **30 "running" stuck simulations in DB:** Accumulated from Phase 7 validate script + Phase 8 testing. These simulations were queued when the Celery worker was not running or was restarted. Their status is `running` but no task is processing them. Non-blocking — they don't affect new simulations. Clear with `UPDATE simulations SET status='failed' WHERE status='running'` if desired.
-- **uvicorn no hot-reload:** Changing backend code requires manually killing the uvicorn process and restarting it. Always verify new endpoints appear in `/openapi.json` after restart before reporting a 404.
+- **uvicorn always use --reload:** Start uvicorn with `--reload` so code changes are picked up automatically without manual restarts. Missing `--reload` has caused phantom 404s and stale-response bugs three times during visual QA.
 - **Coach cross-deck swap behaviour (observed 2026-04-27):** When the Coach has limited
   per-deck data, it may propose adding cards from the *opponent's* pool (e.g., TR Mewtwo ex,
   TR Giovanni into Dragapult deck) because those cards rank highest in the global win-rate DB
@@ -386,7 +451,7 @@ The asymmetry is deck matchup, not seating. Deck-out dropped 21% → 4% (G/G →
 
 ### Dev stack state at end of session
 - Docker: up (Postgres, Redis, Neo4j, Ollama)
-- uvicorn: restarted at end of session. Restart with: `cd ~/pokeprism/backend && nohup python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/uvicorn.log 2>&1 &`
+- uvicorn: restarted at end of session. Restart with: `cd ~/pokeprism/backend && nohup python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload > /tmp/uvicorn.log 2>&1 &`
 - Celery: check with `ps aux | grep celery`. Start with: `cd ~/pokeprism/backend && nohup python3 -m celery -A app.tasks.celery_app worker --loglevel=warning --concurrency=2 > /tmp/celery.log 2>&1 &`
 - Frontend: `cd ~/pokeprism/frontend && npm run dev`
 - Frontend URL: **http://localhost:5173** or **https://pokeprism.joshuac.dev**

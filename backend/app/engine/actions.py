@@ -318,10 +318,11 @@ class ActionValidator:
                                    card_instance_id=card.instance_id)
                         )
                 elif csub == "item":
-                    actions.append(
-                        Action(ActionType.PLAY_ITEM, player_id,
-                               card_instance_id=card.instance_id)
-                    )
+                    if not player.items_locked_this_turn:
+                        actions.append(
+                            Action(ActionType.PLAY_ITEM, player_id,
+                                   card_instance_id=card.instance_id)
+                        )
                 elif csub == "stadium":
                     # Rule 10: cannot play same Stadium already in play
                     if (state.active_stadium is None

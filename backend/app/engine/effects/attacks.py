@@ -1518,7 +1518,32 @@ def _aroma_shot(state, action):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Category 8: Copy-attack stubs
+# Category 8b: Item-lock attacks
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _itchy_pollen(state, action):
+    """me02.5-016 Budew atk0 — Itchy Pollen: 10 + opponent can't play Items next turn."""
+    _do_default_damage(state, action)
+    opp = state.get_opponent(action.player_id)
+    if state.phase != Phase.GAME_OVER:
+        opp.items_locked_this_turn = True
+        state.emit_event("items_locked", player=state.opponent_id(action.player_id),
+                         reason="itchy_pollen")
+
+
+def _poison_chain(state, action):
+    """svp-149 Pecharunt atk0 — Poison Chain: 10 + Poison + opponent can't retreat next turn."""
+    _do_default_damage(state, action)
+    opp = state.get_opponent(action.player_id)
+    if opp.active and state.phase != Phase.GAME_OVER:
+        opp.active.status_conditions.add(StatusCondition.POISONED)
+        opp.active.cant_retreat_next_turn = True
+        state.emit_event("status_applied", status="poisoned", card=opp.active.card_name)
+        state.emit_event("cant_retreat", card=opp.active.card_name, reason="poison_chain")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Category 9: Copy-attack stubs
 # ──────────────────────────────────────────────────────────────────────────────
 
 def _night_joker(state, action):
@@ -1678,6 +1703,10 @@ def register_all(registry) -> None:
     registry.register_attack("sv10-022", 0, _nutrients)
     registry.register_attack("sv10-023", 1, _aroma_shot)
 
-    # Category 8: Copy-attack stubs
+    # Category 8b: Item-lock attacks
+    registry.register_attack("me02.5-016", 0, _itchy_pollen)
+    registry.register_attack("svp-149",    0, _poison_chain)
+
+    # Category 9: Copy-attack stubs
     registry.register_attack("sv09-098", 0, _night_joker)
     registry.register_attack("sv10-087", 0, _gemstone_mimicry)

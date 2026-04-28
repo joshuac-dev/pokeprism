@@ -1184,3 +1184,4 @@ def register_all(registry: EffectRegistry) -> None:
     # sv10-012  Crustle           Mysterious Rock Inn → registry.py _default_damage
     # sv10-051  TR Articuno       Repelling Veil     → attack effect handlers in attacks.py
     # sv10-081  TR Mewtwo ex      Power Saver        → actions.py _get_attack_actions
+    # svp-149   Pecharunt         Toxic Subjugation  → runner.py _handle_between_turns

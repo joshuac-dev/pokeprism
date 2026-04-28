@@ -344,8 +344,13 @@ class MatchRunner:
                 if state.phase == Phase.GAME_OVER:
                     return state
             elif StatusCondition.POISONED in active.status_conditions:
-                active.current_hp -= 10
-                active.damage_counters += 1
+                poison_damage = 10
+                # Toxic Subjugation (Pecharunt svp-149): +50 poison damage while in opponent's Active
+                opp_active = state.get_opponent(pid).active
+                if opp_active and opp_active.card_def_id == "svp-149":
+                    poison_damage += 50
+                active.current_hp -= poison_damage
+                active.damage_counters += poison_damage // 10
                 state.emit_event("poison_damage", player=pid, card=active.card_name)
                 from app.engine.effects.base import check_ko
                 check_ko(state, active, pid)
@@ -390,6 +395,7 @@ class MatchRunner:
             player.energy_attached_this_turn = False
             player.retreat_used_this_turn = False
             player.tr_supporter_played_this_turn = False
+            player.items_locked_this_turn = False
             if player.active:
                 player.active.retreated_this_turn = False
                 player.active.ability_used_this_turn = False

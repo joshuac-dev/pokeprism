@@ -47,6 +47,26 @@ DRAGAPULT_DECK_LIST: list[tuple[str, str, int]] = [
     ("MEE", "5",   4), ("TEF", "161", 2), ("ASC", "216", 2),
 ]
 
+# Regression deck that exercises Budew's item-lock and MEE basic energies.
+# ASC = me02.5 (Extradimensional Crisis), MEE = mee (Basic Energies)
+BUDEW_REGRESSION_DECK_LIST: list[tuple[str, str, int]] = [
+    # Pokémon (20)
+    ("ASC", "16",  4),  # Budew – Itchy Pollen item-lock
+    ("ASC", "46",  4),  # Snorunt
+    ("ASC", "47",  4),  # Mega Froslass ex (Snorunt Stage 1)
+    ("ASC", "8",   4),  # Chikorita
+    ("ASC", "39",  4),  # Psyduck
+    # Trainers (20)
+    ("ASC", "181", 4),  # Air Balloon
+    ("ASC", "196", 4),  # Night Stretcher
+    ("ASC", "212", 4),  # Tool Scrapper
+    ("TEF", "144", 4),  # Buddy-Buddy Poffin
+    ("MEG", "131", 4),  # Ultra Ball
+    # Energy (20)
+    ("MEE", "1",   10), # Grass Energy
+    ("MEE", "3",   10), # Water Energy
+]
+
 TR_MEWTWO_DECK_LIST: list[tuple[str, str, int]] = [
     # Pokémon (18)
     ("DRI", "81",  3), ("DRI", "87",  3), ("DRI", "128", 2),
@@ -99,8 +119,14 @@ async def _run(args: argparse.Namespace) -> None:
     from app.players.ai_player import AIPlayer
 
     print("Loading decks …")
-    p1_defs = _load_deck(DRAGAPULT_DECK_LIST)
-    p2_defs = _load_deck(TR_MEWTWO_DECK_LIST)
+    if args.budew:
+        p1_defs = _load_deck(BUDEW_REGRESSION_DECK_LIST)
+        p2_defs = _load_deck(DRAGAPULT_DECK_LIST)
+        p1_name, p2_name = "Budew-Froslass", "Dragapult"
+    else:
+        p1_defs = _load_deck(DRAGAPULT_DECK_LIST)
+        p2_defs = _load_deck(TR_MEWTWO_DECK_LIST)
+        p1_name, p2_name = "Dragapult", "TR-Mewtwo"
 
     if len(p1_defs) == 0 or len(p2_defs) == 0:
         print("ERROR: deck loading failed — run capture_fixtures.py first.", file=sys.stderr)
@@ -116,9 +142,7 @@ async def _run(args: argparse.Namespace) -> None:
 
     if args.swap:
         p1_deck, p2_deck = p2_deck, p1_deck
-        p1_name, p2_name = "TR-Mewtwo", "Dragapult"
-    else:
-        p1_name, p2_name = "Dragapult", "TR-Mewtwo"
+        p1_name, p2_name = p2_name, p1_name
 
     if args.greedy:
         p1_cls, p2_cls = GreedyPlayer, GreedyPlayer
@@ -171,6 +195,8 @@ def main() -> None:
                         help="Write match results to Postgres + Neo4j (Phase 4)")
     parser.add_argument("--ai", action="store_true",
                         help="AI/H mode: P1=AIPlayer (Qwen3.5), P2=HeuristicPlayer")
+    parser.add_argument("--budew", action="store_true",
+                        help="Regression mode: Budew-Froslass deck vs Dragapult")
     args = parser.parse_args()
 
     asyncio.run(_run(args))

@@ -63,8 +63,12 @@ class MatchMemoryWriter:
                          for a in getattr(c, "attacks", [])],
                 abilities=[a.__dict__ if hasattr(a, "__dict__") else a
                            for a in getattr(c, "abilities", [])],
-                weaknesses=getattr(c, "weaknesses", []),
-                resistances=getattr(c, "resistances", []),
+                weaknesses=[w.model_dump() if hasattr(w, "model_dump") else
+                             (w.__dict__ if hasattr(w, "__dict__") else w)
+                             for w in getattr(c, "weaknesses", [])],
+                resistances=[r.model_dump() if hasattr(r, "model_dump") else
+                              (r.__dict__ if hasattr(r, "__dict__") else r)
+                              for r in getattr(c, "resistances", [])],
                 retreat_cost=getattr(c, "retreat_cost", 0),
                 regulation_mark=getattr(c, "regulation_mark", None),
                 rarity=getattr(c, "rarity", None),
@@ -250,6 +254,7 @@ class MatchMemoryWriter:
                 player_id=d["player_id"],
                 action_type=d["action_type"],
                 card_played=d.get("card_played"),
+                card_def_id=d.get("card_def_id"),
                 target=d.get("target"),
                 reasoning=d.get("reasoning"),
                 legal_action_count=d.get("legal_action_count"),
