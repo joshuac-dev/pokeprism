@@ -1,5 +1,37 @@
-.PHONY: up down build logs logs-all ps migrate seed seed-cards capture-fixtures test lint \
-        dev dev-backend dev-frontend restart shell-backend
+.PHONY: up down build logs logs-all ps migrate seed seed-cards capture-fixtures test \
+        test-engine test-cards lint dev dev-backend dev-frontend restart shell-backend help
+
+# ── Help ──────────────────────────────────────────────────────────────────────
+
+help:
+	@echo ""
+	@echo "PokéPrism — available make targets"
+	@echo ""
+	@echo "  Docker:"
+	@echo "    make up            docker compose up -d (full stack)"
+	@echo "    make down          docker compose down"
+	@echo "    make build         docker compose build (no cache uses: make build ARGS=--no-cache)"
+	@echo "    make restart       restart backend + workers"
+	@echo "    make ps            show container status"
+	@echo "    make logs          tail backend logs"
+	@echo "    make logs-all      tail all service logs"
+	@echo "    make shell-backend exec bash in backend container"
+	@echo ""
+	@echo "  Database:"
+	@echo "    make migrate       run alembic upgrade head (in container)"
+	@echo "    make seed          seed card pool into DB (in container)"
+	@echo ""
+	@echo "  Tests / Lint:"
+	@echo "    make test          run all backend pytest tests"
+	@echo "    make test-engine   run engine tests only (verbose)"
+	@echo "    make test-cards    run card tests only (verbose)"
+	@echo "    make lint          syntax-check all backend Python files"
+	@echo ""
+	@echo "  Dev (host, infra via Docker):"
+	@echo "    make dev           run backend + frontend concurrently on host"
+	@echo "    make dev-backend   uvicorn with --reload on :8000"
+	@echo "    make dev-frontend  vite dev server on :5173"
+	@echo ""
 
 # ── Docker Compose ────────────────────────────────────────────────────────────
 
