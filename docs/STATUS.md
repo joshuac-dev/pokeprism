@@ -112,7 +112,7 @@ Bug 1 (Docker 0 matches) is **FIXED** this session. All code gates are resolved.
 - [x] Phase 10: History & Analytics Dashboard — **complete & owner-verified (2026-04-28)**
 - [x] Phase 11: History Page & Memory Explorer — **complete (2026-05-02)**
 - [x] Phase 12: Card Pool Expansion — **complete (2026-05-02)**
-- [ ] Phase 13: Polish, Hardening & Scheduling — **IN PROGRESS (Bug 1 blocking)**
+- [ ] Phase 13: Polish, Hardening & Scheduling — **IN PROGRESS (visual QA pending)**
 
 ## Phase 7 Exit Criteria — Verified (2026-04-28)
 
