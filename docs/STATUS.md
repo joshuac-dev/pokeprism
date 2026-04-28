@@ -7,7 +7,16 @@
 Phase 13 — Polish, Hardening & Scheduling — **Complete.**
 All phases complete. PokéPrism is production-ready.
 
-## Last Session
+## Last Session (cont.) — 2026-04-29
+- AI/H simulation pipeline end-to-end verified with Docker celery-worker.
+- **Decision writing confirmed working**: 47 decisions with non-null `card_def_id` now in Docker Postgres after running a 3-game AI/H sim (ID `1bb92087`). Decisions include ATTACH_ENERGY, PLAY_BASIC, PLAY_SUPPORTER, PLAY_ITEM actions with resolved card names.
+- **Decision History verified**: `GET /api/memory/card/mee-007/decisions` returns 10 rows; `sv10-174` returns 3 rows. Memory page Decision History works correctly for cards that appear in AI decisions.
+- **Decision Map labels verified**: `GET /api/simulations/1bb92087.../decision-graph` returns nodes with `top_card_name` populated (e.g., `ATTACH_ENERGY → Team Rocket's Energy`, `PLAY_SUPPORTER → Team Rocket's Giovanni`). Frontend `DecisionMap.tsx` builds `"ATTACH_EN…\n(Team Rocket's E)"` two-line labels.
+- **Key note — top card pre-load**: Memory page pre-loads `me02.5-039` (Team Rocket's Mewtwo ex, highest card_performance count), which shows "No decisions recorded" because the AI didn't play/interact with it from hand in the test sim. Search for `mee-007` (Darkness Energy) or `sv10-174` (Team Rocket's Giovanni) to see decision data.
+- Docker celery-worker confirmed using live source code via `./backend:/app` volume mount in override file.
+- 172 backend tests pass (unchanged).
+
+## Previous Last Session
 - **Date:** 2026-05-03
 - Phase 13 (Polish, Hardening & Scheduling) fully implemented:
   1. **Group A — Backend Hardening**: DB pool `pool_pre_ping=True, pool_recycle=3600`; Ollama connection retry (3× exponential backoff) in `ai_player`, `analyst`, `embeddings`; full `/health` endpoint (7 checks: postgres, neo4j, redis, ollama, models, celery, match counts); WebSocket auto-reconnect (`reconnectionAttempts: 10`); Celery Beat schedule confirmed (nightly 2AM UTC).
