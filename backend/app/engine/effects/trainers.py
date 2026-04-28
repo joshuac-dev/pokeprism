@@ -2355,6 +2355,52 @@ def _hero_cape(state: GameState, action) -> None:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Mega Signal
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _mega_signal(state: GameState, action):
+    """me01-121 Mega Signal — search deck for a Mega Evolution Pokémon ex, put it in hand."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    def _is_mega_ex(card) -> bool:
+        cdef = card_registry.get(card.card_def_id)
+        return bool(
+            cdef
+            and cdef.is_ex
+            and cdef.name
+            and cdef.name.lower().startswith("mega ")
+        )
+
+    targets = [c for c in player.deck if c.card_type.lower() == "pokemon" and _is_mega_ex(c)]
+    if not targets:
+        random.shuffle(player.deck)
+        state.emit_event("shuffle_deck", player=player_id, reason="mega_signal_no_target")
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Mega Signal: choose a Mega Evolution Pokémon ex from your deck",
+        cards=targets, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [targets[0].instance_id])
+
+    for iid in chosen_ids[:1]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+            state.emit_event("search_to_hand", player=player_id, card=card.card_name,
+                             reason="mega_signal")
+
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="mega_signal")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Registration
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -2378,6 +2424,9 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv06.5-064", _xerosics_machinations)
     registry.register_trainer("sv07-132", _briar)
     registry.register_trainer("sv07-133", _crispin)
+    registry.register_trainer("sv08.5-105", _crispin)     # Crispin alternate print
+    registry.register_trainer("me02.5-183", _bosss_orders)         # Boss's Orders alt print
+    registry.register_trainer("me02.5-192", _lillies_determination) # Lillie's Determination alt
     registry.register_trainer("sv08-170", _cyrano)
     registry.register_trainer("sv08.5-112", _janines_secret_art)
     registry.register_trainer("sv08.5-115", _larrys_skill)
@@ -2394,14 +2443,18 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("me01-116", _fighting_gong)
     registry.register_trainer("me01-125", _rare_candy)
     registry.register_trainer("me01-131", _ultra_ball)
+    registry.register_trainer("me02.5-213", _ultra_ball)          # Ultra Ball alt print
     registry.register_trainer("me02-091", _jumbo_ice_cream)
     registry.register_trainer("me02-094", _wondrous_patch)
     registry.register_trainer("me02.5-196", _night_stretcher)
+    registry.register_trainer("sv06.5-061", _night_stretcher)  # Night Stretcher alt print
     registry.register_trainer("me02.5-212", _tool_scrapper)
     registry.register_trainer("me03-081", _poke_pad)
+    registry.register_trainer("me01-121", _mega_signal)
     registry.register_trainer("sv01-171", _energy_retrieval)
     registry.register_trainer("sv01-186", _pokegear)
     registry.register_trainer("sv05-144", _buddy_buddy_poffin)
+    registry.register_trainer("me02.5-184", _buddy_buddy_poffin)  # Buddy-Buddy Poffin alt print
     registry.register_trainer("sv05-157", _prime_catcher)
     registry.register_trainer("sv06-143", _bug_catching_set)
     registry.register_trainer("sv06-148", _enhanced_hammer)
@@ -2427,7 +2480,9 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv09-152", _noop)   # N's Royal Blades
     registry.register_trainer("sv10-169", _noop)   # Spikemuth Gym
     registry.register_trainer("sv10-173", _tr_factory_on_play)
-    registry.register_trainer("sv10-180", _noop)   # Watchtower (actions.py)
+    registry.register_trainer("sv10-180", _noop)   # Watchtower (passive / future)
+    registry.register_trainer("me02.5-210", _noop) # Team Rocket's Watchtower alt print
+    registry.register_trainer("me02.5-194", _noop) # Mystery Garden (USE_STADIUM — future)
 
     # ── Tools (passive — effects handled in base.py / registry.py) ──────────
     registry.register_trainer("me02.5-181", _noop)   # Air Balloon

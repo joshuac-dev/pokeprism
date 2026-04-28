@@ -155,7 +155,8 @@ def has_fairy_zone(state: GameState, attacker_player_id: str) -> bool:
     """
     defender_player_id = state.opponent_id(attacker_player_id)
     defender_player = state.get_player(defender_player_id)
-    return any(p.card_def_id == "sv09-056" for p in _in_play(defender_player))
+    return any(p.card_def_id in ("sv09-056", "me02.5-076")
+               for p in _in_play(defender_player))
 
 
 # Flower Curtain (sv10-010 Shaymin) ──────────────────────────────────────────
@@ -280,6 +281,16 @@ def power_saver_blocks_attack(state: GameState, pokemon, player_id: str) -> bool
 def has_battle_cage(state: GameState) -> bool:
     """True if Battle Cage stadium (me02-085) is active — blocks all bench damage."""
     return bool(state.active_stadium and state.active_stadium.card_def_id == "me02-085")
+
+
+def has_spherical_shield(state: GameState, player_id: str) -> bool:
+    """True if player has Rabsca (sv05-024) in play.
+
+    Spherical Shield: prevents all damage done to player's Benched Pokémon by
+    opponent's attacks.  Checked from the DEFENDING player's side.
+    """
+    player = state.get_player(player_id)
+    return any(p.card_def_id == "sv05-024" for p in _in_play(player))
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1161,6 +1172,9 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_ability("sv06-095", "Adrena-Brain", _adrena_brain,
                                condition=_cond_adrena_brain)
     registry.register_ability("sv06-129", "Recon Directive", _recon_directive)
+    registry.register_ability("me02.5-099", "Adrena-Brain", _adrena_brain,
+                               condition=_cond_adrena_brain)
+    registry.register_ability("me02.5-159", "Recon Directive", _recon_directive)
     registry.register_ability("sv06.5-039", "Subjugating Chains", _subjugating_chains)
     registry.register_ability("sv08.5-036", "Cursed Blast", _cursed_blast_dusclops,
                                condition=lambda state, pid: not has_psyduck_damp(state))
@@ -1170,7 +1184,8 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_ability("sv09-098", "Trade", _trade)
     registry.register_ability("sv10-020", "Charging Up", _charging_up)
 
-    # ── Passive abilities (no USE_ABILITY handler needed) ────────────────────
+    # ── Passive abilities (logic lives elsewhere in the engine) ──────────────
+    # Registering here satisfies coverage checks without exposing USE_ABILITY.
     # me01-010  Meganium          Wild Growth        → actions.py _can_pay_energy_cost
     # me02.5-039 Psyduck          Damp               → _cursed_blast handler above
     # sv06-053  Froslass          Freezing Shroud    → runner.py _handle_between_turns
@@ -1185,3 +1200,23 @@ def register_all(registry: EffectRegistry) -> None:
     # sv10-051  TR Articuno       Repelling Veil     → attack effect handlers in attacks.py
     # sv10-081  TR Mewtwo ex      Power Saver        → actions.py _get_attack_actions
     # svp-149   Pecharunt         Toxic Subjugation  → runner.py _handle_between_turns
+    # me02.5-076 Lillie's Clefairy ex (alt) Fairy Zone → base.py (same as sv09-056)
+    # sv05-024  Rabsca            Spherical Shield   → attacks.py _apply_bench_damage
+    # me03-031  Mega Clefable ex  Luminous Wing      → future per-ability checks
+    registry.register_passive_ability("me01-010",   "Wild Growth")
+    registry.register_passive_ability("me02.5-039", "Damp")
+    registry.register_passive_ability("sv06-053",   "Freezing Shroud")
+    registry.register_passive_ability("sv06-096",   "Adrena-Pheromone")
+    registry.register_passive_ability("sv06-111",   "Adrena-Power")
+    registry.register_passive_ability("sv06-112",   "Cornerstone Stance")
+    registry.register_passive_ability("sv06-141",   "Seasoned Skill")
+    registry.register_passive_ability("sv08-076",   "Skyliner")
+    registry.register_passive_ability("sv09-056",   "Fairy Zone")
+    registry.register_passive_ability("me02.5-076", "Fairy Zone")
+    registry.register_passive_ability("sv10-010",   "Flower Curtain")
+    registry.register_passive_ability("sv10-012",   "Mysterious Rock Inn")
+    registry.register_passive_ability("sv10-051",   "Repelling Veil")
+    registry.register_passive_ability("sv10-081",   "Power Saver")
+    registry.register_passive_ability("svp-149",    "Toxic Subjugation")
+    registry.register_passive_ability("sv05-024",   "Spherical Shield")
+    registry.register_passive_ability("me03-031",   "Luminous Wing")

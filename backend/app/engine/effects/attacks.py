@@ -42,6 +42,7 @@ from app.engine.effects.abilities import (
     has_cornerstone_stance,
     has_flower_curtain,
     has_mysterious_rock_inn,
+    has_spherical_shield,
     repelling_veil_protects,
 )
 from app.cards import registry as card_registry
@@ -168,11 +169,15 @@ def _apply_bench_damage(
     target,
     damage: int,
 ) -> None:
-    """Apply flat bench damage (no W/R), respecting Battle Cage and Flower Curtain."""
+    """Apply flat bench damage (no W/R), respecting Battle Cage, Flower Curtain, Spherical Shield."""
     if damage <= 0:
         return
     if has_battle_cage(state):
         state.emit_event("bench_damage_blocked", reason="battle_cage",
+                         card=target.card_name)
+        return
+    if has_spherical_shield(state, target_player_id):
+        state.emit_event("bench_damage_blocked", reason="spherical_shield",
                          card=target.card_name)
         return
     cdef = card_registry.get(target.card_def_id)
@@ -436,6 +441,43 @@ def _shinobi_blade(state, action):
             player.hand.append(card)
     _shuffle_deck(player)
     state.emit_event("search_deck", player=action.player_id, count=len(chosen_ids))
+
+
+def _call_sign(state, action):
+    """me01-059 Kirlia atk0 — Call Sign: search deck for up to 3 Pokémon, put into hand."""
+    player = state.get_player(action.player_id)
+    if not player.deck:
+        return
+
+    poke_in_deck = [c for c in player.deck if c.card_type.lower() == "pokemon"]
+    if not poke_in_deck:
+        _shuffle_deck(player)
+        return
+
+    max_count = min(3, len(poke_in_deck))
+    req = ChoiceRequest(
+        "choose_cards",
+        action.player_id,
+        "Call Sign: search your deck for up to 3 Pokémon to put into your hand",
+        cards=poke_in_deck,
+        min_count=0,
+        max_count=max_count,
+    )
+    resp = yield req
+    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
+                  and resp.chosen_card_ids else [])
+    if not chosen_ids:
+        chosen_ids = [c.instance_id for c in poke_in_deck[:max_count]]
+
+    for cid in chosen_ids:
+        card = next((c for c in player.deck if c.instance_id == cid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+    _shuffle_deck(player)
+    state.emit_event("search_deck", player=action.player_id, count=len(chosen_ids))
+
 
 
 def _call_for_family(state, action):
@@ -1521,6 +1563,159 @@ def _aroma_shot(state, action):
 # Category 8b: Item-lock attacks
 # ──────────────────────────────────────────────────────────────────────────────
 
+def _slight_intrusion(state, action):
+    """sv05-023 Rellor atk0 — Slight Intrusion: 30 + 10 recoil to self."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if player.active:
+        player.active.current_hp -= 10
+        player.active.damage_counters += 1
+        state.emit_event("recoil_damage", player=action.player_id,
+                         card=player.active.card_name, damage=10)
+        check_ko(state, player.active, action.player_id)
+
+
+def _rabsca_psychic(state, action):
+    """sv05-024 Rabsca atk0 — Psychic: 10 + 30 × Energy on opponent's Active."""
+    opp = state.get_opponent(action.player_id)
+    if not opp.active:
+        return
+    base_damage = 10 + 30 * len(opp.active.energy_attached)
+    _apply_damage(state, action, base_damage)
+
+
+def _cruel_arrow(state, action):
+    """me02.5-142 Fezandipiti ex atk0 — Cruel Arrow: 100 to 1 of opponent's Pokémon.
+
+    No Weakness/Resistance when targeting Bench.
+    """
+    opp = state.get_opponent(action.player_id)
+    opp_id = state.opponent_id(action.player_id)
+
+    all_opp = ([opp.active] if opp.active else []) + list(opp.bench)
+    if not all_opp:
+        return
+
+    if not opp.bench:
+        _apply_damage(state, action, 100)
+        return
+
+    req = ChoiceRequest(
+        "choose_target",
+        action.player_id,
+        "Cruel Arrow: choose 1 of your opponent's Pokémon for 100 damage",
+        targets=all_opp,
+    )
+    resp = yield req
+    target = None
+    if resp and hasattr(resp, "target_instance_id") and resp.target_instance_id:
+        target = next((p for p in all_opp
+                       if p.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = opp.active or opp.bench[0]
+
+    if target is opp.active:
+        _apply_damage(state, action, 100)
+    else:
+        _apply_bench_damage(state, opp_id, target, 100)
+
+
+def _overflowing_wishes(state, action):
+    """me02.5-089 Mega Gardevoir ex atk0 — Overflowing Wishes.
+
+    Attach 1 Basic {P} Energy from deck to each of your Benched Pokémon.
+    """
+    from app.engine.state import EnergyAttachment
+    player = state.get_player(action.player_id)
+    if not player.bench or not player.deck:
+        _shuffle_deck(player)
+        return
+
+    psychic_energy = [
+        c for c in player.deck
+        if c.card_type.lower() == "energy"
+        and c.card_subtype.lower() == "basic"
+        and "Psychic" in (c.energy_provides or [])
+    ]
+    if not psychic_energy:
+        _shuffle_deck(player)
+        return
+
+    attached = 0
+    for bench_poke in player.bench:
+        if not psychic_energy:
+            break
+        energy_card = psychic_energy.pop(0)
+        player.deck.remove(energy_card)
+        energy_card.zone = Zone.ATTACHED
+        att = EnergyAttachment(
+            energy_type=EnergyType.PSYCHIC,
+            source_card_id=energy_card.instance_id,
+            card_def_id=energy_card.card_def_id,
+            provides=[EnergyType.PSYCHIC],
+        )
+        bench_poke.energy_attached.append(att)
+        attached += 1
+
+    _shuffle_deck(player)
+    state.emit_event("energy_attached_from_deck", player=action.player_id,
+                     count=attached, reason="overflowing_wishes")
+
+
+def _mega_symphonia(state, action):
+    """me02.5-089 Mega Gardevoir ex atk1 — Mega Symphonia: 50 × {P} Energy on all your Pokémon."""
+    player = state.get_player(action.player_id)
+    psychic_count = 0
+    for poke in ([player.active] if player.active else []) + list(player.bench):
+        for att in poke.energy_attached:
+            if EnergyType.PSYCHIC in att.provides:
+                psychic_count += 1
+    base_damage = 50 * psychic_count
+    if base_damage <= 0:
+        state.emit_event("attack_no_damage", attacker="Mega Gardevoir ex",
+                         attack_name="Mega Symphonia")
+        return
+    _apply_damage(state, action, base_damage)
+
+
+def _shooting_moons(state, action):
+    """me03-031 Mega Clefable ex atk0 — Shooting Moons: 120 + discard up to 4 Energy from hand, +40 each."""
+    player = state.get_player(action.player_id)
+    energy_in_hand = [c for c in player.hand
+                      if c.card_type.lower() == "energy"]
+    if not energy_in_hand:
+        _apply_damage(state, action, 120)
+        return
+
+    max_count = min(4, len(energy_in_hand))
+    req = ChoiceRequest(
+        "choose_cards",
+        action.player_id,
+        "Shooting Moons: discard up to 4 Energy from your hand (+40 damage each)",
+        cards=energy_in_hand,
+        min_count=0,
+        max_count=max_count,
+    )
+    resp = yield req
+    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
+                  and resp.chosen_card_ids else [])
+    if not chosen_ids:
+        chosen_ids = [c.instance_id for c in energy_in_hand[:max_count]]
+
+    discarded = 0
+    for cid in chosen_ids:
+        card = next((c for c in player.hand if c.instance_id == cid), None)
+        if card:
+            player.hand.remove(card)
+            card.zone = Zone.DISCARD
+            player.discard.append(card)
+            discarded += 1
+
+    base_damage = 120 + 40 * discarded
+    _apply_damage(state, action, base_damage)
+
 def _itchy_pollen(state, action):
     """me02.5-016 Budew atk0 — Itchy Pollen: 10 + opponent can't play Items next turn."""
     _do_default_damage(state, action)
@@ -1717,6 +1912,7 @@ def register_all(registry) -> None:
     registry.register_attack("me02.5-047", 1, _absolute_snow)
     registry.register_attack("sv06-057", 0, _numbing_water)
     registry.register_attack("sv06-095", 0, _mind_bend)
+    registry.register_attack("me02.5-099", 0, _mind_bend)     # Munkidori alt print
     registry.register_attack("sv06-118", 0, _poison_spray)
     registry.register_attack("svp-149", 0, _poison_chain)
 
@@ -1724,9 +1920,11 @@ def register_all(registry) -> None:
     registry.register_attack("me03-042", 0, _double_draw)
     registry.register_attack("sv06-039", 0, _allure)
     registry.register_attack("sv10-040", 0, _collect)
+    registry.register_attack("me01-058", 0, _collect)         # Ralts — Collect (alt print)
     registry.register_attack("sv10-134", 0, _filch)
     registry.register_attack("sv06-106", 0, _shinobi_blade)
     registry.register_attack("me02-067", 0, _call_for_family)
+    registry.register_attack("me01-059", 0, _call_sign)       # Kirlia — Call Sign
     registry.register_attack("sv08.5-035", 0, _come_and_get_you)
 
     # Category 5: Variable damage
@@ -1749,16 +1947,23 @@ def register_all(registry) -> None:
     registry.register_attack("sv08.5-054", 0, _mad_bite)
     registry.register_attack("sv09-027", 0, _back_draft)
     registry.register_attack("sv09-056", 0, _full_moon_rondo)
+    registry.register_attack("me02.5-076", 0, _full_moon_rondo)   # Lillie's Clefairy ex alt print
     registry.register_attack("sv09-116", 0, _powerful_rage)
     registry.register_attack("sv10-012", 0, _superb_scissors)
     registry.register_attack("sv10-020", 0, _rocket_rush)
     registry.register_attack("sv10-041", 1, _double_kick)
     registry.register_attack("sv10-051", 0, _dark_frost)
+    registry.register_attack("sv05-024", 0, _rabsca_psychic)      # Rabsca — Psychic
+    registry.register_attack("me02.5-142", 0, _cruel_arrow)       # Fezandipiti ex — Cruel Arrow
+    registry.register_attack("me02.5-089", 0, _overflowing_wishes) # Mega Gardevoir ex — Overflowing Wishes
+    registry.register_attack("me02.5-089", 1, _mega_symphonia)    # Mega Gardevoir ex — Mega Symphonia
+    registry.register_attack("me03-031", 0, _shooting_moons)      # Mega Clefable ex — Shooting Moons
 
     # Category 6: Bench damage
     registry.register_attack("sv06-064", 1, _torrential_pump)
     registry.register_attack("sv06-106", 1, _mirage_barrage)
     registry.register_attack("sv06-130", 1, _phantom_dive)
+    registry.register_attack("me02.5-160", 1, _phantom_dive)      # Dragapult ex alt print
     registry.register_attack("sv09-027", 1, _flamebody_cannon)
     registry.register_attack("sv10-023", 0, _oil_salvo)
     registry.register_attack("sv10-081", 0, _erasure_ball)
@@ -1782,6 +1987,7 @@ def register_all(registry) -> None:
     # Category 8b: Item-lock attacks
     registry.register_attack("me02.5-016", 0, _itchy_pollen)
     registry.register_attack("svp-149",    0, _poison_chain)
+    registry.register_attack("sv05-023",   0, _slight_intrusion)  # Rellor — Slight Intrusion
 
     # Category 9: Copy-attack stubs
     registry.register_attack("sv09-098", 0, _night_joker)

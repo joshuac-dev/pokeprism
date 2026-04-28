@@ -263,18 +263,33 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                 "deck_snapshot": deck_snapshot,
             })
 
+            # Idempotent round creation: on Celery retry the row may already exist.
             round_id = uuid.uuid4()
             async with SessionFactory() as db:
-                rnd = Round(
-                    id=round_id,
-                    simulation_id=sim_uuid,
-                    round_number=round_number,
-                    deck_snapshot={"cards": deck_snapshot},
-                    started_at=datetime.now(timezone.utc),
-                    total_matches=0,
+                existing = await db.execute(
+                    select(Round.id).where(
+                        Round.simulation_id == sim_uuid,
+                        Round.round_number == round_number,
+                    )
                 )
-                db.add(rnd)
-                await db.commit()
+                existing_row = existing.scalar_one_or_none()
+                if existing_row is not None:
+                    round_id = existing_row
+                    logger.info(
+                        "Simulation %s round %d already exists (retry) — reusing id %s",
+                        simulation_id, round_number, round_id,
+                    )
+                else:
+                    rnd = Round(
+                        id=round_id,
+                        simulation_id=sim_uuid,
+                        round_number=round_number,
+                        deck_snapshot={"cards": deck_snapshot},
+                        started_at=datetime.now(timezone.utc),
+                        total_matches=0,
+                    )
+                    db.add(rnd)
+                    await db.commit()
 
             player_classes = _get_player_classes(game_mode)
             all_round_results = []

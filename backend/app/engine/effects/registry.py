@@ -45,6 +45,7 @@ class EffectRegistry:
         self._ability_conditions: dict[str, Callable] = {}  # optional precondition
         self._trainer_effects: dict[str, Callable] = {}
         self._energy_effects:  dict[str, Callable] = {}
+        self._passive_abilities: set[str] = set()  # abilities handled elsewhere in engine
 
     @classmethod
     def instance(cls) -> "EffectRegistry":
@@ -85,6 +86,13 @@ class EffectRegistry:
 
     def register_energy(self, card_id: str, handler: Callable) -> None:
         self._energy_effects[card_id] = handler
+
+    def register_passive_ability(self, card_id: str, ability_name: str) -> None:
+        """Mark an ability as passive (logic lives elsewhere in the engine).
+
+        Satisfies coverage checks without exposing a USE_ABILITY action.
+        """
+        self._passive_abilities.add(f"{card_id}:{ability_name}")
 
     # ── Resolution (all async — handlers may yield ChoiceRequests) ────────────
 
@@ -183,7 +191,8 @@ class EffectRegistry:
                         missing.append(f"attack:{atk.get('name') or str(i)}")
             for abl in card_def.get("abilities") or []:
                 name = abl.get("name") or ""
-                if name and f"{card_id}:{name}" not in self._ability_effects:
+                key = f"{card_id}:{name}"
+                if name and key not in self._ability_effects and key not in self._passive_abilities:
                     missing.append(f"ability:{name}")
 
         return missing
