@@ -73,8 +73,8 @@ export default function OpponentDeckList({
                     <span
                       className={`text-xs px-1.5 py-0.5 rounded-full font-mono ${
                         hasErrors
-                          ? 'bg-red-900/50 text-red-400 border border-red-700'
-                          : 'bg-green-900/50 text-green-400 border border-green-700'
+                          ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700'
+                          : 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700'
                       }`}
                     >
                       {cardCount}

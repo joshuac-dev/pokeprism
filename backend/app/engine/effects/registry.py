@@ -96,6 +96,18 @@ class EffectRegistry:
         if handler:
             await _drive_effect(handler, state, action, get_player)
             return state
+        # No handler — only fall through to flat-damage if the attack has no
+        # effect text.  Non-trivial attacks without a handler are a data error.
+        from app.cards import registry as card_registry
+        cdef = card_registry.get(card_id)
+        if cdef and attack_index < len(cdef.attacks):
+            effect_text = (cdef.attacks[attack_index].effect or "").strip()
+            if effect_text:
+                raise NotImplementedError(
+                    f"No handler for '{card_id}' attack[{attack_index}] "
+                    f"'{cdef.attacks[attack_index].name}' which has effect text. "
+                    "Register a handler before running simulations with this card."
+                )
         return self._default_damage(state, action)
 
     async def resolve_trainer(self, card_id: str,
@@ -105,8 +117,10 @@ class EffectRegistry:
         if handler:
             await _drive_effect(handler, state, action, get_player)
             return state
-        logger.warning("No trainer effect registered for %s — no-op", card_id)
-        return state
+        raise NotImplementedError(
+            f"No trainer effect registered for '{card_id}'. "
+            "Register a handler before running simulations with this card."
+        )
 
     async def resolve_ability(self, card_id: str, ability_name: str,
                               state: "GameState", action: "Action",
@@ -127,6 +141,52 @@ class EffectRegistry:
         if handler:
             await _drive_effect(handler, state, action, get_player)
         return state
+
+    # ── Coverage check ────────────────────────────────────────────────────────
+
+    def check_card_coverage(self, card_def: dict) -> list[str]:
+        """Return names of missing effect handlers for *card_def*.
+
+        The dict is expected to contain the fields stored in the ``cards`` DB
+        table: ``tcgdex_id``, ``category``, ``subcategory``, ``attacks`` (list
+        of ``{name, effect, ...}``), and ``abilities`` (list of ``{name, ...}``).
+
+        Returns a list of strings such as::
+
+            ["attack:Phantom Dive", "ability:Phantom Gate", "trainer"]
+
+        An empty list means the card is fully covered.
+        Rules:
+          - Trainer cards → require a registered trainer handler.
+          - Special Energy cards → require a registered energy handler.
+          - Pokémon attacks with non-empty effect text → require a handler.
+          - Pokémon abilities (any type) → require a registered handler.
+          - Basic/colourless flat-damage attacks (empty effect text) are fine.
+        """
+        missing: list[str] = []
+        card_id   = card_def.get("tcgdex_id") or ""
+        category  = (card_def.get("category") or "").lower()
+        subcat    = (card_def.get("subcategory") or "").lower()
+
+        if category == "trainer":
+            if card_id not in self._trainer_effects:
+                missing.append("trainer")
+
+        elif category == "energy" and subcat == "special":
+            if card_id not in self._energy_effects:
+                missing.append("energy")
+
+        elif category == "pokemon":
+            for i, atk in enumerate(card_def.get("attacks") or []):
+                if (atk.get("effect") or "").strip():
+                    if f"{card_id}:{i}" not in self._attack_effects:
+                        missing.append(f"attack:{atk.get('name') or str(i)}")
+            for abl in card_def.get("abilities") or []:
+                name = abl.get("name") or ""
+                if name and f"{card_id}:{name}" not in self._ability_effects:
+                    missing.append(f"ability:{name}")
+
+        return missing
 
     # ── Introspection ─────────────────────────────────────────────────────────
 

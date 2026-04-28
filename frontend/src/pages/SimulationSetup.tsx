@@ -114,12 +114,12 @@ export default function SimulationSetup() {
     <PageShell title="Simulation Setup">
       <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-5xl mx-auto">
         {warning && (
-          <div className="bg-yellow-900/40 border border-yellow-700 text-yellow-300 rounded-md px-4 py-3 text-sm">
+          <div className="bg-yellow-50 dark:bg-yellow-900/40 border border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-300 rounded-md px-4 py-3 text-sm">
             ⚠ {warning}
           </div>
         )}
         {error && (
-          <div className="bg-red-900/40 border border-red-700 text-red-300 rounded-md px-4 py-3 text-sm">
+          <div className="bg-red-50 dark:bg-red-900/40 border border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 rounded-md px-4 py-3 text-sm">
             {error}
           </div>
         )}

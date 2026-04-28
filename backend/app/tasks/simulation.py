@@ -403,24 +403,8 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
 
             mutations_for_event: list[dict] = []
 
-            if win_rate_pct >= target_win_rate:
-                _publish({
-                    "type": "target_reached",
-                    "simulation_id": simulation_id,
-                    "round_number": round_number,
-                    "win_rate": win_rate_pct / 100.0,
-                })
-                _publish({
-                    "type": "round_end",
-                    "simulation_id": simulation_id,
-                    "round_number": round_number,
-                    "win_rate": win_rate_pct / 100.0,
-                    "wins": p1_wins_round,
-                    "total": p1_total_round,
-                    "mutations": mutations_for_event,
-                })
-                break
-
+            # Run coach before target check so mutations are always applied on
+            # non-final rounds when the deck is unlocked, even if target is met.
             if not deck_locked and round_number < num_rounds and current_deck_cards:
                 try:
                     async with SessionFactory() as db:
@@ -455,7 +439,28 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                             "reasoning": mut["reasoning"],
                         })
                 except Exception as exc:
-                    logger.warning("Coach mutation failed (round %d): %s", round_number, exc)
+                    logger.warning(
+                        "Coach mutation failed (round %d): %s", round_number, exc,
+                        exc_info=True,
+                    )
+
+            if win_rate_pct >= target_win_rate:
+                _publish({
+                    "type": "target_reached",
+                    "simulation_id": simulation_id,
+                    "round_number": round_number,
+                    "win_rate": win_rate_pct / 100.0,
+                })
+                _publish({
+                    "type": "round_end",
+                    "simulation_id": simulation_id,
+                    "round_number": round_number,
+                    "win_rate": win_rate_pct / 100.0,
+                    "wins": p1_wins_round,
+                    "total": p1_total_round,
+                    "mutations": mutations_for_event,
+                })
+                break
 
             _publish({
                 "type": "round_end",

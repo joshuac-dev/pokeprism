@@ -22,11 +22,83 @@ from app.config import settings
 import redis as redis_module
 from app.db.models import Card, Deck, DeckCard, DeckMutation, Decision, Match, MatchEvent, Round, Simulation, SimulationOpponent
 from app.db.session import AsyncSessionLocal
-from app.tasks.simulation import count_deck_cards, run_simulation
+from app.tasks.simulation import count_deck_cards, run_simulation, _parse_deck_text, _parse_ptcgl_deck_text
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+# ---------------------------------------------------------------------------
+# Coverage validation helper
+# ---------------------------------------------------------------------------
+
+async def _check_deck_coverage(deck_texts: list[str], db: AsyncSession) -> list[dict]:
+    """Return a list of cards with missing effect handlers.
+
+    Parses each deck text, looks up the cards in DB, and calls
+    ``EffectRegistry.check_card_coverage`` on each.  Cards not found in DB
+    are skipped — they will surface a clear error later in the Celery task.
+    """
+    from app.engine.effects.registry import EffectRegistry
+
+    registry = EffectRegistry.instance()
+
+    tcgdex_ids: set[str] = set()
+    ptcgl_keys: set[tuple[str, str]] = set()  # (set_abbrev, normalised set_number)
+
+    for text in deck_texts:
+        if not text.strip():
+            continue
+        tcgdex_entries = _parse_deck_text(text)
+        if tcgdex_entries:
+            for _, tid in tcgdex_entries:
+                tcgdex_ids.add(tid)
+        else:
+            for entry in _parse_ptcgl_deck_text(text):
+                raw_num = entry["set_number"]
+                norm = str(int(raw_num)) if raw_num.isdigit() else raw_num
+                ptcgl_keys.add((entry["set_abbrev"], norm))
+
+    if not tcgdex_ids and not ptcgl_keys:
+        return []
+
+    card_rows: list[Card] = []
+
+    if tcgdex_ids:
+        result = await db.execute(select(Card).where(Card.tcgdex_id.in_(tcgdex_ids)))
+        card_rows.extend(result.scalars().all())
+
+    if ptcgl_keys:
+        abbrevs = {k[0] for k in ptcgl_keys}
+        result = await db.execute(select(Card).where(Card.set_abbrev.in_(abbrevs)))
+        for row in result.scalars().all():
+            norm = str(int(row.set_number)) if (row.set_number and row.set_number.isdigit()) else (row.set_number or "")
+            if (row.set_abbrev, norm) in ptcgl_keys:
+                card_rows.append(row)
+
+    seen: set[str] = set()
+    missing_cards: list[dict] = []
+    for row in card_rows:
+        if row.tcgdex_id in seen:
+            continue
+        seen.add(row.tcgdex_id)
+        card_dict = {
+            "tcgdex_id": row.tcgdex_id,
+            "category": row.category or "",
+            "subcategory": row.subcategory or "",
+            "attacks": row.attacks or [],
+            "abilities": row.abilities or [],
+        }
+        missing = registry.check_card_coverage(card_dict)
+        if missing:
+            missing_cards.append({
+                "tcgdex_id": row.tcgdex_id,
+                "name": row.name,
+                "missing": missing,
+            })
+
+    return missing_cards
 
 MINIMUM_MATCHES_RECOMMENDED = 5_000
 _VALID_GAME_MODES = {"hh", "ai_h", "ai_ai"}
@@ -247,6 +319,23 @@ async def create_simulation(
         )
 
     warning: Optional[str] = None
+
+    # ── coverage check — reject if any card lacks required effect handlers ──
+    all_deck_texts = [t for t in [body.deck_text] + body.opponent_deck_texts if t.strip()]
+    if all_deck_texts:
+        missing_cards = await _check_deck_coverage(all_deck_texts, db)
+        if missing_cards:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "unimplemented_cards",
+                    "cards": missing_cards,
+                    "message": (
+                        f"{len(missing_cards)} card(s) have unimplemented effects. "
+                        "Implement handlers before running this simulation."
+                    ),
+                },
+            )
 
     # ── historical match count check ────────────────────────────────────────
     if body.deck_mode in ("partial", "none"):

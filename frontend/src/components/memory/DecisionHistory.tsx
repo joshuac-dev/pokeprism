@@ -70,7 +70,7 @@ export default function DecisionHistory({ cardId }: Props) {
                       {d.action_type}
                     </span>
                   </td>
-                  <td className="py-2 pr-4 text-slate-300 max-w-xs truncate" title={d.reasoning ?? undefined}>
+                  <td className="py-2 pr-4 text-slate-500 dark:text-slate-300 max-w-xs truncate" title={d.reasoning ?? undefined}>
                     {d.reasoning ? d.reasoning.slice(0, 80) + (d.reasoning.length > 80 ? '\u2026' : '') : '\u2014'}
                   </td>
                   <td className="py-2 text-slate-500 text-xs whitespace-nowrap">{fmtDate(d.created_at)}</td>
