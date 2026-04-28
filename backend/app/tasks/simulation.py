@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Any
@@ -28,8 +29,55 @@ logger = logging.getLogger(__name__)
 # Deck text helpers
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# PTCGL format regexes
+# ---------------------------------------------------------------------------
+
+# Section headers: "Pokémon: 14", "Trainer:", "Energy: 7" — always skipped
+_PTCGL_SECTION_RE = re.compile(
+    r"^(?:Pok[eé]mon|Trainer|Energy)\s*:", re.IGNORECASE
+)
+
+# PTCGL card line: "4 Dreepy PRE 71" or "1 Pecharunt PR-SV 149"
+# Groups: (count, card_name, set_abbrev, card_number)
+_PTCGL_LINE_RE = re.compile(
+    r"^(\d+)\s+(.+?)\s+([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)?)\s+(\d+)\s*$"
+)
+
+
+def _parse_ptcgl_deck_text(deck_text: str) -> list[dict]:
+    """Parse PTCGL export format into structured entries.
+
+    Handles:
+      - "4 Dreepy PRE 71"
+      - "2 Boss's Orders MEG 114"
+      - "1 Pecharunt PR-SV 149"
+      - Section headers (Pokémon:, Trainer:, Energy:) — skipped
+      - Blank lines and # comments — skipped
+
+    Returns list of dicts: {count, name, set_abbrev, set_number}
+    """
+    entries: list[dict] = []
+    for raw_line in deck_text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if _PTCGL_SECTION_RE.match(line):
+            continue
+        m = _PTCGL_LINE_RE.match(line)
+        if not m:
+            continue
+        entries.append({
+            "count": int(m.group(1)),
+            "name": m.group(2).strip(),
+            "set_abbrev": m.group(3),
+            "set_number": m.group(4),
+        })
+    return entries
+
+
 def _parse_deck_text(deck_text: str) -> list[tuple[int, str]]:
-    """Parse PTCGL-format deck text into (count, tcgdex_id) pairs.
+    """Parse TCGdex-format deck text into (count, tcgdex_id) pairs.
 
     Handles:
       - "4 Dragapult ex sv06-130"  → count=4, tcgdex_id="sv06-130"
@@ -175,8 +223,9 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
         current_deck_cards = await _deck_text_to_card_defs(user_deck_text, SessionFactory)
         if not current_deck_cards:
             raise ValueError(
-                "User deck could not be parsed — ensure card IDs are in tcgdex format "
-                "(e.g. 'sv06-130'), not PTCGL/PTCGO set+number format (e.g. 'SV06 130')."
+                "User deck could not be parsed — no valid card lines found. "
+                "Accepted formats: TCGdex ('4 sv06-130'), TCGdex verbose "
+                "('4 Dragapult ex sv06-130'), or PTCGL export ('4 Dragapult ex TWM 130')."
             )
         current_deck_text = user_deck_text
         writer = MatchMemoryWriter()
@@ -480,30 +529,140 @@ async def _deck_text_to_card_defs(
 ) -> list:
     """Convert deck text to ``list[CardDefinition]`` (with duplicates for count).
 
-    Queries the ``cards`` table for known cards; creates minimal stubs for unknown ones.
+    Accepts both TCGdex format (e.g. ``4 sv06-130``) and PTCGL export format
+    (e.g. ``4 Dreepy PRE 71``).  For PTCGL format, unknown cards are fetched
+    on-demand from TCGDex and persisted to the DB before the simulation runs.
+
+    Raises ``ValueError`` if:
+      - A PTCGL card's set abbreviation is not in SET_CODE_MAP
+      - A PTCGL card is not found in TCGDex (404 or network error)
     """
     if not deck_text.strip():
         return []
 
+    from app.cards.loader import CardListLoader, SET_CODE_MAP
     from app.cards.models import CardDefinition
+    from app.cards.tcgdex import TCGDexClient
     from app.db.models import Card
+    from app.memory.postgres import MatchMemoryWriter
 
-    entries = _parse_deck_text(deck_text)
-    if not entries:
+    # ── 1. Try TCGdex format (existing path: last token contains a hyphen) ───
+    tcgdex_entries = _parse_deck_text(deck_text)
+    if tcgdex_entries:
+        tcgdex_ids = [tid for _, tid in tcgdex_entries]
+        async with SessionFactory() as db:
+            result = await db.execute(
+                select(Card).where(Card.tcgdex_id.in_(tcgdex_ids))
+            )
+            card_rows = {row.tcgdex_id: row for row in result.scalars().all()}
+
+        defs: list[CardDefinition] = []
+        for count, tcgdex_id in tcgdex_entries:
+            if tcgdex_id in card_rows:
+                row = card_rows[tcgdex_id]
+                card_def = CardDefinition(
+                    tcgdex_id=row.tcgdex_id,
+                    name=row.name,
+                    set_abbrev=row.set_abbrev,
+                    set_number=row.set_number,
+                    category=row.category or "",
+                    subcategory=row.subcategory or "",
+                    hp=row.hp,
+                    types=row.types or [],
+                    evolve_from=row.evolve_from,
+                    stage=row.stage or "",
+                    retreat_cost=row.retreat_cost or 0,
+                    regulation_mark=row.regulation_mark,
+                    rarity=row.rarity,
+                    image_url=row.image_url,
+                )
+            else:
+                parts = tcgdex_id.rsplit("-", 1)
+                card_def = CardDefinition(
+                    tcgdex_id=tcgdex_id,
+                    name=tcgdex_id,
+                    set_abbrev=parts[0] if len(parts) == 2 else "",
+                    set_number=parts[1] if len(parts) == 2 else "",
+                )
+            defs.extend([card_def] * count)
+        return defs
+
+    # ── 2. Try PTCGL export format ────────────────────────────────────────────
+    ptcgl_entries = _parse_ptcgl_deck_text(deck_text)
+    if not ptcgl_entries:
         return []
 
-    tcgdex_ids = [tid for _, tid in entries]
-
+    # ── 2a. Batch DB lookup by (set_abbrev, normalised set_number) ────────────
+    abbrevs = list({e["set_abbrev"] for e in ptcgl_entries})
     async with SessionFactory() as db:
         result = await db.execute(
-            select(Card).where(Card.tcgdex_id.in_(tcgdex_ids))
+            select(Card).where(Card.set_abbrev.in_(abbrevs))
         )
-        card_rows = {row.tcgdex_id: row for row in result.scalars().all()}
+        db_cards: dict[tuple[str, str], Card] = {}
+        for row in result.scalars().all():
+            norm = str(int(row.set_number)) if (row.set_number and row.set_number.isdigit()) else (row.set_number or "")
+            db_cards[(row.set_abbrev, norm)] = row
 
-    defs: list[CardDefinition] = []
-    for count, tcgdex_id in entries:
-        if tcgdex_id in card_rows:
-            row = card_rows[tcgdex_id]
+    # ── 2b. On-demand TCGDex fetch for DB misses ──────────────────────────────
+    loader = CardListLoader()
+    writer = MatchMemoryWriter()
+    fresh_defs: dict[tuple[str, str], CardDefinition] = {}
+
+    async with TCGDexClient() as tcgdex:
+        for entry in ptcgl_entries:
+            abbrev = entry["set_abbrev"]
+            number = entry["set_number"]
+            norm = str(int(number)) if number.isdigit() else number
+            key = (abbrev, norm)
+
+            if key in db_cards or key in fresh_defs:
+                continue
+
+            set_id = SET_CODE_MAP.get(abbrev)
+            if set_id is None:
+                raise ValueError(
+                    f"Unknown set abbreviation '{abbrev}' for card "
+                    f"'{entry['name']} {abbrev} {number}'. "
+                    f"Add it to SET_CODE_MAP in loader.py."
+                )
+
+            try:
+                raw = await tcgdex.get_card(set_id, number)
+            except Exception as exc:
+                raise ValueError(
+                    f"Card not found in TCGDex: {entry['name']} {abbrev} {number} "
+                    f"(tried {set_id}-{str(number).zfill(3)}). Error: {exc}"
+                ) from exc
+
+            card_def = loader._transform(
+                raw,
+                {"name": entry["name"], "set_abbrev": abbrev, "number": number},
+            )
+            fresh_defs[key] = card_def
+            logger.info("Fetched new card from TCGDex: %s (%s)", card_def.name, card_def.tcgdex_id)
+
+    # ── 2c. Upsert fresh cards to DB ──────────────────────────────────────────
+    if fresh_defs:
+        async with SessionFactory() as db:
+            await writer.ensure_cards(list(fresh_defs.values()), db)
+            await db.commit()
+            new_ids = [c.tcgdex_id for c in fresh_defs.values()]
+            result = await db.execute(select(Card).where(Card.tcgdex_id.in_(new_ids)))
+            for row in result.scalars().all():
+                norm = str(int(row.set_number)) if (row.set_number and row.set_number.isdigit()) else (row.set_number or "")
+                db_cards[(row.set_abbrev, norm)] = row
+
+    # ── 2d. Build CardDefinition list ─────────────────────────────────────────
+    defs_ptcgl: list[CardDefinition] = []
+    for entry in ptcgl_entries:
+        abbrev = entry["set_abbrev"]
+        number = entry["set_number"]
+        count = entry["count"]
+        norm = str(int(number)) if number.isdigit() else number
+        key = (abbrev, norm)
+
+        row = db_cards.get(key)
+        if row is not None:
             card_def = CardDefinition(
                 tcgdex_id=row.tcgdex_id,
                 name=row.name,
@@ -521,16 +680,15 @@ async def _deck_text_to_card_defs(
                 image_url=row.image_url,
             )
         else:
-            parts = tcgdex_id.rsplit("-", 1)
-            card_def = CardDefinition(
-                tcgdex_id=tcgdex_id,
-                name=tcgdex_id,
-                set_abbrev=parts[0] if len(parts) == 2 else "",
-                set_number=parts[1] if len(parts) == 2 else "",
-            )
-        defs.extend([card_def] * count)
+            card_def = fresh_defs.get(key)
+            if card_def is None:
+                raise ValueError(
+                    f"Card not found after fetch: {entry['name']} {abbrev} {number}"
+                )
 
-    return defs
+        defs_ptcgl.extend([card_def] * count)
+
+    return defs_ptcgl
 
 
 def _apply_mutations(

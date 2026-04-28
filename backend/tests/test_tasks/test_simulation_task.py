@@ -16,6 +16,7 @@ from app.tasks.simulation import (
     _apply_mutations,
     _get_player_classes,
     _parse_deck_text,
+    _parse_ptcgl_deck_text,
     count_deck_cards,
 )
 
@@ -239,3 +240,197 @@ class TestWinRateCalculation:
     def test_rounding(self):
         # 3/7 ≈ 42.857... → rounds to 43
         assert int(round(3 / 7 * 100)) == 43
+
+
+# ---------------------------------------------------------------------------
+# PTCGL deck text parsing
+# ---------------------------------------------------------------------------
+
+class TestParsePtcglDeckText:
+    def test_basic_ptcgl_line(self):
+        text = "4 Dreepy PRE 71\n3 Drakloak ASC 159"
+        result = _parse_ptcgl_deck_text(text)
+        assert result == [
+            {"count": 4, "name": "Dreepy", "set_abbrev": "PRE", "set_number": "71"},
+            {"count": 3, "name": "Drakloak", "set_abbrev": "ASC", "set_number": "159"},
+        ]
+
+    def test_multi_word_card_name(self):
+        text = "2 Boss's Orders MEG 114"
+        result = _parse_ptcgl_deck_text(text)
+        assert result == [
+            {"count": 2, "name": "Boss's Orders", "set_abbrev": "MEG", "set_number": "114"},
+        ]
+
+    def test_promo_set_with_hyphen(self):
+        text = "1 Pecharunt PR-SV 149"
+        result = _parse_ptcgl_deck_text(text)
+        assert result == [
+            {"count": 1, "name": "Pecharunt", "set_abbrev": "PR-SV", "set_number": "149"},
+        ]
+
+    def test_section_headers_skipped(self):
+        text = "Pokémon: 14\n4 Dreepy PRE 71\nTrainer: 32\nEnergy: 14"
+        result = _parse_ptcgl_deck_text(text)
+        assert result == [
+            {"count": 4, "name": "Dreepy", "set_abbrev": "PRE", "set_number": "71"},
+        ]
+
+    def test_blank_and_comment_lines_skipped(self):
+        text = "\n# My deck\n4 Dreepy PRE 71\n\n"
+        result = _parse_ptcgl_deck_text(text)
+        assert len(result) == 1
+        assert result[0]["name"] == "Dreepy"
+
+    def test_empty_string_returns_empty(self):
+        assert _parse_ptcgl_deck_text("") == []
+
+    def test_tcgdex_format_not_matched(self):
+        # TCGdex lines should NOT be matched by the PTCGL parser
+        text = "4 Dragapult ex sv06-130\n2 sv06-129"
+        assert _parse_ptcgl_deck_text(text) == []
+
+
+# ---------------------------------------------------------------------------
+# _deck_text_to_card_defs: PTCGL on-demand fetch
+# ---------------------------------------------------------------------------
+
+class TestDeckTextToCardDefsPtcgl:
+    """Test that PTCGL format triggers DB lookup and on-demand TCGDex fetch."""
+
+    @pytest.mark.asyncio
+    async def test_ptcgl_card_found_in_db(self):
+        """Card already in DB → no TCGDex call, returns correct CardDefinition."""
+        from unittest.mock import AsyncMock, MagicMock, patch
+        from app.tasks.simulation import _deck_text_to_card_defs
+
+        mock_row = MagicMock()
+        mock_row.tcgdex_id = "sv08.5-071"
+        mock_row.name = "Dreepy"
+        mock_row.set_abbrev = "PRE"
+        mock_row.set_number = "71"
+        mock_row.category = "Pokemon"
+        mock_row.subcategory = "Basic"
+        mock_row.hp = 40
+        mock_row.types = ["Dragon"]
+        mock_row.evolve_from = None
+        mock_row.stage = "Basic"
+        mock_row.retreat_cost = 1
+        mock_row.regulation_mark = "I"
+        mock_row.rarity = "Common"
+        mock_row.image_url = None
+
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [mock_row]
+        mock_result = MagicMock()
+        mock_result.scalars.return_value = mock_scalars
+
+        mock_session = AsyncMock()
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=False)
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        mock_factory = MagicMock()
+        mock_factory.return_value = mock_session
+
+        defs = await _deck_text_to_card_defs("4 Dreepy PRE 71", mock_factory)
+
+        assert len(defs) == 4
+        assert defs[0].tcgdex_id == "sv08.5-071"
+        assert defs[0].name == "Dreepy"
+
+    @pytest.mark.asyncio
+    async def test_ptcgl_card_not_in_db_fetches_from_tcgdex(self):
+        """Card missing from DB → fetches from TCGDex, upserts, returns CardDefinition."""
+        from unittest.mock import AsyncMock, MagicMock, patch
+        from app.tasks.simulation import _deck_text_to_card_defs
+
+        # Call 1: set_abbrev batch lookup → empty
+        empty_scalars = MagicMock()
+        empty_scalars.all.return_value = []
+        lookup_result = MagicMock()
+        lookup_result.scalars.return_value = empty_scalars
+
+        # Call 2: ensure_cards existing-tcgdex_ids check → empty (result.all() form)
+        existing_result = MagicMock()
+        existing_result.all.return_value = []
+
+        # Call 3: re-fetch after upsert → returns inserted row
+        upserted_row = MagicMock()
+        upserted_row.tcgdex_id = "sv08.5-071"
+        upserted_row.name = "Dreepy"
+        upserted_row.set_abbrev = "PRE"
+        upserted_row.set_number = "71"
+        upserted_row.category = "Pokemon"
+        upserted_row.subcategory = "Basic"
+        upserted_row.hp = 40
+        upserted_row.types = ["Dragon"]
+        upserted_row.evolve_from = None
+        upserted_row.stage = "Basic"
+        upserted_row.retreat_cost = 1
+        upserted_row.regulation_mark = "I"
+        upserted_row.rarity = "Common"
+        upserted_row.image_url = None
+        refetch_scalars = MagicMock()
+        refetch_scalars.all.return_value = [upserted_row]
+        refetch_result = MagicMock()
+        refetch_result.scalars.return_value = refetch_scalars
+
+        mock_session = AsyncMock()
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=False)
+        mock_session.execute = AsyncMock(
+            side_effect=[lookup_result, existing_result, refetch_result]
+        )
+        mock_session.flush = AsyncMock()
+        mock_session.add_all = MagicMock()
+        mock_session.commit = AsyncMock()
+
+        mock_factory = MagicMock()
+        mock_factory.return_value = mock_session
+
+        raw_tcgdex = {
+            "id": "sv08.5-071",
+            "name": "Dreepy",
+            "category": "Pokemon",
+            "hp": 40,
+            "types": ["Dragon"],
+            "stage": "Basic",
+            "retreat": 1,
+            "attacks": [],
+            "abilities": [],
+            "weaknesses": [],
+            "resistances": [],
+            "regulationMark": "I",
+            "rarity": "Common",
+            "image": None,
+        }
+
+        with patch("app.cards.tcgdex.TCGDexClient.get_card", new_callable=AsyncMock, return_value=raw_tcgdex):
+            defs = await _deck_text_to_card_defs("4 Dreepy PRE 71", mock_factory)
+
+        assert len(defs) == 4
+        assert defs[0].name == "Dreepy"
+        assert defs[0].tcgdex_id == "sv08.5-071"
+
+    @pytest.mark.asyncio
+    async def test_ptcgl_unknown_set_raises_value_error(self):
+        """Unknown set abbreviation raises ValueError with clear message."""
+        from unittest.mock import AsyncMock, MagicMock
+        from app.tasks.simulation import _deck_text_to_card_defs
+
+        empty_scalars = MagicMock()
+        empty_scalars.all.return_value = []
+        empty_result = MagicMock()
+        empty_result.scalars.return_value = empty_scalars
+
+        mock_session = AsyncMock()
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=False)
+        mock_session.execute = AsyncMock(return_value=empty_result)
+
+        mock_factory = MagicMock()
+        mock_factory.return_value = mock_session
+
+        with pytest.raises(ValueError, match="Unknown set abbreviation 'XYZ'"):
+            await _deck_text_to_card_defs("1 SomeCard XYZ 99", mock_factory)
