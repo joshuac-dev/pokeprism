@@ -152,11 +152,52 @@ async def _get_deck_name_from_gemma(deck_text: str, timeout: float = 5.0) -> Opt
 
 
 def _fallback_deck_name(deck_text: str) -> str:
-    """Return a fallback deck name by finding the first 'ex' Pokémon."""
-    lines = _parse_deck_lines(deck_text)
-    for _cnt, name, _tid in lines:
-        if " ex" in name.lower() or name.lower().endswith("ex"):
-            return f"{name} Deck"
+    """Return a fallback deck name by finding the first 'ex' or prominent Pokémon.
+
+    Handles both internal format ``4 Dragapult ex sv06-130`` and PTCGLive
+    export format ``2 Dragapult ex (SPA 130)``.
+    """
+    import re
+    for raw in deck_text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        # Match: <count> <name> (<SET> <NUM>) — PTCGLive format
+        m = re.match(r"^\d+\s+(.+?)\s+\([A-Z0-9]+(?:\.\d+)?\s+\d+\)\s*$", line)
+        if m:
+            name = m.group(1).strip()
+            if " ex" in name.lower() or name.lower().endswith("ex"):
+                return f"{name} Deck"
+            continue
+        # Match: <count> <name> <tcgdex_id> — internal format
+        tokens = line.split()
+        if len(tokens) >= 3:
+            try:
+                int(tokens[0])
+            except ValueError:
+                continue
+            last = tokens[-1]
+            if "-" in last and any(c.isdigit() for c in last):
+                name = " ".join(tokens[1:-1])
+                if " ex" in name.lower() or name.lower().endswith("ex"):
+                    return f"{name} Deck"
+    # Second pass: return first Pokémon name found (any, not just ex)
+    for raw in deck_text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        m = re.match(r"^\d+\s+(.+?)\s+\([A-Z0-9]+(?:\.\d+)?\s+\d+\)\s*$", line)
+        if m:
+            return f"{m.group(1).strip()} Deck"
+        tokens = line.split()
+        if len(tokens) >= 3:
+            try:
+                int(tokens[0])
+            except ValueError:
+                continue
+            last = tokens[-1]
+            if "-" in last and any(c.isdigit() for c in last):
+                return f'{" ".join(tokens[1:-1])} Deck'
     return "Custom Deck"
 
 
@@ -262,17 +303,18 @@ async def create_simulation(
                 status_code=422,
                 detail=f"Opponent deck {idx + 1} must contain exactly 60 cards (got {opp_count})",
             )
+        opp_name = _fallback_deck_name(opp_text)
         opp_deck = await _create_deck_record(
             deck_text=opp_text,
-            name=f"Opponent {idx + 1}",
-            archetype="Unknown",
+            name=opp_name,
+            archetype=opp_name,
             source="opponent",
             db=db,
         )
         opponent = SimulationOpponent(
             simulation_id=sim.id,
             deck_id=opp_deck.id,
-            deck_name=opp_deck.name,
+            deck_name=opp_name,
         )
         db.add(opponent)
 
@@ -299,12 +341,77 @@ async def create_simulation(
 # ---------------------------------------------------------------------------
 
 @router.get("/")
-async def list_simulations(db: AsyncSession = Depends(get_db)) -> list[dict]:
-    """Return a summary list of all simulations, newest first."""
+async def list_simulations(
+    page: int = 1,
+    per_page: int = 25,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    starred: Optional[bool] = None,
+    min_win_rate: Optional[float] = None,
+    max_win_rate: Optional[float] = None,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Return a paginated, filterable list of simulations with opponent names."""
+    from datetime import datetime, timezone
+    from sqlalchemy import and_, or_
+
+    if page < 1:
+        page = 1
+    if per_page < 1 or per_page > 100:
+        per_page = 25
+
+    conditions = []
+    if status:
+        conditions.append(Simulation.status == status)
+    if search:
+        conditions.append(Simulation.user_deck_name.ilike(f"%{search}%"))
+    if date_from:
+        try:
+            dt = datetime.fromisoformat(date_from).replace(tzinfo=timezone.utc)
+            conditions.append(Simulation.created_at >= dt)
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            dt = datetime.fromisoformat(date_to).replace(tzinfo=timezone.utc)
+            conditions.append(Simulation.created_at <= dt)
+        except ValueError:
+            pass
+    if starred is not None:
+        conditions.append(Simulation.starred == starred)
+    if min_win_rate is not None:
+        conditions.append(Simulation.final_win_rate >= int(min_win_rate * 100))
+    if max_win_rate is not None:
+        conditions.append(Simulation.final_win_rate <= int(max_win_rate * 100))
+
+    where_clause = and_(*conditions) if conditions else True
+
+    total = (await db.execute(
+        select(func.count()).select_from(Simulation).where(where_clause)
+    )).scalar() or 0
+
     rows = (await db.execute(
-        select(Simulation).order_by(Simulation.created_at.desc())
+        select(Simulation)
+        .where(where_clause)
+        .order_by(Simulation.created_at.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
     )).scalars().all()
-    return [
+
+    # Batch-fetch opponent names for all returned simulations.
+    sim_ids = [s.id for s in rows]
+    opponent_rows = (await db.execute(
+        select(SimulationOpponent).where(SimulationOpponent.simulation_id.in_(sim_ids))
+    )).scalars().all()
+    opponents_by_sim: dict = {}
+    for opp in opponent_rows:
+        opponents_by_sim.setdefault(str(opp.simulation_id), []).append(
+            opp.deck_name or str(opp.deck_id)
+        )
+
+    items = [
         {
             "id": str(s.id),
             "status": s.status,
@@ -317,9 +424,12 @@ async def list_simulations(db: AsyncSession = Depends(get_db)) -> list[dict]:
             "user_deck_name": s.user_deck_name,
             "starred": s.starred,
             "created_at": s.created_at.isoformat() if s.created_at else None,
+            "opponents": opponents_by_sim.get(str(s.id), []),
         }
         for s in rows
     ]
+
+    return {"items": items, "total": total, "page": page, "per_page": per_page}
 
 
 # ---------------------------------------------------------------------------
@@ -495,6 +605,22 @@ async def delete_simulation(
     if row is None:
         raise HTTPException(status_code=404, detail="Simulation not found")
 
+    # Embeddings have no FK to simulations — delete them before the simulation row.
+    # Embeddings reference decision UUIDs via source_id (TEXT), so we collect all
+    # decision IDs for this simulation first, then delete their embeddings.
+    decision_ids = (await db.execute(
+        select(Decision.id).where(Decision.simulation_id == sim_uuid)
+    )).scalars().all()
+    if decision_ids:
+        from app.db.models import Embedding
+        from sqlalchemy import delete as sa_delete
+        await db.execute(
+            sa_delete(Embedding).where(
+                Embedding.source_type == "decision",
+                Embedding.source_id.in_([str(d) for d in decision_ids]),
+            )
+        )
+
     await db.delete(row)
     await db.commit()
     return Response(status_code=204)
@@ -663,6 +789,107 @@ async def get_simulation_decisions(
         ],
         "total": total,
     }
+
+
+# ---------------------------------------------------------------------------
+# GET /api/simulations/{id}/decision-graph
+# ---------------------------------------------------------------------------
+
+@router.get("/{simulation_id}/decision-graph")
+async def get_decision_graph(
+    simulation_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Aggregate AI decisions into a graph suitable for the Decision Map UI.
+
+    Each node represents a unique action_type, enriched with the most common
+    card associated with that action. Returns:
+      nodes: [{action_type, count, top_card_name, top_3_cards}]
+      edges: [{source, target, count}] — transitions between consecutive actions
+    """
+    import uuid as _uuid_mod
+    from sqlalchemy import case as sa_case
+
+    try:
+        sim_uuid = _uuid_mod.UUID(simulation_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid simulation_id format")
+
+    # Aggregate per (action_type, card_def_id) — count occurrences
+    agg_rows = (await db.execute(
+        select(
+            Decision.action_type,
+            Decision.card_def_id,
+            func.count(Decision.id).label("cnt"),
+        )
+        .where(Decision.simulation_id == sim_uuid)
+        .where(Decision.action_type.isnot(None))
+        .group_by(Decision.action_type, Decision.card_def_id)
+        .order_by(Decision.action_type, func.count(Decision.id).desc())
+    )).all()
+
+    # Collect all card_def_ids to do a single name lookup
+    all_card_def_ids = {r.card_def_id for r in agg_rows if r.card_def_id}
+    card_names: dict[str, str] = {}
+    if all_card_def_ids:
+        name_rows = (await db.execute(
+            select(Card.tcgdex_id, Card.name).where(Card.tcgdex_id.in_(all_card_def_ids))
+        )).all()
+        card_names = {r.tcgdex_id: r.name for r in name_rows}
+
+    # Build per-action_type aggregates
+    from collections import defaultdict
+    action_data: dict[str, dict] = defaultdict(lambda: {"count": 0, "cards": {}})
+
+    for row in agg_rows:
+        at = row.action_type
+        action_data[at]["count"] += row.cnt
+        if row.card_def_id:
+            cname = card_names.get(row.card_def_id, row.card_def_id)
+            action_data[at]["cards"][cname] = action_data[at]["cards"].get(cname, 0) + row.cnt
+
+    nodes = []
+    for action_type, data in sorted(action_data.items(), key=lambda x: -x[1]["count"]):
+        total = data["count"]
+        # Sort cards by count descending
+        sorted_cards = sorted(data["cards"].items(), key=lambda x: -x[1])
+        top_card_name = sorted_cards[0][0] if sorted_cards else None
+        top_3 = [
+            {"name": n, "count": c, "pct": round(c / total * 100, 1)}
+            for n, c in sorted_cards[:3]
+        ]
+        nodes.append({
+            "action_type": action_type,
+            "count": total,
+            "top_card_name": top_card_name,
+            "top_3_cards": top_3,
+        })
+
+    # Build edges: transitions between consecutive actions within each match
+    # Use a raw query to get ordered decisions per match
+    edge_rows = (await db.execute(
+        select(Decision.match_id, Decision.action_type, Decision.created_at)
+        .where(Decision.simulation_id == sim_uuid)
+        .where(Decision.action_type.isnot(None))
+        .order_by(Decision.match_id, Decision.created_at)
+    )).all()
+
+    edge_counts: dict[tuple, int] = {}
+    prev_match = None
+    prev_action = None
+    for row in edge_rows:
+        if row.match_id == prev_match and prev_action is not None:
+            edge = (prev_action, row.action_type)
+            edge_counts[edge] = edge_counts.get(edge, 0) + 1
+        prev_match = row.match_id
+        prev_action = row.action_type
+
+    edges = [
+        {"source": src, "target": tgt, "count": cnt}
+        for (src, tgt), cnt in sorted(edge_counts.items(), key=lambda x: -x[1])
+    ]
+
+    return {"nodes": nodes, "edges": edges}
 
 
 # ---------------------------------------------------------------------------

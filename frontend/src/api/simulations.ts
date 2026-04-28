@@ -67,6 +67,29 @@ export async function getSimulationDecisions(
   return resp.data as DecisionsResponse;
 }
 
+export interface DecisionGraphNode {
+  action_type: string;
+  count: number;
+  top_card_name: string | null;
+  top_3_cards: { name: string; count: number; pct: number }[];
+}
+
+export interface DecisionGraphEdge {
+  source: string;
+  target: string;
+  count: number;
+}
+
+export interface DecisionGraphResponse {
+  nodes: DecisionGraphNode[];
+  edges: DecisionGraphEdge[];
+}
+
+export async function getDecisionGraph(id: string): Promise<DecisionGraphResponse> {
+  const resp = await api.get(`/api/simulations/${id}/decision-graph`);
+  return resp.data as DecisionGraphResponse;
+}
+
 export async function cancelSimulation(id: string): Promise<{ cancelled: boolean; id: string }> {
   const resp = await api.post(`/api/simulations/${id}/cancel`);
   return resp.data;

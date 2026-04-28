@@ -1543,55 +1543,131 @@ def _poison_chain(state, action):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Category 9: Copy-attack stubs
+# Category 9: Copy-attack handlers
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _night_joker(state, action):
-    """sv09-098 N's Zoroark ex atk0 — Night Joker (STUB — 0 damage).
+# Card IDs for copy-attack handlers — excluded from copy candidates to prevent chains.
+_COPY_ATTACK_KEYS = {"sv09-098:0", "sv10-087:0"}
 
-    # TODO(copy-attack): Implement recursive effect resolution.
-    # N's Zoroark ex: player chooses one of their benched N's Pokémon's
-    # attacks and uses it as this attack. Requires:
-    # - CHOOSE_OPTION action to select which bench Pokémon's attack to copy
-    # - Recursive call to resolve_attack with the copied attack's effect
-    # - Cycle detection (prevent infinite copy chains)
-    # - Energy cost is paid by Zoroark, not the copied Pokémon
-    # Must be implemented before Phase 5 (AI Player).
+
+async def _night_joker(state, action):
+    """sv09-098 N's Zoroark ex atk0 — Night Joker.
+
+    Choose one of your benched N's Pokémon and use one of its attacks.
+    Energy cost is paid by N's Zoroark ex. Depth limit: 1 (no chain copying).
     """
-    logger.warning(
-        "Night Joker (N's Zoroark ex) is not yet implemented — dealing 0 damage. "
-        "See TODO(copy-attack) in attacks.py."
-    )
+    from app.cards import registry as card_registry
+    from app.engine.effects.registry import EffectRegistry
+
+    player = state.get_player(action.player_id)
+
+    # Find bench N's Pokémon candidates with at least one non-copy attack.
+    best_poke = None
+    best_atk_idx = 0
+    best_damage = -1
+
+    for poke in player.bench:
+        if not poke.card_name.startswith("N's"):
+            continue
+        cdef = card_registry.get(poke.card_def_id)
+        if not cdef:
+            continue
+        for atk_idx, atk in enumerate(cdef.attacks):
+            key = f"{cdef.tcgdex_id}:{atk_idx}"
+            if key in _COPY_ATTACK_KEYS:
+                continue
+            dmg = parse_damage(atk.damage)
+            if dmg > best_damage:
+                best_damage = dmg
+                best_poke = poke
+                best_atk_idx = atk_idx
+
+    if best_poke is None:
+        state.emit_event(
+            "copy_attack_no_target",
+            card="N's Zoroark ex",
+            attack="Night Joker",
+            reason="No benched N's Pokémon with a valid attack",
+        )
+        return
+
+    best_cdef = card_registry.get(best_poke.card_def_id)
+    atk_name = best_cdef.attacks[best_atk_idx].name if best_cdef else "unknown"
     state.emit_event(
-        "effect_stubbed",
+        "copy_attack",
         card="N's Zoroark ex",
         attack="Night Joker",
-        reason="copy-attack not yet implemented",
+        source_card=best_poke.card_name,
+        copied_attack=atk_name,
+    )
+    await EffectRegistry.instance().resolve_attack(
+        best_poke.card_def_id, best_atk_idx, state, action
     )
 
 
-def _gemstone_mimicry(state, action):
-    """sv10-087 TR Mimikyu atk0 — Gemstone Mimicry (STUB — 0 damage).
+async def _gemstone_mimicry(state, action):
+    """sv10-087 TR Mimikyu atk0 — Gemstone Mimicry.
 
-    # TODO(copy-attack): Implement recursive effect resolution.
-    # TR Mimikyu: choose 1 of your opponent's Active Tera Pokémon's attacks
-    # and use it as this attack. Requires:
-    # - CHOOSE_OPTION to select the attack to copy from the Tera Pokémon
-    # - Recursive call to resolve_attack with the copied attack's effect
-    # - Cycle detection (prevent infinite copy chains)
-    # - Energy cost is paid by Mimikyu, not the original Pokémon
-    # Must be implemented before Phase 5 (AI Player).
+    Choose 1 of your opponent's Active Tera Pokémon's attacks and use it.
+    If the opponent's Active is not Tera, deal 0 damage instead.
+    Depth limit: 1 (no chain copying).
     """
-    logger.warning(
-        "Gemstone Mimicry (TR Mimikyu) is not yet implemented — dealing 0 damage. "
-        "See TODO(copy-attack) in attacks.py."
-    )
+    from app.cards import registry as card_registry
+    from app.engine.effects.registry import EffectRegistry
+
+    opp = state.get_opponent(action.player_id)
+    if opp.active is None:
+        state.emit_event(
+            "copy_attack_no_target",
+            card="TR Mimikyu",
+            attack="Gemstone Mimicry",
+            reason="Opponent has no Active Pokémon",
+        )
+        return
+
+    opp_cdef = card_registry.get(opp.active.card_def_id)
+    if opp_cdef is None or not opp_cdef.is_tera:
+        state.emit_event(
+            "copy_attack_no_target",
+            card="TR Mimikyu",
+            attack="Gemstone Mimicry",
+            reason=f"Opponent's Active ({opp.active.card_name}) is not a Tera Pokémon",
+        )
+        return
+
+    # Pick the highest-damage non-copy attack from the Tera Pokémon.
+    best_atk_idx = None
+    best_damage = -1
+    for atk_idx, atk in enumerate(opp_cdef.attacks):
+        key = f"{opp_cdef.tcgdex_id}:{atk_idx}"
+        if key in _COPY_ATTACK_KEYS:
+            continue
+        dmg = parse_damage(atk.damage)
+        if dmg > best_damage:
+            best_damage = dmg
+            best_atk_idx = atk_idx
+
+    if best_atk_idx is None:
+        state.emit_event(
+            "copy_attack_no_target",
+            card="TR Mimikyu",
+            attack="Gemstone Mimicry",
+            reason=f"{opp.active.card_name} has no copyable attacks",
+        )
+        return
+
+    atk_name = opp_cdef.attacks[best_atk_idx].name
     state.emit_event(
-        "effect_stubbed",
+        "copy_attack",
         card="TR Mimikyu",
         attack="Gemstone Mimicry",
-        reason="copy-attack not yet implemented",
+        source_card=opp.active.card_name,
+        copied_attack=atk_name,
     )
+    await EffectRegistry.instance().resolve_attack(
+        opp.active.card_def_id, best_atk_idx, state, action
+    )
+
 
 
 # ──────────────────────────────────────────────────────────────────────────────

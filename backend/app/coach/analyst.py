@@ -195,19 +195,34 @@ class CoachAnalyst:
         return []
 
     async def _call_ollama(self, prompt: str) -> str:
+        """Call Ollama /api/chat with up to 3 connection retries (exponential backoff)."""
+        import asyncio as _asyncio
+
         payload = {
             "model": self._model,
             "messages": [{"role": "user", "content": prompt}],
             "stream": False,
             "options": {"temperature": 0.3, "num_predict": -1},
         }
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            resp = await client.post(
-                f"{settings.OLLAMA_BASE_URL}/api/chat",
-                json=payload,
-            )
-            resp.raise_for_status()
-            return resp.json().get("message", {}).get("content", "")
+        _CONNECT_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout)
+        for attempt in range(3):
+            try:
+                async with httpx.AsyncClient(timeout=180.0) as client:
+                    resp = await client.post(
+                        f"{settings.OLLAMA_BASE_URL}/api/chat",
+                        json=payload,
+                    )
+                    resp.raise_for_status()
+                    return resp.json().get("message", {}).get("content", "")
+            except _CONNECT_ERRORS as exc:
+                if attempt == 2:
+                    raise
+                wait = 2 ** attempt
+                logger.warning(
+                    "Coach Ollama connection error (attempt %d/3): %s — retrying in %ds",
+                    attempt + 1, exc, wait,
+                )
+                await _asyncio.sleep(wait)
 
     def _parse_response(self, raw: str) -> dict | None:
         """Parse Gemma 4 response: strip markdown fences, then JSON parse.

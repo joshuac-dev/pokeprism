@@ -972,3 +972,156 @@ class TestGetSimulationPrizeRace:
         assert "turn" in data["average"][0]
         assert "p1_avg" in data["average"][0]
         assert "p2_avg" in data["average"][0]
+
+
+# ---------------------------------------------------------------------------
+# GET /api/simulations/ (paginated list)
+# ---------------------------------------------------------------------------
+
+class TestListSimulations:
+    """Tests for GET /api/simulations/ with server-side pagination/filtering."""
+
+    def _make_list_session(self, sims, total, opponents=None):
+        """Build a mock DB session for list_simulations."""
+        call_n = {"n": 0}
+
+        def _make(value=None, rows=None):
+            m = MagicMock()
+            m.scalar.return_value = value
+            m.scalars.return_value.all.return_value = rows or []
+            return m
+
+        async def _exec(*a, **kw):
+            call_n["n"] += 1
+            n = call_n["n"]
+            if n == 1:
+                return _make(value=total)      # COUNT query
+            elif n == 2:
+                return _make(rows=sims)        # SELECT sims
+            else:
+                return _make(rows=opponents or [])  # opponents join
+
+        session = AsyncMock()
+        session.execute = AsyncMock(side_effect=_exec)
+        return session
+
+    def _make_sim(self, sim_id=None, status="complete", game_mode="hh",
+                  deck_mode="none", user_deck_name="Test Deck",
+                  final_win_rate=60, starred=False):
+        import uuid as _uuid
+        m = MagicMock()
+        m.id = sim_id or _uuid.uuid4()
+        m.status = status
+        m.game_mode = game_mode
+        m.deck_mode = deck_mode
+        m.num_rounds = 3
+        m.rounds_completed = 3
+        m.total_matches = 30
+        m.final_win_rate = final_win_rate
+        m.user_deck_name = user_deck_name
+        m.starred = starred
+        m.created_at = None
+        return m
+
+    def test_returns_paginated_envelope(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim = self._make_sim()
+        session = self._make_list_session([sim], total=1)
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get("/api/simulations/")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "items" in data
+        assert "total" in data
+        assert "page" in data
+        assert "per_page" in data
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+
+    def test_item_includes_opponents_field(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim = self._make_sim()
+        session = self._make_list_session([sim], total=1)
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get("/api/simulations/")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert "opponents" in resp.json()["items"][0]
+
+    def test_win_rate_returned_as_fraction(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim = self._make_sim(final_win_rate=65)
+        session = self._make_list_session([sim], total=1)
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get("/api/simulations/")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.json()["items"][0]["final_win_rate"] == pytest.approx(0.65)
+
+    def test_empty_results_returns_zero_total(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        session = self._make_list_session([], total=0)
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get("/api/simulations/")
+        app.fastapi_app.dependency_overrides.clear()
+
+        data = resp.json()
+        assert data["total"] == 0
+        assert data["items"] == []
+
+    def test_per_page_capped_at_100(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        session = self._make_list_session([], total=0)
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get("/api/simulations/?per_page=9999")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        assert resp.json()["per_page"] == 25  # capped to default

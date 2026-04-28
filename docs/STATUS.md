@@ -4,10 +4,22 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-Phase 12 — Card Pool Expansion — **Complete.**
-Next: Phase 13 — (see PROJECT.md)
+Phase 13 — Polish, Hardening & Scheduling — **Complete.**
+All phases complete. PokéPrism is production-ready.
 
 ## Last Session
+- **Date:** 2026-05-03
+- Phase 13 (Polish, Hardening & Scheduling) fully implemented:
+  1. **Group A — Backend Hardening**: DB pool `pool_pre_ping=True, pool_recycle=3600`; Ollama connection retry (3× exponential backoff) in `ai_player`, `analyst`, `embeddings`; full `/health` endpoint (7 checks: postgres, neo4j, redis, ollama, models, celery, match counts); WebSocket auto-reconnect (`reconnectionAttempts: 10`); Celery Beat schedule confirmed (nightly 2AM UTC).
+  2. **Group B — Copy-Attack Engine**: `_night_joker` (N's Zoroark ex) and `_gemstone_mimicry` (TR Mimikyu) fully implemented as async handlers with depth-limit-1 cycle guard (`_COPY_ATTACK_KEYS`). Both pick highest-damage non-copy attack from target Pokémon. Gemstone Mimicry no-ops gracefully when opponent is not Tera (no Tera cards in current pool). 5 new tests, all pass.
+  3. **Group C — Decision Map Labels**: New `/api/simulations/{id}/decision-graph` endpoint aggregates decisions server-side by action_type, JOINs `cards` table for card names, returns `{nodes, edges}`. `DecisionMap.tsx` rewritten: two-line SVG labels (`ACTION_TYPE\n(card name)`), action-type-specific node colors, tooltip with top-3 cards + counts + percentages.
+  4. **Group D — Docker Compose**: `pgvector>=0.3` added to `pyproject.toml` (was missing — caused `ModuleNotFoundError` in container). Backend Dockerfile CMD removes `--reload` (production-safe). nginx.conf updated with `resolver 127.0.0.11` + `set $backend_url` for lazy upstream resolution (prevents startup failure when backend starts after nginx). Both `backend` and `frontend` Docker images build and start successfully; backend health check returns `"status": "ok"` with all services connected.
+  5. **Group E — Light Mode Polish**: All pages and components updated with `dark:` prefix on Tailwind classes. Covers: `CardProfile.tsx`, `MindMapGraph.tsx` (D3 node text color `#475569`), `Memory.tsx` search bar + synergies panel, `History.tsx` table + pagination + delete modal, `CompareModal.tsx`, `FilterBar.tsx`, `Dashboard.tsx` tile wrapper, `SummaryCards.tsx`, `MatchupMatrix.tsx`, `CardSwapHeatMap.tsx`, `MutationDiffLog.tsx`, `WinRateDonut.tsx`, `PrizeRaceGraph.tsx`, `WinRateProgress.tsx`, `WinRateDistribution.tsx`, `OpponentWinRateBar.tsx`. xterm console stays dark (intentional).
+  6. **Group F — Infra & Docs**: Makefile expanded with `dev`, `logs-all`, `restart`, `shell-backend`, `seed` targets; `.dockerignore` files added for backend and frontend.
+- **Tests**: 172 pass (5 new copy-attack tests vs 167 entering Phase 13).
+- **Build**: 0 TypeScript errors. Frontend bundle: 1,214 KB / 352 KB gzip.
+
+## Previous Session (2026-05-02)
 - **Date:** 2026-05-02
 - Phase 12 (Card Pool Expansion) fully implemented:
   1. **Card DB expanded**: 55 → 160 cards. `scripts/seed_cards.py` bulk-loads all fixture JSONs via `CardListLoader._transform()` + `MatchMemoryWriter.ensure_cards()`. Run: `cd backend && python3 -m scripts.seed_cards` (or `make seed-cards` in Docker).
@@ -55,7 +67,7 @@ Next: Phase 13 — (see PROJECT.md)
 - [x] Phase 10: History & Analytics Dashboard — **complete & owner-verified (2026-04-28)**
 - [x] Phase 11: History Page & Memory Explorer — **complete (2026-05-02)**
 - [x] Phase 12: Card Pool Expansion — **complete (2026-05-02)**
-- [ ] Phase 13: (see PROJECT.md) — **next**
+- [x] Phase 13: Polish, Hardening & Scheduling — **complete (2026-05-03)**
 
 ## Phase 7 Exit Criteria — Verified (2026-04-28)
 

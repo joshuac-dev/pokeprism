@@ -93,11 +93,11 @@ export default function MutationDiffLog({ mutations }: Props) {
             <>
               <tr
                 key={row.id}
-                className="border-b border-slate-800 hover:bg-slate-800/50 cursor-pointer transition-colors"
+                className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
                 onClick={() => setExpandedId(expandedId === row.original.id ? null : row.original.id)}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-3 py-2 text-white">
+                  <td key={cell.id} className="px-3 py-2 text-slate-900 dark:text-white">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
@@ -105,7 +105,7 @@ export default function MutationDiffLog({ mutations }: Props) {
               {expandedId === row.original.id && (
                 <tr key={`${row.id}-expanded`}>
                   <td colSpan={columns.length} className="px-3 pb-3">
-                    <div className="bg-slate-900 rounded p-3 text-slate-300 text-sm italic">
+                    <div className="bg-slate-50 dark:bg-slate-900 rounded p-3 text-slate-600 dark:text-slate-300 text-sm italic">
                       {row.original.reasoning ?? 'No reasoning provided.'}
                     </div>
                   </td>

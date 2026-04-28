@@ -199,7 +199,7 @@ export default function LiveConsole({ events, totalEvents, hasMore, onLoadEarlie
   const hidden  = Math.max(0, totalEvents - showing);
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 rounded-lg border border-slate-800 overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-950 rounded-lg border border-slate-700 dark:border-slate-800 overflow-hidden">
       {/* Load-earlier bar */}
       {hasMore && (
         <button

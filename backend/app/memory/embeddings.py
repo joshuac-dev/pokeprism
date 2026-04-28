@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 
 import httpx
@@ -13,6 +14,7 @@ from app.config import settings
 from app.db.models import Embedding
 from app.db.session import AsyncSessionLocal
 
+logger = logging.getLogger(__name__)
 
 class EmbeddingService:
     """Generate text embeddings via Ollama and persist to pgvector.
@@ -24,14 +26,31 @@ class EmbeddingService:
         self._model = model or settings.OLLAMA_EMBED_MODEL
 
     async def embed(self, text: str) -> list[float]:
-        """Return a 768-dimensional embedding vector for *text*."""
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{settings.OLLAMA_BASE_URL}/api/embeddings",
-                json={"model": self._model, "prompt": text},
-            )
-            response.raise_for_status()
-            return response.json()["embedding"]
+        """Return a 768-dimensional embedding vector for *text*.
+
+        Retries up to 3 times on connection errors (exponential backoff).
+        """
+        import asyncio as _asyncio
+
+        _CONNECT_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout)
+        for attempt in range(3):
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.post(
+                        f"{settings.OLLAMA_BASE_URL}/api/embeddings",
+                        json={"model": self._model, "prompt": text},
+                    )
+                    response.raise_for_status()
+                    return response.json()["embedding"]
+            except _CONNECT_ERRORS as exc:
+                if attempt == 2:
+                    raise
+                wait = 2 ** attempt
+                logger.warning(
+                    "Embedding connection error (attempt %d/3): %s — retrying in %ds",
+                    attempt + 1, exc, wait,
+                )
+                await _asyncio.sleep(wait)
 
     async def embed_and_store(
         self,

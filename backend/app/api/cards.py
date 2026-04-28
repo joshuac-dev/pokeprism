@@ -12,6 +12,20 @@ from app.db.session import AsyncSessionLocal
 router = APIRouter()
 
 
+def card_image_url(raw: str | None) -> str | None:
+    """Return a browser-renderable image URL.
+
+    The DB stores bare TCGDex asset paths (e.g. ``.../sv06/130``) which
+    serve ``text/html`` without a format suffix.  Appending ``/high.webp``
+    returns ``image/webp`` and renders correctly in browsers.
+    """
+    if not raw:
+        return None
+    if raw.endswith(".webp") or raw.endswith(".png") or raw.endswith(".jpg"):
+        return raw
+    return raw + "/high.webp"
+
+
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         yield session
@@ -25,7 +39,7 @@ async def search_cards(
 ) -> list[dict]:
     """Search cards by name using pg_trgm fuzzy matching."""
     stmt = (
-        select(Card.tcgdex_id, Card.name, Card.set_abbrev, Card.set_number, Card.category)
+        select(Card.tcgdex_id, Card.name, Card.set_abbrev, Card.set_number, Card.category, Card.image_url)
         .where(Card.name.ilike(f"%{q}%"))
         .order_by(func.similarity(Card.name, q).desc())
         .limit(limit)
@@ -38,6 +52,7 @@ async def search_cards(
             "set_abbrev": r.set_abbrev,
             "set_number": r.set_number,
             "category": r.category,
+            "image_url": card_image_url(r.image_url),
         }
         for r in rows
     ]
@@ -91,7 +106,7 @@ def _card_summary(card: Card) -> dict:
         "subcategory": card.subcategory,
         "hp": card.hp,
         "types": card.types,
-        "image_url": card.image_url,
+        "image_url": card_image_url(card.image_url),
     }
 
 

@@ -10,6 +10,10 @@ export function useSocket(simulationId: string | null, onEvent: (event: unknown)
     const socket = io(window.location.origin, {
       path: '/socket.io',
       transports: ['polling', 'websocket'],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     });
     socketRef.current = socket;
 

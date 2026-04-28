@@ -154,20 +154,39 @@ class AIPlayer(BasePlayer):
     # ── Ollama HTTP call ───────────────────────────────────────────────────────
 
     async def _call_ollama(self, prompt: str, attempt: int) -> str:
-        response = await self.client.post(
-            f"{self.ollama_url}/api/generate",
-            json={
-                "model": self.model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": self.temperature + (attempt * 0.1),
-                    "num_predict": 200,
-                },
-            },
-        )
-        response.raise_for_status()
-        return response.json()["response"]
+        """Call Ollama with up to 3 connection retries (exponential backoff).
+
+        Connection retries are separate from parse-failure retries in choose_action.
+        A ConnectError or timeout triggers a retry; parse failures do not.
+        """
+        import asyncio as _asyncio
+
+        _CONNECT_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout)
+        for conn_attempt in range(3):
+            try:
+                response = await self.client.post(
+                    f"{self.ollama_url}/api/generate",
+                    json={
+                        "model": self.model,
+                        "prompt": prompt,
+                        "stream": False,
+                        "options": {
+                            "temperature": self.temperature + (attempt * 0.1),
+                            "num_predict": 200,
+                        },
+                    },
+                )
+                response.raise_for_status()
+                return response.json()["response"]
+            except _CONNECT_ERRORS as exc:
+                if conn_attempt == 2:
+                    raise
+                wait = 2 ** conn_attempt
+                logger.warning(
+                    "Ollama connection error (attempt %d/3): %s — retrying in %ds",
+                    conn_attempt + 1, exc, wait,
+                )
+                await _asyncio.sleep(wait)
 
     # ── Response parsing ───────────────────────────────────────────────────────
 
@@ -216,6 +235,7 @@ class AIPlayer(BasePlayer):
             "player_id": player_id,
             "action_type": action.action_type.name,
             "card_played": action.card_instance_id,
+            "card_def_id": self._find_card_def_id(state, action.card_instance_id),
             "target": action.target_instance_id,
             "reasoning": getattr(action, "reasoning", None),
             "legal_action_count": legal_count,
@@ -279,6 +299,21 @@ class AIPlayer(BasePlayer):
                 if c.instance_id == instance_id:
                     return c.card_name
         return instance_id[:8]
+
+    def _find_card_def_id(self, state, instance_id: Optional[str]) -> Optional[str]:
+        """Look up the tcgdex card_def_id for a given card instance UUID."""
+        if not instance_id:
+            return None
+        for player in (state.p1, state.p2):
+            for c in (
+                ([player.active] if player.active else [])
+                + player.bench
+                + player.hand
+                + player.discard
+            ):
+                if c.instance_id == instance_id:
+                    return c.card_def_id or None
+        return None
 
     def _card_name_from_action(self, state, action: Action) -> str:
         if action.card_instance_id:

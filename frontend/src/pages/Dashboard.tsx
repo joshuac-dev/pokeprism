@@ -31,7 +31,7 @@ function DashboardTile({
   className?: string;
 }) {
   return (
-    <div className={`bg-slate-800 rounded-xl border border-slate-700 p-5 ${className}`}>
+    <div className={`bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 ${className}`}>
       <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-4">{title}</h2>
       {children}
     </div>
@@ -117,7 +117,7 @@ export default function Dashboard() {
 
       {error && (
         <div className="flex items-center justify-center h-64">
-          <div className="bg-slate-800 border border-red-800 rounded-xl p-8 text-center">
+          <div className="bg-slate-100 dark:bg-slate-800 border border-red-200 dark:border-red-800 rounded-xl p-8 text-center">
             <p className="text-red-400 font-medium mb-1">{error}</p>
             <p className="text-slate-400 text-sm">Check the simulation ID and try again.</p>
           </div>

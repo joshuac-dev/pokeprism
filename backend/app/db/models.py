@@ -226,7 +226,8 @@ class Decision(Base):
     turn_number        = Column(Integer, nullable=False)
     player_id          = Column(Text, nullable=False)
     action_type        = Column(Text, nullable=False)
-    card_played        = Column(Text)
+    card_played        = Column(Text)   # game-instance UUID
+    card_def_id        = Column(Text)   # tcgdex_id (e.g. "sv06-130"); populated for all new AI decisions
     target             = Column(Text)
     reasoning          = Column(Text)
     legal_action_count = Column(Integer)

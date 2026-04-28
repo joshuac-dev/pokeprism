@@ -25,7 +25,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
   const p1 = payload.find((p) => p.name.startsWith('P1'));
   const p2 = payload.find((p) => p.name.startsWith('P2'));
   return (
-    <div className="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-xs text-white">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-3 py-2 text-xs text-slate-900 dark:text-white">
       <p className="font-medium mb-1">Turn {label}</p>
       {p1 && <p>P1: {p1.value} prizes</p>}
       {p2 && <p>P2: {p2.value} prizes</p>}
@@ -36,10 +36,10 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
 export default function PrizeRaceGraph({ prizeRace }: Props) {
   const [selectedMatch, setSelectedMatch] = useState<string>('__avg__');
 
-  if (!prizeRace.matches.length && !prizeRace.average.length) {
+  if (!prizeRace.average.length) {
     return (
       <div className="flex items-center justify-center h-48 text-slate-400 text-sm text-center px-4">
-        No prize race data — run a simulation to see progression.
+        No prize race data — all games ended by deck-out with no KOs.
       </div>
     );
   }
@@ -68,7 +68,7 @@ export default function PrizeRaceGraph({ prizeRace }: Props) {
         <select
           value={selectedMatch}
           onChange={(e) => setSelectedMatch(e.target.value)}
-          className="text-xs bg-slate-900 border border-slate-700 text-slate-300 rounded px-2 py-1"
+          className="text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded px-2 py-1"
         >
           <option value="__avg__">Average (all matches)</option>
           {prizeRace.matches.map((m) => (
