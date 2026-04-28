@@ -192,8 +192,9 @@ class MatchRunner:
 
             for pid in mulligans_needed:
                 action = Action(ActionType.MULLIGAN_REDRAW, pid)
+                prev_len = len(state.events)
                 await StateTransition.apply(state, action, self._get_player)
-                self._emit(state.events[-1])
+                self._emit_since(state, prev_len)
 
         # Both players choose their active and bench
         for pid in ("p1", "p2"):
@@ -202,13 +203,15 @@ class MatchRunner:
             active_id, bench_ids = await cur_player.choose_setup(state, player.hand)
 
             action = Action(ActionType.PLACE_ACTIVE, pid, card_instance_id=active_id)
+            prev_len = len(state.events)
             await StateTransition.apply(state, action, self._get_player)
-            self._emit(state.events[-1])
+            self._emit_since(state, prev_len)
 
             for bid in bench_ids[:MAX_BENCH_SIZE - 1]:
                 action = Action(ActionType.PLACE_BENCH, pid, card_instance_id=bid)
+                prev_len = len(state.events)
                 await StateTransition.apply(state, action, self._get_player)
-                self._emit(state.events[-1])
+                self._emit_since(state, prev_len)
 
         # Set 6 prize cards for each player
         for pid in ("p1", "p2"):
@@ -268,9 +271,9 @@ class MatchRunner:
                 actions_taken += 1
                 continue
 
+            prev_len = len(state.events)
             state = await StateTransition.apply(state, action, self._get_player)
-            if state.events:
-                self._emit(state.events[-1])
+            self._emit_since(state, prev_len)
 
             if action.action_type == ActionType.PASS:
                 break  # Phase was set to ATTACK by the _pass handler
@@ -292,9 +295,9 @@ class MatchRunner:
                 if not is_valid:
                     state.emit_event("invalid_action_attack", player=pid, error=error)
                 else:
+                    prev_len = len(state.events)
                     state = await StateTransition.apply(state, action, self._get_player)
-                    if state.events:
-                        self._emit(state.events[-1])
+                    self._emit_since(state, prev_len)
 
                     # Handle forced switch if KO occurred
                     state = await self._resolve_ko_aftermath(state)
@@ -323,8 +326,9 @@ class MatchRunner:
                     for b in player.bench
                 ]
                 action = await player_obj.choose_action(state, legal)
+                prev_len = len(state.events)
                 state = await StateTransition.apply(state, action, self._get_player)
-                self._emit(state.events[-1])
+                self._emit_since(state, prev_len)
         return state
 
     def _handle_between_turns(self, state: GameState) -> GameState:
@@ -458,6 +462,11 @@ class MatchRunner:
     def _emit(self, event: dict) -> None:
         if self.event_callback:
             self.event_callback(event)
+
+    def _emit_since(self, state: GameState, prev_len: int) -> None:
+        """Emit all events appended to state.events since prev_len."""
+        for e in state.events[prev_len:]:
+            self._emit(e)
 
     def _build_result(self, state: GameState) -> MatchResult:
         p1_taken = PRIZE_COUNT - state.p1.prizes_remaining
