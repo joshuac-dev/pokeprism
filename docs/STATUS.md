@@ -4,10 +4,9 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-Phase 13 — Polish, Hardening & Scheduling — **IN PROGRESS. NOT ACCEPTED.**
+Phase 13 — Polish, Hardening & Scheduling — **IN PROGRESS. NOT ACCEPTED (pending visual QA).**
 
-**Blocking gate:** Bug 1 (Docker simulation produces 0 matches) is unresolved.
-Bugs 2, 3, and Gate 2 are resolved and verified. Phase 13 will be accepted once Bug 1 is fixed and the user completes visual QA.
+Bug 1 (Docker 0 matches) is **FIXED** this session. All code gates are resolved. Phase 13 acceptance requires user to complete three visual QA checks in the browser.
 
 ## Last Session — 2026-04-28
 
@@ -15,7 +14,7 @@ Bugs 2, 3, and Gate 2 are resolved and verified. Phase 13 will be accepted once 
 
 | Gate | Description | Status |
 |------|-------------|--------|
-| Gate 1 — Docker E2E | Submit sim at :3000, get real match data | ❌ BLOCKING — 0 matches produced |
+| Gate 1 — Docker E2E | Submit sim at :3000, get real match data | ✅ FIXED this session — 2 matches produced, verified |
 | Gate 2 — Decision Map labels | Nodes show "ACTION (Card Name)" format | ✅ Verified via API; awaiting visual QA |
 | Gate 3 — Light mode | All pages/components readable in light mode | ✅ Fixed (7 more components); awaiting visual QA |
 | Gate 4 — Copy-attack | Night Joker + Gemstone Mimicry implemented | ✅ Verified (5 tests) |
@@ -25,33 +24,34 @@ Bugs 2, 3, and Gate 2 are resolved and verified. Phase 13 will be accepted once 
 | Gate 8 — Makefile | `make help` lists all targets | ✅ Implemented |
 
 ### What Was Done This Session
-- **Bug 3 (Decision History — RESOLVED)**: Root cause: `batch.py`/`simulation.py` never drained AI decisions from the per-game path (only worked via `persist=True` path). Fixed: added `decisions_per_game: list[list[dict]]` to `BatchResult`; batch runner always drains players after every game; simulation task calls `write_decisions()` per game with correct `match_id`. Verified: 47 decisions with non-null `card_def_id` now in Docker Postgres after running AI/H sim `1bb92087`. `GET /api/memory/card/mee-007/decisions` → 10 rows; `sv10-174` → 3 rows.
-- **Gate 2 (Decision Map labels — RESOLVED)**: `decision-graph` endpoint verified returning `top_card_name` per node (`ATTACH_ENERGY → Team Rocket's Energy`, `PLAY_SUPPORTER → Team Rocket's Giovanni`). Frontend `nodeLabel()` builds two-line SVG text. Awaiting visual QA in browser at `/dashboard/1bb92087-ca79-48d3-b353-ca8e2f271521`.
-- **Bug 2 (Light mode — PARTIALLY RESOLVED)**: 7 additional components updated with `dark:` Tailwind prefixes: `DeckUploader.tsx`, `SimulationStatus.tsx`, `DecisionDetail.tsx`, `DeckChangesTile.tsx`, `ParamForm.tsx`, `OpponentDeckList.tsx`, `DecisionHistory.tsx`. Awaiting user visual verification.
-- **Docker celery-worker volume mount**: Added `volumes: - ./backend:/app` to `celery-worker` in `docker-compose.override.yml`. Worker now uses live source code. Must `docker compose up -d --force-recreate celery-worker` to apply.
-- **Bug 1 (Docker 0 matches — UNRESOLVED)**: Simulations submitted through port 3000 complete with status "complete" but 0 matches in DB. The `write_decisions` fix and volume mount are in place, but the root cause of 0 matches has not been confirmed. Likely the celery-worker container can't parse the deck or access card data — check container logs.
-- **172 backend tests pass. 0 TypeScript errors.**
+- **Bug 1 (Docker 0 matches — FIXED)**: Root cause confirmed: `_parse_deck_text()` only handled TCGdex ID format (e.g. `sv06-130`), silently skipping all PTCGL export lines (`4 Dreepy PRE 71`) → empty deck → 0 matches. Fix: added `_parse_ptcgl_deck_text()` with `_PTCGL_LINE_RE` regex; extended `_deck_text_to_card_defs()` with a PTCGL path that (1) batch-looks up cards by `(set_abbrev, set_number)` in DB, (2) fetches any DB misses on-demand from TCGDex using `SET_CODE_MAP`, (3) upserts fetched cards via `MatchMemoryWriter.ensure_cards()`. Verified: 13 cards fetched live from TCGDex (Dreepy PRE 71, Drakloak ASC 159, SVE energies, etc.), simulation completed with 2 matches, no errors. Celery worker restarted to pick up changes.
+- **182 backend tests pass. 0 TypeScript errors.**
 
 ### Active Files Changed This Session
 
 #### Modified
-- `backend/app/engine/batch.py` — added `decisions_per_game: list[list[dict]]` to `BatchResult`; drain decisions from both players after every game (always, not gated on `persist`); pass `decisions_per_game` in final return
-- `backend/app/tasks/simulation.py` — enumerate loop over `batch.results`; capture `match_id` from `write_match`; call `writer.write_decisions(game_decisions, match_id=match_id, ...)` per game when decisions exist
-- `docker-compose.override.yml` — added `volumes: - ./backend:/app` to `celery-worker` service
-- `frontend/src/components/simulation/DeckUploader.tsx` — full light mode treatment
-- `frontend/src/components/simulation/SimulationStatus.tsx` — full light mode treatment (outer container, progress tracks, stats tiles, value text)
-- `frontend/src/components/simulation/DecisionDetail.tsx` — full light mode treatment (slide-out panel, header, close button, badges, card text, load-more)
-- `frontend/src/components/simulation/DeckChangesTile.tsx` — full light mode treatment (outer container, header, dividers, round badge)
-- `frontend/src/components/simulation/ParamForm.tsx` — `inputClass` constant updated (fixes all inputs/selects); outer container, dropdown list, chip tags
-- `frontend/src/components/simulation/OpponentDeckList.tsx` — full light mode treatment (outer container, card borders, row headers, expanded textarea)
-- `frontend/src/components/memory/DecisionHistory.tsx` — full light mode treatment (outer container, dividers, row hover, action badge, load-more)
+- `backend/app/tasks/simulation.py` — added `import re`; added `_PTCGL_SECTION_RE`, `_PTCGL_LINE_RE` regex constants; added `_parse_ptcgl_deck_text()` function; rewrote `_deck_text_to_card_defs()` to handle both TCGdex and PTCGL formats with on-demand TCGDex fetch for DB misses; updated "could not be parsed" error message
+- `backend/tests/test_tasks/test_simulation_task.py` — added `_parse_ptcgl_deck_text` to imports; added `TestParsePtcglDeckText` (7 tests) and `TestDeckTextToCardDefsPtcgl` (3 tests)
 - `docs/STATUS.md` — this update
 
+### Known Issues / Gaps
+- **Visual QA pending**: Three items still need user browser verification before Phase 13 is accepted (see Notes for Next Session).
+- **Seeded "Dragapult" deck has 61 cards**: The seeded deck in the `decks` table has 61 cards, causing the API to reject it as an opponent. Not blocking — working simulations use the 60-card working deck from sim `1bb92087`. Pre-existing issue; not introduced this session.
+- **PTCGL on-demand fetch is per-simulation, not pre-seeded**: Cards fetched on first submission are persisted to DB, so subsequent sims using the same cards are instant. But the first run of any card not in the 160-card seed pool incurs a TCGDex API call.
+
 ### Key Decisions Made This Session
-- **Decision drain always, not gated on `persist`**: The simulation task path (`persist=False`) must always drain player decisions after each game so they can be written via `write_decisions()`. The `persist=True` path (used in direct batch runs) also uses the drained decisions, so no duplication.
-- **`match_id` captured from `write_match` return**: `write_match()` already returned `uuid.UUID` — simulation task just needed to use the return value instead of ignoring it.
-- **volume mount over image rebuild for dev**: Using `./backend:/app` volume mount on celery-worker (via override) is the correct dev workflow. Production should rebuild the image; dev uses the mount.
-- **Decision History shows empty for pre-loaded card**: The top card (`me02.5-039`, Team Rocket's Mewtwo ex) didn't get played from hand in the test sim, so it has 0 decisions. This is correct behavior — search `mee-007` (Darkness Energy) or `sv10-174` (Giovanni) to see populated decision history.
+- **No stubs for unknown cards — live fetch only**: PROJECT.md live-data-first principle prohibits stub/placeholder cards. Any PTCGL card not in the local DB is fetched on-demand from TCGDex. If TCGDex returns 404, the simulation fails with a clear error message rather than silently producing broken results.
+- **PTCGL format is the spec**: PTCGL export format (`4 Dreepy PRE 71`) was always the intended input per PROJECT.md Appendix H. The backend parser was the missing piece; the frontend already handled it correctly.
+- **Celery worker requires explicit restart after code changes**: The volume mount (`./backend:/app`) makes new source available inside the container, but Celery fork workers cache loaded modules. Must `docker compose restart celery-worker` after changes to task code.
+
+### Notes for Next Session
+- **Phase 13 is NOT accepted yet.** User still needs to visually verify three items in the browser:
+  1. **Docker E2E sim**: Submit a NEW simulation through Docker stack (port 3000) with PTCGL format decks, confirm it completes with real match data and a populated dashboard.
+  2. **Decision Map labels**: Check `/dashboard/1bb92087-ca79-48d3-b353-ca8e2f271521` — nodes should show "PLAY_SUPPORTER (Iono)" style two-line labels with top-3 hover tooltip.
+  3. **Light mode**: Toggle light mode and check Setup, History, Memory, Dashboard, SimulationLive pages for readability.
+- **Before user begins testing**: Run `docker compose up -d` and confirm all containers are healthy (`docker compose ps`). Celery worker was restarted at end of session and should be ready.
+- **Test/build baseline**: 182 backend tests passing, 0 TypeScript errors.
+- **Once all three visual checks pass**: Phase 13 is accepted, add entry to `docs/CHANGELOG.md`, mark Phase 13 complete in `docs/STATUS.md`.
 
 ## Previous Last Session
 - **Date:** 2026-05-03
