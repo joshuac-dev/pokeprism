@@ -543,6 +543,84 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
 # Private helpers
 # ---------------------------------------------------------------------------
 
+async def ensure_deck_cards_in_db(deck_texts: list[str], db: AsyncSession) -> None:
+    """Fetch any PTCGL-format cards missing from DB and persist them.
+
+    Must be called BEFORE the coverage gate so all deck cards exist in the DB
+    when check_card_coverage runs.  TCGdex-format decks (explicit tcgdex_id
+    tokens) reference already-seeded cards and are skipped.
+
+    Raises ``ValueError`` if a set abbreviation is unknown or TCGDex 404s.
+    """
+    from app.cards.loader import CardListLoader, SET_CODE_MAP
+    from app.cards.tcgdex import TCGDexClient
+    from app.db.models import Card
+    from app.memory.postgres import MatchMemoryWriter
+
+    all_ptcgl_entries: list[dict] = []
+    for text in deck_texts:
+        if not text.strip():
+            continue
+        if not _parse_deck_text(text):
+            all_ptcgl_entries.extend(_parse_ptcgl_deck_text(text))
+
+    if not all_ptcgl_entries:
+        return
+
+    abbrevs = list({e["set_abbrev"] for e in all_ptcgl_entries})
+    result = await db.execute(select(Card).where(Card.set_abbrev.in_(abbrevs)))
+    db_keys: set[tuple[str, str]] = set()
+    for row in result.scalars().all():
+        norm = str(int(row.set_number)) if (row.set_number and row.set_number.isdigit()) else (row.set_number or "")
+        db_keys.add((row.set_abbrev, norm))
+
+    misses: list[dict] = []
+    seen_keys: set[tuple[str, str]] = set()
+    for entry in all_ptcgl_entries:
+        abbrev = entry["set_abbrev"]
+        number = entry["set_number"]
+        norm = str(int(number)) if number.isdigit() else number
+        key = (abbrev, norm)
+        if key not in db_keys and key not in seen_keys:
+            seen_keys.add(key)
+            misses.append(entry)
+
+    if not misses:
+        return
+
+    loader = CardListLoader()
+    writer = MatchMemoryWriter()
+    fresh_defs = {}
+
+    async with TCGDexClient() as tcgdex:
+        for entry in misses:
+            abbrev = entry["set_abbrev"]
+            number = entry["set_number"]
+            set_id = SET_CODE_MAP.get(abbrev)
+            if set_id is None:
+                raise ValueError(
+                    f"Unknown set abbreviation '{abbrev}' for card "
+                    f"'{entry['name']} {abbrev} {number}'. "
+                    f"Add it to SET_CODE_MAP in loader.py."
+                )
+            try:
+                raw = await tcgdex.get_card(set_id, number)
+            except Exception as exc:
+                raise ValueError(
+                    f"Card not found in TCGDex: {entry['name']} {abbrev} {number}. "
+                    f"Error: {exc}"
+                ) from exc
+            norm = str(int(number)) if number.isdigit() else number
+            card_def = loader._transform(
+                raw, {"name": entry["name"], "set_abbrev": abbrev, "number": number}
+            )
+            fresh_defs[(abbrev, norm)] = card_def
+            logger.info("Pre-fetched card from TCGDex: %s (%s)", card_def.name, card_def.tcgdex_id)
+
+    await writer.ensure_cards(list(fresh_defs.values()), db)
+    await db.commit()
+
+
 async def _deck_text_to_card_defs(
     deck_text: str,
     SessionFactory: async_sessionmaker,
@@ -550,21 +628,16 @@ async def _deck_text_to_card_defs(
     """Convert deck text to ``list[CardDefinition]`` (with duplicates for count).
 
     Accepts both TCGdex format (e.g. ``4 sv06-130``) and PTCGL export format
-    (e.g. ``4 Dreepy PRE 71``).  For PTCGL format, unknown cards are fetched
-    on-demand from TCGDex and persisted to the DB before the simulation runs.
+    (e.g. ``4 Dreepy PRE 71``).  All cards are expected to be in the DB already
+    (fetched via ``ensure_deck_cards_in_db`` at submission time).
 
-    Raises ``ValueError`` if:
-      - A PTCGL card's set abbreviation is not in SET_CODE_MAP
-      - A PTCGL card is not found in TCGDex (404 or network error)
+    Raises ``ValueError`` if a PTCGL card is not found in the DB.
     """
     if not deck_text.strip():
         return []
 
-    from app.cards.loader import CardListLoader, SET_CODE_MAP
     from app.cards.models import CardDefinition
-    from app.cards.tcgdex import TCGDexClient
     from app.db.models import Card
-    from app.memory.postgres import MatchMemoryWriter
 
     # ── 1. Try TCGdex format (existing path: last token contains a hyphen) ───
     tcgdex_entries = _parse_deck_text(deck_text)
@@ -613,6 +686,7 @@ async def _deck_text_to_card_defs(
         return []
 
     # ── 2a. Batch DB lookup by (set_abbrev, normalised set_number) ────────────
+    # Cards must already be in DB (ensure_deck_cards_in_db was called at submission).
     abbrevs = list({e["set_abbrev"] for e in ptcgl_entries})
     async with SessionFactory() as db:
         result = await db.execute(
@@ -623,56 +697,7 @@ async def _deck_text_to_card_defs(
             norm = str(int(row.set_number)) if (row.set_number and row.set_number.isdigit()) else (row.set_number or "")
             db_cards[(row.set_abbrev, norm)] = row
 
-    # ── 2b. On-demand TCGDex fetch for DB misses ──────────────────────────────
-    loader = CardListLoader()
-    writer = MatchMemoryWriter()
-    fresh_defs: dict[tuple[str, str], CardDefinition] = {}
-
-    async with TCGDexClient() as tcgdex:
-        for entry in ptcgl_entries:
-            abbrev = entry["set_abbrev"]
-            number = entry["set_number"]
-            norm = str(int(number)) if number.isdigit() else number
-            key = (abbrev, norm)
-
-            if key in db_cards or key in fresh_defs:
-                continue
-
-            set_id = SET_CODE_MAP.get(abbrev)
-            if set_id is None:
-                raise ValueError(
-                    f"Unknown set abbreviation '{abbrev}' for card "
-                    f"'{entry['name']} {abbrev} {number}'. "
-                    f"Add it to SET_CODE_MAP in loader.py."
-                )
-
-            try:
-                raw = await tcgdex.get_card(set_id, number)
-            except Exception as exc:
-                raise ValueError(
-                    f"Card not found in TCGDex: {entry['name']} {abbrev} {number} "
-                    f"(tried {set_id}-{str(number).zfill(3)}). Error: {exc}"
-                ) from exc
-
-            card_def = loader._transform(
-                raw,
-                {"name": entry["name"], "set_abbrev": abbrev, "number": number},
-            )
-            fresh_defs[key] = card_def
-            logger.info("Fetched new card from TCGDex: %s (%s)", card_def.name, card_def.tcgdex_id)
-
-    # ── 2c. Upsert fresh cards to DB ──────────────────────────────────────────
-    if fresh_defs:
-        async with SessionFactory() as db:
-            await writer.ensure_cards(list(fresh_defs.values()), db)
-            await db.commit()
-            new_ids = [c.tcgdex_id for c in fresh_defs.values()]
-            result = await db.execute(select(Card).where(Card.tcgdex_id.in_(new_ids)))
-            for row in result.scalars().all():
-                norm = str(int(row.set_number)) if (row.set_number and row.set_number.isdigit()) else (row.set_number or "")
-                db_cards[(row.set_abbrev, norm)] = row
-
-    # ── 2d. Build CardDefinition list ─────────────────────────────────────────
+    # ── 2b. Build CardDefinition list ─────────────────────────────────────────
     defs_ptcgl: list[CardDefinition] = []
     for entry in ptcgl_entries:
         abbrev = entry["set_abbrev"]
@@ -682,30 +707,28 @@ async def _deck_text_to_card_defs(
         key = (abbrev, norm)
 
         row = db_cards.get(key)
-        if row is not None:
-            card_def = CardDefinition(
-                tcgdex_id=row.tcgdex_id,
-                name=row.name,
-                set_abbrev=row.set_abbrev,
-                set_number=row.set_number,
-                category=row.category or "",
-                subcategory=row.subcategory or "",
-                hp=row.hp,
-                types=row.types or [],
-                evolve_from=row.evolve_from,
-                stage=row.stage or "",
-                retreat_cost=row.retreat_cost or 0,
-                regulation_mark=row.regulation_mark,
-                rarity=row.rarity,
-                image_url=row.image_url,
+        if row is None:
+            raise ValueError(
+                f"Card not in DB: {entry['name']} {abbrev} {number}. "
+                f"ensure_deck_cards_in_db must be called before queueing this task."
             )
-        else:
-            card_def = fresh_defs.get(key)
-            if card_def is None:
-                raise ValueError(
-                    f"Card not found after fetch: {entry['name']} {abbrev} {number}"
-                )
 
+        card_def = CardDefinition(
+            tcgdex_id=row.tcgdex_id,
+            name=row.name,
+            set_abbrev=row.set_abbrev,
+            set_number=row.set_number,
+            category=row.category or "",
+            subcategory=row.subcategory or "",
+            hp=row.hp,
+            types=row.types or [],
+            evolve_from=row.evolve_from,
+            stage=row.stage or "",
+            retreat_cost=row.retreat_cost or 0,
+            regulation_mark=row.regulation_mark,
+            rarity=row.rarity,
+            image_url=row.image_url,
+        )
         defs_ptcgl.extend([card_def] * count)
 
     return defs_ptcgl

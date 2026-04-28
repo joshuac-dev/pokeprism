@@ -340,54 +340,83 @@ class TestDeckTextToCardDefsPtcgl:
         assert defs[0].name == "Dreepy"
 
     @pytest.mark.asyncio
-    async def test_ptcgl_card_not_in_db_fetches_from_tcgdex(self):
-        """Card missing from DB → fetches from TCGDex, upserts, returns CardDefinition."""
-        from unittest.mock import AsyncMock, MagicMock, patch
+    async def test_ptcgl_card_not_in_db_raises_value_error(self):
+        """Card missing from DB → raises ValueError (fetch must happen before task)."""
+        from unittest.mock import AsyncMock, MagicMock
         from app.tasks.simulation import _deck_text_to_card_defs
 
-        # Call 1: set_abbrev batch lookup → empty
         empty_scalars = MagicMock()
         empty_scalars.all.return_value = []
-        lookup_result = MagicMock()
-        lookup_result.scalars.return_value = empty_scalars
-
-        # Call 2: ensure_cards existing-tcgdex_ids check → empty (result.all() form)
-        existing_result = MagicMock()
-        existing_result.all.return_value = []
-
-        # Call 3: re-fetch after upsert → returns inserted row
-        upserted_row = MagicMock()
-        upserted_row.tcgdex_id = "sv08.5-071"
-        upserted_row.name = "Dreepy"
-        upserted_row.set_abbrev = "PRE"
-        upserted_row.set_number = "71"
-        upserted_row.category = "Pokemon"
-        upserted_row.subcategory = "Basic"
-        upserted_row.hp = 40
-        upserted_row.types = ["Dragon"]
-        upserted_row.evolve_from = None
-        upserted_row.stage = "Basic"
-        upserted_row.retreat_cost = 1
-        upserted_row.regulation_mark = "I"
-        upserted_row.rarity = "Common"
-        upserted_row.image_url = None
-        refetch_scalars = MagicMock()
-        refetch_scalars.all.return_value = [upserted_row]
-        refetch_result = MagicMock()
-        refetch_result.scalars.return_value = refetch_scalars
+        empty_result = MagicMock()
+        empty_result.scalars.return_value = empty_scalars
 
         mock_session = AsyncMock()
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=False)
-        mock_session.execute = AsyncMock(
-            side_effect=[lookup_result, existing_result, refetch_result]
-        )
-        mock_session.flush = AsyncMock()
-        mock_session.add_all = MagicMock()
-        mock_session.commit = AsyncMock()
+        mock_session.execute = AsyncMock(return_value=empty_result)
 
         mock_factory = MagicMock()
         mock_factory.return_value = mock_session
+
+        with pytest.raises(ValueError, match="ensure_deck_cards_in_db"):
+            await _deck_text_to_card_defs("4 Dreepy PRE 71", mock_factory)
+
+    @pytest.mark.asyncio
+    async def test_ptcgl_unknown_set_raises_value_error(self):
+        """Unknown set abbreviation raises ValueError from ensure_deck_cards_in_db."""
+        from unittest.mock import AsyncMock, MagicMock, patch
+        from app.tasks.simulation import ensure_deck_cards_in_db
+
+        empty_scalars = MagicMock()
+        empty_scalars.all.return_value = []
+        empty_result = MagicMock()
+        empty_result.scalars.return_value = empty_scalars
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(return_value=empty_result)
+
+        with pytest.raises(ValueError, match="Unknown set abbreviation 'XYZ'"):
+            await ensure_deck_cards_in_db(["1 SomeCard XYZ 99"], mock_db)
+
+
+class TestEnsureDeckCardsInDb:
+    """Test the ensure_deck_cards_in_db pre-flight fetch."""
+
+    @pytest.mark.asyncio
+    async def test_all_cards_in_db_no_fetch(self):
+        """When all PTCGL cards are in DB, no TCGDex call is made."""
+        from unittest.mock import AsyncMock, MagicMock, patch
+        from app.tasks.simulation import ensure_deck_cards_in_db
+
+        row = MagicMock()
+        row.set_abbrev = "PRE"
+        row.set_number = "71"
+        scalars = MagicMock()
+        scalars.all.return_value = [row]
+        result = MagicMock()
+        result.scalars.return_value = scalars
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(return_value=result)
+
+        with patch("app.cards.tcgdex.TCGDexClient.get_card") as mock_get:
+            await ensure_deck_cards_in_db(["4 Dreepy PRE 71"], mock_db)
+            mock_get.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_missing_card_fetched_and_upserted(self):
+        """Card missing from DB → fetched from TCGDex and upserted, then commit."""
+        from unittest.mock import AsyncMock, MagicMock, patch
+        from app.tasks.simulation import ensure_deck_cards_in_db
+
+        empty_scalars = MagicMock()
+        empty_scalars.all.return_value = []
+        empty_result = MagicMock()
+        empty_result.scalars.return_value = empty_scalars
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(return_value=empty_result)
+        mock_db.commit = AsyncMock()
 
         raw_tcgdex = {
             "id": "sv08.5-071",
@@ -406,31 +435,8 @@ class TestDeckTextToCardDefsPtcgl:
             "image": None,
         }
 
-        with patch("app.cards.tcgdex.TCGDexClient.get_card", new_callable=AsyncMock, return_value=raw_tcgdex):
-            defs = await _deck_text_to_card_defs("4 Dreepy PRE 71", mock_factory)
-
-        assert len(defs) == 4
-        assert defs[0].name == "Dreepy"
-        assert defs[0].tcgdex_id == "sv08.5-071"
-
-    @pytest.mark.asyncio
-    async def test_ptcgl_unknown_set_raises_value_error(self):
-        """Unknown set abbreviation raises ValueError with clear message."""
-        from unittest.mock import AsyncMock, MagicMock
-        from app.tasks.simulation import _deck_text_to_card_defs
-
-        empty_scalars = MagicMock()
-        empty_scalars.all.return_value = []
-        empty_result = MagicMock()
-        empty_result.scalars.return_value = empty_scalars
-
-        mock_session = AsyncMock()
-        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_session.__aexit__ = AsyncMock(return_value=False)
-        mock_session.execute = AsyncMock(return_value=empty_result)
-
-        mock_factory = MagicMock()
-        mock_factory.return_value = mock_session
-
-        with pytest.raises(ValueError, match="Unknown set abbreviation 'XYZ'"):
-            await _deck_text_to_card_defs("1 SomeCard XYZ 99", mock_factory)
+        with patch("app.cards.tcgdex.TCGDexClient.get_card", new_callable=AsyncMock, return_value=raw_tcgdex), \
+             patch("app.memory.postgres.MatchMemoryWriter.ensure_cards", new_callable=AsyncMock) as mock_ensure:
+            await ensure_deck_cards_in_db(["4 Dreepy PRE 71"], mock_db)
+            mock_ensure.assert_called_once()
+            mock_db.commit.assert_called_once()

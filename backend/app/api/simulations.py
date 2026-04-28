@@ -22,7 +22,13 @@ from app.config import settings
 import redis as redis_module
 from app.db.models import Card, Deck, DeckCard, DeckMutation, Decision, Match, MatchEvent, Round, Simulation, SimulationOpponent
 from app.db.session import AsyncSessionLocal
-from app.tasks.simulation import count_deck_cards, run_simulation, _parse_deck_text, _parse_ptcgl_deck_text
+from app.tasks.simulation import (
+    count_deck_cards,
+    ensure_deck_cards_in_db,
+    run_simulation,
+    _parse_deck_text,
+    _parse_ptcgl_deck_text,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +43,9 @@ async def _check_deck_coverage(deck_texts: list[str], db: AsyncSession) -> list[
     """Return a list of cards with missing effect handlers.
 
     Parses each deck text, looks up the cards in DB, and calls
-    ``EffectRegistry.check_card_coverage`` on each.  Cards not found in DB
-    are skipped — they will surface a clear error later in the Celery task.
+    ``EffectRegistry.check_card_coverage`` on each.  All cards are expected
+    to be in the DB already (``ensure_deck_cards_in_db`` was called before
+    this function).
     """
     from app.engine.effects.registry import EffectRegistry
 
@@ -320,8 +327,18 @@ async def create_simulation(
 
     warning: Optional[str] = None
 
-    # ── coverage check — reject if any card lacks required effect handlers ──
+    # ── ensure all deck cards are in DB before coverage gate ────────────────
+    # For PTCGL-format decks, cards unknown to the DB are fetched from TCGDex
+    # here (in the request context) so the coverage gate can check them.
+    # The Celery task will never need to fetch from TCGDex.
     all_deck_texts = [t for t in [body.deck_text] + body.opponent_deck_texts if t.strip()]
+    if all_deck_texts:
+        try:
+            await ensure_deck_cards_in_db(all_deck_texts, db)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+
+    # ── coverage check — reject if any card lacks required effect handlers ──
     if all_deck_texts:
         missing_cards = await _check_deck_coverage(all_deck_texts, db)
         if missing_cards:
