@@ -61,7 +61,7 @@ export default function CardSwapHeatMap({ mutations, numRounds }: Props) {
         <table className="border-collapse text-xs min-w-max">
           <thead>
             <tr>
-              <th className="text-slate-400 font-medium text-left px-2 py-1 border border-slate-700 bg-slate-900 min-w-[140px]">
+              <th className="text-slate-400 font-medium text-left px-2 py-1 border border-slate-700 bg-slate-900 min-w-[200px]">
                 Card
               </th>
               {roundNumbers.map((rn) => (
@@ -78,10 +78,10 @@ export default function CardSwapHeatMap({ mutations, numRounds }: Props) {
             {cardNames.map((card) => (
               <tr key={card}>
                 <td
-                  className="text-slate-300 px-2 py-1 border border-slate-700 max-w-[160px]"
+                  className="text-slate-300 px-2 py-1 border border-slate-700"
                   title={card}
                 >
-                  <span className="block truncate max-w-[140px]">{card}</span>
+                  <span className="block whitespace-normal break-words max-w-[240px]">{card}</span>
                 </td>
                 {roundNumbers.map((rn) => {
                   const state: CellState = cellMap.get(`${card}::${rn}`) ?? 'none';
