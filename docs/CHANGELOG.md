@@ -1,5 +1,43 @@
 # PokéPrism Changelog
 
+## Phase 10 — Frontend: Reporting Dashboard (2026-04-28)
+
+### Summary
+Built the full post-simulation reporting dashboard at `/dashboard/:id`. 12 tiles covering
+summary stats, win rate visualisations, per-opponent breakdowns, prize race curves, AI
+decision graph, card swap heatmap, and mutation diff log. Added two backend endpoints to
+serve match-level data (prize_progression column is always NULL — prize data derived from
+match_events instead). QA found and fixed three bugs: prize race flat lines (deck-out sims
+have no KO events), Decision Map gating on unreliable game_mode field, and raw tcgdex IDs
+in mutation/swap tiles.
+
+### Key Files Created
+- `frontend/src/types/dashboard.ts`
+- `frontend/src/pages/Dashboard.tsx`
+- `frontend/src/components/dashboard/SummaryCards.tsx`
+- `frontend/src/components/dashboard/WinRateDonut.tsx`
+- `frontend/src/components/dashboard/WinRateProgress.tsx`
+- `frontend/src/components/dashboard/OpponentWinRateBar.tsx`
+- `frontend/src/components/dashboard/MatchupMatrix.tsx`
+- `frontend/src/components/dashboard/WinRateDistribution.tsx`
+- `frontend/src/components/dashboard/PrizeRaceGraph.tsx`
+- `frontend/src/components/dashboard/DecisionMap.tsx` (D3 force graph)
+- `frontend/src/components/dashboard/CardSwapHeatMap.tsx`
+- `frontend/src/components/dashboard/MutationDiffLog.tsx` (TanStack Table)
+
+### Key Files Modified
+- `backend/app/api/simulations.py` — GET /{id}/matches, GET /{id}/prize-race, card name resolution in mutations endpoint
+- `backend/tests/test_api/test_simulations.py` — +10 tests
+- `frontend/src/api/simulations.ts` — 4 new API functions
+- `frontend/src/pages/SimulationLive.tsx` — "View Report" button
+- `frontend/package.json` — recharts, d3, @types/d3, @tanstack/react-table
+
+### Test Results
+- **153 tests pass** (was 145; +8 backend: TestGetSimulationMatches×4, TestGetSimulationPrizeRace×4)
+- `npm run build`: 0 TypeScript errors
+
+---
+
 ## Phase 9 — Frontend: Live Console & Match Viewer (2026-04-29)
 
 ### Summary

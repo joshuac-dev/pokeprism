@@ -4,25 +4,21 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-Phase 10 — Frontend: Reporting Dashboard — **Code committed, build clean (153 tests pass). Visual QA pending.**
+Phase 10 — Frontend: Reporting Dashboard — **Visual QA accepted. Phase complete.**
 Next: Phase 11 — History Page & Navigation
 
 ## Last Session
-- **Date:** 2026-05-01
-- Phase 9 visual QA accepted by user. All three bugs fixed and verified in browser.
-- Phase 10 (Reporting Dashboard) fully implemented and committed:
-  - 2 new backend endpoints: `GET /{id}/matches` (per-match metadata for tiles 5/7/8/9), `GET /{id}/prize-race` (derives prize curves from `prizes_taken` events since `prize_progression` column is always NULL)
-  - 10 new backend tests — 153 total
-  - Installed: recharts, d3, @types/d3, @tanstack/react-table
-  - 14 new/modified frontend files: `src/types/dashboard.ts`, 4 new API functions in `src/api/simulations.ts`, full `src/pages/Dashboard.tsx` with 12-tile grid, 10 components in `src/components/dashboard/`, "View Report" button in `SimulationLive.tsx`
-- Dashboard route `/dashboard/:id` was already registered in Phase 8 — no router change needed
-- **Visual QA NOT yet complete** — user has not browser-tested Phase 10 tiles
-- Dev stack state at close: Docker up, uvicorn must be restarted to serve new endpoints, Celery running, Vite dev server on :5173
+- **Date:** 2026-04-28
+- Phase 10 (Reporting Dashboard) visual QA completed and accepted. Three QA bugs found and fixed during review:
+  1. **Prize Race flat lines**: `prize_progression` DB column is always NULL; endpoint was deriving data from `prizes_taken` events, but the test simulation (`e24d2266`) had all 10 games end by deck-out (zero KOs, no prize events). Fixed: backend now returns `average: []` when no events exist; frontend empty state triggers on `average.length === 0`.
+  2. **Decision Map showing H/H empty state for AI sim**: `game_mode` column stores `'hh'` for ALL simulations (including AI/H runs from Phase 5). Component was gating on `game_mode === 'hh'`. Fixed: always fetch decisions; show graph when data exists.
+  3. **Card names showing raw tcgdex IDs**: mutations endpoint returned `me02.5-039` etc. Fixed: batch-resolve IDs against `cards` table, return `"Name (SET 123)"` format.
+- Two UX improvements applied: HeatMap card column widened (200→240px, wrapping instead of truncation); Decision Map node label enhancement deferred to Phase 13 (card_played stores instance UUIDs, not resolvable without new lookup table).
+- `node_modules/` added to `.gitignore` (was previously untracked).
+- Phase 10 fully accepted. 153 tests, 0 TS errors.
 
-## Previous Session (2026-04-27 – 2026-04-29)
-- Phase 8 visual QA completed. Phase 9 (Frontend: Live Console & Match Viewer) fully implemented, committed, and visual QA accepted.
-- Three new backend endpoints: GET /events, GET /decisions, POST /cancel. Cancellation check in Celery task. 10 new backend tests. 145 tests total.
-- xterm.js installed. LiveConsole.tsx, SimulationStatus.tsx, DeckChangesTile.tsx, DecisionDetail.tsx, full SimulationLive.tsx created.
+## Previous Session (2026-05-01)
+- Phase 9 visual QA accepted. Phase 10 (Reporting Dashboard) implemented: 2 backend endpoints, 10 new tests (153 total), recharts/d3/tanstack installed, 14 frontend files created/modified.
 
 ## What Was Built (Cumulative)
 - [x] Phase 1: Game Engine Core (state machine, actions, transitions, runner) — **complete (2026-04-26)**
@@ -33,8 +29,8 @@ Next: Phase 11 — History Page & Navigation
 - [x] Phase 6: Coach/Analyst (Gemma 4 E4B, card swaps, DeckMutation) — **complete & owner-verified (2026-04-27)**
 - [x] Phase 7: Task Queue & Simulation Orchestration — **complete & owner-verified (2026-04-28)**
 - [x] Phase 8: Frontend Core Layout & Simulation Setup — **complete & owner-verified (2026-04-29)**
-- [x] Phase 9: Simulation Live Console (xterm.js) — **committed, visual QA pending (2026-04-29)**
-- [x] Phase 10: History & Analytics Dashboard — **committed, visual QA pending**
+- [x] Phase 9: Simulation Live Console (xterm.js) — **complete & owner-verified (2026-04-30)**
+- [x] Phase 10: History & Analytics Dashboard — **complete & owner-verified (2026-04-28)**
 - [ ] Phase 11: History Page & Navigation — **next**
 
 ## Phase 7 Exit Criteria — Verified (2026-04-28)
@@ -51,7 +47,7 @@ Next: Phase 11 — History Page & Navigation
 | Scheduled H/H | Celery Beat at 2AM UTC | `crontab(hour=2, minute=0)` confirmed ✅ | ✅ |
 | Tests | All prior + new tests pass | **126 passed, 0 failures** ✅ | ✅ |
 
-## Phase 10 Exit Criteria — Build verified, visual QA pending (2026-05-01)
+## Phase 10 Exit Criteria — Visual QA accepted (2026-04-28)
 
 | Criterion | Target | Result | Status |
 |---|---|---|---|
@@ -71,7 +67,56 @@ Next: Phase 11 — History Page & Navigation
 | "View Report" button | Visible on complete sim, nav to /dashboard/:id | ✅ SimulationLive.tsx | ✅ |
 | TypeScript build | Zero errors | ✅ 0 errors | ✅ |
 | Tests | All prior + 10 new | **153 passed, 0 failures** ✅ | ✅ |
-| **Visual QA** | User browser test | **⏳ Pending** | ⏳ |
+| **Visual QA** | User browser test | **✅ Accepted 2026-04-28** | ✅ |
+
+## Active Files Changed This Session (2026-04-28)
+
+### Created
+- `frontend/src/types/dashboard.ts` — MatchRow, RoundRow, PrizeRaceData, MutationRow, OpponentStat
+- `frontend/src/pages/Dashboard.tsx` — full 12-tile dashboard page (parallel data fetch, loading/error states)
+- `frontend/src/components/dashboard/SummaryCards.tsx`
+- `frontend/src/components/dashboard/WinRateDonut.tsx`
+- `frontend/src/components/dashboard/WinRateProgress.tsx`
+- `frontend/src/components/dashboard/OpponentWinRateBar.tsx`
+- `frontend/src/components/dashboard/MatchupMatrix.tsx`
+- `frontend/src/components/dashboard/WinRateDistribution.tsx`
+- `frontend/src/components/dashboard/PrizeRaceGraph.tsx`
+- `frontend/src/components/dashboard/DecisionMap.tsx`
+- `frontend/src/components/dashboard/CardSwapHeatMap.tsx`
+- `frontend/src/components/dashboard/MutationDiffLog.tsx`
+
+### Modified
+- `backend/app/api/simulations.py` — GET /{id}/matches, GET /{id}/prize-race endpoints; mutations endpoint card name resolution; Card added to imports
+- `backend/tests/test_api/test_simulations.py` — TestGetSimulationMatches (4 tests), TestGetSimulationPrizeRace (4 tests); 153 total
+- `frontend/src/api/simulations.ts` — getSimulationRounds, getSimulationMatches, getSimulationPrizeRace, getSimulationMutations
+- `frontend/src/pages/SimulationLive.tsx` — "View Report" button (visible when status=complete)
+- `frontend/package.json` — recharts, d3, @types/d3, @tanstack/react-table added
+- `.gitignore` — node_modules/ added (was missing)
+
+## Known Issues / Gaps
+
+- **Decision Map node labels** — nodes show generic action type (ATTACK, PLAY_SUPPORTER) not specific card names. `card_played` stores game-instance UUIDs, not tcgdex IDs; resolving to card names needs a new lookup table. Deferred to Phase 13 polish.
+- **game_mode column** — all simulations in DB store `game_mode='hh'` regardless of actual mode (AI/H Phase 5 runs also stored as 'hh'). Phase 11 history page should not filter by game_mode for "AI simulations" — filter by presence of decisions rows instead.
+- **prize_progression column** — always NULL on Match rows; permanent. Prize data is derived from match_events. Not a bug.
+- **30 stuck simulations** — status='running' in DB from Phase 7 testing. Clear with: `UPDATE simulations SET status='failed' WHERE status='running' AND created_at < '2026-04-28';`
+- **git gc warning** — "too many unreachable loose objects". Run `git prune && git gc` when convenient.
+
+## Key Decisions Made (2026-04-28)
+
+- **Prize race derived from events, not column**: `prize_progression` DB column is always NULL. Prize race is derived server-side from `event_type='prizes_taken'` match_events. Permanent architectural choice.
+- **Mutations endpoint resolves card names server-side**: Batch JOIN against `cards` table; returns `"Name (SET abbrev number)"` format (e.g. "Psyduck (ASC 39)").
+- **Decision Map is data-driven, not mode-driven**: Fetches decisions and renders if any exist; does not use `game_mode` field (unreliable in DB).
+- **TanStack Table installed in Phase 10**: Used for MutationDiffLog; also available for Phase 11 history table.
+
+## Notes for Next Session (Phase 11 — History Page & Navigation)
+
+- **Phase 11 goal**: History page at `/history` — searchable, filterable, paginated list of all simulations with links to their dashboards.
+- **Backend needed**: `GET /api/simulations` list endpoint with pagination, search (deck name), status filter, date range. Currently only `GET /api/simulations/:id` (single) exists.
+- **Frontend**: `History.tsx` page (currently a stub). Use TanStack Table (already installed). Link each row to `/dashboard/:id`.
+- **Good test sim IDs**: `e24d2266-7ada-45e7-80ab-7ddc598dc16c` (10 matches, deck-out games, no prize race data); `a479a0ec-5783-4804-a6d4-2d7b75c28874` (AI decisions, status=running/stuck).
+- **Dev stack restart**: uvicorn and Vite do not survive shell exits. Start both with `detach: true`. Verify with `ss -tlnp | grep 8000` and `ss -tlnp | grep 5173`.
+- **Test baseline**: 153 tests pass. `cd backend && python3 -m pytest tests/ -q`.
+- **Build baseline**: `cd frontend && npm run build` → 0 TypeScript errors.
 
 ## Phase 9 Exit Criteria — Visual QA accepted (2026-04-30)
 
