@@ -4,11 +4,42 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-Phase 13 — Polish, Hardening & Scheduling — **IN PROGRESS. NOT ACCEPTED (pending visual QA of Bugs A & B).**
+Phase 13 — Polish, Hardening & Scheduling — **IN PROGRESS. Pending final visual QA.**
 
-Coverage gate is now **100%** (185/185 real cards, 0 missing). Real competitive simulations can now run through Docker. Phase 13 acceptance requires user to retest Bugs A (WebSocket in Docker) and B (Coach H/H unlocked) and visually verify them.
+Engine is working. Attacks, KOs, prize-taking, Coach deck mutations — all confirmed by visual QA. 5 QA issues have been fixed this session (see below). Awaiting user retest.
 
-## Last Session — 2026-05-14
+## Last Session — 2026-05-15
+
+### Phase 13 QA Fixes
+
+| Issue | Description | Status |
+|-------|-------------|--------|
+| Issue 1 — Rounds to Confirm | Field already existed in ParamForm.tsx (confirmed in code) | ✅ Already done |
+| Issue 2 — Console card names | attack_damage/ko/evolve/retreat now show card names | ✅ FIXED |
+| Issue 3 — Win condition | match_end shows "P2 wins (prizes: took all prize cards)" | ✅ FIXED |
+| Issue 4 — Clickable events | LiveConsole rows are clickable → EventDetail overlay | ✅ FIXED |
+| Issue 5 — Deck naming | Gemma num_predict 20→-1, timeout 5s→30s | ✅ FIXED |
+
+### What Was Done This Session
+
+- **Issue 2 — Console card names**: Rewrote `LiveConsole.tsx` from xterm.js to a DOM-based scrollable list. Added `attack_damage` handler (`⚔ Phantom Dive: 120 dmg → Dwebble`). Fixed `ko` to show attacker (`★ KO — Dwebble (by Dragapult ex)`). Added `attacker` field to the ko event emitted by `engine/effects/base.py`.
+- **Issue 3 — Win condition**: `match_end` + `game_over` now show full label: `■ Match end — P2 wins (prizes: took all prize cards)`. All 4 win conditions labelled (`prizes`, `deck_out`, `no_bench`, `turn_limit`).
+- **Issue 4 — Clickable decisions**: Each console row is now a DOM `<div>` with `onClick`. Clicking opens `EventDetail.tsx` overlay showing event data (all fields). For `ai_h`/`ai_ai` modes it also fetches and shows the AI reasoning from the decisions table. Backend `/decisions` endpoint extended with optional `match_id`, `turn_number`, `player_id` filter params.
+- **Issue 5 — Deck naming**: Fixed `_get_deck_name_from_gemma()` — changed `num_predict: 20` to `-1` (Gemma4 needs thinking tokens before output; small values produce empty responses). Increased timeout from 5s to 30s.
+- **184 backend tests pass. 0 TypeScript errors.**
+
+### Active Files Changed This Session
+
+#### Modified
+- `backend/app/engine/effects/base.py` — add `attacker` field to `ko` event
+- `backend/app/api/simulations.py` — Gemma num_predict -1, timeout 30s; decisions endpoint filter params
+- `frontend/src/components/simulation/LiveConsole.tsx` — full rewrite: DOM list, attack_damage/ko/match_end handlers, onEventClick prop
+- `frontend/src/components/simulation/EventDetail.tsx` — new overlay component
+- `frontend/src/pages/SimulationLive.tsx` — wire onEventClick + EventDetail
+- `frontend/src/api/simulations.ts` — getSimulationDecisions filter params
+- `docs/STATUS.md` — this update
+
+### Previous Session — 2026-05-14
 
 ### Current Phase 13 Progress
 
