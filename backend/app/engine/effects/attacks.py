@@ -91,6 +91,10 @@ def _apply_damage(
         return 0
 
     total = base_damage + state.active_player_damage_bonus
+    if state.active_player_damage_bonus_vs_ex:
+        def_cdef = card_registry.get(defender.card_def_id)
+        if def_cdef and def_cdef.is_ex:
+            total += state.active_player_damage_bonus_vs_ex
     if has_adrena_power(attacker):
         total += 100
 

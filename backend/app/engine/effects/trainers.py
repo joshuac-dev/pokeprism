@@ -1726,7 +1726,7 @@ def _tool_scrapper(state: GameState, action):
 
 
 def _poke_pad(state: GameState, action):
-    """Poké Pad (me03-081)
+    """Poké Pad (me03-081, me02.5-198)
 
     Search your deck for a non-rule-box Pokémon, reveal it, and put it into
     your hand. Shuffle your deck afterward.
@@ -1758,6 +1758,16 @@ def _poke_pad(state: GameState, action):
 
     random.shuffle(player.deck)
     state.emit_event("shuffle_deck", player=player_id, reason="poke_pad")
+
+
+def _black_belt_training(state: GameState, action):
+    """Black Belt's Training (sv09-143)
+
+    During this turn, attacks used by your Pokémon do 40 more damage to your
+    opponent's Active Pokémon ex (before applying Weakness and Resistance).
+    """
+    state.active_player_damage_bonus_vs_ex += 40
+    state.emit_event("black_belt_training", player=action.player_id, bonus=40)
 
 
 def _energy_retrieval(state: GameState, action):
@@ -2435,6 +2445,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv10-171", _tr_ariana)
     registry.register_trainer("sv10-174", _tr_giovanni)
     registry.register_trainer("sv10-176", _tr_petrel)
+    registry.register_trainer("me02.5-207", _tr_petrel)            # Team Rocket's Petrel alt print
     registry.register_trainer("sv10-177", _tr_proton)
     registry.register_trainer("sv10.5w-084", _hilda)
 
@@ -2450,7 +2461,9 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv06.5-061", _night_stretcher)  # Night Stretcher alt print
     registry.register_trainer("me02.5-212", _tool_scrapper)
     registry.register_trainer("me03-081", _poke_pad)
+    registry.register_trainer("me02.5-198", _poke_pad)             # Poké Pad alt print
     registry.register_trainer("me01-121", _mega_signal)
+    registry.register_trainer("sv09-143", _black_belt_training)
     registry.register_trainer("sv01-171", _energy_retrieval)
     registry.register_trainer("sv01-186", _pokegear)
     registry.register_trainer("sv05-144", _buddy_buddy_poffin)

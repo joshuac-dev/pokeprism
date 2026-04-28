@@ -265,6 +265,10 @@ class EffectRegistry:
 
         attack = cdef.attacks[action.attack_index]
         base_damage = parse_damage(attack.damage) + state.active_player_damage_bonus
+        if state.active_player_damage_bonus_vs_ex:
+            opp_cdef = card_registry.get(opponent.active.card_def_id)
+            if opp_cdef and opp_cdef.is_ex:
+                base_damage += state.active_player_damage_bonus_vs_ex
 
         # Growl / attack_damage_reduction: defender's attacks do less damage this turn
         base_damage = max(0, base_damage - player.active.attack_damage_reduction)

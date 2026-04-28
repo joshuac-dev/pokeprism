@@ -4,7 +4,7 @@ Client lifecycle:
     1. Client connects via socket.io at /ws
     2. Client emits "subscribe_simulation" with {"simulation_id": "<uuid>"}
     3. Server subscribes to Redis channel "simulation:{simulation_id}"
-    4. Server forwards every Redis message as "simulation_event" to the client
+    4. Server forwards every Redis message as "sim_event" to the client
     5. On client disconnect, Redis subscription is cleaned up
 """
 
@@ -77,7 +77,7 @@ async def _forward_events(sid: str, channel: str) -> None:
                     data = json.loads(message["data"])
                 except (json.JSONDecodeError, TypeError):
                     continue
-                await sio.emit("simulation_event", data, to=sid)
+                await sio.emit("sim_event", data, to=sid)
     except asyncio.CancelledError:
         pass
     except Exception as exc:

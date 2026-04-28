@@ -411,6 +411,7 @@ class MatchRunner:
                 self._discard_expiring_energy(state, b)
 
         state.active_player_damage_bonus = 0
+        state.active_player_damage_bonus_vs_ex = 0
         state.briar_active = False
         state.active_player = state.opponent_id(state.active_player)
         state.turn_number += 1

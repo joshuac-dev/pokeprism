@@ -169,8 +169,9 @@ class GameState:
     legacy_prize_reduction_used: bool = False  # Legacy Energy: only once per game
 
     # Per-turn damage / effect flags (reset in _end_turn)
-    active_player_damage_bonus: int = 0   # Kieran +30, etc. — added to base_damage
-    briar_active: bool = False             # Briar (sv07-132): +1 prize on active KO
+    active_player_damage_bonus: int = 0        # Kieran +30, etc. — added to base_damage
+    active_player_damage_bonus_vs_ex: int = 0  # Black Belt's Training +40 vs ex only
+    briar_active: bool = False                 # Briar (sv07-132): +1 prize on active KO
 
     # Event log
     events: list[dict] = field(default_factory=list)
