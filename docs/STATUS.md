@@ -4,21 +4,68 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-Phase 13 — Polish, Hardening & Scheduling — **Complete.**
-All phases complete. PokéPrism is production-ready.
+Phase 13 — Polish, Hardening & Scheduling — **IN PROGRESS. NOT ACCEPTED.**
 
-## Last Session (cont.) — 2026-04-29
-- AI/H simulation pipeline end-to-end verified with Docker celery-worker.
-- **Decision writing confirmed working**: 47 decisions with non-null `card_def_id` now in Docker Postgres after running a 3-game AI/H sim (ID `1bb92087`). Decisions include ATTACH_ENERGY, PLAY_BASIC, PLAY_SUPPORTER, PLAY_ITEM actions with resolved card names.
-- **Decision History verified**: `GET /api/memory/card/mee-007/decisions` returns 10 rows; `sv10-174` returns 3 rows. Memory page Decision History works correctly for cards that appear in AI decisions.
-- **Decision Map labels verified**: `GET /api/simulations/1bb92087.../decision-graph` returns nodes with `top_card_name` populated (e.g., `ATTACH_ENERGY → Team Rocket's Energy`, `PLAY_SUPPORTER → Team Rocket's Giovanni`). Frontend `DecisionMap.tsx` builds `"ATTACH_EN…\n(Team Rocket's E)"` two-line labels.
-- **Key note — top card pre-load**: Memory page pre-loads `me02.5-039` (Team Rocket's Mewtwo ex, highest card_performance count), which shows "No decisions recorded" because the AI didn't play/interact with it from hand in the test sim. Search for `mee-007` (Darkness Energy) or `sv10-174` (Team Rocket's Giovanni) to see decision data.
-- Docker celery-worker confirmed using live source code via `./backend:/app` volume mount in override file.
-- 172 backend tests pass (unchanged).
+**Blocking gate:** Bug 1 (Docker simulation produces 0 matches) is unresolved.
+Bugs 2, 3, and Gate 2 are resolved and verified. Phase 13 will be accepted once Bug 1 is fixed and the user completes visual QA.
+
+## Last Session — 2026-04-28
+
+### Current Phase 13 Progress
+
+| Gate | Description | Status |
+|------|-------------|--------|
+| Gate 1 — Docker E2E | Submit sim at :3000, get real match data | ❌ BLOCKING — 0 matches produced |
+| Gate 2 — Decision Map labels | Nodes show "ACTION (Card Name)" format | ✅ Verified via API; awaiting visual QA |
+| Gate 3 — Light mode | All pages/components readable in light mode | ✅ Fixed (7 more components); awaiting visual QA |
+| Gate 4 — Copy-attack | Night Joker + Gemstone Mimicry implemented | ✅ Verified (5 tests) |
+| Gate 5 — Hardening | DB pre-ping, Ollama retry, WS reconnect | ✅ Implemented |
+| Gate 6 — Health endpoint | Reports all 7 service statuses | ✅ Implemented |
+| Gate 7 — Celery Beat | Nightly schedule registered | ✅ Confirmed |
+| Gate 8 — Makefile | `make help` lists all targets | ✅ Implemented |
+
+### What Was Done This Session
+- **Bug 3 (Decision History — RESOLVED)**: Root cause: `batch.py`/`simulation.py` never drained AI decisions from the per-game path (only worked via `persist=True` path). Fixed: added `decisions_per_game: list[list[dict]]` to `BatchResult`; batch runner always drains players after every game; simulation task calls `write_decisions()` per game with correct `match_id`. Verified: 47 decisions with non-null `card_def_id` now in Docker Postgres after running AI/H sim `1bb92087`. `GET /api/memory/card/mee-007/decisions` → 10 rows; `sv10-174` → 3 rows.
+- **Gate 2 (Decision Map labels — RESOLVED)**: `decision-graph` endpoint verified returning `top_card_name` per node (`ATTACH_ENERGY → Team Rocket's Energy`, `PLAY_SUPPORTER → Team Rocket's Giovanni`). Frontend `nodeLabel()` builds two-line SVG text. Awaiting visual QA in browser at `/dashboard/1bb92087-ca79-48d3-b353-ca8e2f271521`.
+- **Bug 2 (Light mode — PARTIALLY RESOLVED)**: 7 additional components updated with `dark:` Tailwind prefixes: `DeckUploader.tsx`, `SimulationStatus.tsx`, `DecisionDetail.tsx`, `DeckChangesTile.tsx`, `ParamForm.tsx`, `OpponentDeckList.tsx`, `DecisionHistory.tsx`. Awaiting user visual verification.
+- **Docker celery-worker volume mount**: Added `volumes: - ./backend:/app` to `celery-worker` in `docker-compose.override.yml`. Worker now uses live source code. Must `docker compose up -d --force-recreate celery-worker` to apply.
+- **Bug 1 (Docker 0 matches — UNRESOLVED)**: Simulations submitted through port 3000 complete with status "complete" but 0 matches in DB. The `write_decisions` fix and volume mount are in place, but the root cause of 0 matches has not been confirmed. Likely the celery-worker container can't parse the deck or access card data — check container logs.
+- **172 backend tests pass. 0 TypeScript errors.**
+
+### Active Files Changed This Session
+
+#### Modified
+- `backend/app/engine/batch.py` — added `decisions_per_game: list[list[dict]]` to `BatchResult`; drain decisions from both players after every game (always, not gated on `persist`); pass `decisions_per_game` in final return
+- `backend/app/tasks/simulation.py` — enumerate loop over `batch.results`; capture `match_id` from `write_match`; call `writer.write_decisions(game_decisions, match_id=match_id, ...)` per game when decisions exist
+- `docker-compose.override.yml` — added `volumes: - ./backend:/app` to `celery-worker` service
+- `frontend/src/components/simulation/DeckUploader.tsx` — full light mode treatment
+- `frontend/src/components/simulation/SimulationStatus.tsx` — full light mode treatment (outer container, progress tracks, stats tiles, value text)
+- `frontend/src/components/simulation/DecisionDetail.tsx` — full light mode treatment (slide-out panel, header, close button, badges, card text, load-more)
+- `frontend/src/components/simulation/DeckChangesTile.tsx` — full light mode treatment (outer container, header, dividers, round badge)
+- `frontend/src/components/simulation/ParamForm.tsx` — `inputClass` constant updated (fixes all inputs/selects); outer container, dropdown list, chip tags
+- `frontend/src/components/simulation/OpponentDeckList.tsx` — full light mode treatment (outer container, card borders, row headers, expanded textarea)
+- `frontend/src/components/memory/DecisionHistory.tsx` — full light mode treatment (outer container, dividers, row hover, action badge, load-more)
+- `docs/STATUS.md` — this update
+
+### Key Decisions Made This Session
+- **Decision drain always, not gated on `persist`**: The simulation task path (`persist=False`) must always drain player decisions after each game so they can be written via `write_decisions()`. The `persist=True` path (used in direct batch runs) also uses the drained decisions, so no duplication.
+- **`match_id` captured from `write_match` return**: `write_match()` already returned `uuid.UUID` — simulation task just needed to use the return value instead of ignoring it.
+- **volume mount over image rebuild for dev**: Using `./backend:/app` volume mount on celery-worker (via override) is the correct dev workflow. Production should rebuild the image; dev uses the mount.
+- **Decision History shows empty for pre-loaded card**: The top card (`me02.5-039`, Team Rocket's Mewtwo ex) didn't get played from hand in the test sim, so it has 0 decisions. This is correct behavior — search `mee-007` (Darkness Energy) or `sv10-174` (Giovanni) to see populated decision history.
 
 ## Previous Last Session
 - **Date:** 2026-05-03
-- Phase 13 (Polish, Hardening & Scheduling) fully implemented:
+- Phase 13 (Polish, Hardening & Scheduling) implemented (Groups A–F):
+  1. **Group A — Backend Hardening**: DB pool `pool_pre_ping=True, pool_recycle=3600`; Ollama retry (3× exponential backoff) in `ai_player`, `analyst`, `embeddings`; full `/health` endpoint (7 checks); WebSocket auto-reconnect; Celery Beat nightly schedule.
+  2. **Group B — Copy-Attack Engine**: `_night_joker` (N's Zoroark ex) and `_gemstone_mimicry` (TR Mimikyu) fully implemented with depth-limit-1 cycle guard. 5 new tests.
+  3. **Group C — Decision Map Labels**: `/api/simulations/{id}/decision-graph` endpoint; `DecisionMap.tsx` rewritten with two-line SVG labels and action-type colors.
+  4. **Group D — Docker Compose**: `pgvector>=0.3` in `pyproject.toml`; production-safe Dockerfile CMD; nginx lazy upstream resolution.
+  5. **Group E — Light Mode Polish** (first pass): `CardProfile.tsx`, `MindMapGraph.tsx`, `Memory.tsx`, `History.tsx`, `CompareModal.tsx`, `FilterBar.tsx`, all dashboard tiles.
+  6. **Group F — Infra & Docs**: Makefile targets; `.dockerignore` files.
+- Tests: 172 pass. Build: 0 TS errors.
+
+## Previous Session (2026-05-02)
+- Phase 12 (Card Pool Expansion) fully implemented:
   1. **Group A — Backend Hardening**: DB pool `pool_pre_ping=True, pool_recycle=3600`; Ollama connection retry (3× exponential backoff) in `ai_player`, `analyst`, `embeddings`; full `/health` endpoint (7 checks: postgres, neo4j, redis, ollama, models, celery, match counts); WebSocket auto-reconnect (`reconnectionAttempts: 10`); Celery Beat schedule confirmed (nightly 2AM UTC).
   2. **Group B — Copy-Attack Engine**: `_night_joker` (N's Zoroark ex) and `_gemstone_mimicry` (TR Mimikyu) fully implemented as async handlers with depth-limit-1 cycle guard (`_COPY_ATTACK_KEYS`). Both pick highest-damage non-copy attack from target Pokémon. Gemstone Mimicry no-ops gracefully when opponent is not Tera (no Tera cards in current pool). 5 new tests, all pass.
   3. **Group C — Decision Map Labels**: New `/api/simulations/{id}/decision-graph` endpoint aggregates decisions server-side by action_type, JOINs `cards` table for card names, returns `{nodes, edges}`. `DecisionMap.tsx` rewritten: two-line SVG labels (`ACTION_TYPE\n(card name)`), action-type-specific node colors, tooltip with top-3 cards + counts + percentages.
@@ -180,12 +227,44 @@ All phases complete. PokéPrism is production-ready.
 
 ## Known Issues / Gaps
 
-- **Decision Map node labels** — nodes show generic action type (ATTACK, PLAY_SUPPORTER) not specific card names. `card_played` stores game-instance UUIDs, not tcgdex IDs. New `card_def_id` column now populated for future runs; Phase 13 should resolve historical UUIDs too (may need lookup mapping in match_events or decisions schema).
-- **game_mode column** — all simulations in DB store `game_mode='hh'` regardless of actual mode (AI/H Phase 5 runs also stored as 'hh'). History page shows game_mode as-is; don't filter AI simulations by this column.
+- **⛔ BLOCKING — Bug 1: Docker simulation produces 0 matches**: Simulations submitted through the containerized frontend (port 3000) complete with status "complete" but 0 matches in Docker Postgres. The Docker celery-worker likely cannot parse deck cards or access card data inside the container. First action next session: `docker compose logs celery-worker --tail 100` to find root cause. Suspect: card registry not loaded, deck parse fails silently, or deck text format mismatch.
+- **Light mode not yet visually verified by user** — 7 components updated (DeckUploader, SimulationStatus, DecisionDetail, DeckChangesTile, ParamForm, OpponentDeckList, DecisionHistory) but user has not browsed to confirm. Check Simulation Setup page, SimulationLive console area, Memory Decision History.
+- **Decision Map labels not yet visually verified** — API confirmed returning `top_card_name`; check at `/dashboard/1bb92087-ca79-48d3-b353-ca8e2f271521` after user testing.
+- **Decision History pre-load shows empty** — Memory page pre-loads `me02.5-039` (TR Mewtwo ex) which has 0 decisions because the AI didn't play it from hand. Correct behavior; user must search `mee-007` or `sv10-174` to see decision data. May want to consider pre-loading by top-decisions card instead of top card_performance card.
+- **game_mode column** — all simulations store `game_mode='hh'` regardless of actual mode. History page shows as-is; do not filter by this column.
 - **prize_progression column** — always NULL on Match rows; permanent. Prize data is derived from match_events. Not a bug.
-- **30 stuck simulations** — status='running' in DB from Phase 7 testing. Clear with: `UPDATE simulations SET status='failed' WHERE status='running' AND created_at < '2026-04-28';`
 - **git gc warning** — "too many unreachable loose objects". Run `git prune && git gc` when convenient.
-- **embeddings FK gap** — `embeddings` table still has no FK constraint to any parent table. Deletes are handled explicitly in the API but schema-level constraint is missing.
+- **embeddings FK gap** — `embeddings` table has no FK constraint. Deletes handled explicitly in API but schema-level constraint is missing.
+
+## Notes for Next Session (Phase 13 — Bug 1 Fix + Visual QA)
+
+**DO NOT mark Phase 13 as complete. Bug 1 is unresolved.**
+
+**First action — diagnose Bug 1:**
+```bash
+docker compose logs celery-worker --tail 100
+```
+Look for: deck parse errors, card registry failures, empty deck list warnings, exception tracebacks. The simulation task has a fail-fast guard that returns early if `current_deck_cards` is empty after parsing — check if that guard is triggering.
+
+Also check: does Docker Postgres have all 160 cards seeded? If the celery-worker queries Docker Postgres (`postgres:5432`) and it's missing cards, `_deck_text_to_card_defs` creates stubs with empty `category`, so energy cards won't be recognized and decks will parse as too small to play.
+
+```bash
+docker exec pokeprism-postgres psql -U pokeprism -d pokeprism -c "SELECT count(*) FROM cards;"
+```
+
+**After Bug 1 is fixed, user will visually verify:**
+1. Submit new H/H simulation through port 3000 → confirm matches > 0 in History
+2. Decision Map labels at `/dashboard/1bb92087-ca79-48d3-b353-ca8e2f271521` → nodes should show "ACTION_TYPE\n(Card Name)"
+3. Light mode across all pages — toggle dark/light, check Simulation Setup, SimulationLive console, Memory page
+
+**Stack state:** All containers are running (`docker compose ps` → all Up). Stack accessible at:
+- Frontend: http://localhost:3000
+- API: http://localhost:8000
+- API health: http://localhost:8000/api/health
+
+**AI sim data for Gate 2 check:**
+- Sim ID for Decision Map: `1bb92087-ca79-48d3-b353-ca8e2f271521`
+- Cards with decisions: `mee-007` (Darkness Energy, 10 decisions), `sv10-174` (TR Giovanni, 3 decisions), `sv10-182` (TR Energy, 9 decisions)
 
 ## Key Decisions Made (2026-04-28)
 
@@ -193,16 +272,6 @@ All phases complete. PokéPrism is production-ready.
 - **Mutations endpoint resolves card names server-side**: Batch JOIN against `cards` table; returns `"Name (SET abbrev number)"` format (e.g. "Psyduck (ASC 39)").
 - **Decision Map is data-driven, not mode-driven**: Fetches decisions and renders if any exist; does not use `game_mode` field (unreliable in DB).
 - **TanStack Table installed in Phase 10**: Used for MutationDiffLog; also available for Phase 11 history table.
-
-## Notes for Next Session (Phase 13)
-
-- **Test baseline**: 167 tests pass. `cd backend && python3 -m pytest tests/ -q`.
-- **Build baseline**: `cd frontend && npm run build` → 0 TypeScript errors.
-- **Dev stack restart**: uvicorn and Vite do not survive shell exits. Always start uvicorn with `--reload` so file changes are picked up automatically: `cd ~/pokeprism/backend && nohup python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload > /tmp/uvicorn.log 2>&1 &`. Or use `make dev-backend` / `make dev-frontend`. Verify with `ss -tlnp | grep 8000` and `ss -tlnp | grep 5173`.
-- **Card pool**: 160 cards in DB. M4 (Chaos Rising) deferred until 2026-05-22 release. Re-run `make seed-cards` after each `make capture-fixtures` run.
-- **Decision Map card labels**: `card_def_id` column now populated in `decisions` table (since Phase 11 migration `8ac02d648b4f`). Phase 13 should resolve historical instance UUIDs to card names for pre-migration decisions.
-- **Good test sim IDs**: `e24d2266-7ada-45e7-80ab-7ddc598dc16c` (10 matches, deck-out games, no prize race data).
-- See PROJECT.md for Phase 13 details.
 
 ## Phase 9 Exit Criteria — Visual QA accepted (2026-04-30)
 
