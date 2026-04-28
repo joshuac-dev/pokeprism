@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import { Network } from 'lucide-react';
 import { getSimulationDecisions } from '../../api/simulations';
 import type { DecisionRow } from '../../types/simulation';
 
 interface Props {
   simulationId: string;
-  gameMode: string;
 }
 
 interface SimNode extends d3.SimulationNodeDatum {
@@ -34,14 +32,13 @@ function edgeWidth(count: number): number {
   return Math.min(6, 1 + Math.log(Math.max(1, count)) * 0.5);
 }
 
-export default function DecisionMap({ simulationId, gameMode }: Props) {
+export default function DecisionMap({ simulationId }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [loading, setLoading] = useState(false);
   const [decisions, setDecisions] = useState<DecisionRow[]>([]);
   const [fetched, setFetched] = useState(false);
 
   useEffect(() => {
-    if (gameMode === 'hh') return;
     setLoading(true);
     getSimulationDecisions(simulationId, { limit: 200, offset: 0 })
       .then((r) => setDecisions(r.decisions))
@@ -50,10 +47,10 @@ export default function DecisionMap({ simulationId, gameMode }: Props) {
         setLoading(false);
         setFetched(true);
       });
-  }, [simulationId, gameMode]);
+  }, [simulationId]);
 
   useEffect(() => {
-    if (gameMode === 'hh' || !fetched || !decisions.length || !svgRef.current) return;
+    if (!fetched || !decisions.length || !svgRef.current) return;
 
     const el = svgRef.current;
     const width = el.clientWidth || 600;
@@ -199,21 +196,7 @@ export default function DecisionMap({ simulationId, gameMode }: Props) {
     return () => {
       simulation.stop();
     };
-  }, [decisions, fetched, gameMode]);
-
-  if (gameMode === 'hh') {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 h-48 text-center px-4">
-        <Network className="w-8 h-8 text-slate-500" />
-        <p className="text-slate-400 text-sm font-medium">
-          Decision Map requires AI/H or AI/AI simulation data
-        </p>
-        <p className="text-slate-500 text-xs">
-          This simulation uses Heuristic vs Heuristic mode — no AI decisions were recorded.
-        </p>
-      </div>
-    );
-  }
+  }, [decisions, fetched]);
 
   if (loading) {
     return (

@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 import redis as redis_module
-from app.db.models import Deck, DeckCard, DeckMutation, Decision, Match, MatchEvent, Round, Simulation, SimulationOpponent
+from app.db.models import Card, Deck, DeckCard, DeckMutation, Decision, Match, MatchEvent, Round, Simulation, SimulationOpponent
 from app.db.session import AsyncSessionLocal
 from app.tasks.simulation import count_deck_cards, run_simulation
 
@@ -419,12 +419,28 @@ async def get_simulation_mutations(
         .order_by(DeckMutation.round_number, DeckMutation.created_at)
     )).scalars().all()
 
+    # Resolve card IDs → "Name (SET 123)" labels in one batch query
+    card_ids = {m.card_removed for m in rows if m.card_removed} | {m.card_added for m in rows if m.card_added}
+    card_label: dict[str, str] = {}
+    if card_ids:
+        card_rows = (await db.execute(
+            select(Card.tcgdex_id, Card.name, Card.set_abbrev, Card.set_number)
+            .where(Card.tcgdex_id.in_(card_ids))
+        )).all()
+        for c in card_rows:
+            card_label[c.tcgdex_id] = f"{c.name} ({c.set_abbrev} {c.set_number})"
+
+    def label(card_id: str | None) -> str:
+        if not card_id:
+            return ""
+        return card_label.get(card_id, card_id)  # fall back to raw ID if not found
+
     return [
         {
             "id": str(m.id),
             "round_number": m.round_number,
-            "card_removed": m.card_removed,
-            "card_added": m.card_added,
+            "card_removed": label(m.card_removed),
+            "card_added": label(m.card_added),
             "reasoning": m.reasoning,
             "created_at": m.created_at.isoformat() if m.created_at else None,
         }
@@ -805,6 +821,22 @@ async def get_simulation_prize_race(
         )
         .order_by(MatchEvent.match_id, MatchEvent.id)
     )).all()
+
+    # No prize events → all games ended by deck-out/no-bench; return empty average
+    if not events:
+        return {
+            "matches": [
+                {
+                    "match_id": str(m.id),
+                    "round_number": m.round_number,
+                    "p1_deck_name": m.p1_deck_name,
+                    "p2_deck_name": m.p2_deck_name,
+                    "turns": [],
+                }
+                for m in match_rows
+            ],
+            "average": [],
+        }
 
     # Build per-match turn-indexed prize curves
     from collections import defaultdict

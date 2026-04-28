@@ -173,7 +173,7 @@ export default function Dashboard() {
           {/* Tile 10: Decision Map */}
           {id && (
             <DashboardTile title="AI Decision Map" className="col-span-1 md:col-span-2 xl:col-span-2">
-              <DecisionMap simulationId={id} gameMode={detail.game_mode} />
+              <DecisionMap simulationId={id} />
             </DashboardTile>
           )}
 
