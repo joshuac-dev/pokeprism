@@ -6,96 +6,80 @@
 ## Current Phase
 Phase 13 — Polish, Hardening & Scheduling — **IN PROGRESS. Pending final visual QA.**
 
-Engine is working. Attacks, KOs, prize-taking, Coach deck mutations — all confirmed by visual QA. 5 QA issues have been fixed this session (see below). Awaiting user retest.
+Engine is confirmed working (attacks, KOs, prize-taking, Coach deck mutations, Prize Race graph, Matchup Matrix, Card Swap Heat Map, Deck Mutation Log — all verified by user visual QA). 5 console/UI QA issues fixed this session. Awaiting user retest.
 
-## Last Session — 2026-05-15
+## Last Session — 2026-04-28
 
 ### Phase 13 QA Fixes
 
 | Issue | Description | Status |
 |-------|-------------|--------|
-| Issue 1 — Rounds to Confirm | Field already existed in ParamForm.tsx (confirmed in code) | ✅ Already done |
-| Issue 2 — Console card names | attack_damage/ko/evolve/retreat now show card names | ✅ FIXED |
+| Issue 1 — Rounds to Confirm | Field exists in ParamForm.tsx; Docker container was stale — rebuilt | ✅ FIXED (rebuild) |
+| Issue 2 — Console card names | attack_damage/ko now show card names; LiveConsole rewritten to DOM | ✅ FIXED |
 | Issue 3 — Win condition | match_end shows "P2 wins (prizes: took all prize cards)" | ✅ FIXED |
-| Issue 4 — Clickable events | LiveConsole rows are clickable → EventDetail overlay | ✅ FIXED |
+| Issue 4 — Clickable events | Console rows clickable → EventDetail overlay with AI reasoning | ✅ FIXED |
 | Issue 5 — Deck naming | Gemma num_predict 20→-1, timeout 5s→30s | ✅ FIXED |
-
-### What Was Done This Session
-
-- **Issue 2 — Console card names**: Rewrote `LiveConsole.tsx` from xterm.js to a DOM-based scrollable list. Added `attack_damage` handler (`⚔ Phantom Dive: 120 dmg → Dwebble`). Fixed `ko` to show attacker (`★ KO — Dwebble (by Dragapult ex)`). Added `attacker` field to the ko event emitted by `engine/effects/base.py`.
-- **Issue 3 — Win condition**: `match_end` + `game_over` now show full label: `■ Match end — P2 wins (prizes: took all prize cards)`. All 4 win conditions labelled (`prizes`, `deck_out`, `no_bench`, `turn_limit`).
-- **Issue 4 — Clickable decisions**: Each console row is now a DOM `<div>` with `onClick`. Clicking opens `EventDetail.tsx` overlay showing event data (all fields). For `ai_h`/`ai_ai` modes it also fetches and shows the AI reasoning from the decisions table. Backend `/decisions` endpoint extended with optional `match_id`, `turn_number`, `player_id` filter params.
-- **Issue 5 — Deck naming**: Fixed `_get_deck_name_from_gemma()` — changed `num_predict: 20` to `-1` (Gemma4 needs thinking tokens before output; small values produce empty responses). Increased timeout from 5s to 30s.
-- **184 backend tests pass. 0 TypeScript errors.**
-
-### Active Files Changed This Session
-
-#### Modified
-- `backend/app/engine/effects/base.py` — add `attacker` field to `ko` event
-- `backend/app/api/simulations.py` — Gemma num_predict -1, timeout 30s; decisions endpoint filter params
-- `frontend/src/components/simulation/LiveConsole.tsx` — full rewrite: DOM list, attack_damage/ko/match_end handlers, onEventClick prop
-- `frontend/src/components/simulation/EventDetail.tsx` — new overlay component
-- `frontend/src/pages/SimulationLive.tsx` — wire onEventClick + EventDetail
-- `frontend/src/api/simulations.ts` — getSimulationDecisions filter params
-- `docs/STATUS.md` — this update
-
-### Previous Session — 2026-05-14
 
 ### Current Phase 13 Progress
 
 | Gate | Description | Status |
 |------|-------------|--------|
-| Gate 1 — Docker E2E | Submit sim at :3000, get real match data | ⏳ Unblocked — coverage gate now 100%, awaiting retest |
-| Gate 2 — Bug B Coach H/H | Coach runs when H/H unlocked | ⏳ Unblocked — awaiting retest |
-| Gate 3 — Light mode | All pages/components readable in light mode | ✅ ACCEPTED (verified by user) |
-| Gate 4 — Coverage 100% | All 185 real cards have handlers | ✅ DONE this session |
-| Gate 5 — Bug D Idempotency | Celery retry no longer crashes on dup round | ✅ FIXED this session |
-| Gate 6 — Copy-attack | Night Joker + Gemstone Mimicry implemented | ✅ Verified (5 tests) |
+| Gate 1 — Docker E2E | Submit sim at :3000, get real match data | ⏳ Awaiting retest |
+| Gate 2 — Bug B Coach H/H | Coach runs when H/H unlocked | ⏳ Awaiting retest |
+| Gate 3 — Light mode | All pages/components readable in light mode | ✅ ACCEPTED |
+| Gate 4 — Coverage 100% | All 185 real cards have handlers | ✅ DONE |
+| Gate 5 — Bug D Idempotency | Celery retry no longer crashes on dup round | ✅ FIXED |
+| Gate 6 — Copy-attack | Night Joker + Gemstone Mimicry implemented | ✅ Verified |
 | Gate 7 — Hardening | DB pre-ping, Ollama retry, WS reconnect | ✅ Implemented |
 | Gate 8 — Health endpoint | Reports all 7 service statuses | ✅ Implemented |
 | Gate 9 — Celery Beat | Nightly schedule registered | ✅ Confirmed |
 | Gate 10 — Makefile | `make help` lists all targets | ✅ Implemented |
+| Gate 11 — Console polish | Card names in events, win condition, clickable rows | ✅ FIXED this session |
 
 ### What Was Done This Session
-- **Bug D (round retry idempotency — FIXED)**: Celery retry crashed with PostgreSQL unique constraint violation on `(simulation_id, round_number)`. Fix: check for existing row before INSERT; reuse existing `round_id` on retry so the task can continue without crashing.
-- **Coverage 100%**: Implemented all 34 missing card handlers so real competitive decks pass the coverage gate:
-  - **registry.py**: Added `_passive_abilities: set`, `register_passive_ability()` method, updated `check_card_coverage()` to check passive set.
-  - **abilities.py**: Fixed `has_fairy_zone` to also check `me02.5-076` (alt print). Added `has_spherical_shield` helper. Registered 17 passive abilities (Wild Growth, Damp, Freezing Shroud, Adrena-Pheromone, Adrena-Power, Cornerstone Stance, Seasoned Skill, Skyliner, Fairy Zone ×2, Flower Curtain, Mysterious Rock Inn, Repelling Veil, Power Saver, Toxic Subjugation, Spherical Shield, Luminous Wing). Added active ability aliases: `me02.5-099:Adrena-Brain`, `me02.5-159:Recon Directive`.
-  - **trainers.py**: Implemented `_mega_signal` (search deck for Mega Evolution Pokémon ex). Registered 7 alternate-print aliases (Boss's Orders, Buddy-Buddy Poffin, Ultra Ball, Night Stretcher, Lillie's Determination, Crispin, Watchtower). Registered Mystery Garden as `_noop`.
-  - **attacks.py**: Added `has_spherical_shield` bench damage check. Implemented 7 new attack handlers: `_call_sign`, `_slight_intrusion`, `_rabsca_psychic`, `_cruel_arrow`, `_overflowing_wishes`, `_mega_symphonia`, `_shooting_moons`. Registered 4 alternate-print aliases (Phantom Dive me02.5-160, Full Moon Rondo me02.5-076, Mind Bend me02.5-099, Collect me01-058).
-  - **coverage.py**: Excluded `test-002` test fixture from coverage count.
-- **182 backend tests pass. 0 TypeScript errors.**
+
+- **Issue 1 — Rounds to Confirm**: Field (`targetConsecutiveRounds`) was already implemented in `ParamForm.tsx` and wired through `SimulationSetup.tsx`. It wasn't showing because the frontend Docker image was stale — the image bakes a static build and must be rebuilt after source changes. Ran `docker compose build frontend && docker compose up -d frontend` to fix.
+- **Issue 2 — Console card names**: Rewrote `LiveConsole.tsx` from xterm.js to a plain DOM scrollable list (`<div>` rows with Tailwind). Each event type now has a dedicated formatter. Added `attack_damage` handler showing `⚔ Phantom Dive: 120 dmg → Dwebble`. Fixed `ko` to show attacker: `★ KO — Dwebble (by Dragapult ex)`. Added `attacker` field to the `ko` event emitted in `engine/effects/base.py check_ko()`.
+- **Issue 3 — Win condition**: `match_end` and `game_over` handlers now show: `■ Match end — P2 wins (prizes: took all prize cards)`. All 4 win conditions have friendly labels: `prizes`, `deck_out`, `no_bench`, `turn_limit`.
+- **Issue 4 — Clickable decisions**: Console rows are DOM `<div onClick>` elements. Clicking any row opens new `EventDetail.tsx` overlay. Overlay shows all event data fields. For `ai_h`/`ai_ai` modes it fetches AI reasoning from the decisions table using `match_id` + `turn_number` + `player_id` filters. Backend `/api/simulations/{id}/decisions` endpoint extended with optional `match_id`, `turn_number`, `player_id` query params. Frontend API client updated to pass them.
+- **Issue 5 — Deck naming**: Fixed `_get_deck_name_from_gemma()` — `num_predict: 20` → `-1` (Gemma4 E4B uses internal thinking tokens before output; any value ≤512 produces empty responses). Timeout raised from 5s → 30s to allow thinking time.
+- **184 backend tests pass. 0 TypeScript errors.**
 
 ### Active Files Changed This Session
 
+#### Created
+- `frontend/src/components/simulation/EventDetail.tsx` — clickable event detail overlay (event data + AI reasoning)
+
 #### Modified
-- `backend/app/tasks/simulation.py` — Bug D fix: idempotent round creation (check-then-insert)
-- `backend/app/engine/effects/registry.py` — `_passive_abilities` set, `register_passive_ability()`, updated `check_card_coverage()`
-- `backend/app/engine/effects/abilities.py` — `has_fairy_zone` alt-print fix, `has_spherical_shield`, passive ability registrations, active ability aliases
-- `backend/app/engine/effects/trainers.py` — `_mega_signal` handler, 7 alt-print aliases, Mystery Garden noop
-- `backend/app/engine/effects/attacks.py` — Spherical Shield in `_apply_bench_damage`, 7 new handlers, 4 alt-print aliases
-- `backend/app/api/coverage.py` — exclude `test-002` test fixture
+- `backend/app/engine/effects/base.py` — add `attacker` field to `ko` event in `check_ko()`
+- `backend/app/api/simulations.py` — Gemma `num_predict -1`, timeout 30s; decisions endpoint `match_id`/`turn_number`/`player_id` filter params
+- `frontend/src/components/simulation/LiveConsole.tsx` — full rewrite: xterm removed, DOM list, all event handlers, `onEventClick` prop
+- `frontend/src/pages/SimulationLive.tsx` — import `EventDetail`, add `selectedEvent` state, wire `onEventClick={setSelectedEvent}`, render `<EventDetail>`
+- `frontend/src/api/simulations.ts` — `getSimulationDecisions` accepts `match_id`, `turn_number`, `player_id` filter opts
 - `docs/STATUS.md` — this update
 
 ### Known Issues / Gaps
-- **Bugs A and B need retest**: Coverage gate was blocking any real simulation. Now that it's 100%, user needs to submit a real simulation through Docker (Bug A) and confirm Coach runs in H/H unlocked mode (Bug B).
-- **Mystery Garden and Watchtower**: Both registered as `_noop` — stadium optional actions not yet implemented (no `USE_STADIUM` action type in engine). These cards won't cause simulation crashes but their effects don't fire.
+- **Bugs A and B still need visual retest**: Gates 1 and 2 above. Coverage is 100% so real sims can run — user just needs to test them.
+- **Mystery Garden and Watchtower**: Registered as `_noop` — stadium optional actions not yet in the engine. Cards won't crash sims but their effects don't fire.
+- **Frontend Docker rebuild required on every frontend change**: The frontend image bakes a static build. Unlike the backend (which mounts source via volume), frontend changes are invisible until `docker compose build frontend && docker compose up -d frontend` is run. This caught us with Issue 1.
+- **EventDetail for H/H mode**: AI reasoning section is shown but returns "No AI decision recorded" (expected — H/H uses heuristics, no decisions stored). This is correct behavior, not a bug.
 
 ### Key Decisions Made This Session
-- **Passive abilities registered separately**: Instead of `_noop` in `_ability_effects` (which would offer spurious USE_ABILITY actions), passive abilities are tracked in `_passive_abilities` set. Coverage checker checks both sets; action generator only checks `_ability_effects`.
-- **test-002 excluded from coverage**: Test fixture card excluded at the API layer in `coverage.py`, not removed from DB. Keeps test infrastructure intact.
-- **Spherical Shield blocks all bench damage**: Registered as passive + enforced in `_apply_bench_damage`. More thorough than Flower Curtain (which only protects non-rule-box).
+- **xterm.js removed**: Replaced with plain DOM list. xterm.js provided no benefit (no interactive input needed), couldn't support per-row click events, and added 300KB+ to the bundle. DOM list is simpler, supports Tailwind, and is natively clickable.
+- **EventDetail vs repurposing DecisionDetail**: Created a new `EventDetail.tsx` rather than modifying `DecisionDetail.tsx`. DecisionDetail is a paginated full-browse panel; EventDetail is a per-event focused overlay. Both coexist — "View AI Decisions" button still opens DecisionDetail.
+- **Gemma4 num_predict=-1 is mandatory**: The Gemma4 E4B instruction-tuned model generates thinking tokens internally before producing output. Any finite `num_predict` budget below ~512 is consumed by thinking tokens, leaving zero output tokens. Using `-1` (unlimited) is the correct approach per Ollama's Gemma4 implementation.
 
 ### Notes for Next Session
 - **Phase 13 is NOT accepted yet.** User needs to visually retest:
-  1. **Bug A (Docker E2E)**: Submit a NEW simulation through Docker stack (port 3000) with PTCGL format decks, confirm it completes with real match data.
-  2. **Bug B (Coach H/H)**: Submit a H/H simulation with unlocked Coach, verify Coach analysis runs.
-- **Before user begins testing**: Run `docker compose up -d` and confirm all containers are healthy. Celery worker was restarted at end of session.
-- **Test/build baseline**: 182 backend tests passing, 0 TypeScript errors.
-- **Once both visual checks pass**: Phase 13 is accepted. Add entry to `docs/CHANGELOG.md`, mark Phase 13 complete.
+  1. **Gate 1 (Docker E2E)**: Submit a new simulation at `localhost:3000` with PTCGL format decks. Verify it completes with real match data, graphs populate, console shows card names.
+  2. **Gate 2 (Coach H/H)**: Submit an H/H simulation with Coach unlocked (deck_locked=false). Verify Coach analysis runs and Deck Mutation Log populates.
+  3. **Console QA**: Check that clicking a console event row opens the EventDetail overlay. Verify attack_damage, ko, and match_end lines show card names and win condition.
+  4. **Deck naming**: Submit a new sim. After it completes, check if the deck name in the report is a real name (not "Custom Deck"). Gemma may take up to 30s — it runs at sim creation time, not after.
+- **Before user begins testing**: Run `docker compose up -d` and confirm all containers healthy. Frontend was rebuilt at end of this session.
+- **Test/build baseline**: 184 backend tests passing, 0 TypeScript errors.
+- **Once visual checks pass**: Phase 13 is accepted. Add entry to `docs/CHANGELOG.md` and mark Phase 13 complete in this file.
 
-## Previous Last Session
-- **Date:** 2026-05-03
+## Previous Session — 2026-05-03 (Phase 13 Groups A–F)
 - Phase 13 (Polish, Hardening & Scheduling) Groups A–F implemented:
   1. **Group A — Backend Hardening**: DB pool `pool_pre_ping=True, pool_recycle=3600`; Ollama retry (3× exponential backoff) in `ai_player`, `analyst`, `embeddings`; full `/health` endpoint (7 checks); WebSocket auto-reconnect; Celery Beat nightly schedule.
   2. **Group B — Copy-Attack Engine**: `_night_joker` (N's Zoroark ex) and `_gemstone_mimicry` (TR Mimikyu) fully implemented with depth-limit-1 cycle guard. 5 new tests.
