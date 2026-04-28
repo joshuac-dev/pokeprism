@@ -1,108 +1,150 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
-import { Terminal } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
-import '@xterm/xterm/css/xterm.css';
+import { useEffect, useRef } from 'react';
 import type { NormalisedEvent } from '../../types/simulation';
 
 // ---------------------------------------------------------------------------
-// Color helpers
+// Line formatting — returns { text, cls } for DOM rendering
 // ---------------------------------------------------------------------------
 
-const RESET  = '\x1b[0m';
-const DIM    = '\x1b[2m';
-const CYAN   = '\x1b[36m';
-const BCYAN  = '\x1b[1;36m';
-const WHITE  = '\x1b[37m';
-const BGREEN = '\x1b[1;32m';
-const YELLOW = '\x1b[33m';
-const BYELLOW= '\x1b[1;33m';
-const BLUE   = '\x1b[34m';
-const BRED   = '\x1b[1;31m';
+const WIN_COND_LABELS: Record<string, string> = {
+  prizes:     'took all prize cards',
+  deck_out:   'opponent drew from empty deck',
+  no_bench:   'opponent had no bench to promote',
+  turn_limit: 'turn limit reached',
+};
 
-function fmt(ev: NormalisedEvent): string {
-  const t = ev.type ?? '';
+interface FmtResult {
+  text: string;
+  /** Tailwind text-color class(es) */
+  cls: string;
+}
+
+function fmt(ev: NormalisedEvent): FmtResult {
+  const t  = ev.type ?? '';
   const et = ev.eventType ?? '';
+  const turn = ev.turn != null ? `T${ev.turn} ` : '';
+  const who  = ev.player ? `[${ev.player}] ` : '';
 
-  // Top-level lifecycle events
+  // ── Top-level lifecycle ──────────────────────────────────────────────────
   if (t === 'round_start') {
-    return `${BCYAN}━━━ Round ${ev.round_number ?? '?'} start ━━━${RESET}`;
+    return { text: `━━━ Round ${ev.round_number ?? '?'} start ━━━`, cls: 'text-cyan-400 font-semibold' };
   }
   if (t === 'round_end') {
-    const wr = ev.data?.win_rate != null ? ` | win rate: ${Math.round((ev.data.win_rate as number) * 100)}%` : '';
-    return `${BCYAN}━━━ Round ${ev.round_number ?? '?'} end${wr} ━━━${RESET}`;
+    const wr = ev.data?.win_rate != null
+      ? ` | win rate: ${Math.round((ev.data.win_rate as number) * 100)}%`
+      : '';
+    return { text: `━━━ Round ${ev.round_number ?? '?'} end${wr} ━━━`, cls: 'text-cyan-400 font-semibold' };
   }
   if (t === 'match_start') {
-    const p1 = ev.p1_deck_name ?? (ev.data?.p1 as string) ?? 'P1';
-    const p2 = ev.p2_deck_name ?? (ev.data?.p2 as string) ?? 'P2';
-    return `${CYAN}▶ Match start — ${p1} vs ${p2}${RESET}`;
+    const n  = ev.data?.match_number as number | undefined;
+    const p1 = ev.p1_deck_name ?? (ev.data?.p1_deck as string) ?? (ev.data?.p1 as string) ?? 'P1';
+    const p2 = ev.p2_deck_name ?? (ev.data?.p2_deck as string) ?? (ev.data?.p2 as string) ?? 'P2';
+    const label = n != null ? `Match ${n}` : 'Match';
+    return { text: `╌╌╌ ${label}: ${p1} vs ${p2} ╌╌╌`, cls: 'text-cyan-300' };
   }
   if (t === 'match_end') {
-    const winner = (ev.data?.winner as string) ?? '?';
-    return `${DIM}■ Match end — winner: ${winner}${RESET}`;
+    return fmtMatchEnd(ev.data?.winner as string, ev.data?.condition as string);
   }
   if (t === 'deck_mutation') {
-    const ci = (ev.data?.card_in as string) ?? '?';
+    const ci = (ev.data?.card_in  as string) ?? '?';
     const co = (ev.data?.card_out as string) ?? '?';
-    return `${BYELLOW}⟳ Deck swap: −${co} / +${ci}${RESET}`;
+    return { text: `⟳ Deck swap: −${co} / +${ci}`, cls: 'text-yellow-400 font-semibold' };
   }
   if (t === 'target_reached') {
-    return `${BYELLOW}★ Target win rate reached!${RESET}`;
+    const hits   = (ev.data?.consecutive_hits as number) ?? 1;
+    const suffix = hits > 1 ? ` (${hits} consecutive)` : '';
+    return { text: `★ Target win rate reached!${suffix}`, cls: 'text-yellow-300 font-semibold' };
   }
   if (t === 'simulation_complete') {
     const wr = ev.data?.final_win_rate != null
       ? ` | final win rate: ${Math.round((ev.data.final_win_rate as number) * 100)}%`
       : '';
-    return `${BGREEN}✓ Simulation complete${wr}${RESET}`;
+    return { text: `✓ Simulation complete${wr}`, cls: 'text-green-400 font-semibold' };
   }
   if (t === 'simulation_cancelled') {
-    return `${BYELLOW}⊘ Simulation cancelled${RESET}`;
+    return { text: '⊘ Simulation cancelled', cls: 'text-yellow-400' };
   }
   if (t === 'simulation_error') {
     const msg = (ev.data?.error as string) ?? 'unknown error';
-    return `${BRED}✗ Simulation error: ${msg}${RESET}`;
+    return { text: `✗ Simulation error: ${msg}`, cls: 'text-red-400 font-semibold' };
   }
 
-  // match_event discriminated by event_type
+  // ── match_event discriminated by event_type ──────────────────────────────
   if (t === 'match_event') {
-    const turn = ev.turn != null ? `T${ev.turn} ` : '';
-    const who  = ev.player ? `[${ev.player}] ` : '';
-
-    if (et === 'attack') {
-      const name = (ev.data?.attack_name as string) ?? (ev.data?.move as string) ?? 'attack';
-      const dmg  = ev.data?.damage != null ? ` (${ev.data.damage} dmg)` : '';
-      return `${WHITE}${turn}${who}⚔ ${name}${dmg}${RESET}`;
+    if (et === 'game_start') {
+      const p1 = (ev.data?.p1_deck as string) ?? 'P1';
+      const p2 = (ev.data?.p2_deck as string) ?? 'P2';
+      return { text: `╌╌╌ Match start: ${p1} vs ${p2} ╌╌╌`, cls: 'text-cyan-300' };
+    }
+    if (et === 'game_over') {
+      return fmtMatchEnd(ev.data?.winner as string, ev.data?.condition as string);
+    }
+    if (et === 'attack_declared' || et === 'attack') {
+      const attacker    = (ev.data?.attacker    as string) ?? '';
+      const name        = (ev.data?.attack_name as string) ?? (ev.data?.move as string) ?? 'attack';
+      const attackerStr = attacker ? `${attacker}: ` : '';
+      return { text: `${turn}${who}⚔ ${attackerStr}${name}`, cls: 'text-white' };
+    }
+    if (et === 'attack_damage') {
+      const dmg      = (ev.data?.final_damage as number) ?? (ev.data?.base_damage as number) ?? '?';
+      const attacker = (ev.data?.attacker     as string) ?? '';
+      const defender = (ev.data?.defender     as string) ?? '';
+      const atkName  = (ev.data?.attack_name  as string) ?? '';
+      const label    = atkName ? `${atkName}` : attacker ? `${attacker}` : 'attack';
+      const defStr   = defender ? ` → ${defender}` : '';
+      return { text: `${turn}${who}⚔ ${label}: ${dmg} dmg${defStr}`, cls: 'text-white' };
     }
     if (et === 'ko') {
-      const card = (ev.data?.card as string) ?? (ev.data?.target as string) ?? 'Pokémon';
-      return `${BGREEN}${turn}${who}★ KO — ${card}${RESET}`;
+      const card     = (ev.data?.card_name as string) ?? (ev.data?.card as string) ?? 'Pokémon';
+      const attacker = (ev.data?.attacker  as string) ?? '';
+      const byStr    = attacker ? ` (by ${attacker})` : '';
+      return { text: `${turn}${who}★ KO — ${card}${byStr}`, cls: 'text-green-400 font-semibold' };
     }
-    if (et === 'prize_taken') {
+    if (et === 'prizes_taken' || et === 'prize_taken') {
       const cnt = (ev.data?.count as number) ?? 1;
-      return `${YELLOW}${turn}${who}◆ Prize taken (${cnt})${RESET}`;
+      const rem = ev.data?.remaining != null ? ` (${ev.data.remaining} left)` : '';
+      return { text: `${turn}${who}◆ Prize ×${cnt}${rem}`, cls: 'text-yellow-400' };
     }
     if (et === 'energy_attached') {
-      const card = (ev.data?.card as string) ?? (ev.data?.energy as string) ?? 'energy';
-      return `${BLUE}${turn}${who}⚡ Attach ${card}${RESET}`;
+      const card   = (ev.data?.card   as string) ?? (ev.data?.energy as string) ?? 'energy';
+      const target = (ev.data?.target as string) ?? '';
+      const tgt    = target ? ` → ${target}` : '';
+      return { text: `${turn}${who}⚡ ${card}${tgt}`, cls: 'text-blue-400' };
     }
-    if (et === 'trainer_played') {
-      const card = (ev.data?.card as string) ?? 'trainer';
-      return `${WHITE}${turn}${who}▷ ${card}${RESET}`;
-    }
-    if (et === 'bench_played') {
+    if (et === 'play_basic' || et === 'bench_played') {
       const card = (ev.data?.card as string) ?? 'Pokémon';
-      return `${WHITE}${turn}${who}+ Bench ${card}${RESET}`;
+      return { text: `${turn}${who}+ Bench ${card}`, cls: 'text-slate-300' };
+    }
+    if (et === 'play_supporter' || et === 'play_item' || et === 'trainer_played') {
+      const card = (ev.data?.card as string) ?? 'card';
+      return { text: `${turn}${who}▷ ${card}`, cls: 'text-slate-300' };
+    }
+    if (et === 'evolve' || et === 'rare_candy_evolve') {
+      const from = (ev.data?.from_card as string) ?? (ev.data?.from as string) ?? '?';
+      const to   = (ev.data?.to_card   as string) ?? (ev.data?.to   as string) ?? '?';
+      return { text: `${turn}${who}↑ ${from} → ${to}`, cls: 'text-slate-300' };
     }
     if (et === 'retreat') {
-      const from = (ev.data?.from as string) ?? '?';
-      const to   = (ev.data?.to as string) ?? '?';
-      return `${DIM}${turn}${who}↩ Retreat ${from} → ${to}${RESET}`;
+      const from = (ev.data?.from_card as string) ?? (ev.data?.from as string) ?? '?';
+      const to   = (ev.data?.to_card   as string) ?? (ev.data?.to   as string) ?? '?';
+      return { text: `${turn}${who}↩ Retreat ${from} → ${to}`, cls: 'text-slate-500' };
     }
-    // fallback for unknown match_event types
-    return `${DIM}${turn}${who}${et}${RESET}`;
+    if (et === 'draw') {
+      const count = (ev.data?.count as number) ?? 1;
+      return { text: `${turn}${who}↓ Draw ×${count}`, cls: 'text-slate-500' };
+    }
+    // fallback
+    return { text: `${turn}${who}${et}`, cls: 'text-slate-600' };
   }
 
-  // Unknown top-level type
-  return `${DIM}${t}${RESET}`;
+  // Unknown top-level
+  return { text: t, cls: 'text-slate-600' };
+}
+
+function fmtMatchEnd(winner: string | undefined, cond: string | undefined): FmtResult {
+  const raw = winner ?? '?';
+  const winnerLabel = raw === 'p1' ? 'P1' : raw === 'p2' ? 'P2' : raw;
+  const condLabel   = cond ? ` (${cond}: ${WIN_COND_LABELS[cond] ?? cond})` : '';
+  return { text: `■ Match end — ${winnerLabel} wins${condLabel}`, cls: 'text-slate-500' };
 }
 
 // ---------------------------------------------------------------------------
@@ -114,99 +156,57 @@ interface Props {
   totalEvents: number;
   hasMore: boolean;
   onLoadEarlier?: () => Promise<void>;
+  onEventClick?: (ev: NormalisedEvent) => void;
 }
 
-export default function LiveConsole({ events, totalEvents, hasMore, onLoadEarlier }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const termRef      = useRef<Terminal | null>(null);
-  const fitRef       = useRef<FitAddon | null>(null);
-  const writtenRef   = useRef(0);        // index of last written event in events[]
-  const loadingEarlierRef = useRef(false);
+export default function LiveConsole({
+  events,
+  totalEvents,
+  hasMore,
+  onLoadEarlier,
+  onEventClick,
+}: Props) {
+  const containerRef     = useRef<HTMLDivElement>(null);
+  const bottomRef        = useRef<HTMLDivElement>(null);
+  const autoScrollRef    = useRef(true);
+  const prevLengthRef    = useRef(0);
+  const loadingRef       = useRef(false);
 
-  // Initialise xterm once
-  useLayoutEffect(() => {
-    if (!containerRef.current || termRef.current) return;
-
-    const term = new Terminal({
-      theme: {
-        background: '#0f172a',  // slate-950
-        foreground: '#cbd5e1',  // slate-300
-        cursor:     '#3b82f6',  // blue-500
-        selectionBackground: '#1e3a5f',
-      },
-      fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
-      fontSize: 12,
-      lineHeight: 1.4,
-      scrollback: 10000,
-      convertEol: true,
-      cursorBlink: false,
-    });
-
-    const fit = new FitAddon();
-    term.loadAddon(fit);
-    term.open(containerRef.current);
-    fit.fit();
-
-    termRef.current = term;
-    fitRef.current  = fit;
-
-    term.writeln(`\x1b[1;34mPokéPrism live console ready\x1b[0m`);
-    term.writeln(`\x1b[2m─────────────────────────────────────────\x1b[0m`);
-
-    const ro = new ResizeObserver(() => fit.fit());
-    ro.observe(containerRef.current);
-    return () => {
-      ro.disconnect();
-      term.dispose();
-      termRef.current = null;
-      fitRef.current  = null;
-      writtenRef.current = 0;
-    };
-  }, []);
-
-  // Diff-write new events (only append new ones, never rewrite whole buffer)
+  // Scroll to bottom when new events arrive (if user hasn't scrolled up)
   useEffect(() => {
-    const term = termRef.current;
-    if (!term) return;
-
-    // If events shrank (prepend caused a reset), rewrite from start
-    if (writtenRef.current > events.length) {
-      writtenRef.current = 0;
-      term.clear();
+    if (events.length > prevLengthRef.current) {
+      prevLengthRef.current = events.length;
+      if (autoScrollRef.current) {
+        bottomRef.current?.scrollIntoView({ behavior: 'instant' });
+      }
     }
-
-    const toWrite = events.slice(writtenRef.current);
-    for (const ev of toWrite) {
-      term.writeln(fmt(ev));
-    }
-    writtenRef.current = events.length;
   }, [events]);
 
+  const handleScroll = () => {
+    const el = containerRef.current;
+    if (!el) return;
+    autoScrollRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+  };
+
   const handleLoadEarlier = async () => {
-    if (loadingEarlierRef.current || !onLoadEarlier) return;
-    loadingEarlierRef.current = true;
-    // Mark the terminal before reload
-    termRef.current?.writeln(
-      `\x1b[2m── Loading earlier events… ──\x1b[0m`
-    );
-    // Prepending resets writtenRef in the events effect above
-    writtenRef.current = 0;
+    if (loadingRef.current || !onLoadEarlier) return;
+    loadingRef.current = true;
     await onLoadEarlier();
-    loadingEarlierRef.current = false;
+    loadingRef.current = false;
   };
 
   const showing = events.length;
   const hidden  = Math.max(0, totalEvents - showing);
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 rounded-lg border border-slate-700 dark:border-slate-800 overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-950 rounded-lg border border-slate-700 overflow-hidden">
       {/* Load-earlier bar */}
       {hasMore && (
         <button
           onClick={handleLoadEarlier}
           className="w-full py-1.5 px-4 text-xs text-slate-400 hover:text-slate-100
                      bg-slate-900 border-b border-slate-800 hover:bg-slate-800
-                     transition-colors text-left"
+                     transition-colors text-left shrink-0"
         >
           ↑ Load earlier events
           {hidden > 0 && (
@@ -215,14 +215,39 @@ export default function LiveConsole({ events, totalEvents, hasMore, onLoadEarlie
         </button>
       )}
 
-      {/* Terminal container */}
-      <div ref={containerRef} className="flex-1 min-h-0 p-1" />
+      {/* Event list */}
+      <div
+        ref={containerRef}
+        className="flex-1 min-h-0 overflow-y-auto py-1"
+        onScroll={handleScroll}
+        style={{ fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace' }}
+      >
+        {events.length === 0 && (
+          <p className="text-slate-600 text-xs px-3 py-2">Waiting for events…</p>
+        )}
+        {events.map((ev, i) => {
+          const { text, cls } = fmt(ev);
+          return (
+            <div
+              key={ev.id ?? i}
+              onClick={() => onEventClick?.(ev)}
+              className={`px-3 py-px text-xs leading-5 whitespace-pre-wrap break-all select-text
+                ${cls}
+                ${onEventClick ? 'cursor-pointer hover:bg-slate-900 rounded' : ''}`}
+            >
+              {text}
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
 
       {/* Footer */}
-      <div className="px-3 py-1 text-xs text-slate-600 border-t border-slate-800 flex justify-between">
+      <div className="px-3 py-1 text-xs text-slate-600 border-t border-slate-800 flex justify-between shrink-0">
         <span>{showing.toLocaleString()} events shown</span>
         {totalEvents > 0 && <span>{totalEvents.toLocaleString()} total</span>}
       </div>
     </div>
   );
 }
+

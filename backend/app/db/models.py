@@ -100,8 +100,9 @@ class Simulation(Base):
 
     matches_per_opponent = Column(Integer, nullable=False, default=10)
     num_rounds           = Column(Integer, nullable=False, default=5)
-    target_win_rate      = Column(Integer, nullable=False, default=60)  # stored as %
-    target_mode          = Column(Text, nullable=False, default="aggregate")
+    target_win_rate           = Column(Integer, nullable=False, default=60)  # stored as %
+    target_consecutive_rounds = Column(Integer, nullable=False, default=1)
+    target_mode               = Column(Text, nullable=False, default="aggregate")
     excluded_cards       = Column(JSONB, default=list)
 
     final_win_rate       = Column(Integer)

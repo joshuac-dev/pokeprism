@@ -133,6 +133,7 @@ class SimulationCreate(BaseModel):
     num_rounds: int = Field(default=5, ge=1, le=100)
     matches_per_opponent: int = Field(default=10, ge=1, le=1000)
     target_win_rate: float = Field(default=0.60, ge=0.0, le=1.0)
+    target_consecutive_rounds: int = Field(default=1, ge=1, le=100)
     opponent_deck_texts: list[str] = Field(default_factory=list)
     excluded_card_ids: list[str] = Field(default_factory=list)
 
@@ -184,7 +185,7 @@ def _parse_deck_lines(deck_text: str) -> list[tuple[int, str, str]]:
     return results
 
 
-async def _get_deck_name_from_gemma(deck_text: str, timeout: float = 5.0) -> Optional[str]:
+async def _get_deck_name_from_gemma(deck_text: str, timeout: float = 30.0) -> Optional[str]:
     """Ask Gemma to generate a deck name.  Returns None on any failure."""
     from app.coach.prompts import DECK_NAME_PROMPT
 
@@ -213,7 +214,7 @@ async def _get_deck_name_from_gemma(deck_text: str, timeout: float = 5.0) -> Opt
         "model": settings.OLLAMA_COACH_MODEL,
         "messages": [{"role": "user", "content": prompt}],
         "stream": False,
-        "options": {"temperature": 0.5, "num_predict": 20},
+        "options": {"temperature": 0.5, "num_predict": -1},
     }
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -233,10 +234,19 @@ async def _get_deck_name_from_gemma(deck_text: str, timeout: float = 5.0) -> Opt
 def _fallback_deck_name(deck_text: str) -> str:
     """Return a fallback deck name by finding the first 'ex' or prominent Pokémon.
 
-    Handles both internal format ``4 Dragapult ex sv06-130`` and PTCGLive
-    export format ``2 Dragapult ex (SPA 130)``.
+    Handles internal format ``4 Dragapult ex sv06-130``, PTCGLive
+    export ``2 Dragapult ex (SPA 130)``, and PTCGL format ``4 Dragapult ex TWM 130``.
     """
     import re
+
+    # PTCGL format: "<count> <name> <SET> <NUM>" — last token is a number, second-to-last is SET abbrev
+    ptcgl_entries = _parse_ptcgl_deck_text(deck_text)
+    if ptcgl_entries:
+        ex_names = [e["name"] for e in ptcgl_entries if " ex" in e["name"].lower() or e["name"].lower().endswith("ex")]
+        if ex_names:
+            return f"{ex_names[0]} Deck"
+        return f"{ptcgl_entries[0]['name']} Deck"
+
     for raw in deck_text.splitlines():
         line = raw.strip()
         if not line or line.startswith("#"):
@@ -394,6 +404,7 @@ async def create_simulation(
         matches_per_opponent=body.matches_per_opponent,
         num_rounds=body.num_rounds,
         target_win_rate=target_win_rate_int,
+        target_consecutive_rounds=body.target_consecutive_rounds,
         target_mode="aggregate",
         excluded_cards=body.excluded_card_ids,
         user_deck_name=deck_name,
@@ -848,11 +859,15 @@ async def get_simulation_decisions(
     simulation_id: str,
     limit: int = 50,
     offset: int = 0,
+    match_id: Optional[str] = None,
+    turn_number: Optional[int] = None,
+    player_id: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Return paginated AI decisions for a simulation.
 
     Only populated for ai_h / ai_ai game modes.
+    Supports optional filtering by match_id, turn_number, and player_id.
     """
     import uuid as _uuid_mod
 
@@ -864,13 +879,24 @@ async def get_simulation_decisions(
     limit = max(1, min(limit, 200))
     offset = max(0, offset)
 
+    conditions = [Decision.simulation_id == sim_uuid]
+    if match_id is not None:
+        try:
+            conditions.append(Decision.match_id == _uuid_mod.UUID(match_id))
+        except ValueError:
+            pass  # ignore invalid match_id
+    if turn_number is not None:
+        conditions.append(Decision.turn_number == turn_number)
+    if player_id is not None:
+        conditions.append(Decision.player_id == player_id)
+
     total: int = (await db.execute(
-        select(func.count(Decision.id)).where(Decision.simulation_id == sim_uuid)
+        select(func.count(Decision.id)).where(*conditions)
     )).scalar() or 0
 
     rows = (await db.execute(
         select(Decision)
-        .where(Decision.simulation_id == sim_uuid)
+        .where(*conditions)
         .order_by(Decision.created_at.asc())
         .limit(limit)
         .offset(offset)

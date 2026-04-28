@@ -7,6 +7,8 @@ import LiveConsole from '../components/simulation/LiveConsole';
 import SimulationStatus from '../components/simulation/SimulationStatus';
 import DeckChangesTile from '../components/simulation/DeckChangesTile';
 import DecisionDetail from '../components/simulation/DecisionDetail';
+import EventDetail from '../components/simulation/EventDetail';
+import type { NormalisedEvent } from '../types/simulation';
 
 export default function SimulationLive() {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +31,7 @@ export default function SimulationLive() {
 
   const [cancelling, setCancelling] = useState(false);
   const [decisionOpen, setDecisionOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<NormalisedEvent | null>(null);
   const navigate = useNavigate();
 
   const handleCancel = async () => {
@@ -68,6 +71,7 @@ export default function SimulationLive() {
             totalEvents={totalEvents}
             hasMore={hasMore}
             onLoadEarlier={loadEarlierEvents}
+            onEventClick={setSelectedEvent}
           />
         </div>
 
@@ -113,6 +117,16 @@ export default function SimulationLive() {
           simulationId={id}
           open={decisionOpen}
           onClose={() => setDecisionOpen(false)}
+        />
+      )}
+
+      {/* Event detail overlay (clickable console rows) */}
+      {id && selectedEvent && (
+        <EventDetail
+          simulationId={id}
+          event={selectedEvent}
+          isAiMode={isAiMode}
+          onClose={() => setSelectedEvent(null)}
         />
       )}
     </PageShell>

@@ -185,6 +185,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
             num_rounds = sim.num_rounds
             matches_per_opponent = sim.matches_per_opponent
             target_win_rate = sim.target_win_rate  # integer percentage (e.g. 60)
+            target_consecutive_rounds = sim.target_consecutive_rounds if sim.target_consecutive_rounds is not None else 1
             deck_locked = sim.deck_locked
             game_mode = sim.game_mode
             user_deck_id = sim.user_deck_id
@@ -231,6 +232,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
         writer = MatchMemoryWriter()
         final_win_rate = 0
         total_round_matches = 0
+        consecutive_target_hits = 0
 
         # ── 5. Round loop ───────────────────────────────────────────────────
         for round_number in range(1, num_rounds + 1):
@@ -336,6 +338,8 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                                 "round_number": _round_num,
                                 "match_number": _counter["n"],
                                 "event": etype,
+                                "turn": event.get("turn"),
+                                "player": event.get("player") or event.get("active_player"),
                                 "data": {k: v for k, v in event.items() if k != "event_type"},
                             })
                     return _cb
@@ -460,22 +464,9 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                     )
 
             if win_rate_pct >= target_win_rate:
-                _publish({
-                    "type": "target_reached",
-                    "simulation_id": simulation_id,
-                    "round_number": round_number,
-                    "win_rate": win_rate_pct / 100.0,
-                })
-                _publish({
-                    "type": "round_end",
-                    "simulation_id": simulation_id,
-                    "round_number": round_number,
-                    "win_rate": win_rate_pct / 100.0,
-                    "wins": p1_wins_round,
-                    "total": p1_total_round,
-                    "mutations": mutations_for_event,
-                })
-                break
+                consecutive_target_hits += 1
+            else:
+                consecutive_target_hits = 0
 
             _publish({
                 "type": "round_end",
@@ -486,6 +477,16 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                 "total": p1_total_round,
                 "mutations": mutations_for_event,
             })
+
+            if consecutive_target_hits >= target_consecutive_rounds:
+                _publish({
+                    "type": "target_reached",
+                    "simulation_id": simulation_id,
+                    "round_number": round_number,
+                    "win_rate": win_rate_pct / 100.0,
+                    "consecutive_hits": consecutive_target_hits,
+                })
+                break
 
         # ── 6. Mark complete ────────────────────────────────────────────────
         async with SessionFactory() as db:
@@ -621,6 +622,79 @@ async def ensure_deck_cards_in_db(deck_texts: list[str], db: AsyncSession) -> No
     await db.commit()
 
 
+def _card_def_from_row(row) -> "CardDefinition":
+    """Build a complete CardDefinition from a DB Card row.
+
+    Populates attacks, abilities, energy_provides, weaknesses, and resistances
+    from DB JSONB columns — fields omitted here cause silent engine failures
+    (no attacks → 100% deck-out; no registry entry → wrong active placement).
+    """
+    from app.cards.models import CardDefinition, AttackDef, AbilityDef, WeaknessDef, ResistanceDef
+
+    attacks = [
+        AttackDef(
+            name=a.get("name", ""),
+            cost=a.get("cost") or [],
+            damage=str(a.get("damage", "")),
+            effect=a.get("effect", ""),
+        )
+        for a in (row.attacks or [])
+    ]
+
+    abilities = [
+        AbilityDef(
+            name=a.get("name", ""),
+            type=a.get("type", "Ability"),
+            effect=a.get("effect", ""),
+        )
+        for a in (row.abilities or [])
+    ]
+
+    weaknesses = [
+        WeaknessDef(type=w.get("type", ""), value=w.get("value", ""))
+        for w in (row.weaknesses or [])
+    ]
+
+    resistances = [
+        ResistanceDef(type=r.get("type", ""), value=r.get("value", ""))
+        for r in (row.resistances or [])
+    ]
+
+    # Derive energy_provides for basic energy cards from the card name
+    energy_provides: list[str] = []
+    if (row.category or "").lower() == "energy" and (row.subcategory or "").lower() == "basic":
+        name_lower = (row.name or "").lower()
+        for etype in ("Grass", "Fire", "Water", "Lightning", "Psychic",
+                      "Fighting", "Darkness", "Metal", "Dragon", "Fairy"):
+            if etype.lower() in name_lower:
+                energy_provides = [etype]
+                break
+        if not energy_provides and (row.types or []):
+            energy_provides = [row.types[0]]
+
+    return CardDefinition(
+        tcgdex_id=row.tcgdex_id,
+        name=row.name,
+        set_abbrev=row.set_abbrev,
+        set_number=row.set_number,
+        category=row.category or "",
+        subcategory=row.subcategory or "",
+        hp=row.hp,
+        types=row.types or [],
+        evolve_from=row.evolve_from,
+        stage=row.stage or "",
+        attacks=attacks,
+        abilities=abilities,
+        weaknesses=weaknesses,
+        resistances=resistances,
+        energy_provides=energy_provides,
+        retreat_cost=row.retreat_cost or 0,
+        regulation_mark=row.regulation_mark,
+        rarity=row.rarity,
+        image_url=row.image_url,
+    )
+
+
 async def _deck_text_to_card_defs(
     deck_text: str,
     SessionFactory: async_sessionmaker,
@@ -632,11 +706,16 @@ async def _deck_text_to_card_defs(
     (fetched via ``ensure_deck_cards_in_db`` at submission time).
 
     Raises ``ValueError`` if a PTCGL card is not found in the DB.
+
+    Side effect: registers all loaded CardDefinitions in the global in-memory
+    registry so engine helpers (choose_setup, _best_energy_target, etc.) can
+    look up card data by tcgdex_id during the simulation.
     """
     if not deck_text.strip():
         return []
 
     from app.cards.models import CardDefinition
+    from app.cards import registry as card_registry
     from app.db.models import Card
 
     # ── 1. Try TCGdex format (existing path: last token contains a hyphen) ───
@@ -650,25 +729,10 @@ async def _deck_text_to_card_defs(
             card_rows = {row.tcgdex_id: row for row in result.scalars().all()}
 
         defs: list[CardDefinition] = []
+        unique_defs: dict[str, CardDefinition] = {}
         for count, tcgdex_id in tcgdex_entries:
             if tcgdex_id in card_rows:
-                row = card_rows[tcgdex_id]
-                card_def = CardDefinition(
-                    tcgdex_id=row.tcgdex_id,
-                    name=row.name,
-                    set_abbrev=row.set_abbrev,
-                    set_number=row.set_number,
-                    category=row.category or "",
-                    subcategory=row.subcategory or "",
-                    hp=row.hp,
-                    types=row.types or [],
-                    evolve_from=row.evolve_from,
-                    stage=row.stage or "",
-                    retreat_cost=row.retreat_cost or 0,
-                    regulation_mark=row.regulation_mark,
-                    rarity=row.rarity,
-                    image_url=row.image_url,
-                )
+                card_def = _card_def_from_row(card_rows[tcgdex_id])
             else:
                 parts = tcgdex_id.rsplit("-", 1)
                 card_def = CardDefinition(
@@ -677,7 +741,10 @@ async def _deck_text_to_card_defs(
                     set_abbrev=parts[0] if len(parts) == 2 else "",
                     set_number=parts[1] if len(parts) == 2 else "",
                 )
+            unique_defs[tcgdex_id] = card_def
             defs.extend([card_def] * count)
+
+        card_registry.register_many(unique_defs)
         return defs
 
     # ── 2. Try PTCGL export format ────────────────────────────────────────────
@@ -697,8 +764,9 @@ async def _deck_text_to_card_defs(
             norm = str(int(row.set_number)) if (row.set_number and row.set_number.isdigit()) else (row.set_number or "")
             db_cards[(row.set_abbrev, norm)] = row
 
-    # ── 2b. Build CardDefinition list ─────────────────────────────────────────
+    # ── 2b. Build CardDefinition list and register in global registry ─────────
     defs_ptcgl: list[CardDefinition] = []
+    unique_defs_ptcgl: dict[str, CardDefinition] = {}
     for entry in ptcgl_entries:
         abbrev = entry["set_abbrev"]
         number = entry["set_number"]
@@ -713,24 +781,11 @@ async def _deck_text_to_card_defs(
                 f"ensure_deck_cards_in_db must be called before queueing this task."
             )
 
-        card_def = CardDefinition(
-            tcgdex_id=row.tcgdex_id,
-            name=row.name,
-            set_abbrev=row.set_abbrev,
-            set_number=row.set_number,
-            category=row.category or "",
-            subcategory=row.subcategory or "",
-            hp=row.hp,
-            types=row.types or [],
-            evolve_from=row.evolve_from,
-            stage=row.stage or "",
-            retreat_cost=row.retreat_cost or 0,
-            regulation_mark=row.regulation_mark,
-            rarity=row.rarity,
-            image_url=row.image_url,
-        )
+        card_def = _card_def_from_row(row)
+        unique_defs_ptcgl[card_def.tcgdex_id] = card_def
         defs_ptcgl.extend([card_def] * count)
 
+    card_registry.register_many(unique_defs_ptcgl)
     return defs_ptcgl
 
 

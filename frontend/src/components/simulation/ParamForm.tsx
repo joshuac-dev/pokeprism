@@ -15,6 +15,8 @@ interface ParamFormProps {
   onNumRoundsChange: (n: number) => void;
   targetWinRatePct: number;
   onTargetWinRatePctChange: (n: number) => void;
+  targetConsecutiveRounds: number;
+  onTargetConsecutiveRoundsChange: (n: number) => void;
   targetMode: TargetMode;
   onTargetModeChange: (mode: TargetMode) => void;
   excludedCards: CardSummary[];
@@ -31,6 +33,8 @@ export default function ParamForm({
   onNumRoundsChange,
   targetWinRatePct,
   onTargetWinRatePctChange,
+  targetConsecutiveRounds,
+  onTargetConsecutiveRoundsChange,
   targetMode,
   onTargetModeChange,
   excludedCards,
@@ -128,6 +132,22 @@ export default function ParamForm({
             %
           </span>
         </div>
+      </div>
+
+      {/* Rounds to Confirm */}
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-slate-400" title="Number of consecutive rounds the target must be met before stopping early.">
+          Rounds to Confirm
+        </label>
+        <input
+          type="number"
+          min={1}
+          max={100}
+          value={targetConsecutiveRounds}
+          onChange={(e) => onTargetConsecutiveRoundsChange(Number(e.target.value))}
+          className={inputClass}
+          title="Number of consecutive rounds the target must be met before stopping early."
+        />
       </div>
 
       {/* Target Mode */}

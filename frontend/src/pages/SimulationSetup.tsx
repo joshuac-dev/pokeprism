@@ -26,6 +26,7 @@ export default function SimulationSetup() {
   const [matchesPerOpponent, setMatchesPerOpponent] = useState(100);
   const [numRounds, setNumRounds] = useState(3);
   const [targetWinRatePct, setTargetWinRatePct] = useState(60);
+  const [targetConsecutiveRounds, setTargetConsecutiveRounds] = useState(1);
   const [targetMode, setTargetMode] = useState<TargetMode>('aggregate');
   const [excludedCards, setExcludedCards] = useState<CardSummary[]>([]);
 
@@ -81,6 +82,7 @@ export default function SimulationSetup() {
         num_rounds: numRounds,
         matches_per_opponent: matchesPerOpponent,
         target_win_rate: targetWinRatePct / 100,
+        target_consecutive_rounds: targetConsecutiveRounds,
         game_mode: gameMode,
         deck_mode: deckMode,
         deck_locked: deckLocked,
@@ -145,6 +147,8 @@ export default function SimulationSetup() {
             onNumRoundsChange={setNumRounds}
             targetWinRatePct={targetWinRatePct}
             onTargetWinRatePctChange={setTargetWinRatePct}
+            targetConsecutiveRounds={targetConsecutiveRounds}
+            onTargetConsecutiveRoundsChange={setTargetConsecutiveRounds}
             targetMode={targetMode}
             onTargetModeChange={setTargetMode}
             excludedCards={excludedCards}

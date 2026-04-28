@@ -237,6 +237,7 @@ def check_ko(
         "ko",
         ko_player=target_player_id,
         card_name=target.card_name,
+        attacker=attacker_player.active.card_name if attacker_player.active else None,
         prizes_to_take=prizes_to_take,
     )
 

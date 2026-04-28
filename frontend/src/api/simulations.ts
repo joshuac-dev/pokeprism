@@ -10,6 +10,7 @@ export interface SimulationCreateRequest {
   num_rounds: number;
   matches_per_opponent: number;
   target_win_rate: number;
+  target_consecutive_rounds?: number;
   game_mode: 'hh' | 'ai_h' | 'ai_ai';
   deck_mode: 'full' | 'partial' | 'none';
   deck_locked: boolean;
@@ -60,9 +61,15 @@ export async function getSimulationEvents(
 
 export async function getSimulationDecisions(
   id: string,
-  opts: { limit?: number; offset?: number } = {}
+  opts: { limit?: number; offset?: number; match_id?: string; turn_number?: number; player_id?: string } = {}
 ): Promise<DecisionsResponse> {
-  const params = { limit: opts.limit ?? 50, offset: opts.offset ?? 0 };
+  const params: Record<string, string | number> = {
+    limit: opts.limit ?? 50,
+    offset: opts.offset ?? 0,
+  };
+  if (opts.match_id)    params.match_id    = opts.match_id;
+  if (opts.turn_number != null) params.turn_number = opts.turn_number;
+  if (opts.player_id)   params.player_id   = opts.player_id;
   const resp = await api.get(`/api/simulations/${id}/decisions`, { params });
   return resp.data as DecisionsResponse;
 }

@@ -47,17 +47,23 @@ export interface NormalisedEvent {
 }
 
 export function normaliseEvent(raw: MatchEventRow | LiveEvent): NormalisedEvent {
+  const restRaw = raw as MatchEventRow;
+  const liveRaw = raw as Record<string, unknown>;
   return {
-    id: (raw as MatchEventRow).id,
+    id: restRaw.id,
     type: raw.type,
-    eventType: ((raw as MatchEventRow).event_type ?? (raw as LiveEvent).event ?? raw.type),
+    eventType: (restRaw.event_type ?? (raw as LiveEvent).event ?? raw.type),
     round_number: raw.round_number,
-    match_id: (raw as MatchEventRow).match_id,
-    p1_deck_name: (raw as MatchEventRow).p1_deck_name,
-    p2_deck_name: (raw as MatchEventRow).p2_deck_name,
-    turn: (raw as MatchEventRow).turn,
-    player: (raw as MatchEventRow).player,
-    data: (raw as MatchEventRow).data ?? {},
+    match_id: restRaw.match_id,
+    p1_deck_name: restRaw.p1_deck_name,
+    p2_deck_name: restRaw.p2_deck_name,
+    // For live match_events, turn/player are published as top-level fields
+    turn: restRaw.turn ?? (liveRaw.turn as number | null | undefined) ?? null,
+    player: restRaw.player ?? (liveRaw.player as string | null | undefined) ?? null,
+    // For REST events, data is the JSONB payload. For lifecycle live events
+    // (match_start/match_end) that have no nested data field, fall back to the
+    // whole raw object so ev.data.match_number / ev.data.p1_deck etc. are accessible.
+    data: restRaw.data ?? (liveRaw as Record<string, unknown>),
   };
 }
 
