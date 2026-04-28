@@ -23,10 +23,10 @@ function DeltaBadge({ before, after }: { before: number | null; after: number | 
 
 export default function DeckChangesTile({ mutations, numRounds }: Props) {
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-lg flex flex-col">
+    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg flex flex-col">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-100">Deck Changes</h3>
+      <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Deck Changes</h3>
         <span className="text-xs text-slate-500">{mutations.length} swap{mutations.length !== 1 ? 's' : ''}</span>
       </div>
 
@@ -43,11 +43,11 @@ export default function DeckChangesTile({ mutations, numRounds }: Props) {
             )}
           </div>
         ) : (
-          <ul className="divide-y divide-slate-700/50">
+          <ul className="divide-y divide-slate-200/50 dark:divide-slate-700/50">
             {mutations.map((m, i) => (
               <li key={i} className="px-4 py-2.5 flex items-start gap-3 text-xs">
                 {/* Round badge */}
-                <span className="mt-0.5 shrink-0 bg-slate-700 text-slate-300 rounded px-1.5 py-0.5 font-mono text-[11px]">
+                <span className="mt-0.5 shrink-0 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded px-1.5 py-0.5 font-mono text-[11px]">
                   R{m.round}
                 </span>
 

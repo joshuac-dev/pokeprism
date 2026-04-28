@@ -40,6 +40,7 @@ class BatchResult:
     no_bench_pct: float
     turn_limit_pct: float
     results: list[MatchResult] = field(default_factory=list)
+    decisions_per_game: list[list[dict]] = field(default_factory=list)
 
     def summary(self) -> str:
         lines = [
@@ -127,6 +128,7 @@ async def run_hh_batch(
             await db.commit()
 
     results: list[MatchResult] = []
+    decisions_per_game: list[list[dict]] = []
 
     for i in range(num_games):
         runner = MatchRunner(
@@ -141,17 +143,16 @@ async def run_hh_batch(
         result = await runner.run()
         results.append(result)
 
+        # Always drain decisions (even without persist) so the simulation task can write them.
+        game_decisions = (
+            p1_player.drain_decisions() if hasattr(p1_player, "drain_decisions") else []
+        ) + (
+            p2_player.drain_decisions() if hasattr(p2_player, "drain_decisions") else []
+        )
+        decisions_per_game.append(game_decisions)
+
         if persist and pg_writer and graph_writer:
-            # Drain AI decisions before opening the DB session.
-            p1_decisions = (
-                p1_player.drain_decisions()
-                if hasattr(p1_player, "drain_decisions") else []
-            )
-            p2_decisions = (
-                p2_player.drain_decisions()
-                if hasattr(p2_player, "drain_decisions") else []
-            )
-            all_decisions = p1_decisions + p2_decisions
+            all_decisions = game_decisions
             async with AsyncSessionLocal() as db:
                 match_id = await pg_writer.write_match(
                     result=result,
@@ -211,4 +212,5 @@ async def run_hh_batch(
         no_bench_pct=no_bench / num_games * 100,
         turn_limit_pct=turn_limit / num_games * 100,
         results=results,
+        decisions_per_game=decisions_per_game,
     )

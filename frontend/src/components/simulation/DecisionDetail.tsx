@@ -20,7 +20,7 @@ function ActionBadge({ type }: { type: string }) {
   const key = Object.keys(ACTION_COLOR).find((k) => type.toLowerCase().includes(k)) ?? '';
   const cls = ACTION_COLOR[key] ?? 'text-slate-300';
   return (
-    <span className={`${cls} font-mono text-xs uppercase px-1.5 py-0.5 bg-slate-900 rounded`}>
+    <span className={`${cls} font-mono text-xs uppercase px-1.5 py-0.5 bg-slate-100 dark:bg-slate-900 rounded`}>
       {type}
     </span>
   );
@@ -69,16 +69,16 @@ export default function DecisionDetail({ simulationId, open, onClose }: Props) {
       />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-lg bg-slate-900 border-l border-slate-700 z-50 flex flex-col shadow-2xl">
+      <div className="fixed right-0 top-0 h-full w-full max-w-lg bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700 z-50 flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
           <div>
-            <h2 className="text-slate-100 font-semibold">AI Decisions</h2>
+            <h2 className="text-slate-900 dark:text-slate-100 font-semibold">AI Decisions</h2>
             <p className="text-xs text-slate-500">{total} total decisions</p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-100 transition-colors text-xl leading-none"
+            className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors text-xl leading-none"
           >
             ✕
           </button>
@@ -94,7 +94,7 @@ export default function DecisionDetail({ simulationId, open, onClose }: Props) {
             </div>
           )}
 
-          <ul className="divide-y divide-slate-800">
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {decisions.map((d) => (
               <li key={d.id} className="px-4 py-3 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -102,7 +102,7 @@ export default function DecisionDetail({ simulationId, open, onClose }: Props) {
                   <span className="text-xs text-slate-500">{d.player_id}</span>
                   <ActionBadge type={d.action_type} />
                   {d.card_played && (
-                    <span className="text-xs text-slate-300 font-mono truncate max-w-[160px]">
+                    <span className="text-xs text-slate-700 dark:text-slate-300 font-mono truncate max-w-[160px]">
                       {d.card_played}
                     </span>
                   )}
@@ -134,8 +134,8 @@ export default function DecisionDetail({ simulationId, open, onClose }: Props) {
               <button
                 onClick={loadMore}
                 disabled={loading}
-                className="w-full py-2 text-sm text-blue-400 border border-slate-700 rounded
-                           hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                className="w-full py-2 text-sm text-blue-400 border border-slate-200 dark:border-slate-700 rounded
+                           hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
               >
                 {loading ? 'Loading…' : `Load more (${total - decisions.length} remaining)`}
               </button>

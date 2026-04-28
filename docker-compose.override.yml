@@ -9,3 +9,5 @@ services:
   celery-worker:
     environment:
       LOG_LEVEL: DEBUG
+    volumes:
+      - ./backend:/app  # Full source mount so workers use latest code

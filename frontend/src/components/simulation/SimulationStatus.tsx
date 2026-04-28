@@ -32,7 +32,7 @@ function WinRateBar({ value, target }: { value: number | null; target: number })
   const targetPct = Math.round(target * 100);
   return (
     <div className="flex items-center gap-3">
-      <div className="relative flex-1 h-2 bg-slate-700 rounded-full overflow-visible">
+      <div className="relative flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-visible">
         {/* target line */}
         <div
           className="absolute top-0 h-full w-0.5 bg-amber-400 opacity-70"
@@ -46,7 +46,7 @@ function WinRateBar({ value, target }: { value: number | null; target: number })
           />
         )}
       </div>
-      <span className="text-slate-100 text-sm tabular-nums w-12 text-right">
+      <span className="text-slate-900 dark:text-slate-100 text-sm tabular-nums w-12 text-right">
         {pct != null ? `${pct}%` : '—'}
       </span>
     </div>
@@ -60,12 +60,12 @@ export default function SimulationStatus({ detail, onCancel, cancelling }: Props
     : 0;
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 space-y-4">
+    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-4">
       {/* Header row */}
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs text-slate-500 uppercase tracking-wide">Simulation</p>
-          <p className="text-slate-100 font-semibold truncate max-w-xs">
+          <p className="text-slate-900 dark:text-slate-100 font-semibold truncate max-w-xs">
             {detail.user_deck_name ?? 'Custom Deck'}
           </p>
         </div>
@@ -80,7 +80,7 @@ export default function SimulationStatus({ detail, onCancel, cancelling }: Props
           <span>Round progress</span>
           <span>{detail.rounds_completed} / {detail.num_rounds}</span>
         </div>
-        <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+        <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
           <div
             className="h-full bg-blue-600 rounded-full transition-all duration-700"
             style={{ width: `${progress}%` }}
@@ -99,17 +99,17 @@ export default function SimulationStatus({ detail, onCancel, cancelling }: Props
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-2 text-center text-xs">
-        <div className="bg-slate-900 rounded p-2">
+        <div className="bg-slate-100 dark:bg-slate-900 rounded p-2">
           <p className="text-slate-500">Mode</p>
-          <p className="text-slate-200 font-mono uppercase">{detail.game_mode}</p>
+          <p className="text-slate-800 dark:text-slate-200 font-mono uppercase">{detail.game_mode}</p>
         </div>
-        <div className="bg-slate-900 rounded p-2">
+        <div className="bg-slate-100 dark:bg-slate-900 rounded p-2">
           <p className="text-slate-500">Matches</p>
-          <p className="text-slate-200 font-mono">{detail.total_matches}</p>
+          <p className="text-slate-800 dark:text-slate-200 font-mono">{detail.total_matches}</p>
         </div>
-        <div className="bg-slate-900 rounded p-2">
+        <div className="bg-slate-100 dark:bg-slate-900 rounded p-2">
           <p className="text-slate-500">Per opp.</p>
-          <p className="text-slate-200 font-mono">{detail.matches_per_opponent}</p>
+          <p className="text-slate-800 dark:text-slate-200 font-mono">{detail.matches_per_opponent}</p>
         </div>
       </div>
 

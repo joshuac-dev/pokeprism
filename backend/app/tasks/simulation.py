@@ -173,6 +173,11 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                     )
 
         current_deck_cards = await _deck_text_to_card_defs(user_deck_text, SessionFactory)
+        if not current_deck_cards:
+            raise ValueError(
+                "User deck could not be parsed — ensure card IDs are in tcgdex format "
+                "(e.g. 'sv06-130'), not PTCGL/PTCGO set+number format (e.g. 'SV06 130')."
+            )
         current_deck_text = user_deck_text
         writer = MatchMemoryWriter()
         final_win_rate = 0
@@ -293,8 +298,8 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                     p1_deck_db_id = await writer.ensure_deck(
                         user_deck_name, current_deck_cards, db
                     )
-                    for result_item in batch.results:
-                        await writer.write_match(
+                    for idx, result_item in enumerate(batch.results):
+                        match_id = await writer.write_match(
                             result=result_item,
                             simulation_id=sim_uuid,
                             round_id=round_id,
@@ -303,6 +308,17 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                             p2_deck_id=opp_deck_id,
                             db=db,
                         )
+                        game_decisions = (
+                            batch.decisions_per_game[idx]
+                            if idx < len(batch.decisions_per_game) else []
+                        )
+                        if game_decisions:
+                            await writer.write_decisions(
+                                game_decisions,
+                                match_id=match_id,
+                                simulation_id=sim_uuid,
+                                db=db,
+                            )
                     await db.commit()
 
                 all_round_results.extend(batch.results)

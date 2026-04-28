@@ -24,7 +24,7 @@ export default function DeckUploader({
   const hasErrors = (parsed?.errors.length ?? 0) > 0;
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 flex flex-col gap-4">
+    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Your Deck</h2>
         {deckMode !== 'none' && cardCount > 0 && (
@@ -46,7 +46,7 @@ export default function DeckUploader({
           onChange={(e) => onDeckTextChange(e.target.value)}
           placeholder={"Pokémon: 4\n4 Dreepy sv06-128\n\nTrainer: 8\n4 Arven sv02-166\n4 Iono sv02-185\n\nEnergy: 4\n4 Basic Darkness Energy sve-7"}
           rows={10}
-          className="w-full bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-600 rounded-md px-3 py-2 text-sm font-mono resize-y focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 rounded-md px-3 py-2 text-sm font-mono resize-y focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           spellCheck={false}
         />
       )}
@@ -74,7 +74,7 @@ export default function DeckUploader({
                 onChange={() => onDeckModeChange(mode)}
                 className="accent-blue-500"
               />
-              <span className="text-sm text-slate-300 capitalize">
+              <span className="text-sm text-slate-700 dark:text-slate-300 capitalize">
                 {mode === 'none' ? 'No Deck' : mode === 'partial' ? 'Partial Deck' : 'Full Deck'}
               </span>
             </label>
@@ -90,7 +90,7 @@ export default function DeckUploader({
           disabled={deckMode === 'none'}
           className="accent-blue-500"
         />
-        <span className="text-sm text-slate-300">Lock Deck</span>
+        <span className="text-sm text-slate-700 dark:text-slate-300">Lock Deck</span>
       </label>
     </div>
   );
