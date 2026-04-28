@@ -55,7 +55,7 @@ Bugs 2, 3, and Gate 2 are resolved and verified. Phase 13 will be accepted once 
 
 ## Previous Last Session
 - **Date:** 2026-05-03
-- Phase 13 (Polish, Hardening & Scheduling) implemented (Groups A–F):
+- Phase 13 (Polish, Hardening & Scheduling) Groups A–F implemented:
   1. **Group A — Backend Hardening**: DB pool `pool_pre_ping=True, pool_recycle=3600`; Ollama retry (3× exponential backoff) in `ai_player`, `analyst`, `embeddings`; full `/health` endpoint (7 checks); WebSocket auto-reconnect; Celery Beat nightly schedule.
   2. **Group B — Copy-Attack Engine**: `_night_joker` (N's Zoroark ex) and `_gemstone_mimicry` (TR Mimikyu) fully implemented with depth-limit-1 cycle guard. 5 new tests.
   3. **Group C — Decision Map Labels**: `/api/simulations/{id}/decision-graph` endpoint; `DecisionMap.tsx` rewritten with two-line SVG labels and action-type colors.
@@ -63,17 +63,6 @@ Bugs 2, 3, and Gate 2 are resolved and verified. Phase 13 will be accepted once 
   5. **Group E — Light Mode Polish** (first pass): `CardProfile.tsx`, `MindMapGraph.tsx`, `Memory.tsx`, `History.tsx`, `CompareModal.tsx`, `FilterBar.tsx`, all dashboard tiles.
   6. **Group F — Infra & Docs**: Makefile targets; `.dockerignore` files.
 - Tests: 172 pass. Build: 0 TS errors.
-
-## Previous Session (2026-05-02)
-- Phase 12 (Card Pool Expansion) fully implemented:
-  1. **Group A — Backend Hardening**: DB pool `pool_pre_ping=True, pool_recycle=3600`; Ollama connection retry (3× exponential backoff) in `ai_player`, `analyst`, `embeddings`; full `/health` endpoint (7 checks: postgres, neo4j, redis, ollama, models, celery, match counts); WebSocket auto-reconnect (`reconnectionAttempts: 10`); Celery Beat schedule confirmed (nightly 2AM UTC).
-  2. **Group B — Copy-Attack Engine**: `_night_joker` (N's Zoroark ex) and `_gemstone_mimicry` (TR Mimikyu) fully implemented as async handlers with depth-limit-1 cycle guard (`_COPY_ATTACK_KEYS`). Both pick highest-damage non-copy attack from target Pokémon. Gemstone Mimicry no-ops gracefully when opponent is not Tera (no Tera cards in current pool). 5 new tests, all pass.
-  3. **Group C — Decision Map Labels**: New `/api/simulations/{id}/decision-graph` endpoint aggregates decisions server-side by action_type, JOINs `cards` table for card names, returns `{nodes, edges}`. `DecisionMap.tsx` rewritten: two-line SVG labels (`ACTION_TYPE\n(card name)`), action-type-specific node colors, tooltip with top-3 cards + counts + percentages.
-  4. **Group D — Docker Compose**: `pgvector>=0.3` added to `pyproject.toml` (was missing — caused `ModuleNotFoundError` in container). Backend Dockerfile CMD removes `--reload` (production-safe). nginx.conf updated with `resolver 127.0.0.11` + `set $backend_url` for lazy upstream resolution (prevents startup failure when backend starts after nginx). Both `backend` and `frontend` Docker images build and start successfully; backend health check returns `"status": "ok"` with all services connected.
-  5. **Group E — Light Mode Polish**: All pages and components updated with `dark:` prefix on Tailwind classes. Covers: `CardProfile.tsx`, `MindMapGraph.tsx` (D3 node text color `#475569`), `Memory.tsx` search bar + synergies panel, `History.tsx` table + pagination + delete modal, `CompareModal.tsx`, `FilterBar.tsx`, `Dashboard.tsx` tile wrapper, `SummaryCards.tsx`, `MatchupMatrix.tsx`, `CardSwapHeatMap.tsx`, `MutationDiffLog.tsx`, `WinRateDonut.tsx`, `PrizeRaceGraph.tsx`, `WinRateProgress.tsx`, `WinRateDistribution.tsx`, `OpponentWinRateBar.tsx`. xterm console stays dark (intentional).
-  6. **Group F — Infra & Docs**: Makefile expanded with `dev`, `logs-all`, `restart`, `shell-backend`, `seed` targets; `.dockerignore` files added for backend and frontend.
-- **Tests**: 172 pass (5 new copy-attack tests vs 167 entering Phase 13).
-- **Build**: 0 TypeScript errors. Frontend bundle: 1,214 KB / 352 KB gzip.
 
 ## Previous Session (2026-05-02)
 - **Date:** 2026-05-02
@@ -87,7 +76,7 @@ Bugs 2, 3, and Gate 2 are resolved and verified. Phase 13 will be accepted once 
 - **Card pool**: 160 cards in DB. Only M4 (Chaos Rising) deferred — unreleased until 2026-05-22.
 - **`generate_cardlist_stubs.py`**: Not built. Deferred until card pool grows significantly (≥200 new cards with missing fixtures).
 
-## Previous Session (2026-05-02)
+## Previous Session (Phase 11 — 2026-04-30)
 - Phase 11 (History Page & Memory Explorer) fully implemented:
   1. **Data model fix**: Alembic migration `8ac02d648b4f` adds `card_def_id TEXT` + index to `decisions` table. `ai_player._record_decision()` now persists the tcgdex_id alongside the instance UUID. Unblocks Phase 13 Decision Map card labels.
   2. **Paginated simulation list**: `GET /api/simulations/` replaced with paginated+filtered version (page, per_page, status, search, starred, date_from, date_to, min_win_rate, max_win_rate). Returns `{items, total, page, per_page}` envelope. Opponent names fetched via JOIN.
@@ -123,7 +112,7 @@ Bugs 2, 3, and Gate 2 are resolved and verified. Phase 13 will be accepted once 
 - [x] Phase 10: History & Analytics Dashboard — **complete & owner-verified (2026-04-28)**
 - [x] Phase 11: History Page & Memory Explorer — **complete (2026-05-02)**
 - [x] Phase 12: Card Pool Expansion — **complete (2026-05-02)**
-- [x] Phase 13: Polish, Hardening & Scheduling — **complete (2026-05-03)**
+- [ ] Phase 13: Polish, Hardening & Scheduling — **IN PROGRESS (Bug 1 blocking)**
 
 ## Phase 7 Exit Criteria — Verified (2026-04-28)
 
