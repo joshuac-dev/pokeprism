@@ -3950,3 +3950,26 @@ def register_all(registry):
     registry.register_passive_ability("sv07-119", "Curly Wall")             # Bouffalant (damage reduction: noop)
     registry.register_passive_ability("sv07-125", "Soft Wool")              # Dubwool (damage reduction: noop)
 
+    # Passive stubs for Batch 14: SFA sv06.5-035..053
+    registry.register_passive_ability("sv06.5-037", "Oh No You Don't")      # Munkidori ex (on-KO trigger: noop)
+    registry.register_passive_ability("sv06.5-040", "ACE Nullifier")        # Genesect (ACE SPEC prevention: noop)
+    registry.register_passive_ability("sv06.5-042", "Massive Body")         # Copperajah (stadium restriction: noop)
+    registry.register_passive_ability("sv06.5-045", "Unnerve")              # Fraxure (on-opponent-play trigger: noop)
+    registry.register_passive_ability("sv06.5-047", "Plasma Bane")          # Kyurem (discard pile condition: noop)
+
+    # Passive stubs for Batch 14: TWM sv06-001..081
+    registry.register_passive_ability("sv06-002", "Thicket Body")           # Tangrowth (damage reduction: noop)
+    registry.register_passive_ability("sv06-005", "Big Net")                # Ariados (retreat cost modifier: noop)
+    registry.register_passive_ability("sv06-015", "Boom Boom Groove")       # Thwackey (named ability double attack: noop)
+    registry.register_passive_ability("sv06-018", "Festival Lead")          # Dipplin (stadium double attack: noop)
+    registry.register_passive_ability("sv06-020", "Storehouse Hideaway")    # Poltchageist (bench ex damage prevention: noop)
+    registry.register_passive_ability("sv06-038", "Alluring Light")         # Chandelure (active draw: noop)
+    registry.register_passive_ability("sv06-044", "Festival Lead")          # Goldeen (stadium double attack: noop)
+    registry.register_passive_ability("sv06-050", "Mentally Calm")          # Milotic (placement protection: noop)
+    registry.register_passive_ability("sv06-060", "Zero to Hero")           # Palafin (on-retreat placement: noop)
+    registry.register_passive_ability("sv06-061", "Hero's Spirit")          # Palafin ex (placement restriction: noop)
+    registry.register_passive_ability("sv06-072", "Snack Seek")             # Morpeko (top deck look: noop)
+    registry.register_passive_ability("sv06-077", "Initialization")         # Iron Thorns ex (attack-lock active: noop)
+    registry.register_passive_ability("sv06-080", "Teleporter")             # Abra (active shuffle to deck: noop)
+    registry.register_passive_ability("sv06-033", "Pyro Dance")             # Infernape (energy attach from deck: noop)
+

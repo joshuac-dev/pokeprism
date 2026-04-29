@@ -1,0 +1,80 @@
+{
+  "category": "Pokemon",
+  "id": "sv06.5-036",
+  "illustrator": "takuyoa",
+  "image": "https://assets.tcgdex.net/en/sv/sv06.5/036",
+  "localId": "036",
+  "name": "Okidogi ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 64,
+      "total": 99
+    },
+    "id": "sv06.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06.5/logo",
+    "name": "Shrouded Fable",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    1014
+  ],
+  "hp": 250,
+  "types": [
+    "Darkness"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Poisonous Musculature",
+      "effect": "Search your deck for up to 2 Basic {D} Energy cards and attach them to this Pokémon. Then, shuffle your deck. If you attached Energy to a Pokémon in this way, this Pokémon is now Poisoned."
+    },
+    {
+      "cost": [
+        "Darkness",
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Chain-Crazed",
+      "effect": "If this Pokémon is Poisoned, this attack does 130 more damage.",
+      "damage": "130+"
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 780931,
+      "avg": 0.63,
+      "low": 0.1,
+      "trend": 0.71,
+      "avg1": 0.61,
+      "avg7": 0.69,
+      "avg30": 0.64,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

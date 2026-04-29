@@ -1,0 +1,79 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-061",
+  "illustrator": "PLANETA Mochizuki",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/061",
+  "localId": "061",
+  "name": "Palafin ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    964
+  ],
+  "hp": 340,
+  "types": [
+    "Water"
+  ],
+  "evolveFrom": "Finizen",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Hero's Spirit",
+      "effect": "Put this Pokémon into play only with the effect of Palafin's Zero to Hero Ability."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Water"
+      ],
+      "name": "Giga Impact",
+      "effect": "During your next turn, this Pokémon can't attack.",
+      "damage": 250
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:13+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 769235,
+      "avg": 0.59,
+      "low": 0.1,
+      "trend": 0.63,
+      "avg1": 0.86,
+      "avg7": 0.62,
+      "avg30": 0.6,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

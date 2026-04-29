@@ -1,0 +1,90 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-008",
+  "illustrator": "Toshinao Aoki",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/008",
+  "localId": "008",
+  "name": "Heracross",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    214
+  ],
+  "hp": 120,
+  "types": [
+    "Grass"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Grass",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Body Slam",
+      "effect": "Flip a coin. If heads, your opponent's Active Pokémon is now Paralyzed.",
+      "damage": 60
+    },
+    {
+      "cost": [
+        "Grass",
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Seismic Toss",
+      "damage": 130
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 769182,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.08,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.12,
+      "low-holo": 0.02,
+      "trend-holo": 0.1,
+      "avg1-holo": 0.1,
+      "avg7-holo": 0.08,
+      "avg30-holo": 0.11
+    },
+    "tcgplayer": null
+  }
+}

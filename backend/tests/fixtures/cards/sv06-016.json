@@ -1,0 +1,88 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-016",
+  "illustrator": "toriyufu",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/016",
+  "localId": "016",
+  "name": "Rillaboom",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    812
+  ],
+  "hp": 180,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Thwackey",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Drum Beating",
+      "effect": "During your opponent's next turn, attacks used by the Defending Pokémon cost {C} more, and its Retreat Cost is {C} more.",
+      "damage": 60
+    },
+    {
+      "cost": [
+        "Grass",
+        "Grass"
+      ],
+      "name": "Wood Hammer",
+      "effect": "This Pokémon also does 50 damage to itself.",
+      "damage": 180
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:13+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 769190,
+      "avg": 0.05,
+      "low": 0.02,
+      "trend": 0.06,
+      "avg1": 0.04,
+      "avg7": 0.04,
+      "avg30": 0.06,
+      "avg-holo": 0.16,
+      "low-holo": 0.02,
+      "trend-holo": 0.18,
+      "avg1-holo": 0.16,
+      "avg7-holo": 0.15,
+      "avg30-holo": 0.19
+    },
+    "tcgplayer": null
+  }
+}

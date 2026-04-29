@@ -1,0 +1,80 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-023",
+  "illustrator": "aky CG Works",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/023",
+  "localId": "023",
+  "name": "Sinistcha ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    1013
+  ],
+  "hp": 240,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Poltchageist",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Re-Brew",
+      "effect": "Put 2 damage counters on 1 of your opponent's Pokémon for each Basic {G} Energy card in your discard pile. Then, shuffle those Energy cards into your deck."
+    },
+    {
+      "cost": [
+        "Grass",
+        "Colorless"
+      ],
+      "name": "Matcha Splash",
+      "effect": "Heal 30 damage from each of your Pokémon.",
+      "damage": 120
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:13+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 769197,
+      "avg": 0.5,
+      "low": 0.02,
+      "trend": 0.53,
+      "avg1": 0.6,
+      "avg7": 0.5,
+      "avg30": 0.52,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-038",
+  "illustrator": "saino misaki",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/038",
+  "localId": "038",
+  "name": "Chandelure",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    609
+  ],
+  "hp": 130,
+  "types": [
+    "Fire"
+  ],
+  "evolveFrom": "Lampent",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Alluring Light",
+      "effect": "Once during your turn, you may have each player draw a card."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Fire"
+      ],
+      "name": "Mind Ruler",
+      "effect": "This attack does 30 damage for each card in your opponent's hand.",
+      "damage": "30×"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:13+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 769212,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.05,
+      "avg7": 0.05,
+      "avg30": 0.06,
+      "avg-holo": 0.18,
+      "low-holo": 0.02,
+      "trend-holo": 0.29,
+      "avg1-holo": 0.37,
+      "avg7-holo": 0.19,
+      "avg30-holo": 0.18
+    },
+    "tcgplayer": null
+  }
+}

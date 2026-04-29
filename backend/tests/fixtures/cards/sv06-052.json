@@ -1,0 +1,89 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-052",
+  "illustrator": "Oku",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/052",
+  "localId": "052",
+  "name": "Glalie",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    362
+  ],
+  "hp": 120,
+  "types": [
+    "Water"
+  ],
+  "evolveFrom": "Snorunt",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Water"
+      ],
+      "name": "Damage Beat",
+      "effect": "This attack does 20 damage for each damage counter on your opponent's Active Pokémon.",
+      "damage": "20×"
+    },
+    {
+      "cost": [
+        "Water",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Crazy Headbutt",
+      "effect": "Discard an Energy from this Pokémon.",
+      "damage": 140
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:13+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 769226,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.06,
+      "avg7": 0.03,
+      "avg30": 0.04,
+      "avg-holo": 0.2,
+      "low-holo": 0.02,
+      "trend-holo": 0.22,
+      "avg1-holo": 0.02,
+      "avg7-holo": 0.23,
+      "avg30-holo": 0.22
+    },
+    "tcgplayer": null
+  }
+}

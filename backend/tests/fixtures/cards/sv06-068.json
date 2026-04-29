@@ -1,0 +1,82 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-068",
+  "illustrator": "PLANETA Yamashita",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/068",
+  "localId": "068",
+  "name": "Luxray ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    405
+  ],
+  "hp": 310,
+  "types": [
+    "Lightning"
+  ],
+  "evolveFrom": "Luxio",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Piercing Gaze",
+      "effect": "Your opponent reveals their hand. Discard a card you find there.",
+      "damage": 120
+    },
+    {
+      "cost": [
+        "Lightning",
+        "Lightning"
+      ],
+      "name": "Volt Strike",
+      "effect": "Discard all Energy from this Pokémon.",
+      "damage": 250
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:13+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 769242,
+      "avg": 0.62,
+      "low": 0.1,
+      "trend": 0.66,
+      "avg1": 0.96,
+      "avg7": 0.68,
+      "avg30": 0.64,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

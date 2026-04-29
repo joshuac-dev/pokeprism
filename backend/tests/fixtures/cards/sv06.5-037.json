@@ -1,0 +1,80 @@
+{
+  "category": "Pokemon",
+  "id": "sv06.5-037",
+  "illustrator": "takuyoa",
+  "image": "https://assets.tcgdex.net/en/sv/sv06.5/037",
+  "localId": "037",
+  "name": "Munkidori ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 64,
+      "total": 99
+    },
+    "id": "sv06.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06.5/logo",
+    "name": "Shrouded Fable",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    1015
+  ],
+  "hp": 210,
+  "types": [
+    "Darkness"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Oh No You Don't",
+      "effect": "If this Pokémon is Knocked Out by damage from an attack from your opponent's Pokémon, and if you have any Pecharunt ex in play, your opponent takes 1 fewer Prize card."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Dirty Headbutt",
+      "effect": "During your next turn, this Pokémon can't use Dirty Headbutt.",
+      "damage": 190
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 780932,
+      "avg": 0.54,
+      "low": 0.05,
+      "trend": 0.56,
+      "avg1": 0.54,
+      "avg7": 0.52,
+      "avg30": 0.53,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

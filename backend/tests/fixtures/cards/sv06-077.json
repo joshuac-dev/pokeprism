@@ -1,0 +1,80 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-077",
+  "illustrator": "PLANETA Mochizuki",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/077",
+  "localId": "077",
+  "name": "Iron Thorns ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    995
+  ],
+  "hp": 230,
+  "types": [
+    "Lightning"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Initialization",
+      "effect": "As long as this Pokémon is in the Active Spot, Pokémon with a Rule Box in play (both yours and your opponent's) have no Abilities, except for Future Pokémon. (Pokémon ex, Pokémon V, etc. have Rule Boxes.)"
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Lightning",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Volt Cyclone",
+      "effect": "Move an Energy from this Pokémon to 1 of your Benched Pokémon.",
+      "damage": 140
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 769251,
+      "avg": 0.62,
+      "low": 0.1,
+      "trend": 0.67,
+      "avg1": 1.1,
+      "avg7": 0.71,
+      "avg30": 0.62,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-011",
+  "illustrator": "Kuroimori",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/011",
+  "localId": "011",
+  "name": "Leafeon",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    470
+  ],
+  "hp": 120,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Eevee",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Leaflet Blessings",
+      "effect": "Attach a Basic {G} Energy card from your hand to 1 of your Benched Pokémon. If you do, heal all damage from that Pokémon."
+    },
+    {
+      "cost": [
+        "Grass",
+        "Colorless"
+      ],
+      "name": "Solar Beam",
+      "damage": 70
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:13+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 769185,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.07,
+      "avg1": 0.05,
+      "avg7": 0.05,
+      "avg30": 0.06,
+      "avg-holo": 0.18,
+      "low-holo": 0.02,
+      "trend-holo": 0.19,
+      "avg1-holo": 0.12,
+      "avg7-holo": 0.22,
+      "avg30-holo": 0.19
+    },
+    "tcgplayer": null
+  }
+}
