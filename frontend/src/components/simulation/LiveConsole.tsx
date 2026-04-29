@@ -6,16 +6,18 @@ import type { NormalisedEvent } from '../../types/simulation';
 // ---------------------------------------------------------------------------
 
 const WIN_COND_LABELS: Record<string, string> = {
-  prizes:     'took all prize cards',
-  deck_out:   'opponent drew from empty deck',
-  no_bench:   'opponent had no bench to promote',
-  turn_limit: 'turn limit reached',
+  prizes:     'prizes',
+  deck_out:   'deck-out',
+  no_bench:   'no-bench',
+  turn_limit: 'turn-limit',
 };
 
 interface FmtResult {
   text: string;
   /** Tailwind text-color class(es) */
   cls: string;
+  /** When true, the event row is not rendered */
+  skip?: boolean;
 }
 
 function fmt(ev: NormalisedEvent): FmtResult {
@@ -42,12 +44,21 @@ function fmt(ev: NormalisedEvent): FmtResult {
     return { text: `╌╌╌ ${label}: ${p1} vs ${p2} ╌╌╌`, cls: 'text-cyan-300' };
   }
   if (t === 'match_end') {
-    return fmtMatchEnd(ev.data?.winner as string, ev.data?.condition as string);
+    const n = ev.data?.match_number as number | undefined;
+    return fmtMatchEnd(ev.data?.winner as string, ev.data?.condition as string, n);
   }
   if (t === 'deck_mutation') {
     const ci = (ev.data?.card_in  as string) ?? '?';
     const co = (ev.data?.card_out as string) ?? '?';
     return { text: `⟳ Deck swap: −${co} / +${ci}`, cls: 'text-yellow-400 font-semibold' };
+  }
+  if (t === 'deck_reverted') {
+    const wr = ev.data?.reverted_to_win_rate != null ? ` (best was ${ev.data.reverted_to_win_rate}%)` : '';
+    return { text: `⟲ Deck reverted to best-known state${wr}`, cls: 'text-orange-400 font-semibold' };
+  }
+  if (t === 'coach_skipped') {
+    const reason = (ev.data?.reason as string) ?? 'consecutive regressions';
+    return { text: `⊘ Coach skipped — ${reason}`, cls: 'text-yellow-600' };
   }
   if (t === 'target_reached') {
     const hits   = (ev.data?.consecutive_hits as number) ?? 1;
@@ -78,23 +89,25 @@ function fmt(ev: NormalisedEvent): FmtResult {
     if (et === 'game_over') {
       return fmtMatchEnd(ev.data?.winner as string, ev.data?.condition as string);
     }
+    // attack_declared is redundant — attack_damage carries all the info
     if (et === 'attack_declared' || et === 'attack') {
-      const attacker    = (ev.data?.attacker    as string) ?? '';
-      const name        = (ev.data?.attack_name as string) ?? (ev.data?.move as string) ?? 'attack';
-      const attackerStr = attacker ? `${attacker}: ` : '';
-      return { text: `${turn}${who}⚔ ${attackerStr}${name}`, cls: 'text-white' };
+      return { text: '', cls: '', skip: true };
     }
     if (et === 'attack_damage') {
       const dmg      = (ev.data?.final_damage as number) ?? (ev.data?.base_damage as number) ?? '?';
       const attacker = (ev.data?.attacker     as string) ?? '';
-      const defender = (ev.data?.defender     as string) ?? '';
-      const atkName  = (ev.data?.attack_name  as string) ?? '';
-      const label    = atkName ? `${atkName}` : attacker ? `${attacker}` : 'attack';
-      const defStr   = defender ? ` → ${defender}` : '';
-      return { text: `${turn}${who}⚔ ${label}: ${dmg} dmg${defStr}`, cls: 'text-white' };
+      const atkName  = ((ev.data?.attack_name  as string) ?? attacker) || 'attack';
+      const atkLabel = attacker ? `${atkName} (${attacker})` : atkName;
+      return { text: `${turn}${who}⚔ ${atkLabel} → ${dmg} dmg`, cls: 'text-white' };
+    }
+    if (et === 'attack_no_damage') {
+      const attacker = (ev.data?.attacker    as string) ?? '';
+      const atkName  = ((ev.data?.attack_name as string) ?? attacker) || 'attack';
+      const atkLabel = attacker ? `${atkName} (${attacker})` : atkName;
+      return { text: `${turn}${who}⚔ ${atkLabel} → no damage`, cls: 'text-slate-500' };
     }
     if (et === 'ko') {
-      const card     = (ev.data?.card_name as string) ?? (ev.data?.card as string) ?? 'Pokémon';
+      const card     = (ev.data?.card_name as string) || (ev.data?.card as string) || 'Pokémon';
       const attacker = (ev.data?.attacker  as string) ?? '';
       const byStr    = attacker ? ` (by ${attacker})` : '';
       return { text: `${turn}${who}★ KO — ${card}${byStr}`, cls: 'text-green-400 font-semibold' };
@@ -105,32 +118,50 @@ function fmt(ev: NormalisedEvent): FmtResult {
       return { text: `${turn}${who}◆ Prize ×${cnt}${rem}`, cls: 'text-yellow-400' };
     }
     if (et === 'energy_attached') {
-      const card   = (ev.data?.card   as string) ?? (ev.data?.energy as string) ?? 'energy';
+      const card   = (ev.data?.card   as string) || (ev.data?.energy as string) || 'energy';
       const target = (ev.data?.target as string) ?? '';
       const tgt    = target ? ` → ${target}` : '';
       return { text: `${turn}${who}⚡ ${card}${tgt}`, cls: 'text-blue-400' };
     }
     if (et === 'play_basic' || et === 'bench_played') {
-      const card = (ev.data?.card as string) ?? 'Pokémon';
+      const card = (ev.data?.card as string) || 'Pokémon';
       return { text: `${turn}${who}+ Bench ${card}`, cls: 'text-slate-300' };
     }
     if (et === 'play_supporter' || et === 'play_item' || et === 'trainer_played') {
-      const card = (ev.data?.card as string) ?? 'card';
+      const card = (ev.data?.card as string) || 'card';
       return { text: `${turn}${who}▷ ${card}`, cls: 'text-slate-300' };
     }
+    if (et === 'play_stadium' || et === 'stadium_played') {
+      const card = (ev.data?.card as string) || 'Stadium';
+      return { text: `${turn}${who}▷ ${card} (Stadium)`, cls: 'text-slate-300' };
+    }
+    if (et === 'play_tool' || et === 'tool_played') {
+      const card   = (ev.data?.card   as string) || 'Tool';
+      const target = (ev.data?.target as string) ?? '';
+      const tgt    = target ? ` → ${target}` : '';
+      return { text: `${turn}${who}▷ ${card} (Tool)${tgt}`, cls: 'text-slate-300' };
+    }
     if (et === 'evolve' || et === 'rare_candy_evolve') {
-      const from = (ev.data?.from_card as string) ?? (ev.data?.from as string) ?? '?';
-      const to   = (ev.data?.to_card   as string) ?? (ev.data?.to   as string) ?? '?';
+      const from = (ev.data?.from_card as string) || (ev.data?.from as string) || '?';
+      const to   = (ev.data?.to_card   as string) || (ev.data?.to   as string) || '?';
       return { text: `${turn}${who}↑ ${from} → ${to}`, cls: 'text-slate-300' };
     }
     if (et === 'retreat') {
-      const from = (ev.data?.from_card as string) ?? (ev.data?.from as string) ?? '?';
-      const to   = (ev.data?.to_card   as string) ?? (ev.data?.to   as string) ?? '?';
-      return { text: `${turn}${who}↩ Retreat ${from} → ${to}`, cls: 'text-slate-500' };
+      const from = (ev.data?.from_card as string) || (ev.data?.from as string) || '?';
+      const to   = (ev.data?.to_card   as string) || (ev.data?.to   as string) || '?';
+      return { text: `${turn}${who}↔ Retreat ${from} → ${to}`, cls: 'text-slate-500' };
+    }
+    if (et === 'switch_active') {
+      const card = (ev.data?.card as string) || '?';
+      return { text: `${turn}${who}↑ Promote: ${card}`, cls: 'text-slate-300' };
     }
     if (et === 'draw') {
       const count = (ev.data?.count as number) ?? 1;
       return { text: `${turn}${who}↓ Draw ×${count}`, cls: 'text-slate-500' };
+    }
+    // skip noise events
+    if (et === 'turn_start' || et === 'end_turn' || et === 'pass' || et === 'prizes_set') {
+      return { text: '', cls: '', skip: true };
     }
     // fallback
     return { text: `${turn}${who}${et}`, cls: 'text-slate-600' };
@@ -140,11 +171,12 @@ function fmt(ev: NormalisedEvent): FmtResult {
   return { text: t, cls: 'text-slate-600' };
 }
 
-function fmtMatchEnd(winner: string | undefined, cond: string | undefined): FmtResult {
+function fmtMatchEnd(winner: string | undefined, cond: string | undefined, matchNum?: number): FmtResult {
   const raw = winner ?? '?';
   const winnerLabel = raw === 'p1' ? 'P1' : raw === 'p2' ? 'P2' : raw;
-  const condLabel   = cond ? ` (${cond}: ${WIN_COND_LABELS[cond] ?? cond})` : '';
-  return { text: `■ Match end — ${winnerLabel} wins${condLabel}`, cls: 'text-slate-500' };
+  const condLabel   = cond ? ` (${WIN_COND_LABELS[cond] ?? cond})` : '';
+  const matchLabel  = matchNum != null ? `Match ${matchNum} ` : '';
+  return { text: `═══ ${matchLabel}complete — ${winnerLabel} wins${condLabel} ═══`, cls: 'text-slate-400 font-semibold' };
 }
 
 // ---------------------------------------------------------------------------
@@ -226,7 +258,8 @@ export default function LiveConsole({
           <p className="text-slate-600 text-xs px-3 py-2">Waiting for events…</p>
         )}
         {events.map((ev, i) => {
-          const { text, cls } = fmt(ev);
+          const { text, cls, skip } = fmt(ev);
+          if (skip || !text) return null;
           return (
             <div
               key={ev.id ?? i}

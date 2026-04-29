@@ -106,6 +106,7 @@ class Simulation(Base):
     excluded_cards       = Column(JSONB, default=list)
 
     final_win_rate       = Column(Integer)
+    best_deck_snapshot   = Column(JSONB)   # {cards: [...], win_rate: int} at best win rate
     rounds_completed     = Column(Integer, default=0)
     total_matches        = Column(Integer, default=0)
 

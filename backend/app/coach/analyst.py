@@ -6,7 +6,7 @@ import json
 import logging
 import re
 import uuid
-from collections import Counter
+from collections import Counter, defaultdict
 from typing import TYPE_CHECKING
 
 import httpx
@@ -58,6 +58,7 @@ class CoachAnalyst:
         round_number: int,
         candidate_card_ids: list[str] | None = None,
         excluded_ids: list[str] | None = None,
+        regression_info: dict | None = None,
     ) -> list[dict]:
         """Analyze *round_results* and return a list of applied swap dicts.
 
@@ -68,6 +69,9 @@ class CoachAnalyst:
             excluded_ids: Card IDs that must never be suggested as additions
                 (e.g., opponent deck cards). Enforced at both query level and
                 prompt level for belt-and-suspenders safety.
+            regression_info: Optional dict with keys: consecutive_regressions,
+                prev_win_rate, current_win_rate, best_win_rate, reverted.
+                Used to add regression warnings/revert notices to the prompt.
         """
         if not round_results:
             return []
@@ -94,6 +98,10 @@ class CoachAnalyst:
                 if k not in all_excluded
             ]
 
+        # Compute evolution line tiers for this round
+        primary_ids = self._identify_primary_line(round_results, current_deck)
+        tiers = self._classify_deck_tiers(current_deck, primary_ids)
+
         prompt = self._build_prompt(
             deck=current_deck,
             excluded_ids=excluded,
@@ -102,13 +110,18 @@ class CoachAnalyst:
             top_cards=top_cards,
             synergies=synergies,
             similar=similar,
+            tiers=tiers,
+            regression_info=regression_info,
         )
 
-        swaps = await self._get_swap_decisions(prompt)
-        swaps = swaps[: self._max_swaps]
+        raw_swaps = await self._get_swap_decisions(prompt)
+
+        # Enforce tier protection rules (blocks tier1; requires full-line for tier2)
+        all_deck_id_set = set(deck_ids)
+        valid_swaps = self._validate_and_filter_swaps(raw_swaps, tiers, all_deck_id_set)
 
         mutations = []
-        for swap in swaps:
+        for swap in valid_swaps:
             removed = swap.get("remove", "")
             added = swap.get("add", "")
             reasoning = swap.get("reasoning", "")
@@ -141,6 +154,8 @@ class CoachAnalyst:
         synergies: dict,
         similar: list[dict],
         excluded_ids: list[str] | None = None,
+        tiers: dict | None = None,
+        regression_info: dict | None = None,
     ) -> str:
         wins = sum(1 for r in round_results if r.winner == "p1")
         total = len(round_results)
@@ -168,6 +183,9 @@ class CoachAnalyst:
             if excluded_ids else "  (none)"
         )
 
+        card_tiers_text = self._format_card_tiers(tiers, deck) if tiers else "  (not computed)"
+        performance_history_text = self._format_performance_history(regression_info)
+
         return COACH_EVOLUTION_PROMPT.format(
             max_swaps=self._max_swaps,
             deck_list=deck_list,
@@ -182,6 +200,8 @@ class CoachAnalyst:
             weak_synergies=weak_syn_text,
             similar_situations=similar_text,
             excluded_cards=excluded_cards_text,
+            card_tiers=card_tiers_text,
+            performance_history=performance_history_text,
         )
 
     async def _get_swap_decisions(self, prompt: str, retries: int = 3) -> list[dict]:
@@ -303,6 +323,373 @@ class CoachAnalyst:
             for i, s in enumerate(similar)
         ]
         return "\n".join(lines)
+
+    def _identify_primary_line(
+        self,
+        round_results: list[MatchResult],
+        current_deck: list[CardDefinition],
+    ) -> set[str]:
+        """Identify the primary attacker's evolution line from round data.
+
+        Scans attack_damage and ko events across all matches to score each
+        attacker Pokémon (damage dealt + prizes taken × 100).  The top scorer's
+        full evolution chain is returned as a set of tcgdex_ids.
+
+        Falls back to the highest-HP ex Pokémon in the deck when no attack
+        events exist (e.g. all games ended by deck-out before combat).
+        """
+        damage_by_name: dict[str, int] = defaultdict(int)
+        prizes_by_name: dict[str, int] = defaultdict(int)
+
+        for result in round_results:
+            for event in (result.events or []):
+                etype = event.get("event_type", "")
+                attacker = event.get("attacker")
+                if not attacker:
+                    continue
+                if etype == "attack_damage":
+                    damage_by_name[attacker] += event.get("final_damage", 0)
+                elif etype == "ko":
+                    prizes_by_name[attacker] += event.get("prizes_to_take", 1)
+
+        name_to_def: dict[str, CardDefinition] = {}
+        for cdef in current_deck:
+            if cdef.name not in name_to_def:
+                name_to_def[cdef.name] = cdef
+
+        all_attacker_names = set(damage_by_name) | set(prizes_by_name)
+
+        if all_attacker_names:
+            def _score(name: str) -> float:
+                return damage_by_name.get(name, 0) + prizes_by_name.get(name, 0) * 100
+
+            top_name = max(all_attacker_names, key=_score)
+            if top_name in name_to_def:
+                chain_names = self._get_evolution_chain_names(top_name, name_to_def)
+                return {
+                    cdef.tcgdex_id
+                    for name in chain_names
+                    for cdef in [name_to_def.get(name)]
+                    if cdef is not None
+                }
+
+        # Fallback: protect the ex Pokémon with the highest HP (longest chain wins)
+        best_ex: CardDefinition | None = None
+        for cdef in current_deck:
+            if cdef.is_ex:
+                if best_ex is None or (cdef.hp or 0) > (best_ex.hp or 0):
+                    best_ex = cdef
+        if best_ex and best_ex.name in name_to_def:
+            chain_names = self._get_evolution_chain_names(best_ex.name, name_to_def)
+            return {
+                cdef.tcgdex_id
+                for name in chain_names
+                for cdef in [name_to_def.get(name)]
+                if cdef is not None
+            }
+
+        return set()
+
+    def _get_evolution_chain_names(
+        self,
+        card_name: str,
+        name_to_def: dict[str, CardDefinition],
+    ) -> set[str]:
+        """Return all card names in the complete evolution chain for card_name.
+
+        Walks backward to the Basic root via evolve_from, then forward to find
+        all cards in the deck that evolve from any chain member.
+        """
+        chain: set[str] = set()
+
+        # Walk backward to root
+        current = card_name
+        visited: set[str] = set()
+        while current and current not in visited:
+            visited.add(current)
+            chain.add(current)
+            cdef = name_to_def.get(current)
+            if cdef is None:
+                break
+            parent = cdef.evolve_from
+            if parent and parent in name_to_def:
+                current = parent
+            else:
+                break
+
+        # Walk forward: find all cards in the deck that evolve from a chain member
+        changed = True
+        while changed:
+            changed = False
+            for cdef in name_to_def.values():
+                if cdef.evolve_from in chain and cdef.name not in chain:
+                    chain.add(cdef.name)
+                    changed = True
+
+        return chain
+
+    def _classify_deck_tiers(
+        self,
+        current_deck: list[CardDefinition],
+        primary_ids: set[str],
+    ) -> dict:
+        """Classify deck cards into three protection tiers.
+
+        Returns:
+            {
+              "tier1": set[tcgdex_id]  — primary attacker line (hard protected),
+              "tier2": dict[family_root_name → set[tcgdex_id]]  — support evolution
+                       lines (swappable only as complete families),
+              "tier3": set[tcgdex_id]  — trainers, energies, standalone basics
+                       (freely swappable),
+            }
+        """
+        name_to_def: dict[str, CardDefinition] = {}
+        for cdef in current_deck:
+            if cdef.name not in name_to_def:
+                name_to_def[cdef.name] = cdef
+
+        # Names that something else evolves FROM (i.e. they have a Stage1/Stage2 child)
+        evolved_from_names: set[str] = {
+            cdef.evolve_from
+            for cdef in current_deck
+            if cdef.evolve_from
+        }
+
+        tier2_families: dict[str, set[str]] = {}
+        processed_names: set[str] = set()
+
+        for cdef in current_deck:
+            if not cdef.is_pokemon:
+                continue
+            if cdef.tcgdex_id in primary_ids:
+                continue
+            if cdef.name in processed_names:
+                continue
+
+            # A card belongs to a multi-stage family if it has a parent or a child
+            has_parent = bool(cdef.evolve_from and cdef.evolve_from in name_to_def)
+            has_child = cdef.name in evolved_from_names
+
+            if not has_parent and not has_child:
+                continue  # standalone basic → tier3
+
+            family_names = self._get_evolution_chain_names(cdef.name, name_to_def)
+            family_ids = {
+                name_to_def[n].tcgdex_id
+                for n in family_names
+                if n in name_to_def
+            } - primary_ids
+
+            if not family_ids:
+                continue
+
+            # Find the root name (the Basic in this family that's in the deck)
+            root_name = None
+            for n in family_names:
+                nd = name_to_def.get(n)
+                if nd and (not nd.evolve_from or nd.evolve_from not in name_to_def):
+                    root_name = n
+                    break
+            root_name = root_name or next(iter(family_names))
+
+            if root_name not in tier2_families:
+                tier2_families[root_name] = family_ids
+
+            processed_names.update(family_names)
+
+        all_tier2_ids: set[str] = set().union(*tier2_families.values()) if tier2_families else set()
+        tier3 = {
+            cdef.tcgdex_id
+            for cdef in current_deck
+            if cdef.tcgdex_id not in primary_ids
+            and cdef.tcgdex_id not in all_tier2_ids
+        }
+
+        return {"tier1": primary_ids, "tier2": tier2_families, "tier3": tier3}
+
+    def _validate_and_filter_swaps(
+        self,
+        swaps: list[dict],
+        tiers: dict,
+        deck_ids: set[str],
+    ) -> list[dict]:
+        """Apply tier protection rules to Coach-proposed swaps.
+
+        Rules:
+        - Tier 1 (primary line): any swap removing a tier1 card is rejected.
+        - Tier 2 (support lines): removing any card in a family requires ALL
+          deck members of that family to be removed in the same batch.
+          Incomplete line removals are rejected.  A complete line removal counts
+          as ONE swap unit toward max_swaps regardless of family size.
+        - Tier 3: each swap counts as one unit toward max_swaps.
+
+        Returns a filtered, max_swaps-capped list of valid swaps.
+        """
+        tier1 = tiers.get("tier1", set())
+        tier2_families: dict[str, set[str]] = tiers.get("tier2", {})
+
+        # Build reverse map: tcgdex_id → family root name
+        id_to_family: dict[str, str] = {
+            cid: root
+            for root, ids in tier2_families.items()
+            for cid in ids
+        }
+
+        removed_ids = {s.get("remove", "") for s in swaps}
+
+        t2_by_family: dict[str, list[dict]] = defaultdict(list)
+        t3_swaps: list[dict] = []
+
+        for swap in swaps:
+            removed = swap.get("remove", "")
+            if removed in tier1:
+                logger.warning(
+                    "Coach proposed removing %s from the PRIMARY attacker line — blocked.",
+                    removed,
+                )
+                continue
+            if removed in id_to_family:
+                t2_by_family[id_to_family[removed]].append(swap)
+            else:
+                t3_swaps.append(swap)
+
+        # Validate each tier2 family: all deck members must be removed together
+        valid_t2_groups: list[list[dict]] = []
+        for root, group_swaps in t2_by_family.items():
+            family_ids_in_deck = tier2_families[root] & deck_ids
+            missing = family_ids_in_deck - removed_ids
+            if missing:
+                logger.warning(
+                    "Coach proposed partial removal of '%s' line (missing: %s). "
+                    "Full-line swap required — rejecting this family's swaps.",
+                    root, missing,
+                )
+            else:
+                valid_t2_groups.append(group_swaps)
+
+        # Build final list: each complete line swap = 1 unit; each t3 swap = 1 unit
+        final: list[dict] = []
+        units = 0
+
+        for group in valid_t2_groups:
+            if units < self._max_swaps:
+                final.extend(group)
+                units += 1  # whole family counts as one unit
+
+        for swap in t3_swaps:
+            if units < self._max_swaps:
+                final.append(swap)
+                units += 1
+
+        return final
+
+    def _format_card_tiers(
+        self,
+        tiers: dict,
+        deck: list[CardDefinition],
+    ) -> str:
+        """Format tier classification for inclusion in the Coach prompt."""
+        id_to_name: dict[str, str] = {c.tcgdex_id: c.name for c in deck}
+
+        tier1 = tiers.get("tier1", set())
+        tier2_families = tiers.get("tier2", {})
+        tier3 = tiers.get("tier3", set())
+
+        lines: list[str] = []
+
+        if tier1:
+            names = " → ".join(
+                dict.fromkeys(id_to_name.get(cid, cid) for cid in tier1)
+            )
+            lines.append(f"  PRIMARY (HARD PROTECTED — never remove these): {names}")
+        else:
+            lines.append("  PRIMARY (HARD PROTECTED): (could not be identified this round)")
+
+        if tier2_families:
+            lines.append("  SUPPORT (swap as complete lines only):")
+            for root, ids in tier2_families.items():
+                chain_names = " → ".join(
+                    dict.fromkeys(id_to_name.get(cid, cid) for cid in ids)
+                )
+                lines.append(f"    {root} line: {chain_names}")
+        else:
+            lines.append("  SUPPORT (swap as complete lines only): (none identified)")
+
+        if tier3:
+            t3_names = ", ".join(
+                dict.fromkeys(id_to_name.get(cid, cid) for cid in sorted(tier3))
+            )
+            lines.append(f"  UNPROTECTED (free to swap): {t3_names}")
+        else:
+            lines.append("  UNPROTECTED (free to swap): (none)")
+
+        return "\n".join(lines)
+
+    def _format_performance_history(self, regression_info: dict | None) -> str:
+        """Format win-rate trend, last-swap impact, and stability status for the prompt."""
+        if not regression_info:
+            return (
+                "  Win rate trend: (first round — no prior history)\n"
+                "  Last mutations: (none)\n"
+                "  Status: ✓ First round — proceed with full analysis."
+            )
+
+        history: list[int] = regression_info.get("win_rate_history", [])
+        last_muts: list[dict] = regression_info.get("last_mutations", [])
+        reverted: bool = regression_info.get("reverted", False)
+        consecutive: int = regression_info.get("consecutive_regressions", 0)
+        current: int | None = regression_info.get("current_win_rate")
+        best: int | None = regression_info.get("best_win_rate")
+
+        # ── Trend line ──────────────────────────────────────────────────────
+        if history:
+            trend_parts = [f"R{i+1}: {r}%" for i, r in enumerate(history)]
+            trend_line = " → ".join(trend_parts) + " ← current"
+        else:
+            trend_line = "(no prior rounds)"
+
+        # ── Last-mutation impact ────────────────────────────────────────────
+        if last_muts and len(history) >= 2:
+            delta = history[-1] - history[-2]
+            direction = f"▲ +{delta}%" if delta > 0 else (f"▼ {delta}%" if delta < 0 else "→ no change")
+            mut_lines = "; ".join(
+                f"{m.get('remove', '?')} → {m.get('add', '?')}"
+                for m in last_muts
+            )
+            last_mut_line = f"  Last mutations: {mut_lines} [{direction}]"
+        elif not last_muts:
+            last_mut_line = "  Last mutations: (none — Coach made no changes last round)"
+        else:
+            last_mut_line = "  Last mutations: (first round with mutations)"
+
+        # ── Status message ──────────────────────────────────────────────────
+        if reverted:
+            status = (
+                f"  ⚠️ DECK REVERTED: Win rate declined 2 consecutive rounds. "
+                f"Deck reset to best known state ({best}%). "
+                f"Make only ONE small, well-reasoned improvement."
+            )
+        elif consecutive >= 2:
+            status = (
+                f"  ⚠️ CRITICAL REGRESSION: {consecutive} consecutive drops. "
+                f"Deck will be auto-reverted next round if this continues. "
+                f"If win rate has been declining, prioritize stability — make no changes this round."
+            )
+        elif consecutive == 1:
+            status = (
+                f"  ⚠️ REGRESSION: Last swap hurt win rate (now {current}%, best was {best}%). "
+                f"If win rate has been declining, prioritize stability. "
+                f"Make fewer changes or no changes this round."
+            )
+        else:
+            status = "  ✓ Win rate is stable or improving — proceed with normal analysis."
+
+        return (
+            f"  Win rate trend (all rounds): {trend_line}\n"
+            f"{last_mut_line}\n"
+            f"{status}"
+        )
 
     async def _write_mutations(
         self, mutations: list[dict], simulation_id: uuid.UUID

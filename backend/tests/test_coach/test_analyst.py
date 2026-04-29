@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.coach.analyst import CoachAnalyst
+from app.cards.models import CardDefinition
 
 
 # ---------------------------------------------------------------------------
@@ -23,12 +24,29 @@ def _make_analyst(**kwargs) -> CoachAnalyst:
     return analyst
 
 
-def _match_result(winner: str = "p1", turns: int = 20) -> MagicMock:
+def _match_result(winner: str = "p1", turns: int = 20, events: list | None = None) -> MagicMock:
     r = MagicMock()
     r.winner = winner
     r.total_turns = turns
     r.end_condition = "prize"
+    r.events = events or []
     return r
+
+
+def _poke(tcgdex_id: str, name: str, stage: str = "Basic",
+          evolve_from: str | None = None, hp: int = 70,
+          category: str = "Pokemon") -> CardDefinition:
+    return CardDefinition(
+        tcgdex_id=tcgdex_id, name=name, set_abbrev="TST", set_number="1",
+        category=category, stage=stage, hp=hp, evolve_from=evolve_from,
+    )
+
+
+def _trainer(tcgdex_id: str, name: str) -> CardDefinition:
+    return CardDefinition(
+        tcgdex_id=tcgdex_id, name=name, set_abbrev="TST", set_number="2",
+        category="Trainer", subcategory="Item",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -75,7 +93,198 @@ class TestParseResponse:
 
 
 # ---------------------------------------------------------------------------
-# analyze_and_mutate
+# _identify_primary_line
+# ---------------------------------------------------------------------------
+
+class TestIdentifyPrimaryLine:
+    def test_top_damage_dealer_identified(self):
+        """Pokémon dealing the most damage becomes the primary line."""
+        analyst = _make_analyst()
+        deck = [
+            _poke("sv06-130", "Dragapult ex", stage="ex", hp=230),
+            _poke("sv06-128", "Drakloak", stage="Stage1", evolve_from="Dreepy"),
+            _poke("sv06-127", "Dreepy", stage="Basic"),
+        ]
+        events = [
+            {"event_type": "attack_damage", "attacker": "Dragapult ex", "final_damage": 200},
+            {"event_type": "attack_damage", "attacker": "Dragapult ex", "final_damage": 180},
+        ]
+        results = [_match_result(events=events)]
+        primary = analyst._identify_primary_line(results, deck)
+        assert "sv06-130" in primary  # Dragapult ex
+
+    def test_full_evolution_chain_included(self):
+        """All members of the chain are included in the primary ids."""
+        analyst = _make_analyst()
+        deck = [
+            _poke("sv06-130", "Dragapult ex", stage="ex", hp=230, evolve_from="Drakloak"),
+            _poke("sv06-128", "Drakloak", stage="Stage1", evolve_from="Dreepy"),
+            _poke("sv06-127", "Dreepy", stage="Basic"),
+        ]
+        events = [
+            {"event_type": "ko", "attacker": "Dragapult ex", "prizes_to_take": 2},
+        ]
+        results = [_match_result(events=events)]
+        primary = analyst._identify_primary_line(results, deck)
+        # All three members should be protected
+        assert {"sv06-130", "sv06-128", "sv06-127"} == primary
+
+    def test_no_events_fallback_to_ex(self):
+        """With no attack data, falls back to protecting the highest-HP ex."""
+        analyst = _make_analyst()
+        deck = [
+            _poke("sv06-130", "Dragapult ex", stage="ex", hp=230),
+            _poke("sv06-127", "Dreepy", stage="Basic"),
+        ]
+        primary = analyst._identify_primary_line([], deck)
+        assert "sv06-130" in primary
+
+    def test_no_events_no_ex_returns_empty(self):
+        """With no attack data and no ex, returns empty set."""
+        analyst = _make_analyst()
+        deck = [_poke("sv06-127", "Dreepy", stage="Basic")]
+        primary = analyst._identify_primary_line([], deck)
+        assert primary == set()
+
+    def test_prizes_weighted_heavily(self):
+        """A prize-taker outscores a raw-damage dealer (100 damage < 2 prizes×100)."""
+        analyst = _make_analyst()
+        deck = [
+            _poke("sv06-130", "Dragapult ex", stage="ex", hp=230),
+            _poke("sv01-001", "Bulbasaur", stage="Basic", hp=70),
+        ]
+        events = [
+            {"event_type": "attack_damage", "attacker": "Bulbasaur", "final_damage": 100},
+            {"event_type": "ko", "attacker": "Dragapult ex", "prizes_to_take": 2},
+        ]
+        results = [_match_result(events=events)]
+        primary = analyst._identify_primary_line(results, deck)
+        assert "sv06-130" in primary
+
+
+# ---------------------------------------------------------------------------
+# _classify_deck_tiers
+# ---------------------------------------------------------------------------
+
+class TestClassifyDeckTiers:
+    def _dragapult_deck(self) -> list[CardDefinition]:
+        return [
+            _poke("sv06-130", "Dragapult ex", stage="ex", hp=230),
+            _poke("sv06-128", "Drakloak", stage="Stage1", evolve_from="Dreepy"),
+            _poke("sv06-127", "Dreepy", stage="Basic"),
+            _poke("sv04-088", "Dusknoir", stage="Stage2", evolve_from="Dusclops"),
+            _poke("sv04-087", "Dusclops", stage="Stage1", evolve_from="Duskull"),
+            _poke("sv04-086", "Duskull", stage="Basic"),
+            _trainer("sv06-150", "Iono"),
+            _trainer("sv06-151", "Ultra Ball"),
+        ]
+
+    def test_tier1_is_primary(self):
+        analyst = _make_analyst()
+        deck = self._dragapult_deck()
+        primary_ids = {"sv06-130", "sv06-128", "sv06-127"}
+        tiers = analyst._classify_deck_tiers(deck, primary_ids)
+        assert tiers["tier1"] == primary_ids
+
+    def test_support_line_in_tier2(self):
+        analyst = _make_analyst()
+        deck = self._dragapult_deck()
+        primary_ids = {"sv06-130", "sv06-128", "sv06-127"}
+        tiers = analyst._classify_deck_tiers(deck, primary_ids)
+        all_t2 = set().union(*tiers["tier2"].values())
+        assert {"sv04-088", "sv04-087", "sv04-086"} == all_t2
+
+    def test_trainers_in_tier3(self):
+        analyst = _make_analyst()
+        deck = self._dragapult_deck()
+        primary_ids = {"sv06-130", "sv06-128", "sv06-127"}
+        tiers = analyst._classify_deck_tiers(deck, primary_ids)
+        assert "sv06-150" in tiers["tier3"]
+        assert "sv06-151" in tiers["tier3"]
+
+    def test_standalone_basic_in_tier3(self):
+        analyst = _make_analyst()
+        deck = [
+            _poke("sv06-130", "Dragapult ex", stage="ex", hp=230),
+            _poke("sv01-001", "Radiant Greninja", stage="Basic"),  # no evolutions in deck
+            _trainer("sv06-150", "Iono"),
+        ]
+        primary_ids = {"sv06-130"}
+        tiers = analyst._classify_deck_tiers(deck, primary_ids)
+        assert "sv01-001" in tiers["tier3"]
+
+
+# ---------------------------------------------------------------------------
+# _validate_and_filter_swaps
+# ---------------------------------------------------------------------------
+
+class TestValidateAndFilterSwaps:
+    def _tiers(self) -> dict:
+        return {
+            "tier1": {"sv06-130", "sv06-128", "sv06-127"},
+            "tier2": {"Duskull": {"sv04-086", "sv04-087", "sv04-088"}},
+            "tier3": {"sv06-150", "sv06-151"},
+        }
+
+    def _deck_ids(self) -> set:
+        return {"sv06-130", "sv06-128", "sv06-127", "sv04-086", "sv04-087", "sv04-088", "sv06-150", "sv06-151"}
+
+    def test_tier1_swap_blocked(self):
+        analyst = _make_analyst()
+        swaps = [{"remove": "sv06-130", "add": "sv01-999", "reasoning": "test"}]
+        result = analyst._validate_and_filter_swaps(swaps, self._tiers(), self._deck_ids())
+        assert result == []
+
+    def test_tier3_swap_allowed(self):
+        analyst = _make_analyst()
+        swaps = [{"remove": "sv06-150", "add": "sv01-999", "reasoning": "try Nest Ball"}]
+        result = analyst._validate_and_filter_swaps(swaps, self._tiers(), self._deck_ids())
+        assert len(result) == 1
+
+    def test_partial_tier2_line_rejected(self):
+        analyst = _make_analyst()
+        # Only removes Duskull, not Dusclops and Dusknoir
+        swaps = [{"remove": "sv04-086", "add": "sv01-001", "reasoning": "partial"}]
+        result = analyst._validate_and_filter_swaps(swaps, self._tiers(), self._deck_ids())
+        assert result == []
+
+    def test_full_tier2_line_swap_allowed(self):
+        analyst = _make_analyst()
+        # Removes all three Dusknoir-line cards
+        swaps = [
+            {"remove": "sv04-086", "add": "sv01-001", "reasoning": "replace duskull"},
+            {"remove": "sv04-087", "add": "sv01-002", "reasoning": "replace dusclops"},
+            {"remove": "sv04-088", "add": "sv01-003", "reasoning": "replace dusknoir"},
+        ]
+        result = analyst._validate_and_filter_swaps(swaps, self._tiers(), self._deck_ids())
+        assert len(result) == 3
+
+    def test_full_line_counts_as_one_unit(self):
+        """A 3-card line swap + 3 tier3 swaps: with max_swaps=3, line(=1) + t3(=2) = 3."""
+        analyst = _make_analyst(max_swaps=3)
+        swaps = [
+            {"remove": "sv04-086", "add": "sv01-001", "reasoning": "r1"},
+            {"remove": "sv04-087", "add": "sv01-002", "reasoning": "r2"},
+            {"remove": "sv04-088", "add": "sv01-003", "reasoning": "r3"},
+            {"remove": "sv06-150", "add": "sv01-010", "reasoning": "r4"},
+            {"remove": "sv06-151", "add": "sv01-011", "reasoning": "r5"},
+        ]
+        result = analyst._validate_and_filter_swaps(swaps, self._tiers(), self._deck_ids())
+        # line(1) + t3(1) + t3(1) = 3 units → first 3 units kept
+        assert len(result) == 5  # 3 line + 2 tier3 = 3 units total, all in
+
+    def test_max_swaps_enforced_on_tier3(self):
+        analyst = _make_analyst(max_swaps=1)
+        swaps = [
+            {"remove": "sv06-150", "add": "sv01-010", "reasoning": "r1"},
+            {"remove": "sv06-151", "add": "sv01-011", "reasoning": "r2"},
+        ]
+        result = analyst._validate_and_filter_swaps(swaps, self._tiers(), self._deck_ids())
+        assert len(result) == 1
+
+
+# ---------------------------------------------------------------------------
+# analyze_and_mutate (integration of tier logic)
 # ---------------------------------------------------------------------------
 
 class TestAnalyzeAndMutate:
@@ -104,6 +313,37 @@ class TestAnalyzeAndMutate:
         analyst._db.add_all.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_tier1_swap_blocked_in_full_flow(self):
+        """Coach proposing to remove primary attacker is blocked by validation."""
+        analyst = _make_analyst()
+        deck = [
+            _poke("sv06-130", "Dragapult ex", stage="ex", hp=230),
+            _poke("sv06-127", "Dreepy", stage="Basic"),
+        ]
+
+        analyst._card_perf.get_card_performance = AsyncMock(return_value={})
+        analyst._graph.get_synergies = AsyncMock(return_value={"top": [], "weak": []})
+        analyst._similar.find_similar = AsyncMock(return_value=[])
+        analyst._card_perf.get_top_performing_cards = AsyncMock(return_value=[])
+        analyst._graph.record_swap = AsyncMock()
+
+        # Coach proposes removing the Dragapult ex (primary attacker)
+        proposed = [{"remove": "sv06-130", "add": "sv01-999", "reasoning": "bad idea"}]
+        analyst._call_ollama = AsyncMock(
+            return_value=json.dumps({"swaps": proposed, "analysis": "swap it"})
+        )
+
+        events = [{"event_type": "ko", "attacker": "Dragapult ex", "prizes_to_take": 2}]
+        results = [_match_result("p2", events=events)]
+        mutations = await analyst.analyze_and_mutate(
+            current_deck=deck,
+            round_results=results,
+            simulation_id=uuid.uuid4(),
+            round_number=1,
+        )
+        assert mutations == []
+
+    @pytest.mark.asyncio
     async def test_swaps_clamped_to_max(self):
         """Swaps in excess of max_swaps are silently dropped."""
         analyst = _make_analyst(max_swaps=2)
@@ -111,13 +351,16 @@ class TestAnalyzeAndMutate:
         card = MagicMock()
         card.tcgdex_id = "set-001"
         card.name = "Pikachu"
+        card.is_pokemon = False
+        card.is_ex = False
+        card.evolve_from = None
 
         analyst._card_perf.get_card_performance = AsyncMock(return_value={})
         analyst._graph.get_synergies = AsyncMock(return_value={"top": [], "weak": []})
         analyst._similar.find_similar = AsyncMock(return_value=[])
         analyst._card_perf.get_top_performing_cards = AsyncMock(return_value=[])
 
-        # Propose 4 swaps but max is 2
+        # Propose 4 swaps but max is 2 — all tier3 so count 1:1
         proposed_swaps = [
             {"remove": f"set-{i:03d}", "add": f"new-{i:03d}", "reasoning": f"swap {i}"}
             for i in range(4)
@@ -172,3 +415,125 @@ class TestAnalyzeAndMutate:
             round_number=1,
         )
         assert mutations == []
+
+
+# ---------------------------------------------------------------------------
+# _format_performance_history
+# ---------------------------------------------------------------------------
+
+class TestFormatPerformanceHistory:
+    def test_none_returns_first_round_message(self):
+        analyst = _make_analyst()
+        result = analyst._format_performance_history(None)
+        assert "first round" in result
+
+    def test_no_regression_returns_stable(self):
+        analyst = _make_analyst()
+        result = analyst._format_performance_history({
+            "consecutive_regressions": 0,
+            "prev_win_rate": 50,
+            "current_win_rate": 60,
+            "best_win_rate": 60,
+            "reverted": False,
+            "win_rate_history": [50, 60],
+            "last_mutations": [],
+        })
+        assert "stable" in result.lower() or "improving" in result.lower()
+
+    def test_trend_shows_all_rounds(self):
+        analyst = _make_analyst()
+        result = analyst._format_performance_history({
+            "consecutive_regressions": 0,
+            "prev_win_rate": 60,
+            "current_win_rate": 70,
+            "best_win_rate": 70,
+            "reverted": False,
+            "win_rate_history": [45, 60, 70],
+            "last_mutations": [],
+        })
+        assert "R1: 45%" in result
+        assert "R2: 60%" in result
+        assert "R3: 70%" in result
+
+    def test_last_mutation_impact_shown(self):
+        analyst = _make_analyst()
+        result = analyst._format_performance_history({
+            "consecutive_regressions": 1,
+            "prev_win_rate": 70,
+            "current_win_rate": 55,
+            "best_win_rate": 70,
+            "reverted": False,
+            "win_rate_history": [70, 55],
+            "last_mutations": [{"remove": "sv01-001", "add": "sv02-002"}],
+        })
+        assert "sv01-001" in result
+        assert "sv02-002" in result
+        assert "▼" in result  # decline marker
+
+    def test_improvement_shown_with_up_arrow(self):
+        analyst = _make_analyst()
+        result = analyst._format_performance_history({
+            "consecutive_regressions": 0,
+            "prev_win_rate": 50,
+            "current_win_rate": 65,
+            "best_win_rate": 65,
+            "reverted": False,
+            "win_rate_history": [50, 65],
+            "last_mutations": [{"remove": "sv01-001", "add": "sv02-002"}],
+        })
+        assert "▲" in result
+
+    def test_regression_shows_rates(self):
+        analyst = _make_analyst()
+        result = analyst._format_performance_history({
+            "consecutive_regressions": 1,
+            "prev_win_rate": 70,
+            "current_win_rate": 55,
+            "best_win_rate": 70,
+            "reverted": False,
+            "win_rate_history": [70, 55],
+            "last_mutations": [],
+        })
+        assert "REGRESSION" in result
+        assert "55%" in result
+
+    def test_revert_message_shown(self):
+        analyst = _make_analyst()
+        result = analyst._format_performance_history({
+            "consecutive_regressions": 0,
+            "prev_win_rate": 40,
+            "current_win_rate": 35,
+            "best_win_rate": 70,
+            "reverted": True,
+            "win_rate_history": [70, 55, 40, 35],
+            "last_mutations": [],
+        })
+        assert "REVERTED" in result
+        assert "70%" in result
+
+    def test_performance_history_in_prompt(self):
+        """Performance history flows through _build_prompt into the template."""
+        analyst = _make_analyst()
+        deck = [_poke("set-001", "Pikachu", stage="Basic")]
+        results = [_match_result("p2")]
+        prompt = analyst._build_prompt(
+            deck=deck,
+            round_results=results,
+            card_stats={},
+            top_cards=[],
+            synergies={"top": [], "weak": []},
+            similar=[],
+            regression_info={
+                "consecutive_regressions": 1,
+                "prev_win_rate": 70,
+                "current_win_rate": 50,
+                "best_win_rate": 70,
+                "reverted": False,
+                "win_rate_history": [70, 50],
+                "last_mutations": [],
+            },
+        )
+        assert "REGRESSION" in prompt
+        assert "70%" in prompt
+        assert "R1: 70%" in prompt
+        assert "R2: 50%" in prompt

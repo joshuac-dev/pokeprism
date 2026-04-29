@@ -14,6 +14,7 @@ import pytest
 
 from app.tasks.simulation import (
     _apply_mutations,
+    _check_regression,
     _get_player_classes,
     _parse_deck_text,
     _parse_ptcgl_deck_text,
@@ -440,3 +441,37 @@ class TestEnsureDeckCardsInDb:
             await ensure_deck_cards_in_db(["4 Dreepy PRE 71"], mock_db)
             mock_ensure.assert_called_once()
             mock_db.commit.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# _check_regression
+# ---------------------------------------------------------------------------
+
+class TestCheckRegression:
+    def test_first_round_no_prev_returns_zero(self):
+        """No previous win rate → no regression possible."""
+        assert _check_regression(50, None, 0) == 0
+
+    def test_improvement_resets_counter(self):
+        """Win rate went up → consecutive_regressions resets to 0."""
+        assert _check_regression(60, 50, 2) == 0
+
+    def test_same_rate_resets_counter(self):
+        """Win rate unchanged → not a regression."""
+        assert _check_regression(55, 55, 1) == 0
+
+    def test_drop_increments_counter(self):
+        """Win rate dropped → increment."""
+        assert _check_regression(40, 60, 0) == 1
+
+    def test_second_consecutive_drop(self):
+        """Second consecutive drop → counter reaches 2."""
+        assert _check_regression(35, 40, 1) == 2
+
+    def test_third_consecutive_drop(self):
+        """Three consecutive drops → counter reaches 3 (skip-coach threshold)."""
+        assert _check_regression(30, 35, 2) == 3
+
+    def test_one_percent_drop_counts(self):
+        """Even a 1% drop counts as a regression."""
+        assert _check_regression(59, 60, 0) == 1

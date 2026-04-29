@@ -139,6 +139,23 @@ def count_deck_cards(deck_text: str) -> int:
 # Celery task definition
 # ---------------------------------------------------------------------------
 
+def _check_regression(
+    win_rate_pct: int,
+    prev_win_rate: int | None,
+    consecutive_regressions: int,
+) -> int:
+    """Return the updated consecutive-regressions counter.
+
+    Increments when win_rate_pct < prev_win_rate; resets to 0 otherwise.
+    Returns 0 when there is no previous round to compare against.
+    """
+    if prev_win_rate is None:
+        return 0
+    if win_rate_pct < prev_win_rate:
+        return consecutive_regressions + 1
+    return 0
+
+
 from app.tasks.celery_app import celery_app  # noqa: E402
 
 
@@ -233,6 +250,15 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
         final_win_rate = 0
         total_round_matches = 0
         consecutive_target_hits = 0
+
+        # Regression tracking state
+        prev_win_rate: int | None = None
+        consecutive_regressions: int = 0
+        best_win_rate: int = -1
+        best_deck_text: str = current_deck_text
+        best_deck_cards: list = list(current_deck_cards)
+        win_rate_history: list[int] = []       # one entry per completed round
+        last_mutations_summary: list[dict] = []  # mutations applied after the last round
 
         # ── 5. Round loop ───────────────────────────────────────────────────
         for round_number in range(1, num_rounds + 1):
@@ -420,48 +446,120 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                 )
                 await db.commit()
 
+            # ── Regression tracking ─────────────────────────────────────────
+            # Capture best deck BEFORE coaching (deck that produced win_rate_pct)
+            if win_rate_pct > best_win_rate:
+                best_win_rate = win_rate_pct
+                best_deck_text = current_deck_text
+                best_deck_cards = list(current_deck_cards)
+                best_snap = [
+                    {"tcgdex_id": c.tcgdex_id, "name": c.name}
+                    for c in current_deck_cards
+                ]
+                async with SessionFactory() as db:
+                    await db.execute(
+                        update(Simulation)
+                        .where(Simulation.id == sim_uuid)
+                        .values(
+                            best_deck_snapshot={"cards": best_snap, "win_rate": win_rate_pct}
+                        )
+                    )
+                    await db.commit()
+
+            consecutive_regressions = _check_regression(
+                win_rate_pct, prev_win_rate, consecutive_regressions
+            )
+            prev_win_rate = win_rate_pct
+            win_rate_history.append(win_rate_pct)
+
             mutations_for_event: list[dict] = []
 
             # Run coach before target check so mutations are always applied on
             # non-final rounds when the deck is unlocked, even if target is met.
             if not deck_locked and round_number < num_rounds and current_deck_cards:
-                try:
-                    async with SessionFactory() as db:
-                        from app.coach.analyst import CoachAnalyst
-                        analyst = CoachAnalyst(db=db)
-                        mutations = await analyst.analyze_and_mutate(
-                            current_deck=current_deck_cards,
-                            round_results=all_round_results,
-                            simulation_id=sim_uuid,
-                            round_number=round_number,
-                        )
-                        await db.commit()
-
-                    current_deck_cards, current_deck_text = _apply_mutations(
-                        current_deck_cards, current_deck_text, mutations
+                if consecutive_regressions >= 3:
+                    # Third+ consecutive regression — skip Coach entirely
+                    logger.info(
+                        "Coach skipped for round %d: %d consecutive regressions",
+                        round_number, consecutive_regressions,
                     )
-                    mutations_for_event = [
-                        {
-                            "remove": m.get("card_removed"),
-                            "add": m.get("card_added"),
-                            "reasoning": m.get("reasoning"),
-                        }
-                        for m in mutations
-                    ]
-                    for mut in mutations_for_event:
+                    _publish({
+                        "type": "coach_skipped",
+                        "simulation_id": simulation_id,
+                        "round_number": round_number,
+                        "reason": f"{consecutive_regressions} consecutive win-rate regressions",
+                    })
+                else:
+                    was_reverted = False
+                    if consecutive_regressions == 2:
+                        # Two consecutive regressions — revert to best known deck
+                        logger.info(
+                            "Reverting deck at round %d: 2 consecutive regressions "
+                            "(best win rate was %d%%)",
+                            round_number, best_win_rate,
+                        )
+                        current_deck_cards = list(best_deck_cards)
+                        current_deck_text = best_deck_text
+                        consecutive_regressions = 0
+                        was_reverted = True
                         _publish({
-                            "type": "deck_mutation",
+                            "type": "deck_reverted",
                             "simulation_id": simulation_id,
                             "round_number": round_number,
-                            "remove": mut["remove"],
-                            "add": mut["add"],
-                            "reasoning": mut["reasoning"],
+                            "reverted_to_win_rate": best_win_rate,
                         })
-                except Exception as exc:
-                    logger.warning(
-                        "Coach mutation failed (round %d): %s", round_number, exc,
-                        exc_info=True,
-                    )
+
+                    regression_info = {
+                        "consecutive_regressions": consecutive_regressions,
+                        "prev_win_rate": prev_win_rate,
+                        "current_win_rate": win_rate_pct,
+                        "best_win_rate": best_win_rate,
+                        "reverted": was_reverted,
+                        "win_rate_history": list(win_rate_history),
+                        "last_mutations": list(last_mutations_summary),
+                    }
+
+                    try:
+                        async with SessionFactory() as db:
+                            from app.coach.analyst import CoachAnalyst
+                            analyst = CoachAnalyst(db=db)
+                            mutations = await analyst.analyze_and_mutate(
+                                current_deck=current_deck_cards,
+                                round_results=all_round_results,
+                                simulation_id=sim_uuid,
+                                round_number=round_number,
+                                regression_info=regression_info,
+                            )
+                            await db.commit()
+
+                        current_deck_cards, current_deck_text = _apply_mutations(
+                            current_deck_cards, current_deck_text, mutations
+                        )
+                        mutations_for_event = [
+                            {
+                                "remove": m.get("card_removed"),
+                                "add": m.get("card_added"),
+                                "reasoning": m.get("reasoning"),
+                            }
+                            for m in mutations
+                        ]
+                        for mut in mutations_for_event:
+                            _publish({
+                                "type": "deck_mutation",
+                                "simulation_id": simulation_id,
+                                "round_number": round_number,
+                                "remove": mut["remove"],
+                                "add": mut["add"],
+                                "reasoning": mut["reasoning"],
+                            })
+                    except Exception as exc:
+                        logger.warning(
+                            "Coach mutation failed (round %d): %s", round_number, exc,
+                            exc_info=True,
+                        )
+
+            # Persist Coach mutations for the next round's history context
+            last_mutations_summary = list(mutations_for_event)
 
             if win_rate_pct >= target_win_rate:
                 consecutive_target_hits += 1

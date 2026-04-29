@@ -185,7 +185,7 @@ def _parse_deck_lines(deck_text: str) -> list[tuple[int, str, str]]:
     return results
 
 
-async def _get_deck_name_from_gemma(deck_text: str, timeout: float = 30.0) -> Optional[str]:
+async def _get_deck_name_from_gemma(deck_text: str, timeout: float = 120.0) -> Optional[str]:
     """Ask Gemma to generate a deck name.  Returns None on any failure."""
     from app.coach.prompts import DECK_NAME_PROMPT
 
