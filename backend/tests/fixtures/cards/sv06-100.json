@@ -1,0 +1,79 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-100",
+  "illustrator": "SIE NANAHARA",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/100",
+  "localId": "100",
+  "name": "Hisuian Arcanine",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    59
+  ],
+  "hp": 130,
+  "types": [
+    "Fighting"
+  ],
+  "evolveFrom": "Hisuian Growlithe",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "name": "Proud Fangs",
+      "effect": "If your Benched Pokémon have any damage counters on them, this attack does 90 more damage.",
+      "damage": "30+"
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Searing Flame",
+      "effect": "Your opponent's Active Pokémon is now Burned.",
+      "damage": 90
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:13+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 769274,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.08,
+      "avg1": 0.08,
+      "avg7": 0.06,
+      "avg30": 0.07,
+      "avg-holo": 0.23,
+      "low-holo": 0.02,
+      "trend-holo": 0.18,
+      "avg1-holo": 0.5,
+      "avg7-holo": 0.16,
+      "avg30-holo": 0.21
+    },
+    "tcgplayer": null
+  }
+}

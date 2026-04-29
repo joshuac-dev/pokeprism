@@ -3973,3 +3973,21 @@ def register_all(registry):
     registry.register_passive_ability("sv06-080", "Teleporter")             # Abra (active shuffle to deck: noop)
     registry.register_passive_ability("sv06-033", "Pyro Dance")             # Infernape (energy attach from deck: noop)
 
+    # Passive stubs for Batch 15: TWM sv06-082..141 + TEF sv05-001..048
+    registry.register_passive_ability("sv06-088", "Captivating Invitation") # Florges (flip force switch: flag)
+    registry.register_passive_ability("sv06-089", "Festival Lead")          # Swirlix (stadium double attack: noop)
+    registry.register_passive_ability("sv06-123", "Incandescent Body")      # Heatran (damage redirect: noop)
+    registry.register_passive_ability("sv06-131", "Attract Customers")      # Tatsugiri (top deck look: flag)
+    registry.register_passive_ability("sv06-132", "Impromptu Carrier")      # Farfetch'd (on-play item attach: flag)
+    registry.register_passive_ability("sv06-134", "Happy Switch")           # Blissey ex (energy move: flag)
+    registry.register_passive_ability("sv06-138", "Wicked Tail")            # Ambipom (on-bench damage: noop)
+    registry.register_passive_ability("sv05-008", "Poison Point")           # Roselia (on-hit poison: noop)
+    registry.register_passive_ability("sv05-009", "Poison Point")           # Roserade (on-hit poison: noop)
+    registry.register_passive_ability("sv05-010", "Solid Shell")            # Turtwig (damage reduction: noop)
+    registry.register_passive_ability("sv05-015", "Wafting Heal")           # Whimsicott (turn-start heal: noop)
+    registry.register_passive_ability("sv05-017", "Changing Seasons")       # Sawsbuck (energy cost modifier: noop)
+    registry.register_passive_ability("sv05-021", "Resilient Soul")         # Brambleghast (dynamic HP: flag)
+    registry.register_passive_ability("sv05-029", "Lava Zone")              # Magcargo (on-retreat burn: flag)
+    registry.register_passive_ability("sv05-034", "Hustle Play")            # Incineroar ex (attack cost reduction: flag)
+    registry.register_passive_ability("sv05-041", "Torrential Heart")       # Feraligatr (energy doubling: flag)
+

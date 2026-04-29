@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-087",
+  "illustrator": "mingo",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/087",
+  "localId": "087",
+  "name": "Floette",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    670
+  ],
+  "hp": 70,
+  "types": [
+    "Psychic"
+  ],
+  "evolveFrom": "Flabébé",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Minor Errand-Running",
+      "effect": "Search your deck for up to 3 Basic Energy cards, reveal them, and put them into your hand. Then, shuffle your deck."
+    },
+    {
+      "cost": [
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Spinning Attack",
+      "damage": 40
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:13+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 769261,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.05,
+      "avg7": 0.05,
+      "avg30": 0.04,
+      "avg-holo": 0.1,
+      "low-holo": 0.02,
+      "trend-holo": 0.19,
+      "avg1-holo": 0.25,
+      "avg7-holo": 0.12,
+      "avg30-holo": 0.13
+    },
+    "tcgplayer": null
+  }
+}

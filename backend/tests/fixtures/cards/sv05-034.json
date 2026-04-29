@@ -1,0 +1,94 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-034",
+  "illustrator": "N-DESIGN Inc.",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/034",
+  "localId": "034",
+  "name": "Incineroar ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "normal",
+      "size": "jumbo",
+      "variantId": "l7orfpmicmyc"
+    }
+  ],
+  "dexId": [
+    727
+  ],
+  "hp": 320,
+  "types": [
+    "Fire"
+  ],
+  "evolveFrom": "Torracat",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Hustle Play",
+      "effect": "Attacks used by this Pokémon cost {C} less for each of your opponent's Benched Pokémon."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Fire",
+        "Colorless",
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Blaze Blast",
+      "effect": "Your opponent's Active Pokémon is now Burned.",
+      "damage": 240
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760664,
+      "avg": 0.7,
+      "low": 0.2,
+      "trend": 0.77,
+      "avg1": 0.67,
+      "avg7": 0.78,
+      "avg30": 0.73,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,106 +1,3 @@
-Chimecho TWM 85
-Farigiraf TWM 84
-Girafarig TWM 83
-Alakazam TWM 82
-Flabébé TWM 86
-Floette TWM 87
-Florges TWM 88
-Swirlix TWM 89
-Enamorus TWM 93
-Palossand TWM 92
-Sandygast TWM 91
-Slurpuff TWM 90
-Scream Tail ex TWM 94
-Munkidori TWM 95
-Fezandipiti TWM 96
-Sandshrew TWM 97
-Sandslash TWM 98
-Hisuian Growlithe TWM 99
-Hisuian Arcanine TWM 100
-Nosepass TWM 101
-Conkeldurr TWM 105
-Gurdurr TWM 104
-Timburr TWM 103
-Probopass TWM 102
-Greninja ex TWM 106
-Hawlucha TWM 107
-Glimmet TWM 108
-Glimmora TWM 109
-Ting-Lu TWM 110
-Okidogi TWM 111
-Cornerstone Mask Ogerpon ex TWM 112
-Poochyena TWM 113
-Scolipede TWM 117
-Whirlipede TWM 116
-Venipede TWM 115
-Mightyena TWM 114
-Brute Bonnet TWM 118
-Skarmory TWM 119
-Aron TWM 120
-Lairon TWM 121
-Aggron TWM 122
-Heatran TWM 123
-Varoom TWM 124
-Revavroom TWM 125
-Drakloak TWM 129
-Dreepy TWM 128
-Dragapult ex TWM 130
-Tatsugiri TWM 131
-Farfetch'd TWM 132
-Chansey TWM 133
-Blissey ex TWM 134
-Snorlax TWM 136
-Aipom TWM 137
-Bloodmoon Ursaluna ex TWM 141
-Swanna TWM 140
-Ducklett TWM 139
-Ambipom TWM 138
-Scyther TEF 1
-Pineco TEF 2
-Seedot TEF 3
-Nuzleaf TEF 4
-Shiftry TEF 5
-Shroomish TEF 6
-Breloom TEF 7
-Roselia TEF 8
-Roserade TEF 9
-Turtwig TEF 10
-Grotle TEF 11
-Torterra ex TEF 12
-Shaymin TEF 13
-Cottonee TEF 14
-Whimsicott TEF 15
-Deerling TEF 16
-Sawsbuck TEF 17
-Grubbin TEF 18
-Dhelmise TEF 19
-Rabsca TEF 24
-Rellor TEF 23
-Brambleghast TEF 21
-Bramblin TEF 20
-Iron Leaves ex TEF 25
-Ponyta TEF 26
-Rapidash TEF 27
-Slugma TEF 28
-Magcargo TEF 29
-Heatmor TEF 31
-Litten TEF 32
-Sizzlipede TEF 36
-Turtonator TEF 35
-Incineroar ex TEF 34
-Torracat TEF 33
-Centiskorch TEF 37
-Gouging Fire ex TEF 38
-Totodile TEF 39
-Croconaw TEF 40
-Feraligatr TEF 41
-Carvanha TEF 42
-Sharpedo TEF 43
-Keldeo TEF 44
-Finizen TEF 48
-Wiglett TEF 47
-Frosmoth TEF 46
-Snom TEF 45
 Palafin TEF 49
 Walking Wake ex TEF 50
 Pikachu TEF 51
@@ -715,3 +612,27 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Zubat SFA 27 | sv06.5-027 | Lead (atk0) | Damage = 30× (Golbat + Crobat in hand/bench) — count-specific-named-Pokémon-in-zones not supported |
 | Inkay SFA 33 | sv06.5-033 | Mischievous Tentacles (atk0) | Switch one of your Benched Pokémon with your Active — self-bench-swap from attack not supported |
 | Malamar SFA 34 | sv06.5-034 | Colluding Tentacles (atk0) | Effect requires Janine's Secret Art to be in play — trainer-in-play conditional not supported |
+| Alakazam TWM 82 | sv06-082 | Strange Hacking (atk0) | Move damage counters from opponent's Active to Bench — player-choice counter redistribution not supported |
+| Chimecho TWM 85 | sv06-085 | Homeward Chime (atk1) | Shuffle all Benched Pokémon and attached cards into deck — mass-bounce of own bench not supported |
+| Floette TWM 87 | sv06-087 | Minor Errand-Running (atk0) | Search deck for Basic Energy card to hand — deck-search-energy-to-hand not supported |
+| Florges TWM 88 | sv06-088 | Captivating Invitation (ability) | Flip coin; heads = force opponent to switch Active — coin-flip-forced-switch ability not supported |
+| Sandygast TWM 91 | sv06-091 | Sand Attack (atk0) | Flip coin; if tails, opponent can't use attacks next turn — conditional opponent attack lock not supported |
+| Palossand TWM 92 | sv06-092 | Sand Attack (atk0) | Same as Sandygast Sand Attack — conditional opponent attack lock not supported |
+| Scream Tail ex TWM 94 | sv06-094 | Scream (atk0) | Only usable if going-second + first turn; bench-targeted — going-second first-turn condition not supported |
+| Conkeldurr TWM 105 | sv06-105 | Gutsy Swing (atk1) | Ignore energy cost if Active has Special Condition — conditional energy-cost bypass not supported |
+| Scolipede TWM 117 | sv06-117 | Dastardly Jab (atk0) | Reduce opponent's HP to 10 — direct HP-set not supported |
+| Tatsugiri TWM 131 | sv06-131 | Attract Customers (ability) | Look at top 3 cards; choose 1 to hand — top-deck look-and-choose ability not supported |
+| Farfetch'd TWM 132 | sv06-132 | Impromptu Carrier (ability) | On-play-to-bench: attach Item from discard — on-bench-play trigger attach not supported |
+| Blissey ex TWM 134 | sv06-134 | Happy Switch (ability) | Move Basic Energy between your Pokémon — energy-move-between-Pokémon ability not supported |
+| Dipplin TWM 127 | sv06-127 | Syrup Catcher (atk0) | Force switch opponent's Benched Pokémon + 70 damage — force-switch before damage not supported |
+| Eevee TWM 135 | sv06-135 | Ascension (atk0) | Search deck for Eevee evolution and evolve — evolution-from-deck not supported |
+| Shiftry TEF 5 | sv05-005 | Expelling Tornado (atk0) | Shuffle chosen opponent's Benched Pokémon into deck — selective bench bounce not supported |
+| Grubbin TEF 18 | sv05-018 | Flock (atk0) | Search deck for up to 3 Grubbin and put on Bench — bench-filling search from deck not supported |
+| Brambleghast TEF 21 | sv05-021 | Resilient Soul (ability) | HP = 60 + 50 per prize remaining — dynamic HP based on prizes not supported |
+| Ponyta TEF 26 | sv05-026 | Charge Energy (atk0) | Search deck for Basic Energy card to hand — deck-search-energy-to-hand not supported |
+| Magcargo TEF 29 | sv05-029 | Lava Zone (ability) | When this Pokémon retreats, opponent's Active is now Burned — on-retreat trigger not supported |
+| Incineroar ex TEF 34 | sv05-034 | Hustle Play (ability) | This Pokémon can use attacks with 1 fewer Energy — dynamic attack-cost reduction not supported |
+| Feraligatr TEF 41 | sv05-041 | Torrential Heart (ability) | Water Energy counts as 2 when paying retreat/attack costs — energy-doubling cost reduction not supported |
+| Scovillain ex TEF 22 | sv05-022 | Two-Headed Crushing (atk1) | Discard random card from opponent's hand + top of deck — double-discard secondary effect not supported |
+| Victini TEF 30 | sv05-030 | Flippity Flap (atk0) | Shuffle hand into deck + draw 6 — shuffle-hand-draw not supported |
+| Wiglett TEF 47 | sv05-047 | Lucky Find (atk0) | Search deck for Item card to hand — item-search not supported |

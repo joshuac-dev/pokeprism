@@ -1,0 +1,87 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-140",
+  "illustrator": "Susumu Maeya",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/140",
+  "localId": "140",
+  "name": "Swanna",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    581
+  ],
+  "hp": 110,
+  "types": [
+    "Colorless"
+  ],
+  "evolveFrom": "Ducklett",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Fighting Wings",
+      "effect": "If your opponent's Active Pokémon is a Pokémon ex or Pokémon V, this attack does 90 more damage.",
+      "damage": "20+"
+    },
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Gust",
+      "damage": 70
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:13+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 769314,
+      "avg": 0.05,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.07,
+      "avg7": 0.05,
+      "avg30": 0.05,
+      "avg-holo": 0.17,
+      "low-holo": 0.02,
+      "trend-holo": 0.3,
+      "avg1-holo": 0.18,
+      "avg7-holo": 0.31,
+      "avg30-holo": 0.2
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-011",
+  "illustrator": "Uninori",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/011",
+  "localId": "011",
+  "name": "Grotle",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    388
+  ],
+  "hp": 120,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Turtwig",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Cut",
+      "damage": 20
+    },
+    {
+      "cost": [
+        "Grass",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Ramming Shell",
+      "effect": "During your opponent's next turn, this Pokémon takes 20 less damage from attacks (after applying Weakness and Resistance).",
+      "damage": 50
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760641,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.05,
+      "avg7": 0.05,
+      "avg30": 0.05,
+      "avg-holo": 0.11,
+      "low-holo": 0.02,
+      "trend-holo": 0.19,
+      "avg1-holo": 0.07,
+      "avg7-holo": 0.16,
+      "avg30-holo": 0.12
+    },
+    "tcgplayer": null
+  }
+}

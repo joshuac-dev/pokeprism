@@ -1,0 +1,89 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-015",
+  "illustrator": "Mizue",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/015",
+  "localId": "015",
+  "name": "Whimsicott",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    547
+  ],
+  "hp": 100,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Cottonee",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Wafting Heal",
+      "effect": "When you play this Pokémon from your hand to evolve 1 of your Pokémon during your turn, you may heal all damage from your Active {G} Pokémon. If you healed any damage in this way, discard all Energy from that Pokémon."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Seed Bomb",
+      "damage": 40
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760645,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.06,
+      "avg1": 0.06,
+      "avg7": 0.05,
+      "avg30": 0.05,
+      "avg-holo": 0.24,
+      "low-holo": 0.02,
+      "trend-holo": 0.21,
+      "avg1-holo": 0.15,
+      "avg7-holo": 0.23,
+      "avg30-holo": 0.24
+    },
+    "tcgplayer": null
+  }
+}

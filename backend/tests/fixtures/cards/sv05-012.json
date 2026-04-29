@@ -1,0 +1,96 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-012",
+  "illustrator": "PLANETA Tsuji",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/012",
+  "localId": "012",
+  "name": "Torterra ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "mtltux8quqoc7vwp24c9zzhgmzduu8xcik8"
+    }
+  ],
+  "dexId": [
+    389
+  ],
+  "hp": 340,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Grotle",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Forest March",
+      "effect": "This attack does 30 damage for each of your {G} Pokémon in play.",
+      "damage": "30×"
+    },
+    {
+      "cost": [
+        "Grass",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Jungle Hammer",
+      "effect": "Heal 50 damage from this Pokémon.",
+      "damage": 150
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760642,
+      "avg": 0.81,
+      "low": 0.09,
+      "trend": 0.89,
+      "avg1": 0.65,
+      "avg7": 0.84,
+      "avg30": 0.81,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

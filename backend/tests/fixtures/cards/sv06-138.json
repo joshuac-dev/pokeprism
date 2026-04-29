@@ -1,0 +1,87 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-138",
+  "illustrator": "KEIICHIRO ITO",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/138",
+  "localId": "138",
+  "name": "Ambipom",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    424
+  ],
+  "hp": 110,
+  "types": [
+    "Colorless"
+  ],
+  "evolveFrom": "Aipom",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Wicked Tail",
+      "effect": "When you play this Pokémon from your hand to evolve 1 of your Pokémon during your turn, you may flip 2 coins. For each heads, choose a random card from your opponent's hand. Your opponent reveals those cards and shuffles them into their deck."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Gentle Slap",
+      "damage": 100
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:13+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 769312,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.04,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.17,
+      "low-holo": 0.02,
+      "trend-holo": 0.19,
+      "avg1-holo": 0.11,
+      "avg7-holo": 0.21,
+      "avg30-holo": 0.17
+    },
+    "tcgplayer": null
+  }
+}

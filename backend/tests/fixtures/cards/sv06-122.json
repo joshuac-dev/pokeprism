@@ -1,0 +1,89 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-122",
+  "illustrator": "Dsuke",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/122",
+  "localId": "122",
+  "name": "Aggron",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    306
+  ],
+  "hp": 180,
+  "types": [
+    "Metal"
+  ],
+  "evolveFrom": "Lairon",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Metal"
+      ],
+      "name": "Angry Slam",
+      "effect": "This attack does 50 damage for each of your Pokémon that has any damage counters on it.",
+      "damage": "50×"
+    },
+    {
+      "cost": [
+        "Metal",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Guard Claw",
+      "effect": "During your opponent's next turn, this Pokémon takes 50 less damage from attacks (after applying Weakness and Resistance).",
+      "damage": 120
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:13+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 769296,
+      "avg": 0.05,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.05,
+      "avg7": 0.05,
+      "avg30": 0.05,
+      "avg-holo": 0.17,
+      "low-holo": 0.02,
+      "trend-holo": 0.24,
+      "avg1-holo": 0.02,
+      "avg7-holo": 0.22,
+      "avg30-holo": 0.19
+    },
+    "tcgplayer": null
+  }
+}

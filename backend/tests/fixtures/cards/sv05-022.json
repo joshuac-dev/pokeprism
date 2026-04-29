@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-022",
+  "illustrator": "PLANETA Mochizuki",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/022",
+  "localId": "022",
+  "name": "Scovillain ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    952
+  ],
+  "hp": 260,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Capsakid",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Chili Snapper Bind",
+      "effect": "Your opponent's Active Pokémon is now Burned. During your opponent's next turn, that Pokémon can't retreat."
+    },
+    {
+      "cost": [
+        "Grass",
+        "Grass"
+      ],
+      "name": "Two-Headed Crushing",
+      "effect": "Discard a random card from your opponent's hand. Discard the top card of your opponent's deck.",
+      "damage": 140
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "G",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760652,
+      "avg": 0.55,
+      "low": 0.05,
+      "trend": 0.67,
+      "avg1": 1.21,
+      "avg7": 0.67,
+      "avg30": 0.55,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

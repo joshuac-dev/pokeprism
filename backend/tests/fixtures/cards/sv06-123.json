@@ -1,0 +1,80 @@
+{
+  "category": "Pokemon",
+  "id": "sv06-123",
+  "illustrator": "AKIRA EGAWA",
+  "image": "https://assets.tcgdex.net/en/sv/sv06/123",
+  "localId": "123",
+  "name": "Heatran",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 167,
+      "total": 226
+    },
+    "id": "sv06",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06/logo",
+    "name": "Twilight Masquerade",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    485
+  ],
+  "hp": 140,
+  "types": [
+    "Metal"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Incandescent Body",
+      "effect": "If this Pokémon is in the Active Spot and is damaged by an attack from your opponent's Pokémon (even if this Pokémon is Knocked Out), the Attacking Pokémon is now Burned."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Metal",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Steel Burst",
+      "effect": "Discard all {M} Energy from this Pokémon. This attack does 50 damage for each card you discarded in this way.",
+      "damage": "50×"
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 769297,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.11,
+      "avg1": 0.18,
+      "avg7": 0.07,
+      "avg30": 0.07,
+      "avg-holo": 0.2,
+      "low-holo": 0.02,
+      "trend-holo": 0.27,
+      "avg1-holo": 0.05,
+      "avg7-holo": 0.19,
+      "avg30-holo": 0.2
+    },
+    "tcgplayer": null
+  }
+}

@@ -10,12 +10,38 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | 1457 |
-| Coverage | **98.0%** (29 missing — all legitimately flagged) |
-| Batches complete | 14 (Batches 1–14) |
-| Processable cards remaining | 582 |
-| Flagged cards (cumulative) | ~127 entries — see `FLAGGED_CARDS` section of `POKEMON_MASTER_LIST.md` |
-| Next batch starts at | **Chimecho TWM 85** (`sv06-085`) |
+| Cards in DB | 1552 |
+| Coverage | **98.1%** (29 missing — all legitimately flagged) |
+| Batches complete | 15 (Batches 1–15) |
+| Processable cards remaining | 481 |
+| Flagged cards (cumulative) | ~152 entries — see `FLAGGED_CARDS` section of `POKEMON_MASTER_LIST.md` |
+| Next batch starts at | **Walking Wake ex TEF 50** (`sv05-050`) |
+
+## Last Session — 2026-05-22 (Card Pool Expansion: Batch 15)
+
+### What Was Done
+
+**Batch 15** (94 new cards, TWM sv06-082..141 + TEF sv05-001..048): DB grew from 1457 → 1552 cards.
+- 14 cards already in DB (skipped): sv06-093, sv06-095, sv06-096, sv06-106, sv06-111, sv06-112, sv06-118, sv06-128, sv06-129, sv06-130, sv06-141, sv05-023, sv05-024, sv05-025
+- ~69 new attack handlers, 12 handler reuses (`_find_a_friend`, `_quick_attack_asc`, `_powder_snow_b12`, `_freezing_chill`, `_take_down`, `_reckless_charge_recoil20`, `_running_charge`, `_boundless_power`, `_double_draw`, `_crunch_discard_energy`, `_power_rush`, `_stun_spore`, `_big_bite`, `_singe`, `_flock_flag`, `_poison_ring`, `_rigidify`, `_ramming_shell`, `_double_scratch`)
+- 16 passive stubs added to abilities.py
+- `register_batch15_attacks` wired into `__init__.py` (called directly after `register_all`)
+- 25 new flagged entries added to FLAGGED_CARDS section of POKEMON_MASTER_LIST.md
+
+### Issues Encountered
+- Several cards initially missed (sv06-126, sv06-127, sv06-135, sv05-022, sv05-030, sv05-045, sv05-046, sv05-047) — discovered after first coverage check; all resolved with additional handlers
+- Backend restart required after each code change to pick up new EffectRegistry registrations
+
+### Final Baseline This Session
+- **215 backend tests pass**
+- **1552 cards in DB**
+- **Coverage: 98.1%** (29 missing — all legitimately flagged, same set as pre-batch)
+- **~152 flagged entries** (full list in `FLAGGED_CARDS` section of `docs/POKEMON_MASTER_LIST.md`)
+
+### Notes for Next Session
+Continue with **Batch 16**, starting at **Walking Wake ex TEF 50** (`sv05-050`). Run `make reset-data` before any fresh simulation testing. If coverage drops after insert + code changes, **restart the backend** before re-checking `/api/coverage`.
+
+---
 
 ## Last Session — 2026-04-29 (Card Pool Expansion: Batches 12–14)
 

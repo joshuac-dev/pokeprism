@@ -1,0 +1,104 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-041",
+  "illustrator": "GOSSAN",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/041",
+  "localId": "041",
+  "name": "Feraligatr",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "gx8bq2hegum3q6irsxlvqxm955ikw9gd1h311"
+    }
+  ],
+  "dexId": [
+    160
+  ],
+  "hp": 180,
+  "types": [
+    "Water"
+  ],
+  "evolveFrom": "Croconaw",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Torrential Heart",
+      "effect": "Once during your turn, you may put 5 damage counters on this Pokémon. If you do, during this turn, attacks used by this Pokémon do 120 more damage to your opponent's Active Pokémon (before applying Weakness and Resistance)."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Water",
+        "Water"
+      ],
+      "name": "Giant Wave",
+      "effect": "During your next turn, this Pokémon can't use Giant Wave.",
+      "damage": 160
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760671,
+      "avg": 0.13,
+      "low": 0.02,
+      "trend": 0.13,
+      "avg1": 0.15,
+      "avg7": 0.12,
+      "avg30": 0.13,
+      "avg-holo": 0.37,
+      "low-holo": 0.02,
+      "trend-holo": 0.49,
+      "avg1-holo": 0.3,
+      "avg7-holo": 0.4,
+      "avg30-holo": 0.38
+    },
+    "tcgplayer": null
+  }
+}
