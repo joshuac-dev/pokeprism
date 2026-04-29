@@ -1,0 +1,66 @@
+{
+  "category": "Pokemon",
+  "id": "svp-155",
+  "illustrator": "Saboteri",
+  "image": "https://assets.tcgdex.net/en/sv/svp/155",
+  "localId": "155",
+  "name": "Wooper",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    194
+  ],
+  "hp": 60,
+  "types": [
+    "Water"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Water"
+      ],
+      "name": "Scoop Water",
+      "effect": "Shuffle up to 3 Basic {W} Energy cards from your discard pile into your deck."
+    },
+    {
+      "cost": [
+        "Water"
+      ],
+      "name": "Headbutt",
+      "damage": 10
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T19:38:01Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

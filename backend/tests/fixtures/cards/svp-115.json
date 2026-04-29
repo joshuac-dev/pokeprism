@@ -1,0 +1,68 @@
+{
+  "category": "Pokemon",
+  "id": "svp-115",
+  "illustrator": "Uninori",
+  "image": "https://assets.tcgdex.net/en/sv/svp/115",
+  "localId": "115",
+  "name": "Thwackey",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    811
+  ],
+  "hp": 100,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Grookey",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Boom Boom Groove",
+      "effect": "Once during your turn, if your Active Pokémon has the Festival Lead Ability, you may search your deck for a card and put it into your hand. Then, shuffle your deck."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Grass",
+        "Grass"
+      ],
+      "name": "Beat",
+      "damage": 50
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-20T15:22:42+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

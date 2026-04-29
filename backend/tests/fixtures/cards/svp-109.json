@@ -1,0 +1,61 @@
+{
+  "category": "Pokemon",
+  "id": "svp-109",
+  "illustrator": "GIDORA",
+  "image": "https://assets.tcgdex.net/en/sv/svp/109",
+  "localId": "109",
+  "name": "Ampharos",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    181
+  ],
+  "hp": 160,
+  "types": [
+    "Lightning"
+  ],
+  "evolveFrom": "Flaaffy",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "Electric Ball",
+      "damage": 110
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-20T15:22:42+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

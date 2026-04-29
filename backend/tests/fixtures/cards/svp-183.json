@@ -1,0 +1,67 @@
+{
+  "category": "Pokemon",
+  "id": "svp-183",
+  "illustrator": "tono",
+  "image": "https://assets.tcgdex.net/en/sv/svp/183",
+  "localId": "183",
+  "name": "Lillie's Ribombee",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    743
+  ],
+  "hp": 70,
+  "types": [
+    "Psychic"
+  ],
+  "evolveFrom": "Lillie's Cutiefly",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Inviting Wink",
+      "effect": "When you play this Pokémon from your hand to evolve 1 of your Pokémon during your turn, you may have your opponent reveal their hand and you put any number of Basic Pokémon you find there onto their Bench."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Psychic"
+      ],
+      "name": "Magical Shot",
+      "damage": 50
+    }
+  ],
+  "retreat": 0,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-20T15:22:42+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

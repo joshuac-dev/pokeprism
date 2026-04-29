@@ -1,0 +1,71 @@
+{
+  "category": "Pokemon",
+  "id": "svp-193",
+  "illustrator": "PLANETA Mochizuki",
+  "image": "https://assets.tcgdex.net/en/sv/svp/193",
+  "localId": "193",
+  "name": "Hop's Zacian ex",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    888
+  ],
+  "hp": 230,
+  "types": [
+    "Metal"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Insta-Strike",
+      "effect": "This attack also does 30 damage to 1 of your opponent's Benched Pokémon. (Don't apply Weakness and Resistance for Benched Pokémon.)",
+      "damage": 30
+    },
+    {
+      "cost": [
+        "Metal",
+        "Metal",
+        "Metal",
+        "Colorless"
+      ],
+      "name": "Brave Slash",
+      "effect": "During your next turn, this Pokémon can't use Brave Slash.",
+      "damage": 240
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T19:38:01Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "category": "Pokemon",
+  "id": "svp-145",
+  "illustrator": "PLANETA Mochizuki",
+  "image": "https://assets.tcgdex.net/en/sv/svp/145",
+  "localId": "145",
+  "name": "Raging Bolt ex",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    1021
+  ],
+  "hp": 240,
+  "types": [
+    "Dragon"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Burst Roar",
+      "effect": "Discard your hand and draw 6 cards."
+    },
+    {
+      "cost": [
+        "Lightning",
+        "Fighting"
+      ],
+      "name": "Bellowing Thunder",
+      "effect": "You may discard any amount of Basic Energy from your Pokémon. This attack does 70 damage for each card you discarded in this way.",
+      "damage": "70×"
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T19:38:01Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

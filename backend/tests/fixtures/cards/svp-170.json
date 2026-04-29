@@ -1,0 +1,68 @@
+{
+  "category": "Pokemon",
+  "id": "svp-170",
+  "illustrator": "Iori Suzuki",
+  "image": "https://assets.tcgdex.net/en/sv/svp/170",
+  "localId": "170",
+  "name": "Leafeon",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    470
+  ],
+  "hp": 120,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Eevee",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Leaflet Blessings",
+      "effect": "Attach a Basic {G} Energy card from your hand to 1 of your Benched Pokémon. If you do, heal all damage from that Pokémon."
+    },
+    {
+      "cost": [
+        "Grass",
+        "Colorless"
+      ],
+      "name": "Solar Beam",
+      "damage": 70
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-20T15:22:42+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

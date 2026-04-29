@@ -1,0 +1,68 @@
+{
+  "category": "Pokemon",
+  "id": "svp-153",
+  "illustrator": "Shinya Mizuno",
+  "image": "https://assets.tcgdex.net/en/sv/svp/153",
+  "localId": "153",
+  "name": "Magneton",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    82
+  ],
+  "hp": 100,
+  "types": [
+    "Lightning"
+  ],
+  "evolveFrom": "Magnemite",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Overvolt Discharge",
+      "effect": "Once during your turn, you may attach up to 3 Basic Energy cards from your discard pile to your {L} Pokémon in any way you like. If you use this Ability, this Pokémon is Knocked Out."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "Electric Ball",
+      "damage": 40
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-20T15:22:42+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

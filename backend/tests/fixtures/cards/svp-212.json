@@ -1,0 +1,95 @@
+{
+  "category": "Pokemon",
+  "id": "svp-212",
+  "illustrator": "satoma",
+  "localId": "212",
+  "name": "Reuniclus",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    579
+  ],
+  "hp": 140,
+  "types": [
+    "Psychic"
+  ],
+  "evolveFrom": "Duosion",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Cellular Ascension",
+      "effect": "For each of your Benched Pokémon, search your deck for a card that evolves from that Pokémon and put it onto that Pokémon to evolve it. Then, shuffle your deck."
+    },
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Evo-Lariat",
+      "effect": "This attack foes 40 more damage for each of your Evolution Pokémon in play.",
+      "damage": "40+"
+    }
+  ],
+  "weaknesses": [
+    {
+      "type": "Darkness",
+      "value": "×2"
+    }
+  ],
+  "resistances": [
+    {
+      "type": "Fighting",
+      "value": "-30"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:10:00+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 836658,
+      "avg": 0.76,
+      "low": 0.07,
+      "trend": 0.91,
+      "avg1": 0.83,
+      "avg7": 0.79,
+      "avg30": 0.77,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

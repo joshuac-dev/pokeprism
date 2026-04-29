@@ -1,0 +1,70 @@
+{
+  "category": "Pokemon",
+  "id": "svp-144",
+  "illustrator": "PLANETA Mochizuki",
+  "image": "https://assets.tcgdex.net/en/sv/svp/144",
+  "localId": "144",
+  "name": "Gouging Fire ex",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    1020
+  ],
+  "hp": 230,
+  "types": [
+    "Fire"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fire",
+        "Colorless"
+      ],
+      "name": "Heat Blast",
+      "damage": 60
+    },
+    {
+      "cost": [
+        "Fire",
+        "Fire",
+        "Colorless"
+      ],
+      "name": "Blaze Blitz",
+      "effect": "This Pokémon can't use Blaze Blitz again until it leaves the Active Spot.",
+      "damage": 260
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T19:38:01Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

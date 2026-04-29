@@ -1,0 +1,71 @@
+{
+  "category": "Pokemon",
+  "id": "svp-147",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/svp/147",
+  "localId": "147",
+  "name": "Iron Boulder ex",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    1022
+  ],
+  "hp": 240,
+  "types": [
+    "Fighting"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Repulsor Axe",
+      "effect": "During your opponent's next turn, if this Pokémon is damaged by an attack (even if it is Knocked Out), put 8 damage counters on the Attacking Pokémon.",
+      "damage": 60
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Power Stomp",
+      "effect": "Discard 2 Energy from this Pokémon.",
+      "damage": 200
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T19:38:01Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

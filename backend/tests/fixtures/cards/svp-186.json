@@ -1,0 +1,60 @@
+{
+  "category": "Pokemon",
+  "id": "svp-186",
+  "illustrator": "OKUBO",
+  "image": "https://assets.tcgdex.net/en/sv/svp/186",
+  "localId": "186",
+  "name": "Scraggy",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    559
+  ],
+  "hp": 60,
+  "types": [
+    "Darkness"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Darkness"
+      ],
+      "name": "Kick Shot",
+      "effect": "Flip a coin. If tails, this attack does nothing.",
+      "damage": 30
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T19:38:01Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

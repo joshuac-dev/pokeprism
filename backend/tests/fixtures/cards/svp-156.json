@@ -1,0 +1,70 @@
+{
+  "category": "Pokemon",
+  "id": "svp-156",
+  "illustrator": "Saboteri",
+  "image": "https://assets.tcgdex.net/en/sv/svp/156",
+  "localId": "156",
+  "name": "Quagsire",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    195
+  ],
+  "hp": 120,
+  "types": [
+    "Water"
+  ],
+  "evolveFrom": "Wooper",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Water"
+      ],
+      "name": "Rollout",
+      "damage": 30
+    },
+    {
+      "cost": [
+        "Water",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Drenched Headbutt",
+      "effect": "Discard the top 3 cards of your deck, and this attack does 80 damage for each Energy card you discarded in this way.",
+      "damage": "80×"
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-20T15:22:42+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

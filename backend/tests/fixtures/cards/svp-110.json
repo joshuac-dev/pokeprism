@@ -1,0 +1,69 @@
+{
+  "category": "Pokemon",
+  "id": "svp-110",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/svp/110",
+  "localId": "110",
+  "name": "Darkrai ex",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    491
+  ],
+  "hp": 210,
+  "types": [
+    "Darkness"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Wind of Darkness",
+      "damage": 40
+    },
+    {
+      "cost": [
+        "Darkness",
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Night Impact",
+      "damage": 110
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T19:38:01Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

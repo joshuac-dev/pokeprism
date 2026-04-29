@@ -1,0 +1,69 @@
+{
+  "category": "Pokemon",
+  "id": "mep-021",
+  "illustrator": "matazo",
+  "localId": "021",
+  "name": "Weavile",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 0,
+      "total": 37
+    },
+    "id": "mep",
+    "name": "MEP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    461
+  ],
+  "hp": 90,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Sneasel",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Darkness"
+      ],
+      "name": "Retaliatory Claw",
+      "effect": "If this Pokémon's remaining HP is 50 or less, this attack does 170 more damage.",
+      "damage": "20+"
+    },
+    {
+      "cost": [
+        "Darkness",
+        "Darkness"
+      ],
+      "name": "Cut",
+      "damage": 60
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-03-20T21:51:21Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

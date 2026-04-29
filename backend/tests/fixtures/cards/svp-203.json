@@ -1,0 +1,89 @@
+{
+  "category": "Pokemon",
+  "id": "svp-203",
+  "illustrator": "Saboteri",
+  "localId": "203",
+  "name": "Team Rocket's Wobbuffet",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "subtype": "cosmos",
+      "size": "standard",
+      "variantId": "6xp3yys30r0j23reow4d"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "pokemon-center"
+      ],
+      "variantId": "23hmnvtwdrrnjw8wxr5005pugcpk"
+    }
+  ],
+  "dexId": [
+    202
+  ],
+  "hp": 110,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Rocket Mirror",
+      "effect": "Move all damage counters from 1 of your Benched Team Rocket's Pokémon to your opponent's Active Pokémon."
+    },
+    {
+      "cost": [
+        "Psychic",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Headbutt Bounce",
+      "damage": 70
+    }
+  ],
+  "weaknesses": [
+    {
+      "type": "Darkness",
+      "value": "×2"
+    }
+  ],
+  "resistances": [
+    {
+      "type": "Fighting",
+      "value": "-30"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:10:00+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

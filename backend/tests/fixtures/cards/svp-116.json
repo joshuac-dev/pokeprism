@@ -1,0 +1,70 @@
+{
+  "category": "Pokemon",
+  "id": "svp-116",
+  "illustrator": "Kazumasa Yasukuni",
+  "image": "https://assets.tcgdex.net/en/sv/svp/116",
+  "localId": "116",
+  "name": "Infernape",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    392
+  ],
+  "hp": 140,
+  "types": [
+    "Fire"
+  ],
+  "evolveFrom": "Monferno",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Pyro Dance",
+      "effect": "Once during your turn, you may attach a Basic {R} Energy card, a Basic {F} Energy card, or 1 of each from your hand to your Pokémon in any way you like."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Fire",
+        "Fire",
+        "Colorless"
+      ],
+      "name": "Scorching Fire",
+      "effect": "Discard an Energy from this Pokémon.",
+      "damage": 200
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-20T15:22:42+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

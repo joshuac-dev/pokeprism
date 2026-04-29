@@ -1,0 +1,74 @@
+{
+  "category": "Pokemon",
+  "id": "svp-202",
+  "illustrator": "Uta",
+  "localId": "202",
+  "name": "Kangaskhan",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "subtype": "cosmos",
+      "size": "standard",
+      "variantId": "6xp3yys30r0j23reow4d"
+    }
+  ],
+  "dexId": [
+    115
+  ],
+  "hp": 130,
+  "types": [
+    "Colorless"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Call for Family",
+      "effect": "Search your deck for a Basic Pokémon and put it onto your Bench. Then, shuffle your deck."
+    },
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Mega Punch",
+      "damage": 100
+    }
+  ],
+  "weaknesses": [
+    {
+      "type": "Fighting",
+      "value": "×2"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:10:00+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

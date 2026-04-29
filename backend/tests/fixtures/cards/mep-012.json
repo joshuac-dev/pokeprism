@@ -1,0 +1,90 @@
+{
+  "category": "Pokemon",
+  "id": "mep-012",
+  "illustrator": "5ban Graphics",
+  "localId": "012",
+  "name": "Mega Lucario ex",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 0,
+      "total": 37
+    },
+    "id": "mep",
+    "name": "MEP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "holo",
+      "size": "jumbo",
+      "variantId": "slwlv6rn87"
+    }
+  ],
+  "dexId": [
+    448
+  ],
+  "hp": 340,
+  "types": [
+    "Fighting"
+  ],
+  "evolveFrom": "Riolu",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting"
+      ],
+      "name": "Aura Jab",
+      "effect": "Attach up to 3 Basic {F} Energy cards from your discard pile to your Benched Pokémon in any way you like.",
+      "damage": 130
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Fighting"
+      ],
+      "name": "Mega Brave",
+      "effect": "During your next turn, this Pokémon can't use Mega Brave.",
+      "damage": 270
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-03-20T21:51:21Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 858146,
+      "avg": 1.32,
+      "low": 0.69,
+      "trend": 1.59,
+      "avg1": 1.47,
+      "avg7": 1.43,
+      "avg30": 1.35,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

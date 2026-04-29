@@ -1,0 +1,68 @@
+{
+  "category": "Pokemon",
+  "id": "svp-108",
+  "illustrator": "Akira Komayama",
+  "image": "https://assets.tcgdex.net/en/sv/svp/108",
+  "localId": "108",
+  "name": "Flaaffy",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    180
+  ],
+  "hp": 90,
+  "types": [
+    "Lightning"
+  ],
+  "evolveFrom": "Mareep",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Lightning"
+      ],
+      "name": "Headbutt",
+      "damage": 20
+    },
+    {
+      "cost": [
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "Electro Ball",
+      "damage": 50
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-20T15:22:42+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

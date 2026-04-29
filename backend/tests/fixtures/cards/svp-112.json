@@ -1,0 +1,60 @@
+{
+  "category": "Pokemon",
+  "id": "svp-112",
+  "illustrator": "AKIRA EGAWA",
+  "image": "https://assets.tcgdex.net/en/sv/svp/112",
+  "localId": "112",
+  "name": "Bisharp",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    625
+  ],
+  "hp": 100,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Pawniard",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Darkness"
+      ],
+      "name": "Cut",
+      "damage": 30
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-20T15:22:42+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "category": "Pokemon",
+  "id": "mep-014",
+  "illustrator": "Anesaki Dynamic",
+  "localId": "014",
+  "name": "Ceruledge",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 0,
+      "total": 37
+    },
+    "id": "mep",
+    "name": "MEP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "555jb0efopmyclvkikic41"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo",
+        "staff"
+      ],
+      "variantId": "2fnyg4g5382k6pl1ij0u1km1pdn"
+    }
+  ],
+  "hp": 140,
+  "types": [
+    "Fire"
+  ],
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Fire"
+      ],
+      "name": "Infernal Slash",
+      "effect": "Discard 4 Basic {R} Energy cards from your hand. If you can't discard 4 cards in this way, this attack does nothing.",
+      "damage": 220
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-03-20T21:51:21Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 857390,
+      "avg": 14.44,
+      "low": 5,
+      "trend": 16.32,
+      "avg1": 15.45,
+      "avg7": 15.64,
+      "avg30": 14.56,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

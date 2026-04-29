@@ -1,0 +1,70 @@
+{
+  "category": "Pokemon",
+  "id": "svp-179",
+  "illustrator": "PLANETA Igarashi",
+  "image": "https://assets.tcgdex.net/en/sv/svp/179",
+  "localId": "179",
+  "name": "Xerneas ex",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    716
+  ],
+  "hp": 210,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Aurora Beam",
+      "damage": 50
+    },
+    {
+      "cost": [
+        "Psychic",
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Rising Horns",
+      "effect": "If your opponent's Active Pokémon is a Pokémon ex, this attack does 100 more damage.",
+      "damage": "120+"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T19:38:01Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

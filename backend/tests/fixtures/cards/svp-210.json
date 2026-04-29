@@ -1,0 +1,104 @@
+{
+  "category": "Pokemon",
+  "id": "svp-210",
+  "illustrator": "Kouki Saitou",
+  "localId": "210",
+  "name": "Tornadus",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "pokemon-center"
+      ],
+      "variantId": "23hmnvtwdrrnjw8wxr5005pugcpk"
+    }
+  ],
+  "dexId": [
+    641
+  ],
+  "hp": 120,
+  "types": [
+    "Colorless"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Wrapped in Wind",
+      "effect": "Attach a Basic Energy card from your hand to this Pokémon."
+    },
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Hurricane",
+      "effect": "Move a Basic Energy from this Pokémon to 1 of your Benched Pokémon.",
+      "damage": 100
+    }
+  ],
+  "weaknesses": [
+    {
+      "type": "Lightning",
+      "value": "×2"
+    }
+  ],
+  "resistances": [
+    {
+      "type": "Fighting",
+      "value": "-30"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:10:00+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 836656,
+      "avg": 1.35,
+      "low": 0.4,
+      "trend": 1.32,
+      "avg1": 1.15,
+      "avg7": 1.29,
+      "avg30": 1.33,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "category": "Pokemon",
+  "id": "svp-181",
+  "illustrator": "Takeshi Nakamura",
+  "image": "https://assets.tcgdex.net/en/sv/svp/181",
+  "localId": "181",
+  "name": "N's Darmanitan",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    555
+  ],
+  "hp": 140,
+  "types": [
+    "Fire"
+  ],
+  "evolveFrom": "N's Darumaka",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Back Draft",
+      "effect": "This attack does 30 damage for each Basic Energy card in your opponent's discard pile.",
+      "damage": "30×"
+    },
+    {
+      "cost": [
+        "Fire",
+        "Fire",
+        "Colorless"
+      ],
+      "name": "Flamebody Cannon",
+      "effect": "Discard all Energy from this Pokémon, and this attack also does 90 damage to 1 of your opponent's Benched Pokémon. (Don't apply Weakness and Resistance for Benched Pokémon.)",
+      "damage": 90
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-20T15:22:42+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "category": "Pokemon",
+  "id": "svp-134",
+  "illustrator": "KEIICHIRO ITO",
+  "image": "https://assets.tcgdex.net/en/sv/svp/134",
+  "localId": "134",
+  "name": "Crabominable",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    740
+  ],
+  "hp": 160,
+  "types": [
+    "Water"
+  ],
+  "evolveFrom": "Crabrawler",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Food Prep",
+      "effect": "Attacks used by this Pokémon cost {C} less for each Kofu card in your discard pile."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Water",
+        "Colorless",
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Haymaker",
+      "effect": "During your next turn, this Pokémon can't use Haymaker.",
+      "damage": 250
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-20T15:22:42+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

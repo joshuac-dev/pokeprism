@@ -1,103 +1,3 @@
-Mega Lucario ex MEP 12
-Mega Venusaur ex MEP 13
-Ceruledge MEP 14
-Zacian MEP 15
-Flygon MEP 16
-Sneasel MEP 20
-Whimsicott MEP 19
-Cottonee MEP 18
-Toxtricity MEP 17
-Weavile MEP 21
-Mega Kangaskhan ex MEP 25
-Meloetta MEP 26
-Mega Charizard X ex MEP 29
-Mega Charizard Y ex MEP 30
-Tyrantrum MEP 66
-Barbaracle MEP 65
-Serperior MEP 64
-N's Zekrom MEP 31
-Doublade MEP 67
-Makuhita MEP 68
-Chikorita MEP 69
-Tyrunt MEP 70
-Sprigatito ex PR-SV 87
-Pikachu PR-SV 88
-Feraligatr PR-SV 89
-Metang PR-SV 90
-Iron Thorns PR-SV 98
-Flutter Mane PR-SV 97
-Miraidon PR-SV 92
-Koraidon PR-SV 91
-Armarouge ex PR-SV 105
-Pikachu ex PR-SV 106
-Mareep PR-SV 107
-Flaaffy PR-SV 108
-Ampharos PR-SV 109
-Darkrai ex PR-SV 110
-Pawniard PR-SV 111
-Bisharp PR-SV 112
-Infernape PR-SV 116
-Thwackey PR-SV 115
-Kingambit PR-SV 113
-Froslass PR-SV 117
-Tatsugiri PR-SV 118
-Snorlax PR-SV 122
-Teal Mask Ogerpon PR-SV 123
-Palafin ex PR-SV 126
-Walking Wake ex PR-SV 127
-Iron Leaves ex PR-SV 128
-Pecharunt PR-SV 129
-Bouffalant PR-SV 136
-Drifblim PR-SV 135
-Crabominable PR-SV 134
-Ledian PR-SV 133
-Noctowl PR-SV 141
-Gouging Fire ex PR-SV 144
-Raging Bolt ex PR-SV 145
-Iron Crown ex PR-SV 146
-Iron Boulder ex PR-SV 147
-Miraidon PR-SV 148
-Pecharunt PR-SV 149
-Indeedee PR-SV 154
-Magneton PR-SV 153
-Chien-Pao PR-SV 152
-Gouging Fire PR-SV 151
-Wooper PR-SV 155
-Quagsire PR-SV 156
-Zapdos PR-SV 157
-Pachirisu PR-SV 158
-Magneton PR-SV 159
-Houndstone ex PR-SV 162
-Leafeon PR-SV 170
-Glaceon PR-SV 171
-Kyogre ex PR-SV 178
-Bloodmoon Ursaluna ex PR-SV 177
-Sylveon PR-SV 172
-Xerneas ex PR-SV 179
-Dialga ex PR-SV 180
-N's Darmanitan PR-SV 181
-Iono's Kilowattrel PR-SV 182
-Scraggy PR-SV 186
-Yanma PR-SV 185
-Hop's Snorlax PR-SV 184
-Lillie's Ribombee PR-SV 183
-Yanmega PR-SV 187
-Scrafty PR-SV 188
-N's Zorua PR-SV 189
-Hop's Zacian ex PR-SV 193
-Koraidon ex PR-SV 197
-Zacian ex PR-SV 198
-Zarude PR-SV 199
-Team Rocket's Mewtwo ex PR-SV 205
-Team Rocket's Wobbuffet PR-SV 203
-Kangaskhan PR-SV 202
-Zebstrika PR-SV 201
-Marnie's Morpeko PR-SV 206
-Steven's Beldum PR-SV 207
-Thundurus PR-SV 209
-Tornadus PR-SV 210
-Gothitelle PR-SV 211
-Reuniclus PR-SV 212
 Team Rocket's Mewtwo ex PR-SV 216
 Team Rocket's Persian ex PR-SV 218
 Team Rocket's Nidoking ex PR-SV 217
@@ -590,3 +490,26 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Psyduck MEP 7 | mep-007 | Damp (ability) | Suppresses all abilities requiring KO while Pokémon is in play — global KO-trigger ability suppression not in engine |
 | Golduck MEP 8 | mep-008 | Damp (ability) | Suppresses all abilities requiring KO while Pokémon is in play — global KO-trigger ability suppression not in engine |
 | Alakazam MEP 9 | mep-009 | Psychic Draw (ability) | On evolve: discard a card from hand to draw cards — on-evolve draw hook not in engine |
+| Mega Lucario ex MEP 12 | mep-012 | Aura Jab (atk0) | Attach up to 3 Basic {F} Energy from discard to Benched Pokémon in any way — energy-from-discard-to-bench choice loop not in engine |
+| Ceruledge MEP 14 | mep-014 | Infernal Slash (atk0) | Discard 4 Basic {R} from hand; if you can't, attack does nothing — conditional 4-energy hand-discard with failure condition not in engine |
+| Whimsicott MEP 19 | mep-019 | Healing Fluff (atk0) | Heal all damage from 1 of your Benched Pokémon — targeted full bench-heal with choice not in engine |
+| Whimsicott MEP 19 | mep-019 | U-turn (atk1) | Switch this Pokémon with 1 of your Benched Pokémon after attack — post-attack self-switch choice not in engine |
+| Meloetta MEP 26 | mep-026 | Soothing Melody (atk0) | Heal 120 from 1 of your Benched {P} Pokémon — type-filtered bench-heal with choice not in engine |
+| Mega Kangaskhan ex MEP 25 | mep-025 | Run Errand (ability) | Once per turn draw 2 cards when Active — active once-per-turn draw ability requires in-turn hook not implemented |
+| Teal Mask Ogerpon PR-SV 123 | svp-123 | Mountain Stroll (atk0) | Search deck for up to 2 Basic Energy to hand — deck-search-energy-to-hand not in engine |
+| Raging Bolt ex PR-SV 145 | svp-145 | Bellowing Thunder (atk1) | Discard any amount of Basic Energy from own Pokémon; +70 damage per discarded — multi-source energy-discard loop + variable damage not in engine |
+| Wooper PR-SV 155 | svp-155 | Scoop Water (atk0) | Shuffle up to 3 Basic {W} Energy from discard into deck — discard-to-deck energy shuffle not in engine |
+| Quagsire PR-SV 156 | svp-156 | Drenched Headbutt (atk1) | Discard top 3 of deck; +80 damage per Energy discarded — deck-top discard + energy-count damage bonus not in engine |
+| Pachirisu PR-SV 158 | svp-158 | Crackling Charge (atk0) | Flip 3 coins; attach Basic {L} Energy from discard to bench equal to heads — coin-flip-to-energy-attach loop not in engine |
+| Iron Leaves ex PR-SV 128 | svp-128 | Rapid Vernier (ability) | On-play-to-bench: switch to Active + move any Energy from other Pokémon to self — on-bench-play promote + energy-redistribution hook not in engine |
+| Sylveon PR-SV 172 | svp-172 | Mystical Return (atk0) | Flip coin; heads: shuffle 1 opponent's Benched Pokémon + attached cards into deck — coin-flip bench bounce not in engine |
+| Chien-Pao PR-SV 152 | svp-152 | Snow Sink (ability) | On-play-to-bench: discard a Stadium in play — on-bench-play Stadium-discard hook not in engine |
+| Kyogre ex PR-SV 178 | svp-178 | Winding Waves (atk0) | Opponent switches their Active to Bench; opponent chooses new Active — opponent-initiated forced switch not in engine |
+| Yanmega PR-SV 187 | svp-187 | Gyro Shockwave (atk0) | Switch this Pokémon with 1 of your Benched Pokémon after attack — post-attack self-switch choice not in engine |
+| Scrafty PR-SV 188 | svp-188 | Nab 'n' Dash (atk0) | Search deck for cards up to count of own Benched Pokémon and put to hand — bench-count-capped free deck search not in engine |
+| Zarude PR-SV 199 | svp-199 | Pluck off (atk0) | Search deck for up to 3 Basic Grass Energy to hand — deck-search-energy-to-hand not in engine |
+| Team Rocket's Wobbuffet PR-SV 203 | svp-203 | Rocket Mirror (atk0) | Move all damage counters from 1 Benched TR Pokémon to opponent's Active — cross-Pokémon counter transfer not in engine |
+| Team Rocket's Mewtwo ex PR-SV 205 | svp-205 | Erasure Ball (atk0) | Discard up to 2 Energy from own Benched Pokémon; +60 per discarded — multi-Pokémon discard loop + conditional damage not in engine |
+| Iono's Kilowattrel PR-SV 182 | svp-182 | Flashing Draw (ability) | Discard Basic {L} Energy from this Pokémon; draw until 6 in hand — active discard-for-draw ability with energy cost not implemented |
+| Tornadus PR-SV 210 | svp-210 | Hurricane (atk1) | Move a Basic Energy from this Pokémon to 1 of your Benched Pokémon — energy movement active→bench not in engine |
+| Reuniclus PR-SV 212 | svp-212 | Cellular Ascension (atk0) | Evolve each Benched Pokémon from deck simultaneously — mass in-battle bench evolution not supported |

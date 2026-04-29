@@ -1,0 +1,75 @@
+{
+  "category": "Pokemon",
+  "id": "svp-199",
+  "illustrator": "Uninori",
+  "localId": "199",
+  "name": "Zarude",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "subtype": "cosmos",
+      "size": "standard",
+      "variantId": "6xp3yys30r0j23reow4d"
+    }
+  ],
+  "dexId": [
+    893
+  ],
+  "hp": 120,
+  "types": [
+    "Grass"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Pluck off",
+      "effect": "Search your deck for up to 3 Basic Grass Energy cards, reveal them, and put them into your hand. Then, shuffle your deck."
+    },
+    {
+      "cost": [
+        "Grass",
+        "Grass",
+        "Grass"
+      ],
+      "name": "Hammer Whip",
+      "effect": "During your next turn, this Pokémon can't attack.",
+      "damage": 130
+    }
+  ],
+  "weaknesses": [
+    {
+      "type": "Fire",
+      "value": "×2"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "G",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:10:00+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

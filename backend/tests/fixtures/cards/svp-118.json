@@ -1,0 +1,67 @@
+{
+  "category": "Pokemon",
+  "id": "svp-118",
+  "illustrator": "Shimaris Yukichi",
+  "image": "https://assets.tcgdex.net/en/sv/svp/118",
+  "localId": "118",
+  "name": "Tatsugiri",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    978
+  ],
+  "hp": 70,
+  "types": [
+    "Dragon"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Attract Customers",
+      "effect": "Once during your turn, if this Pokémon is in the Active Spot, you may look at the top 6 cards of your deck, reveal a Supporter card you find there, and put it into your hand. Shuffle the other cards back into your deck."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Fire",
+        "Water"
+      ],
+      "name": "Surf",
+      "damage": 50
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T19:38:01Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

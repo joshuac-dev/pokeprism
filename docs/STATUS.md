@@ -10,12 +10,38 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | 1650 |
-| Coverage | **98.2%** (29 missing — all legitimately flagged) |
-| Batches complete | 16 (Batches 1–16) |
-| Processable cards remaining | ~381 |
-| Flagged cards (cumulative) | ~207 entries — see `FLAGGED_CARDS` section of `POKEMON_MASTER_LIST.md` |
-| Next batch starts at | **Mega Lucario ex MEP 12** (`mep-012`) |
+| Cards in DB | 1738 |
+| Coverage | **98.3%** (29 missing — all legitimately flagged) |
+| Batches complete | 17 (Batches 1–17) |
+| Processable cards remaining | ~281 |
+| Flagged cards (cumulative) | ~230 entries — see `FLAGGED_CARDS` section of `POKEMON_MASTER_LIST.md` |
+| Next batch starts at | **Team Rocket's Mewtwo ex PR-SV 216** (`svp-216`) |
+
+## Last Session — 2026-05-26 (Card Pool Expansion: Batch 17)
+
+### What Was Done
+
+**Batch 17** (88 new cards, MEP mep-012..026 + PR-SV svp-087..212): DB grew from 1650 → 1738 cards.
+- 1 card already in DB (skipped): svp-149 (Pecharunt)
+- 11 MEP cards not on TCGDex (mep-017, mep-022..024, mep-027..033 range) — skipped
+- ~25 new attack handlers, ~19 handler reuses (`_growl`, `_collect`, `_rapid_fire_combo`, `_burst_roar`, `_icicle_loop`, `_lucky_attachment`, `_boundless_power`, `_self_lock1_b16`, `_scorching_fire`, `_discard_2_energy_self_b16`, `_call_for_family_1`)
+- 33 passive ability stubs added to abilities.py for batch 17 cards
+- `register_batch17_attacks` wired into `__init__.py`
+- 23 new flagged entries added to FLAGGED_CARDS (19 attacks + 4 abilities)
+
+### Issues Encountered
+- None — clean run: fixtures all pre-fetched, all handlers written in prior checkpoint
+
+### Final Baseline This Session
+- **215 backend tests pass**
+- **1738 cards in DB**
+- **Coverage: 98.3%** (29 missing — all legitimately flagged, same set as pre-batch)
+- **~230 flagged entries** (full list in `FLAGGED_CARDS` section of `docs/POKEMON_MASTER_LIST.md`)
+
+### Notes for Next Session
+Continue with **Batch 18**, starting at **Team Rocket's Mewtwo ex PR-SV 216** (`svp-216`). Run `make reset-data` before any fresh simulation testing. If coverage drops after insert + code changes, **restart the backend** before re-checking `/api/coverage`.
+
+---
 
 ## Last Session — 2026-05-23 (Card Pool Expansion: Batch 16)
 

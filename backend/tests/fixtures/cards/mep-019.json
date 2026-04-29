@@ -1,0 +1,67 @@
+{
+  "category": "Pokemon",
+  "id": "mep-019",
+  "illustrator": "Yuka Tanaka",
+  "localId": "019",
+  "name": "Whimsicott",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 0,
+      "total": 37
+    },
+    "id": "mep",
+    "name": "MEP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    547
+  ],
+  "hp": 90,
+  "types": [
+    "Psychic"
+  ],
+  "evolveFrom": "Cottonee",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Healing Fluff",
+      "effect": "Heal all damage from 1 of your Benched Pokémon."
+    },
+    {
+      "cost": [
+        "Psychic"
+      ],
+      "name": "U-turn",
+      "effect": "Switch this Pokémon with 1 of your Benched Pokémon.",
+      "damage": 50
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-03-20T21:51:21Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

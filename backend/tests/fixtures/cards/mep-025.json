@@ -1,0 +1,74 @@
+{
+  "category": "Pokemon",
+  "id": "mep-025",
+  "illustrator": "5ban Graphics",
+  "localId": "025",
+  "name": "Mega Kangaskhan ex",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 0,
+      "total": 37
+    },
+    "id": "mep",
+    "name": "MEP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "holo",
+      "size": "jumbo",
+      "variantId": "slwlv6rn87"
+    }
+  ],
+  "dexId": [
+    115
+  ],
+  "hp": 300,
+  "types": [
+    "Colorless"
+  ],
+  "stage": "Basic",
+  "suffix": "EX",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Run Errand",
+      "effect": "Once during your turn, if this Pokémon is in the Active Spot, you may use this Ability. Draw 2 cards. You can't use more than 1 Run Errand Ability each turn."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Rapid-Fire Combo",
+      "effect": "Flip a coin until you get tails. This attack does 50 more damage for each heads.",
+      "damage": "200+"
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-03-20T21:51:21Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

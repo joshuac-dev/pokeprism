@@ -1,0 +1,68 @@
+{
+  "category": "Pokemon",
+  "id": "svp-126",
+  "illustrator": "PLANETA Mochizuki",
+  "image": "https://assets.tcgdex.net/en/sv/svp/126",
+  "localId": "126",
+  "name": "Palafin ex",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    964
+  ],
+  "hp": 340,
+  "types": [
+    "Water"
+  ],
+  "evolveFrom": "Finizen",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Hero's Spirit",
+      "effect": "Put this Pokémon into play only with the effect of Palafin's Zero to Hero Ability."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Water"
+      ],
+      "name": "Giga Impact",
+      "effect": "During your next turn, this Pokémon can't attack.",
+      "damage": 250
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-20T15:22:42+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "category": "Pokemon",
+  "id": "svp-088",
+  "illustrator": "saino misaki",
+  "image": "https://assets.tcgdex.net/en/sv/svp/088",
+  "localId": "088",
+  "name": "Pikachu",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    25
+  ],
+  "hp": 70,
+  "types": [
+    "Lightning"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Growl",
+      "effect": "During your opponent's next turn, attacks used by the Defending Pokémon do 20 less damage (before applying Weakness and Resistance)."
+    },
+    {
+      "cost": [
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "Pika Bolt",
+      "damage": 30
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "G",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T19:38:01Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

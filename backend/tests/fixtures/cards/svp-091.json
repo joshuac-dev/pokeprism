@@ -1,0 +1,71 @@
+{
+  "category": "Pokemon",
+  "id": "svp-091",
+  "illustrator": "Anesaki Dynamic",
+  "image": "https://assets.tcgdex.net/en/sv/svp/091",
+  "localId": "091",
+  "name": "Koraidon",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    1007
+  ],
+  "hp": 140,
+  "types": [
+    "Dragon"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Primordial Beatdown",
+      "effect": "This attack does 30 damage for each of your Ancient Pokémon in play.",
+      "damage": "30×"
+    },
+    {
+      "cost": [
+        "Fire",
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Shred",
+      "effect": "This attack's damage isn't affected by any effects on your opponent's Active Pokémon.",
+      "damage": 130
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T19:38:01Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

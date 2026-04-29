@@ -1,0 +1,74 @@
+{
+  "category": "Pokemon",
+  "id": "svp-201",
+  "illustrator": "Krgc",
+  "localId": "201",
+  "name": "Zebstrika",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "subtype": "cosmos",
+      "size": "standard",
+      "variantId": "6xp3yys30r0j23reow4d"
+    }
+  ],
+  "dexId": [
+    523
+  ],
+  "hp": 120,
+  "types": [
+    "Lightning"
+  ],
+  "evolveFrom": "Blitzle",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Full Speed",
+      "effect": "Discard your hand and draw 6 cards."
+    },
+    {
+      "cost": [
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "Head Bolt",
+      "damage": 70
+    }
+  ],
+  "weaknesses": [
+    {
+      "type": "Fighting",
+      "value": "×2"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:10:00+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

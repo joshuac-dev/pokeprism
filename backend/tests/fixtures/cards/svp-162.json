@@ -1,0 +1,63 @@
+{
+  "category": "Pokemon",
+  "id": "svp-162",
+  "illustrator": "takuyoa",
+  "image": "https://assets.tcgdex.net/en/sv/svp/162",
+  "localId": "162",
+  "name": "Houndstone ex",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    972
+  ],
+  "hp": 260,
+  "types": [
+    "Psychic"
+  ],
+  "evolveFrom": "Greavard",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Psychic",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Horrifying Fang",
+      "effect": "Flip a coin until you get tails. This attack does 20 more damage for each heads.",
+      "damage": "100+"
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-20T15:22:42+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

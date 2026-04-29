@@ -1,0 +1,62 @@
+{
+  "category": "Pokemon",
+  "id": "svp-206",
+  "illustrator": "Susumu Maeya",
+  "image": "https://assets.tcgdex.net/en/sv/svp/206",
+  "localId": "206",
+  "name": "Marnie's Morpeko",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    877
+  ],
+  "hp": 70,
+  "types": [
+    "Darkness"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Spiky Wheel",
+      "effect": "This attack does 40 more damage for each {D} Energy attached to this Pokémon.",
+      "damage": "20+"
+    }
+  ],
+  "retreat": 0,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "category": "Pokemon",
+  "id": "mep-026",
+  "illustrator": "Keisin",
+  "localId": "026",
+  "name": "Meloetta",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 0,
+      "total": 37
+    },
+    "id": "mep",
+    "name": "MEP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    648
+  ],
+  "hp": 90,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Psychic"
+      ],
+      "name": "Soothing Melody",
+      "effect": "Heal 120 damage from 1 of your Benched {P} Pokémon."
+    },
+    {
+      "cost": [
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Magical Shot",
+      "damage": 50
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-03-20T21:51:21Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

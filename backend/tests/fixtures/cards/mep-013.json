@@ -1,0 +1,91 @@
+{
+  "category": "Pokemon",
+  "id": "mep-013",
+  "illustrator": "5ban Graphics",
+  "localId": "013",
+  "name": "Mega Venusaur ex",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 0,
+      "total": 37
+    },
+    "id": "mep",
+    "name": "MEP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "holo",
+      "size": "jumbo",
+      "variantId": "slwlv6rn87"
+    }
+  ],
+  "dexId": [
+    3
+  ],
+  "hp": 380,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Ivysaur",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Solar Transfer",
+      "effect": "As often as you like during your turn, you may use this Ability. Move a Basic {G} Energy from 1 of your Pokémon to another of your Pokémon."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Grass",
+        "Grass",
+        "Grass",
+        "Grass"
+      ],
+      "name": "Jungle Dump",
+      "effect": "Heal 30 damage from this Pokémon.",
+      "damage": 240
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-03-20T21:51:21Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851074,
+      "avg": 1,
+      "low": 0.2,
+      "trend": 0.99,
+      "avg1": 0.88,
+      "avg7": 0.98,
+      "avg30": 1.01,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

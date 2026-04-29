@@ -1,0 +1,71 @@
+{
+  "category": "Pokemon",
+  "id": "svp-177",
+  "illustrator": "aky CG Works",
+  "image": "https://assets.tcgdex.net/en/sv/svp/177",
+  "localId": "177",
+  "name": "Bloodmoon Ursaluna ex",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    901
+  ],
+  "hp": 260,
+  "types": [
+    "Colorless"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Seasoned Skill",
+      "effect": "Blood Moon used by this Pokémon costs {C} less for each Prize card your opponent has taken."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Blood Moon",
+      "effect": "During your next turn, this Pokémon can't attack.",
+      "damage": 240
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T19:38:01Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}
