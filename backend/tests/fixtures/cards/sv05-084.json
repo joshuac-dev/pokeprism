@@ -1,0 +1,94 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-084",
+  "illustrator": "Mina Nakai",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/084",
+  "localId": "084",
+  "name": "Relicanth",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    369
+  ],
+  "hp": 100,
+  "types": [
+    "Fighting"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Memory Dive",
+      "effect": "Each of your evolved Pokémon can use any attack from its previous Evolutions. (You still need the necessary Energy to use each attack.)"
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Razor Fin",
+      "damage": 30
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760714,
+      "avg": 0.14,
+      "low": 0.02,
+      "trend": 0.15,
+      "avg1": 0.21,
+      "avg7": 0.11,
+      "avg30": 0.14,
+      "avg-holo": 0.25,
+      "low-holo": 0.02,
+      "trend-holo": 0.31,
+      "avg1-holo": 0.49,
+      "avg7-holo": 0.29,
+      "avg30-holo": 0.24
+    },
+    "tcgplayer": null
+  }
+}

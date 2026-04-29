@@ -1,0 +1,82 @@
+{
+  "category": "Pokemon",
+  "id": "mep-007",
+  "illustrator": "Jiro Sasumo",
+  "localId": "007",
+  "name": "Psyduck",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 0,
+      "total": 37
+    },
+    "id": "mep",
+    "name": "MEP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    54
+  ],
+  "hp": 70,
+  "types": [
+    "Water"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Damp",
+      "effect": "Pokémon in play (both yours and your opponent's) lose all Abilities that require those Pokémon to be Knocked Out."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Collision",
+      "damage": 20
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2025-11-13T23:57:23+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851053,
+      "avg": 2.75,
+      "low": 0.9,
+      "trend": 2.86,
+      "avg1": 2,
+      "avg7": 2.84,
+      "avg30": 2.71,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

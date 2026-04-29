@@ -1,0 +1,90 @@
+{
+  "category": "Pokemon",
+  "id": "mep-011",
+  "illustrator": "5ban Graphics",
+  "localId": "011",
+  "name": "Mega Latias ex",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 0,
+      "total": 37
+    },
+    "id": "mep",
+    "name": "MEP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "holo",
+      "size": "jumbo",
+      "variantId": "slwlv6rn87"
+    }
+  ],
+  "dexId": [
+    380
+  ],
+  "hp": 280,
+  "types": [
+    "Dragon"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Strafe",
+      "effect": "You may switch this Pokémon with 1 of your Benched Pokémon.",
+      "damage": 40
+    },
+    {
+      "cost": [
+        "Fire",
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Illusory Impulse",
+      "effect": "Discard all Energy from this Pokémon.",
+      "damage": 300
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-03-20T21:51:21Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851063,
+      "avg": 0.6,
+      "low": 0.08,
+      "trend": 0.66,
+      "avg1": 0.79,
+      "avg7": 0.66,
+      "avg30": 0.65,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

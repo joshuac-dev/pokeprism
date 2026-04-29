@@ -1,0 +1,90 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-127",
+  "illustrator": "toi8",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/127",
+  "localId": "127",
+  "name": "Noctowl",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "foil": "cosmos",
+      "variantId": "5zs5af49g93yryvw1ftj"
+    }
+  ],
+  "dexId": [
+    164
+  ],
+  "hp": 110,
+  "types": [
+    "Colorless"
+  ],
+  "evolveFrom": "Hoothoot",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Talon Hunt",
+      "effect": "You may search your deck for up to 2 cards and put them into your hand. Then, shuffle your deck.",
+      "damage": 70
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760757,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.08,
+      "avg7": 0.04,
+      "avg30": 0.04,
+      "avg-holo": 0.12,
+      "low-holo": 0.02,
+      "trend-holo": 0.13,
+      "avg1-holo": 0.09,
+      "avg7-holo": 0.13,
+      "avg30-holo": 0.12
+    },
+    "tcgplayer": null
+  }
+}

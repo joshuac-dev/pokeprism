@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-060",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/060",
+  "localId": "060",
+  "name": "Wugtrio ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    961
+  ],
+  "hp": 250,
+  "types": [
+    "Lightning"
+  ],
+  "evolveFrom": "Wiglett",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Water"
+      ],
+      "name": "Tricolor Pump",
+      "effect": "Discard up to 3 Energy cards from your hand. This attack does 60 damage to 1 of your opponent's Pokémon for each Energy card you discarded in this way. (Don't apply Weakness and Resistance for Benched Pokémon.)"
+    },
+    {
+      "cost": [
+        "Water",
+        "Water"
+      ],
+      "name": "Numbing Hold",
+      "effect": "During your opponent's next turn, the Defending Pokémon can't retreat.",
+      "damage": 120
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760690,
+      "avg": 0.57,
+      "low": 0.1,
+      "trend": 0.66,
+      "avg1": 0.6,
+      "avg7": 0.63,
+      "avg30": 0.57,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

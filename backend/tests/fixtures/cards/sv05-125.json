@@ -1,0 +1,95 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-125",
+  "illustrator": "kirisAki",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/125",
+  "localId": "125",
+  "name": "Lickilicky",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    463
+  ],
+  "hp": 150,
+  "types": [
+    "Colorless"
+  ],
+  "evolveFrom": "Lickitung",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Body Slam",
+      "effect": "Flip a coin. If heads, your opponent's Active Pokémon is now Paralyzed.",
+      "damage": 50
+    },
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Tonguenado",
+      "effect": "Flip 4 coins. This attack does 70 damage for each heads.",
+      "damage": "70×"
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760755,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.08,
+      "avg7": 0.05,
+      "avg30": 0.04,
+      "avg-holo": 0.11,
+      "low-holo": 0.02,
+      "trend-holo": 0.1,
+      "avg1-holo": 0.09,
+      "avg7-holo": 0.08,
+      "avg30-holo": 0.11
+    },
+    "tcgplayer": null
+  }
+}

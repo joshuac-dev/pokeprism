@@ -1,0 +1,88 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-122",
+  "illustrator": "PLANETA Mochizuki",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/122",
+  "localId": "122",
+  "name": "Miraidon ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    1008
+  ],
+  "hp": 220,
+  "types": [
+    "Dragon"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Lightning",
+        "Psychic"
+      ],
+      "name": "Repulsion Bolt",
+      "effect": "If your opponent's Active Pokémon already has any damage counters on it, this attack does 100 more damage.",
+      "damage": "60+"
+    },
+    {
+      "cost": [
+        "Lightning",
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Cyber Drive",
+      "effect": "During your next turn, this Pokémon can't use Cyber Drive.",
+      "damage": 220
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760752,
+      "avg": 0.62,
+      "low": 0.1,
+      "trend": 0.7,
+      "avg1": 0.38,
+      "avg7": 0.72,
+      "avg30": 0.62,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

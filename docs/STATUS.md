@@ -10,12 +10,39 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | 1552 |
-| Coverage | **98.1%** (29 missing — all legitimately flagged) |
-| Batches complete | 15 (Batches 1–15) |
-| Processable cards remaining | 481 |
-| Flagged cards (cumulative) | ~152 entries — see `FLAGGED_CARDS` section of `POKEMON_MASTER_LIST.md` |
-| Next batch starts at | **Walking Wake ex TEF 50** (`sv05-050`) |
+| Cards in DB | 1650 |
+| Coverage | **98.2%** (29 missing — all legitimately flagged) |
+| Batches complete | 16 (Batches 1–16) |
+| Processable cards remaining | ~381 |
+| Flagged cards (cumulative) | ~207 entries — see `FLAGGED_CARDS` section of `POKEMON_MASTER_LIST.md` |
+| Next batch starts at | **Mega Lucario ex MEP 12** (`mep-012`) |
+
+## Last Session — 2026-05-23 (Card Pool Expansion: Batch 16)
+
+### What Was Done
+
+**Batch 16** (98 new cards, TEF sv05-049..139 + MEP mep-001..009, mep-011): DB grew from 1552 → 1650 cards.
+- 2 cards already in DB (skipped): sv05-123 (Raging Bolt ex), sv05-129 (Dudunsparce)
+- sv05-082 not in master list — skipped entirely
+- ~83 new attack handlers, 16 handler reuses (`_stun_spore`, `_focus_fist`, `_allure`, `_mini_drain`, `_super_poison_breath`, `_take_down`, `_vengeance_fletching`, `_dig_b10`, `_call_for_family_1`, `_boundless_power`, `_scorching_fire`, `_water_shot`, `_hydreigon_dark_bite`, `_power_stomp`, `_ball_roll`, `_hyper_ray`)
+- 17 passive ability stubs added to abilities.py for batch 16 cards
+- `register_batch16_attacks` wired into `__init__.py`
+- 55 new flagged entries added to FLAGGED_CARDS (38 attacks + 17 abilities)
+
+### Issues Encountered
+- Initial coverage check revealed 17 ability-only batch 16 cards missing handlers; resolved by adding passive stubs to abilities.py
+- Backend restart required after code changes to pick up new EffectRegistry registrations
+
+### Final Baseline This Session
+- **215 backend tests pass**
+- **1650 cards in DB**
+- **Coverage: 98.2%** (29 missing — all legitimately flagged, same set as pre-batch)
+- **~207 flagged entries** (full list in `FLAGGED_CARDS` section of `docs/POKEMON_MASTER_LIST.md`)
+
+### Notes for Next Session
+Continue with **Batch 17**, starting at **Mega Lucario ex MEP 12** (`mep-012`). Run `make reset-data` before any fresh simulation testing. If coverage drops after insert + code changes, **restart the backend** before re-checking `/api/coverage`.
+
+---
 
 ## Last Session — 2026-05-22 (Card Pool Expansion: Batch 15)
 

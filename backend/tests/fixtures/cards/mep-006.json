@@ -1,0 +1,83 @@
+{
+  "category": "Pokemon",
+  "id": "mep-006",
+  "illustrator": "Shimaris Yukichi",
+  "localId": "006",
+  "name": "Drifblim",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 0,
+      "total": 37
+    },
+    "id": "mep",
+    "name": "MEP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    426
+  ],
+  "hp": 110,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Psychic"
+      ],
+      "name": "Disruptive Wind",
+      "effect": "Your opponent's Active Pokémon is now Confused."
+    },
+    {
+      "cost": [
+        "Psychic",
+        "Psychic"
+      ],
+      "name": "Balloon Return",
+      "effect": "Put this Pokémon and all attached cards into your hand.",
+      "damage": 110
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2025-11-13T23:57:23+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851052,
+      "avg": 3.53,
+      "low": 2,
+      "trend": 2.82,
+      "avg1": 3.05,
+      "avg7": 3.23,
+      "avg30": 3.28,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

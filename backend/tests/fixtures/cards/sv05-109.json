@@ -1,0 +1,115 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-109",
+  "illustrator": "hncl",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/109",
+  "localId": "109",
+  "name": "Roaring Moon",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "foil": "cosmos",
+      "variantId": "5zs5af49g93yryvw1ftj"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "mtltux8quqoc7vwp24c9zzhgmzduu8xcik8"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "gx8bq2hegum3q6irsxlvqxm955ikw9gd1h311"
+    }
+  ],
+  "dexId": [
+    1005
+  ],
+  "hp": 140,
+  "types": [
+    "Darkness"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Darkness"
+      ],
+      "name": "Vengeance Fletching",
+      "effect": "This attack does 10 more damage for each Ancient card in your discard pile.",
+      "damage": "70+"
+    },
+    {
+      "cost": [
+        "Darkness",
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Speed Wing",
+      "damage": 120
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760739,
+      "avg": 0.08,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.03,
+      "avg7": 0.05,
+      "avg30": 0.08,
+      "avg-holo": 0.33,
+      "low-holo": 0.02,
+      "trend-holo": 0.25,
+      "avg1-holo": 0.04,
+      "avg7-holo": 0.22,
+      "avg30-holo": 0.34
+    },
+    "tcgplayer": null
+  }
+}

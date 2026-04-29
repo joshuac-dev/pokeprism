@@ -1,0 +1,136 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-119",
+  "illustrator": "Teeziro",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/119",
+  "localId": "119",
+  "name": "Koraidon",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "3takscxpcqodqyjzqnsbuwq6"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "foil": "cosmos",
+      "variantId": "5zs5af49g93yryvw1ftj"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "eb-games"
+      ],
+      "variantId": "3takscxpcoxibzom7zpr5377"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "gamestop"
+      ],
+      "variantId": "3takscxpcp6jb0dtae8nhh2o"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "gx8bq2hegum3q6irsxlvqxm955ikw9gd1h311"
+    }
+  ],
+  "dexId": [
+    1007
+  ],
+  "hp": 140,
+  "types": [
+    "Dragon"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Primordial Beatdown",
+      "effect": "This attack does 30 damage for each of your Ancient Pokémon in play.",
+      "damage": "30×"
+    },
+    {
+      "cost": [
+        "Fire",
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Shred",
+      "effect": "This attack's damage isn't affected by any effects on your opponent's Active Pokémon.",
+      "damage": 130
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760749,
+      "avg": 0.08,
+      "low": 0.02,
+      "trend": 0.06,
+      "avg1": 0.05,
+      "avg7": 0.08,
+      "avg30": 0.09,
+      "avg-holo": 0.3,
+      "low-holo": 0.02,
+      "trend-holo": 0.28,
+      "avg1-holo": 0.15,
+      "avg7-holo": 0.4,
+      "avg30-holo": 0.26
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-086",
+  "illustrator": "Bun Toujo",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/086",
+  "localId": "086",
+  "name": "Excadrill",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    530
+  ],
+  "hp": 130,
+  "types": [
+    "Fighting"
+  ],
+  "evolveFrom": "Drilbur",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Mud Shot",
+      "damage": 20
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Wild Tackle",
+      "effect": "This Pokémon also does 50 damage to itself.",
+      "damage": 180
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760716,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.1,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.09,
+      "low-holo": 0.02,
+      "trend-holo": 0.08,
+      "avg1-holo": 0.1,
+      "avg7-holo": 0.09,
+      "avg30-holo": 0.1
+    },
+    "tcgplayer": null
+  }
+}

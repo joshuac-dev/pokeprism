@@ -1,0 +1,74 @@
+{
+  "category": "Pokemon",
+  "id": "mep-005",
+  "illustrator": "Shimaris Yukichi",
+  "localId": "005",
+  "name": "Drifloon",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 0,
+      "total": 37
+    },
+    "id": "mep",
+    "name": "MEP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    425
+  ],
+  "hp": 70,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Psychic"
+      ],
+      "name": "Pull",
+      "effect": "Flip a coin. If heads, switch 1 of your opponent's Benched Pokémon with their Active Pokémon."
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2025-11-13T23:57:23+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851051,
+      "avg": 3.11,
+      "low": 1.99,
+      "trend": 2.75,
+      "avg1": 3.68,
+      "avg7": 3.11,
+      "avg30": 3.04,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

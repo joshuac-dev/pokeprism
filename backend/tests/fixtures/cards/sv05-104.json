@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-104",
+  "illustrator": "Nisota Niso",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/104",
+  "localId": "104",
+  "name": "Gengar ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    94
+  ],
+  "hp": 310,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Haunter",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Gnawing Curse",
+      "effect": "Whenever your opponent attaches an Energy card from their hand to 1 of their Pokémon, put 2 damage counters on that Pokémon."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Darkness"
+      ],
+      "name": "Tricky Steps",
+      "effect": "You may move an Energy from your opponent's Active Pokémon to 1 of their Benched Pokémon.",
+      "damage": 160
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760734,
+      "avg": 3.81,
+      "low": 1.8,
+      "trend": 5.57,
+      "avg1": 21.74,
+      "avg7": 5.55,
+      "avg30": 3.79,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "category": "Pokemon",
+  "id": "mep-003",
+  "illustrator": "cochi8i",
+  "localId": "003",
+  "name": "Alakazam",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 0,
+      "total": 37
+    },
+    "id": "mep",
+    "name": "MEP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "555jb0efopmyclvkikic41"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo",
+        "staff"
+      ],
+      "variantId": "2fnyg4g5382k6pl1ij0u1km1pdn"
+    }
+  ],
+  "dexId": [
+    65
+  ],
+  "hp": 140,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Psychic Draw",
+      "effect": "Once during your turn, when you play this Pokémon from your hand to evolve 1 of your Pokémon, you may use this Ability. Draw 3 cards."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Psychic"
+      ],
+      "name": "Powerful Hand",
+      "effect": "Place 2 damage counters on your opponent's Active Pokémon for each card in your hand."
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2025-11-13T23:57:23+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851047,
+      "avg": 16.73,
+      "low": 8.95,
+      "trend": 15.91,
+      "avg1": 17.75,
+      "avg7": 16.59,
+      "avg30": 16.73,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

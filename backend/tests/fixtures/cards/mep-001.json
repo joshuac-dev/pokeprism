@@ -1,0 +1,96 @@
+{
+  "category": "Pokemon",
+  "id": "mep-001",
+  "illustrator": "Uninori",
+  "localId": "001",
+  "name": "Meganium",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 0,
+      "total": 37
+    },
+    "id": "mep",
+    "name": "MEP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "555jb0efopmyclvkikic41"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo",
+        "staff"
+      ],
+      "variantId": "2fnyg4g5382k6pl1ij0u1km1pdn"
+    }
+  ],
+  "dexId": [
+    154
+  ],
+  "hp": 160,
+  "types": [
+    "Grass"
+  ],
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Wild Growth",
+      "effect": "Each Basic {G} Energy attached to all of your Pokémon provides {G}{G} Energy. The effect of Wild Growth doesn't stack."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Grass",
+        "Grass",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Solar Beam",
+      "damage": 140
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2025-11-13T23:57:23+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851043,
+      "avg": 15.74,
+      "low": 7.99,
+      "trend": 15.95,
+      "avg1": 18.99,
+      "avg7": 16.81,
+      "avg30": 15.97,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

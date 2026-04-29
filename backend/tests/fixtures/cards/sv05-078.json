@@ -1,0 +1,112 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-078",
+  "illustrator": "kodama",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/078",
+  "localId": "078",
+  "name": "Flutter Mane",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "trick-or-trade"
+      ],
+      "variantId": "1jz5lzkp5ftnwh2lzmaeixidf6y9ps"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "gx8bq2hegum3q6irsxlvqxm955ikw9gd1h311"
+    }
+  ],
+  "dexId": [
+    987
+  ],
+  "hp": 90,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Midnight Fluttering",
+      "effect": "As long as this Pokémon is in the Active Spot, your opponent's Active Pokémon has no Abilities, except for Midnight Fluttering."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Hex Hurl",
+      "effect": "Put 2 damage counters on your opponent's Benched Pokémon in any way you like.",
+      "damage": 90
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760708,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.07,
+      "avg1": 0.06,
+      "avg7": 0.05,
+      "avg30": 0.07,
+      "avg-holo": 0.21,
+      "low-holo": 0.02,
+      "trend-holo": 0.22,
+      "avg1-holo": 0.1,
+      "avg7-holo": 0.18,
+      "avg30-holo": 0.22
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-120",
+  "illustrator": "PLANETA Igarashi",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/120",
+  "localId": "120",
+  "name": "Koraidon ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    1007
+  ],
+  "hp": 230,
+  "types": [
+    "Dragon"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Retribution Strike",
+      "effect": "This attack does 10 more damage for each damage counter on this Pokémon.",
+      "damage": "20+"
+    },
+    {
+      "cost": [
+        "Fire",
+        "Fighting",
+        "Fighting"
+      ],
+      "name": "Kaiser Tackle",
+      "effect": "This Pokémon also does 60 damage to itself.",
+      "damage": 280
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760750,
+      "avg": 0.61,
+      "low": 0.09,
+      "trend": 0.62,
+      "avg1": 0.49,
+      "avg7": 0.6,
+      "avg30": 0.62,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

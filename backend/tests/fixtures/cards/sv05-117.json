@@ -1,0 +1,95 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-117",
+  "illustrator": "Oswaldo KATO",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/117",
+  "localId": "117",
+  "name": "Melmetal",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    809
+  ],
+  "hp": 160,
+  "types": [
+    "Metal"
+  ],
+  "evolveFrom": "Meltan",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Metal",
+        "Metal",
+        "Colorless"
+      ],
+      "name": "Hammer In",
+      "damage": 120
+    },
+    {
+      "cost": [
+        "Metal",
+        "Metal",
+        "Metal",
+        "Metal",
+        "Colorless"
+      ],
+      "name": "Iron Bash",
+      "damage": 230
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760747,
+      "avg": 0.05,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.05,
+      "avg7": 0.04,
+      "avg30": 0.05,
+      "avg-holo": 0.21,
+      "low-holo": 0.02,
+      "trend-holo": 0.19,
+      "avg1-holo": 0.3,
+      "avg7-holo": 0.21,
+      "avg30-holo": 0.21
+    },
+    "tcgplayer": null
+  }
+}

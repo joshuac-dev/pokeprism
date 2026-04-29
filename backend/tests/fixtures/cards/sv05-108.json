@@ -1,0 +1,95 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-108",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/108",
+  "localId": "108",
+  "name": "Farigiraf ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "gx8bq2hegum3q6irsxlvqxm955ikw9gd1h311"
+    }
+  ],
+  "dexId": [
+    981
+  ],
+  "hp": 260,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Girafarig",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Armor Tail",
+      "effect": "Prevent all damage done to this Pokémon by attacks from your opponent's Basic Pokémon ex."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Psychic",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Dirty Beam",
+      "effect": "This attack also does 30 damage to 1 of your opponent's Benched Pokémon. (Don't apply Weakness and Resistance for Benched Pokémon.)",
+      "damage": 160
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760738,
+      "avg": 0.69,
+      "low": 0.19,
+      "trend": 0.7,
+      "avg1": 0.67,
+      "avg7": 0.66,
+      "avg30": 0.7,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

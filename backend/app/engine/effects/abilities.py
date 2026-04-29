@@ -3991,3 +3991,24 @@ def register_all(registry):
     registry.register_passive_ability("sv05-034", "Hustle Play")            # Incineroar ex (attack cost reduction: flag)
     registry.register_passive_ability("sv05-041", "Torrential Heart")       # Feraligatr (energy doubling: flag)
 
+    # ── Batch 16: TEF sv05-049..139 + MEP mep-001..011 abilities ─────────────
+
+    # FLAGGED passives (complex trigger not implemented; stubs registered for coverage)
+    registry.register_passive_ability("sv05-050", "Azure Seas")             # Walking Wake ex (ignore opp Active effects: noop)
+    registry.register_passive_ability("sv05-078", "Midnight Fluttering")    # Flutter Mane (suppress opp abilities: noop)
+    registry.register_passive_ability("sv05-081", "Cobalt Command")         # Iron Crown ex (future +20 dmg: noop)
+    registry.register_passive_ability("sv05-084", "Memory Dive")            # Relicanth (use prev-evo attacks: noop)
+    registry.register_passive_ability("sv05-085", "Dig Dig Dig")            # Drilbur (on-play energy-to-discard: noop)
+    registry.register_passive_ability("sv05-104", "Gnawing Curse")          # Gengar ex (on-attach counters: noop)
+    registry.register_passive_ability("sv05-108", "Armor Tail")             # Farigiraf ex (block basic ex damage: noop)
+    registry.register_passive_ability("sv05-114", "Metal Maker")            # Metang (top-4 energy attach: noop)
+    registry.register_passive_ability("sv05-118", "Dual Core")              # Iron Treads (tool dual-type: noop)
+    registry.register_passive_ability("sv05-133", "Emergency Evolution")    # Pidove (low-HP evo search: noop)
+    registry.register_passive_ability("sv05-139", "Automated Combat")       # Iron Jugulis (on-damage counter: noop)
+    registry.register_passive_ability("mep-001", "Wild Growth")             # Meganium (energy doubling: noop)
+    registry.register_passive_ability("mep-003", "Psychic Draw")            # Alakazam (on-evolve draw: noop)
+    registry.register_passive_ability("mep-004", "Lunar Cycle")             # Lunatone (Solrock-conditional attach: noop)
+    registry.register_passive_ability("mep-007", "Damp")                    # Psyduck (suppress KO-trigger abilities: noop)
+    registry.register_passive_ability("mep-008", "Damp")                    # Golduck (suppress KO-trigger abilities: noop)
+    registry.register_passive_ability("mep-009", "Psychic Draw")            # Alakazam (on-evolve draw: noop)
+

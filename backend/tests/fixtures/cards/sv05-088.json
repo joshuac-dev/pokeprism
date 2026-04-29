@@ -1,0 +1,93 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-088",
+  "illustrator": "Oku",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/088",
+  "localId": "088",
+  "name": "Golurk",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    623
+  ],
+  "hp": 160,
+  "types": [
+    "Fighting"
+  ],
+  "evolveFrom": "Golett",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting"
+      ],
+      "name": "Iron Defense",
+      "effect": "Flip a coin. If heads, during your opponent's next turn, prevent all damage done to this Pokémon by attacks."
+    },
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Fighting Fist",
+      "effect": "If your opponent's Active Pokémon is a Pokémon ex or Pokémon V, this attack does 120 more damage.",
+      "damage": "120+"
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760718,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.08,
+      "avg7": 0.03,
+      "avg30": 0.04,
+      "avg-holo": 0.11,
+      "low-holo": 0.02,
+      "trend-holo": 0.1,
+      "avg1-holo": 0.06,
+      "avg7-holo": 0.1,
+      "avg30-holo": 0.1
+    },
+    "tcgplayer": null
+  }
+}

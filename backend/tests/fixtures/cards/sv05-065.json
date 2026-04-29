@@ -1,0 +1,93 @@
+{
+  "category": "Pokemon",
+  "id": "sv05-065",
+  "illustrator": "Makura Tami",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/065",
+  "localId": "065",
+  "name": "Azumarill",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    184
+  ],
+  "hp": 130,
+  "types": [
+    "Psychic"
+  ],
+  "evolveFrom": "Marill",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Play Rough",
+      "effect": "Flip a coin. If heads, this attack does 30 more damage.",
+      "damage": "30+"
+    },
+    {
+      "cost": [
+        "Psychic",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Power Tackle",
+      "effect": "During your next turn, this Pokémon can't attack.",
+      "damage": 140
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760695,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.1,
+      "avg7": 0.06,
+      "avg30": 0.04,
+      "avg-holo": 0.1,
+      "low-holo": 0.02,
+      "trend-holo": 0.1,
+      "avg1-holo": 0.1,
+      "avg7-holo": 0.09,
+      "avg30-holo": 0.12
+    },
+    "tcgplayer": null
+  }
+}

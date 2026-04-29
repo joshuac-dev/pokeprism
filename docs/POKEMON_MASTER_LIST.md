@@ -1,103 +1,3 @@
-Palafin TEF 49
-Walking Wake ex TEF 50
-Pikachu TEF 51
-Raichu TEF 52
-Electabuzz TEF 53
-Electivire TEF 54
-Charjabug TEF 55
-Vikavolt TEF 56
-Wugtrio ex TEF 60
-Boltund TEF 59
-Yamper TEF 58
-Zeraora TEF 57
-Iron Hands TEF 61
-Iron Thorns TEF 62
-Mr. Mime TEF 63
-Marill TEF 64
-Azumarill TEF 65
-Girafarig TEF 66
-Latias TEF 67
-Bronzor TEF 68
-Reuniclus TEF 72
-Duosion TEF 71
-Solosis TEF 70
-Bronzong TEF 69
-Elgyem TEF 73
-Beheeyem TEF 74
-Cutiefly TEF 75
-Ribombee TEF 76
-Scream Tail TEF 77
-Flutter Mane TEF 78
-Iron Valiant TEF 79
-Iron Valiant TEF 80
-Relicanth TEF 84
-Medicham TEF 83
-Iron Crown ex TEF 81
-Drilbur TEF 85
-Excadrill TEF 86
-Golett TEF 87
-Golurk TEF 88
-Rockruff TEF 89
-Lycanroc TEF 90
-Mudbray TEF 91
-Mudsdale TEF 92
-Great Tusk TEF 96
-Coalossal TEF 95
-Carkol TEF 94
-Rolycoly TEF 93
-Great Tusk TEF 97
-Sandy Shocks TEF 98
-Iron Boulder ex TEF 99
-Ekans TEF 100
-Arbok TEF 101
-Gastly TEF 102
-Haunter TEF 103
-Gengar ex TEF 104
-Farigiraf ex TEF 108
-Sableye TEF 107
-Mightyena TEF 106
-Poochyena TEF 105
-Roaring Moon TEF 109
-Forretress TEF 110
-Scizor ex TEF 111
-Mawile TEF 112
-Beldum TEF 113
-Metang TEF 114
-Metagross TEF 115
-Meltan TEF 116
-Koraidon ex TEF 120
-Koraidon TEF 119
-Iron Treads TEF 118
-Melmetal TEF 117
-Miraidon TEF 121
-Miraidon ex TEF 122
-Raging Bolt ex TEF 123
-Lickitung TEF 124
-Lickilicky TEF 125
-Hoothoot TEF 126
-Noctowl TEF 127
-Dunsparce TEF 128
-Chatot TEF 132
-Delcatty TEF 131
-Skitty TEF 130
-Dudunsparce TEF 129
-Pidove TEF 133
-Tranquill TEF 134
-Unfezant TEF 135
-Minccino TEF 136
-Cinccino TEF 137
-Drampa TEF 138
-Iron Jugulis TEF 139
-Meganium MEP 1
-Inteleon MEP 2
-Alakazam MEP 3
-Lunatone MEP 4
-Golduck MEP 8
-Psyduck MEP 7
-Drifblim MEP 6
-Drifloon MEP 5
-Alakazam MEP 9
-Mega Latias ex MEP 11
 Mega Lucario ex MEP 12
 Mega Venusaur ex MEP 13
 Ceruledge MEP 14
@@ -636,3 +536,57 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Scovillain ex TEF 22 | sv05-022 | Two-Headed Crushing (atk1) | Discard random card from opponent's hand + top of deck — double-discard secondary effect not supported |
 | Victini TEF 30 | sv05-030 | Flippity Flap (atk0) | Shuffle hand into deck + draw 6 — shuffle-hand-draw not supported |
 | Wiglett TEF 47 | sv05-047 | Lucky Find (atk0) | Search deck for Item card to hand — item-search not supported |
+| Pikachu TEF 51 | sv05-051 | Random Spark (atk0) | Deals 10 damage to 1 of opponent's Pokémon (ignoring W/R) — arbitrary bench-target damage choice not in engine |
+| Raichu TEF 52 | sv05-052 | Collateral Bolts (atk0) | 50 damage to each Pokémon with damage counters (W/R for Active only) — multi-target selective bench hit not supported |
+| Boltund TEF 59 | sv05-059 | Electrifying Dash (atk0) | Search deck for up to 2 Basic L Energy, attach to Benched Pokémon — deck search + energy-to-bench attachment not in engine |
+| Wugtrio ex TEF 60 | sv05-060 | Tricolor Pump (atk0) | Discard up to 3 Energy from hand; 60 damage per discard to any Pokémon — hand-discard loop + arbitrary bench targeting not in engine |
+| Iron Thorns TEF 62 | sv05-062 | Destructo-Press (atk0) | Reveal top 5 of deck; 70 damage per Future Pokémon found — deck-reveal mechanic + future detection non-functional |
+| Mr. Mime TEF 63 | sv05-063 | Look-Alike Show (atk0) | Reveal opponent's hand; use a Supporter effect found there — hand-reveal + Supporter mimicry not supported |
+| Bronzong TEF 69 | sv05-069 | Evolution Jammer (atk0) | Opponent can't play Pokémon from hand to evolve next turn — play-from-hand evolution validator hook not in engine |
+| Reuniclus TEF 72 | sv05-072 | Summoning Gate (atk0) | Look at top 8 of deck, put any Pokémon found onto Bench — deck-peek + bench-add choice loop not in engine |
+| Ribombee TEF 76 | sv05-076 | Plentiful Pollen (atk0) | If Defending Pokémon is KO'd during opponent's next turn, take 2 extra Prizes — deferred KO-triggered prize bonus not in engine |
+| Scream Tail TEF 77 | sv05-077 | Supportive Singing (atk0) | Heal 100 from one of your Benched Ancient Pokémon — Ancient detection non-functional + benched-target heal choice not in engine |
+| Flutter Mane TEF 78 | sv05-078 | Hex Hurl (atk0) | Place 2 damage counters on opponent's Benched Pokémon in any way — arbitrary bench counter distribution not in engine |
+| Iron Valiant TEF 80 | sv05-080 | Calculation (atk0) | Look at top 4 of deck, reorder freely — deck-peek reorder not in engine |
+| Iron Valiant TEF 80 | sv05-080 | Majestic Sword (atk1) | +220 damage if a Future Supporter was played this turn — Future Supporter tracking + future detection non-functional |
+| Iron Crown ex TEF 81 | sv05-081 | Twin Shotels (atk0) | 50 damage to 2 of opponent's Pokémon, ignoring W/R and effects — dual-target attack not in engine |
+| Lycanroc TEF 90 | sv05-090 | Turbo Edge (atk0) | Attach up to 2 Basic F Energy from discard to Benched Pokémon — energy-to-bench choice loop not in engine |
+| Mudsdale TEF 92 | sv05-092 | Mud Stock (atk0) | Attach Basic F Energy from discard to each Benched Pokémon — mass energy-to-bench attachment not in engine |
+| Great Tusk TEF 97 | sv05-097 | Land Collapse (atk0) | Discard top of opponent's deck; if Ancient Supporter played this turn, discard top 5 — opponent deck manipulation + Ancient Supporter tracking not in engine |
+| Iron Boulder ex TEF 99 | sv05-099 | Repulsor Axe (atk0) | If damaged by an attack this turn, may put attacker on opponent's bench — on-damage conditional counter-effect choice not in engine |
+| Gengar ex TEF 104 | sv05-104 | Tricky Steps (atk0) | Move Energy from opponent's Active to one of their Benched — opponent energy movement not in engine |
+| Mightyena TEF 106 | sv05-106 | Kick Away (atk0) | Switch out opponent's Active Pokémon; opponent chooses replacement — forced gust/switch-out not in engine |
+| Sableye TEF 107 | sv05-107 | Damage Collection (atk1) | Move any damage counters from opponent's Benched to opponent's Active — arbitrary counter redistribution not in engine |
+| Scizor ex TEF 111 | sv05-111 | Cross Breaker (atk1) | Discard up to 2 M Energy; 120 damage per discarded — ChoiceRequest loop + conditional discard-to-damage multiplier not in engine |
+| Mawile TEF 112 | sv05-112 | Invite and Strike (atk0) | Switch in one of opponent's Benched Pokémon, then attack it — forced switch + attack-against-new-active not supported |
+| Metagross TEF 115 | sv05-115 | Meteor Mash (atk0) | Next turn this attack does 60 more damage — inter-turn attack-specific damage bonus not in state |
+| Iron Treads TEF 118 | sv05-118 | Wheel Pass (atk0) | Move Energy from this Pokémon to a Benched Pokémon — energy movement active→bench not in engine |
+| Koraidon TEF 119 | sv05-119 | Primordial Beatdown (atk0) | 30 damage × count of Ancient Pokémon in play — Ancient detection non-functional (card_subtype always '') |
+| Miraidon TEF 121 | sv05-121 | Peak Acceleration (atk0) | Search deck for up to 2 Basic Energy, attach to Future Pokémon — deck search + future-filtered bench attach + future detection non-functional |
+| Lickitung TEF 124 | sv05-124 | Tongue Pull (atk0) | Reveal opponent's hand, put up to 2 Basic Pokémon from it onto opponent's Bench — placing opponent's Pokémon on their bench not supported |
+| Noctowl TEF 127 | sv05-127 | Talon Hunt (atk0) | Search deck for up to 2 chosen cards to hand — free deck-search ChoiceRequest not in engine |
+| Delcatty TEF 131 | sv05-131 | Energy Blender (atk1) | Move any amount of Energy from any of your Pokémon to any others — arbitrary multi-source energy redistribution not in engine |
+| Chatot TEF 132 | sv05-132 | A Cappella (atk0) | Search deck for up to 3 Basic Pokémon and bench them — bench-add from deck search not in engine |
+| Unfezant TEF 135 | sv05-135 | Opposing Winds (atk0) | Return 2 Energy from opponent's Active to their hand — Energy return to opponent's hand not supported |
+| Minccino TEF 136 | sv05-136 | Cleaning Up (atk1) | Discard up to 2 Pokémon Tools from opponent's Pokémon — Tool removal from opponent's Pokémon not supported |
+| Inteleon MEP 2 | mep-002 | Bring Down (atk0) | Choose a Pokémon in play with least HP remaining and KO it — instant arbitrary-target KO not supported |
+| Drifloon MEP 5 | mep-005 | Pull (atk0) | Flip coin; heads: switch one of opponent's Benched Pokémon to Active — coin-flip forced gust not in engine |
+| Drifblim MEP 6 | mep-006 | Balloon Return (atk1) | Return this Pokémon and all attached cards to hand — returning Active + attachments to hand not supported |
+| Mega Latias ex MEP 11 | mep-011 | Strafe (atk0) | After attack, may switch this Pokémon with a Benched Pokémon — post-attack self-switch choice not in engine |
+| Walking Wake ex TEF 50 | sv05-050 | Azure Seas (ability) | Damage from this Pokémon's attacks ignores effects on opponent's Active — complex passive requires damage application hook |
+| Flutter Mane TEF 78 | sv05-078 | Midnight Fluttering (ability) | Suppresses opponent's Active Pokémon's abilities while this is Active — global ability suppression not in engine |
+| Iron Crown ex TEF 81 | sv05-081 | Cobalt Command (ability) | Future Pokémon deal +20 damage — future detection non-functional (card_subtype always '') |
+| Relicanth TEF 84 | sv05-084 | Memory Dive (ability) | Evolved Pokémon can use attacks from previous evolutions — prior-form attack-access not in engine |
+| Drilbur TEF 85 | sv05-085 | Dig Dig Dig (ability) | On bench-play: search deck for up to 3 Basic F Energy and discard — on-play trigger hook not in engine |
+| Gengar ex TEF 104 | sv05-104 | Gnawing Curse (ability) | Place 2 damage counters on any Pokémon opponent attaches Energy to from hand — on-energy-attach trigger not in engine |
+| Farigiraf ex TEF 108 | sv05-108 | Armor Tail (ability) | Prevent all damage from Basic Pokémon ex attacks — conditional damage prevention not in damage pipeline |
+| Metang TEF 114 | sv05-114 | Metal Maker (ability) | Once per turn, look at top 4 and attach any Basic M Energy found — deck-peek + selective attach not in engine |
+| Iron Treads TEF 118 | sv05-118 | Dual Core (ability) | Pokémon is F+M type when Future Booster Energy Capsule attached — tool-dependent dual typing not supported |
+| Pidove TEF 133 | sv05-133 | Emergency Evolution (ability) | Evolve from deck when HP ≤ 30 — conditional HP-threshold evolution not in engine |
+| Iron Jugulis TEF 139 | sv05-139 | Automated Combat (ability) | On being damaged, counter-attack with own attacks — on-damage counter-attack trigger not in engine |
+| Meganium MEP 1 | mep-001 | Wild Growth (ability) | Each Basic G Energy counts as 2 — energy-value doubling fundamentally overrides cost system |
+| Alakazam MEP 3 | mep-003 | Psychic Draw (ability) | On evolve: discard a card from hand to draw cards — on-evolve draw hook not in engine |
+| Lunatone MEP 4 | mep-004 | Lunar Cycle (ability) | If Solrock in play: discard Basic F Energy to attach Basic P Energy from deck — conditional cross-energy deck attach not in engine |
+| Psyduck MEP 7 | mep-007 | Damp (ability) | Suppresses all abilities requiring KO while Pokémon is in play — global KO-trigger ability suppression not in engine |
+| Golduck MEP 8 | mep-008 | Damp (ability) | Suppresses all abilities requiring KO while Pokémon is in play — global KO-trigger ability suppression not in engine |
+| Alakazam MEP 9 | mep-009 | Psychic Draw (ability) | On evolve: discard a card from hand to draw cards — on-evolve draw hook not in engine |
