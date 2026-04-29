@@ -1599,3 +1599,5 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Turtonator POR 17 | me03-017 | Shell Spikes (ability) | Place counters on attacker when this Pokémon is damaged — requires on-damage trigger |
 | Numel ASC 27 | me02.5-027 | Incandescent Body (ability) | Apply Burned to attacker when this Pokémon is damaged — requires on-damage trigger |
 | Rotom ex PFL 29 | me02-029 | Multi Adapter (ability) | Each of your Pokémon that has 'Rotom' in its name may have up to 2 Tool cards attached — modifying the tool attachment limit in actions.py (currently hardcoded to 1) is too complex |
+| Duosion BLK 38 | sv10.5b-038 | Cellular Evolution (atk0) | Evolve any of your Benched Pokémon from deck mid-battle — full in-battle multi-bench evolution not supported |
+| Reuniclus BLK 39 | sv10.5b-039 | Cellular Ascension (atk0) | Evolve all of your in-play Pokémon from deck simultaneously — full simultaneous batch evolution not supported |

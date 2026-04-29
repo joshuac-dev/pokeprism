@@ -1,0 +1,176 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5b-050",
+  "illustrator": "Shin Nagasawa",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5b/050",
+  "localId": "050",
+  "name": "Throh",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 172
+    },
+    "id": "sv10.5b",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5b/logo",
+    "name": "Black Bolt",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5b/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836009,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.03,
+          "avg1": 0.03,
+          "avg7": 0.02,
+          "avg30": 0.03,
+          "avg-holo": 0.16,
+          "low-holo": 0.02,
+          "trend-holo": 0.12,
+          "avg1-holo": 0.1,
+          "avg7-holo": 0.14,
+          "avg30-holo": 0.15
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836009,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.03,
+          "avg1": 0.03,
+          "avg7": 0.02,
+          "avg30": 0.03,
+          "avg-holo": 0.16,
+          "low-holo": 0.02,
+          "trend-holo": 0.12,
+          "avg1-holo": 0.1,
+          "avg7-holo": 0.14,
+          "avg30-holo": 0.15
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "pokeball",
+      "variantId": "3739bbtj3i910y5ynn9xc6ryf",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836379,
+          "avg": null,
+          "low": 0.04,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 0.41,
+          "low-holo": 0.04,
+          "trend-holo": 0.39,
+          "avg1-holo": 0.45,
+          "avg7-holo": 0.42,
+          "avg30-holo": 0.41
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "masterball",
+      "variantId": "2asus05yghmpd1ud1sdmlq3as4e",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836377,
+          "avg": null,
+          "low": 2.5,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 5.62,
+          "low-holo": 2.5,
+          "trend-holo": 6.73,
+          "avg1-holo": 8,
+          "avg7-holo": 7.25,
+          "avg30-holo": 6.24
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    538
+  ],
+  "hp": 130,
+  "types": [
+    "Fighting"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Shoulder Throw",
+      "effect": "This attack does 30 less damage for each {C} in your opponent's Active Pokémon's Retreat Cost.",
+      "damage": "120-"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T17:41:47Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 836009,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.03,
+      "avg7": 0.02,
+      "avg30": 0.03,
+      "avg-holo": 0.16,
+      "low-holo": 0.02,
+      "trend-holo": 0.12,
+      "avg1-holo": 0.1,
+      "avg7-holo": 0.14,
+      "avg30-holo": 0.15
+    },
+    "tcgplayer": null
+  }
+}

@@ -90,6 +90,7 @@ def apply_weakness_resistance(
     defender: CardInstance,
     state: "GameState" = None,
     defender_player_id: str = None,
+    skip_resistance: bool = False,
 ) -> int:
     """Apply weakness and resistance to base damage.
 
@@ -136,16 +137,17 @@ def apply_weakness_resistance(
         ):
             damage = int(damage * 2)
 
-    # Resistance − value
-    for resistance in defender_def.resistances:
-        if resistance.type.lower() in attacker_types:
-            sub_str = resistance.value  # e.g. "-30"
-            try:
-                sub = int(re.sub(r"[^0-9]", "", sub_str))
-            except ValueError:
-                sub = 30
-            damage -= sub
-            break
+    if not skip_resistance:
+        # Resistance − value
+        for resistance in defender_def.resistances:
+            if resistance.type.lower() in attacker_types:
+                sub_str = resistance.value  # e.g. "-30"
+                try:
+                    sub = int(re.sub(r"[^0-9]", "", sub_str))
+                except ValueError:
+                    sub = 30
+                damage -= sub
+                break
 
     return max(0, damage)
 

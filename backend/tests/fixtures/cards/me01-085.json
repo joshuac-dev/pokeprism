@@ -1,0 +1,93 @@
+{
+  "category": "Pokemon",
+  "id": "me01-085",
+  "illustrator": "kawayoo",
+  "image": "https://assets.tcgdex.net/en/me/me01/085",
+  "localId": "085",
+  "name": "Crawdaunt",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 132,
+      "total": 188
+    },
+    "id": "me01",
+    "logo": "https://assets.tcgdex.net/en/me/me01/logo",
+    "name": "Mega Evolution",
+    "symbol": "https://assets.tcgdex.net/univ/me/me01/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    342
+  ],
+  "hp": 130,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Corphish",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Vise Grip",
+      "damage": 30
+    },
+    {
+      "cost": [
+        "Darkness",
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Cutting Riposte",
+      "effect": "If this Pokémon has any damage counters on it, this attack can be used for {D}.",
+      "damage": 130
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-01-07T13:25:47+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851156,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.02,
+      "avg7": 0.02,
+      "avg30": 0.03,
+      "avg-holo": 0.09,
+      "low-holo": 0.02,
+      "trend-holo": 0.12,
+      "avg1-holo": 0.07,
+      "avg7-holo": 0.11,
+      "avg30-holo": 0.08
+    },
+    "tcgplayer": null
+  }
+}

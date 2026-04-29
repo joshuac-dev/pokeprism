@@ -1,0 +1,96 @@
+{
+  "category": "Pokemon",
+  "id": "me01-077",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/me/me01/077",
+  "localId": "077",
+  "name": "Mega Lucario ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 132,
+      "total": 188
+    },
+    "id": "me01",
+    "logo": "https://assets.tcgdex.net/en/me/me01/logo",
+    "name": "Mega Evolution",
+    "symbol": "https://assets.tcgdex.net/univ/me/me01/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "mtltux8quqoc7vwp24c9zzhgmzduu8xcik8"
+    }
+  ],
+  "dexId": [
+    448
+  ],
+  "hp": 340,
+  "types": [
+    "Fighting"
+  ],
+  "evolveFrom": "Riolu",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting"
+      ],
+      "name": "Aura Jab",
+      "effect": "Attach up to 3 Basic {F} Energy cards from your discard pile to your Benched Pokémon in any way you like.",
+      "damage": 130
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Fighting"
+      ],
+      "name": "Mega Brave",
+      "effect": "During your next turn, this Pokémon can't use Mega Brave.",
+      "damage": 270
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-01-07T13:25:47+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851148,
+      "avg": 1.17,
+      "low": 0.3,
+      "trend": 1.18,
+      "avg1": 1.2,
+      "avg7": 1.16,
+      "avg30": 1.19,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

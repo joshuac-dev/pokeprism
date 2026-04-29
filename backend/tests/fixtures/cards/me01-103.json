@@ -1,0 +1,84 @@
+{
+  "category": "Pokemon",
+  "id": "me01-103",
+  "illustrator": "Saboteri",
+  "image": "https://assets.tcgdex.net/en/me/me01/103",
+  "localId": "103",
+  "name": "Fearow",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 132,
+      "total": 188
+    },
+    "id": "me01",
+    "logo": "https://assets.tcgdex.net/en/me/me01/logo",
+    "name": "Mega Evolution",
+    "symbol": "https://assets.tcgdex.net/univ/me/me01/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    22
+  ],
+  "hp": 100,
+  "types": [
+    "Colorless"
+  ],
+  "evolveFrom": "Spearow",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Repeating Drill",
+      "effect": "Flip 5 coins. This attack does 30 damage for each heads.",
+      "damage": "30×"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-01-07T13:25:47+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851174,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.04,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.09,
+      "low-holo": 0.02,
+      "trend-holo": 0.13,
+      "avg1-holo": 0.14,
+      "avg7-holo": 0.11,
+      "avg30-holo": 0.09
+    },
+    "tcgplayer": null
+  }
+}

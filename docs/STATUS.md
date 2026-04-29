@@ -10,11 +10,44 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | 588 |
-| Coverage | **99.2%** (584/588 implemented or flat-only) |
-| Batches complete | 4 (Batches 1–4) |
-| Cards remaining in list | ~1,586 processable + 9 flagged |
-| Next batch starts at | **Tyrogue MEG 71** |
+| Cards in DB | 584 |
+| Coverage | **~99.3%** (582/584 implemented or flat-only; 2 noops) |
+| Batches complete | 5 (Batches 1–5) |
+| Cards remaining in list | ~1,489 processable + 11 flagged |
+| Next batch starts at | **Simisage BLK 5** |
+
+## Last Session — 2026-05-XX (Card Pool Expansion: Batch 5)
+
+### What Was Done
+
+**Batch 5** (95 new cards, MEG me01-071..me01-112 + BLK sv10.5b-001..sv10.5b-058): DB grew from 489 → 584 cards.
+
+New attack handlers: `_pow_pow_punching`, `_wild_press`, `_reckless_charge_toxicroak`, `_shadowy_side_kick`, `_stony_kick`, `_boundless_power`, `_naclstack_rock_hurl`, `_gobble_down`, `_huge_bite`, `_greedy_hunt`, `_miraculous_paint`, `_welcoming_tail`, `_mountain_breaker`, `_windup_swing`, `_all_you_can_grab`, `_illusory_impulse`, `_pluck`, `_repeating_drill`, `_quick_gift`, `_charm`, `_dashing_kick`, `_bellyful_of_milk`, `_hyper_lariat`, `_chrono_burst`, `_cutting_riposte`, `_venoshock_30`, `_venoshock_90`, `_command_the_grass`, `_lively_needles`, `_bemusing_aroma`, `_dangerous_reaction`, `_v_force`, `_smashing_headbutt`, `_round_player_20/40/70`, `_ancient_seaweed`, `_snotted_up`, `_carracosta_big_bite`, `_continuous_headbutt`, `_beartic_sheer_cold`, `_drag_off`, `_blizzard_burst`, `_charge_thundurus`, `_disaster_volt`, `_buzz_flip`, `_rest_munna`, `_dream_calling`, `_sleep_pulse`, `_calm_mind`, `_beheeyem_psychic`, `_slight_shift`, `_evo_lariat`, `_golett_best_punch`, `_double_smash`, `_echoed_voice`, `_swing_around`, `_hammer_arm`, `_piercing_drill`, `_excadrill_rock_tumble`, `_shoulder_throw`, `_flail_dwebble`, `_stone_edge`, `_abundant_harvest`, `_earthquake_landorus`, `_sandile_tighten_up`, `_krokorok_tighten_up`, `_voltage_burst`, `_cellular_evolution_noop` (FLAGGED), `_cellular_ascension_noop` (FLAGGED)
+
+New ability handlers: `_heave_ho_catcher` (Hariyama, evolve trigger), `_tinkatuff_haphazard_hammer` (Tinkatuff, evolve trigger), `_gumshoos_evidence_gathering` (Gumshoos, once/turn), `_volcarona_torrid_scales` (Volcarona, once/turn), `_eelektrik_dynamotor` (Eelektrik, Dynamotor), `_alomomola_gentle_fin` (Alomomola, once/turn)
+
+State/engine changes:
+- `base.py`: added `skip_resistance: bool = False` param to `apply_weakness_resistance()`
+- `attacks.py`: added `bypass_resistance_only` param to `_apply_damage()`; added `attacker.attack_damage_reduction` support; added Crustle `resolute_heart_eligible` setup; added passive checks for Powerful a-Salt (+30F), Regal Cheer (+20 all), Mighty Shell (block vs special), Spiteful Swirl (retaliates 10 on attacker), Poison Point (poison attacker)
+- `abilities.py`: added `"Heave-Ho Catcher"` and `"Haphazard Hammer"` to `EVOLVE_TRIGGER_ABILITIES` frozenset
+
+### Flagged Cards (new this batch)
+
+| Card | TCGDex ID | Attack/Ability | Reason |
+|------|-----------|---------------|--------|
+| Duosion BLK 38 | sv10.5b-038 | Cellular Evolution (atk0) | Evolve any of your Benched Pokémon from deck mid-battle — full in-battle multi-bench evolution not supported |
+| Reuniclus BLK 39 | sv10.5b-039 | Cellular Ascension (atk0) | Evolve all your in-play Pokémon from deck at once — full simultaneous batch evolution not supported |
+
+### Final Baseline This Session
+- **215 backend tests pass**
+- **0 TypeScript errors**
+- **584 cards in DB** (up from 489)
+- **Coverage: ~99.3%** (582/584 implemented or flat-only)
+
+### Notes for Next Session
+Continue with **Simisage BLK 5** (next unprocessed card). Run `make reset-data` before any fresh simulation testing.
+
+---
 
 ## Last Session — 2026-05-01 (Card Pool Expansion: Batch 4)
 

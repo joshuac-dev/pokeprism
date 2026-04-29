@@ -1,0 +1,183 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5b-040",
+  "illustrator": "Apios",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5b/040",
+  "localId": "040",
+  "name": "Elgyem",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 172
+    },
+    "id": "sv10.5b",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5b/logo",
+    "name": "Black Bolt",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5b/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 835988,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.04,
+          "avg1": 0.02,
+          "avg7": 0.05,
+          "avg30": 0.04,
+          "avg-holo": 0.14,
+          "low-holo": 0.02,
+          "trend-holo": 0.07,
+          "avg1-holo": 0.18,
+          "avg7-holo": 0.1,
+          "avg30-holo": 0.11
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 835988,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.04,
+          "avg1": 0.02,
+          "avg7": 0.05,
+          "avg30": 0.04,
+          "avg-holo": 0.14,
+          "low-holo": 0.02,
+          "trend-holo": 0.07,
+          "avg1-holo": 0.18,
+          "avg7-holo": 0.1,
+          "avg30-holo": 0.11
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "pokeball",
+      "variantId": "3739bbtj3i910y5ynn9xc6ryf",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836357,
+          "avg": null,
+          "low": 0.04,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 0.26,
+          "low-holo": 0.04,
+          "trend-holo": 0.18,
+          "avg1-holo": 0.1,
+          "avg7-holo": 0.16,
+          "avg30-holo": 0.23
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "masterball",
+      "variantId": "2asus05yghmpd1ud1sdmlq3as4e",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836359,
+          "avg": null,
+          "low": 0.5,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 2.15,
+          "low-holo": 0.5,
+          "trend-holo": 2.06,
+          "avg1-holo": 3.99,
+          "avg7-holo": 2.83,
+          "avg30-holo": 2.2
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    605
+  ],
+  "hp": 60,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Psychic"
+      ],
+      "name": "Slight Shift",
+      "effect": "Move an Energy from 1 of your opponent's Pokémon to another of their Pokémon."
+    },
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Beam",
+      "damage": 40
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T17:41:47Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 835988,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.02,
+      "avg7": 0.05,
+      "avg30": 0.04,
+      "avg-holo": 0.14,
+      "low-holo": 0.02,
+      "trend-holo": 0.07,
+      "avg1-holo": 0.18,
+      "avg7-holo": 0.1,
+      "avg30-holo": 0.11
+    },
+    "tcgplayer": null
+  }
+}

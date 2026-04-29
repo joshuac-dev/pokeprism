@@ -1,0 +1,182 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5b-045",
+  "illustrator": "OKACHEKE",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5b/045",
+  "localId": "045",
+  "name": "Drilbur",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 172
+    },
+    "id": "sv10.5b",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5b/logo",
+    "name": "Black Bolt",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5b/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 835998,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.03,
+          "avg1": 0.04,
+          "avg7": 0.03,
+          "avg30": 0.03,
+          "avg-holo": 0.09,
+          "low-holo": 0.02,
+          "trend-holo": 0.11,
+          "avg1-holo": 0.15,
+          "avg7-holo": 0.08,
+          "avg30-holo": 0.08
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 835998,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.03,
+          "avg1": 0.04,
+          "avg7": 0.03,
+          "avg30": 0.03,
+          "avg-holo": 0.09,
+          "low-holo": 0.02,
+          "trend-holo": 0.11,
+          "avg1-holo": 0.15,
+          "avg7-holo": 0.08,
+          "avg30-holo": 0.08
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "pokeball",
+      "variantId": "3739bbtj3i910y5ynn9xc6ryf",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836370,
+          "avg": null,
+          "low": 0.03,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 0.37,
+          "low-holo": 0.03,
+          "trend-holo": 0.3,
+          "avg1-holo": 0.1,
+          "avg7-holo": 0.29,
+          "avg30-holo": 0.37
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "masterball",
+      "variantId": "2asus05yghmpd1ud1sdmlq3as4e",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836369,
+          "avg": null,
+          "low": 0.75,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 2.57,
+          "low-holo": 0.75,
+          "trend-holo": 2.35,
+          "avg1-holo": 1.2,
+          "avg7-holo": 3.12,
+          "avg30-holo": 2.78
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    529
+  ],
+  "hp": 70,
+  "types": [
+    "Fighting"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting"
+      ],
+      "name": "Mud-Slap",
+      "damage": 10
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Fighting"
+      ],
+      "name": "Corkscrew Punch",
+      "damage": 30
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T17:41:47Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 835998,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.04,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.09,
+      "low-holo": 0.02,
+      "trend-holo": 0.11,
+      "avg1-holo": 0.15,
+      "avg7-holo": 0.08,
+      "avg30-holo": 0.08
+    },
+    "tcgplayer": null
+  }
+}

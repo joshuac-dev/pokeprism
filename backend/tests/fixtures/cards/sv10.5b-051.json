@@ -1,0 +1,183 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5b-051",
+  "illustrator": "Tetsu Kayama",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5b/051",
+  "localId": "051",
+  "name": "Dwebble",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 172
+    },
+    "id": "sv10.5b",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5b/logo",
+    "name": "Black Bolt",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5b/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836011,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.03,
+          "avg1": 0.02,
+          "avg7": 0.02,
+          "avg30": 0.03,
+          "avg-holo": 0.09,
+          "low-holo": 0.02,
+          "trend-holo": 0.1,
+          "avg1-holo": 0.1,
+          "avg7-holo": 0.11,
+          "avg30-holo": 0.1
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836011,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.03,
+          "avg1": 0.02,
+          "avg7": 0.02,
+          "avg30": 0.03,
+          "avg-holo": 0.09,
+          "low-holo": 0.02,
+          "trend-holo": 0.1,
+          "avg1-holo": 0.1,
+          "avg7-holo": 0.11,
+          "avg30-holo": 0.1
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "pokeball",
+      "variantId": "3739bbtj3i910y5ynn9xc6ryf",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836380,
+          "avg": null,
+          "low": 0.02,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 0.25,
+          "low-holo": 0.02,
+          "trend-holo": 0.29,
+          "avg1-holo": 0.28,
+          "avg7-holo": 0.28,
+          "avg30-holo": 0.25
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "masterball",
+      "variantId": "2asus05yghmpd1ud1sdmlq3as4e",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836382,
+          "avg": null,
+          "low": 2.75,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 4.73,
+          "low-holo": 2.75,
+          "trend-holo": 4.6,
+          "avg1-holo": 3,
+          "avg7-holo": 5.21,
+          "avg30-holo": 4.5
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    557
+  ],
+  "hp": 70,
+  "types": [
+    "Fighting"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Flail",
+      "effect": "This attack does 10 damage for each damage counter on this Pokémon.",
+      "damage": "10×"
+    },
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Dig Claws",
+      "damage": 20
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T17:41:47Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 836011,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.02,
+      "avg7": 0.02,
+      "avg30": 0.03,
+      "avg-holo": 0.09,
+      "low-holo": 0.02,
+      "trend-holo": 0.1,
+      "avg1-holo": 0.1,
+      "avg7-holo": 0.11,
+      "avg30-holo": 0.1
+    },
+    "tcgplayer": null
+  }
+}

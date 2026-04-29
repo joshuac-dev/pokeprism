@@ -1405,6 +1405,8 @@ EVOLVE_TRIGGER_ABILITIES: frozenset[str] = frozenset({
     "Sandy Flapping",        # me02-053 Flygon — discard top 2 of opponent's deck on evolve
     "Cast-Off Shell",        # me01-017 Ninjask — search deck for Shedinja on evolve
     "Energized Steps",       # me01-063 Grumpig — attach {P} Energy from deck to Bench on evolve
+    "Heave-Ho Catcher",      # me01-073 Hariyama — gust on evolve
+    "Haphazard Hammer",      # me01-097 Tinkatuff — flip, heads = discard opp active energy
 })
 
 
@@ -2119,6 +2121,150 @@ def _cond_sinister_surge(state, player_id):
     return has_d_in_deck and bool(_in_play(p))
 
 
+# ── Batch 5: MEG + BLK ability handlers ──────────────────────────────────────
+
+def _heave_ho_catcher(state: GameState, action):
+    """me01-073 Hariyama — Heave-Ho Catcher: on evolve, switch 1 opp bench to Active."""
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    if not opp.bench:
+        return
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Heave-Ho Catcher: choose 1 of opponent's Benched Pokémon to switch to Active Spot",
+        targets=list(opp.bench),
+    )
+    resp = yield req
+    target = None
+    if resp and hasattr(resp, "target_instance_id") and resp.target_instance_id:
+        target = next((p for p in opp.bench
+                       if p.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = opp.bench[0]
+    _switch_active_with_bench(opp, target)
+    state.emit_event("heave_ho_catcher", player=player_id,
+                     new_active=opp.active.card_name if opp.active else "unknown")
+
+
+def _tinkatuff_haphazard_hammer(state: GameState, action):
+    """me01-097 Tinkatuff — Haphazard Hammer: on evolve, flip coin, heads = discard 1 energy from opp active."""
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    if random.choice([True, False]):  # heads
+        if opp.active and opp.active.energy_attached:
+            opp.active.energy_attached.pop(0)
+            state.emit_event("haphazard_hammer_triggered", player=player_id,
+                             target=opp.active.card_name)
+    else:
+        state.emit_event("haphazard_hammer_tails", player=player_id)
+
+
+def _gumshoos_evidence_gathering(state: GameState, action):
+    """me01-110 Gumshoos — Evidence Gathering (activated once/turn): swap 1 hand card for top of deck."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.hand or not player.deck:
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Evidence Gathering: choose 1 card from hand to swap for the top card of your deck",
+        cards=player.hand, min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+    if not chosen_ids:
+        chosen_ids = [player.hand[0].instance_id]
+    hand_card = next((c for c in player.hand if c.instance_id in chosen_ids), None)
+    if hand_card is None or not player.deck:
+        return
+    top_deck = player.deck.pop(0)
+    top_deck.zone = Zone.HAND
+    player.hand.remove(hand_card)
+    hand_card.zone = Zone.DECK
+    player.deck.insert(0, hand_card)
+    player.hand.append(top_deck)
+    state.emit_event("evidence_gathering", player=player_id,
+                     swapped_out=hand_card.card_name, drew=top_deck.card_name)
+
+
+def _volcarona_torrid_scales(state: GameState, action):
+    """sv10.5b-016 Volcarona — Torrid Scales (activated, discard R from hand): Burn opp's active."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    poke = _find_in_play(player, action.card_instance_id)
+    if poke is None:
+        return
+
+    r_cards = [c for c in player.hand
+               if c.card_type.lower() == "energy"
+               and c.card_subtype.lower() == "basic"
+               and "Fire" in (c.energy_provides or [])]
+    if not r_cards:
+        return
+
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    if not opp.active:
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Torrid Scales: choose 1 Basic {R} Energy from hand to discard and Burn opponent's Active",
+        cards=r_cards, min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+    if not chosen_ids:
+        chosen_ids = [r_cards[0].instance_id]
+    r_card = next((c for c in player.hand if c.instance_id in chosen_ids), None)
+    if r_card is None:
+        return
+    player.hand.remove(r_card)
+    r_card.zone = Zone.DISCARD
+    player.discard.append(r_card)
+    opp.active.status_conditions.add(StatusCondition.BURNED)
+    state.emit_event("torrid_scales_burn", player=player_id,
+                     target=opp.active.card_name)
+
+
+def _eelektrik_dynamotor(state: GameState, action):
+    """sv10.5b-031 Eelektrik — Dynamotor: attach 1 Basic {L} Energy from discard to bench (once/turn)."""
+    yield from _dynamotor(state, action)
+
+
+def _alomomola_gentle_fin(state: GameState, action):
+    """sv10.5b-024 Alomomola — Gentle Fin (once/turn, active only): put Basic Pokémon ≤70 HP from discard to bench."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if len(player.bench) >= 5:
+        return
+    eligible = [c for c in player.discard
+                if getattr(c, "card_type", "").lower() in ("pokémon", "pokemon")
+                and card_registry.get(getattr(c, "card_def_id", "")) is not None
+                and (card_registry.get(c.card_def_id).stage or "").lower() == "basic"
+                and (card_registry.get(c.card_def_id).hp or 999) <= 70]
+    if not eligible:
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Gentle Fin: choose a Basic Pokémon with ≤70 HP from discard to put on bench",
+        cards=eligible, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+    if not chosen_ids:
+        chosen_ids = [eligible[0].instance_id]
+    poke_card = next((c for c in player.discard if c.instance_id in chosen_ids), None)
+    if poke_card is None:
+        return
+    player.discard.remove(poke_card)
+    poke_card.zone = Zone.BENCH
+    player.bench.append(poke_card)
+    state.emit_event("gentle_fin", player=player_id, card=poke_card.card_name)
+
+
 def register_all(registry: EffectRegistry) -> None:
     """Register all ability effect handlers with the registry."""
 
@@ -2579,3 +2725,57 @@ def register_all(registry: EffectRegistry) -> None:
     # Evolve-trigger abilities
     registry.register_ability("me01-017", "Cast-Off Shell", _cast_off_shell)
     registry.register_ability("me01-063", "Energized Steps", _energized_steps)
+
+    # ── Batch 5 Ability Registrations ─────────────────────────────────────────
+
+    # Passive / always-on abilities (handled in _apply_damage)
+    registry.register_passive_ability("me01-084", "Powerful a-Salt")   # _apply_damage handles +30 for F
+    registry.register_passive_ability("sv10.5b-003", "Regal Cheer")    # _apply_damage handles +20 for all
+    registry.register_passive_ability("me01-087", "Spiteful Swirl")    # _apply_damage handles counter on attacker
+    registry.register_passive_ability("sv10.5b-056", "Poison Point")   # _apply_damage handles poison attacker
+    registry.register_passive_ability("sv10.5b-023", "Mighty Shell")   # _apply_damage handles damage block
+
+    # Evolve-trigger abilities
+    registry.register_ability("me01-073", "Heave-Ho Catcher", _heave_ho_catcher)
+    registry.register_ability("me01-097", "Haphazard Hammer", _tinkatuff_haphazard_hammer)
+
+    # Active abilities (once per turn)
+    def _cond_evidence_gathering(state, player_id):
+        p = state.get_player(player_id)
+        return bool(p.hand) and bool(p.deck)
+    registry.register_ability("me01-110", "Evidence Gathering", _gumshoos_evidence_gathering,
+                               condition=_cond_evidence_gathering)
+
+    def _cond_torrid_scales(state, player_id):
+        p = state.get_player(player_id)
+        opp_id = state.opponent_id(player_id)
+        opp = state.get_player(opp_id)
+        has_r_in_hand = any(c.card_type.lower() == "energy"
+                            and c.card_subtype.lower() == "basic"
+                            and "Fire" in (c.energy_provides or [])
+                            for c in p.hand)
+        return has_r_in_hand and opp.active is not None
+    registry.register_ability("sv10.5b-016", "Torrid Scales", _volcarona_torrid_scales,
+                               condition=_cond_torrid_scales)
+
+    def _cond_eelektrik_dynamotor(state, player_id):
+        p = state.get_player(player_id)
+        has_l = any(c.card_type.lower() == "energy"
+                    and c.card_subtype.lower() == "basic"
+                    and "Lightning" in (c.energy_provides or [])
+                    for c in p.discard)
+        return has_l and bool(p.bench)
+    registry.register_ability("sv10.5b-031", "Dynamotor", _eelektrik_dynamotor,
+                               condition=_cond_eelektrik_dynamotor)
+
+    def _cond_gentle_fin(state, player_id):
+        p = state.get_player(player_id)
+        if len(p.bench) >= 5:
+            return False
+        return any(getattr(c, "card_type", "").lower() in ("pokémon", "pokemon")
+                   and card_registry.get(getattr(c, "card_def_id", "")) is not None
+                   and (card_registry.get(c.card_def_id).stage or "").lower() == "basic"
+                   and (card_registry.get(c.card_def_id).hp or 999) <= 70
+                   for c in p.discard)
+    registry.register_ability("sv10.5b-024", "Gentle Fin", _alomomola_gentle_fin,
+                               condition=_cond_gentle_fin)

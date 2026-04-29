@@ -1,0 +1,181 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5b-006",
+  "illustrator": "mele",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5b/006",
+  "localId": "006",
+  "name": "Petilil",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 172
+    },
+    "id": "sv10.5b",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5b/logo",
+    "name": "Black Bolt",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5b/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 835914,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.04,
+          "avg1": 0.03,
+          "avg7": 0.03,
+          "avg30": 0.04,
+          "avg-holo": 0.1,
+          "low-holo": 0.02,
+          "trend-holo": 0.11,
+          "avg1-holo": 0.04,
+          "avg7-holo": 0.07,
+          "avg30-holo": 0.1
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 835914,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.04,
+          "avg1": 0.03,
+          "avg7": 0.03,
+          "avg30": 0.04,
+          "avg-holo": 0.1,
+          "low-holo": 0.02,
+          "trend-holo": 0.11,
+          "avg1-holo": 0.04,
+          "avg7-holo": 0.07,
+          "avg30-holo": 0.1
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "pokeball",
+      "variantId": "3739bbtj3i910y5ynn9xc6ryf",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836263,
+          "avg": null,
+          "low": 0.05,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 0.42,
+          "low-holo": 0.05,
+          "trend-holo": 0.29,
+          "avg1-holo": 0.45,
+          "avg7-holo": 0.38,
+          "avg30-holo": 0.4
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "masterball",
+      "variantId": "2asus05yghmpd1ud1sdmlq3as4e",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836273,
+          "avg": null,
+          "low": 3.9,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 5.49,
+          "low-holo": 3.9,
+          "trend-holo": 5.33,
+          "avg1-holo": 5.99,
+          "avg7-holo": 5.21,
+          "avg30-holo": 5.28
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    548
+  ],
+  "hp": 60,
+  "types": [
+    "Grass"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Hide",
+      "effect": "Flip a coin. If heads, during your opponent's next turn, prevent all damage from and effects of attacks done to this Pokémon."
+    },
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Leafage",
+      "damage": 10
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T17:41:47Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 835914,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.03,
+      "avg7": 0.03,
+      "avg30": 0.04,
+      "avg-holo": 0.1,
+      "low-holo": 0.02,
+      "trend-holo": 0.11,
+      "avg1-holo": 0.04,
+      "avg7-holo": 0.07,
+      "avg30-holo": 0.1
+    },
+    "tcgplayer": null
+  }
+}

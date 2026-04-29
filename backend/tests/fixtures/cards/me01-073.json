@@ -1,0 +1,106 @@
+{
+  "category": "Pokemon",
+  "id": "me01-073",
+  "illustrator": "GOSSAN",
+  "image": "https://assets.tcgdex.net/en/me/me01/073",
+  "localId": "073",
+  "name": "Hariyama",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 132,
+      "total": 188
+    },
+    "id": "me01",
+    "logo": "https://assets.tcgdex.net/en/me/me01/logo",
+    "name": "Mega Evolution",
+    "symbol": "https://assets.tcgdex.net/univ/me/me01/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "gx8bq2hegum3q6irsxlvqxm955ikw9gd1h311"
+    }
+  ],
+  "dexId": [
+    297
+  ],
+  "hp": 150,
+  "types": [
+    "Fighting"
+  ],
+  "evolveFrom": "Makuhita",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Heave-Ho Catcher",
+      "effect": "Once during your turn, when you play this Pokémon from your hand to evolve 1 of your Pokémon, you may use this Ability. Switch in 1 of your opponent's Benched Pokémon to the Active Spot."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Fighting",
+        "Fighting",
+        "Fighting"
+      ],
+      "name": "Wild Press",
+      "effect": "This Pokémon also does 70 damage to itself.",
+      "damage": 210
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-01-07T13:25:47+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851144,
+      "avg": 0.11,
+      "low": 0.02,
+      "trend": 0.11,
+      "avg1": 0.08,
+      "avg7": 0.11,
+      "avg30": 0.1,
+      "avg-holo": 0.15,
+      "low-holo": 0.02,
+      "trend-holo": 0.13,
+      "avg1-holo": 0.19,
+      "avg7-holo": 0.15,
+      "avg30-holo": 0.14
+    },
+    "tcgplayer": null
+  }
+}

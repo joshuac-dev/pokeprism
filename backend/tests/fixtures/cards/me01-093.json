@@ -1,0 +1,95 @@
+{
+  "category": "Pokemon",
+  "id": "me01-093",
+  "illustrator": "Anesaki Dynamic",
+  "image": "https://assets.tcgdex.net/en/me/me01/093",
+  "localId": "093",
+  "name": "Steelix",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 132,
+      "total": 188
+    },
+    "id": "me01",
+    "logo": "https://assets.tcgdex.net/en/me/me01/logo",
+    "name": "Mega Evolution",
+    "symbol": "https://assets.tcgdex.net/univ/me/me01/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    208
+  ],
+  "hp": 200,
+  "types": [
+    "Metal"
+  ],
+  "evolveFrom": "Onix",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Welcoming Tail",
+      "effect": "If you have exactly 6 Prize cards remaining, this attack does 200 more damage.",
+      "damage": "40+"
+    },
+    {
+      "cost": [
+        "Metal",
+        "Metal",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Skull Bash",
+      "damage": 140
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-01-07T13:25:47+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851164,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.06,
+      "avg7": 0.04,
+      "avg30": 0.04,
+      "avg-holo": 0.11,
+      "low-holo": 0.02,
+      "trend-holo": 0.12,
+      "avg1-holo": 0.08,
+      "avg7-holo": 0.12,
+      "avg30-holo": 0.11
+    },
+    "tcgplayer": null
+  }
+}

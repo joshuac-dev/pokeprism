@@ -1,0 +1,205 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5b-012",
+  "illustrator": "Natsumi Yoshida",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5b/012",
+  "localId": "012",
+  "name": "Victini",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 172
+    },
+    "id": "sv10.5b",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5b/logo",
+    "name": "Black Bolt",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5b/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 835926,
+          "avg": 0.06,
+          "low": 0.02,
+          "trend": 0.06,
+          "avg1": 0.05,
+          "avg7": 0.04,
+          "avg30": 0.06,
+          "avg-holo": 0.18,
+          "low-holo": 0.02,
+          "trend-holo": 0.06,
+          "avg1-holo": 0.04,
+          "avg7-holo": 0.11,
+          "avg30-holo": 0.16
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 835926,
+          "avg": 0.06,
+          "low": 0.02,
+          "trend": 0.06,
+          "avg1": 0.05,
+          "avg7": 0.04,
+          "avg30": 0.06,
+          "avg-holo": 0.18,
+          "low-holo": 0.02,
+          "trend-holo": 0.06,
+          "avg1-holo": 0.04,
+          "avg7-holo": 0.11,
+          "avg30-holo": 0.16
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "pokeball",
+      "variantId": "3739bbtj3i910y5ynn9xc6ryf",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836281,
+          "avg": null,
+          "low": 0.02,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 0.12,
+          "low-holo": 0.02,
+          "trend-holo": 0.1,
+          "avg1-holo": 0.08,
+          "avg7-holo": 0.09,
+          "avg30-holo": 0.12
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "masterball",
+      "variantId": "2asus05yghmpd1ud1sdmlq3as4e",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836282,
+          "avg": null,
+          "low": 0.05,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 11.36,
+          "low-holo": 0.05,
+          "trend-holo": 10.83,
+          "avg1-holo": 12,
+          "avg7-holo": 12.67,
+          "avg30-holo": 11.96
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "foil": "cosmos",
+      "variantId": "1k6bkhde1s16d5eohzrhtv7hjk92b",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 865205,
+          "avg": 3.37,
+          "low": 1.59,
+          "trend": 2.31,
+          "avg1": 4.86,
+          "avg7": 2.83,
+          "avg30": 4.12,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    494
+  ],
+  "hp": 80,
+  "types": [
+    "Fire"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fire",
+        "Fire"
+      ],
+      "name": "V-Force",
+      "effect": "If you have 4 or fewer Benched Pokémon, this attack does nothing.",
+      "damage": 120
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T17:41:47Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 835926,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.06,
+      "avg1": 0.05,
+      "avg7": 0.04,
+      "avg30": 0.06,
+      "avg-holo": 0.18,
+      "low-holo": 0.02,
+      "trend-holo": 0.06,
+      "avg1-holo": 0.04,
+      "avg7-holo": 0.11,
+      "avg30-holo": 0.16
+    },
+    "tcgplayer": null
+  }
+}

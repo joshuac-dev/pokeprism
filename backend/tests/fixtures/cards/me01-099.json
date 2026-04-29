@@ -1,0 +1,92 @@
+{
+  "category": "Pokemon",
+  "id": "me01-099",
+  "illustrator": "Yukihiro Tada",
+  "image": "https://assets.tcgdex.net/en/me/me01/099",
+  "localId": "099",
+  "name": "Gholdengo",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 132,
+      "total": 188
+    },
+    "id": "me01",
+    "logo": "https://assets.tcgdex.net/en/me/me01/logo",
+    "name": "Mega Evolution",
+    "symbol": "https://assets.tcgdex.net/univ/me/me01/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    1000
+  ],
+  "hp": 130,
+  "types": [
+    "Metal"
+  ],
+  "evolveFrom": "Gimmighoul",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "All-You-Can-Grab",
+      "effect": "Flip a coin until you get tails. Search your deck for a number of cards up to the number of heads and put them into your hand. Then, shuffle your deck."
+    },
+    {
+      "cost": [
+        "Metal",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Speed Attack",
+      "damage": 100
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-01-07T13:25:47+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851170,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.06,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.07,
+      "low-holo": 0.02,
+      "trend-holo": 0.11,
+      "avg1-holo": 0.14,
+      "avg7-holo": 0.12,
+      "avg30-holo": 0.08
+    },
+    "tcgplayer": null
+  }
+}

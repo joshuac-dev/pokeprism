@@ -1,0 +1,97 @@
+{
+  "category": "Pokemon",
+  "id": "me01-094",
+  "illustrator": "aky CG Works",
+  "image": "https://assets.tcgdex.net/en/me/me01/094",
+  "localId": "094",
+  "name": "Mega Mawile ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 132,
+      "total": 188
+    },
+    "id": "me01",
+    "logo": "https://assets.tcgdex.net/en/me/me01/logo",
+    "name": "Mega Evolution",
+    "symbol": "https://assets.tcgdex.net/univ/me/me01/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "mtltux8quqoc7vwp24c9zzhgmzduu8xcik8"
+    }
+  ],
+  "dexId": [
+    303
+  ],
+  "hp": 270,
+  "types": [
+    "Metal"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Metal",
+        "Metal"
+      ],
+      "name": "Gobble Down",
+      "effect": "This attack does 80 damage for each Prize card you have taken.",
+      "damage": "80×"
+    },
+    {
+      "cost": [
+        "Metal",
+        "Metal",
+        "Colorless"
+      ],
+      "name": "Huge Bite",
+      "effect": "If your opponent's Active Pokémon already has any damage counters on it, this attack's base damage is 30.",
+      "damage": 260
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-01-07T13:25:47+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851165,
+      "avg": 0.49,
+      "low": 0.03,
+      "trend": 0.55,
+      "avg1": 0.44,
+      "avg7": 0.49,
+      "avg30": 0.49,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

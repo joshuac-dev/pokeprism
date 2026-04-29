@@ -1,0 +1,185 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5b-007",
+  "illustrator": "mele",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5b/007",
+  "localId": "007",
+  "name": "Lilligant",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 172
+    },
+    "id": "sv10.5b",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5b/logo",
+    "name": "Black Bolt",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5b/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 835916,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.04,
+          "avg1": 0.03,
+          "avg7": 0.02,
+          "avg30": 0.03,
+          "avg-holo": 0.15,
+          "low-holo": 0.02,
+          "trend-holo": 0.12,
+          "avg1-holo": 0.03,
+          "avg7-holo": 0.11,
+          "avg30-holo": 0.14
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 835916,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.04,
+          "avg1": 0.03,
+          "avg7": 0.02,
+          "avg30": 0.03,
+          "avg-holo": 0.15,
+          "low-holo": 0.02,
+          "trend-holo": 0.12,
+          "avg1-holo": 0.03,
+          "avg7-holo": 0.11,
+          "avg30-holo": 0.14
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "pokeball",
+      "variantId": "3739bbtj3i910y5ynn9xc6ryf",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836264,
+          "avg": null,
+          "low": 0.09,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 0.6,
+          "low-holo": 0.09,
+          "trend-holo": 0.29,
+          "avg1-holo": 0.8,
+          "avg7-holo": 0.41,
+          "avg30-holo": 0.6
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "masterball",
+      "variantId": "2asus05yghmpd1ud1sdmlq3as4e",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836274,
+          "avg": null,
+          "low": 2.49,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 7.37,
+          "low-holo": 2.49,
+          "trend-holo": 7.61,
+          "avg1-holo": 11,
+          "avg7-holo": 7.8,
+          "avg30-holo": 7.45
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    549
+  ],
+  "hp": 100,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Petilil",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Bemusing Aroma",
+      "effect": "Flip a coin. If heads, your opponent's Active Pokémon is now Paralyzed and Poisoned. If tails, your opponent's Active Pokémon is now Confused.",
+      "damage": 30
+    },
+    {
+      "cost": [
+        "Grass",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Cut",
+      "damage": 70
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T17:41:47Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 835916,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.03,
+      "avg7": 0.02,
+      "avg30": 0.03,
+      "avg-holo": 0.15,
+      "low-holo": 0.02,
+      "trend-holo": 0.12,
+      "avg1-holo": 0.03,
+      "avg7-holo": 0.11,
+      "avg30-holo": 0.14
+    },
+    "tcgplayer": null
+  }
+}
