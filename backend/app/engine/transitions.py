@@ -397,6 +397,15 @@ def _retreat(state: GameState, action: Action, get_player=None) -> GameState:
         from app.engine.effects.base import check_ko
         check_ko(state, old_active, action.player_id)
 
+    # Swirling Prose (me02-036 Mismagius ex): when player retreats, confuse their new active
+    from app.engine.effects.abilities import _in_play as _abl_in_play
+    if any(p.card_def_id == "me02-036" for p in _abl_in_play(opp)):
+        if player.active:
+            player.active.status_conditions.add(StatusCondition.CONFUSED)
+            state.emit_event("swirling_prose_triggered",
+                             player=action.player_id,
+                             card=player.active.card_name)
+
     return state
 
 
@@ -471,13 +480,17 @@ async def _attack(state: GameState, action: Action, get_player=None) -> GameStat
         attack_index=action.attack_index,
     )
 
-    return await EffectRegistry.instance().resolve_attack(
+    result = await EffectRegistry.instance().resolve_attack(
         player.active.card_def_id,
         action.attack_index or 0,
         state,
         action,
         get_player,
     )
+    # Track last attack used (for Spiky Rolling, Mochi Rush, etc.)
+    if player.active:
+        player.active.last_attack_name = attack_name
+    return result
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -497,6 +510,7 @@ def _switch_active(state: GameState, action: Action, get_player=None) -> GameSta
     new_active.zone = Zone.ACTIVE
     player.active = new_active
     player.bench.remove(new_active)
+    new_active.moved_from_bench_this_turn = True
 
     state.emit_event(
         "switch_active",

@@ -1401,6 +1401,8 @@ EVOLVE_TRIGGER_ABILITIES: frozenset[str] = frozenset({
     "Psychic Draw",          # me01-055 Kadabra / me01-056 Alakazam
     "Punk Up",               # sv10-136 Marnie's Grimmsnarl ex
     "Multiplying Cocoon",    # me02.5-012 Silcoon
+    "Prison Panic",          # Brambleghast — confuse opponent's active on evolve
+    "Sandy Flapping",        # me02-053 Flygon — discard top 2 of opponent's deck on evolve
 })
 
 
@@ -1657,6 +1659,172 @@ def _champions_call(state: GameState, action):
     import random
     random.shuffle(player.deck)
     state.emit_event("champions_call", player=player_id, found=found)
+
+
+# ── Batch 3: ASC/PFL ability handlers ────────────────────────────────────────
+
+# Prison Panic (Brambleghast) ─────────────────────────────────────────────────
+
+def _prison_panic(state: GameState, action):
+    """Brambleghast — Prison Panic: on evolve, Confuse opponent's Active."""
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    if opp.active:
+        opp.active.status_conditions.add(StatusCondition.CONFUSED)
+        state.emit_event("prison_panic_triggered", player=action.player_id,
+                         card=opp.active.card_name)
+
+
+# Sandy Flapping (me02-053 Flygon) ────────────────────────────────────────────
+
+def _sandy_flapping_ability(state: GameState, action):
+    """me02-053 Flygon — Sandy Flapping: on evolve, discard top 2 of opponent's deck."""
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    for _ in range(2):
+        if opp.deck:
+            top = opp.deck.pop()
+            top.zone = Zone.DISCARD
+            opp.discard.append(top)
+    state.emit_event("sandy_flapping_triggered", player=action.player_id)
+
+
+# Evolutionary Guidance (me02.5-151 Dragonair) ────────────────────────────────
+
+def _evolutionary_guidance(state: GameState, action):
+    """me02.5-151 Dragonair — Evolutionary Guidance: search for an Evolution Pokémon."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    poke = _find_in_play(player, action.card_instance_id)
+    if not poke or not poke.energy_attached:
+        return
+    evolutions = [c for c in player.deck
+                  if c.card_type.lower() == "pokemon"
+                  and c.card_subtype.lower() not in ("basic",)]
+    if not evolutions:
+        return
+    req = ChoiceRequest("choose_cards", player_id,
+                        "Evolutionary Guidance: search for an Evolution Pokémon.",
+                        cards=evolutions, min_count=0, max_count=1)
+    resp = yield req
+    chosen = (resp.selected_cards if resp else []) or [evolutions[0].instance_id]
+    for iid in chosen[:1]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+    state.emit_event("evolutionary_guidance", player=player_id)
+
+
+# Sky Transport (me02.5-152 Mega Dragonite ex) ────────────────────────────────
+
+def _sky_transport(state: GameState, action):
+    """me02.5-152 Mega Dragonite ex — Sky Transport: switch Active with a Benched Pokémon."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.bench:
+        return
+    req = ChoiceRequest("choose_target", player_id,
+                        "Sky Transport: choose a Benched Pokémon to switch with Active.",
+                        targets=player.bench, min_count=1, max_count=1)
+    resp = yield req
+    if resp and resp.selected_targets:
+        target_id = resp.selected_targets[0]
+        bench_poke = next((b for b in player.bench if b.instance_id == target_id), None)
+    else:
+        bench_poke = player.bench[0] if player.bench else None
+    if bench_poke:
+        _switch_active_with_bench(player, bench_poke)
+        state.emit_event("sky_transport", player=player_id, card=bench_poke.card_name)
+
+
+# Fan Call (me02.5-171 Fan Rotom) ─────────────────────────────────────────────
+
+def _fan_call(state: GameState, action):
+    """me02.5-171 Fan Rotom — Fan Call: first turn only, search for 3 Colorless ≤100 HP."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if state.turn_number > 1:
+        return
+    colorless_small = [c for c in player.deck
+                       if c.card_type.lower() == "pokemon"
+                       and c.card_subtype.lower() == "basic"
+                       and (getattr(card_registry.get(c.card_def_id), "hp", None) or 999) <= 100]
+    if not colorless_small:
+        state.emit_event("fan_call", player=player_id, found=0)
+        return
+    req = ChoiceRequest("choose_cards", player_id,
+                        "Fan Call: search for up to 3 Colorless Pokémon with 100 HP or less.",
+                        cards=colorless_small, min_count=0, max_count=3)
+    resp = yield req
+    chosen = (resp.selected_cards if resp else []) or [c.instance_id for c in colorless_small[:3]]
+    for iid in chosen[:3]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+    state.emit_event("fan_call", player=player_id)
+
+
+# Excited Heal (me02-7 Ludicolo) ──────────────────────────────────────────────
+
+def _excited_heal(state: GameState, action):
+    """me02-7 Ludicolo — Excited Heal: heal 60 from 1 of your Pokémon (if G Mega Evo ex in play)."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    mega_g = [p for p in _in_play(player)
+              if "ex" in p.card_name.lower() and p.evolution_stage >= 2]
+    if not mega_g:
+        return
+    all_poke = ([player.active] if player.active else []) + player.bench
+    healable = [p for p in all_poke if p.damage_counters > 0]
+    if not healable:
+        return
+    req = ChoiceRequest("choose_target", player_id,
+                        "Excited Heal: heal 60 from 1 of your Pokémon.",
+                        targets=healable, min_count=1, max_count=1)
+    resp = yield req
+    target_id = (resp.selected_targets[0] if resp and resp.selected_targets
+                 else healable[0].instance_id)
+    target = next((p for p in all_poke if p.instance_id == target_id), None)
+    if target:
+        heal_counters = min(6, target.damage_counters)
+        heal_hp = heal_counters * 10
+        target.current_hp = min(target.max_hp, target.current_hp + heal_hp)
+        target.damage_counters -= heal_counters
+        state.emit_event("excited_heal", player=player_id,
+                         card=target.card_name, amount=heal_hp)
+
+
+# Lethargic Charge (me02.5-175 Larry's Komala) ────────────────────────────────
+
+def _lethargic_charge(state: GameState, action):
+    """me02.5-175 Larry's Komala — Lethargic Charge: attach Energy to Active Larry's Pokémon."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.active or "Larry's" not in player.active.card_name:
+        return
+    energies = [c for c in player.hand if c.card_type.lower() == "energy"]
+    if not energies:
+        return
+    req = ChoiceRequest("choose_cards", player_id,
+                        "Lethargic Charge: attach Energy from hand to Active Larry's Pokémon.",
+                        cards=energies, min_count=0, max_count=1)
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp else []) or [energies[0].instance_id]
+    for iid in chosen_ids[:1]:
+        card = next((c for c in player.hand if c.instance_id == iid), None)
+        if card and player.active:
+            player.hand.remove(card)
+            card.zone = player.active.zone
+            player.active.energy_attached.append(EnergyAttachment(
+                energy_type=EnergyType.COLORLESS,
+                source_card_id=card.instance_id,
+                card_def_id=card.card_def_id,
+            ))
+    state.emit_event("lethargic_charge", player=player_id)
 
 
 def register_all(registry: EffectRegistry) -> None:
@@ -1960,3 +2128,137 @@ def register_all(registry: EffectRegistry) -> None:
 
     # me02.5-125 Mega Gengar ex: Shadowy Concealment → base.py check_ko
     registry.register_passive_ability("me02.5-125", "Shadowy Concealment")
+
+    # ── Batch 3: ASC/PFL ability registrations ────────────────────────────────
+
+    # N's Zoroark ex: Trade (reuse existing handler)
+    registry.register_ability("me02.5-137", "Trade", _trade)
+
+    # Brambleghast: Prison Panic (evolve trigger)
+    registry.register_ability("me02.5-133", "Prison Panic", _prison_panic)
+
+    # me02-053 Flygon: Sandy Flapping (evolve trigger — KO trigger handled in base.py)
+    registry.register_ability("me02-053", "Sandy Flapping", _sandy_flapping_ability)
+
+    # me02.5-151 Dragonair: Evolutionary Guidance
+    def _cond_evolutionary_guidance(state, player_id):
+        p = state.get_player(player_id)
+        poke = next((pk for pk in _in_play(p)
+                     if pk.card_def_id == "me02.5-151"
+                     and pk.energy_attached), None)
+        return poke is not None and any(
+            c.card_type.lower() == "pokemon" and c.card_subtype.lower() not in ("basic",)
+            for c in p.deck
+        )
+    registry.register_ability("me02.5-151", "Evolutionary Guidance", _evolutionary_guidance,
+                               condition=_cond_evolutionary_guidance)
+
+    # me02.5-152 Mega Dragonite ex: Sky Transport
+    def _cond_sky_transport(state, player_id):
+        p = state.get_player(player_id)
+        return bool(p.bench)
+    registry.register_ability("me02.5-152", "Sky Transport", _sky_transport,
+                               condition=_cond_sky_transport)
+
+    # me02.5-148 Kingambit: Supreme Overlord (passive — logic in _apply_damage)
+    registry.register_passive_ability("me02.5-148", "Supreme Overlord")
+
+    # me02.5-135 Mega Scrafty ex: Counterattacking Crest (passive — logic in _apply_damage)
+    registry.register_passive_ability("me02.5-135", "Counterattacking Crest")
+
+    # me02.5-143 Pecharunt: Final Chain (passive — logic in check_ko)
+    registry.register_passive_ability("me02.5-143", "Final Chain")
+
+    # me02-022 Dewgong: Thick Fat (passive — logic in _apply_damage)
+    registry.register_passive_ability("me02-022", "Thick Fat")
+
+    # me02-041 Mega Diancie ex: Diamond Coat (passive — logic in _apply_damage)
+    registry.register_passive_ability("me02-041", "Diamond Coat")
+
+    # me02-029 Rotom ex: Multi Adapter (flagged — too complex)
+    registry.register_passive_ability("me02-029", "Multi Adapter")
+
+    # me02.5-171 Fan Rotom: Fan Call
+    def _cond_fan_call(state, player_id):
+        return state.turn_number <= 1
+    registry.register_ability("me02.5-171", "Fan Call", _fan_call,
+                               condition=_cond_fan_call)
+
+    # me02-7 Ludicolo: Excited Heal
+    def _cond_excited_heal(state, player_id):
+        p = state.get_player(player_id)
+        has_mega_g = any("ex" in pk.card_name.lower() and pk.evolution_stage >= 2
+                         for pk in _in_play(p))
+        has_damaged = any(pk.damage_counters > 0 for pk in _in_play(p))
+        return has_mega_g and has_damaged
+    registry.register_ability("me02-007", "Excited Heal", _excited_heal,
+                               condition=_cond_excited_heal)
+
+    # me02-036 Mismagius ex: Swirling Prose (passive — logic in transitions.py _retreat)
+    registry.register_passive_ability("me02-036", "Swirling Prose")
+
+    # me02.5-175 Larry's Komala: Lethargic Charge
+    def _cond_lethargic_charge(state, player_id):
+        p = state.get_player(player_id)
+        komala = next((pk for pk in p.bench if pk.card_def_id == "me02.5-175"), None)
+        if not komala:
+            return False
+        return (p.active is not None
+                and "Larry's" in p.active.card_name
+                and any(c.card_type.lower() == "energy" for c in p.hand))
+    registry.register_ability("me02.5-175", "Lethargic Charge", _lethargic_charge,
+                               condition=_cond_lethargic_charge)
+
+    # ── Additional Batch 3 ability registrations ──────────────────────────────
+
+    # me02-047 Brambleghast: Prison Panic (evolve trigger — same handler as me02.5-133)
+    registry.register_ability("me02-047", "Prison Panic", _prison_panic)
+
+    # me02-011 Charmander: Agile (passive — 0 retreat if no energy)
+    # Registered as passive; actual retreat-cost reduction is not enforced in engine
+    registry.register_passive_ability("me02-011", "Agile")
+
+    # me02-018 Oricorio ex: Excited Turbo (attach R energy from hand to benched R Poke)
+    def _excited_turbo(state, action):
+        """Oricorio ex — Excited Turbo: attach R Basic Energy from hand to benched R Pokémon."""
+        from app.engine.state import EnergyAttachment, EnergyType as _ET
+        player = state.get_player(action.player_id)
+        r_mega = any(
+            "ex" in pk.card_name.lower() and pk.evolution_stage >= 2
+            for pk in _in_play(player)
+        )
+        if not r_mega:
+            return
+        r_energy_hand = [c for c in player.hand
+                         if c.card_type.lower() == "energy"]
+        bench_targets = player.bench
+        if not r_energy_hand or not bench_targets:
+            return
+        req = ChoiceRequest("choose_cards", action.player_id,
+                            "Excited Turbo: attach a Basic R Energy to a Benched Pokémon.",
+                            cards=r_energy_hand, min_count=0, max_count=1)
+        resp = yield req
+        chosen = (resp.selected_cards if resp else []) or [r_energy_hand[0].instance_id]
+        for iid in chosen[:1]:
+            card = next((c for c in player.hand if c.instance_id == iid), None)
+            if card:
+                player.hand.remove(card)
+                target = bench_targets[0]
+                card.zone = Zone.BENCH
+                target.energy_attached.append(EnergyAttachment(
+                    energy_type=_ET.FIRE,
+                    source_card_id=card.instance_id,
+                    card_def_id=card.card_def_id,
+                ))
+                state.emit_event("excited_turbo", player=action.player_id, card=target.card_name)
+
+    def _cond_excited_turbo(state, player_id):
+        p = state.get_player(player_id)
+        has_mega_r = any("ex" in pk.card_name.lower() and pk.evolution_stage >= 2
+                         for pk in _in_play(p))
+        has_energy = any(c.card_type.lower() == "energy" for c in p.hand)
+        has_bench = bool(p.bench)
+        return has_mega_r and has_energy and has_bench
+
+    registry.register_ability("me02-018", "Excited Turbo", _excited_turbo,
+                               condition=_cond_excited_turbo)

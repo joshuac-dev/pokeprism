@@ -122,6 +122,9 @@ class CardInstance:
     incoming_damage_reduction: int = 0   # Set by Gaia Wave etc.; reduces damage received
     prevent_damage_one_turn: bool = False # Set by Marill Hide / Hop's Phantump Splashing Dodge
     resolute_heart_eligible: bool = False # Set in _apply_damage; read by check_ko for Pikachu ex
+    last_attack_name: Optional[str] = None       # For Spiky Rolling / Mochi Rush
+    moved_from_bench_this_turn: bool = False      # For Rayquaza Breakthrough Assault
+    prevent_damage_from_basic_noncolorless: bool = False  # For Crown Opal (Terapagos ex)
 
     # Energy-card-specific ─────────────────────────────────────────────────────
     # Populated from CardDefinition.energy_provides at deck-build time.

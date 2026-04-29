@@ -284,6 +284,26 @@ def check_ko(
                                  ko_player=target_player_id,
                                  card_name=target.card_name)
 
+    # Sandy Flapping (me02-053 Flygon): when KO'd by opponent's active, discard top 2 of opp's deck
+    if target.card_def_id == "me02-053" and _is_attacking_active:
+        for _ in range(2):
+            if attacker_player.deck:
+                top = attacker_player.deck.pop()
+                top.zone = Zone.DISCARD
+                attacker_player.discard.append(top)
+        state.emit_event("sandy_flapping_ko_triggered", player=target_player_id,
+                         card=target.card_name)
+
+    # Final Chain (me02.5-143 Pecharunt): when KO'd by opponent's active, search deck for 1 card
+    if target.card_def_id == "me02.5-143" and _is_attacking_active:
+        if target_player.deck:
+            card = _random.choice(target_player.deck)
+            target_player.deck.remove(card)
+            card.zone = Zone.HAND
+            target_player.hand.append(card)
+            state.emit_event("final_chain_triggered", player=target_player_id,
+                             card=card.card_name)
+
     state.emit_event(
         "ko",
         ko_player=target_player_id,
