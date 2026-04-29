@@ -4,11 +4,69 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-Phase 13 — Polish, Hardening & Scheduling — **COMPLETE. All 13 phases done.**
+**Card Pool Expansion — In Progress**
 
-All engine, coach, UI, and infrastructure work is verified and accepted. Ready for card pool expansion.
+All 13 phases complete. Currently expanding card pool from 206 → full Standard format (1,982 cards from `docs/POKEMON_MASTER_LIST.md`). Processing 100 cards per batch.
 
-## Last Session — 2026-04-29 (Phase 13 Final Acceptance)
+| Metric | Value |
+|--------|-------|
+| Cards in DB | 488 |
+| Coverage | **99.2%** (484/488 implemented or flat-only) |
+| Batches complete | 3 (Batches 1–3) |
+| Cards remaining in list | ~1,686 processable + 9 flagged |
+| Next batch starts at | **Haunter PFL 55** |
+
+## Last Session — 2026-04-29 (Card Pool Expansion: Batches 1–3)
+
+### What Was Done
+
+**Batch 1** (~100 cards, POR set / me03): Added 184 new cards from the Paradox Rift expansion. Resolved new set codes (BLK = sv10.5b, MEP = mep). 4 cards flagged as too complex.
+
+**Batch 2** (~100 cards, ASC 1–133 / me02.5): Added Stellar Crown cards. Night Joker duplicate handler conflict resolved. me02.5 set established in DB.
+
+**Batch 3** (100 cards, ASC 134–179 + PFL 1–54): Added Twilight Masquerade cards. DB grew from 389 → 488 cards.
+
+New handlers implemented this session include: `_sweet_circle`, `_electric_run`, `_sneaky_placement`, `_infernal_slash`, `_gather_strength`, `_swelling_light`, `_blaze_ball_darumaka`, `_blaze_ball_darmanitan`, `_finishing_blow`, `_wreck`, `_blizzard_edge`, `_garland_ray`, `_soothing_melody`, `_hexa_magic`, `_raging_charge`, `_double_edge_tauros`, `_growl_attack`, `_voltaic_fist`, `_rising_lunge_piloswine`, `_call_for_support`, `_targeted_dive`, `_burning_flare`, `_bubble_drain`, `_crystal_fall`, `_double_headbutt`, `_play_rough`, `_limit_break`, `_brave_bird`, `_slam_dewgong`, `_inferno_x_charizard`
+
+Abilities added: Prison Panic (Brambleghast), Sandy Flapping (Flygon), Agile (Dewgong), Excited Turbo (Darumaka)
+
+### Issues Encountered This Session
+
+| Issue | Resolution |
+|-------|------------|
+| Duplicate `_night_joker` — agent defined a second function with the same name, shadowing the async original | Removed duplicate; original at line ~1831 handles both sv09-098 and me02.5-137 |
+| Zero-padding bug — all `me02-N` IDs should be `me02-00N` (DB stores 3-digit padding) | Fixed with Python regex across attacks.py and abilities.py |
+| `ensure_cards` is async — initial import silently did nothing (unawaited coroutine) | Awaited correctly inside `async with AsyncSessionLocal()` block |
+| Mega Charizard X ex (me02-013) missing registration — handler written but never registered | Added `_inferno_x_charizard` registration; coverage went from 99.0% → 99.2% |
+
+### Flagged Cards (all batches so far)
+
+| Card | TCGDex ID | Effect | Reason Flagged |
+|------|-----------|--------|----------------|
+| Spewpa POR 8 | me03-008 | Hide (atk0) | Prevents all damage next turn — needs new persistent-state field + runner.py reset |
+| Hippopotas POR 39 | me03-039 | Sand Attack (atk0) | Opponent's next attack may fail on tails — needs persistent attack-check hook |
+| Hippowdon POR 40 | me03-040 | Twister Spewing (atk0) | Conditional on Tarragon played this turn — needs trainer-played-this-turn tracking |
+| Tyrantrum POR 45 | me03-045 | Tyrannically Gutsy (ability) | +150 HP if Special Energy attached — dynamic max HP not supported |
+| Gengar POR 50 | me03-050 | Infinite Shadow (ability) | Put into hand instead of discard on KO — needs on-KO hook |
+| Klefki POR 59 | me03-059 | Memory Lock (atk0) | Locks a specific named attack on opponent — needs per-attack lock state |
+| Turtonator POR 17 | me03-017 | Shell Spikes (ability) | Place counters on attacker when damaged — needs on-damage trigger |
+| Numel ASC 27 | me02.5-027 | Incandescent Body (ability) | Apply Burned to attacker when damaged — needs on-damage trigger |
+| Rotom ex PFL 29 | me02-029 | Multi Adapter (ability) | 2 Tools per Rotom-named Pokémon — tool attachment limit hardcoded to 1 |
+
+### Final Baseline This Session
+- **215 backend tests pass**
+- **0 TypeScript errors**
+- **488 cards in DB** (up from 206 at start of expansion)
+- **Coverage: 99.2%** (484/488)
+
+### Notes for Next Session
+Continue with **Batch 4**, starting at **Haunter PFL 55** (line 1 of `docs/POKEMON_MASTER_LIST.md`).
+
+Run `make reset-data` before any fresh simulation testing to clear old sim data.
+
+---
+
+## Previous Session — 2026-04-29 (Phase 13 Final Acceptance)
 
 Phase 13 fully accepted by owner visual QA. All 13 phases complete.
 
