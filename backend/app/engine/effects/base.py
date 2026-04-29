@@ -187,6 +187,8 @@ def check_ko(
     - Awards prizes to the attacker
     - Sets winner/win_condition if game ends
     """
+    import random as _random
+
     # Adrena-Power (sv06-111 Okidogi): +100 effective HP when {D} energy attached
     effective_hp = target.current_hp
     if target.card_def_id == "sv06-111":
@@ -195,6 +197,26 @@ def check_ko(
             effective_hp += 100
     if effective_hp > 0:
         return  # Still alive
+
+    # Resolute Heart (me02.5-057 Pikachu ex): if at full HP when KO'd, survive with 10 HP
+    if target.resolute_heart_eligible:
+        target.resolute_heart_eligible = False
+        target.current_hp = 10
+        target.damage_counters = (target.max_hp - 10) // 10
+        state.emit_event("resolute_heart_triggered",
+                         ko_player=target_player_id,
+                         card_name=target.card_name)
+        return  # Survived
+
+    # Tenacious Body (me02.5-116 Mega Hawlucha ex): flip coin, heads = survive with 10 HP
+    if target.card_def_id == "me02.5-116":
+        if _random.choice([True, False]):  # heads
+            target.current_hp = 10
+            target.damage_counters = (target.max_hp - 10) // 10
+            state.emit_event("tenacious_body_triggered",
+                             ko_player=target_player_id,
+                             card_name=target.card_name)
+            return  # Survived
 
     target_player = state.get_player(target_player_id)
     attacker_id = state.opponent_id(target_player_id)
@@ -223,6 +245,24 @@ def check_ko(
                          ko_player=target_player_id,
                          card_name=target.card_name)
 
+    # Shadowy Concealment (me02.5-125 Mega Gengar ex): if D Pokémon KO'd by ex, -1 prize
+    _is_attacking_active = (
+        attacker_player.active is not None
+        and target_player.active is not None
+        and target_player.active.instance_id == target.instance_id
+    )
+    if _is_attacking_active:
+        attacker_cdef = card_registry.get(attacker_player.active.card_def_id) if attacker_player.active else None
+        target_types = cdef.types if cdef else []
+        if (attacker_cdef and attacker_cdef.is_ex
+                and "Darkness" in (target_types or [])):
+            from app.engine.effects.abilities import _in_play
+            if any(p.card_def_id == "me02.5-125" for p in _in_play(target_player)):
+                prizes_to_take = max(0, prizes_to_take - 1)
+                state.emit_event("shadowy_concealment_triggered",
+                                 ko_player=target_player_id,
+                                 card_name=target.card_name)
+
     # Briar (sv07-132): take 1 extra prize when KO'ing opponent's Active Pokémon
     if (state.briar_active
             and attacker_id == state.active_player
@@ -232,6 +272,17 @@ def check_ko(
         state.emit_event("briar_triggered",
                          ko_player=target_player_id,
                          card_name=target.card_name)
+
+    # Wonder Kiss (me02.5-082 Togekiss): when opp's active is KO'd, flip coin, heads = +1 prize
+    if (_is_attacking_active
+            and attacker_id == state.active_player):
+        from app.engine.effects.abilities import _in_play
+        if any(p.card_def_id == "me02.5-082" for p in _in_play(attacker_player)):
+            if _random.choice([True, False]):  # heads
+                prizes_to_take += 1
+                state.emit_event("wonder_kiss_triggered",
+                                 ko_player=target_player_id,
+                                 card_name=target.card_name)
 
     state.emit_event(
         "ko",

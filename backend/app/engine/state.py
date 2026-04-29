@@ -120,6 +120,8 @@ class CardInstance:
     protected_from_ex: bool = False       # Set by Acerola's Mischief; cleared at start of your turn
     attack_damage_reduction: int = 0     # Set by Growl etc.; reduces this Pokémon's attack damage
     incoming_damage_reduction: int = 0   # Set by Gaia Wave etc.; reduces damage received
+    prevent_damage_one_turn: bool = False # Set by Marill Hide / Hop's Phantump Splashing Dodge
+    resolute_heart_eligible: bool = False # Set in _apply_damage; read by check_ko for Pikachu ex
 
     # Energy-card-specific ─────────────────────────────────────────────────────
     # Populated from CardDefinition.energy_provides at deck-build time.

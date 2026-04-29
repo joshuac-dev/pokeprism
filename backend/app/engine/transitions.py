@@ -383,6 +383,20 @@ def _retreat(state: GameState, action: Action, get_player=None) -> GameState:
         to_card=new_active.card_name,
         energy_discarded=retreat_cost,
     )
+
+    # Holes (me02.5-101 TR Dugtrio): when opp's active moves to bench, place 2 counters
+    opp = state.get_opponent(action.player_id)
+    opp_id = "p2" if action.player_id == "p1" else "p1"
+    from app.engine.effects.attacks import _in_play as _atk_in_play
+    if any(p.card_def_id == "me02.5-101" for p in _atk_in_play(opp)):
+        old_active.current_hp -= 20
+        old_active.damage_counters += 2
+        state.emit_event("holes_triggered",
+                         player=action.player_id,
+                         card=old_active.card_name)
+        from app.engine.effects.base import check_ko
+        check_ko(state, old_active, action.player_id)
+
     return state
 
 

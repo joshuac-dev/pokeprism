@@ -2470,6 +2470,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("me02.5-184", _buddy_buddy_poffin)  # Buddy-Buddy Poffin alt print
     registry.register_trainer("sv05-157", _prime_catcher)
     registry.register_trainer("sv06-143", _bug_catching_set)
+    registry.register_trainer("sv08.5-102", _bug_catching_set)  # Bug Catching Set (PE alt)
     registry.register_trainer("sv06-148", _enhanced_hammer)
     registry.register_trainer("sv06-163", _secret_box)
     registry.register_trainer("sv06-165", _unfair_stamp)

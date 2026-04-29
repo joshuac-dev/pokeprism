@@ -1,103 +1,3 @@
-Spinarak POR 1
-Ariados POR 2
-Shaymin POR 3
-Snivy POR 4
-Servine POR 5
-Serperior POR 6
-Scatterbug POR 7
-Spewpa POR 8
-Vivillon POR 9
-Rowlet POR 10
-Dartrix POR 11
-Decidueye ex POR 12
-Fletchinder POR 13
-Talonflame POR 14
-Salandit POR 15
-Salazzle ex POR 16
-Turtonator POR 17
-Seel POR 18
-Dewgong POR 19
-Staryu POR 20
-Mega Starmie ex POR 21
-Lapras ex POR 22
-Amaura POR 23
-Aurorus POR 24
-Volcanion POR 25
-Shinx POR 26
-Luxio POR 27
-Luxray POR 28
-Dedenne POR 29
-Clefairy POR 30
-Mega Clefable ex POR 31
-Mawile POR 32
-Espurr POR 33
-Meowstic POR 34
-Spritzee POR 35
-Aromatisse POR 36
-Nosepass POR 37
-Probopass POR 38
-Hippopotas POR 39
-Hippowdon POR 40
-Landorus POR 41
-Binacle POR 42
-Barbaracle POR 43
-Tyrunt POR 44
-Tyrantrum POR 45
-Hawlucha POR 46
-Mega Zygarde ex POR 47
-Gastly POR 48
-Haunter POR 49
-Gengar POR 50
-Skorupi POR 51
-Drapion POR 52
-Yveltal ex POR 53
-Chien-Pao POR 54
-Mega Skarmory ex POR 55
-Honedge POR 56
-Doublade POR 57
-Aegislash POR 58
-Klefki POR 59
-Rattata POR 60
-Raticate POR 61
-Meowth ex POR 62
-Snorlax POR 63
-Bunnelby POR 64
-Diggersby POR 65
-Fletchling POR 66
-Furfrou POR 67
-Erika's Oddish ASC 1
-Erika's Gloom ASC 2
-Erika's Vileplume ex ASC 3
-Erika's Bellsprout ASC 4
-Erika's Weepinbell ASC 5
-Erika's Victreebel ASC 6
-Erika's Tangela ASC 7
-Chikorita ASC 8
-Bayleef ASC 9
-Mega Meganium ex ASC 10
-Wurmple ASC 11
-Silcoon ASC 12
-Beautifly ASC 13
-Cascoon ASC 14
-Dustox ASC 15
-Budew ASC 16
-Grubbin ASC 17
-Team Rocket's Tarountula ASC 18
-Team Rocket's Spidops ASC 19
-Charmander ASC 20
-Charmeleon ASC 21
-Mega Charizard Y ex ASC 22
-Ethan's Slugma ASC 23
-Ethan's Magcargo ASC 24
-Entei ASC 25
-Ethan's Ho-Oh ex ASC 26
-Numel ASC 27
-Camerupt ASC 28
-Tepig ASC 29
-Pignite ASC 30
-Mega Emboar ex ASC 31
-N's Darumaka ASC 32
-N's Darmanitan ASC 33
 Salandit ASC 34
 Salazzle ASC 35
 Scorbunny ASC 36
@@ -1981,3 +1881,20 @@ Psychic Energy SVE 21
 Fighting Energy SVE 22
 Darkness Energy SVE 23
 Metal Energy SVE 24
+
+---
+
+## FLAGGED_CARDS
+
+Cards too complex for automatic handler generation. Requires manual implementation.
+
+| Card | TCGDex ID | Attack/Ability | Reason |
+|------|-----------|---------------|--------|
+| Spewpa POR 8 | me03-008 | Hide (atk0) | Prevents all damage next turn — requires new persistent-state field + runner.py reset logic |
+| Hippopotas POR 39 | me03-039 | Sand Attack (atk0) | Opponent's next attack may fail on tails — requires persistent attack-check hook in runner.py |
+| Hippowdon POR 40 | me03-040 | Twister Spewing (atk0) | Conditional on Tarragon being played this turn — requires trainer-played-this-turn tracking |
+| Tyrantrum POR 45 | me03-045 | Tyrannically Gutsy (ability) | +150 HP if Special Energy attached — dynamic max HP not supported |
+| Gengar POR 50 | me03-050 | Infinite Shadow (ability) | Put into hand instead of discard on KO — requires on-KO hook not currently in engine |
+| Klefki POR 59 | me03-059 | Memory Lock (atk0) | Locks a specific named attack on opponent — requires per-attack lock state |
+| Turtonator POR 17 | me03-017 | Shell Spikes (ability) | Place counters on attacker when this Pokémon is damaged — requires on-damage trigger |
+| Numel ASC 27 | me02.5-027 | Incandescent Body (ability) | Apply Burned to attacker when this Pokémon is damaged — requires on-damage trigger |

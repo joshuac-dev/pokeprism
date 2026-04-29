@@ -280,11 +280,11 @@ def repelling_veil_protects(pokemon, state: GameState, player_id: str) -> bool:
     )
 
 
-# Power Saver (sv10-081 TR Mewtwo ex) ─────────────────────────────────────────
+# Power Saver (sv10-081 / me02.5-079 TR Mewtwo ex) ───────────────────────────
 
 def power_saver_blocks_attack(state: GameState, pokemon, player_id: str) -> bool:
     """True if Power Saver prevents this Pokémon from attacking (fewer than 4 TR Pokémon)."""
-    if pokemon.card_def_id != "sv10-081":
+    if pokemon.card_def_id not in ("sv10-081", "me02.5-079"):
         return False
     player = state.get_player(player_id)
     tr_count = sum(1 for p in _in_play(player) if _is_tr_pokemon(p))
@@ -1404,6 +1404,261 @@ EVOLVE_TRIGGER_ABILITIES: frozenset[str] = frozenset({
 })
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Batch 2: ASC ability handlers
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Alluring Wings (me02.5-053 Frosmoth) ────────────────────────────────────────
+
+def _alluring_wings(state: GameState, action):
+    """Both players draw 1 card. Only usable from Active Spot."""
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    draw_cards(state, player_id, 1)
+    draw_cards(state, opp_id, 1)
+    state.emit_event("alluring_wings", player=player_id)
+
+
+# Dynamotor (me02.5-060 Eelektrik) ───────────────────────────────────────────
+
+def _dynamotor(state: GameState, action):
+    """Attach 1 Basic {L} Energy from discard to 1 Benched Pokémon."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    l_energy = [c for c in player.discard
+                if c.card_type.lower() == "energy"
+                and c.card_subtype.lower() == "basic"
+                and "Lightning" in (c.energy_provides or [])]
+    if not l_energy or not player.bench:
+        return
+
+    req_energy = ChoiceRequest(
+        "choose_cards", player_id,
+        "Dynamotor: choose 1 Basic {L} Energy from discard to attach to a Benched Pokémon.",
+        cards=l_energy, min_count=0, max_count=1,
+    )
+    resp_energy = yield req_energy
+    chosen_ids = resp_energy.selected_cards if resp_energy and resp_energy.selected_cards else []
+    if not chosen_ids:
+        chosen_ids = [l_energy[0].instance_id]
+    energy_card = next((c for c in player.discard if c.instance_id in chosen_ids), None)
+    if energy_card is None:
+        return
+
+    req_target = ChoiceRequest(
+        "choose_target", player_id,
+        "Dynamotor: choose a Benched Pokémon to attach {L} Energy to.",
+        targets=player.bench,
+    )
+    resp_target = yield req_target
+    target = None
+    if resp_target and resp_target.target_instance_id:
+        target = next((p for p in player.bench
+                       if p.instance_id == resp_target.target_instance_id), None)
+    if target is None:
+        target = player.bench[0]
+
+    _attach_from_hand_or_discard(player, target, energy_card)
+    state.emit_event("dynamotor", player=player_id, target=target.card_name)
+
+
+# Frilled Generator (me02.5-064 Heliolisk) ───────────────────────────────────
+
+def _frilled_generator(state: GameState, action):
+    """Search deck for up to 2 Basic {L} Energy and attach to self (requires Canari played this turn)."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    poke = _find_in_play(player, action.card_instance_id)
+    if poke is None:
+        return
+
+    l_energy = [c for c in player.deck
+                if c.card_type.lower() == "energy"
+                and c.card_subtype.lower() == "basic"
+                and "Lightning" in (c.energy_provides or [])]
+    if not l_energy:
+        import random
+        random.shuffle(player.deck)
+        state.emit_event("frilled_generator", player=player_id, attached=0)
+        return
+
+    max_count = min(2, len(l_energy))
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Frilled Generator: search deck for up to 2 Basic {L} Energy to attach to Heliolisk.",
+        cards=l_energy, min_count=0, max_count=max_count,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+    if not chosen_ids:
+        chosen_ids = [c.instance_id for c in l_energy[:max_count]]
+
+    attached = 0
+    for cid in chosen_ids[:max_count]:
+        ec = next((c for c in player.deck if c.instance_id == cid), None)
+        if ec:
+            player.deck.remove(ec)
+            _attach_from_hand_or_discard(player, poke, ec)
+            attached += 1
+
+    import random
+    random.shuffle(player.deck)
+    state.emit_event("frilled_generator", player=player_id, attached=attached)
+
+
+# Electric Streamer (me02.5-070 Iono's Bellibolt ex) ─────────────────────────
+
+def _electric_streamer(state: GameState, action):
+    """Attach 1 Basic {L} Energy from hand to 1 of your Iono's Pokémon (usable multiple times)."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    l_energy = [c for c in player.hand
+                if c.card_type.lower() == "energy"
+                and c.card_subtype.lower() == "basic"
+                and "Lightning" in (c.energy_provides or [])]
+    ionos_pokes = [p for p in _in_play(player) if "Iono's" in p.card_name]
+
+    if not l_energy or not ionos_pokes:
+        return
+
+    req_energy = ChoiceRequest(
+        "choose_cards", player_id,
+        "Electric Streamer: choose 1 Basic {L} Energy from hand to attach to an Iono's Pokémon.",
+        cards=l_energy, min_count=0, max_count=1,
+    )
+    resp_energy = yield req_energy
+    chosen_ids = resp_energy.selected_cards if resp_energy and resp_energy.selected_cards else []
+    if not chosen_ids:
+        chosen_ids = [l_energy[0].instance_id]
+    energy_card = next((c for c in player.hand if c.instance_id in chosen_ids), None)
+    if energy_card is None:
+        return
+
+    req_target = ChoiceRequest(
+        "choose_target", player_id,
+        "Electric Streamer: choose an Iono's Pokémon to attach the energy to.",
+        targets=ionos_pokes,
+    )
+    resp_target = yield req_target
+    target = None
+    if resp_target and resp_target.target_instance_id:
+        target = next((p for p in ionos_pokes
+                       if p.instance_id == resp_target.target_instance_id), None)
+    if target is None:
+        target = ionos_pokes[0]
+
+    _attach_from_hand_or_discard(player, target, energy_card)
+    state.emit_event("electric_streamer", player=player_id, target=target.card_name)
+
+    # Unlimited use: reset the ability_used_this_turn flag
+    poke = _find_in_play(player, action.card_instance_id)
+    if poke:
+        poke.ability_used_this_turn = False
+
+
+# Flashing Draw (me02.5-072 Iono's Kilowattrel) ──────────────────────────────
+
+def _flashing_draw(state: GameState, action):
+    """Discard 1 Basic {L} Energy from this Pokémon, then draw cards until hand has 6."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    poke = _find_in_play(player, action.card_instance_id)
+    if poke is None:
+        return
+
+    l_energies = [att for att in poke.energy_attached
+                  if att.energy_type == EnergyType.LIGHTNING]
+    if not l_energies:
+        return
+
+    poke.energy_attached.remove(l_energies[0])
+    state.emit_event("energy_discarded", card=poke.card_name,
+                     reason="flashing_draw", count=1)
+
+    to_draw = max(0, 6 - len(player.hand))
+    if to_draw > 0:
+        drawn = draw_cards(state, player_id, to_draw)
+        state.emit_event("flashing_draw", player=player_id, drawn=drawn)
+
+
+# Bubble Gathering (me02.5-084 Azumarill ex) ──────────────────────────────────
+
+def _bubble_gathering(state: GameState, action):
+    """Move 1 Energy from another Pokémon to Azumarill ex (unlimited use per turn)."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    poke = _find_in_play(player, action.card_instance_id)
+    if poke is None:
+        return
+
+    donors = [p for p in _in_play(player)
+              if p.instance_id != poke.instance_id and p.energy_attached]
+    if not donors:
+        return
+
+    req_donor = ChoiceRequest(
+        "choose_target", player_id,
+        "Bubble Gathering: choose a Pokémon to move 1 Energy FROM.",
+        targets=donors,
+    )
+    resp_donor = yield req_donor
+    donor = None
+    if resp_donor and resp_donor.target_instance_id:
+        donor = next((p for p in donors if p.instance_id == resp_donor.target_instance_id), None)
+    if donor is None:
+        donor = donors[0]
+
+    att = donor.energy_attached.pop(0)
+    poke.energy_attached.append(att)
+    state.emit_event("bubble_gathering", player=player_id,
+                     from_card=donor.card_name, to_card=poke.card_name)
+
+    # Unlimited use: reset the ability_used_this_turn flag
+    poke.ability_used_this_turn = False
+
+
+# Champion's Call (me02.5-110 Cynthia's Gabite) ──────────────────────────────
+
+def _champions_call(state: GameState, action):
+    """Search deck for a Cynthia's Pokémon, reveal it, and put it in hand."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    cynthia_pokes = [c for c in player.deck
+                     if c.card_type.lower() == "pokemon"
+                     and "Cynthia's" in c.card_name]
+    if not cynthia_pokes:
+        import random
+        random.shuffle(player.deck)
+        state.emit_event("champions_call", player=player_id, found=0)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Champion's Call: search your deck for a Cynthia's Pokémon to put in hand.",
+        cards=cynthia_pokes, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+    if not chosen_ids:
+        chosen_ids = [cynthia_pokes[0].instance_id]
+
+    found = 0
+    for cid in chosen_ids[:1]:
+        card = next((c for c in player.deck if c.instance_id == cid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+            found += 1
+
+    import random
+    random.shuffle(player.deck)
+    state.emit_event("champions_call", player=player_id, found=found)
+
+
 def register_all(registry: EffectRegistry) -> None:
     """Register all ability effect handlers with the registry."""
 
@@ -1464,6 +1719,8 @@ def register_all(registry: EffectRegistry) -> None:
 
     registry.register_ability("me02.5-142", "Flip the Script", _flip_the_script,
                                condition=_cond_flip_the_script)
+    registry.register_ability("sv06.5-038", "Flip the Script", _flip_the_script,
+                               condition=_cond_flip_the_script)   # alt print
 
     # Stone Arms: requires Basic {F} energy in hand + {F} Pokémon in play.
     def _cond_stone_arms(state, player_id):
@@ -1481,6 +1738,7 @@ def register_all(registry: EffectRegistry) -> None:
                                condition=_cond_stone_arms)
     registry.register_ability("sv05-129", "Run Away Draw", _run_away_draw)
     registry.register_ability("sv06-025", "Teal Dance", _teal_dance)
+    registry.register_ability("svp-166",  "Teal Dance", _teal_dance)   # promo alt print
 
     # Adrena-Brain: requires {D} energy on this Munkidori + your Pokémon with damage counters.
     def _cond_adrena_brain(state, player_id, poke=None):
@@ -1569,3 +1827,136 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_passive_ability("me03-069",   "Protective Sail")
     registry.register_passive_ability("me02.5-024", "Melt Away")
     registry.register_passive_ability("me02.5-027", "Incandescent Body")
+
+    # ── New abilities (Batch 2: ASC me02.5-034 through me02.5-133) ────────────
+
+    # Active-use abilities
+    # Alluring Wings: Frosmoth must be in the Active Spot
+    def _cond_alluring_wings(state, player_id):
+        p = state.get_player(player_id)
+        return p.active is not None and p.active.card_def_id == "me02.5-053"
+
+    registry.register_ability("me02.5-053", "Alluring Wings", _alluring_wings,
+                               condition=_cond_alluring_wings)
+
+    # Dynamotor: need Basic {L} in discard + bench Pokémon
+    def _cond_dynamotor(state, player_id):
+        p = state.get_player(player_id)
+        has_l = any(
+            c.card_type.lower() == "energy"
+            and c.card_subtype.lower() == "basic"
+            and "Lightning" in (c.energy_provides or [])
+            for c in p.discard
+        )
+        return has_l and bool(p.bench)
+
+    registry.register_ability("me02.5-060", "Dynamotor", _dynamotor,
+                               condition=_cond_dynamotor)
+
+    # Frilled Generator: requires Canari Supporter was played this turn
+    def _cond_frilled_generator(state, player_id):
+        p = state.get_player(player_id)
+        has_l_in_deck = any(
+            c.card_type.lower() == "energy"
+            and c.card_subtype.lower() == "basic"
+            and "Lightning" in (c.energy_provides or [])
+            for c in p.deck
+        )
+        canari_played = any(
+            e.get("event_type") in ("use_supporter", "play_supporter", "supporter_played")
+            and "Canari" in (e.get("card_name") or "")
+            and e.get("turn", -1) == state.turn_number
+            for e in state.events
+        )
+        return has_l_in_deck and canari_played
+
+    registry.register_ability("me02.5-064", "Frilled Generator", _frilled_generator,
+                               condition=_cond_frilled_generator)
+
+    # Electric Streamer: need Basic {L} in hand + Iono's Pokémon in play
+    def _cond_electric_streamer(state, player_id):
+        p = state.get_player(player_id)
+        has_l = any(
+            c.card_type.lower() == "energy"
+            and c.card_subtype.lower() == "basic"
+            and "Lightning" in (c.energy_provides or [])
+            for c in p.hand
+        )
+        has_ionos = any("Iono's" in pk.card_name for pk in _in_play(p))
+        return has_l and has_ionos
+
+    registry.register_ability("me02.5-070", "Electric Streamer", _electric_streamer,
+                               condition=_cond_electric_streamer)
+
+    # Flashing Draw: need Basic {L} attached to Kilowattrel
+    def _cond_flashing_draw(state, player_id):
+        p = state.get_player(player_id)
+        kilowattrel = next(
+            (pk for pk in _in_play(p) if pk.card_def_id == "me02.5-072"), None
+        )
+        if kilowattrel is None:
+            return False
+        return any(att.energy_type == EnergyType.LIGHTNING
+                   for att in kilowattrel.energy_attached)
+
+    registry.register_ability("me02.5-072", "Flashing Draw", _flashing_draw,
+                               condition=_cond_flashing_draw)
+
+    # Bubble Gathering: need another Pokémon in play with energy
+    def _cond_bubble_gathering(state, player_id, poke=None):
+        p = state.get_player(player_id)
+        azumarill = poke if poke is not None else next(
+            (pk for pk in _in_play(p) if pk.card_def_id == "me02.5-084"), None
+        )
+        if azumarill is None:
+            return False
+        return any(
+            pk.instance_id != azumarill.instance_id and pk.energy_attached
+            for pk in _in_play(p)
+        )
+
+    registry.register_ability("me02.5-084", "Bubble Gathering", _bubble_gathering,
+                               condition=_cond_bubble_gathering)
+
+    # Champion's Call: need Cynthia's Pokémon in deck
+    def _cond_champions_call(state, player_id):
+        p = state.get_player(player_id)
+        return any(
+            c.card_type.lower() == "pokemon" and "Cynthia's" in c.card_name
+            for c in p.deck
+        )
+
+    registry.register_ability("me02.5-110", "Champion's Call", _champions_call,
+                               condition=_cond_champions_call)
+
+    # Passive abilities — Batch 2
+    # me02.5-040 Golduck: Damp (same as me02.5-039 Psyduck)
+    registry.register_passive_ability("me02.5-040", "Damp")
+
+    # me02.5-057 Pikachu ex: Resolute Heart → base.py check_ko
+    registry.register_passive_ability("me02.5-057", "Resolute Heart")
+
+    # me02.5-068 Hop's Pincurchin ex: Counterattack Quills → attacks.py _apply_damage
+    registry.register_passive_ability("me02.5-068", "Counterattack Quills")
+
+    # me02.5-079 TR Mewtwo ex: Power Saver → actions.py (power_saver_blocks_attack updated)
+    registry.register_passive_ability("me02.5-079", "Power Saver")
+
+    # me02.5-082 Togekiss: Wonder Kiss → base.py check_ko
+    registry.register_passive_ability("me02.5-082", "Wonder Kiss")
+
+    # me02.5-101 TR Dugtrio: Holes → transitions.py _retreat
+    registry.register_passive_ability("me02.5-101", "Holes")
+
+    # me02.5-105 Lunatone: Lunar Cycle (same handler as me01-074)
+    registry.register_ability("me02.5-105", "Lunar Cycle", _lunar_cycle,
+                               condition=_cond_lunar_cycle)
+
+    # me02.5-116 Mega Hawlucha ex: Tenacious Body → base.py check_ko
+    registry.register_passive_ability("me02.5-116", "Tenacious Body")
+
+    # me02.5-117 Carbink: Double Type → card type check handled by type queries
+    registry.register_passive_ability("me02.5-117", "Double Type")
+
+    # me02.5-125 Mega Gengar ex: Shadowy Concealment → base.py check_ko
+    registry.register_passive_ability("me02.5-125", "Shadowy Concealment")
