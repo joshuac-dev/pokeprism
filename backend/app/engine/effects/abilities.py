@@ -3179,3 +3179,5 @@ def register_all(registry):
     registry.register_passive_ability("sv10-048", "So Submerged")      # Misty's Magikarp
     registry.register_passive_ability("sv10-086", "Stone Palace")      # Steven's Carbink
     registry.register_passive_ability("sv10-092", "Lose Cool")         # Annihilape
+    registry.register_passive_ability("sv10.5b-052", "Sturdy")         # Crustle (logic in _apply_damage)
+    registry.register_passive_ability("sv10-003", "Buzzing Boost")     # Yanmega ex (on-promote; noop — engine lacks hook)

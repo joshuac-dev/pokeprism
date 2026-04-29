@@ -10,13 +10,78 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | 584 |
-| Coverage | **~99.3%** (582/584 implemented or flat-only; 2 noops) |
-| Batches complete | 5 (Batches 1–5) |
-| Cards remaining in list | ~1,484 processable + 16 flagged |
-| Next batch starts at | **Krookodile BLK 59** |
+| Cards in DB | 769 |
+| Coverage | **97.1%** (747/769 implemented or flat-only; 22 flagged) |
+| Batches complete | 7 (Batches 1–7) |
+| Cards remaining in list | ~1,285 processable + 32 flagged |
+| Next batch starts at | **Medicham DRI 100** |
 
-## Last Session — 2026-04-29 (Card Pool Expansion: Batch 5)
+## Last Session — 2026-05-XX (Card Pool Expansion: Batches 6+7 + Bug Fixes)
+
+### What Was Done
+
+**Batches 6+7** (200 new cards, BLK sv10.5b-059..078+171+172, WHT sv10.5w-001..078+172+173, DRI sv10-002..099): DB grew from 584 → 769 cards (inserted via `backend/scripts/add_batch6_cards.py`).
+
+New attack handlers (Batch 6 — BLK/WHT): `_krookodile_revenge_bite`, `_double_whack`, `_rattled_tackle`, `_plume_attack`, `_high_speed_pursuit`, `_whirlwind_blades`, `_feather_slice`, `_add_on_unfezant`, `_swift_flight`, `_return_audino`, `_tail_slap`, `_sweep_bunnelby`, `_energizing_stomp`, `_rampant_charge`, `_super_singe`, `_smashing_headbutt`, `_collect`, `_rock_and_roll`, `_aqua_blitz`, `_crystal_splash`, `_turbo_surf`, `_icy_shot`, `_blizzard_axew`, `_carve_axew`, `_draco_meteor_haxorus`, `_charge_joltik`, `_galvantula_electro_ball`, `_galvantula_ex_thunder_shot`, `_electro_rush`, `_gear_storm`, `_clink_klinklang`, `_hide_powder`, `_smogon_gas`, `_galarian_corsola_grudge`, `_grudge_spike`, `_spirit_burst`, `_dark_claw`, `_crunching_fang`, `_midnight_arrest`, `_spiritomb_hex`, `_xtransceiver_weavile`, `_rampaging_claws`, `_dark_punishment`, `_weavile_ex_dark_pulse`, `_cheer_on_to_glory_roserade`, `_prickle_patch`, `_nap`, `_pleasant_nap`, `_snore_snorlax`, `_super_recovery_miltank`, `_skull_bash`, `_heavy_impact_aggron`, `_heavy_impact_registeel`, `_heavy_guard`, `_iron_tail_mega`, `_collect_registeel`, `_v_force`, `_blazing_burst`
+
+New attack handlers (Batch 7 — DRI): `_jet_cyclone`, `_peck_off_delibird`, `_gigaton_tackle`, `_charging_tusks`, `_tera_charge`, `_searching_eyes`, `_mini_drain`, `_energy_loop`, `_hydra_breath`, `_grass_kagura`, `_ogres_hammer`, `_punishing_fang`, `_double_headbutt`, `_flame_screen`, `_scorching_fire`, `_shining_feathers`, `_blistering_tackle`, `_heal_splash`, `_whirlpool_vortex`, `_crashing_cascade`, `_triple_dive`, `_hydro_launch`, `_bubble_net_attack`, `_torpedo_dive`, `_misty_hydro_pump`, `_rain_lunge`, `_tail_fin`, `_moist_scales`, `_spore_burst`, `_frosty_wind`, `_silver_wave`, `_glide`, `_hypnotic_ray`, `_bench_manipulation`, `_rocket_mirror`, `_summoning_sign`, `_eerie_light`, `_clay_blast`, `_chiming_commotion`, `_disruptive_radar`, `_orbeetle_psychic`, `_wild_kick`, `_primeape_drag_off`, `_impact_blow`, `_impound`, `_try_to_imitate`, `_mountain_munch`, `_explosive_ascension`, `_demolition_tackle`, `_mountain_drop`, `_steady_punch`
+
+New ability handlers: `_hurried_gait` (Rapidash), `_bonded_by_journey` (Ethan's Quilava), `_golden_flame` (Ethan's Ho-Oh ex), `_rocket_brain` (TR Orbeetle)
+
+State/engine changes:
+- `state.py`: added `evolved_this_turn: bool = False` field to `CardInstance`
+- `transitions.py`: sets `evolved_this_turn = True` on evolution
+- `runner.py`: clears `evolved_this_turn` in `_end_turn` for active + bench
+
+Bug fixes (post-batch):
+- **sv10.5b-015 Larvesta** — implemented missing `_larvesta_peck_off` (Peck Off: discard all Tools from opp's Active before 10 damage)
+- **sv10-025 Rabsca ex** — implemented `_upside_down_draw` (draw 3 from bottom of deck) and `_rabsca_ex_psychic` (20 + 90 per Energy on opp's Active)
+- **sv10-039 Ethan's Ho-Oh ex** — fixed registration index from atk1 → atk0 for Shining Feathers
+- **sv10.5b-052 Crustle** — added `register_passive_ability("sv10.5b-052", "Sturdy")` (logic was already in `_apply_damage`)
+- **sv10-003 Yanmega ex** — registered Buzzing Boost as passive noop + added to FLAGGED_CARDS (on-promote hook not in engine)
+
+### Flagged Cards (new this session)
+
+| Card | TCGDex ID | Attack/Ability | Reason |
+|------|-----------|---------------|--------|
+| Shelmet WHT 8 | sv10.5w-008 | Stimulated Evolution (ability) | Evolve during first turn if Karrablast in play — modifies turn-1 evolution restriction rules |
+| Emboar WHT 13 | sv10.5w-013 | Inferno Fandango (ability) | Unlimited Basic Fire Energy attachment per turn — overrides 1-energy-per-turn rule |
+| Jellicent ex WHT 45 | sv10.5w-045 | Oceanic Curse (ability) | Passive prevents opp from playing Item/Tool cards while in Active — requires action validator integration |
+| Archeops WHT 51 | sv10.5w-051 | Ancient Wing (ability) | Devolve 1 of opp's Evolution Pokémon — requires preserving prior evolution forms |
+| Terrakion WHT 54 | sv10.5w-054 | Retaliate (atk0) | +50 damage if any of my Pokémon were KO'd last turn — requires inter-turn KO flag |
+| Hydreigon ex WHT 67 | sv10.5w-067 | Greedy Eater (ability) | Take extra prize on KO of Basic Pokémon — requires per-attacker KO/prize hook |
+| Watchog WHT 73 | sv10.5w-073 | Focus Energy (atk0) | Buffs next-turn Hyper Fang — requires per-attack state flag across turns |
+| Ethan's Pinsir DRI 1 | sv10-001 | Rallying Horn (atk1) | +100 if any Ethan's Pokémon KO'd last turn — inter-turn Ethan's-KO tracking not in state |
+| TR Moltres ex DRI 31 | sv10-031 | Evil Incineration (atk1) | Instant forced-KO discard on condition — not supported |
+| Ethan's Magcargo DRI 36 | sv10-036 | Melt Away (ability) | Dynamic retreat cost modification based on energy — not supported |
+| Misty's Psyduck DRI 45 | sv10-045 | Flustered Leap (ability) | Return self from bench to top of deck — not supported |
+| Huntail DRI 55 | sv10-055 | Diver's Catch (ability) | On-KO energy salvage hook — not supported |
+| Cetitan ex DRI 65 | sv10-065 | Snow Camouflage (ability) | Block trainer effects on this Pokémon — requires action validator integration |
+| TR Ampharos DRI 74 | sv10-074 | Darkest Impulse (ability) | Place damage on opponent's evolving Pokémon — on-evolve trigger not supported |
+| TR Tyranitar DRI 96 | sv10-096 | Sand Stream (ability) | Checkup-phase damage hook — not currently implemented |
+| Yanmega ex DRI 3 | sv10-003 | Buzzing Boost (ability) | On bench→active promotion, search deck for up to 3 Basic {G} Energy — on-promote hook not in engine |
+
+### Issues Encountered
+- Agent processed 200 cards (Batches 6+7) instead of 100 — both batches correct and committed.
+- Agent incorrectly commented sv10-025 Rabsca ex as "flat/flat" — both attacks have effect text. Fixed.
+- Agent registered sv10-039 Shining Feathers at atk1 instead of atk0. Fixed.
+- Agent missed sv10.5b-015 Larvesta "Peck Off" handler. Implemented.
+- Agent registered sv10.5b-052 Sturdy logic in `_apply_damage` but forgot `register_passive_ability` call. Fixed.
+- Agent registered sv10-003 Yanmega ex atk handler but not ability. Registered as noop passive + flagged.
+
+### Final Baseline This Session
+- **215 backend tests pass**
+- **0 TypeScript errors**
+- **769 cards in DB** (up from 584)
+- **Coverage: 97.1%** (747/769; 22 missing are all legitimately flagged complex effects)
+- **32 flagged cards total**
+
+### Notes for Next Session
+Continue with **Batch 8**, starting at **Medicham DRI 100** (`sv10-100`). Run `make reset-data` before any fresh simulation testing.
+
+---
+
+
 
 ### What Was Done
 

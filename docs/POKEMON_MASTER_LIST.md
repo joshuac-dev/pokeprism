@@ -1321,3 +1321,4 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Cetitan ex DRI 65 | sv10-065 | Snow Camouflage (ability) | Prevent all effects of opponent's Item/Supporter on this Pokémon — requires global hook on trainer play to intercept targeted effects |
 | TR Ampharos DRI 74 | sv10-074 | Darkest Impulse (ability) | Put 4 damage counters on a Pokémon when opponent evolves it — requires on-evolve trigger placing damage on the evolved Pokémon |
 | TR Tyranitar DRI 96 | sv10-096 | Sand Stream (ability) | During Pokémon Checkup, place 2 damage counters on each opponent Basic Pokémon — requires a Checkup-phase damage hook not currently implemented |
+| Yanmega ex DRI 3 | sv10-003 | Buzzing Boost (ability) | When this Pokémon moves from Bench to Active, search deck for up to 3 Basic {G} Energy — on-promote ability hook not supported in engine |

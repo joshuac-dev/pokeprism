@@ -9603,7 +9603,7 @@ def _scorching_fire(state, action):
 
 
 def _shining_feathers(state, action):
-    """sv10-039 Ethan's Ho-Oh ex atk1 — Shining Feathers: 160 + heal 50 from each of your Pokémon."""
+    """sv10-039 Ethan's Ho-Oh ex atk0 — Shining Feathers: 160 + heal 50 from each of your Pokémon."""
     _do_default_damage(state, action)
     player = state.get_player(action.player_id)
     for poke in _in_play(player):
@@ -10548,6 +10548,37 @@ def _steady_punch(state, action):
     _apply_damage(state, action, 10 + bonus)
 
 
+def _larvesta_peck_off(state, action):
+    """sv10.5b-015 Larvesta atk0 — Peck Off: discard all Tools from opp's Active, then 10 damage."""
+    opp = state.get_opponent(action.player_id)
+    if opp.active and opp.active.tools_attached:
+        opp.active.tools_attached.clear()
+        state.emit_event("tools_discarded", target=opp.active.card_name)
+    _apply_damage(state, action, 10)
+
+
+def _upside_down_draw(state, action):
+    """sv10-025 Rabsca ex atk0 — Upside-Down Draw: draw 3 cards from the bottom of your deck (no damage)."""
+    player = state.get_player(action.player_id)
+    drawn = 0
+    for _ in range(3):
+        if player.deck:
+            card = player.deck.pop()  # pop() = end of list = bottom of deck
+            card.zone = Zone.HAND
+            player.hand.append(card)
+            drawn += 1
+    if drawn > 0:
+        state.emit_event("draw", player=action.player_id, count=drawn,
+                         hand_size=len(player.hand), reason="Upside-Down Draw")
+
+
+def _rabsca_ex_psychic(state, action):
+    """sv10-025 Rabsca ex atk1 — Psychic: 20 + 90 per Energy attached to opp's Active."""
+    opp = state.get_opponent(action.player_id)
+    bonus = 90 * len(opp.active.energy_attached) if opp.active else 0
+    _apply_damage(state, action, 20 + bonus)
+
+
 def register_all(registry):
     """Register all Pokémon attack handlers."""
 
@@ -11380,6 +11411,7 @@ def register_all(registry):
     registry.register_attack("sv10.5b-012", 0, _v_force)                   # Victini — V-Force
     registry.register_attack("sv10.5b-014", 0, _super_singe)               # Darmanitan — Searing Flame
     registry.register_attack("sv10.5b-014", 1, _smashing_headbutt)         # Darmanitan — Smashing Headbutt
+    registry.register_attack("sv10.5b-015", 0, _larvesta_peck_off)         # Larvesta — Peck Off
     registry.register_attack("sv10.5b-017", 0, _collect)                   # Panpour — Collect
     registry.register_attack("sv10.5b-019", 0, _round_player_20)           # Tympole — Round
     registry.register_attack("sv10.5b-020", 0, _round_player_40)           # Palpitoad — Round
@@ -11608,7 +11640,8 @@ def register_all(registry):
     # sv10-022 Dolliv: already registered
     # sv10-023 Arboliva ex: already registered
     # sv10-024 Rellor: already registered
-    # sv10-025 Rabsca: ATK0 flat; ATK1 flat
+    registry.register_attack("sv10-025", 0, _upside_down_draw)             # Rabsca ex — Upside-Down Draw
+    registry.register_attack("sv10-025", 1, _rabsca_ex_psychic)            # Rabsca ex — Psychic
     registry.register_attack("sv10-026", 0, _grass_kagura)                 # Tsareena — Grass Kagura
     registry.register_attack("sv10-026", 1, _ogres_hammer)                 # Tsareena — Ogre's Hammer
     # sv10-027 Incineroar: ATK0 flat; ATK1 flat
@@ -11630,7 +11663,7 @@ def register_all(registry):
     # sv10-037 Magmar: ATK0 flat; ATK1 flat
     registry.register_attack("sv10-038", 0, _cruel_coal)                   # TR Moltres — Cruel Coal
     registry.register_attack("sv10-038", 1, _scorching_fire)               # TR Moltres — Scorching Fire
-    registry.register_attack("sv10-039", 1, _shining_feathers)             # Ethan's Ho-Oh ex — Shining Feathers
+    registry.register_attack("sv10-039", 0, _shining_feathers)             # Ethan's Ho-Oh ex — Shining Feathers
     # sv10-039 Golden Flame ability registered in abilities.py
     # sv10-040 Torchic: already registered
     # sv10-041 Combusken: already registered
