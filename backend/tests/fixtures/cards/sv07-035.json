@@ -1,0 +1,76 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-035",
+  "illustrator": "Yukiko Baba",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/035",
+  "localId": "035",
+  "name": "Finneon",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    456
+  ],
+  "hp": 50,
+  "types": [
+    "Water"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Water"
+      ],
+      "name": "Sprinkle Water",
+      "damage": 20
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785889,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.02,
+      "avg7": 0.02,
+      "avg30": 0.03,
+      "avg-holo": 0.14,
+      "low-holo": 0.02,
+      "trend-holo": 0.13,
+      "avg1-holo": 0.11,
+      "avg7-holo": 0.15,
+      "avg30-holo": 0.15
+    },
+    "tcgplayer": null
+  }
+}

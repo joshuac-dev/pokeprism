@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-036",
+  "illustrator": "Shigenori Negishi",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/036",
+  "localId": "036",
+  "name": "Lumineon",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    457
+  ],
+  "hp": 110,
+  "types": [
+    "Water"
+  ],
+  "evolveFrom": "Finneon",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Return",
+      "effect": "You may draw cards until you have 6 cards in your hand.",
+      "damage": 20
+    },
+    {
+      "cost": [
+        "Water",
+        "Colorless"
+      ],
+      "name": "Razor Fin",
+      "damage": 70
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:28+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785890,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.02,
+      "avg1": 0.02,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.11,
+      "low-holo": 0.02,
+      "trend-holo": 0.13,
+      "avg1-holo": 0.09,
+      "avg7-holo": 0.15,
+      "avg30-holo": 0.12
+    },
+    "tcgplayer": null
+  }
+}

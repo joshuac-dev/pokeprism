@@ -3906,3 +3906,18 @@ def register_all(registry):
     registry.register_passive_ability("sv08-085", "Beckoning Tail")     # Meowstic (Trainer-in-hand: noop)
     registry.register_passive_ability("sv08-093", "Obliging Heal")      # Indeedee (on-play hook: noop)
     registry.register_passive_ability("sv08-107", "Sticky Bind")        # Gastrodon (bench Stage 2 no abilities: noop)
+
+    # ── Batch 12: sv08-118..161, sv07-002..059 abilities ─────────────────────
+
+    # FLAGGED passives (complex trigger not implemented; stubs registered for coverage)
+    registry.register_passive_ability("sv08-130", "Assemble Alloy")         # Archaludon ex (on-evolve energy attach: noop)
+    registry.register_passive_ability("sv08-143", "Boosted Evolution")      # Eevee (first-turn evolution rule: noop)
+    registry.register_passive_ability("sv08-147", "Born to Slack")          # Slaking ex (attack validator: noop)
+    registry.register_passive_ability("sv08-150", "Expert Hider")           # Kecleon (on-hit coin flip block: noop)
+    registry.register_passive_ability("sv07-003", "Glittering Star Pattern") # Ledian (on-evolve switch: noop)
+    registry.register_passive_ability("sv07-006", "Selective Slime")        # Cradily (coin flip status choice: noop)
+    registry.register_passive_ability("sv07-014", "Ripening Charge")        # Hydrapple ex (energy attach + heal: noop)
+    registry.register_passive_ability("sv07-038", "Primal Knowledge")       # Carracosta (global +30 vs Evo: noop)
+    registry.register_passive_ability("sv07-042", "Food Prep")              # Crabominable (cost reduction: noop)
+    registry.register_passive_ability("sv07-044", "Impervious Shell")       # Drednaw (damage cap: noop)
+    registry.register_passive_ability("sv07-045", "Food Prep")              # Veluza (cost reduction: noop)

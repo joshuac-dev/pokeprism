@@ -10,13 +10,77 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | 1159 |
-| Coverage | **97.5%** (1130/1159 implemented or flat-only; 29 missing) |
-| Batches complete | 11 (Batches 1–11) |
-| Cards remaining in list | ~986 |
-| Next batch starts at | **Zweilous SSP 118** (`sv08-118`) |
+| Cards in DB | 1259 |
+| Coverage | **97.7%** (1230/1259 implemented or flat-only; 29 missing) |
+| Batches complete | 12 (Batches 1–12) |
+| Cards remaining in list | ~886 |
+| Next batch starts at | **Drifloon SCR 60** (`sv07-060`) |
 
-## Last Session — 2026-05-07 (Card Pool Expansion: Batch 11)
+## Last Session — 2026-05-08 (Card Pool Expansion: Batch 12)
+
+### What Was Done
+
+**Batch 12** (100 new cards, SSP sv08-118..161 + SCR sv07-002..059): DB grew from 1159 → 1259 cards.
+
+New attack handlers: 52 new handlers covering Zweilous, Hydreigon ex, Grafaiai, Alolan Diglett/Dugtrio, Skarmory, Registeel, Bronzor/Bronzong, Klefki, Duraludon, Archaludon ex, Gholdengo, Iron Crown, Alolan Exeggutor ex, Altaria, Dialga, Palkia, Turtonator (SSP), Applin/Flapple/Appletun, Eternatus, Tatsugiri ex, Eevee, Snorlax, Slakoth, Slaking ex, Swablu, Zangoose, Kecleon, Bouffalant, Braviary, Helioptile, Heliolisk, Oranguru, Tandemaus, Maushold, Cyclizar ex, Flamigo ex, Terapagos, Ledian, Celebi, Lileep/Cradily, Carnivine, Mow Rotom, Grubbin, Gossifleur, Eldegoss, Dipplin, Hydrapple ex, Toedscruel, Rapidash, Salandit/Salazzle, Turtonator (SCR), Scorbunny, Cinderace ex, Lapras ex, Azumarill, Lumineon, Tirtouga, Greninja ex, Crabominable, Drednaw, Veluza, Electabuzz, Electivire, Chinchou, Lanturn, Joltik, Galvantula ex, Charjabug, Vikavolt, Togedemaru, Zeraora, Pawmi, Slowpoke, Slowking
+
+Reused handlers: _collect, _ember, _flamethrower, _sudden_scorching, _bind_down, _ambush, _double_spin, _draining_kiss, _reckless_charge_eevee, _brave_bird, _bubble_beam, _surprise_attack
+
+New state field: `no_weakness_one_turn` on CardInstance (for Metal Defender sv08-130)
+
+New ability registrations: Assemble Alloy, Boosted Evolution, Born to Slack, Expert Hider, Glittering Star Pattern, Selective Slime, Ripening Charge, Primal Knowledge, Food Prep (×2), Impervious Shell
+
+### Flagged Cards (new this batch — 29)
+
+| Card | TCGDex ID | Attack/Ability | Reason |
+|------|-----------|---------------|--------|
+| Grafaiai SSP 121 | sv08-121 | Mischievous Painting (atk0) | Energy redistribution from opp discard — not supported |
+| Alolan Exeggutor ex SSP 133 | sv08-133 | Tropical Frenzy (atk0) | Attach any number of Energy from hand — not supported |
+| Alolan Exeggutor ex SSP 133 | sv08-133 | Swinging Sphene (atk1) | Coin flip OHKO — not supported |
+| Altaria SSP 134 | sv08-134 | Humming Charge (atk0) | Search deck for Energy, attach to any Pokémon — not supported |
+| Dialga SSP 135 | sv08-135 | Time Manipulation (atk0) | Search deck for 2 cards (player choice) — not supported |
+| Archaludon ex SSP 130 | sv08-130 | Assemble Alloy (ability) | On-evolve energy attach from discard — not supported |
+| Eternatus SSP 141 | sv08-141 | World Ender (atk1) | Discard Stadium from play — not supported |
+| Tatsugiri ex SSP 142 | sv08-142 | Cinnabar Lure (atk1) | Look at top 10, bench a Pokémon — not supported |
+| Gholdengo SSP 131 | sv08-131 | Surf Back (atk1) | Shuffle self into deck — not supported |
+| Slakoth SSP 145 | sv08-145 | Take It Easy (atk0) | Simplified (heal + cant_retreat) |
+| Slaking ex SSP 147 | sv08-147 | Born to Slack (ability) | Attack validator — not supported |
+| Kecleon SSP 150 | sv08-150 | Expert Hider (ability) | On-hit coin flip block — not supported |
+| Bouffalant SSP 151 | sv08-151 | Ready to Ram (atk0) | On-damage retaliation trigger — not supported |
+| Braviary SSP 153 | sv08-153 | Drag Off (atk0) | Forced bench switch + damage — not supported |
+| Heliolisk SSP 155 | sv08-155 | Parabolic Charge (atk0) | Search deck for 4 Energy — not supported |
+| Oranguru SSP 156 | sv08-156 | Now You're in My Power (atk0) | Change opponent's weakness type — not supported |
+| Maushold SSP 158 | sv08-158 | Familial March (atk0) | Deck search for Maushold — not supported |
+| Terapagos SSP 161 | sv08-161 | Prism Charge (atk0) | Search deck for 3 different-type Energy — not supported |
+| Ledian SCR 003 | sv07-003 | Glittering Star Pattern (ability) | On-evolve forced switch — not supported |
+| Cradily SCR 006 | sv07-006 | Selective Slime (ability) | Active ability with player choice — not supported |
+| Mow Rotom SCR 008 | sv07-008 | Reaping Dash (atk0) | Discard all Tools + Special Energy — not supported |
+| Eldegoss SCR 011 | sv07-011 | Breezy Gift (atk0) | Shuffle self into deck + search 3 — not supported |
+| Hydrapple ex SCR 014 | sv07-014 | Ripening Charge (ability) | Active energy attach + heal — not supported |
+| Lapras ex SCR 032 | sv07-032 | Larimar Rain (atk1) | Look at top 20, attach Energy — not supported |
+| Tirtouga SCR 037 | sv07-037 | Splashing Turn (atk0) | Switch self with bench — not supported |
+| Carracosta SCR 038 | sv07-038 | Primal Knowledge (ability) | Global +30 vs Evolution Pokémon — not supported |
+| Crabominable SCR 042 | sv07-042 | Food Prep (ability) | Energy cost reduction — not supported |
+| Veluza SCR 045 | sv07-045 | Food Prep (ability) | Energy cost reduction — not supported |
+| Lanturn SCR 049 | sv07-049 | Disorienting Flash (atk0) | Confused with modified counter amount (8) — not supported |
+| Joltik SCR 050 | sv07-050 | Jolting Charge (atk0) | Search deck for Energy, attach — not supported |
+| Galvantula ex SCR 051 | sv07-051 | Fulgurite (atk1) | Discard all energy + item lock — not supported |
+| Charjabug SCR 052 | sv07-052 | Parallel Placement (atk0) | Deck search for Charjabug — not supported |
+| Vikavolt SCR 053 | sv07-053 | Volt Switch (atk0) | Switch self with benched L Pokémon — not supported |
+| Electivire SCR 047 | sv07-047 | Unleash Lightning (atk1) | Blanket attack lock for all your Pokémon — not supported |
+| Slowpoke SCR 057 | sv07-057 | Dangle Tail (atk0) | Put Pokémon from discard to hand — not supported |
+| Slowking SCR 058 | sv07-058 | Seek Inspiration (atk0) | Copy attack from top deck card — not supported |
+
+### Final Baseline This Session
+- **215 backend tests pass**
+- **1259 cards in DB** (up from 1159)
+- **Coverage: 97.7%** (implemented or flat-only; 29 missing — all legitimately flagged)
+- **~106 flagged cards total**
+
+### Notes for Next Session
+Continue with **Batch 13**, starting at **Drifloon SCR 60** (`sv07-060`). Run `make reset-data` before any fresh simulation testing.
+
+---
 
 ### What Was Done
 

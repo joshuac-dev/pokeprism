@@ -432,6 +432,7 @@ class MatchRunner:
                 player.active.locked_attack_index = None
                 player.active.prevent_damage_from_basic = False
                 player.active.prevent_damage_threshold = 0
+                player.active.no_weakness_one_turn = False
                 # Discard energy cards flagged for end-of-turn removal (Ignition Energy)
                 self._discard_expiring_energy(state, player.active)
             for b in player.bench:
@@ -446,6 +447,7 @@ class MatchRunner:
                 b.locked_attack_index = None
                 b.prevent_damage_from_basic = False
                 b.prevent_damage_threshold = 0
+                b.no_weakness_one_turn = False
                 self._discard_expiring_energy(state, b)
 
         state.active_player_damage_bonus = 0

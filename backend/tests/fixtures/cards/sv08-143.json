@@ -1,0 +1,107 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-143",
+  "illustrator": "Naoyo Kimura",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/143",
+  "localId": "143",
+  "name": "Eevee",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "gym-challenge"
+      ],
+      "variantId": "2fnyg4g5376d7w3hlmh9pk4ay0k"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "foil": "cosmos",
+      "variantId": "6x9wic2vzb5bfzn0gz10e76xy60nqt2vwbzzupgwp6"
+    }
+  ],
+  "dexId": [
+    133
+  ],
+  "hp": 50,
+  "types": [
+    "Colorless"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Boosted Evolution",
+      "effect": "As long as this Pokémon is in the Active Spot, it can evolve during your first turn or the turn you play it."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Reckless Charge",
+      "effect": "This Pokémon also does 10 damage to itself.",
+      "damage": 30
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794516,
+      "avg": 0.05,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.05,
+      "avg7": 0.06,
+      "avg30": 0.06,
+      "avg-holo": 0.23,
+      "low-holo": 0.02,
+      "trend-holo": 0.3,
+      "avg1-holo": 0.2,
+      "avg7-holo": 0.24,
+      "avg30-holo": 0.23
+    },
+    "tcgplayer": null
+  }
+}

@@ -112,6 +112,10 @@ def apply_weakness_resistance(
 
     damage = base_damage
 
+    # no_weakness_one_turn (Metal Defender sv08-130): skip weakness
+    if getattr(defender, "no_weakness_one_turn", False):
+        return max(0, damage)
+
     # Weakness × 2
     weakness_applied = False
     for weakness in defender_def.weaknesses:

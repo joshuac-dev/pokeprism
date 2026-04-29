@@ -130,6 +130,7 @@ class CardInstance:
     prevent_damage_from_basic: bool = False               # Prevent all damage from Basic Pokémon next turn
     heavy_poison: bool = False                            # Tainted Horn (sv10-119): 8 counters/turn instead of 1
     prevent_damage_threshold: int = 0                    # Harden (sv09-002): prevent damage ≤ threshold next turn
+    no_weakness_one_turn: bool = False                    # Metal Defender (sv08-130): no Weakness during opp's next turn
 
     # Energy-card-specific ─────────────────────────────────────────────────────
     # Populated from CardDefinition.energy_provides at deck-build time.

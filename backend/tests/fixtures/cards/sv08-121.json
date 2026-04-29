@@ -1,0 +1,91 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-121",
+  "illustrator": "NC Empire",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/121",
+  "localId": "121",
+  "name": "Grafaiai",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    945
+  ],
+  "hp": 100,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Shroodle",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Mischievous Painting",
+      "effect": "Attach up to 3 Energy cards from your opponent's discard pile to their Pokémon in any way you like."
+    },
+    {
+      "cost": [
+        "Darkness",
+        "Darkness"
+      ],
+      "name": "Energized Graffiti",
+      "effect": "This attack does 40 damage for each Energy attached to all of your opponent's Pokémon.",
+      "damage": "40×"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794465,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.03,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.15,
+      "low-holo": 0.02,
+      "trend-holo": 0.2,
+      "avg1-holo": 0.47,
+      "avg7-holo": 0.17,
+      "avg30-holo": 0.16
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-147",
+  "illustrator": "PLANETA Igarashi",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/147",
+  "localId": "147",
+  "name": "Slaking ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    289
+  ],
+  "hp": 340,
+  "types": [
+    "Colorless"
+  ],
+  "evolveFrom": "Vigoroth",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Born to Slack",
+      "effect": "If your opponent has no Pokémon ex or Pokémon V in play, this Pokémon can't attack."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Great Swing",
+      "effect": "Discard an Energy from this Pokémon.",
+      "damage": 280
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794520,
+      "avg": 0.53,
+      "low": 0.05,
+      "trend": 0.54,
+      "avg1": 0.39,
+      "avg7": 0.51,
+      "avg30": 0.52,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

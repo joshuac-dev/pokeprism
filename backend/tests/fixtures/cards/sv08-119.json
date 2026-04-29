@@ -1,0 +1,90 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-119",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/119",
+  "localId": "119",
+  "name": "Hydreigon ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    635
+  ],
+  "hp": 330,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Zweilous",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Crashing Headbutt",
+      "effect": "Discard the top 3 cards of your opponent's deck.",
+      "damage": 200
+    },
+    {
+      "cost": [
+        "Psychic",
+        "Darkness",
+        "Metal",
+        "Colorless"
+      ],
+      "name": "Obsidian",
+      "effect": "This attack also does 130 damage to 2 of your opponent's Benched Pokémon. (Don't apply Weakness and Resistance for Benched Pokémon.)",
+      "damage": 130
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794461,
+      "avg": 0.83,
+      "low": 0.17,
+      "trend": 0.84,
+      "avg1": 1.05,
+      "avg7": 0.87,
+      "avg30": 0.84,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-041",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/041",
+  "localId": "041",
+  "name": "Greninja ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    658
+  ],
+  "hp": 300,
+  "types": [
+    "Water"
+  ],
+  "evolveFrom": "Frogadier",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Water",
+        "Colorless"
+      ],
+      "name": "Shifting Shuriken",
+      "effect": "Flip a coin. If heads, this attack does 100 more damage.",
+      "damage": "100+"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:28+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785895,
+      "avg": 0.82,
+      "low": 0.3,
+      "trend": 0.95,
+      "avg1": 0.96,
+      "avg7": 0.98,
+      "avg30": 0.86,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

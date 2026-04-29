@@ -1,0 +1,82 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-051",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/051",
+  "localId": "051",
+  "name": "Galvantula ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    596
+  ],
+  "hp": 260,
+  "types": [
+    "Lightning"
+  ],
+  "evolveFrom": "Joltik",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "Charged Web",
+      "effect": "If your opponent's Active Pokémon is a Pokémon ex or Pokémon V, this attack does 110 more damage.",
+      "damage": "110+"
+    },
+    {
+      "cost": [
+        "Grass",
+        "Lightning",
+        "Fighting"
+      ],
+      "name": "Fulgurite",
+      "effect": "Discard all Energy from this Pokémon. During your opponent's next turn, they can't play any Item cards from their hand.",
+      "damage": 180
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:28+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785905,
+      "avg": 0.72,
+      "low": 0.1,
+      "trend": 0.85,
+      "avg1": 0.64,
+      "avg7": 0.78,
+      "avg30": 0.73,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

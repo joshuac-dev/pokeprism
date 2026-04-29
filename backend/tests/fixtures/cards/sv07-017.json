@@ -1,0 +1,84 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-017",
+  "illustrator": "Tetsu Kayama",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/017",
+  "localId": "017",
+  "name": "Toedscool",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    948
+  ],
+  "hp": 60,
+  "types": [
+    "Grass"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Ram",
+      "damage": 10
+    },
+    {
+      "cost": [
+        "Grass",
+        "Colorless"
+      ],
+      "name": "Gentle Slap",
+      "damage": 20
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785870,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.02,
+      "avg1": 0.05,
+      "avg7": 0.03,
+      "avg30": 0.04,
+      "avg-holo": 0.14,
+      "low-holo": 0.02,
+      "trend-holo": 0.14,
+      "avg1-holo": 0.09,
+      "avg7-holo": 0.14,
+      "avg30-holo": 0.14
+    },
+    "tcgplayer": null
+  }
+}

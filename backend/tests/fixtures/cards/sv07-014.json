@@ -1,0 +1,79 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-014",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/014",
+  "localId": "014",
+  "name": "Hydrapple ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    1019
+  ],
+  "hp": 330,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Dipplin",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Ripening Charge",
+      "effect": "Once during your turn, you may attach a Basic {G} Energy card from your hand to 1 of your Pokémon. If you attached Energy to a Pokémon in this way, heal 30 damage from that Pokémon."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Syrup Storm",
+      "effect": "This attack does 30 more damage for each {G} Energy attached to all of your Pokémon.",
+      "damage": "30+"
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:28+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785867,
+      "avg": 0.74,
+      "low": 0.1,
+      "trend": 0.87,
+      "avg1": 0.6,
+      "avg7": 0.87,
+      "avg30": 0.76,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}
