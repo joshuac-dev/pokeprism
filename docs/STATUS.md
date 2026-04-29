@@ -10,11 +10,47 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | 769 |
-| Coverage | **97.1%** (747/769 implemented or flat-only; 22 flagged) |
-| Batches complete | 7 (Batches 1–7) |
-| Cards remaining in list | ~1,285 processable + 32 flagged |
-| Next batch starts at | **Medicham DRI 100** |
+| Cards in DB | 864 |
+| Coverage | **96.6%** (835/864 implemented or flat-only; 29 flagged) |
+| Batches complete | 8 (Batches 1–8) |
+| Cards remaining in list | ~1,185 processable + 39 flagged |
+| Next batch starts at | **Pelipper JTG 39** |
+
+## Last Session — 2026-04-29 (Card Pool Expansion: Batch 8)
+
+### What Was Done
+
+**Batch 8** (102 new cards, DRI sv10-100..160 + JTG sv09-001..041): DB grew from 769 → 864 cards (inserted via `backend/scripts/add_batch8_cards.py`).
+
+New attack handlers: `_harmonious_spirit_palm`, `_super_sandstorm`, `_running_charge`, `_pull_bench_to_active`, `_reckless_charge_mabosstiff`, `_rock_kagura`, `_drag_down`, `_spinning_tail`, `_tainted_horn`, `_assassins_return`, `_explode_together_now`, `_hurricane_of_needles`, `_sonic_double`, `_boss_headbutt`, `_harden_prevent_60`, `_scale_hurricane`, `_frigid_fluttering`, `_aqua_wash`, and many more flat/reuse entries
+
+New ability handlers: `_champion_call`, `_sneaky_bite`, `_biting_spree`, `_x_boot`, `_reconstitute`, `_greedy_order`, `_sunny_day`, `_showtime`, `_scalding_steam`
+
+New engine features: `heavy_poison` (80/turn), `prevent_damage_threshold`, `sunny_day_active` flag, Exploding Needles KO hook, Smog Signals damage hook, Mud Coat passive (-30), Magma Surge (burn +30/turn)
+
+### Flagged Cards (new this batch — 7)
+
+| Card | TCGDex ID | Attack/Ability | Reason |
+|------|-----------|---------------|--------|
+| TR Arbok DRI 113 | sv10-113 | Potent Glare (ability) | Prevents opp from playing Pokémon with abilities from hand — requires play-from-hand validator hook |
+| TR Nidorina DRI 115 | sv10-115 | Dark Awakening (atk0) | Evolve up to 2 Darkness Pokémon from deck mid-battle — mid-battle in-deck evolution not supported |
+| TR Grimer DRI 123 | sv10-123 | Corrosive Sludge (atk0) | Schedule KO at end of opponent's next turn — deferred/scheduled KO hook not in engine |
+| Forretress DRI 140 | sv10-140 | Iron Shake-Up (atk0) | Move any Metal energy freely between own Pokémon — arbitrary energy redistribution not supported |
+| Zamazenta DRI 146 | sv10-146 | Strong Bash (atk0) | Retaliatory damage = damage received last turn — inter-turn damage-received tracking not in state |
+| TR Persian ex DRI 150 | sv10-150 | Haughty Order (atk0) | Use an attack from a card in opponent's deck — deck-scanning attack execution not supported |
+| Ludicolo JTG 37 | sv09-037 | Vibrant Dance (ability) | All Pokémon in play get +40 HP permanently — dynamic max HP increase on all in-play Pokémon not supported |
+
+### Final Baseline This Session
+- **215 backend tests pass**
+- **0 TypeScript errors**
+- **864 cards in DB** (up from 769)
+- **Coverage: 96.6%** (835/864; 29 missing are all legitimately flagged)
+- **39 flagged cards total**
+
+### Notes for Next Session
+Continue with **Batch 9**, starting at **Pelipper JTG 39** (`sv09-039`).
+
+---
 
 ## Last Session — 2026-05-XX (Card Pool Expansion: Batches 6+7 + Bug Fixes)
 
