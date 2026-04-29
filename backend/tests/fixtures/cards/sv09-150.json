@@ -1,0 +1,131 @@
+{
+  "category": "Trainer",
+  "id": "sv09-150",
+  "illustrator": "MARINA Chikazawa",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/150",
+  "localId": "150",
+  "name": "Levincia",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817302,
+          "avg": 0.06,
+          "low": 0.02,
+          "trend": 0.08,
+          "avg1": 0.04,
+          "avg7": 0.04,
+          "avg30": 0.06,
+          "avg-holo": 0.12,
+          "low-holo": 0.02,
+          "trend-holo": 0.12,
+          "avg1-holo": 0.02,
+          "avg7-holo": 0.11,
+          "avg30-holo": 0.12
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817302,
+          "avg": 0.06,
+          "low": 0.02,
+          "trend": 0.08,
+          "avg1": 0.04,
+          "avg7": 0.04,
+          "avg30": 0.06,
+          "avg-holo": 0.12,
+          "low-holo": 0.02,
+          "trend-holo": 0.12,
+          "avg1-holo": 0.02,
+          "avg7-holo": 0.11,
+          "avg30-holo": 0.12
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "gym-challenge"
+      ],
+      "variantId": "1t06ikeqvuekyvnt4u9307a5qjm1d"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "foil": "cosmos",
+      "variantId": "6x9wic2vzb5bfzn0gz10e76xy60nqt2vwbzzupgwp6"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "gx8bq2hegum3q6irsxlvqxm955ikw9gd1h311"
+    }
+  ],
+  "effect": "Once during each player's turn, that player may put up to 2 Basic {L} Energy cards from their discard pile into their hand.",
+  "trainerType": "Stadium",
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817302,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.08,
+      "avg1": 0.04,
+      "avg7": 0.04,
+      "avg30": 0.06,
+      "avg-holo": 0.12,
+      "low-holo": 0.02,
+      "trend-holo": 0.12,
+      "avg1-holo": 0.02,
+      "avg7-holo": 0.11,
+      "avg30-holo": 0.12
+    },
+    "tcgplayer": null
+  }
+}

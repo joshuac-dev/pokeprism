@@ -1,0 +1,65 @@
+{
+  "category": "Trainer",
+  "id": "sv08-190",
+  "illustrator": "Akira Komayama",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/190",
+  "localId": "190",
+  "name": "Tyme",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "effect": "Tell your opponent the name of a Pokémon in your hand and put that Pokémon face down in front of you. Your opponent guesses that Pokémon's HP, and then you reveal it. If your opponent guessed right, they draw 4 cards. If they guessed wrong, you draw 4 cards. Then, return the Pokémon to your hand.",
+  "trainerType": "Supporter",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794563,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.04,
+      "avg7": 0.03,
+      "avg30": 0.06,
+      "avg-holo": 0.15,
+      "low-holo": 0.02,
+      "trend-holo": 0.13,
+      "avg1-holo": 0.05,
+      "avg7-holo": 0.16,
+      "avg30-holo": 0.15
+    },
+    "tcgplayer": null
+  }
+}

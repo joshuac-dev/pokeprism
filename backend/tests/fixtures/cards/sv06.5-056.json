@@ -1,0 +1,61 @@
+{
+  "category": "Trainer",
+  "id": "sv06.5-056",
+  "illustrator": "Atsushi Furusawa",
+  "image": "https://assets.tcgdex.net/en/sv/sv06.5/056",
+  "localId": "056",
+  "name": "Cassiopeia",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 64,
+      "total": 99
+    },
+    "id": "sv06.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06.5/logo",
+    "name": "Shrouded Fable",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "effect": "You can use this card only when it is the last card in your hand.\n\nSearch your deck for up to 2 cards and put them into your hand. Then, shuffle your deck.",
+  "trainerType": "Supporter",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 780952,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.02,
+      "avg1": 0.02,
+      "avg7": 0.02,
+      "avg30": 0.03,
+      "avg-holo": 0.1,
+      "low-holo": 0.02,
+      "trend-holo": 0.1,
+      "avg1-holo": 0.07,
+      "avg7-holo": 0.08,
+      "avg30-holo": 0.1
+    },
+    "tcgplayer": null
+  }
+}

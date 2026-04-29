@@ -1,103 +1,3 @@
-Tool Scrapper WHT 85
-Arven's Sandwich DRI 161
-Cynthia's Power Weight DRI 162
-Emcee's Hype DRI 163
-Ethan's Adventure DRI 165
-Granite Cave DRI 166
-Team Rocket's Ariana DRI 171
-Team Rocket's Archer DRI 170
-Spikemuth Gym DRI 169
-Sacred Ash DRI 168
-Team Rocket's Bother-Bot DRI 172
-Team Rocket's Factory DRI 173
-Team Rocket's Giovanni DRI 174
-Team Rocket's Great Ball DRI 175
-Team Rocket's Venture Bomb DRI 179
-Team Rocket's Transceiver DRI 178
-Team Rocket's Proton DRI 177
-Team Rocket's Petrel DRI 176
-Team Rocket's Watchtower DRI 180
-TM Machine DRI 181
-Billy & O'Nare JTG 142
-Black Belt's Training JTG 143
-Black Belt's Training JTG 144
-Black Belt's Training JTG 145
-Iris's Fighting Spirit JTG 149
-Hop's Choice Band JTG 148
-Hop's Bag JTG 147
-Brock's Scouting JTG 146
-Levincia JTG 150
-Lillie's Pearl JTG 151
-N's Castle JTG 152
-N's PP Up JTG 153
-Postwick JTG 154
-Redeemable Ticket JTG 156
-Ruffian JTG 157
-Super Potion JTG 158
-Black Belt's Training PRE 96
-Binding Mochi PRE 95
-Area Zero Underdepths PRE 94
-Amarys PRE 93
-Briar PRE 100
-Buddy-Buddy Poffin PRE 101
-Bug Catching Set PRE 102
-Carmine PRE 103
-Ciphermaniac's Codebreaking PRE 104
-Friends in Paldea PRE 109
-Festival Grounds PRE 108
-Explorer's Guidance PRE 107
-Crispin PRE 105
-Glass Trumpet PRE 110
-Haban Berry PRE 111
-Janine's Secret Art PRE 112
-Kieran PRE 113
-Lacey PRE 114
-Larry's Skill PRE 115
-Max Rod PRE 116
-Roto-Stick PRE 127
-Rescue Board PRE 126
-Ogre's Mask PRE 118
-Call Bell SSP 165
-Babiri Berry SSP 163
-Chill Teaser Toy SSP 166
-Clemont's Quick Wit SSP 167
-Colbur Berry SSP 168
-Counter Gain SSP 169
-Cyrano SSP 170
-Deduction Kit SSP 171
-Dragon Elixir SSP 172
-Drasna SSP 173
-Gravity Mountain SSP 177
-Dusk Ball SSP 175
-Drayton SSP 174
-Jasmine's Gaze SSP 178
-Lisia's Appeal SSP 179
-Lively Stadium SSP 180
-Meddling Memo SSP 181
-Passho Berry SSP 184
-Tera Orb SSP 189
-Technical Machine: Fluorite SSP 188
-Surfer SSP 187
-Tyme SSP 190
-Area Zero Underdepths SCR 131
-Antique Root Fossil SCR 130
-Antique Cover Fossil SCR 129
-Briar SCR 132
-Crispin SCR 133
-Glass Trumpet SCR 135
-Gravity Gemstone SCR 137
-Kofu SCR 138
-Lacey SCR 139
-Payapa Berry SCR 141
-Occa Berry SCR 140
-Colress's Tenacity SFA 57
-Cassiopeia SFA 56
-Binding Mochi SFA 55
-Academy at Night SFA 54
-Janine's Secret Art SFA 59
-Night Stretcher SFA 61
-Xerosic's Machinations SFA 64
-Powerglass SFA 63
 Accompanying Flute TWM 142
 Bug Catching Set TWM 143
 Caretaker TWM 144
@@ -417,3 +317,12 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Energy Swatter POR 73 | me03-073 | (trainer effect) | Reveal opponent's hand; attach Basic Energy only to Pokémon whose type appears in opponent's hand — requires hand-reveal + type-matching energy attachment not supported |
 | Lt. Surge's Bargain MEG 120 | me01-120 | (trainer effect) | Opponent chooses to discard 0, 1, or 2 of their own Pokémon — opponent-interactive decision with branching discard not supported |
 | Wally's Compassion MEG 132 | me01-132 | (trainer effect) | Return Pokémon Tool + Energy to hand; then evolve attached Mega Evolution ex — Mega Evo detection and mid-battle multi-step evolution sequence not supported |
+| Team Rocket's Bother-Bot DRI 172 | sv10-172 | (trainer effect) | Plays as face-up Prize card mechanic — prize zone manipulation not supported in engine |
+| Levincia JTG 150 | sv09-150 | (trainer effect) | Attach Basic Energy to any of your Pokémon up to 3 times per turn — per-turn multi-energy counter with reset not supported |
+| Redeemable Ticket JTG 156 | sv09-156 | (trainer effect) | Reveal top prizes until you find a Supporter; swap it into your hand — prize zone search/swap not supported |
+| Amarys PRE 93 | sv08.5-093 | (trainer effect) | Move any number of Energy from your Benched Pokémon to another at end of turn — end-of-turn effect trigger not supported |
+| Ogre's Mask PRE 118 | sv08.5-118 | (trainer effect) | Swap the Pokémon this Tool is attached to with one of your Benched Pokémon — mid-turn bench↔active swap via Tool not supported |
+| Jasmine's Gaze SSP 178 | sv08-178 | (trainer effect) | Your Active takes 30 less damage from attacks during opponent's next turn — cross-turn damage reduction requires persistent state flag not currently in engine |
+| TM: Fluorite SSP 188 | sv08-188 | (trainer effect) | Heal 30 from all your Tera Pokémon between turns — end-of-turn Tera-wide heal not supported |
+| Tyme SSP 190 | sv08-190 | (trainer effect) | Opponent calls heads or tails; if wrong, discard 2 from hand — opponent-interactive guessing game not supported |
+| Powerglass SFA 63 | sv06.5-063 | (trainer effect) | Attached Tool: at the end of your turn, deal 60 to opponent's Active — end-of-turn damage from Tool not supported |

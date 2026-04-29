@@ -1,0 +1,60 @@
+{
+  "category": "Trainer",
+  "id": "sv08.5-118",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/118",
+  "localId": "118",
+  "name": "Ogre's Mask",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "effect": "Choose a Pokémon ex in your discard pile that has \"Ogerpon\" in its name, and switch it with 1 of your Pokémon ex in play that has \"Ogerpon\" in its name. Any attached cards, damage counters, Special Conditions, turns in play, and any other effects remain on the new Pokémon.",
+  "trainerType": "Item",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805512,
+      "avg": 0.02,
+      "low": 0.02,
+      "trend": 0.02,
+      "avg1": 0.02,
+      "avg7": 0.02,
+      "avg30": 0.02,
+      "avg-holo": 0.07,
+      "low-holo": 0.02,
+      "trend-holo": 0.07,
+      "avg1-holo": 0.05,
+      "avg7-holo": 0.07,
+      "avg30-holo": 0.07
+    },
+    "tcgplayer": null
+  }
+}

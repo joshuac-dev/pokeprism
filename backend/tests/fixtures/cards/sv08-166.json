@@ -1,0 +1,65 @@
+{
+  "category": "Trainer",
+  "id": "sv08-166",
+  "illustrator": "AYUMI ODASHIMA",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/166",
+  "localId": "166",
+  "name": "Chill Teaser Toy",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "effect": "You can use this card only if you go second, and only during your first turn.\n\nPut an Energy attached to 1 of your opponent's Pokémon into their hand.",
+  "trainerType": "Item",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794539,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.05,
+      "avg7": 0.02,
+      "avg30": 0.03,
+      "avg-holo": 0.15,
+      "low-holo": 0.02,
+      "trend-holo": 0.12,
+      "avg1-holo": 0.22,
+      "avg7-holo": 0.14,
+      "avg30-holo": 0.16
+    },
+    "tcgplayer": null
+  }
+}

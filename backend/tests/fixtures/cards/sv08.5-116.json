@@ -1,0 +1,60 @@
+{
+  "category": "Trainer",
+  "id": "sv08.5-116",
+  "illustrator": "Toyste Beach",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/116",
+  "localId": "116",
+  "name": "Max Rod",
+  "rarity": "ACE SPEC Rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "effect": "Put up to 5 in any combination of Pokémon and Basic Energy cards from your discard pile into your hand.",
+  "trainerType": "Item",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805510,
+      "avg": 0.95,
+      "low": 0.09,
+      "trend": 0.96,
+      "avg1": 0.98,
+      "avg7": 0.9,
+      "avg30": 0.96,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

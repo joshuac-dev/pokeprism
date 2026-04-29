@@ -1,0 +1,60 @@
+{
+  "category": "Trainer",
+  "id": "sv07-137",
+  "illustrator": "Toyste Beach",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/137",
+  "localId": "137",
+  "name": "Gravity Gemstone",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "effect": "As long as the Pokémon this card is attached to is in the Active Spot, the Retreat Cost of both Active Pokémon is {C} more.",
+  "trainerType": "Tool",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785991,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.07,
+      "avg1": 0.02,
+      "avg7": 0.08,
+      "avg30": 0.07,
+      "avg-holo": 0.13,
+      "low-holo": 0.02,
+      "trend-holo": 0.18,
+      "avg1-holo": 0.1,
+      "avg7-holo": 0.18,
+      "avg30-holo": 0.14
+    },
+    "tcgplayer": null
+  }
+}

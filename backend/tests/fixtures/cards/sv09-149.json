@@ -1,0 +1,147 @@
+{
+  "category": "Trainer",
+  "id": "sv09-149",
+  "illustrator": "yuu",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/149",
+  "localId": "149",
+  "name": "Iris's Fighting Spirit",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817301,
+          "avg": 0.05,
+          "low": 0.02,
+          "trend": 0.04,
+          "avg1": 0.04,
+          "avg7": 0.03,
+          "avg30": 0.05,
+          "avg-holo": 0.11,
+          "low-holo": 0.02,
+          "trend-holo": 0.11,
+          "avg1-holo": 0.13,
+          "avg7-holo": 0.1,
+          "avg30-holo": 0.12
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817301,
+          "avg": 0.05,
+          "low": 0.02,
+          "trend": 0.04,
+          "avg1": 0.04,
+          "avg7": 0.03,
+          "avg30": 0.05,
+          "avg-holo": 0.11,
+          "low-holo": 0.02,
+          "trend-holo": 0.11,
+          "avg1-holo": 0.13,
+          "avg7-holo": 0.1,
+          "avg30-holo": 0.12
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "gym-challenge"
+      ],
+      "variantId": "1t06ikeqvuekyvnt4u9307a5qjm1d"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "gx8bq2hegum3q6irsxlvqxm955ikw9gd1h311"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "regional-championships"
+      ],
+      "variantId": "gx8bq2hegvl5g45wgglxhz3i120jscen0psbo"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "regional-championships",
+        "staff"
+      ],
+      "variantId": "80gdqxre91h6u93zd18nahawka6ni9aofap3umtkgy"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "ultra-ball-league"
+      ],
+      "variantId": "zqq5g2u9p9bu04acctfyef98d6j1dqg6"
+    }
+  ],
+  "effect": "You can use this card only if you discard another card from your hand.\n\nDraw cards until you have 6 cards in your hand.",
+  "trainerType": "Supporter",
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817301,
+      "avg": 0.05,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.04,
+      "avg7": 0.03,
+      "avg30": 0.05,
+      "avg-holo": 0.11,
+      "low-holo": 0.02,
+      "trend-holo": 0.11,
+      "avg1-holo": 0.13,
+      "avg7-holo": 0.1,
+      "avg30-holo": 0.12
+    },
+    "tcgplayer": null
+  }
+}

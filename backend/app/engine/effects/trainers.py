@@ -15,6 +15,7 @@ import random
 from typing import TYPE_CHECKING
 
 from app.engine.state import (
+    CardInstance,
     EnergyAttachment,
     EnergyType,
     GameState,
@@ -3296,6 +3297,943 @@ def _harlequin_b18(state: GameState, action):
 # Registration
 # ──────────────────────────────────────────────────────────────────────────────
 
+
+# ── Batch 19 Handlers ─────────────────────────────────────────────────────────
+
+def _arvens_sandwich_b19(state: GameState, action):
+    """Arven's Sandwich (sv10-161)
+
+    Heal 30 damage from 1 of your Pokémon. If that Pokémon has 'Arven's' in
+    its name, heal 100 damage instead.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    in_play = _find_in_play(player)
+    if not in_play:
+        return
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Arven's Sandwich: choose a Pokémon to heal",
+        targets=in_play,
+    )
+    resp = yield req
+    if resp and resp.target_instance_id:
+        target = _find_pokemon_in_play(player, resp.target_instance_id)
+        if target not in in_play:
+            target = in_play[0]
+    else:
+        target = in_play[0]
+    if target is None:
+        return
+    amount = 100 if "arven's" in target.card_name.lower() else 30
+    heal = min(amount, target.max_hp - target.current_hp)
+    target.current_hp += heal
+    target.damage_counters = max(0, target.damage_counters - heal // 10)
+    state.emit_event("heal", player=player_id, pokemon=target.card_name,
+                     amount=heal, source="arvens_sandwich")
+
+
+def _emcees_hype_b19(state: GameState, action):
+    """Emcee's Hype (sv10-163)
+
+    Draw 2 cards. If your opponent has 3 or fewer Prize cards remaining,
+    draw 2 more.
+    """
+    player_id = action.player_id
+    opp = state.get_player(state.opponent_id(player_id))
+    draw_cards(state, player_id, 2)
+    if len(opp.prizes) <= 3:
+        draw_cards(state, player_id, 2)
+
+
+def _ethans_adventure_b19(state: GameState, action):
+    """Ethan's Adventure (sv10-165)
+
+    Search your deck for up to 3 in any combination of Ethan's Pokémon and
+    Basic Fire Energy cards, reveal them, and put them into your hand.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    candidates = [
+        c for c in player.deck
+        if (c.card_type.lower() == "pokemon" and "ethan's" in c.card_name.lower())
+        or (_is_basic_energy_card(c) and _energy_provides_type(c, "Fire"))
+    ]
+    if not candidates:
+        random.shuffle(player.deck)
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Ethan's Adventure: choose up to 3 Ethan's Pokémon and/or Basic Fire Energy from deck",
+        cards=candidates, min_count=0, max_count=3,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [c.instance_id for c in candidates[:3]])
+    for iid in chosen_ids[:3]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="ethans_adventure")
+
+
+def _tr_venture_bomb_b19(state: GameState, action):
+    """Team Rocket's Venture Bomb (sv10-179)
+
+    Flip a coin. If heads, put 2 damage counters on 1 of your opponent's
+    Pokémon. If tails, put 2 damage counters on your Active Pokémon.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    heads = random.choice([True, False])
+    state.emit_event("coin_flip_result", card="Team Rocket's Venture Bomb",
+                     heads=int(heads))
+    if heads:
+        opp_targets = _find_in_play(opp)
+        if not opp_targets:
+            return
+        req = ChoiceRequest(
+            "choose_target", player_id,
+            "Team Rocket's Venture Bomb: choose an opponent's Pokémon for 20 damage",
+            targets=opp_targets,
+        )
+        resp = yield req
+        if resp and resp.target_instance_id:
+            target = _find_pokemon_in_play(opp, resp.target_instance_id)
+        else:
+            target = opp.active
+        if target:
+            target.current_hp = max(0, target.current_hp - 20)
+            target.damage_counters += 2
+            check_ko(state, opp_id, target)
+    else:
+        if player.active:
+            player.active.current_hp = max(0, player.active.current_hp - 20)
+            player.active.damage_counters += 2
+            check_ko(state, player_id, player.active)
+
+
+def _tm_machine_b19(state: GameState, action):
+    """TM Machine (sv10-181)
+
+    Search your deck for up to 3 Pokémon Tool cards that have 'Technical
+    Machine' in their name, reveal them, and put them into your hand.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    candidates = [
+        c for c in player.deck
+        if c.card_type.lower() == "trainer"
+        and c.card_subtype.lower() in ("tool", "pokémon tool", "pokemon tool")
+        and "technical machine" in c.card_name.lower()
+    ]
+    if not candidates:
+        random.shuffle(player.deck)
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "TM Machine: choose up to 3 Technical Machine Tool cards from your deck",
+        cards=candidates, min_count=0, max_count=3,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [c.instance_id for c in candidates[:3]])
+    for iid in chosen_ids[:3]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="tm_machine")
+
+
+def _billy_and_onare_b19(state: GameState, action):
+    """Billy & O'Nare (sv09-142)
+
+    Draw 2 cards. Then, if you have 10 or more cards in your hand,
+    draw 2 more.
+    """
+    player_id = action.player_id
+    draw_cards(state, player_id, 2)
+    if len(state.get_player(player_id).hand) >= 10:
+        draw_cards(state, player_id, 2)
+
+
+def _hops_bag_b19(state: GameState, action):
+    """Hop's Bag (sv09-147)
+
+    Search your deck for up to 2 Basic Hop's Pokémon and put them onto
+    your Bench.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    bench_space = 5 - len(player.bench)
+    if bench_space <= 0:
+        random.shuffle(player.deck)
+        return
+    candidates = [
+        c for c in player.deck
+        if c.card_type.lower() == "pokemon"
+        and c.evolution_stage == 0
+        and "hop's" in c.card_name.lower()
+    ]
+    if not candidates:
+        random.shuffle(player.deck)
+        return
+    max_choose = min(2, bench_space)
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Hop's Bag: choose up to 2 Basic Hop's Pokémon from deck to bench",
+        cards=candidates, min_count=0, max_count=max_choose,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [c.instance_id for c in candidates[:max_choose]])
+    for iid in chosen_ids[:max_choose]:
+        if len(player.bench) >= 5:
+            break
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            _bench_pokemon(state, player_id, card)
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="hops_bag")
+
+
+def _ruffian_b19(state: GameState, action):
+    """Ruffian (sv09-157)
+
+    Discard a Pokémon Tool and a Special Energy from 1 of your opponent's
+    Pokémon.
+    """
+    player_id = action.player_id
+    opp = state.get_player(state.opponent_id(player_id))
+    targets = [
+        p for p in _find_in_play(opp)
+        if p.tools_attached
+        and any(_is_special_energy(a.card_def_id) for a in p.energy_attached)
+    ]
+    if not targets:
+        return
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Ruffian: choose opponent's Pokémon to discard a Tool and Special Energy from",
+        targets=targets,
+    )
+    resp = yield req
+    if resp and resp.target_instance_id:
+        poke = _find_pokemon_in_play(opp, resp.target_instance_id)
+        if poke not in targets:
+            poke = targets[0]
+    else:
+        poke = targets[0]
+    if poke is None:
+        return
+    tool_def_id = poke.tools_attached[0]
+    poke.tools_attached.remove(tool_def_id)
+    state.emit_event("tool_discarded", player=player_id, tool=tool_def_id,
+                     pokemon=poke.card_name, reason="ruffian")
+    special_att = next(
+        (a for a in poke.energy_attached if _is_special_energy(a.card_def_id)), None
+    )
+    if special_att:
+        poke.energy_attached.remove(special_att)
+        state.emit_event("energy_discarded", player=player_id,
+                         card_def_id=special_att.card_def_id,
+                         pokemon=poke.card_name, reason="ruffian")
+
+
+def _super_potion_b19(state: GameState, action):
+    """Super Potion (sv09-158)
+
+    Heal 60 damage from 1 of your Pokémon. If you healed any damage in this
+    way, discard an Energy from that Pokémon.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    in_play = _find_in_play(player)
+    if not in_play:
+        return
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Super Potion: choose a Pokémon to heal 60 damage",
+        targets=in_play,
+    )
+    resp = yield req
+    if resp and resp.target_instance_id:
+        target = _find_pokemon_in_play(player, resp.target_instance_id)
+        if target not in in_play:
+            target = in_play[0]
+    else:
+        target = in_play[0]
+    if target is None:
+        return
+    heal = min(60, target.max_hp - target.current_hp)
+    target.current_hp += heal
+    target.damage_counters = max(0, target.damage_counters - heal // 10)
+    state.emit_event("heal", player=player_id, pokemon=target.card_name,
+                     amount=heal, source="super_potion")
+    if heal > 0 and target.energy_attached:
+        req2 = ChoiceRequest(
+            "choose_option", player_id,
+            "Super Potion: choose an Energy to discard from the healed Pokémon",
+            options=[a.card_def_id for a in target.energy_attached],
+        )
+        resp2 = yield req2
+        opt = (resp2.selected_option
+               if resp2 is not None and resp2.selected_option is not None else 0)
+        if opt < len(target.energy_attached):
+            att = target.energy_attached[opt]
+            target.energy_attached.remove(att)
+            state.emit_event("energy_discarded", player=player_id,
+                             card_def_id=att.card_def_id,
+                             pokemon=target.card_name, reason="super_potion")
+
+
+def _carmine_b19(state: GameState, action):
+    """Carmine (sv08.5-103)
+
+    Discard your hand and draw 5 cards.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    for c in list(player.hand):
+        c.zone = Zone.DISCARD
+        player.discard.append(c)
+    player.hand.clear()
+    draw_cards(state, player_id, 5)
+
+
+def _ciphermaniacs_codebreaking_b19(state: GameState, action):
+    """Ciphermaniac's Codebreaking (sv08.5-104)
+
+    Search your deck for 2 cards, shuffle your deck, then put those 2 cards
+    on top of your deck in any order.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.deck:
+        return
+    take_count = min(2, len(player.deck))
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Ciphermaniac's Codebreaking: choose 2 cards from your deck to put on top",
+        cards=list(player.deck), min_count=0, max_count=take_count,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [c.instance_id for c in player.deck[:take_count]])
+    chosen = []
+    for iid in chosen_ids[:take_count]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            chosen.append(card)
+    random.shuffle(player.deck)
+    if len(chosen) == 2:
+        req2 = ChoiceRequest(
+            "choose_option", player_id,
+            "Ciphermaniac's Codebreaking: which card goes on TOP of deck?",
+            options=[chosen[0].card_name, chosen[1].card_name],
+        )
+        resp2 = yield req2
+        top_idx = (resp2.selected_option
+                   if resp2 is not None and resp2.selected_option is not None else 0)
+        if top_idx == 1:
+            chosen.reverse()
+    for c in reversed(chosen):
+        player.deck.insert(0, c)
+    state.emit_event("shuffle_deck", player=player_id,
+                     reason="ciphermaniacs_codebreaking")
+
+
+def _explorers_guidance_b19(state: GameState, action):
+    """Explorer's Guidance (sv08.5-107)
+
+    Look at the top 6 cards of your deck. Put 2 of them into your hand.
+    Discard the other cards.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.deck:
+        return
+    take_n = min(6, len(player.deck))
+    top6 = list(player.deck[:take_n])
+    player.deck = player.deck[take_n:]
+    max_take = min(2, len(top6))
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Explorer's Guidance: choose up to 2 cards from top 6 to put into your hand",
+        cards=top6, min_count=0, max_count=max_take,
+    )
+    resp = yield req
+    chosen_ids = set(resp.selected_cards if resp and resp.selected_cards else [])
+    for card in top6:
+        if card.instance_id in chosen_ids:
+            card.zone = Zone.HAND
+            player.hand.append(card)
+        else:
+            card.zone = Zone.DISCARD
+            player.discard.append(card)
+
+
+def _lacey_b19(state: GameState, action):
+    """Lacey (sv08.5-114, sv07-139)
+
+    Shuffle your hand into your deck. Then, draw 4 cards. If your opponent
+    has 3 or fewer Prize cards remaining, draw 8 cards instead.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    opp = state.get_player(state.opponent_id(player_id))
+    for c in list(player.hand):
+        c.zone = Zone.DECK
+        player.deck.append(c)
+    player.hand.clear()
+    random.shuffle(player.deck)
+    draw_count = 8 if len(opp.prizes) <= 3 else 4
+    draw_cards(state, player_id, draw_count)
+
+
+def _max_rod_b19(state: GameState, action):
+    """Max Rod (sv08.5-116)
+
+    Put up to 5 in any combination of Pokémon and Basic Energy cards from
+    your discard pile into your hand.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    candidates = [
+        c for c in player.discard
+        if c.card_type.lower() == "pokemon" or _is_basic_energy_card(c)
+    ]
+    if not candidates:
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Max Rod: choose up to 5 Pokémon and/or Basic Energy from discard",
+        cards=candidates, min_count=0, max_count=5,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [c.instance_id for c in candidates[:5]])
+    for iid in chosen_ids[:5]:
+        card = next((c for c in player.discard if c.instance_id == iid), None)
+        if card:
+            player.discard.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+
+
+def _roto_stick_b19(state: GameState, action):
+    """Roto-Stick (sv08.5-127)
+
+    Look at the top 4 cards of your deck. You may put any Supporter cards
+    you find there into your hand. Shuffle the other cards back into your deck.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.deck:
+        return
+    take_n = min(4, len(player.deck))
+    top4 = list(player.deck[:take_n])
+    player.deck = player.deck[take_n:]
+    supporters = [
+        c for c in top4
+        if c.card_type.lower() == "trainer"
+        and c.card_subtype.lower() == "supporter"
+    ]
+    chosen_ids: set = set()
+    if supporters:
+        req = ChoiceRequest(
+            "choose_cards", player_id,
+            "Roto-Stick: choose Supporter cards from top 4 to put into your hand",
+            cards=supporters, min_count=0, max_count=len(supporters),
+        )
+        resp = yield req
+        chosen_ids = set(resp.selected_cards if resp and resp.selected_cards else [])
+    for card in top4:
+        if card.instance_id in chosen_ids:
+            card.zone = Zone.HAND
+            player.hand.append(card)
+        else:
+            player.deck.append(card)
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="roto_stick")
+
+
+def _call_bell_b19(state: GameState, action):
+    """Call Bell (sv08-165)
+
+    Search your deck for a Supporter card, reveal it, and put it into
+    your hand. (Going-second first-turn restriction not enforced.)
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    candidates = [
+        c for c in player.deck
+        if c.card_type.lower() == "trainer"
+        and c.card_subtype.lower() == "supporter"
+    ]
+    if not candidates:
+        random.shuffle(player.deck)
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Call Bell: choose a Supporter card from your deck",
+        cards=candidates, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [candidates[0].instance_id])
+    for iid in chosen_ids[:1]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="call_bell")
+
+
+def _chill_teaser_toy_b19(state: GameState, action):
+    """Chill Teaser Toy (sv08-166)
+
+    Put an Energy attached to 1 of your opponent's Pokémon into their hand.
+    (Going-second first-turn restriction not enforced.)
+    """
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    targets_with_energy = [p for p in _find_in_play(opp) if p.energy_attached]
+    if not targets_with_energy:
+        return
+    if len(targets_with_energy) == 1:
+        poke = targets_with_energy[0]
+    else:
+        req = ChoiceRequest(
+            "choose_target", player_id,
+            "Chill Teaser Toy: choose an opponent's Pokémon to take an Energy from",
+            targets=targets_with_energy,
+        )
+        resp = yield req
+        if resp and resp.target_instance_id:
+            poke = (_find_pokemon_in_play(opp, resp.target_instance_id)
+                    or targets_with_energy[0])
+        else:
+            poke = targets_with_energy[0]
+    if not poke.energy_attached:
+        return
+    if len(poke.energy_attached) > 1:
+        req2 = ChoiceRequest(
+            "choose_option", player_id,
+            "Chill Teaser Toy: choose which Energy to put into opponent's hand",
+            options=[a.card_def_id for a in poke.energy_attached],
+        )
+        resp2 = yield req2
+        opt = (resp2.selected_option
+               if resp2 is not None and resp2.selected_option is not None else 0)
+        att = (poke.energy_attached[opt]
+               if opt < len(poke.energy_attached) else poke.energy_attached[0])
+    else:
+        att = poke.energy_attached[0]
+    poke.energy_attached.remove(att)
+    cdef = card_registry.get(att.card_def_id)
+    if cdef:
+        new_card = CardInstance(
+            card_def_id=cdef.tcgdex_id,
+            card_name=cdef.name,
+            card_type=cdef.category,
+            card_subtype=cdef.subcategory,
+            energy_provides=list(cdef.energy_provides),
+            zone=Zone.HAND,
+        )
+        opp.hand.append(new_card)
+    state.emit_event("energy_bounced_to_hand", player=player_id,
+                     card_def_id=att.card_def_id, pokemon=poke.card_name,
+                     reason="chill_teaser_toy")
+
+
+def _clemont_b19(state: GameState, action):
+    """Clemont's Quick Wit (sv08-167)
+
+    Heal 60 damage from each of your Lightning-type Pokémon.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    for poke in _find_in_play(player):
+        if _pokemon_has_type(poke, "Lightning"):
+            heal = min(60, poke.max_hp - poke.current_hp)
+            poke.current_hp += heal
+            poke.damage_counters = max(0, poke.damage_counters - heal // 10)
+            if heal:
+                state.emit_event("heal", player=player_id, pokemon=poke.card_name,
+                                 amount=heal, source="clemont")
+
+
+def _deduction_kit_b19(state: GameState, action):
+    """Deduction Kit (sv08-171)
+
+    Look at the top 3 cards of your deck and put them back in any order,
+    or shuffle them and put them on the bottom of your deck.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.deck:
+        return
+    take_n = min(3, len(player.deck))
+    top3 = list(player.deck[:take_n])
+    player.deck = player.deck[take_n:]
+    req = ChoiceRequest(
+        "choose_option", player_id,
+        "Deduction Kit: put top cards back in any order, or shuffle to bottom?",
+        options=["Keep on top (reorder)", "Shuffle to bottom"],
+    )
+    resp = yield req
+    opt = (resp.selected_option
+           if resp is not None and resp.selected_option is not None else 0)
+    if opt == 1:
+        random.shuffle(top3)
+        player.deck.extend(top3)
+        return
+    # Reorder: player picks card for each position from top
+    ordered = []
+    remaining = list(top3)
+    while len(remaining) > 1:
+        req2 = ChoiceRequest(
+            "choose_option", player_id,
+            f"Deduction Kit: choose card for position {len(ordered) + 1} (top of deck)",
+            options=[c.card_name for c in remaining],
+        )
+        resp2 = yield req2
+        idx = (resp2.selected_option
+               if resp2 is not None and resp2.selected_option is not None else 0)
+        idx = min(idx, len(remaining) - 1)
+        ordered.append(remaining.pop(idx))
+    ordered.extend(remaining)
+    for c in reversed(ordered):
+        player.deck.insert(0, c)
+
+
+def _dragon_elixir_b19(state: GameState, action):
+    """Dragon Elixir (sv08-172)
+
+    Heal 60 damage from your Active Dragon-type Pokémon.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if player.active and _pokemon_has_type(player.active, "Dragon"):
+        heal = min(60, player.active.max_hp - player.active.current_hp)
+        player.active.current_hp += heal
+        player.active.damage_counters = max(0,
+                                            player.active.damage_counters - heal // 10)
+        state.emit_event("heal", player=player_id, pokemon=player.active.card_name,
+                         amount=heal, source="dragon_elixir")
+
+
+def _drasna_b19(state: GameState, action):
+    """Drasna (sv08-173)
+
+    Shuffle your hand into your deck. Then, flip a coin. If heads, draw 8.
+    If tails, draw 3.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    for c in list(player.hand):
+        c.zone = Zone.DECK
+        player.deck.append(c)
+    player.hand.clear()
+    random.shuffle(player.deck)
+    heads = random.choice([True, False])
+    state.emit_event("coin_flip_result", card="Drasna", heads=int(heads))
+    draw_cards(state, player_id, 8 if heads else 3)
+
+
+def _drayton_b19(state: GameState, action):
+    """Drayton (sv08-174)
+
+    Look at the top 7 cards of your deck. You may put 1 Pokémon and 1
+    Trainer you find there into your hand. Shuffle the other cards back.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.deck:
+        return
+    take_n = min(7, len(player.deck))
+    top7 = list(player.deck[:take_n])
+    player.deck = player.deck[take_n:]
+    chosen_ids: set = set()
+    poke_candidates = [c for c in top7 if c.card_type.lower() == "pokemon"]
+    trainer_candidates = [c for c in top7 if c.card_type.lower() == "trainer"]
+    if poke_candidates:
+        req = ChoiceRequest(
+            "choose_cards", player_id,
+            "Drayton: choose 1 Pokémon from top 7 to put into your hand (optional)",
+            cards=poke_candidates, min_count=0, max_count=1,
+        )
+        resp = yield req
+        if resp and resp.selected_cards:
+            chosen_ids.update(resp.selected_cards[:1])
+    if trainer_candidates:
+        req2 = ChoiceRequest(
+            "choose_cards", player_id,
+            "Drayton: choose 1 Trainer from top 7 to put into your hand (optional)",
+            cards=trainer_candidates, min_count=0, max_count=1,
+        )
+        resp2 = yield req2
+        if resp2 and resp2.selected_cards:
+            chosen_ids.update(resp2.selected_cards[:1])
+    for card in top7:
+        if card.instance_id in chosen_ids:
+            card.zone = Zone.HAND
+            player.hand.append(card)
+        else:
+            player.deck.append(card)
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="drayton")
+
+
+def _dusk_ball_b19(state: GameState, action):
+    """Dusk Ball (sv08-175)
+
+    Look at the bottom 7 cards of your deck. You may put 1 Pokémon you find
+    there into your hand. Shuffle the other cards back into your deck.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.deck:
+        return
+    take_n = min(7, len(player.deck))
+    bottom7 = list(player.deck[-take_n:])
+    remaining_deck = list(player.deck[:-take_n])
+    poke_candidates = [c for c in bottom7 if c.card_type.lower() == "pokemon"]
+    chosen_id = None
+    if poke_candidates:
+        req = ChoiceRequest(
+            "choose_cards", player_id,
+            "Dusk Ball: choose 1 Pokémon from bottom 7 to put into your hand (optional)",
+            cards=poke_candidates, min_count=0, max_count=1,
+        )
+        resp = yield req
+        if resp and resp.selected_cards:
+            chosen_id = resp.selected_cards[0]
+    for card in bottom7:
+        if card.instance_id == chosen_id:
+            card.zone = Zone.HAND
+            player.hand.append(card)
+        else:
+            remaining_deck.append(card)
+    random.shuffle(remaining_deck)
+    player.deck = remaining_deck
+    state.emit_event("shuffle_deck", player=player_id, reason="dusk_ball")
+
+
+def _lisias_appeal_b19(state: GameState, action):
+    """Lisia's Appeal (sv08-179)
+
+    Switch in 1 of your opponent's Benched Basic Pokémon to the Active
+    Spot. That Pokémon is now Confused.
+    """
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    basic_bench = [p for p in opp.bench if p.evolution_stage == 0]
+    if not basic_bench:
+        return
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Lisia's Appeal: choose an opponent's Benched Basic Pokémon to switch in",
+        targets=basic_bench,
+    )
+    resp = yield req
+    if resp and resp.target_instance_id:
+        target = next(
+            (p for p in basic_bench if p.instance_id == resp.target_instance_id), None
+        )
+    else:
+        target = basic_bench[0]
+    if target:
+        _switch_active_with_bench(opp, target)
+        target.status_conditions.add(StatusCondition.CONFUSED)
+        state.emit_event("gust", player=player_id, new_opp_active=target.card_name,
+                         source="lisias_appeal")
+        state.emit_event("status_inflicted", player=opp_id,
+                         card=target.card_name, status="CONFUSED",
+                         source="lisias_appeal")
+
+
+def _meddling_memo_b19(state: GameState, action):
+    """Meddling Memo (sv08-181)
+
+    Your opponent counts the cards in their hand, shuffles those cards, and
+    puts them on the bottom of their deck. Then they draw that many cards.
+    """
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    count = len(opp.hand)
+    if count == 0:
+        return
+    for c in opp.hand:
+        c.zone = Zone.DECK
+    random.shuffle(opp.hand)
+    opp.deck.extend(opp.hand)
+    opp.hand.clear()
+    draw_cards(state, opp_id, count)
+    state.emit_event("meddling_memo", player=player_id, opp_redrew=count)
+
+
+def _tera_orb_b19(state: GameState, action):
+    """Tera Orb (sv08-189)
+
+    Search your deck for a Tera Pokémon, reveal it, and put it into your hand.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    candidates = [
+        c for c in player.deck
+        if c.card_type.lower() == "pokemon" and _is_tera(c)
+    ]
+    if not candidates:
+        random.shuffle(player.deck)
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Tera Orb: choose a Tera Pokémon from your deck",
+        cards=candidates, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [candidates[0].instance_id])
+    for iid in chosen_ids[:1]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="tera_orb")
+
+
+def _kofu_b19(state: GameState, action):
+    """Kofu (sv07-138)
+
+    Put 2 cards from your hand on the bottom of your deck. Then draw 4.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if len(player.hand) < 2:
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Kofu: choose 2 cards from your hand to put on the bottom of your deck",
+        cards=list(player.hand), min_count=2, max_count=2,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [c.instance_id for c in player.hand[:2]])
+    for iid in chosen_ids[:2]:
+        card = next((c for c in player.hand if c.instance_id == iid), None)
+        if card:
+            player.hand.remove(card)
+            card.zone = Zone.DECK
+            player.deck.append(card)
+    draw_cards(state, player_id, 4)
+
+
+def _cassiopeia_b19(state: GameState, action):
+    """Cassiopeia (sv06.5-056)
+
+    (Restriction: only usable as last card in hand — not enforced.)
+    Search your deck for up to 2 cards and put them into your hand.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.deck:
+        return
+    take_count = min(2, len(player.deck))
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Cassiopeia: choose up to 2 cards from your deck",
+        cards=list(player.deck), min_count=0, max_count=take_count,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [c.instance_id for c in player.deck[:take_count]])
+    for iid in chosen_ids[:take_count]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="cassiopeia")
+
+
+def _janines_secret_art_sfa_b19(state: GameState, action):
+    """Janine's Secret Art (sv06.5-059)
+
+    Choose up to 2 of your Darkness-type Pokémon. For each, search your deck
+    for a Basic Darkness Energy and attach it to that Pokémon. If you attach
+    Energy to your Active Pokémon this way, it is now Poisoned.
+
+    (Note: different from sv08.5-112 which benches new Darkness Pokémon.)
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    darkness_pokemon = [p for p in _find_in_play(player)
+                        if _pokemon_has_type(p, "Darkness")]
+    if not darkness_pokemon:
+        return
+    dark_energy_in_deck = [c for c in player.deck
+                            if _is_basic_energy_card(c)
+                            and _energy_provides_type(c, "Darkness")]
+    if not dark_energy_in_deck:
+        random.shuffle(player.deck)
+        return
+    max_targets = min(2, len(darkness_pokemon), len(dark_energy_in_deck))
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Janine's Secret Art: choose up to 2 Darkness Pokémon to attach Basic Darkness Energy to",
+        cards=darkness_pokemon, min_count=0, max_count=max_targets,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [darkness_pokemon[0].instance_id])
+    attached_to_active = False
+    for iid in chosen_ids[:max_targets]:
+        poke = next((p for p in darkness_pokemon if p.instance_id == iid), None)
+        if poke is None:
+            continue
+        energy = next(
+            (c for c in player.deck
+             if _is_basic_energy_card(c) and _energy_provides_type(c, "Darkness")),
+            None,
+        )
+        if energy is None:
+            break
+        player.deck.remove(energy)
+        att = _make_energy_attachment(energy)
+        energy.zone = poke.zone
+        poke.energy_attached.append(att)
+        state.emit_event("energy_attached", player=player_id,
+                         energy=energy.card_name, target=poke.card_name,
+                         source="janines_secret_art_sfa")
+        if poke is player.active:
+            attached_to_active = True
+    random.shuffle(player.deck)
+    if attached_to_active and player.active:
+        player.active.status_conditions.add(StatusCondition.POISONED)
+        state.emit_event("status_inflicted", player=player_id,
+                         card=player.active.card_name, status="POISONED",
+                         source="janines_secret_art_sfa")
+
 def register_all(registry: EffectRegistry) -> None:
     """Register all trainer effect handlers."""
 
@@ -3384,8 +4322,8 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("me02.5-181", _noop)   # Air Balloon
     registry.register_trainer("sv05-152", _hero_cape)
     registry.register_trainer("sv05-154", _noop)    # Maximum Belt (base.py)
-    registry.register_trainer("sv07-141", _noop)    # Binding Mochi (base.py)
-    registry.register_trainer("sv08.5-095", _noop)  # Brave Bangle (base.py)
+    registry.register_trainer("sv07-141", _noop)    # Payapa Berry (base.py)
+    registry.register_trainer("sv08.5-095", _noop)  # Binding Mochi (base.py)
     registry.register_trainer("sv09-151", _noop)    # Lillie's Pearl (base.py)
     registry.register_trainer("sv10.5w-080", _noop) # Payapa Berry (base.py)
 
@@ -3463,3 +4401,88 @@ def register_all(registry: EffectRegistry) -> None:
     # Stadiums (passive — handled elsewhere)
     registry.register_trainer("me03-077", _noop)   # Lumiose City (bench Basic per turn)
     registry.register_trainer("me02.5-197", _noop) # Nighttime Mine (Tera cost +{C})
+
+    # ── Batch 19 registrations ───────────────────────────────────────────────
+
+    # Alt prints reusing existing handlers
+    registry.register_trainer("sv10.5w-085", _tool_scrapper)          # Tool Scrapper alt
+    registry.register_trainer("sv10-175", _tr_great_ball_b18)         # TR Great Ball alt
+    registry.register_trainer("sv09-144", _black_belt_training)       # Black Belt's Training alt
+    registry.register_trainer("sv09-145", _black_belt_training)       # Black Belt's Training alt
+    registry.register_trainer("sv09-149", _iris_b18)                  # Iris's Fighting Spirit alt
+    registry.register_trainer("sv08.5-096", _black_belt_training)     # Black Belt's Training alt
+    registry.register_trainer("sv08.5-100", _briar)                   # Briar alt
+    registry.register_trainer("sv08.5-101", _buddy_buddy_poffin)      # Buddy-Buddy Poffin alt
+    registry.register_trainer("sv08.5-109", _draw_3_b18)              # Friends in Paldea alt
+    registry.register_trainer("sv08.5-110", _glass_trumpet)           # Glass Trumpet alt
+    registry.register_trainer("sv08.5-113", _kieran)                  # Kieran alt
+    registry.register_trainer("sv08-187", _surfer_b18)                # Surfer alt
+
+    # New Supporter handlers
+    registry.register_trainer("sv10-163", _emcees_hype_b19)           # Emcee's Hype
+    registry.register_trainer("sv10-165", _ethans_adventure_b19)      # Ethan's Adventure
+    registry.register_trainer("sv09-142", _billy_and_onare_b19)       # Billy & O'Nare
+    registry.register_trainer("sv09-157", _ruffian_b19)               # Ruffian
+    registry.register_trainer("sv08.5-103", _carmine_b19)             # Carmine
+    registry.register_trainer("sv08.5-107", _explorers_guidance_b19)  # Explorer's Guidance
+    registry.register_trainer("sv08.5-114", _lacey_b19)               # Lacey
+    registry.register_trainer("sv07-139", _lacey_b19)                 # Lacey alt
+    registry.register_trainer("sv08-167", _clemont_b19)               # Clemont's Quick Wit
+    registry.register_trainer("sv08-173", _drasna_b19)                # Drasna
+    registry.register_trainer("sv08-174", _drayton_b19)               # Drayton
+    registry.register_trainer("sv08-179", _lisias_appeal_b19)         # Lisia's Appeal
+    registry.register_trainer("sv06.5-056", _cassiopeia_b19)          # Cassiopeia
+    registry.register_trainer("sv06.5-059", _janines_secret_art_sfa_b19)  # Janine's Secret Art SFA
+
+    # New Item handlers
+    registry.register_trainer("sv10-161", _arvens_sandwich_b19)       # Arven's Sandwich
+    registry.register_trainer("sv10-179", _tr_venture_bomb_b19)       # TR Venture Bomb
+    registry.register_trainer("sv10-181", _tm_machine_b19)            # TM Machine
+    registry.register_trainer("sv09-147", _hops_bag_b19)              # Hop's Bag
+    registry.register_trainer("sv09-158", _super_potion_b19)          # Super Potion
+    registry.register_trainer("sv08.5-104", _ciphermaniacs_codebreaking_b19)  # Ciphermaniac's Codebreaking
+    registry.register_trainer("sv08.5-116", _max_rod_b19)             # Max Rod
+    registry.register_trainer("sv08.5-127", _roto_stick_b19)          # Roto-Stick
+    registry.register_trainer("sv08-165", _call_bell_b19)             # Call Bell
+    registry.register_trainer("sv08-166", _chill_teaser_toy_b19)      # Chill Teaser Toy
+    registry.register_trainer("sv08-171", _deduction_kit_b19)         # Deduction Kit
+    registry.register_trainer("sv08-172", _dragon_elixir_b19)         # Dragon Elixir
+    registry.register_trainer("sv08-175", _dusk_ball_b19)             # Dusk Ball
+    registry.register_trainer("sv08-181", _meddling_memo_b19)         # Meddling Memo
+    registry.register_trainer("sv08-189", _tera_orb_b19)              # Tera Orb
+    registry.register_trainer("sv07-138", _kofu_b19)                  # Kofu
+
+    # Tools (passive — effects handled elsewhere in engine)
+    registry.register_trainer("sv10-162", _noop)   # Cynthia's Power Weight (+70HP for Cynthia's Pokémon)
+    registry.register_trainer("sv09-148", _noop)   # Hop's Choice Band (damage/cost boost)
+    registry.register_trainer("sv08.5-111", _noop) # Haban Berry (type-damage reduction)
+    registry.register_trainer("sv08.5-126", _noop) # Rescue Board (retreat cost reduction)
+    registry.register_trainer("sv08-163", _noop)   # Babiri Berry (type-damage reduction)
+    registry.register_trainer("sv08-168", _noop)   # Colbur Berry (type-damage reduction)
+    registry.register_trainer("sv08-169", _noop)   # Counter Gain (cost reduction tool)
+    registry.register_trainer("sv08-184", _noop)   # Passho Berry (type-damage reduction)
+    registry.register_trainer("sv07-137", _noop)   # Gravity Gemstone (retreat cost +{C})
+    registry.register_trainer("sv07-140", _noop)   # Occa Berry (type-damage reduction)
+    registry.register_trainer("sv06.5-055", _noop) # Binding Mochi (damage boost when Poisoned)
+
+    # Stadiums (passive — effects handled elsewhere in engine)
+    registry.register_trainer("sv10-166", _noop)   # Granite Cave (damage reduction for Steven's Pokémon)
+    registry.register_trainer("sv09-154", _noop)   # Postwick (damage boost for Hop's Pokémon)
+    registry.register_trainer("sv08.5-094", _noop) # Area Zero Underdepths (Tera bench expansion)
+    registry.register_trainer("sv08.5-108", _noop) # Festival Grounds (Special Condition immunity)
+    registry.register_trainer("sv06.5-054", _noop) # Academy at Night (per-turn optional topdeck)
+
+    # Fossil Items (fossil mechanic not yet supported)
+    registry.register_trainer("sv07-129", _noop)   # Antique Cover Fossil
+    registry.register_trainer("sv07-130", _noop)   # Antique Root Fossil
+
+    # Flagged — complex effects not yet modelled in engine
+    registry.register_trainer("sv10-172", _noop)   # TR Bother-Bot (face-up prize + hand reveal — flagged)
+    registry.register_trainer("sv09-150", _noop)   # Levincia (per-turn energy recovery — flagged)
+    registry.register_trainer("sv09-156", _noop)   # Redeemable Ticket (prize zone manipulation — flagged)
+    registry.register_trainer("sv08.5-093", _noop) # Amarys (end-of-turn trigger — flagged)
+    registry.register_trainer("sv08.5-118", _noop) # Ogre's Mask (Pokémon swap w/ full state transfer — flagged)
+    registry.register_trainer("sv08-178", _noop)   # Jasmine's Gaze (cross-turn damage reduction — flagged)
+    registry.register_trainer("sv08-188", _noop)   # TM: Fluorite (Tera-wide full heal TM — flagged)
+    registry.register_trainer("sv08-190", _noop)   # Tyme (interactive guessing game — flagged)
+    registry.register_trainer("sv06.5-063", _noop) # Powerglass (end-of-turn trigger tool — flagged)

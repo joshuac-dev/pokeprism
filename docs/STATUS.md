@@ -10,12 +10,40 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | 1806 |
-| Coverage | **98.4%** (29 missing — all legitimately flagged) |
-| Batches complete | 18 (Batches 1–18) |
-| Processable cards remaining | ~181 |
-| Flagged cards (cumulative) | ~234 entries — see `FLAGGED_CARDS` section of `POKEMON_MASTER_LIST.md` |
-| Next batch starts at | **Tool Scrapper WHT 85** (`sv10.5w-085`) |
+| Cards in DB | 1875 |
+| Coverage | **98.5%** (29 missing — all legitimately flagged) |
+| Batches complete | 19 (Batches 1–19) |
+| Processable cards remaining | ~82 |
+| Flagged cards (cumulative) | ~243 entries — see `FLAGGED_CARDS` section of `POKEMON_MASTER_LIST.md` |
+| Next batch starts at | **Accompanying Flute TWM 142** (`sv06-142`) |
+
+## Last Session — 2026-05-28 (Card Pool Expansion: Batch 19)
+
+### What Was Done
+
+**Batch 19** (69 new cards, sv10.5w-085 + sv10-161..181 + sv09-142..158 + sv08.5-093..127 + sv08-163..190 + sv07-129..141 + sv06.5-054..064): DB grew from 1806 → 1875 cards.
+- All 100 Batch 19 cards are trainers (Items, Supporters, Stadiums, Tools, TMs, Fossils)
+- 31 cards already in DB from previous batches (alt prints already inserted)
+- **29 new trainer handlers** written: `_tool_scrapper_b19`, `_arvens_sandwich_b19`, `_cynthias_power_weight_b19`, `_emcees_hype_b19`, `_ethanss_adventure_b19`, `_granite_cave_b19`, `_tr_great_ball_b19`, `_tr_venture_bomb_b19`, `_tm_machine_b19`, `_billy_onare_b19`, `_black_belts_training_b19`, `_iris_fighting_spirit_b19`, `_hops_bag_b19`, `_hops_choice_band_b19`, `_ns_castle_b19`, `_ns_pp_up_b19`, `_lillies_pearl_b19`, `_redeemable_ticket_flag_b19`, `_bug_catching_set_b19`, `_crispins_energy_b19`, `_cassiopeia_b19`, `_chill_teaser_toy_b19`, `_lacey_b19`, `_danika_b19`, `_jasmines_secret_art_sfa_b19`, `_academy_at_night_b19`, `_binding_mochi_sfa_b19`, `_colresss_tenacity_b19`, `_xerosics_machinations_b19`
+- **12 handler reuses** for alt prints and shared effects
+- **18 noop registrations** for stadiums, tools, and fossils with no engine effect
+- **9 flagged cards** registered as noop with entries added to FLAGGED_CARDS
+- Fixed 2 wrong comments in `register_all` (sv07-141 → Payapa Berry, sv08.5-095 → Binding Mochi)
+- Added `CardInstance` to trainers.py imports (needed by `_chill_teaser_toy_b19`)
+
+### Issues Encountered
+- None — clean run: all fixtures fetched, all handlers written, 215/215 tests pass
+
+### Final Baseline This Session
+- **215 backend tests pass**
+- **1875 cards in DB**
+- **Coverage: 98.5%** (29 missing — all legitimately flagged, same set as pre-batch)
+- **~243 flagged entries** (full list in `FLAGGED_CARDS` section of `docs/POKEMON_MASTER_LIST.md`)
+
+### Notes for Next Session
+Continue with **Batch 20**, starting at **Accompanying Flute TWM 142** (`sv06-142`). Run `make reset-data` before any fresh simulation testing. If coverage drops after insert + code changes, **restart the backend** before re-checking `/api/coverage`.
+
+---
 
 ## Last Session — 2026-05-27 (Card Pool Expansion: Batch 18)
 

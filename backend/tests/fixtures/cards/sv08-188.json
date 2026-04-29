@@ -1,0 +1,76 @@
+{
+  "category": "Trainer",
+  "id": "sv08-188",
+  "illustrator": "Studio Bora Inc.",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/188",
+  "localId": "188",
+  "name": "Technical Machine: Fluorite",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Grass",
+        "Water",
+        "Psychic"
+      ],
+      "name": "Fluorite",
+      "effect": "Discard all Energy from this Pokémon, and heal all damage from each of your Tera Pokémon."
+    }
+  ],
+  "effect": "The Pokémon this card is attached to can use the attack on this card. (You still need the necessary Energy to use this attack.) If this card is attached to 1 of your Pokémon, discard it at the end of your turn.",
+  "trainerType": "Tool",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794561,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.02,
+      "avg1": 0.06,
+      "avg7": 0.03,
+      "avg30": 0.04,
+      "avg-holo": 0.17,
+      "low-holo": 0.02,
+      "trend-holo": 0.13,
+      "avg1-holo": 0.16,
+      "avg7-holo": 0.14,
+      "avg30-holo": 0.16
+    },
+    "tcgplayer": null
+  }
+}

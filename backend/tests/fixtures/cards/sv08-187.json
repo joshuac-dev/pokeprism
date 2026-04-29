@@ -1,0 +1,82 @@
+{
+  "category": "Trainer",
+  "id": "sv08-187",
+  "illustrator": "Sanosuke Sakuma",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/187",
+  "localId": "187",
+  "name": "Surfer",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "regional-championships"
+      ],
+      "variantId": "gx8bq2hegvl5g45wgglxhz3i120jscen0psbo"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "regional-championships",
+        "staff"
+      ],
+      "variantId": "80gdqxre91h6u93zd18nahawka6ni9aofap3umtkgy"
+    }
+  ],
+  "effect": "Switch your Active Pokémon with 1 of your Benched Pokémon. If you do, draw cards until you have 5 cards in your hand.",
+  "trainerType": "Supporter",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794560,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.08,
+      "avg1": 0.11,
+      "avg7": 0.06,
+      "avg30": 0.06,
+      "avg-holo": 0.13,
+      "low-holo": 0.02,
+      "trend-holo": 0.09,
+      "avg1-holo": 0.13,
+      "avg7-holo": 0.11,
+      "avg30-holo": 0.13
+    },
+    "tcgplayer": null
+  }
+}
