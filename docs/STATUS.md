@@ -73,11 +73,11 @@ Abilities added: Prison Panic (Brambleghast), Sandy Flapping (Flygon), Agile (De
 ### Final Baseline This Session
 - **215 backend tests pass**
 - **0 TypeScript errors**
-- **488 cards in DB** (up from 206 at start of expansion)
-- **Coverage: 99.2%** (484/488)
+- **588 cards in DB** (up from 488 after Batch 4)
+- **Coverage: ~99.2%** (≥584/588)
 
 ### Notes for Next Session
-Continue with **Batch 4**, starting at **Haunter PFL 55** (line 1 of `docs/POKEMON_MASTER_LIST.md`).
+Continue with **Batch 5**, starting at **Tyrogue MEG 71** (line 1 of `docs/POKEMON_MASTER_LIST.md`).
 
 Run `make reset-data` before any fresh simulation testing to clear old sim data.
 
