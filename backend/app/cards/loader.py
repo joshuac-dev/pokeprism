@@ -49,12 +49,14 @@ SET_CODE_MAP: dict[str, str] = {
     "JTG":  "sv09",    # Journey Together    ← blueprint had "sv8pt5"  (wrong)
     "DRI":  "sv10",    # Destined Rivals     ← blueprint had "sv9"     (wrong)
     "WHT":  "sv10.5w", # White Flare         (new)
+    "BLK":  "sv10.5b", # Black Bolt          (new)
     # Mega Evolution era
     "MEG":  "me01",    # Mega Evolution
     "PFL":  "me02",    # Phantasmal Flames
     "ASC":  "me02.5",  # Ascended Heroes
     "POR":  "me03",    # Perfect Order       ← blueprint had "PFO":"sv10" (wrong×2)
     "MEE":  "mee",     # Mega Evolution Energy
+    "MEP":  "mep",     # MEP Black Star Promos
     # NOTE: "M4" (Chaos Rising) intentionally absent — not yet released.
     #       Cards with set_abbrev "M4" are silently skipped.
     # Promos

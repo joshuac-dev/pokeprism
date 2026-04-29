@@ -119,6 +119,7 @@ class CardInstance:
     cant_retreat_next_turn: bool = False  # Set by attacks like Dusknoir Shadow Bind, Yveltal
     protected_from_ex: bool = False       # Set by Acerola's Mischief; cleared at start of your turn
     attack_damage_reduction: int = 0     # Set by Growl etc.; reduces this Pokémon's attack damage
+    incoming_damage_reduction: int = 0   # Set by Gaia Wave etc.; reduces damage received
 
     # Energy-card-specific ─────────────────────────────────────────────────────
     # Populated from CardDefinition.energy_provides at deck-build time.

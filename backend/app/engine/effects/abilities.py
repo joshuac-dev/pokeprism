@@ -18,6 +18,7 @@ Public passive helpers exported from this module:
   has_adrena_power, has_adrena_pheromone
   has_repelling_veil, repelling_veil_protects
   power_saver_blocks_attack
+  has_tundra_wall
 """
 
 from __future__ import annotations
@@ -169,6 +170,18 @@ def has_flower_curtain(state: GameState, player_id: str) -> bool:
     """
     player = state.get_player(player_id)
     return any(p.card_def_id == "sv10-010" for p in _in_play(player))
+
+
+# Tundra Wall (me03-024 Aurorus) ──────────────────────────────────────────────
+
+def has_tundra_wall(state: GameState, player_id: str) -> bool:
+    """True if player has Aurorus (me03-024) with Tundra Wall in play.
+
+    All of that player's Pokémon with any {W} Energy attached take 50 less damage from attacks.
+    Checked from the DEFENDING player's side.
+    """
+    player = state.get_player(player_id)
+    return any(p.card_def_id == "me03-024" for p in _in_play(player))
 
 
 # Psyduck Damp (me02.5-039) ───────────────────────────────────────────────────
@@ -1064,6 +1077,312 @@ def _charging_up(state: GameState, action):
     state.emit_event("charging_up", player=player_id, target=poke.card_name)
 
 
+# Grand Wing (me03-009 Vivillon) ──────────────────────────────────────────────
+
+def _grand_wing(state: GameState, action):
+    """Opponent shuffles hand to bottom of deck; if any shuffled, they draw 4."""
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+
+    cards_to_shuffle = list(opp.hand)
+    if not cards_to_shuffle:
+        state.emit_event("grand_wing", player=player_id, cards_shuffled=0)
+        return
+
+    for card in cards_to_shuffle:
+        opp.hand.remove(card)
+        card.zone = Zone.DECK
+        opp.deck.append(card)
+    random.shuffle(opp.deck)
+    state.emit_event("grand_wing", player=player_id, cards_shuffled=len(cards_to_shuffle))
+
+    draw_cards(state, opp_id, 4)
+
+
+# Sky Hunt (me03-014 Talonflame) ──────────────────────────────────────────────
+
+def _sky_hunt(state: GameState, action):
+    """Flip a coin. Heads: discard a random card from opponent's hand."""
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+
+    if random.choice([True, False]):
+        if opp.hand:
+            card = random.choice(opp.hand)
+            opp.hand.remove(card)
+            card.zone = Zone.DISCARD
+            opp.discard.append(card)
+            state.emit_event("sky_hunt", player=player_id, result="heads",
+                             discarded=card.card_name)
+    else:
+        state.emit_event("sky_hunt", player=player_id, result="tails")
+
+
+# Wash Out (me03-019 Dewgong) ─────────────────────────────────────────────────
+
+def _wash_out(state: GameState, action):
+    """Move 1 {W} Energy from a Benched Pokémon to Active Pokémon (once per turn)."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    if not player.active or not player.bench:
+        return
+
+    # Collect all {W} energy on benched pokemon
+    bench_w_energy = []
+    for bench_poke in player.bench:
+        for att in bench_poke.energy_attached:
+            if att.energy_type == EnergyType.WATER:
+                bench_w_energy.append((bench_poke, att))
+
+    if not bench_w_energy:
+        state.emit_event("wash_out_failed", player=player_id, reason="no W energy on bench")
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Wash Out: choose a {W} Energy from a Benched Pokémon to move to your Active Pokémon.",
+        cards=[att for (_, att) in bench_w_energy],
+        min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
+                  and resp.chosen_card_ids else [])
+    if not chosen_ids:
+        chosen_ids = [bench_w_energy[0][1].source_card_id]
+
+    for src_id in chosen_ids[:1]:
+        for bench_poke, att in list(bench_w_energy):
+            if att.source_card_id == src_id and att in bench_poke.energy_attached:
+                bench_poke.energy_attached.remove(att)
+                player.active.energy_attached.append(att)
+                state.emit_event("wash_out", player=player_id,
+                                 from_card=bench_poke.card_name,
+                                 to_card=player.active.card_name)
+                break
+
+
+# Scent Collection (me03-036 Aromatisse) ─────────────────────────────────────
+
+def _scent_collection(state: GameState, action):
+    """Search deck for up to 2 Basic {P} Energy, put in hand."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    psychic_energy = [c for c in player.deck
+                      if c.card_type.lower() == "energy"
+                      and c.card_subtype.lower() == "basic"
+                      and "Psychic" in (c.energy_provides or [])]
+    if not psychic_energy:
+        random.shuffle(player.deck)
+        state.emit_event("scent_collection", player=player_id, found=0)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Scent Collection: choose up to 2 Basic {P} Energy from deck to put in hand.",
+        cards=psychic_energy, min_count=0, max_count=2,
+    )
+    resp = yield req
+    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
+                  and resp.chosen_card_ids else [])
+    if not chosen_ids:
+        chosen_ids = [c.instance_id for c in psychic_energy[:2]]
+
+    found = 0
+    for cid in chosen_ids:
+        card = next((c for c in player.deck if c.instance_id == cid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+            found += 1
+
+    random.shuffle(player.deck)
+    state.emit_event("scent_collection", player=player_id, found=found)
+
+
+# Multiplying Cocoon (me02.5-012 Silcoon) ─────────────────────────────────────
+
+def _multiplying_cocoon(state: GameState, action):
+    """Search deck for a Silcoon or Cascoon, put it on Bench."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    if len(player.bench) >= 5:
+        state.emit_event("multiplying_cocoon", player=player_id, reason="bench_full")
+        return
+
+    targets = [c for c in player.deck
+               if c.card_def_id in ("me02.5-012", "me02.5-014")]
+    if not targets:
+        random.shuffle(player.deck)
+        state.emit_event("multiplying_cocoon", player=player_id, found=0)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Multiplying Cocoon: choose a Silcoon or Cascoon from deck to put on Bench.",
+        cards=targets, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
+                  and resp.chosen_card_ids else [])
+    if not chosen_ids:
+        chosen_ids = [targets[0].instance_id]
+
+    for cid in chosen_ids[:1]:
+        card = next((c for c in player.deck if c.instance_id == cid), None)
+        if card and len(player.bench) < 5:
+            player.deck.remove(card)
+            cdef = card_registry.get(card.card_def_id)
+            card.zone = Zone.BENCH
+            card.max_hp = cdef.hp if cdef else card.max_hp
+            card.current_hp = card.max_hp
+            card.evolution_stage = 1
+            card.turn_played = state.turn_number
+            player.bench.append(card)
+            state.emit_event("multiplying_cocoon", player=player_id,
+                             card=card.card_name)
+
+    random.shuffle(player.deck)
+
+
+# Boisterous Wind (me02.5-015 Dustox) ────────────────────────────────────────
+
+def _boisterous_wind(state: GameState, action):
+    """Flip a coin. Heads: put an Energy from opp's Active into their hand."""
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+
+    if not random.choice([True, False]):
+        state.emit_event("boisterous_wind", player=player_id, result="tails")
+        return
+
+    if not opp.active or not opp.active.energy_attached:
+        state.emit_event("boisterous_wind", player=player_id, result="heads",
+                         reason="no energy")
+        return
+
+    att = random.choice(list(opp.active.energy_attached))
+    opp.active.energy_attached.remove(att)
+    state.emit_event("boisterous_wind", player=player_id, result="heads",
+                     energy_returned=att.card_def_id)
+
+
+# Golden Flame (me02.5-026 Ethan's Ho-Oh ex) ─────────────────────────────────
+
+def _golden_flame(state: GameState, action):
+    """Attach up to 2 Basic {R} Energy from hand to 1 Benched Ethan's Pokémon."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    ethan_bench = [p for p in player.bench if "Ethan's" in p.card_name]
+    if not ethan_bench:
+        state.emit_event("golden_flame", player=player_id, reason="no Ethan's on bench")
+        return
+
+    fire_energy = [c for c in player.hand
+                   if c.card_type.lower() == "energy"
+                   and c.card_subtype.lower() == "basic"
+                   and "Fire" in (c.energy_provides or [])]
+    if not fire_energy:
+        state.emit_event("golden_flame", player=player_id, reason="no fire energy in hand")
+        return
+
+    req_target = ChoiceRequest(
+        "choose_target", player_id,
+        "Golden Flame: choose a Benched Ethan's Pokémon to attach Fire Energy to.",
+        targets=ethan_bench,
+    )
+    resp_target = yield req_target
+    target = None
+    if resp_target and hasattr(resp_target, "target_instance_id") and resp_target.target_instance_id:
+        target = next((p for p in ethan_bench
+                       if p.instance_id == resp_target.target_instance_id), None)
+    if target is None:
+        target = ethan_bench[0]
+
+    max_count = min(2, len(fire_energy))
+    req_energy = ChoiceRequest(
+        "choose_cards", player_id,
+        "Golden Flame: choose up to 2 Basic {R} Energy from hand to attach.",
+        cards=fire_energy, min_count=0, max_count=max_count,
+    )
+    resp_energy = yield req_energy
+    chosen_ids = (resp_energy.chosen_card_ids if resp_energy and hasattr(resp_energy, "chosen_card_ids")
+                  and resp_energy.chosen_card_ids else [])
+    if not chosen_ids:
+        chosen_ids = [c.instance_id for c in fire_energy[:max_count]]
+
+    attached = 0
+    for cid in chosen_ids:
+        card = next((c for c in player.hand if c.instance_id == cid), None)
+        if card:
+            _attach_from_hand_or_discard(player, target, card)
+            attached += 1
+
+    state.emit_event("golden_flame", player=player_id, target=target.card_name, attached=attached)
+
+
+# Lovely Fragrance (me02.5-003 Erika's Vileplume ex) ─────────────────────────
+
+def _lovely_fragrance(state: GameState, action):
+    """Heal 30 damage from each of your Pokémon."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    for poke in _in_play(player):
+        if poke.damage_counters > 0:
+            heal = min(30, poke.damage_counters * 10)
+            counters = min(3, poke.damage_counters)
+            poke.current_hp = min(poke.current_hp + heal, poke.max_hp)
+            poke.damage_counters -= counters
+            state.emit_event("healed", player=player_id, card=poke.card_name, amount=heal)
+
+
+# Gathering of Blossoms (me02.5-007 Erika's Tangela) ─────────────────────────
+
+def _gathering_of_blossoms(state: GameState, action):
+    """Search deck for an Erika's Pokémon, put in hand."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    erikas_pokemon = [c for c in player.deck
+                      if c.card_type.lower() == "pokemon"
+                      and "Erika's" in c.card_name]
+    if not erikas_pokemon:
+        random.shuffle(player.deck)
+        state.emit_event("gathering_of_blossoms", player=player_id, found=0)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Gathering of Blossoms: choose an Erika's Pokémon from deck to put in hand.",
+        cards=erikas_pokemon, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
+                  and resp.chosen_card_ids else [])
+    if not chosen_ids:
+        chosen_ids = [erikas_pokemon[0].instance_id]
+
+    found = 0
+    for cid in chosen_ids[:1]:
+        card = next((c for c in player.deck if c.instance_id == cid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+            found += 1
+
+    random.shuffle(player.deck)
+    state.emit_event("gathering_of_blossoms", player=player_id, found=found)
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # register_all
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1079,8 +1398,9 @@ BENCH_TRIGGER_ABILITIES: frozenset[str] = frozenset({
 
 #: Ability names that trigger automatically when a Pokémon evolves.
 EVOLVE_TRIGGER_ABILITIES: frozenset[str] = frozenset({
-    "Psychic Draw",  # me01-055 Kadabra / me01-056 Alakazam
-    "Punk Up",       # sv10-136 Marnie's Grimmsnarl ex
+    "Psychic Draw",          # me01-055 Kadabra / me01-056 Alakazam
+    "Punk Up",               # sv10-136 Marnie's Grimmsnarl ex
+    "Multiplying Cocoon",    # me02.5-012 Silcoon
 })
 
 
@@ -1220,3 +1540,32 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_passive_ability("svp-149",    "Toxic Subjugation")
     registry.register_passive_ability("sv05-024",   "Spherical Shield")
     registry.register_passive_ability("me03-031",   "Luminous Wing")
+
+    # ── New abilities (Batch 1) ──────────────────────────────────────────────
+    # On-evolve triggers
+    registry.register_ability("me02.5-012", "Multiplying Cocoon", _multiplying_cocoon)
+
+    # Active-use abilities
+    registry.register_ability("me03-009", "Grand Wing", _grand_wing)
+    registry.register_ability("me03-014", "Sky Hunt", _sky_hunt)
+    registry.register_ability("me03-019", "Wash Out", _wash_out)
+    registry.register_ability("me03-036", "Scent Collection", _scent_collection)
+    registry.register_ability("me02.5-015", "Boisterous Wind", _boisterous_wind)
+    registry.register_ability("me02.5-026", "Golden Flame", _golden_flame)
+    registry.register_ability("me02.5-003", "Lovely Fragrance", _lovely_fragrance)
+    registry.register_ability("me02.5-007", "Gathering of Blossoms", _gathering_of_blossoms)
+
+    # Reuse existing handler for new card ID
+    registry.register_ability("me02.5-019", "Charging Up", _charging_up)
+
+    # Passive abilities
+    registry.register_passive_ability("me03-012",   "Sniper's Eye")
+    registry.register_passive_ability("me03-024",   "Tundra Wall")
+    registry.register_passive_ability("me03-027",   "Fighting Roar")
+    registry.register_passive_ability("me03-045",   "Tyrannically Gutsy")
+    registry.register_passive_ability("me03-050",   "Infinite Shadow")
+    registry.register_passive_ability("me03-017",   "Shell Spikes")
+    registry.register_passive_ability("me03-068",   "Intimidating Jaw")
+    registry.register_passive_ability("me03-069",   "Protective Sail")
+    registry.register_passive_ability("me02.5-024", "Melt Away")
+    registry.register_passive_ability("me02.5-027", "Incandescent Body")
