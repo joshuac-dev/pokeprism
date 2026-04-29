@@ -10,8 +10,8 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | 1160 |
-| Coverage | **97.3%** (932/1159 implemented or flat-only; 31 missing) |
+| Cards in DB | 1159 |
+| Coverage | **97.5%** (1130/1159 implemented or flat-only; 29 missing) |
 | Batches complete | 11 (Batches 1–11) |
 | Cards remaining in list | ~986 |
 | Next batch starts at | **Zweilous SSP 118** (`sv08-118`) |
@@ -61,9 +61,9 @@ New ability handlers: Up-Tempo (sv08-052 Quaquaval active); Victory Cheer, Spark
 
 ### Final Baseline This Session
 - **215 backend tests pass**
-- **1160 cards in DB** (up from 1061)
-- **Coverage: 97.3%** (932/1159 implemented or flat-only; 31 missing — all legitimately flagged)
-- **~68 flagged cards total**
+- **1159 cards in DB** (up from 1060)
+- **Coverage: 97.5%** (implemented or flat-only; 29 missing — all legitimately flagged)
+- **~70 flagged cards total**
 
 ### Notes for Next Session
 Continue with **Batch 12**, starting at **Zweilous SSP 118** (`sv08-118`). Run `make reset-data` before any fresh simulation testing.

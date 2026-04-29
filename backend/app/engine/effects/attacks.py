@@ -13464,6 +13464,25 @@ def _entangling_whip(state, action):
 # ── Batch 10 fix: missing sv08.5 handlers ────────────────────────────────────
 
 
+def _rock_hurl(state, action):
+    """sv08-114 Glimmet atk0 — Rock Hurl: 10, not affected by Resistance."""
+    _apply_damage(state, action, 10, bypass_resistance_only=True)
+
+
+def _corrosive_shards(state, action):
+    """sv08-115 Glimmora atk0 — Corrosive Shards: 20 + Poison + FLAGGED (energy attach locked)."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp = state.get_opponent(action.player_id)
+    if opp.active:
+        opp.active.status_conditions.add(StatusCondition.POISONED)
+        state.emit_event("status_applied", status="poisoned",
+                         card=opp.active.card_name, attack="Corrosive Shards")
+    state.emit_event("flagged_effect", attack="Corrosive Shards",
+                     reason="energy_attach_lock_not_implemented")
+
+
 def _destructive_flame(state, action):
     """sv08.5-013 Flareon atk0 — Destructive Flame: 30 + heads → discard energy from opp active."""
     _do_default_damage(state, action)
@@ -16586,6 +16605,8 @@ def register_all(registry):
     registry.register_attack("sv08.5-058", 0, _demolish)                   # Cornerstone Mask Ogerpon ex — Demolish (reuse)
     registry.register_attack("sv08.5-059", 0, _feint_attack_b11)           # Umbreon — Feint Attack
     registry.register_attack("sv08.5-059", 1, _pitch_black_blade)          # Umbreon — Pitch-Black Blade
+    registry.register_attack("sv08-114", 0, _rock_hurl)                    # Glimmet — Rock Hurl
+    registry.register_attack("sv08-115", 0, _corrosive_shards)             # Glimmora — Corrosive Shards
 
     # ── Batch 11: sv08-016..117 ──────────────────────────────────────────────
     # sv08-016 Vulpix: ATK0 Take Down (reuse)
