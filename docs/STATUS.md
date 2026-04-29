@@ -14,7 +14,7 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 | Coverage | **~99.3%** (582/584 implemented or flat-only; 2 noops) |
 | Batches complete | 5 (Batches 1–5) |
 | Cards remaining in list | ~1,489 processable + 11 flagged |
-| Next batch starts at | **Simisage BLK 5** |
+| Next batch starts at | **Krookodile BLK 59** |
 
 ## Last Session — 2026-05-XX (Card Pool Expansion: Batch 5)
 
@@ -37,6 +37,11 @@ State/engine changes:
 |------|-----------|---------------|--------|
 | Duosion BLK 38 | sv10.5b-038 | Cellular Evolution (atk0) | Evolve any of your Benched Pokémon from deck mid-battle — full in-battle multi-bench evolution not supported |
 | Reuniclus BLK 39 | sv10.5b-039 | Cellular Ascension (atk0) | Evolve all your in-play Pokémon from deck at once — full simultaneous batch evolution not supported |
+| Karrablast BLK 9 | sv10.5b-009 | Stimulated Evolution (ability) | First-turn evolution requires Shelmet in play — conditional evolution rule not supported |
+| Meloetta ex BLK 44 | sv10.5b-044 | Debut Performance (ability) | Attack on first turn of the game — first-turn attack exception requires action validator change |
+| Conkeldurr BLK 49 | sv10.5b-049 | Craftsmanship (ability) | +40 max HP per attached {F} Energy — dynamic max HP recalculation not supported |
+| Crawdaunt MEG 85 | me01-085 | Cutting Riposte (atk1) | Cost reduction to {D} when already damaged — conditional energy cost requires action validator change |
+| Latios MEG 101 | me01-101 | Lustrous Assist (ability) | Trigger when Mega Latias ex moves bench→active, move energy — complex event hook not supported |
 
 ### Final Baseline This Session
 - **215 backend tests pass**
@@ -45,7 +50,7 @@ State/engine changes:
 - **Coverage: ~99.3%** (582/584 implemented or flat-only)
 
 ### Notes for Next Session
-Continue with **Simisage BLK 5** (next unprocessed card). Run `make reset-data` before any fresh simulation testing.
+Continue with **Krookodile BLK 59** (next unprocessed card). Run `make reset-data` before any fresh simulation testing.
 
 ---
 

@@ -1,103 +1,3 @@
-Tyrogue MEG 71
-Makuhita MEG 72
-Hariyama MEG 73
-Lunatone MEG 74
-Solrock MEG 75
-Riolu MEG 76
-Mega Lucario ex MEG 77
-Stonjourner MEG 81
-Marshadow MEG 80
-Toxicroak MEG 79
-Croagunk MEG 78
-Nacli MEG 82
-Naclstack MEG 83
-Garganacl MEG 84
-Crawdaunt MEG 85
-Tinkatuff MEG 97
-Tinkatink MEG 96
-Dialga MEG 95
-Mega Mawile ex MEG 94
-Thievul MEG 90
-Shroodle MEG 91
-Grafaiai MEG 92
-Steelix MEG 93
-Nickit MEG 89
-Yveltal MEG 88
-Spiritomb MEG 87
-Mega Absol ex MEG 86
-Tinkaton MEG 98
-Gholdengo MEG 99
-Mega Latias ex MEG 100
-Latios MEG 101
-Spearow MEG 102
-Fearow MEG 103
-Mega Kangaskhan ex MEG 104
-Delibird MEG 105
-Yungoos MEG 109
-Lopunny MEG 108
-Buneary MEG 107
-Miltank MEG 106
-Gumshoos MEG 110
-Stufful MEG 111
-Bewear MEG 112
-Snivy BLK 1
-Servine BLK 2
-Serperior ex BLK 3
-Pansage BLK 4
-Simisage BLK 5
-Karrablast BLK 9
-Maractus BLK 8
-Lilligant BLK 7
-Petilil BLK 6
-Foongus BLK 10
-Amoonguss BLK 11
-Victini BLK 12
-Darumaka BLK 13
-Panpour BLK 17
-Volcarona BLK 16
-Larvesta BLK 15
-Darmanitan BLK 14
-Simipour BLK 18
-Tympole BLK 19
-Palpitoad BLK 20
-Seismitoad BLK 21
-Cubchoo BLK 25
-Alomomola BLK 24
-Carracosta BLK 23
-Tirtouga BLK 22
-Beartic BLK 26
-Cryogonal BLK 27
-Kyurem ex BLK 28
-Emolga BLK 29
-Thundurus BLK 33
-Eelektross BLK 32
-Eelektrik BLK 31
-Tynamo BLK 30
-Zekrom ex BLK 34
-Munna BLK 35
-Musharna BLK 36
-Solosis BLK 37
-Beheeyem BLK 41
-Elgyem BLK 40
-Reuniclus BLK 39
-Duosion BLK 38
-Golett BLK 42
-Golurk BLK 43
-Meloetta ex BLK 44
-Drilbur BLK 45
-Conkeldurr BLK 49
-Gurdurr BLK 48
-Timburr BLK 47
-Excadrill ex BLK 46
-Throh BLK 50
-Dwebble BLK 51
-Crustle BLK 52
-Landorus BLK 53
-Sandile BLK 57
-Scolipede BLK 56
-Whirlipede BLK 55
-Venipede BLK 54
-Krokorok BLK 58
 Krookodile BLK 59
 Escavalier BLK 60
 Klink BLK 61
@@ -1601,3 +1501,8 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Rotom ex PFL 29 | me02-029 | Multi Adapter (ability) | Each of your Pokémon that has 'Rotom' in its name may have up to 2 Tool cards attached — modifying the tool attachment limit in actions.py (currently hardcoded to 1) is too complex |
 | Duosion BLK 38 | sv10.5b-038 | Cellular Evolution (atk0) | Evolve any of your Benched Pokémon from deck mid-battle — full in-battle multi-bench evolution not supported |
 | Reuniclus BLK 39 | sv10.5b-039 | Cellular Ascension (atk0) | Evolve all of your in-play Pokémon from deck simultaneously — full simultaneous batch evolution not supported |
+| Karrablast BLK 9 | sv10.5b-009 | Stimulated Evolution (ability) | First-turn evolution requires Shelmet in play — conditional evolution rule not supported in action validator |
+| Meloetta ex BLK 44 | sv10.5b-044 | Debut Performance (ability) | Attack on first turn of the game — first-turn attack exception requires action validator change |
+| Conkeldurr BLK 49 | sv10.5b-049 | Craftsmanship (ability) | +40 max HP per attached {F} Energy — dynamic max HP recalculation not supported |
+| Crawdaunt MEG 85 | me01-085 | Cutting Riposte (atk1) | Cost reduction to {D} when already damaged — conditional energy cost requires action validator change |
+| Latios MEG 101 | me01-101 | Lustrous Assist (ability) | Trigger when Mega Latias ex moves bench→active, move energy — complex event hook not supported |
