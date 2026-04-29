@@ -10,17 +10,74 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | 1259 |
-| Coverage | **97.7%** (1230/1259 implemented or flat-only; 29 missing) |
-| Batches complete | 12 (Batches 1–12) |
-| Cards remaining in list | ~886 |
-| Next batch starts at | **Drifloon SCR 60** (`sv07-060`) |
+| Cards in DB | 1361 |
+| Coverage | **97.9%** (1331/1361 implemented or flat-only; 29 missing — all pre-existing flagged) |
+| Batches complete | 13 (Batches 1–13) |
+| Cards remaining in list | ~786 |
+| Next batch starts at | **Munkidori ex SFA 37** (`sv06.5-037`) |
 
-## Last Session — 2026-05-08 (Card Pool Expansion: Batch 12)
+## Last Session — 2026-05-08 (Card Pool Expansion: Batch 13)
 
 ### What Was Done
 
-**Batch 12** (100 new cards, SSP sv08-118..161 + SCR sv07-002..059): DB grew from 1159 → 1259 cards.
+**Batch 13** (102 new cards, SCR sv07-060..128 + SFA sv06.5-001..034): DB grew from 1259 → 1361 cards.
+
+New attack handlers (~72 new functions): Drifloon/Drifblim, Comfey, Fidough, Dachsbun ex, Iron Boulder, Cubone/Marowak, Rhydon/Rhyperior, Meditite/Medicham/Medicham ex, Mienfoo/Mienshao, Pancham/Diancie, Koraidon, Gulpin/Swalot, Pangoro, Grimmsnarl, Bombirdier, Klink/Klang/Klinklang, Meltan/Melmetal/Melmetal ex, Duraludon, Archaludon, Orthworm ex, Raging Bolt, Tauros, Eevee, Hoothoot, Purugly, Bouffalant, Tornadus, Fletchling, Talonflame, Wooloo/Dubwool, Terapagos ex, Joltik/Galvantula, Rowlet, Dartrix, Decidueye, Tapu Bulu, Houndoom, Iron Moth, Horsea/Seadra, Kingdra ex, Sneasel/Weavile, Revavroom ex, Drowzee/Hypno, Duskull/Dusknoir, Cresselia, Sylveon, Croagunk/Toxicroak, Bloodmoon Ursaluna, Slither Wing, Zubat/Golbat/Crobat, Absol, Zorua/Zoroark, Inkay/Malamar
+
+Reused handlers: `_splashing_dodge`, `_assault_landing`, `_hail_claw`, `_disarming_voice`, `_reckless_charge`, `_call_for_family`, `_call_for_family_1`, `_pull_bench_to_active`, `_knickknack_carrying`, `_crown_opal`
+
+New state field: `double_poison: bool = False` on CardInPlay — Crobat SFA Poison Fang inflicts 2 damage counters/turn (20 damage) instead of 1
+
+New ability registrations: 7 passive stubs (Time to Chow Down, Wide Wall, Emergency Rotation, Metal Bridge, Pummeling Payback, Jewel Seeker, Fan Call (active reuse), Curly Wall, Soft Wool, Compound Eyes, Cursed Blast ×2, Battle-Hardened, Shadowy Envoy)
+
+### Flagged Cards (new this batch — 32)
+
+| Card | TCGDex ID | Attack/Ability | Reason |
+|------|-----------|---------------|--------|
+| Alcremie SCR 65 | sv07-065 | Colorful Confection (atk0) | Search deck for Pokémon by attached energy type — not supported |
+| Falinks SCR 88 | sv07-088 | All-Out Attack (atk1) | +90 if Form Ranks used last turn — inter-turn attack tracking not in state |
+| Grimmsnarl SCR 96 | sv07-096 | Goad 'n' Grab (atk0) | Forced bench switch + damage combo — not supported |
+| Jirachi SCR 98 | sv07-098 | Swelling Wish (atk0) | Attach Basic Energy from discard to Bench — not wired |
+| Dachsbun ex SCR 67 | sv07-067 | Time to Chow Down (ability) | On-evolve heal 100 from each — on-evolve hook not in engine |
+| Orthworm ex SCR 110 | sv07-110 | Pummeling Payback (ability) | Counter-damage on hit — on-damage trigger not supported |
+| Klinklang SCR 101 | sv07-101 | Emergency Rotation (ability) | Free retreat on damage — on-damage hook not supported |
+| Archaludon SCR 107 | sv07-107 | Metal Bridge (ability) | Free retreat with Metal Energy — dynamic retreat cost not supported |
+| Noctowl SCR 115 | sv07-115 | Jewel Seeker (ability) | On-evolve deck search — not implemented |
+| Fletchling SCR 121 | sv07-121 | Send Back (atk0) | Shuffle opponent's hand and redraw — not supported |
+| Wooloo/Dubwool SCR 124/125 | sv07-124/125 | Knock Over (atk0) | Discard all attached Items/Tools — not supported |
+| Dubwool SCR 125 | sv07-125 | Soft Wool (ability) | Reduce bench damage by 30 — bench damage hook not in engine |
+| Bouffalant SCR 119 | sv07-119 | Curly Wall (ability) | Reduce bench damage by 20 — bench damage hook not in engine |
+| Dartrix SFA 4 | sv06.5-004 | United Wings (atk0) | 20× count of named Pokémon across zones — not supported |
+| Decidueye SFA 5 | sv06.5-005 | Stock Up on Feathers (atk0) | Multi-turn feather counter mechanic — not supported |
+| Iron Moth SFA 9 | sv06.5-009 | Anachronism Repulsor (atk1) | Deferred type-based damage to opp board — not supported |
+| Seadra SFA 11 | sv06.5-011 | Call for Backup (atk0) | Mid-battle in-deck Evolution — not supported |
+| Kingdra ex SFA 12 | sv06.5-012 | King's Order (atk0) | Mass HP-conditional bounce to deck — not supported |
+| Revavroom ex SFA 15 | sv06.5-015 | Both attacks | Attach Energy from deck during attack — not supported |
+| Hypno SFA 17 | sv06.5-017 | Daydream (atk0) | Depends on last Trainer type played — not tracked |
+| Duskull SFA 18 | sv06.5-018 | Come and Get You (atk0) | Forced gust before damage — not supported |
+| Cresselia SFA 21 | sv06.5-021 | Crescent Purge (atk1) | Heal all own Pokémon 30 — mass heal not supported |
+| Sylveon SFA 22 | sv06.5-022 | Mystical Return (atk0) | Flip → return opp bench to deck — not supported |
+| Bloodmoon Ursaluna SFA 25 | sv06.5-025 | Battle-Hardened (ability) | Once-per-turn counter + damage reduction — active ability not supported |
+| Galvantula SFA 2 | sv06.5-002 | Compound Eyes (ability) | +50 damage to Active from bench — bench passive bonus not in _apply_damage |
+| Dusclops SFA 19 | sv06.5-019 | Cursed Blast (ability) | Place 5 counters on any Pokémon once/turn — not implemented |
+| Dusknoir SFA 20 | sv06.5-020 | Cursed Blast (ability) | Place 13 counters on any Pokémon once/turn — not implemented |
+| Crobat SFA 29 | sv06.5-029 | Shadowy Envoy (ability) | Card-play-as-Janine-Secret-Art — not supported |
+| Zubat SFA 27 | sv06.5-027 | Lead (atk0) | 30× Golbat+Crobat count in hand/bench — not supported |
+| Inkay SFA 33 | sv06.5-033 | Mischievous Tentacles (atk0) | Self bench-swap from attack — not supported |
+| Malamar SFA 34 | sv06.5-034 | Colluding Tentacles (atk0) | Requires Janine's Secret Art in play — not supported |
+
+### Final Baseline This Session
+- **215 backend tests pass**
+- **1361 cards in DB** (up from 1259)
+- **Coverage: 97.9%** (1331/1361 implemented or flat-only; 29 missing — all pre-existing flagged)
+- **~138 flagged cards total**
+
+### Notes for Next Session
+Continue with **Batch 14**, starting at **Munkidori ex SFA 37** (`sv06.5-037`). Run `make reset-data` before any fresh simulation testing.
+
+---
+
+## Last Session — 2026-05-08 (Card Pool Expansion: Batch 12)
 
 New attack handlers: 52 new handlers covering Zweilous, Hydreigon ex, Grafaiai, Alolan Diglett/Dugtrio, Skarmory, Registeel, Bronzor/Bronzong, Klefki, Duraludon, Archaludon ex, Gholdengo, Iron Crown, Alolan Exeggutor ex, Altaria, Dialga, Palkia, Turtonator (SSP), Applin/Flapple/Appletun, Eternatus, Tatsugiri ex, Eevee, Snorlax, Slakoth, Slaking ex, Swablu, Zangoose, Kecleon, Bouffalant, Braviary, Helioptile, Heliolisk, Oranguru, Tandemaus, Maushold, Cyclizar ex, Flamigo ex, Terapagos, Ledian, Celebi, Lileep/Cradily, Carnivine, Mow Rotom, Grubbin, Gossifleur, Eldegoss, Dipplin, Hydrapple ex, Toedscruel, Rapidash, Salandit/Salazzle, Turtonator (SCR), Scorbunny, Cinderace ex, Lapras ex, Azumarill, Lumineon, Tirtouga, Greninja ex, Crabominable, Drednaw, Veluza, Electabuzz, Electivire, Chinchou, Lanturn, Joltik, Galvantula ex, Charjabug, Vikavolt, Togedemaru, Zeraora, Pawmi, Slowpoke, Slowking
 

@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-125",
+  "illustrator": "HYOGONOSUKE",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/125",
+  "localId": "125",
+  "name": "Dubwool",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    832
+  ],
+  "hp": 130,
+  "types": [
+    "Colorless"
+  ],
+  "evolveFrom": "Wooloo",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Soft Wool",
+      "effect": "This Pokémon takes 30 less damage from attacks (after applying Weakness and Resistance)."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Knock Over",
+      "effect": "You may discard a Stadium in play.",
+      "damage": 70
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:28+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785979,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.02,
+      "avg1": 0.02,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.13,
+      "low-holo": 0.02,
+      "trend-holo": 0.17,
+      "avg1-holo": 0.03,
+      "avg7-holo": 0.14,
+      "avg30-holo": 0.12
+    },
+    "tcgplayer": null
+  }
+}

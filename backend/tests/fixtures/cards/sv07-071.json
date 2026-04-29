@@ -1,0 +1,71 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-071",
+  "illustrator": "GIDORA",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/071",
+  "localId": "071",
+  "name": "Iron Boulder",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    1022
+  ],
+  "hp": 140,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Adjusted Horn",
+      "effect": "If you don't have the same number of cards in your hand as your opponent, this attack does nothing.",
+      "damage": 170
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785925,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.08,
+      "avg1": 0.1,
+      "avg7": 0.07,
+      "avg30": 0.06,
+      "avg-holo": 0.15,
+      "low-holo": 0.02,
+      "trend-holo": 0.21,
+      "avg1-holo": 0.05,
+      "avg7-holo": 0.2,
+      "avg30-holo": 0.15
+    },
+    "tcgplayer": null
+  }
+}

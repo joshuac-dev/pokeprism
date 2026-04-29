@@ -1,103 +1,3 @@
-Drifloon SCR 60
-Drifblim SCR 61
-Comfey SCR 63
-Milcery SCR 64
-Alcremie SCR 65
-Fidough SCR 66
-Greavard SCR 70
-Espathra SCR 69
-Flittle SCR 68
-Dachsbun ex SCR 67
-Iron Boulder SCR 71
-Cubone SCR 72
-Marowak SCR 73
-Rhyhorn SCR 74
-Rhydon SCR 75
-Rhyperior SCR 76
-Meditite SCR 77
-Meditite SCR 78
-Lucario ex SCR 82
-Riolu SCR 81
-Medicham ex SCR 80
-Medicham SCR 79
-Mienfoo SCR 83
-Mienshao SCR 84
-Pancham SCR 85
-Diancie SCR 86
-Crabrawler SCR 87
-Falinks SCR 88
-Koraidon SCR 90
-Gulpin SCR 91
-Morgrem SCR 95
-Impidimp SCR 94
-Pangoro SCR 93
-Swalot SCR 92
-Grimmsnarl SCR 96
-Bombirdier SCR 97
-Jirachi SCR 98
-Klink SCR 99
-Klang SCR 100
-Klinklang SCR 101
-Meltan SCR 102
-Meltan SCR 103
-Archaludon SCR 107
-Duraludon SCR 106
-Melmetal ex SCR 105
-Melmetal SCR 104
-Varoom SCR 108
-Revavroom SCR 109
-Orthworm ex SCR 110
-Raging Bolt SCR 111
-Tauros SCR 112
-Eevee SCR 113
-Hoothoot SCR 114
-Noctowl SCR 115
-Bouffalant SCR 119
-Fan Rotom SCR 118
-Purugly SCR 117
-Glameow SCR 116
-Tornadus SCR 120
-Fletchling SCR 121
-Fletchinder SCR 122
-Talonflame SCR 123
-Wooloo SCR 124
-Dubwool SCR 125
-Lechonk SCR 126
-Cyclizar SCR 127
-Terapagos ex SCR 128
-Joltik SFA 1
-Galvantula SFA 2
-Rowlet SFA 3
-Dartrix SFA 4
-Decidueye SFA 5
-Tapu Bulu SFA 6
-Houndour SFA 7
-Houndoom SFA 8
-Iron Moth SFA 9
-Sneasel SFA 13
-Kingdra ex SFA 12
-Seadra SFA 11
-Horsea SFA 10
-Weavile SFA 14
-Revavroom ex SFA 15
-Drowzee SFA 16
-Hypno SFA 17
-Duskull SFA 18
-Dusclops SFA 19
-Dusknoir SFA 20
-Cresselia SFA 21
-Bloodmoon Ursaluna SFA 25
-Toxicroak SFA 24
-Croagunk SFA 23
-Sylveon SFA 22
-Slither Wing SFA 26
-Zubat SFA 27
-Golbat SFA 28
-Crobat SFA 29
-Absol SFA 30
-Zorua SFA 31
-Zoroark SFA 32
-Inkay SFA 33
 Munkidori ex SFA 37
 Okidogi ex SFA 36
 Yveltal SFA 35
@@ -884,3 +784,34 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Skeledirge SSP 31 | sv08-031 | Unaware (ability) | Not affected by opponent's attack effects — broad attack-effect prevention hook not in engine |
 | Scovillain ex SSP 37 | sv08-037 | Double Type (ability) | This Pokémon is also a Grass-type — dual typing not supported in damage pipeline |
 | Bruxish SSP 49 | sv08-049 | Counterattack (ability) | When damaged, place 3 counters on attacker — on-damage trigger not in engine |
+| Alcremie SCR 65 | sv07-065 | Colorful Confection (atk0) | Search deck for up to 5 Pokémon matching any attached Basic Energy type — search-by-energy-type not supported |
+| Dachsbun ex SCR 67 | sv07-067 | Time to Chow Down (ability) | On evolve: heal 100 from each of your Pokémon — on-evolve heal hook not in engine |
+| Falinks SCR 88 | sv07-088 | All-Out Attack (atk1) | +90 damage if Form Ranks was used last turn — inter-turn last-used-attack tracking not in state |
+| Grimmsnarl SCR 96 | sv07-096 | Goad 'n' Grab (atk0) | Forced switch opponent's bench + damage to new active — forced-switch-before-damage combo not supported |
+| Jirachi SCR 98 | sv07-098 | Swelling Wish (atk0) | Attach a Basic Energy from discard to 1 of your Benched Pokémon — energy-from-discard-to-bench not yet wired |
+| Orthworm ex SCR 110 | sv07-110 | Pummeling Payback (ability) | Place 3 damage counters on attacker when this Pokémon is damaged — on-damage trigger not in engine |
+| Klinklang SCR 101 | sv07-101 | Emergency Rotation (ability) | When this Pokémon takes damage, you may retreat it for free — on-damage conditional retreat hook not in engine |
+| Archaludon SCR 107 | sv07-107 | Metal Bridge (ability) | Retreat for free if Metal Energy attached — dynamic retreat cost based on attachment not supported |
+| Noctowl SCR 115 | sv07-115 | Jewel Seeker (ability) | On evolve: search deck for Terapagos ex — on-evolve deck search not implemented as hook |
+| Fletchling SCR 121 | sv07-121 | Send Back (atk0) | Shuffle opponent's hand and redraw — hand shuffle + redraw for opponent not supported |
+| Wooloo SCR 124 | sv07-124 | Knock Over (atk0) | Discard all Items and Tools attached to opponent's Active Pokémon — mass tool/item discard not supported |
+| Dubwool SCR 125 | sv07-125 | Knock Over (atk0) / Soft Wool (ability) | Knock Over: same as Wooloo; Soft Wool: reduce bench damage by 30 — bench damage reduction hook not in engine |
+| Bouffalant SCR 119 | sv07-119 | Curly Wall (ability) | Reduce damage done to your Benched Pokémon by 20 — bench damage reduction hook not in engine |
+| Dartrix SFA 4 | sv06.5-004 | United Wings (atk0) | 20× count of United Wings Pokémon in deck/discard/play — requires scanning multiple zones for named Pokémon |
+| Decidueye SFA 5 | sv06.5-005 | Stock Up on Feathers (atk0) | Add feather counter to this Pokémon; each counter used in Power Shot — requires persistent multi-turn counter state |
+| Iron Moth SFA 9 | sv06.5-009 | Anachronism Repulsor (atk1) | Opponent's Ancient Pokémon take 100 damage next turn — type-based deferred damage on opponent's board not supported |
+| Seadra SFA 11 | sv06.5-011 | Call for Backup (atk0) | Search deck for Evolution Pokémon of same type and evolve immediately — mid-battle in-deck evolution not supported |
+| Kingdra ex SFA 12 | sv06.5-012 | King's Order (atk0) | Shuffle all opponent's Pokémon with 200+ HP into deck — conditional mass-bounce requiring HP checks not supported |
+| Revavroom ex SFA 15 | sv06.5-015 | Accelerator Flash (atk0) / Shattering Speed (atk1) | Both require attaching Energy from deck to self during attack — energy-from-deck-to-self not supported |
+| Hypno SFA 17 | sv06.5-017 | Daydream (atk0) | Effect depends on last Trainer card played — requires tracking last Trainer type played this turn |
+| Duskull SFA 18 | sv06.5-018 | Come and Get You (atk0) | Switch in opponent's Benched Pokémon then deal damage — forced gust before damage calc not supported |
+| Cresselia SFA 21 | sv06.5-021 | Crescent Purge (atk1) | Heal 30 from each of your Pokémon — mass heal across all in-play Pokémon not supported |
+| Sylveon SFA 22 | sv06.5-022 | Mystical Return (atk0) | Flip coin; heads = return opponent's Benched Pokémon to deck — conditional bench bounce not supported |
+| Bloodmoon Ursaluna SFA 25 | sv06.5-025 | Battle-Hardened (ability) | Once per turn: place 2 counters on self to reduce incoming damage by 20 — active once-per-turn counter ability not supported |
+| Galvantula SFA 2 | sv06.5-002 | Compound Eyes (ability) | Your attacks do 50 more damage to opponent's Active — bench passive damage bonus not in _apply_damage |
+| Dusclops SFA 19 | sv06.5-019 | Cursed Blast (ability) | Once per turn: place 5 damage counters on a Pokémon — once-per-turn targeted counter placement not implemented |
+| Dusknoir SFA 20 | sv06.5-020 | Cursed Blast (ability) | Once per turn: place 13 damage counters on a Pokémon — same as Dusclops variant |
+| Crobat SFA 29 | sv06.5-029 | Shadowy Envoy (ability) | Counts as using Janine's Secret Art when playing this card — card-play-as-trainer-effect not supported |
+| Zubat SFA 27 | sv06.5-027 | Lead (atk0) | Damage = 30× (Golbat + Crobat in hand/bench) — count-specific-named-Pokémon-in-zones not supported |
+| Inkay SFA 33 | sv06.5-033 | Mischievous Tentacles (atk0) | Switch one of your Benched Pokémon with your Active — self-bench-swap from attack not supported |
+| Malamar SFA 34 | sv06.5-034 | Colluding Tentacles (atk0) | Effect requires Janine's Secret Art to be in play — trainer-in-play conditional not supported |

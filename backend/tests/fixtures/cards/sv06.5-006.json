@@ -1,0 +1,74 @@
+{
+  "category": "Pokemon",
+  "id": "sv06.5-006",
+  "illustrator": "GOSSAN",
+  "image": "https://assets.tcgdex.net/en/sv/sv06.5/006",
+  "localId": "006",
+  "name": "Tapu Bulu",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 64,
+      "total": 99
+    },
+    "id": "sv06.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06.5/logo",
+    "name": "Shrouded Fable",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    787
+  ],
+  "hp": 140,
+  "types": [
+    "Grass"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Grass",
+        "Grass",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Wood Hammer",
+      "effect": "This Pokémon also does 30 damage to itself.",
+      "damage": 220
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 780894,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.04,
+      "avg7": 0.07,
+      "avg30": 0.07,
+      "avg-holo": 0.13,
+      "low-holo": 0.02,
+      "trend-holo": 0.13,
+      "avg1-holo": 0.16,
+      "avg7-holo": 0.11,
+      "avg30-holo": 0.13
+    },
+    "tcgplayer": null
+  }
+}

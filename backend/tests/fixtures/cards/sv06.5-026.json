@@ -1,0 +1,89 @@
+{
+  "category": "Pokemon",
+  "id": "sv06.5-026",
+  "illustrator": "Shinji Kanda",
+  "image": "https://assets.tcgdex.net/en/sv/sv06.5/026",
+  "localId": "026",
+  "name": "Slither Wing",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 64,
+      "total": 99
+    },
+    "id": "sv06.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06.5/logo",
+    "name": "Shrouded Fable",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    988
+  ],
+  "hp": 140,
+  "types": [
+    "Fighting"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Iron Smasher",
+      "effect": "If your opponent has any Future Pokémon in play, this attack does 120 more damage.",
+      "damage": "20+"
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Smashing Wing",
+      "effect": "Discard 2 Energy from this Pokémon.",
+      "damage": 130
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 780921,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.04,
+      "avg7": 0.03,
+      "avg30": 0.04,
+      "avg-holo": 0.14,
+      "low-holo": 0.02,
+      "trend-holo": 0.11,
+      "avg1-holo": 0.15,
+      "avg7-holo": 0.1,
+      "avg30-holo": 0.14
+    },
+    "tcgplayer": null
+  }
+}

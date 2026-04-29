@@ -1,0 +1,80 @@
+{
+  "category": "Pokemon",
+  "id": "sv06.5-012",
+  "illustrator": "toriyufu",
+  "image": "https://assets.tcgdex.net/en/sv/sv06.5/012",
+  "localId": "012",
+  "name": "Kingdra ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 64,
+      "total": 99
+    },
+    "id": "sv06.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06.5/logo",
+    "name": "Shrouded Fable",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    230
+  ],
+  "hp": 310,
+  "types": [
+    "Water"
+  ],
+  "evolveFrom": "Seadra",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Water"
+      ],
+      "name": "King's Order",
+      "effect": "Put up to 3 {W} Pokémon from your discard pile onto your Bench."
+    },
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Hydro Pump",
+      "effect": "This attack does 50 more damage for each {W} Energy attached to this Pokémon.",
+      "damage": "50+"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:22+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 780902,
+      "avg": 0.56,
+      "low": 0.09,
+      "trend": 0.64,
+      "avg1": 0.7,
+      "avg7": 0.59,
+      "avg30": 0.6,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

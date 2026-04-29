@@ -1,0 +1,84 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-118",
+  "illustrator": "Toshinao Aoki",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/118",
+  "localId": "118",
+  "name": "Fan Rotom",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    479
+  ],
+  "hp": 70,
+  "types": [
+    "Colorless"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Fan Call",
+      "effect": "Once during your first turn, you may search your deck for up to 3 {C} Pokémon with 100 HP or less, reveal them, and put them into your hand. Then, shuffle your deck. You can't use more than 1 Fan Call Ability during your turn."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Assault Landing",
+      "effect": "If there is no Stadium in play, this attack does nothing.",
+      "damage": 70
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785972,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.02,
+      "avg7": 0.06,
+      "avg30": 0.07,
+      "avg-holo": 0.15,
+      "low-holo": 0.02,
+      "trend-holo": 0.2,
+      "avg1-holo": 0.15,
+      "avg7-holo": 0.17,
+      "avg30-holo": 0.15
+    },
+    "tcgplayer": null
+  }
+}

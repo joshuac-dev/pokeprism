@@ -1,0 +1,84 @@
+{
+  "category": "Pokemon",
+  "id": "sv06.5-027",
+  "illustrator": "osare",
+  "image": "https://assets.tcgdex.net/en/sv/sv06.5/027",
+  "localId": "027",
+  "name": "Zubat",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 64,
+      "total": 99
+    },
+    "id": "sv06.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06.5/logo",
+    "name": "Shrouded Fable",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    41
+  ],
+  "hp": 50,
+  "types": [
+    "Darkness"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Darkness"
+      ],
+      "name": "Lead",
+      "effect": "Search your deck for a Supporter card, reveal it, and put it into your hand. Then, shuffle your deck."
+    },
+    {
+      "cost": [
+        "Darkness"
+      ],
+      "name": "Darkness Fang",
+      "damage": 10
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 780922,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.03,
+      "avg7": 0.05,
+      "avg30": 0.03,
+      "avg-holo": 0.13,
+      "low-holo": 0.02,
+      "trend-holo": 0.1,
+      "avg1-holo": 0.04,
+      "avg7-holo": 0.11,
+      "avg30-holo": 0.13
+    },
+    "tcgplayer": null
+  }
+}

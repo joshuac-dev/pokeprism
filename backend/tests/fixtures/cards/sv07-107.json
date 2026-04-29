@@ -1,0 +1,80 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-107",
+  "illustrator": "Oswaldo KATO",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/107",
+  "localId": "107",
+  "name": "Archaludon",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    1018
+  ],
+  "hp": 180,
+  "types": [
+    "Metal"
+  ],
+  "evolveFrom": "Duraludon",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Metal Bridge",
+      "effect": "All of your Pokémon that have {M} Energy attached have no Retreat Cost."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Metal",
+        "Metal",
+        "Colorless"
+      ],
+      "name": "Iron Blaster",
+      "effect": "During your next turn, this Pokémon can't attack.",
+      "damage": 160
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:28+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 789015,
+      "avg": 62.65,
+      "low": 0.45,
+      "trend": 198,
+      "avg1": 0.94,
+      "avg7": 133.77,
+      "avg30": 25.92,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

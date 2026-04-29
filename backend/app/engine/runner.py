@@ -353,6 +353,8 @@ class MatchRunner:
                 # Tainted Horn (sv10-119 TR Nidoking ex): heavy_poison flag → 80 damage/turn
                 if active.heavy_poison:
                     poison_damage = 80
+                elif active.double_poison:
+                    poison_damage = 20
                 # Toxic Subjugation (Pecharunt svp-149): +50 poison damage while in opponent's Active
                 elif opp_active and opp_active.card_def_id == "svp-149":
                     poison_damage += 50

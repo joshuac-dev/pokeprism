@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv06.5-004",
+  "illustrator": "Tetsu Kayama",
+  "image": "https://assets.tcgdex.net/en/sv/sv06.5/004",
+  "localId": "004",
+  "name": "Dartrix",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 64,
+      "total": 99
+    },
+    "id": "sv06.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06.5/logo",
+    "name": "Shrouded Fable",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    723
+  ],
+  "hp": 90,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Rowlet",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "United Wings",
+      "effect": "This attack does 20 damage for each Pokémon in your discard pile that has the United Wings attack.",
+      "damage": "20×"
+    },
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Cutting Wind",
+      "damage": 30
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:22+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 780892,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.03,
+      "avg7": 0.04,
+      "avg30": 0.04,
+      "avg-holo": 0.12,
+      "low-holo": 0.02,
+      "trend-holo": 0.1,
+      "avg1-holo": 0.04,
+      "avg7-holo": 0.1,
+      "avg30-holo": 0.11
+    },
+    "tcgplayer": null
+  }
+}

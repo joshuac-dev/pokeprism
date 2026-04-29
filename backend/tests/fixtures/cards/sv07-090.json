@@ -1,0 +1,78 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-090",
+  "illustrator": "kawayoo",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/090",
+  "localId": "090",
+  "name": "Koraidon",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    1007
+  ],
+  "hp": 130,
+  "types": [
+    "Fighting"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting",
+        "Fighting"
+      ],
+      "name": "Resolute Fang",
+      "effect": "If your opponent's Active Pokémon is a Pokémon ex, this attack does 70 more damage.",
+      "damage": "50+"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785944,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.02,
+      "avg1": 0.02,
+      "avg7": 0.02,
+      "avg30": 0.03,
+      "avg-holo": 0.15,
+      "low-holo": 0.02,
+      "trend-holo": 0.19,
+      "avg1-holo": 0.1,
+      "avg7-holo": 0.21,
+      "avg30-holo": 0.16
+    },
+    "tcgplayer": null
+  }
+}

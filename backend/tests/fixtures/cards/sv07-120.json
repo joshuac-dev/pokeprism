@@ -1,0 +1,87 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-120",
+  "illustrator": "Uninori",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/120",
+  "localId": "120",
+  "name": "Tornadus",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    641
+  ],
+  "hp": 110,
+  "types": [
+    "Colorless"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Knuckle Punch",
+      "damage": 50
+    },
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Storm Barrier",
+      "effect": "During your opponent's next turn, this Pokémon takes 50 less damage from attacks (after applying Weakness and Resistance).",
+      "damage": 100
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785974,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.02,
+      "avg1": 0.02,
+      "avg7": 0.03,
+      "avg30": 0.04,
+      "avg-holo": 0.13,
+      "low-holo": 0.02,
+      "trend-holo": 0.19,
+      "avg1-holo": 0.08,
+      "avg7-holo": 0.17,
+      "avg30-holo": 0.13
+    },
+    "tcgplayer": null
+  }
+}

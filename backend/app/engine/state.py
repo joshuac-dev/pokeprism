@@ -129,6 +129,7 @@ class CardInstance:
     locked_attack_index: Optional[int] = None             # Can't use this specific attack index next turn
     prevent_damage_from_basic: bool = False               # Prevent all damage from Basic Pokémon next turn
     heavy_poison: bool = False                            # Tainted Horn (sv10-119): 8 counters/turn instead of 1
+    double_poison: bool = False                           # Crobat SFA Poison Fang: 2 counters/turn instead of 1
     prevent_damage_threshold: int = 0                    # Harden (sv09-002): prevent damage ≤ threshold next turn
     no_weakness_one_turn: bool = False                    # Metal Defender (sv08-130): no Weakness during opp's next turn
 

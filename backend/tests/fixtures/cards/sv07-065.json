@@ -1,0 +1,78 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-065",
+  "illustrator": "Natsumi Yoshida",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/065",
+  "localId": "065",
+  "name": "Alcremie",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    869
+  ],
+  "hp": 110,
+  "types": [
+    "Psychic"
+  ],
+  "evolveFrom": "Milcery",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Colorful Confection",
+      "effect": "Search your deck for up to 5 Pokémon that are the same type as any Basic Energy attached to this Pokémon, reveal them, and put them into your hand. Then, shuffle your deck."
+    },
+    {
+      "cost": [
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Magical Shot",
+      "damage": 60
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:28+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785919,
+      "avg": 0.08,
+      "low": 0.02,
+      "trend": 0.1,
+      "avg1": 0.04,
+      "avg7": 0.1,
+      "avg30": 0.08,
+      "avg-holo": 0.15,
+      "low-holo": 0.02,
+      "trend-holo": 0.16,
+      "avg1-holo": 0.07,
+      "avg7-holo": 0.22,
+      "avg30-holo": 0.16
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "category": "Pokemon",
+  "id": "sv06.5-021",
+  "illustrator": "matazo",
+  "image": "https://assets.tcgdex.net/en/sv/sv06.5/021",
+  "localId": "021",
+  "name": "Cresselia",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 64,
+      "total": 99
+    },
+    "id": "sv06.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06.5/logo",
+    "name": "Shrouded Fable",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    488
+  ],
+  "hp": 120,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Psychic"
+      ],
+      "name": "Healing Pirouette",
+      "effect": "Heal 20 damage from each of your Pokémon."
+    },
+    {
+      "cost": [
+        "Psychic",
+        "Psychic",
+        "Psychic"
+      ],
+      "name": "Crescent Purge",
+      "effect": "You may turn 1 of your face-down Prize cards face up. If you do, this attack does 80 more damage. (That Prize card remains face up for the rest of the game.)",
+      "damage": "80+"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 780916,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.06,
+      "avg1": 0.05,
+      "avg7": 0.05,
+      "avg30": 0.05,
+      "avg-holo": 0.13,
+      "low-holo": 0.02,
+      "trend-holo": 0.11,
+      "avg1-holo": 0.05,
+      "avg7-holo": 0.11,
+      "avg30-holo": 0.13
+    },
+    "tcgplayer": null
+  }
+}

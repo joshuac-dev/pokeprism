@@ -1,0 +1,80 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-110",
+  "illustrator": "PLANETA Yamashita",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/110",
+  "localId": "110",
+  "name": "Orthworm ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    968
+  ],
+  "hp": 220,
+  "types": [
+    "Metal"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Pummeling Payback",
+      "effect": "If this Pokémon is damaged by an attack from your opponent's Pokémon (even if this Pokémon is Knocked Out), put 2 damage counters on the Attacking Pokémon for each {M} Energy attached to this Pokémon."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Rock Tomb",
+      "effect": "During your opponent's next turn, the Defending Pokémon can't retreat.",
+      "damage": 150
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785964,
+      "avg": 0.57,
+      "low": 0.05,
+      "trend": 0.46,
+      "avg1": 0.27,
+      "avg7": 0.44,
+      "avg30": 0.54,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

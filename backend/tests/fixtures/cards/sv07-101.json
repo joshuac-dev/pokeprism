@@ -1,0 +1,79 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-101",
+  "illustrator": "Tonji Matsuno",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/101",
+  "localId": "101",
+  "name": "Klinklang",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    601
+  ],
+  "hp": 140,
+  "types": [
+    "Metal"
+  ],
+  "evolveFrom": "Klang",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Emergency Rotation",
+      "effect": "Once during your turn, if this Pokémon is in your hand and your opponent has any Stage 2 Pokémon in play, you may put this Pokémon onto your Bench."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Hyper Ray",
+      "effect": "Discard all Energy from this Pokémon.",
+      "damage": 130
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:28+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785955,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.08,
+      "avg1": 0.1,
+      "avg7": 0.08,
+      "avg30": 0.07,
+      "avg-holo": 0.16,
+      "low-holo": 0.02,
+      "trend-holo": 0.13,
+      "avg1-holo": 0.03,
+      "avg7-holo": 0.17,
+      "avg30-holo": 0.15
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv06.5-005",
+  "illustrator": "DOM",
+  "image": "https://assets.tcgdex.net/en/sv/sv06.5/005",
+  "localId": "005",
+  "name": "Decidueye",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 64,
+      "total": 99
+    },
+    "id": "sv06.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06.5/logo",
+    "name": "Shrouded Fable",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    724
+  ],
+  "hp": 150,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Dartrix",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Stock Up on Feathers",
+      "effect": "Draw cards until you have 7 cards in your hand."
+    },
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Power Shot",
+      "effect": "Discard a Basic {G} Energy card from your hand. If you can't, this attack does nothing.",
+      "damage": 170
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:22+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 780893,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.07,
+      "avg7": 0.05,
+      "avg30": 0.05,
+      "avg-holo": 0.12,
+      "low-holo": 0.02,
+      "trend-holo": 0.12,
+      "avg1-holo": 0.08,
+      "avg7-holo": 0.13,
+      "avg30-holo": 0.13
+    },
+    "tcgplayer": null
+  }
+}

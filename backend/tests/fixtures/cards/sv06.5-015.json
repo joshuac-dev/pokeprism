@@ -1,0 +1,82 @@
+{
+  "category": "Pokemon",
+  "id": "sv06.5-015",
+  "illustrator": "PLANETA Mochizuki",
+  "image": "https://assets.tcgdex.net/en/sv/sv06.5/015",
+  "localId": "015",
+  "name": "Revavroom ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 64,
+      "total": 99
+    },
+    "id": "sv06.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06.5/logo",
+    "name": "Shrouded Fable",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    966
+  ],
+  "hp": 280,
+  "types": [
+    "Lightning"
+  ],
+  "evolveFrom": "Varoom",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Metal"
+      ],
+      "name": "Accelerator Flash",
+      "effect": "If this Pokémon moved from your Bench to the Active Spot this turn, this attack does 120 more damage.",
+      "damage": "20+"
+    },
+    {
+      "cost": [
+        "Metal",
+        "Metal",
+        "Metal"
+      ],
+      "name": "Shattering Speed",
+      "effect": "Discard this Pokémon and all attached cards.",
+      "damage": 250
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:22+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 780905,
+      "avg": 0.49,
+      "low": 0.02,
+      "trend": 0.47,
+      "avg1": 0.6,
+      "avg7": 0.45,
+      "avg30": 0.49,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

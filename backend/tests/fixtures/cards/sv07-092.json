@@ -1,0 +1,88 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-092",
+  "illustrator": "OKACHEKE",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/092",
+  "localId": "092",
+  "name": "Swalot",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    317
+  ],
+  "hp": 130,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Gulpin",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Darkness"
+      ],
+      "name": "Devouring Mouth",
+      "effect": "If this Pokémon has more Energy attached than your opponent's Active Pokémon, this attack does 160 more damage.",
+      "damage": "10+"
+    },
+    {
+      "cost": [
+        "Darkness",
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Venomous Hit",
+      "effect": "Your opponent's Active Pokémon is now Poisoned.",
+      "damage": 100
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:28+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785946,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.02,
+      "avg7": 0.04,
+      "avg30": 0.05,
+      "avg-holo": 0.15,
+      "low-holo": 0.02,
+      "trend-holo": 0.15,
+      "avg1-holo": 0.03,
+      "avg7-holo": 0.18,
+      "avg30-holo": 0.15
+    },
+    "tcgplayer": null
+  }
+}

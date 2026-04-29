@@ -1,0 +1,80 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-082",
+  "illustrator": "PLANETA Igarashi",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/082",
+  "localId": "082",
+  "name": "Lucario ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    448
+  ],
+  "hp": 250,
+  "types": [
+    "Fighting"
+  ],
+  "evolveFrom": "Riolu",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Low Kick",
+      "damage": 50
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Aura Knuckle",
+      "damage": 120
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:28+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785936,
+      "avg": 0.78,
+      "low": 0.15,
+      "trend": 0.85,
+      "avg1": 0.91,
+      "avg7": 0.89,
+      "avg30": 0.8,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

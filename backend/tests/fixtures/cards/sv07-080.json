@@ -1,0 +1,81 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-080",
+  "illustrator": "PLANETA Yamashita",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/080",
+  "localId": "080",
+  "name": "Medicham ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    308
+  ],
+  "hp": 260,
+  "types": [
+    "Fighting"
+  ],
+  "evolveFrom": "Meditite",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Chi-Atsu",
+      "effect": "Put damage counters on your opponent's Active Pokémon until its remaining HP is 50."
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Yoga Kick",
+      "effect": "This attack's damage isn't affected by Weakness or Resistance.",
+      "damage": 190
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:28+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785934,
+      "avg": 0.58,
+      "low": 0.05,
+      "trend": 0.74,
+      "avg1": 0.84,
+      "avg7": 0.77,
+      "avg30": 0.61,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

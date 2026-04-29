@@ -1,0 +1,80 @@
+{
+  "category": "Pokemon",
+  "id": "sv06.5-025",
+  "illustrator": "Souichirou Gunjima",
+  "image": "https://assets.tcgdex.net/en/sv/sv06.5/025",
+  "localId": "025",
+  "name": "Bloodmoon Ursaluna",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 64,
+      "total": 99
+    },
+    "id": "sv06.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06.5/logo",
+    "name": "Shrouded Fable",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    901
+  ],
+  "hp": 150,
+  "types": [
+    "Fighting"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Battle-Hardened",
+      "effect": "When you play this Pokémon from your hand onto your Bench during your turn, you may attach up to 2 Basic {F} Energy cards from your hand to this Pokémon."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Fighting",
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Mad Bite",
+      "effect": "This attack does 30 more damage for each damage counter on your opponent's Active Pokémon.",
+      "damage": "100+"
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 780920,
+      "avg": 0.09,
+      "low": 0.02,
+      "trend": 0.08,
+      "avg1": 0.06,
+      "avg7": 0.11,
+      "avg30": 0.1,
+      "avg-holo": 0.16,
+      "low-holo": 0.02,
+      "trend-holo": 0.1,
+      "avg1-holo": 0.11,
+      "avg7-holo": 0.13,
+      "avg30-holo": 0.16
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "category": "Pokemon",
+  "id": "sv06.5-008",
+  "illustrator": "burari",
+  "image": "https://assets.tcgdex.net/en/sv/sv06.5/008",
+  "localId": "008",
+  "name": "Houndoom",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 64,
+      "total": 99
+    },
+    "id": "sv06.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv06.5/logo",
+    "name": "Shrouded Fable",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv06.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    229
+  ],
+  "hp": 120,
+  "types": [
+    "Fire"
+  ],
+  "evolveFrom": "Houndour",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Bite",
+      "damage": 50
+    },
+    {
+      "cost": [
+        "Fire",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Snarl",
+      "effect": "During your opponent's next turn, attacks used by the Defending Pokémon do 100 less damage (before applying Weakness and Resistance).",
+      "damage": 100
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:22+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 780896,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.02,
+      "avg7": 0.02,
+      "avg30": 0.03,
+      "avg-holo": 0.14,
+      "low-holo": 0.02,
+      "trend-holo": 0.11,
+      "avg1-holo": 0.08,
+      "avg7-holo": 0.09,
+      "avg30-holo": 0.13
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-096",
+  "illustrator": "Kazumasa Yasukuni",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/096",
+  "localId": "096",
+  "name": "Grimmsnarl",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    861
+  ],
+  "hp": 170,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Morgrem",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Goad 'n' Grab",
+      "effect": "Switch out your opponent's Active Pokémon to the Bench. (Your opponent chooses the new Active Pokémon.) If you do, this attack does 160 damage to the new Active Pokémon."
+    },
+    {
+      "cost": [
+        "Darkness",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Knuckle Sandwich",
+      "effect": "Discard 2 Energy from this Pokémon.",
+      "damage": 160
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:28+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785950,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.06,
+      "avg1": 0.08,
+      "avg7": 0.06,
+      "avg30": 0.06,
+      "avg-holo": 0.14,
+      "low-holo": 0.02,
+      "trend-holo": 0.16,
+      "avg1-holo": 0.12,
+      "avg7-holo": 0.14,
+      "avg30-holo": 0.14
+    },
+    "tcgplayer": null
+  }
+}

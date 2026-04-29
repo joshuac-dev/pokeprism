@@ -3921,3 +3921,32 @@ def register_all(registry):
     registry.register_passive_ability("sv07-042", "Food Prep")              # Crabominable (cost reduction: noop)
     registry.register_passive_ability("sv07-044", "Impervious Shell")       # Drednaw (damage cap: noop)
     registry.register_passive_ability("sv07-045", "Food Prep")              # Veluza (cost reduction: noop)
+
+    # ── Batch 13: sv07-060..128 (SCR) and sv06.5-001..034 (SFA) abilities ────
+
+    # FLAGGED passives (complex trigger not implemented; stubs registered for coverage)
+    registry.register_passive_ability("sv07-067", "Time to Chow Down")      # Dachsbun ex (on-evolve heal: noop)
+    registry.register_passive_ability("sv07-076", "Wide Wall")              # Rhyperior (damage reduction while Active: noop)
+    registry.register_passive_ability("sv06.5-002", "Compound Eyes")        # Galvantula (attack +50 vs Active: noop)
+    registry.register_passive_ability("sv06.5-019", "Cursed Blast")         # Dusclops (once-per-turn 5 counters: noop)
+    registry.register_passive_ability("sv06.5-020", "Cursed Blast")         # Dusknoir (once-per-turn 13 counters: noop)
+    registry.register_passive_ability("sv06.5-025", "Battle-Hardened")      # Bloodmoon Ursaluna (on-play bench trigger: noop)
+    registry.register_passive_ability("sv06.5-029", "Shadowy Envoy")        # Crobat (conditional on Janine's Secret Art: noop)
+
+    # Fan Call reuse for sv07-118 Fan Rotom
+    def _cond_fan_call_scr(state, player_id):
+        p = state.get_player(player_id)
+        return (p.active is not None
+                and p.active.card_def_id == "sv07-118"
+                and not p.active.ability_used_this_turn)
+    registry.register_ability("sv07-118", "Fan Call", _fan_call,
+                               condition=_cond_fan_call_scr)
+
+    # Passive stubs for remaining Batch 13 abilities
+    registry.register_passive_ability("sv07-101", "Emergency Rotation")     # Klinklang (on-damage retreat: noop)
+    registry.register_passive_ability("sv07-107", "Metal Bridge")           # Archaludon (retreat cost: noop)
+    registry.register_passive_ability("sv07-110", "Pummeling Payback")      # Orthworm ex (counter-damage: noop)
+    registry.register_passive_ability("sv07-115", "Jewel Seeker")           # Noctowl (on-evolve: noop)
+    registry.register_passive_ability("sv07-119", "Curly Wall")             # Bouffalant (damage reduction: noop)
+    registry.register_passive_ability("sv07-125", "Soft Wool")              # Dubwool (damage reduction: noop)
+

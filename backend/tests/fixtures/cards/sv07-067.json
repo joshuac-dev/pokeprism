@@ -1,0 +1,79 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-067",
+  "illustrator": "You Iribi",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/067",
+  "localId": "067",
+  "name": "Dachsbun ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    927
+  ],
+  "hp": 250,
+  "types": [
+    "Psychic"
+  ],
+  "evolveFrom": "Fidough",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Time to Chow Down",
+      "effect": "When you play this Pokémon from your hand to evolve 1 of your Pokémon during your turn, you may heal all damage from each of your Evolution Pokémon. If you healed any damage in this way, discard all Energy from those Pokémon."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Wonder Shine",
+      "effect": "Your opponent's Active Pokémon is now Confused.",
+      "damage": 130
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:28+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785921,
+      "avg": 0.75,
+      "low": 0.1,
+      "trend": 0.66,
+      "avg1": 1.05,
+      "avg7": 0.72,
+      "avg30": 0.72,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

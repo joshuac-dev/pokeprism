@@ -1,0 +1,81 @@
+{
+  "category": "Pokemon",
+  "id": "sv07-104",
+  "illustrator": "Takumi Wada",
+  "image": "https://assets.tcgdex.net/en/sv/sv07/104",
+  "localId": "104",
+  "name": "Melmetal",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 142,
+      "total": 175
+    },
+    "id": "sv07",
+    "logo": "https://assets.tcgdex.net/en/sv/sv07/logo",
+    "name": "Stellar Crown"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "dexId": [
+    809
+  ],
+  "hp": 160,
+  "types": [
+    "Metal"
+  ],
+  "evolveFrom": "Meltan",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Wrack Down",
+      "damage": 50
+    },
+    {
+      "cost": [
+        "Metal",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Reforged Axe",
+      "effect": "Before doing damage, discard all Pokémon Tools from this Pokémon. If you can't discard any, this attack does nothing.",
+      "damage": 250
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:28+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 785958,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.07,
+      "avg1": 0.08,
+      "avg7": 0.05,
+      "avg30": 0.06,
+      "avg-holo": 0.1,
+      "low-holo": 0.02,
+      "trend-holo": 0.16,
+      "avg1-holo": 0.1,
+      "avg7-holo": 0.16,
+      "avg30-holo": 0.11
+    },
+    "tcgplayer": null
+  }
+}

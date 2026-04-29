@@ -16907,6 +16907,107 @@ def register_all(registry):
     registry.register_attack("sv07-058", 0, _seek_inspiration_flag)         # Slowking — Seek Inspiration (FLAGGED)
     # sv07-059 Mewtwo: ATK0 Super Psy Bolt (flat 100)
 
+    # ── Batch 13: sv07-060..128 (SCR) and sv06.5-001..034 (SFA) ──────────────
+
+    # SCR — sv07-060..128
+    registry.register_attack("sv07-060", 0, _expand_b13)                    # Drifloon — Expand
+    registry.register_attack("sv07-061", 0, _everyone_explode_now)          # Drifblim — Everyone Explode Now
+    registry.register_attack("sv07-063", 0, _flower_shower)                 # Comfey — Flower Shower
+    registry.register_attack("sv07-063", 1, _play_rough_b13)               # Comfey — Play Rough
+    registry.register_attack("sv07-065", 0, _colorful_confection_flag)     # Alcremie — Colorful Confection (FLAGGED)
+    registry.register_attack("sv07-066", 0, _call_for_family_1)             # Fidough — Pleasant Aroma (bench 1 Basic)
+    registry.register_attack("sv07-067", 0, _wonder_shine)                  # Dachsbun ex — Wonder Shine
+    registry.register_attack("sv07-071", 0, _adjusted_horn)                 # Iron Boulder — Adjusted Horn
+    registry.register_attack("sv07-072", 0, _reckless_charge)               # Cubone — Reckless Charge (30 + 10 recoil)
+    registry.register_attack("sv07-073", 0, _growl_marowak)                 # Marowak — Growl
+    registry.register_attack("sv07-073", 1, _bone_vengeance)               # Marowak — Bone Vengeance
+    registry.register_attack("sv07-075", 0, _destructive_horn)              # Rhydon — Destructive Horn
+    registry.register_attack("sv07-076", 0, _drill_run)                     # Rhyperior — Drill Run
+    registry.register_attack("sv07-078", 0, _calm_mind_b13)                 # Meditite — Calm Mind
+    registry.register_attack("sv07-079", 0, _double_smash_40)               # Medicham — Double Smash
+    registry.register_attack("sv07-080", 0, _chi_atsu)                      # Medicham ex — Chi-Atsu
+    registry.register_attack("sv07-080", 1, _yoga_kick)                     # Medicham ex — Yoga Kick
+    registry.register_attack("sv07-083", 0, _knock_off_b13)                 # Mienfoo — Knock Off
+    registry.register_attack("sv07-084", 0, _gale_roundhouse)               # Mienshao — Gale Roundhouse
+    registry.register_attack("sv07-085", 0, _leer_b13)                      # Pancham — Leer
+    registry.register_attack("sv07-086", 0, _diffuse_reflection)            # Diancie — Diffuse Reflection
+    registry.register_attack("sv07-088", 0, _call_for_family)               # Falinks — Form Ranks (bench up to 2 Basics)
+    registry.register_attack("sv07-088", 1, _all_out_attack_flag)           # Falinks — All-Out Attack (FLAGGED)
+    registry.register_attack("sv07-090", 0, _resolute_fang)                 # Koraidon — Resolute Fang
+    registry.register_attack("sv07-091", 1, _super_poison_breath)           # Gulpin — Super Poison Breath
+    registry.register_attack("sv07-092", 0, _devouring_mouth)               # Swalot — Devouring Mouth
+    registry.register_attack("sv07-092", 1, _venomous_hit)                  # Swalot — Venomous Hit
+    registry.register_attack("sv07-093", 0, _pull_bench_to_active)          # Pangoro — Pull (reuse gust)
+    registry.register_attack("sv07-093", 1, _tantrum_b13)                   # Pangoro — Tantrum
+    registry.register_attack("sv07-096", 0, _goad_n_grab_flag)              # Grimmsnarl — Goad 'n' Grab (FLAGGED)
+    registry.register_attack("sv07-096", 1, _knuckle_sandwich)              # Grimmsnarl — Knuckle Sandwich
+    registry.register_attack("sv07-097", 0, _reckless_charge_recoil20)      # Bombirdier — Reckless Charge
+    registry.register_attack("sv07-098", 0, _swelling_wish_flag)            # Jirachi — Swelling Wish (FLAGGED)
+    registry.register_attack("sv07-099", 0, _allure_b13)                    # Klink — Allure
+    registry.register_attack("sv07-100", 0, _iron_tackle)                   # Klang — Iron Tackle
+    registry.register_attack("sv07-101", 0, _hyper_ray)                     # Klinklang — Hyper Ray
+    registry.register_attack("sv07-103", 0, _knickknack_carrying)           # Meltan — Knickknack Carrying (reuse)
+    registry.register_attack("sv07-104", 1, _reforged_axe)                  # Melmetal — Reforged Axe
+    registry.register_attack("sv07-105", 0, _iron_swing)                    # Melmetal ex — Iron Swing
+    registry.register_attack("sv07-106", 1, _raging_hammer_b13)             # Duraludon — Raging Hammer
+    registry.register_attack("sv07-107", 0, _iron_blaster)                  # Archaludon — Iron Blaster
+    registry.register_attack("sv07-110", 0, _rock_tomb)                     # Orthworm ex — Rock Tomb
+    registry.register_attack("sv07-111", 0, _thunderburst_storm)            # Raging Bolt — Thunderburst Storm
+    registry.register_attack("sv07-112", 0, _destructive_horn)              # Tauros — Destructive Horn
+    registry.register_attack("sv07-113", 0, _call_for_family_1)             # Eevee — Call for Family
+    registry.register_attack("sv07-114", 0, _triple_stab)                   # Hoothoot — Triple Stab
+    registry.register_attack("sv07-117", 0, _nyan_roll)                     # Purugly — Nyan Roll
+    registry.register_attack("sv07-118", 0, _assault_landing)               # Fan Rotom — Assault Landing (reuse)
+    registry.register_attack("sv07-119", 0, _boundless_power)               # Bouffalant — Boundless Power
+    registry.register_attack("sv07-120", 1, _storm_barrier)                 # Tornadus — Storm Barrier
+    registry.register_attack("sv07-121", 0, _send_back_flag)                # Fletchling — Send Back (FLAGGED)
+    registry.register_attack("sv07-123", 0, _aero_chase)                    # Talonflame — Aero Chase
+    registry.register_attack("sv07-124", 0, _knock_over_flag)               # Wooloo — Knock Over (FLAGGED)
+    registry.register_attack("sv07-125", 0, _knock_over_flag)               # Dubwool — Knock Over (FLAGGED)
+    registry.register_attack("sv07-128", 0, _unified_beatdown_scr)          # Terapagos ex — Unified Beatdown
+    registry.register_attack("sv07-128", 1, _crown_opal_scr)                # Terapagos ex — Crown Opal
+
+    # SFA — sv06.5-001..034
+    registry.register_attack("sv06.5-001", 0, _splashing_dodge)             # Joltik — Splashing Dodge
+    registry.register_attack("sv06.5-002", 0, _shocking_web)                # Galvantula — Shocking Web
+    registry.register_attack("sv06.5-003", 0, _add_on_b13)                  # Rowlet — Add On
+    registry.register_attack("sv06.5-004", 0, _united_wings_flag)           # Dartrix — United Wings (FLAGGED)
+    registry.register_attack("sv06.5-005", 0, _stock_up_on_feathers_flag)   # Decidueye — Stock Up on Feathers (FLAGGED)
+    registry.register_attack("sv06.5-005", 1, _power_shot)                  # Decidueye — Power Shot
+    registry.register_attack("sv06.5-006", 0, _wood_hammer_b13)             # Tapu Bulu — Wood Hammer
+    registry.register_attack("sv06.5-008", 1, _snarl)                       # Houndoom — Snarl
+    registry.register_attack("sv06.5-009", 0, _suction)                     # Iron Moth — Suction
+    registry.register_attack("sv06.5-009", 1, _anachronism_repulsor_flag)   # Iron Moth — Anachronism Repulsor (FLAGGED)
+    registry.register_attack("sv06.5-010", 0, _hold_still_b13)              # Horsea — Hold Still
+    registry.register_attack("sv06.5-011", 0, _call_for_backup_flag)        # Seadra — Call for Backup (FLAGGED)
+    registry.register_attack("sv06.5-012", 0, _kings_order_flag)            # Kingdra ex — King's Order (FLAGGED)
+    registry.register_attack("sv06.5-012", 1, _hydro_pump_sfa)              # Kingdra ex — Hydro Pump
+    registry.register_attack("sv06.5-013", 1, _beset)                       # Sneasel — Beset
+    registry.register_attack("sv06.5-014", 1, _hail_claw)                   # Weavile — Hail Claw (reuse)
+    registry.register_attack("sv06.5-015", 0, _accelerator_flash_flag)      # Revavroom ex — Accelerator Flash (FLAGGED)
+    registry.register_attack("sv06.5-015", 1, _shattering_speed_flag)       # Revavroom ex — Shattering Speed (FLAGGED)
+    registry.register_attack("sv06.5-016", 0, _eerie_gaze)                  # Drowzee — Eerie Gaze
+    registry.register_attack("sv06.5-017", 0, _daydream_flag)               # Hypno — Daydream (FLAGGED)
+    registry.register_attack("sv06.5-018", 0, _come_and_get_you_flag)       # Duskull — Come and Get You (FLAGGED)
+    registry.register_attack("sv06.5-020", 0, _shadow_bind_b13)             # Dusknoir — Shadow Bind
+    registry.register_attack("sv06.5-021", 0, _healing_pirouette)           # Cresselia — Healing Pirouette
+    registry.register_attack("sv06.5-021", 1, _crescent_purge_flag)         # Cresselia — Crescent Purge (FLAGGED)
+    registry.register_attack("sv06.5-022", 0, _mystical_return_flag)        # Sylveon — Mystical Return (FLAGGED)
+    registry.register_attack("sv06.5-022", 1, _disarming_voice)             # Sylveon — Disarming Voice (reuse)
+    registry.register_attack("sv06.5-023", 1, _frog_hop)                    # Croagunk — Frog Hop
+    registry.register_attack("sv06.5-024", 1, _clean_hit)                   # Toxicroak — Clean Hit
+    registry.register_attack("sv06.5-025", 0, _mad_bite_b13)                # Bloodmoon Ursaluna — Mad Bite
+    registry.register_attack("sv06.5-026", 0, _iron_smasher)                # Slither Wing — Iron Smasher
+    registry.register_attack("sv06.5-026", 1, _smashing_wing)               # Slither Wing — Smashing Wing
+    registry.register_attack("sv06.5-027", 0, _lead_flag)                   # Zubat — Lead (FLAGGED)
+    registry.register_attack("sv06.5-028", 1, _pitch_black_blade)           # Golbat — Pitch-Black Blade
+    registry.register_attack("sv06.5-029", 0, _poison_fang_crobat)          # Crobat — Poison Fang
+    registry.register_attack("sv06.5-030", 0, _darkfall)                    # Absol — Darkfall
+    registry.register_attack("sv06.5-031", 1, _double_scratch)              # Zorua — Double Scratch
+    registry.register_attack("sv06.5-032", 0, _illusory_hijacking)          # Zoroark — Illusory Hijacking
+    registry.register_attack("sv06.5-033", 0, _mischievous_tentacles_flag)  # Inkay — Mischievous Tentacles (FLAGGED)
+    registry.register_attack("sv06.5-034", 0, _colluding_tentacles_flag)    # Malamar — Colluding Tentacles (FLAGGED)
+
 # ── Batch 12: sv08-118..161, sv07-002..059 ───────────────────────────────────
 
 def _stomp_off_b12(state, action):
@@ -17680,9 +17781,925 @@ def _dangle_tail_flag(state, action):
                      reason="retrieve_pokemon_from_discard_to_hand_not_supported")
 
 
+
 def _seek_inspiration_flag(state, action):
     """sv07-058 Slowking atk0 — Seek Inspiration: FLAGGED (copy attack from top deck card)."""
     state.emit_event("flagged_effect", attack="Seek Inspiration",
                      reason="copy_attack_from_deck_card_not_supported")
 
 
+# ── Batch 13: sv07-060..128 (SCR) and sv06.5-001..034 (SFA) ─────────────────
+
+def _expand_b13(state, action):
+    """sv07-060 Drifloon atk0 — Expand: 10 + reduce incoming damage by 10 next turn."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if player.active:
+        player.active.incoming_damage_reduction += 10
+        state.emit_event("damage_reduction_set", card=player.active.card_name,
+                         amount=10, attack="Expand")
+
+
+def _everyone_explode_now(state, action):
+    """sv07-061 Drifblim atk0 — Everyone Explode Now: 50× Drifloon/Drifblim count + 30 to each opp benched."""
+    player = state.get_player(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    opp_id = state.opponent_id(action.player_id)
+    all_self = ([player.active] if player.active else []) + list(player.bench)
+    DRIFLOON_IDS = {"sv07-060", "sv07-061"}
+    count = sum(1 for p in all_self if p.card_def_id in DRIFLOON_IDS)
+    _apply_damage(state, action, 50 * count)
+    if state.phase == Phase.GAME_OVER:
+        return
+    for benched in list(opp.bench):
+        _apply_bench_damage(state, opp_id, benched, 30)
+        if state.phase == Phase.GAME_OVER:
+            return
+
+
+def _flower_shower(state, action):
+    """sv07-063 Comfey atk0 — Flower Shower: both players draw 3 cards."""
+    opp_id = state.opponent_id(action.player_id)
+    draw_cards(state, action.player_id, 3)
+    draw_cards(state, opp_id, 3)
+    state.emit_event("flower_shower", player=action.player_id)
+
+
+def _play_rough_b13(state, action):
+    """sv07-063 Comfey atk1 — Play Rough: 20 + flip coin, heads = +20."""
+    heads = _random.choice([True, False])
+    state.emit_event("coin_flip_result", attack="Play Rough", heads=1 if heads else 0, flips=1)
+    _apply_damage(state, action, 40 if heads else 20)
+
+
+def _call_for_family_1(state, action):
+    """sv07-113 Eevee atk0 — Call for Family: search deck for 1 Basic Pokémon."""
+    player = state.get_player(action.player_id)
+    available_slots = 5 - len(player.bench)
+    if available_slots <= 0 or not player.deck:
+        return
+    basics = [c for c in player.deck if c.card_type.lower() == "pokemon"
+              and c.card_subtype.lower() == "basic"]
+    if not basics:
+        return
+    req = ChoiceRequest(
+        "choose_cards",
+        action.player_id,
+        "Call for Family: search your deck for 1 Basic Pokémon to put on your Bench",
+        cards=basics,
+        min_count=0,
+        max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
+                  and resp.chosen_card_ids else [])
+    if not chosen_ids:
+        chosen_ids = [basics[0].instance_id]
+    for cid in chosen_ids[:1]:
+        if len(player.bench) >= 5:
+            break
+        card = next((c for c in player.deck if c.instance_id == cid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.BENCH
+            card.turn_played = state.turn_number
+            player.bench.append(card)
+    _shuffle_deck(player)
+    state.emit_event("bench_pokemon", player=action.player_id, count=1)
+
+
+def _wonder_shine(state, action):
+    """sv07-067 Dachsbun ex atk0 — Wonder Shine: 130 + opponent Active is now Confused."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    if opp.active:
+        opp.active.status_conditions.add(StatusCondition.CONFUSED)
+        state.emit_event("status_applied", player=opp_id,
+                         card=opp.active.card_name, status="confused")
+
+
+def _adjusted_horn(state, action):
+    """sv07-071 Iron Boulder atk0 — Adjusted Horn: 170, does nothing if hand sizes differ."""
+    player = state.get_player(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    if len(player.hand) != len(opp.hand):
+        state.emit_event("attack_no_damage", attacker="Iron Boulder",
+                         attack_name="Adjusted Horn", reason="hand_sizes_differ")
+        return
+    _do_default_damage(state, action)
+
+
+def _growl_marowak(state, action):
+    """sv07-073 Marowak atk0 — Growl: opponent's attacks do 40 less damage next turn."""
+    opp = state.get_opponent(action.player_id)
+    if opp.active:
+        opp.active.attack_damage_reduction += 40
+        state.emit_event("attack_reduction", card=opp.active.card_name, reduction=40)
+
+
+def _bone_vengeance(state, action):
+    """sv07-073 Marowak atk1 — Bone Vengeance: 60 + 120 if benched Cubone has damage counters."""
+    player = state.get_player(action.player_id)
+    has_damaged_cubone = any(
+        (card_registry.get(p.card_def_id) and
+         (card_registry.get(p.card_def_id).name or "").lower() == "cubone" and
+         p.damage_counters > 0)
+        for p in player.bench
+    )
+    _apply_damage(state, action, 60 + (120 if has_damaged_cubone else 0))
+
+
+def _calm_mind_b13(state, action):
+    """sv07-078 Meditite atk0 — Calm Mind: heal 20 from this Pokémon (no damage)."""
+    player = state.get_player(action.player_id)
+    if player.active:
+        heal = min(20, player.active.damage_counters * 10)
+        if heal > 0:
+            player.active.damage_counters = max(0, player.active.damage_counters - heal // 10)
+            player.active.current_hp = min(player.active.max_hp, player.active.current_hp + heal)
+            state.emit_event("healed", player=action.player_id,
+                             card=player.active.card_name, amount=heal)
+    state.emit_event("attack_no_damage", attacker="Meditite", attack_name="Calm Mind")
+
+
+def _double_smash_40(state, action):
+    """sv07-079 Medicham atk0 — Double Smash: flip 2 coins, 40 damage per heads."""
+    heads = sum(1 for _ in range(2) if _random.choice([True, False]))
+    state.emit_event("coin_flip_result", attack="Double Smash", heads=heads, flips=2)
+    if heads == 0:
+        state.emit_event("attack_no_damage", attacker="Medicham", attack_name="Double Smash")
+        return
+    _apply_damage(state, action, 40 * heads)
+
+
+def _chi_atsu(state, action):
+    """sv07-080 Medicham ex atk0 — Chi-Atsu: put damage counters on opp Active until HP is 50."""
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    if not opp.active:
+        return
+    target = opp.active
+    if target.current_hp <= 50:
+        state.emit_event("attack_no_damage", attacker="Medicham ex", attack_name="Chi-Atsu",
+                         reason="opp_hp_already_50_or_less")
+        return
+    damage_to_deal = target.current_hp - 50
+    counters = damage_to_deal // 10
+    target.current_hp = 50
+    target.damage_counters += counters
+    state.emit_event("chi_atsu", player=opp_id, card=target.card_name, hp_remaining=50)
+
+
+def _yoga_kick(state, action):
+    """sv07-080 Medicham ex atk1 — Yoga Kick: 190, not affected by Weakness or Resistance."""
+    _apply_damage(state, action, 190, bypass_wr=True)
+
+
+def _knock_off_b13(state, action):
+    """sv07-083 Mienfoo atk0 — Knock Off: 10 + discard a random card from opponent's hand."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    if opp.hand:
+        discarded = _random.choice(opp.hand)
+        opp.hand.remove(discarded)
+        discarded.zone = Zone.DISCARD
+        opp.discard.append(discarded)
+        state.emit_event("knock_off", player=action.player_id, discarded=discarded.card_name)
+
+
+def _gale_roundhouse(state, action):
+    """sv07-084 Mienshao atk0 — Gale Roundhouse: 30 + 60 if opp has 5 or fewer cards in hand."""
+    opp = state.get_opponent(action.player_id)
+    bonus = 60 if len(opp.hand) <= 5 else 0
+    _apply_damage(state, action, 30 + bonus)
+
+
+def _leer_b13(state, action):
+    """sv07-085 Pancham atk0 — Leer: flip a coin; if heads, opp Active is Paralyzed. No damage."""
+    heads = _random.choice([True, False])
+    state.emit_event("coin_flip_result", attack="Leer", heads=1 if heads else 0, flips=1)
+    if heads:
+        opp_id = state.opponent_id(action.player_id)
+        opp = state.get_opponent(action.player_id)
+        if opp.active:
+            opp.active.status_conditions.add(StatusCondition.PARALYZED)
+            state.emit_event("status_applied", player=opp_id,
+                             card=opp.active.card_name, status="paralyzed")
+    else:
+        state.emit_event("attack_no_damage", attacker="Pancham", attack_name="Leer",
+                         reason="tails")
+
+
+def _diffuse_reflection(state, action):
+    """sv07-086 Diancie atk0 — Diffuse Reflection: 40 × number of Special Energy on all opp Pokémon."""
+    _SPECIAL_ENERGY_IDS_DR = {"me02.5-216", "me03-086", "me03-088", "sv05-161",
+                               "sv06-167", "sv08-191", "sv10-182", "sv10.5w-086"}
+    opp = state.get_opponent(action.player_id)
+    opp_all = ([opp.active] if opp.active else []) + list(opp.bench)
+    total_specials = sum(
+        1 for p in opp_all
+        for att in p.energy_attached
+        if att.card_def_id in _SPECIAL_ENERGY_IDS_DR
+    )
+    _apply_damage(state, action, 40 * total_specials)
+
+
+def _destructive_horn(state, action):
+    """sv07-075 Rhydon atk0 / sv07-112 Tauros atk0 — Destructive Horn: flip coin; heads = discard 1 opp energy."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    heads = _random.choice([True, False])
+    state.emit_event("coin_flip_result", attack="Destructive Horn", heads=1 if heads else 0, flips=1)
+    if not heads:
+        return
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    if opp.active and opp.active.energy_attached:
+        removed = opp.active.energy_attached.pop(0)
+        state.emit_event("energy_discarded", player=opp_id,
+                         card=opp.active.card_name, count=1, reason="Destructive Horn")
+
+
+def _drill_run(state, action):
+    """sv07-076 Rhyperior atk0 — Drill Run: 180 + discard 1 Energy from opp Active."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    if opp.active and opp.active.energy_attached:
+        opp.active.energy_attached.pop(0)
+        state.emit_event("energy_discarded", player=opp_id,
+                         card=opp.active.card_name, count=1, reason="Drill Run")
+
+
+def _resolute_fang(state, action):
+    """sv07-090 Koraidon atk0 — Resolute Fang: 50 + 70 if opp Active is Pokémon ex."""
+    opp = state.get_opponent(action.player_id)
+    opp_cdef = card_registry.get(opp.active.card_def_id) if opp.active else None
+    bonus = 70 if (opp_cdef and opp_cdef.is_ex) else 0
+    _apply_damage(state, action, 50 + bonus)
+
+
+def _super_poison_breath(state, action):
+    """sv07-091 Gulpin atk1 — Super Poison Breath: 30 + opponent Active is now Poisoned."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    if opp.active:
+        opp.active.status_conditions.add(StatusCondition.POISONED)
+        state.emit_event("status_applied", player=opp_id,
+                         card=opp.active.card_name, status="poisoned")
+
+
+def _devouring_mouth(state, action):
+    """sv07-092 Swalot atk0 — Devouring Mouth: 10 + 160 if self has more Energy than opp Active."""
+    player = state.get_player(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    self_energy = len(player.active.energy_attached) if player.active else 0
+    opp_energy = len(opp.active.energy_attached) if opp.active else 0
+    bonus = 160 if self_energy > opp_energy else 0
+    _apply_damage(state, action, 10 + bonus)
+
+
+def _venomous_hit(state, action):
+    """sv07-092 Swalot atk1 — Venomous Hit: 100 + opponent Active is now Poisoned."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    if opp.active:
+        opp.active.status_conditions.add(StatusCondition.POISONED)
+        state.emit_event("status_applied", player=opp_id,
+                         card=opp.active.card_name, status="poisoned")
+
+
+def _tantrum_b13(state, action):
+    """sv07-093 Pangoro atk1 — Tantrum: 160 + this Pokémon is now Confused."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if player.active:
+        player.active.status_conditions.add(StatusCondition.CONFUSED)
+        state.emit_event("status_applied", player=action.player_id,
+                         card=player.active.card_name, status="confused")
+
+
+def _goad_n_grab_flag(state, action):
+    """sv07-096 Grimmsnarl atk0 — Goad 'n' Grab: FLAGGED (forced switch + damage to new active)."""
+    state.emit_event("flagged_effect", attack="Goad 'n' Grab",
+                     reason="forced_switch_bench_choice_not_supported")
+
+
+def _knuckle_sandwich(state, action):
+    """sv07-096 Grimmsnarl atk1 — Knuckle Sandwich: 160 + discard 2 Energy from self."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if player.active:
+        for _ in range(2):
+            if player.active.energy_attached:
+                player.active.energy_attached.pop(0)
+        state.emit_event("energy_discarded", card=player.active.card_name,
+                         count=2, reason="Knuckle Sandwich")
+
+
+def _reckless_charge_recoil20(state, action):
+    """sv07-097 Bombirdier atk0 — Reckless Charge: 70 + 20 recoil to self."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if player.active:
+        player.active.current_hp -= 20
+        player.active.damage_counters += 2
+        state.emit_event("recoil_damage", card=player.active.card_name, damage=20)
+        check_ko(state, player.active, action.player_id)
+
+
+def _allure_b13(state, action):
+    """sv07-099 Klink atk0 — Allure: draw 1 card (no damage)."""
+    draw_cards(state, action.player_id, 1)
+    state.emit_event("draw", player=action.player_id, count=1, reason="Allure")
+
+
+def _iron_tackle(state, action):
+    """sv07-100 Klang atk0 — Iron Tackle: 60 + 20 recoil to self."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if player.active:
+        player.active.current_hp -= 20
+        player.active.damage_counters += 2
+        state.emit_event("recoil_damage", card=player.active.card_name, damage=20)
+        check_ko(state, player.active, action.player_id)
+
+
+def _hyper_ray(state, action):
+    """sv07-101 Klinklang atk0 — Hyper Ray: 130 + discard all Energy from self."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if player.active and player.active.energy_attached:
+        count = len(player.active.energy_attached)
+        player.active.energy_attached.clear()
+        state.emit_event("energy_discarded", card=player.active.card_name,
+                         count=count, reason="Hyper Ray")
+
+
+def _reforged_axe(state, action):
+    """sv07-104 Melmetal atk1 — Reforged Axe: discard all Tools from your Pokémon, do 250 damage."""
+    player = state.get_player(action.player_id)
+    all_self = ([player.active] if player.active else []) + list(player.bench)
+    total_tools = sum(len(p.tools_attached) for p in all_self)
+    for p in all_self:
+        if p.tools_attached:
+            p.tools_attached.clear()
+    if total_tools > 0:
+        state.emit_event("tools_discarded", player=action.player_id,
+                         count=total_tools, reason="Reforged Axe")
+    _apply_damage(state, action, 250)
+
+
+def _iron_swing(state, action):
+    """sv07-105 Melmetal ex atk0 — Iron Swing: flip 2 coins, 100 damage per heads."""
+    heads = sum(1 for _ in range(2) if _random.choice([True, False]))
+    state.emit_event("coin_flip_result", attack="Iron Swing", heads=heads, flips=2)
+    if heads == 0:
+        state.emit_event("attack_no_damage", attacker="Melmetal ex", attack_name="Iron Swing")
+        return
+    _apply_damage(state, action, 100 * heads)
+
+
+def _raging_hammer_b13(state, action):
+    """sv07-106 Duraludon atk1 — Raging Hammer: 80 + 10 per damage counter on self."""
+    player = state.get_player(action.player_id)
+    counters = player.active.damage_counters if player.active else 0
+    _apply_damage(state, action, 80 + 10 * counters)
+
+
+def _iron_blaster(state, action):
+    """sv07-107 Archaludon atk0 — Iron Blaster: 160 + this Pokémon can't attack next turn."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if player.active:
+        player.active.cant_attack_next_turn = True
+        state.emit_event("attack_locked", card=player.active.card_name,
+                         reason="iron_blaster")
+
+
+def _rock_tomb(state, action):
+    """sv07-110 Orthworm ex atk0 — Rock Tomb: 150 + opp Active can't retreat next turn."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp = state.get_opponent(action.player_id)
+    if opp.active:
+        opp.active.cant_retreat_next_turn = True
+        state.emit_event("cant_retreat", card=opp.active.card_name)
+
+
+def _thunderburst_storm(state, action):
+    """sv07-111 Raging Bolt atk0 — Thunderburst Storm: 30 × energy on self to opp Active."""
+    player = state.get_player(action.player_id)
+    energy_count = len(player.active.energy_attached) if player.active else 0
+    if energy_count == 0:
+        state.emit_event("attack_no_damage", attacker="Raging Bolt",
+                         attack_name="Thunderburst Storm", reason="no_energy")
+        return
+    _apply_damage(state, action, 30 * energy_count, bypass_wr=False)
+
+
+def _triple_stab(state, action):
+    """sv07-114 Hoothoot atk0 — Triple Stab: flip 3 coins, 10 damage per heads."""
+    heads = sum(1 for _ in range(3) if _random.choice([True, False]))
+    state.emit_event("coin_flip_result", attack="Triple Stab", heads=heads, flips=3)
+    if heads == 0:
+        state.emit_event("attack_no_damage", attacker="Hoothoot", attack_name="Triple Stab")
+        return
+    _apply_damage(state, action, 10 * heads)
+
+
+def _nyan_roll(state, action):
+    """sv07-117 Purugly atk0 — Nyan Roll: 80 + flip coin; heads = prevent all damage next turn."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    heads = _random.choice([True, False])
+    state.emit_event("coin_flip_result", attack="Nyan Roll", heads=1 if heads else 0, flips=1)
+    if heads:
+        player = state.get_player(action.player_id)
+        if player.active:
+            player.active.prevent_damage_one_turn = True
+            state.emit_event("prevent_damage_set", player=action.player_id,
+                             card=player.active.card_name)
+
+
+def _boundless_power(state, action):
+    """sv07-119 Bouffalant atk0 — Boundless Power: 130 + this Pokémon can't attack next turn."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if player.active:
+        player.active.cant_attack_next_turn = True
+        state.emit_event("attack_locked", card=player.active.card_name,
+                         reason="boundless_power")
+
+
+def _storm_barrier(state, action):
+    """sv07-120 Tornadus atk1 — Storm Barrier: 100 + reduce incoming damage by 50 next turn."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if player.active:
+        player.active.incoming_damage_reduction += 50
+        state.emit_event("damage_reduction_set", card=player.active.card_name,
+                         amount=50, attack="Storm Barrier")
+
+
+def _send_back_flag(state, action):
+    """sv07-121 Fletchling atk0 — Send Back: FLAGGED (switch opp Active to Bench)."""
+    state.emit_event("flagged_effect", attack="Send Back",
+                     reason="forced_switch_opp_to_bench_not_supported")
+
+
+def _aero_chase(state, action):
+    """sv07-123 Talonflame atk0 — Aero Chase: 110 + 110 if opp retreat cost is 2 or more."""
+    opp = state.get_opponent(action.player_id)
+    bonus = 0
+    if opp.active:
+        opp_cdef = card_registry.get(opp.active.card_def_id)
+        if opp_cdef and (opp_cdef.retreat_cost or 0) >= 2:
+            bonus = 110
+    _apply_damage(state, action, 110 + bonus)
+
+
+def _knock_over_flag(state, action):
+    """sv07-124 Wooloo / sv07-125 Dubwool — Knock Over: FLAGGED (discard Stadium)."""
+    state.emit_event("flagged_effect", attack="Knock Over",
+                     reason="discard_stadium_not_supported")
+
+
+def _unified_beatdown_scr(state, action):
+    """sv07-128 Terapagos ex atk0 — Unified Beatdown: 30 × benched Pokémon."""
+    player = state.get_player(action.player_id)
+    bench_count = len(player.bench)
+    _apply_damage(state, action, 30 * bench_count)
+
+
+def _crown_opal_scr(state, action):
+    """sv07-128 Terapagos ex atk1 — Crown Opal: 180 + prevent basic non-C damage next turn."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if player.active:
+        player.active.prevent_damage_from_basic_noncolorless = True
+        state.emit_event("crown_opal", card=player.active.card_name)
+
+
+# ── SFA (sv06.5-001..034) ────────────────────────────────────────────────────
+
+def _splashing_dodge(state, action):
+    """sv06.5-001 Joltik atk0 — Splashing Dodge: 10 + flip coin; heads = prevent damage next turn."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    heads = _random.choice([True, False])
+    state.emit_event("coin_flip_result", attack="Splashing Dodge", heads=1 if heads else 0, flips=1)
+    if heads:
+        player = state.get_player(action.player_id)
+        if player.active:
+            player.active.prevent_damage_one_turn = True
+            state.emit_event("prevent_damage_set", player=action.player_id,
+                             card=player.active.card_name)
+
+
+def _shocking_web(state, action):
+    """sv06.5-002 Galvantula atk0 — Shocking Web: 50 + 80 if Lightning Energy attached to self."""
+    player = state.get_player(action.player_id)
+    has_lightning = (player.active and any(
+        att.energy_type == EnergyType.LIGHTNING for att in player.active.energy_attached))
+    _apply_damage(state, action, 50 + (80 if has_lightning else 0))
+
+
+def _add_on_b13(state, action):
+    """sv06.5-003 Rowlet atk0 — Add On: draw 1 card (no damage)."""
+    draw_cards(state, action.player_id, 1)
+    state.emit_event("draw", player=action.player_id, count=1, reason="Add On")
+
+
+def _united_wings_flag(state, action):
+    """sv06.5-004 Dartrix atk0 — United Wings: FLAGGED (count Pokémon in discard)."""
+    state.emit_event("flagged_effect", attack="United Wings",
+                     reason="count_specific_pokemon_in_discard_not_supported")
+
+
+def _stock_up_on_feathers_flag(state, action):
+    """sv06.5-005 Decidueye atk0 — Stock Up on Feathers: FLAGGED (draw to 7)."""
+    state.emit_event("flagged_effect", attack="Stock Up on Feathers",
+                     reason="draw_to_hand_size_not_supported")
+
+
+def _power_shot(state, action):
+    """sv06.5-005 Decidueye atk1 — Power Shot: discard G Energy from hand, do 170 damage."""
+    player = state.get_player(action.player_id)
+    g_energy = [c for c in player.hand
+                if c.card_type.lower() == "energy"
+                and "Grass" in (c.energy_provides or [])]
+    if not g_energy:
+        state.emit_event("attack_no_damage", attacker="Decidueye",
+                         attack_name="Power Shot", reason="no_G_energy_in_hand")
+        return
+    discard_card = g_energy[0]
+    player.hand.remove(discard_card)
+    discard_card.zone = Zone.DISCARD
+    player.discard.append(discard_card)
+    state.emit_event("energy_discarded", player=action.player_id,
+                     card=discard_card.card_name, count=1, reason="Power Shot")
+    _apply_damage(state, action, 170)
+
+
+def _wood_hammer_b13(state, action):
+    """sv06.5-006 Tapu Bulu atk0 — Wood Hammer: 220 + 30 recoil to self."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if player.active:
+        player.active.current_hp -= 30
+        player.active.damage_counters += 3
+        state.emit_event("recoil_damage", card=player.active.card_name, damage=30)
+        check_ko(state, player.active, action.player_id)
+
+
+def _snarl(state, action):
+    """sv06.5-008 Houndoom atk1 — Snarl: 100 + opp attacks do 100 less damage next turn."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp = state.get_opponent(action.player_id)
+    if opp.active:
+        opp.active.attack_damage_reduction += 100
+        state.emit_event("attack_reduction", card=opp.active.card_name, reduction=100)
+
+
+def _suction(state, action):
+    """sv06.5-009 Iron Moth atk0 — Suction: 30 + heal = damage dealt to opp Active."""
+    player = state.get_player(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    if not opp.active or not player.active:
+        _do_default_damage(state, action)
+        return
+    hp_before = opp.active.current_hp
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    damage_dealt = hp_before - opp.active.current_hp
+    if damage_dealt > 0 and player.active:
+        heal = min(damage_dealt, player.active.damage_counters * 10)
+        if heal > 0:
+            player.active.damage_counters = max(0, player.active.damage_counters - heal // 10)
+            player.active.current_hp = min(player.active.max_hp, player.active.current_hp + heal)
+            state.emit_event("healed", player=action.player_id,
+                             card=player.active.card_name, amount=heal)
+
+
+def _anachronism_repulsor_flag(state, action):
+    """sv06.5-009 Iron Moth atk1 — Anachronism Repulsor: 120 + FLAGGED (prevent Ancient damage)."""
+    _do_default_damage(state, action)
+    state.emit_event("flagged_effect", attack="Anachronism Repulsor",
+                     reason="prevent_ancient_pokemon_damage_next_turn_not_supported")
+
+
+def _hold_still_b13(state, action):
+    """sv06.5-010 Horsea atk0 — Hold Still: heal 30 from this Pokémon (no damage)."""
+    player = state.get_player(action.player_id)
+    if player.active:
+        heal = min(30, player.active.damage_counters * 10)
+        if heal > 0:
+            player.active.damage_counters = max(0, player.active.damage_counters - heal // 10)
+            player.active.current_hp = min(player.active.max_hp, player.active.current_hp + heal)
+            state.emit_event("healed", player=action.player_id,
+                             card=player.active.card_name, amount=heal)
+    state.emit_event("attack_no_damage", attacker="Horsea", attack_name="Hold Still")
+
+
+def _call_for_backup_flag(state, action):
+    """sv06.5-011 Seadra atk0 — Call for Backup: FLAGGED (search for 3 Pokémon)."""
+    state.emit_event("flagged_effect", attack="Call for Backup",
+                     reason="search_deck_for_3_pokemon_not_supported")
+
+
+def _kings_order_flag(state, action):
+    """sv06.5-012 Kingdra ex atk0 — King's Order: FLAGGED (bench from discard)."""
+    state.emit_event("flagged_effect", attack="King's Order",
+                     reason="bench_water_pokemon_from_discard_not_supported")
+
+
+def _hydro_pump_sfa(state, action):
+    """sv06.5-012 Kingdra ex atk1 — Hydro Pump: 50 + 50 per Water Energy attached to self."""
+    player = state.get_player(action.player_id)
+    w_count = (sum(1 for att in player.active.energy_attached
+                   if att.energy_type == EnergyType.WATER)
+               if player.active else 0)
+    _apply_damage(state, action, 50 + 50 * w_count)
+
+
+def _beset(state, action):
+    """sv06.5-013 Sneasel atk1 — Beset: 30 + opp Active can't retreat next turn."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp = state.get_opponent(action.player_id)
+    if opp.active:
+        opp.active.cant_retreat_next_turn = True
+        state.emit_event("cant_retreat", card=opp.active.card_name)
+
+
+def _accelerator_flash_flag(state, action):
+    """sv06.5-015 Revavroom ex atk0 — Accelerator Flash: FLAGGED (bench-to-active check)."""
+    state.emit_event("flagged_effect", attack="Accelerator Flash",
+                     reason="bench_pokemon_condition_check_not_supported")
+
+
+def _shattering_speed_flag(state, action):
+    """sv06.5-015 Revavroom ex atk1 — Shattering Speed: FLAGGED (discard self after KO)."""
+    _do_default_damage(state, action)
+    state.emit_event("flagged_effect", attack="Shattering Speed",
+                     reason="discard_self_after_attack_not_supported")
+
+
+def _eerie_gaze(state, action):
+    """sv06.5-016 Drowzee atk0 — Eerie Gaze: 10 + reveal opp hand."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    state.emit_event("hand_revealed", player=opp_id,
+                     cards=[c.card_name for c in opp.hand])
+
+
+def _daydream_flag(state, action):
+    """sv06.5-017 Hypno atk0 — Daydream: FLAGGED (energy-attach trigger on opp turn)."""
+    _do_default_damage(state, action)
+    state.emit_event("flagged_effect", attack="Daydream",
+                     reason="opponent_turn_energy_attach_trigger_not_supported")
+
+
+def _come_and_get_you_flag(state, action):
+    """sv06.5-018 Duskull atk0 — Come and Get You: FLAGGED (bench from discard)."""
+    state.emit_event("flagged_effect", attack="Come and Get You",
+                     reason="bench_pokemon_from_discard_not_supported")
+
+
+def _shadow_bind_b13(state, action):
+    """sv06.5-020 Dusknoir atk0 — Shadow Bind: 150 + opp Active can't retreat next turn."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp = state.get_opponent(action.player_id)
+    if opp.active:
+        opp.active.cant_retreat_next_turn = True
+        state.emit_event("cant_retreat", card=opp.active.card_name)
+
+
+def _healing_pirouette(state, action):
+    """sv06.5-021 Cresselia atk0 — Healing Pirouette: heal 20 from each of your Pokémon."""
+    player = state.get_player(action.player_id)
+    all_self = ([player.active] if player.active else []) + list(player.bench)
+    for p in all_self:
+        heal = min(20, p.damage_counters * 10)
+        if heal > 0:
+            p.damage_counters = max(0, p.damage_counters - heal // 10)
+            p.current_hp = min(p.max_hp, p.current_hp + heal)
+    state.emit_event("healing_pirouette", player=action.player_id,
+                     healed_count=len(all_self))
+    state.emit_event("attack_no_damage", attacker="Cresselia", attack_name="Healing Pirouette")
+
+
+def _mystical_return_flag(state, action):
+    """sv06.5-022 Sylveon atk0 — Mystical Return: FLAGGED (shuffle opp bench to deck)."""
+    state.emit_event("flagged_effect", attack="Mystical Return",
+                     reason="shuffle_opp_bench_to_deck_not_supported")
+
+
+def _crescent_purge_flag(state, action):
+    """sv06.5-021 Cresselia atk1 — Crescent Purge: FLAGGED (flip prize face-up)."""
+    _do_default_damage(state, action)
+    state.emit_event("flagged_effect", attack="Crescent Purge",
+                     reason="flip_prize_face_up_not_supported")
+
+
+def _frog_hop(state, action):
+    """sv06.5-023 Croagunk atk1 — Frog Hop: 20 + flip coin; heads = +20 damage."""
+    heads = _random.choice([True, False])
+    state.emit_event("coin_flip_result", attack="Frog Hop", heads=1 if heads else 0, flips=1)
+    _apply_damage(state, action, 40 if heads else 20)
+
+
+def _clean_hit(state, action):
+    """sv06.5-024 Toxicroak atk1 — Clean Hit: 90 + 90 if opp Active is an Evolution Pokémon."""
+    opp = state.get_opponent(action.player_id)
+    opp_cdef = card_registry.get(opp.active.card_def_id) if opp.active else None
+    is_evolution = (opp_cdef and (opp_cdef.stage or "").lower()
+                    in ("stage 1", "stage 2", "stage1", "stage2", "mega", "vmax", "v-max"))
+    _apply_damage(state, action, 90 + (90 if is_evolution else 0))
+
+
+def _mad_bite_b13(state, action):
+    """sv06.5-025 Bloodmoon Ursaluna atk0 — Mad Bite: 100 + 30 × damage counters on opp Active."""
+    opp = state.get_opponent(action.player_id)
+    if not opp.active:
+        return
+    _apply_damage(state, action, 100 + 30 * opp.active.damage_counters)
+
+
+def _iron_smasher(state, action):
+    """sv06.5-026 Slither Wing atk0 — Iron Smasher: 20 + 120 if opp has a Future Pokémon in play."""
+    opp = state.get_opponent(action.player_id)
+    opp_all = ([opp.active] if opp.active else []) + list(opp.bench)
+    has_future = any(
+        (card_registry.get(p.card_def_id) and
+         (card_registry.get(p.card_def_id).card_subtype or "").lower() == "future")
+        for p in opp_all
+    )
+    _apply_damage(state, action, 20 + (120 if has_future else 0))
+
+
+def _smashing_wing(state, action):
+    """sv06.5-026 Slither Wing atk1 — Smashing Wing: 130 + discard 2 Energy from self."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if player.active:
+        for _ in range(2):
+            if player.active.energy_attached:
+                player.active.energy_attached.pop(0)
+        state.emit_event("energy_discarded", card=player.active.card_name,
+                         count=2, reason="Smashing Wing")
+
+
+def _lead_flag(state, action):
+    """sv06.5-027 Zubat atk0 — Lead: FLAGGED (search deck for Supporter)."""
+    state.emit_event("flagged_effect", attack="Lead",
+                     reason="search_deck_for_supporter_not_supported")
+
+
+def _pitch_black_blade(state, action):
+    """sv06.5-028 Golbat atk1 — Pitch-Black Blade: 80 + this Pokémon can't attack next turn."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if player.active:
+        player.active.cant_attack_next_turn = True
+        state.emit_event("attack_locked", card=player.active.card_name,
+                         reason="pitch_black_blade")
+
+
+def _poison_fang_crobat(state, action):
+    """sv06.5-029 Crobat atk0 — Poison Fang: 120 + double Poison (2 counters/turn)."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    if opp.active:
+        opp.active.status_conditions.add(StatusCondition.POISONED)
+        opp.active.double_poison = True
+        state.emit_event("status_applied", player=opp_id,
+                         card=opp.active.card_name, status="poisoned", variant="double")
+
+
+def _darkfall(state, action):
+    """sv06.5-030 Absol atk0 — Darkfall: 20 + 50 if there are 3 or more Darkness Energy in play."""
+    player = state.get_player(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    all_poke = (([player.active] if player.active else []) + list(player.bench) +
+                ([opp.active] if opp.active else []) + list(opp.bench))
+    dark_energy_count = sum(
+        1 for p in all_poke
+        for att in p.energy_attached
+        if att.energy_type == EnergyType.DARKNESS
+    )
+    bonus = 50 if dark_energy_count >= 3 else 0
+    _apply_damage(state, action, 20 + bonus)
+
+
+def _double_scratch(state, action):
+    """sv06.5-031 Zorua atk1 — Double Scratch: flip 2 coins, 20 damage per heads."""
+    heads = sum(1 for _ in range(2) if _random.choice([True, False]))
+    state.emit_event("coin_flip_result", attack="Double Scratch", heads=heads, flips=2)
+    if heads == 0:
+        state.emit_event("attack_no_damage", attacker="Zorua", attack_name="Double Scratch")
+        return
+    _apply_damage(state, action, 20 * heads)
+
+
+def _illusory_hijacking(state, action):
+    """sv06.5-032 Zoroark atk0 — Illusory Hijacking: 60 × opp Pokémon ex (or V) in play."""
+    opp = state.get_opponent(action.player_id)
+    opp_all = ([opp.active] if opp.active else []) + list(opp.bench)
+    ex_count = sum(
+        1 for p in opp_all
+        if (card_registry.get(p.card_def_id) and card_registry.get(p.card_def_id).is_ex)
+    )
+    if ex_count == 0:
+        state.emit_event("attack_no_damage", attacker="Zoroark",
+                         attack_name="Illusory Hijacking", reason="no_ex_in_play")
+        return
+    _apply_damage(state, action, 60 * ex_count)
+
+
+def _mischievous_tentacles_flag(state, action):
+    """sv06.5-033 Inkay atk0 — Mischievous Tentacles: FLAGGED (look at top card, maybe shuffle)."""
+    state.emit_event("flagged_effect", attack="Mischievous Tentacles",
+                     reason="look_at_top_deck_card_with_shuffle_choice_not_supported")
+
+
+def _colluding_tentacles_flag(state, action):
+    """sv06.5-034 Malamar atk0 — Colluding Tentacles: FLAGGED (requires specific trainer in play)."""
+    state.emit_event("flagged_effect", attack="Colluding Tentacles",
+                     reason="trainer_in_play_condition_not_supported")
+
+
+def _all_out_attack_flag(state, action):
+    """sv07-088 Falinks atk1 — All-Out Attack: FLAGGED (requires tracking prior-turn move used)."""
+    _do_default_damage(state, action)
+    state.emit_event("flagged_effect", attack="All-Out Attack",
+                     reason="prior_turn_attack_tracking_not_supported")
+
+
+def _colorful_confection_flag(state, action):
+    """sv07-065 Alcremie atk0 — Colorful Confection: FLAGGED (search by attached energy type)."""
+    state.emit_event("flagged_effect", attack="Colorful Confection",
+                     reason="search_by_energy_type_not_supported")
+
+
+def _swelling_wish_flag(state, action):
+    """sv07-098 Jirachi atk0 — Swelling Wish: FLAGGED (attach Basic Energy from discard to Bench)."""
+    state.emit_event("flagged_effect", attack="Swelling Wish",
+                     reason="attach_energy_from_discard_to_bench_not_supported")
