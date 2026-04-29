@@ -1,0 +1,96 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-038",
+  "illustrator": "AKIRA EGAWA",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/038",
+  "localId": "038",
+  "name": "Gouging Fire",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    1020
+  ],
+  "hp": 130,
+  "types": [
+    "Fire"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fire"
+      ],
+      "name": "Lunge Out",
+      "damage": 30
+    },
+    {
+      "cost": [
+        "Fire",
+        "Fire",
+        "Colorless"
+      ],
+      "name": "Blazing Charge",
+      "effect": "If your opponent has 4 or fewer Prize cards remaining, this attack does 70 more damage.",
+      "damage": "100+"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794304,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.08,
+      "avg1": 0.19,
+      "avg7": 0.09,
+      "avg30": 0.07,
+      "avg-holo": 0.23,
+      "low-holo": 0.02,
+      "trend-holo": 0.25,
+      "avg1-holo": 0.35,
+      "avg7-holo": 0.23,
+      "avg30-holo": 0.24
+    },
+    "tcgplayer": null
+  }
+}

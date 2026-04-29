@@ -1,0 +1,92 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-069",
+  "illustrator": "Nurikabe",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/069",
+  "localId": "069",
+  "name": "Miraidon",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    1008
+  ],
+  "hp": 120,
+  "types": [
+    "Lightning"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "C.O.D.E.: Protect",
+      "effect": "During your opponent's next turn, prevent all damage done to each of your Future Pokémon by attacks from Pokémon ex. If this Pokémon is no longer your Active Pokémon, this effect ends.",
+      "damage": 40
+    },
+    {
+      "cost": [
+        "Lightning",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Thunder Claws",
+      "damage": 100
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794352,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.09,
+      "avg7": 0.04,
+      "avg30": 0.03,
+      "avg-holo": 0.2,
+      "low-holo": 0.02,
+      "trend-holo": 0.19,
+      "avg1-holo": 0.1,
+      "avg7-holo": 0.24,
+      "avg30-holo": 0.22
+    },
+    "tcgplayer": null
+  }
+}

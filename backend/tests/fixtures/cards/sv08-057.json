@@ -1,0 +1,94 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-057",
+  "illustrator": "aky CG Works",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/057",
+  "localId": "057",
+  "name": "Pikachu ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "mtltux8quqoc7vwp24c9zzhgmzduu8xcik8"
+    }
+  ],
+  "dexId": [
+    25
+  ],
+  "hp": 200,
+  "types": [
+    "Lightning"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Resolute Heart",
+      "effect": "If this Pokémon has full HP and would be Knocked Out by damage from an attack, it is not Knocked Out, and its remaining HP becomes 10."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Grass",
+        "Lightning",
+        "Metal"
+      ],
+      "name": "Topaz Bolt",
+      "effect": "Discard 3 Energy from this Pokémon.",
+      "damage": 300
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794329,
+      "avg": 3.47,
+      "low": 1.35,
+      "trend": 3.56,
+      "avg1": 3.78,
+      "avg7": 3.69,
+      "avg30": 3.5,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

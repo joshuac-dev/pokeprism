@@ -1,105 +1,3 @@
-Vulpix SSP 16
-Ninetales SSP 17
-Victini SSP 21
-Castform Sunny Form SSP 20
-Ho-Oh SSP 19
-Paldean Tauros SSP 18
-Pansear SSP 22
-Simisear SSP 23
-Larvesta SSP 24
-Volcarona SSP 25
-Oricorio SSP 26
-Sizzlipede SSP 27
-Centiskorch SSP 28
-Fuecoco SSP 29
-Charcadet SSP 33
-Charcadet SSP 32
-Skeledirge SSP 31
-Crocalor SSP 30
-Armarouge SSP 34
-Ceruledge SSP 35
-Ceruledge ex SSP 36
-Scovillain ex SSP 37
-Gouging Fire SSP 38
-Paldean Tauros SSP 39
-Mantine SSP 40
-Feebas SSP 41
-Walrein SSP 45
-Sealeo SSP 44
-Spheal SSP 43
-Milotic ex SSP 42
-Shellos SSP 46
-Cryogonal SSP 47
-Black Kyurem ex SSP 48
-Bruxish SSP 49
-Quaxly SSP 50
-Quaxwell SSP 51
-Quaquaval SSP 52
-Cetoddle SSP 53
-Pikachu ex SSP 57
-Chien-Pao SSP 56
-Iron Bundle SSP 55
-Cetitan SSP 54
-Magnemite SSP 58
-Magneton SSP 59
-Magnezone SSP 60
-Rotom SSP 61
-Blitzle SSP 62
-Zebstrika SSP 63
-Stunfisk SSP 64
-Tapu Koko SSP 65
-Miraidon SSP 69
-Kilowattrel ex SSP 68
-Kilowattrel SSP 67
-Wattrel SSP 66
-Togepi SSP 70
-Togetic SSP 71
-Togekiss SSP 72
-Marill SSP 73
-Azumarill SSP 74
-Smoochum SSP 75
-Latias ex SSP 76
-Latios SSP 77
-Sigilyph SSP 81
-Azelf SSP 80
-Mesprit SSP 79
-Uxie SSP 78
-Yamask SSP 82
-Cofagrigus SSP 83
-Espurr SSP 84
-Meowstic SSP 85
-Sylveon ex SSP 86
-Dedenne SSP 87
-Xerneas SSP 88
-Oricorio SSP 89
-Indeedee SSP 93
-Tapu Lele SSP 92
-Palossand ex SSP 91
-Sandygast SSP 90
-Flittle SSP 94
-Espathra SSP 95
-Flutter Mane SSP 96
-Gimmighoul SSP 97
-Mankey SSP 98
-Primeape SSP 99
-Annihilape SSP 100
-Paldean Tauros SSP 101
-Vibrava SSP 105
-Trapinch SSP 104
-Donphan SSP 103
-Phanpy SSP 102
-Flygon ex SSP 106
-Gastrodon SSP 107
-Drilbur SSP 108
-Excadrill SSP 109
-Landorus SSP 110
-Passimian SSP 111
-Clobbopus SSP 112
-Grapploct SSP 113
-Deino SSP 117
-Koraidon SSP 116
-Glimmora SSP 115
-Glimmet SSP 114
 Zweilous SSP 118
 Hydreigon ex SSP 119
 Shroodle SSP 120
@@ -1058,3 +956,31 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Durant ex SSP 4 | sv08-004 | Sudden Shearing (ability) | On bench-play: discard top of opponent's deck — on-bench-play trigger hook not in engine |
 | Exeggcute SSP 1 | sv08-001 | Precocious Evolution (atk0) | Search deck for Evolution and evolve a Benched Pokémon on first turn — first-turn mid-battle evolution not supported |
 | Vivillon SSP 7 | sv08-007 | Evo-Powder (atk0) | Evolve all of your Benched Pokémon from deck simultaneously — mass in-battle evolution not supported |
+| Castform Sunny Form SSP 20 | sv08-020 | Sunny Assist (atk1) | Redistribute all attached Energy to any of your Pokémon — arbitrary energy redistribution not supported |
+| Armarouge SSP 34 | sv08-034 | Crimson Blaster (atk1) | Discard {R}{R} or {P}{P} from attacker, then 200 to any Pokémon — type-specific energy discard + bench targeting not supported |
+| Ceruledge SSP 35 | sv08-035 | Cursed Edge (atk0) | Discard all Special Energy from each of opponent's Pokémon — mass Special-Energy discard not supported |
+| Paldean Tauros SSP 39 | sv08-039 | Upthrusting Horns (atk0) | Return 2 Energy from opponent's Stage 2 Active to hand — stage-check + energy return to hand not supported |
+| Walrein SSP 45 | sv08-045 | Frigid Fangs (atk0) | Opponent's Active can't attack next turn if 3+ Energy attached — energy-count-based cant-attack not supported |
+| Pikachu ex SSP 57 | sv08-057 | Resolute Heart (ability) | Prevent KO from damage (leave at 10 HP instead) — OHKO prevention requires HP-floor hook not in engine |
+| Magneton SSP 59 | sv08-059 | Overvolt Discharge (ability) | KO this Pokémon; attach multiple Energy from deck — self-KO + multi-energy attach from deck not supported |
+| Magnezone SSP 60 | sv08-060 | Zap Cannon (atk1) | This Pokémon can't use Zap Cannon on next turn — attack-specific can't-use inter-turn tracking not supported |
+| Rotom SSP 61 | sv08-061 | Crushing Pulse (atk0) | Look at opp's hand; discard all Items/Tools found — hand-reveal + selective discard of Items/Tools not supported |
+| Kilowattrel SSP 67 | sv08-067 | Storm Bolt (atk1) | Move all Energy from this Pokémon to your Bench — arbitrary energy redistribution to bench not supported |
+| Kilowattrel ex SSP 68 | sv08-068 | Return Charge (atk0) | Switch opp's Active with Benched; attach Basic Energy from hand to that Pokémon — forced switch + energy attach combo not supported |
+| Miraidon SSP 69 | sv08-069 | C.O.D.E.: Protect (atk0) | Future Pokémon not affected by effects of opp's attacks next turn — future-type effect immunity requires persistent flag not in state |
+| Togekiss SSP 72 | sv08-072 | Wonder Kiss (ability) | Take an extra Prize when this Pokémon KOs an ex/V — on-KO extra prize hook with source tracking not in engine |
+| Azumarill SSP 74 | sv08-074 | Glistening Bubbles (ability) | Reduce cost of attacks by {W} for each Tera Pokémon in play — dynamic cost reduction based on Tera count not supported |
+| Meowstic SSP 85 | sv08-085 | Beckoning Tail (ability) | Use if you have a Supporter in hand: put a Pokémon from opponent's Bench into their hand — requires Supporter-in-hand check + forced return not supported |
+| Palossand ex SSP 91 | sv08-091 | Barite Jail (atk1) | Each of opp's Benched Pokémon that has more than 100 HP remaining has 100 HP remaining — arbitrary HP floor on multiple targets not supported |
+| Indeedee SSP 93 | sv08-093 | Obliging Heal (ability) | When you play this from hand to Bench, heal 60 from one of your Pokémon — on-bench-play heal hook not in engine |
+| Flittle SSP 94 | sv08-094 | Splashing Dodge (atk0) | Flip; if heads this Pokémon has no Weakness next turn — conditional per-turn Weakness removal not in state |
+| Espathra SSP 95 | sv08-095 | Mystical Eyes (atk0) | Devolve all of opponent's Evolved Pokémon — engine has no previous-evolution form tracking |
+| Flutter Mane SSP 96 | sv08-096 | Perplexing Transfer (atk0) | Move any number of damage counters from opponent's Bench to opponent's Active — arbitrary bench→active damage-counter move not supported |
+| Annihilape SSP 100 | sv08-100 | Destined Fight (atk1) | Both Active Pokémon are Knocked Out — mutual-KO mechanic requires simultaneous prize resolution not in engine |
+| Donphan SSP 103 | sv08-103 | Guarded Rolling (atk1) | Discard 2 Energy; this Pokémon takes 100 less damage during opponent's next turn — energy discard + deferred damage reduction not supported |
+| Gastrodon SSP 107 | sv08-107 | Sticky Bind (ability) | Opponent's Benched Stage 2 Pokémon have no Abilities — opponent bench ability suppression not in engine |
+| Grapploct SSP 113 | sv08-113 | Raging Tentacles (atk1) | Cost reduced to {W} if this Pokémon has damage counters — conditional energy cost modification requires action validator change |
+| Koraidon SSP 116 | sv08-116 | Unrelenting Onslaught (atk0) | +50 if an Ancient Pokémon used Unrelenting Onslaught last turn — inter-turn Ancient-attack tracking not in state |
+| Skeledirge SSP 31 | sv08-031 | Unaware (ability) | Not affected by opponent's attack effects — broad attack-effect prevention hook not in engine |
+| Scovillain ex SSP 37 | sv08-037 | Double Type (ability) | This Pokémon is also a Grass-type — dual typing not supported in damage pipeline |
+| Bruxish SSP 49 | sv08-049 | Counterattack (ability) | When damaged, place 3 counters on attacker — on-damage trigger not in engine |

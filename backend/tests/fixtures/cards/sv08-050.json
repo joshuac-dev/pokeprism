@@ -1,0 +1,90 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-050",
+  "illustrator": "Saboteri",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/050",
+  "localId": "050",
+  "name": "Quaxly",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "horizons"
+      ],
+      "variantId": "3takscxpcpd01u25movxhuy4"
+    }
+  ],
+  "dexId": [
+    912
+  ],
+  "hp": 60,
+  "types": [
+    "Water"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Water"
+      ],
+      "name": "Aerial Ace",
+      "effect": "Flip a coin. If heads, this attack does 20 more damage.",
+      "damage": "10+"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794947,
+      "avg": 54.94,
+      "low": 0.02,
+      "trend": 57.14,
+      "avg1": 59.89,
+      "avg7": 51.05,
+      "avg30": 28.88,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

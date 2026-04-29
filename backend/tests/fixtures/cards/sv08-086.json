@@ -1,0 +1,97 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-086",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/086",
+  "localId": "086",
+  "name": "Sylveon ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "mtltux8quqoc7vwp24c9zzhgmzduu8xcik8"
+    }
+  ],
+  "dexId": [
+    700
+  ],
+  "hp": 270,
+  "types": [
+    "Psychic"
+  ],
+  "evolveFrom": "Eevee",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Psychic",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Magical Charm",
+      "effect": "During your opponent's next turn, attacks used by the Defending Pokémon do 100 less damage (before applying Weakness and Resistance).",
+      "damage": 160
+    },
+    {
+      "cost": [
+        "Water",
+        "Lightning",
+        "Psychic"
+      ],
+      "name": "Angelite",
+      "effect": "Choose 2 of your opponent's Benched Pokémon. Shuffle those Pokémon and all attached cards into your opponent's deck. If 1 of your Pokémon used Angelite during your last turn, this attack can't be used."
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794390,
+      "avg": 1.47,
+      "low": 0.35,
+      "trend": 1.53,
+      "avg1": 1.51,
+      "avg7": 1.49,
+      "avg30": 1.5,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

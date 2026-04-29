@@ -1,0 +1,92 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-034",
+  "illustrator": "DOM",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/034",
+  "localId": "034",
+  "name": "Armarouge",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    936
+  ],
+  "hp": 140,
+  "types": [
+    "Fire"
+  ],
+  "evolveFrom": "Charcadet",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Combustion",
+      "damage": 50
+    },
+    {
+      "cost": [
+        "Fire",
+        "Fire",
+        "Colorless"
+      ],
+      "name": "Crimson Blaster",
+      "effect": "Discard all {R} Energy from this Pokémon, and this attack does 180 damage to 1 of your opponent's Benched Pokémon. (Don't apply Weakness and Resistance for Benched Pokémon.)"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794297,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.02,
+      "avg7": 0.04,
+      "avg30": 0.03,
+      "avg-holo": 0.16,
+      "low-holo": 0.02,
+      "trend-holo": 0.15,
+      "avg1-holo": 0.13,
+      "avg7-holo": 0.16,
+      "avg30-holo": 0.16
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-036",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/036",
+  "localId": "036",
+  "name": "Ceruledge ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "mtltux8quqoc7vwp24c9zzhgmzduu8xcik8"
+    }
+  ],
+  "dexId": [
+    937
+  ],
+  "hp": 270,
+  "types": [
+    "Fire"
+  ],
+  "evolveFrom": "Charcadet",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Fire"
+      ],
+      "name": "Abyssal Flames",
+      "effect": "This attack does 20 more damage for each Energy card in your discard pile.",
+      "damage": "30+"
+    },
+    {
+      "cost": [
+        "Fire",
+        "Psychic",
+        "Metal"
+      ],
+      "name": "Raging Amethyst",
+      "effect": "Discard all Energy from this Pokémon.",
+      "damage": 280
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794302,
+      "avg": 1.92,
+      "low": 0.5,
+      "trend": 1.97,
+      "avg1": 2.3,
+      "avg7": 1.87,
+      "avg30": 1.9,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

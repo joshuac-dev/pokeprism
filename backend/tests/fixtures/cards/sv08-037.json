@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-037",
+  "illustrator": "PLANETA Mochizuki",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/037",
+  "localId": "037",
+  "name": "Scovillain ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    952
+  ],
+  "hp": 260,
+  "types": [
+    "Fire"
+  ],
+  "evolveFrom": "Capsakid",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Double Type",
+      "effect": "As long as this Pokémon is in play, it is {G} and {R} type."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Fire",
+        "Fire"
+      ],
+      "name": "Spicy Rage",
+      "effect": "This attack does 70 more damage for each damage counter on this Pokémon.",
+      "damage": "10+"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794303,
+      "avg": 0.5,
+      "low": 0.02,
+      "trend": 0.58,
+      "avg1": 0.41,
+      "avg7": 0.6,
+      "avg30": 0.51,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

@@ -3123,6 +3123,53 @@ def _calming_light(state: GameState, action):
                      card="Shiinotic", ability="Calming Light")
 
 
+# Up-Tempo (sv08-052 Quaquaval) ───────────────────────────────────────────────
+
+def _up_tempo(state: GameState, action):
+    """sv08-052 Quaquaval — Up-Tempo: discard 1 card from hand, then draw until hand has 5."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    user = _find_in_play(player, action.card_instance_id)
+    if user is None:
+        return
+
+    if not player.hand:
+        return
+
+    discard_choices = [{"label": c.card_name, "instance_id": c.instance_id}
+                       for c in player.hand]
+    req = ChoiceRequest(
+        player_id=player_id,
+        choice_type="select_card_from_hand",
+        options=discard_choices,
+        min_choices=1,
+        max_choices=1,
+        prompt="Discard 1 card for Up-Tempo",
+    )
+    response = yield req
+
+    chosen_id = response.chosen_option_ids[0] if response.chosen_option_ids else None
+    card_to_discard = next((c for c in player.hand if c.instance_id == chosen_id), None)
+    if card_to_discard is None and player.hand:
+        card_to_discard = player.hand[0]
+    if card_to_discard:
+        player.hand.remove(card_to_discard)
+        player.discard_pile.append(card_to_discard)
+        state.emit_event("card_discarded", player=player_id,
+                         card=card_to_discard.card_name, reason="up_tempo")
+
+    to_draw = max(0, 5 - len(player.hand))
+    if to_draw > 0:
+        drawn = draw_cards(state, player_id, to_draw)
+        state.emit_event("up_tempo", player=player_id, drawn=drawn)
+
+    if user:
+        user.ability_used_this_turn = True
+    state.emit_event("ability_used", player=player_id,
+                     card="Quaquaval", ability="Up-Tempo")
+
+
 def register_all(registry):
     """Register all ability effect handlers with the registry."""
 
@@ -3828,3 +3875,34 @@ def register_all(registry):
     registry.register_passive_ability("sv08.5-078", "Jewel Seeker")     # Noctowl alt (on-evolve: noop)
     registry.register_passive_ability("sv08.5-080", "Run Away Draw")    # Dudunsparce (return to deck: noop)
     registry.register_passive_ability("sv08-004", "Sudden Shearing")    # Durant ex (on-bench-play: noop)
+    registry.register_passive_ability("sv08.5-056", "Magnetic Absorption") # Sandy Shocks ex (conditional energy attach: noop)
+
+    # ── Batch 11: sv08-016..117 abilities ─────────────────────────────────────
+
+    # Up-Tempo for sv08-052 Quaquaval
+    def _cond_up_tempo(state, player_id):
+        p = state.get_player(player_id)
+        return (p.active is not None
+                and p.active.card_def_id == "sv08-052"
+                and not p.active.ability_used_this_turn
+                and len(p.hand) > 0)
+    registry.register_ability("sv08-052", "Up-Tempo", _up_tempo,
+                               condition=_cond_up_tempo)
+
+    # Passive abilities (logic in _apply_damage)
+    registry.register_passive_ability("sv08-021", "Victory Cheer")      # Victini (logic in _apply_damage)
+    registry.register_passive_ability("sv08-042", "Sparkling Scales")   # Milotic ex (logic in _apply_damage)
+    registry.register_passive_ability("sv08-054", "Solid Body")         # Cetitan (logic in _apply_damage)
+    registry.register_passive_ability("sv08-076", "Skyliner")           # Latias ex (logic in actions.py)
+
+    # FLAGGED passives (stubs; complex trigger not implemented)
+    registry.register_passive_ability("sv08-031", "Unaware")            # Skeledirge (prevent attack effects: noop)
+    registry.register_passive_ability("sv08-037", "Double Type")        # Scovillain ex (dual typing: noop)
+    registry.register_passive_ability("sv08-049", "Counterattack")      # Bruxish (on-hit counter: noop)
+    registry.register_passive_ability("sv08-057", "Resolute Heart")     # Pikachu ex (OHKO prevention: noop)
+    registry.register_passive_ability("sv08-059", "Overvolt Discharge") # Magneton (self-KO + energy: noop)
+    registry.register_passive_ability("sv08-072", "Wonder Kiss")        # Togekiss (on-KO prize: noop)
+    registry.register_passive_ability("sv08-074", "Glistening Bubbles") # Azumarill (cost reduction: noop)
+    registry.register_passive_ability("sv08-085", "Beckoning Tail")     # Meowstic (Trainer-in-hand: noop)
+    registry.register_passive_ability("sv08-093", "Obliging Heal")      # Indeedee (on-play hook: noop)
+    registry.register_passive_ability("sv08-107", "Sticky Bind")        # Gastrodon (bench Stage 2 no abilities: noop)

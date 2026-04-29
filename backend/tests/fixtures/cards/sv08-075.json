@@ -1,0 +1,78 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-075",
+  "illustrator": "Saya Tsuruta",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/075",
+  "localId": "075",
+  "name": "Smoochum",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    238
+  ],
+  "hp": 30,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "name": "Delightful Kiss",
+      "effect": "Search your deck for up to 2 Basic {P} Energy cards and attach them to 1 of your Benched Pokémon. Then, shuffle your deck."
+    }
+  ],
+  "retreat": 0,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794369,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.08,
+      "avg1": 0.06,
+      "avg7": 0.08,
+      "avg30": 0.06,
+      "avg-holo": 0.23,
+      "low-holo": 0.02,
+      "trend-holo": 0.23,
+      "avg1-holo": 0.21,
+      "avg7-holo": 0.24,
+      "avg30-holo": 0.24
+    },
+    "tcgplayer": null
+  }
+}

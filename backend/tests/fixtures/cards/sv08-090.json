@@ -1,0 +1,78 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-090",
+  "illustrator": "Koji Nakata",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/090",
+  "localId": "090",
+  "name": "Sandygast",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    769
+  ],
+  "hp": 90,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Sand Spray",
+      "damage": 50
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794399,
+      "avg": 0.02,
+      "low": 0.02,
+      "trend": 0.02,
+      "avg1": 0.02,
+      "avg7": 0.02,
+      "avg30": 0.02,
+      "avg-holo": 0.08,
+      "low-holo": 0.02,
+      "trend-holo": 0.06,
+      "avg1-holo": 0.07,
+      "avg7-holo": 0.06,
+      "avg30-holo": 0.07
+    },
+    "tcgplayer": null
+  }
+}

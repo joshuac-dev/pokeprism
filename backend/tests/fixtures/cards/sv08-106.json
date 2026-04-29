@@ -1,0 +1,87 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-106",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/106",
+  "localId": "106",
+  "name": "Flygon ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    330
+  ],
+  "hp": 310,
+  "types": [
+    "Fighting"
+  ],
+  "evolveFrom": "Vibrava",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting"
+      ],
+      "name": "Reversing Storm",
+      "effect": "You may switch this Pokémon with 1 of your Benched Pokémon.",
+      "damage": 130
+    },
+    {
+      "cost": [
+        "Water",
+        "Fighting",
+        "Metal"
+      ],
+      "name": "Sonic Peridot",
+      "effect": "This attack does 100 damage to each of your opponent's Pokémon ex and Pokémon V. This attack's damage isn't affected by Weakness or Resistance."
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794429,
+      "avg": 0.67,
+      "low": 0.1,
+      "trend": 0.62,
+      "avg1": 0.62,
+      "avg7": 0.62,
+      "avg30": 0.66,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

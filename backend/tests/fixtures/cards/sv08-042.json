@@ -1,0 +1,87 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-042",
+  "illustrator": "hncl",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/042",
+  "localId": "042",
+  "name": "Milotic ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    350
+  ],
+  "hp": 270,
+  "types": [
+    "Water"
+  ],
+  "evolveFrom": "Feebas",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Sparkling Scales",
+      "effect": "Prevent all damage from and effects of attacks from your opponent's Tera Pokémon done to this Pokémon."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Water",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Hypno Splash",
+      "effect": "Your opponent's Active Pokémon is now Asleep.",
+      "damage": 160
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794308,
+      "avg": 0.67,
+      "low": 0.1,
+      "trend": 0.68,
+      "avg1": 0.56,
+      "avg7": 0.63,
+      "avg30": 0.66,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

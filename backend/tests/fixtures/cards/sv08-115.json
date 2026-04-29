@@ -1,0 +1,91 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-115",
+  "illustrator": "takashi shiraishi",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/115",
+  "localId": "115",
+  "name": "Glimmora",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    970
+  ],
+  "hp": 130,
+  "types": [
+    "Fighting"
+  ],
+  "evolveFrom": "Glimmet",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Corrosive Shards",
+      "effect": "Your opponent's Active Pokémon is now Poisoned. During your opponent's next turn, Energy cards can't be attached from your opponent's hand to that Pokémon.",
+      "damage": 20
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Rock Throw",
+      "damage": 60
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794452,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.02,
+      "avg1": 0.02,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.08,
+      "low-holo": 0.02,
+      "trend-holo": 0.09,
+      "avg1-holo": 0.09,
+      "avg7-holo": 0.07,
+      "avg30-holo": 0.08
+    },
+    "tcgplayer": null
+  }
+}

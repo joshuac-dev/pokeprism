@@ -1,0 +1,100 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-091",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/091",
+  "localId": "091",
+  "name": "Palossand ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "foil": "cosmos",
+      "variantId": "5zs5af49g93yryvw1ftj"
+    }
+  ],
+  "dexId": [
+    770
+  ],
+  "hp": 280,
+  "types": [
+    "Psychic"
+  ],
+  "evolveFrom": "Sandygast",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Sand Tomb",
+      "effect": "During your opponent's next turn, the Defending Pokémon can't retreat.",
+      "damage": 160
+    },
+    {
+      "cost": [
+        "Water",
+        "Psychic",
+        "Fighting"
+      ],
+      "name": "Barite Jail",
+      "effect": "Put damage counters on each of your opponent's Benched Pokémon until its remaining HP is 100."
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794400,
+      "avg": 0.62,
+      "low": 0.03,
+      "trend": 0.58,
+      "avg1": 0.44,
+      "avg7": 0.58,
+      "avg30": 0.61,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

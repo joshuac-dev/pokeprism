@@ -1,0 +1,92 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-101",
+  "illustrator": "Uta",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/101",
+  "localId": "101",
+  "name": "Paldean Tauros",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    128
+  ],
+  "hp": 130,
+  "types": [
+    "Fighting"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Smash Kick",
+      "damage": 40
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Blocking Stomp",
+      "effect": "If the Defending Pokémon is a Basic Pokémon, it can't attack during your opponent's next turn.",
+      "damage": 90
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794418,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.03,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.16,
+      "low-holo": 0.02,
+      "trend-holo": 0.17,
+      "avg1-holo": 0.26,
+      "avg7-holo": 0.17,
+      "avg30-holo": 0.16
+    },
+    "tcgplayer": null
+  }
+}

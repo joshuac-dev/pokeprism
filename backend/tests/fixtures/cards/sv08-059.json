@@ -1,0 +1,106 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-059",
+  "illustrator": "Nisota Niso",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/059",
+  "localId": "059",
+  "name": "Magneton",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "gym-challenge"
+      ],
+      "variantId": "1t06ikeqvuekyvnt4u9307a5qjm1d"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "gx8bq2hegum3q6irsxlvqxm955ikw9gd1h311"
+    }
+  ],
+  "dexId": [
+    82
+  ],
+  "hp": 100,
+  "types": [
+    "Lightning"
+  ],
+  "evolveFrom": "Magnemite",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Overvolt Discharge",
+      "effect": "Once during your turn, you may attach up to 3 Basic Energy cards from your discard pile to your {L} Pokémon in any way you like. If you use this Ability, this Pokémon is Knocked Out."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "Electric Ball",
+      "damage": 40
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794334,
+      "avg": 0.05,
+      "low": 0.02,
+      "trend": 0.02,
+      "avg1": 0.03,
+      "avg7": 0.03,
+      "avg30": 0.05,
+      "avg-holo": 0.18,
+      "low-holo": 0.02,
+      "trend-holo": 0.17,
+      "avg1-holo": 0.15,
+      "avg7-holo": 0.15,
+      "avg30-holo": 0.17
+    },
+    "tcgplayer": null
+  }
+}

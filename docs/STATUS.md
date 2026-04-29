@@ -10,13 +10,67 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | 957 |
-| Coverage | **97.0%** (928/957 implemented or flat-only; 29 missing) |
-| Batches complete | 9 (Batches 1–9) |
-| Cards remaining in list | ~1,085 processable + 40 flagged |
-| Next batch starts at | **Oinkologne JTG 140** |
+| Cards in DB | 1160 |
+| Coverage | **97.3%** (932/1159 implemented or flat-only; 31 missing) |
+| Batches complete | 11 (Batches 1–11) |
+| Cards remaining in list | ~986 |
+| Next batch starts at | **Zweilous SSP 118** (`sv08-118`) |
 
-## Last Session — 2026-04-29 (Card Pool Expansion: Batch 9)
+## Last Session — 2026-05-07 (Card Pool Expansion: Batch 11)
+
+### What Was Done
+
+**Batch 11** (99 new cards, SSP sv08-016..117): DB grew from 1061 → 1160 cards (3 already in DB: sv08-056, sv08-076, sv08-111).
+
+New attack handlers: ~95 new handlers covering Vulpix, Ninetales, Paldean Tauros (Fire/Water), Ho-Oh, Castform Sunny Form, Victini, Pansear/Simisear, Larvesta/Volcarona, Oricorio (Fire/Psychic), Sizzlipede/Centiskorch, Fuecoco/Crocalor/Skeledirge, Charcadet, Armarouge, Ceruledge, Ceruledge ex, Scovillain ex, Gouging Fire, Paldean Tauros Fighting, Mantine, Feebas, Milotic ex, Spheal/Sealeo/Walrein, Shellos, Cryogonal, Black Kyurem ex, Bruxish, Quaxly/Quaxwell/Quaquaval, Cetoddle/Cetitan, Iron Bundle, Pikachu ex, Magnemite/Magneton/Magnezone, Rotom, Blitzle/Zebstrika, Stunfisk, Tapu Koko, Wattrel/Kilowattrel, Kilowattrel ex, Miraidon, Togepi/Togetic/Togekiss, Marill/Azumarill, Smoochum, Latios, Uxie/Mesprit/Azelf, Sigilyph, Yamask/Cofagrigus, Espurr/Meowstic, Sylveon ex, Dedenne, Xerneas, Sandygast/Palossand ex, Tapu Lele, Indeedee, Flittle/Espathra, Flutter Mane, Gimmighoul, Mankey/Primeape/Annihilape, Paldean Tauros Water, Phanpy/Donphan, Trapinch/Vibrava/Flygon ex, Gastrodon, Drilbur/Excadrill, Landorus, Clobbopus/Grapploct, Glimmet/Glimmora, Koraidon, Deino
+
+New ability handlers: Up-Tempo (sv08-052 Quaquaval active); Victory Cheer, Sparkling Scales, Solid Body passives integrated into damage pipeline
+
+### Flagged Cards (new this batch — 28)
+
+| Card | TCGDex ID | Attack/Ability | Reason |
+|------|-----------|---------------|--------|
+| Castform Sunny Form SSP 20 | sv08-020 | Sunny Assist (atk1) | Redistribute all attached Energy — arbitrary energy redistribution not supported |
+| Armarouge SSP 34 | sv08-034 | Crimson Blaster (atk1) | Type-specific discard + bench target — not supported |
+| Ceruledge SSP 35 | sv08-035 | Cursed Edge (atk0) | Discard all Special Energy from each opp Pokémon — mass discard not supported |
+| Paldean Tauros SSP 39 | sv08-039 | Upthrusting Horns (atk0) | Return 2 Energy from opp Stage 2 to hand — not supported |
+| Walrein SSP 45 | sv08-045 | Frigid Fangs (atk0) | Cant-attack if 3+ Energy attached — energy-count-based lock not supported |
+| Pikachu ex SSP 57 | sv08-057 | Resolute Heart (ability) | OHKO prevention (leave at 10 HP) — HP-floor hook not in engine |
+| Magneton SSP 59 | sv08-059 | Overvolt Discharge (ability) | Self-KO + attach multiple Energy from deck — not supported |
+| Magnezone SSP 60 | sv08-060 | Zap Cannon (atk1) | Can't use next turn — attack-specific inter-turn lock not supported |
+| Rotom SSP 61 | sv08-061 | Crushing Pulse (atk0) | Reveal hand + discard Items/Tools — hand-reveal + selective discard not supported |
+| Kilowattrel SSP 67 | sv08-067 | Storm Bolt (atk1) | Move all Energy to bench — energy redistribution to bench not supported |
+| Kilowattrel ex SSP 68 | sv08-068 | Return Charge (atk0) | Forced switch + attach Energy from hand — combo not supported |
+| Miraidon SSP 69 | sv08-069 | C.O.D.E.: Protect (atk0) | Future Pokémon immune to attack effects next turn — persistent flag not in state |
+| Togekiss SSP 72 | sv08-072 | Wonder Kiss (ability) | Extra Prize on KO of ex/V — on-KO extra prize hook not in engine |
+| Azumarill SSP 74 | sv08-074 | Glistening Bubbles (ability) | Cost reduction per Tera Pokémon — dynamic cost not supported |
+| Meowstic SSP 85 | sv08-085 | Beckoning Tail (ability) | Supporter in hand + forced return — not supported |
+| Palossand ex SSP 91 | sv08-091 | Barite Jail (atk1) | HP floor to 100 remaining on all bench — arbitrary HP floor not supported |
+| Indeedee SSP 93 | sv08-093 | Obliging Heal (ability) | On-bench-play heal — hook not in engine |
+| Flittle SSP 94 | sv08-094 | Splashing Dodge (atk0) | Conditional Weakness removal on flip — per-turn Weakness removal not in state |
+| Espathra SSP 95 | sv08-095 | Mystical Eyes (atk0) | Devolve all opp Evolution Pokémon — no prior-form tracking |
+| Flutter Mane SSP 96 | sv08-096 | Perplexing Transfer (atk0) | Move damage counters from bench to active — not supported |
+| Annihilape SSP 100 | sv08-100 | Destined Fight (atk1) | Mutual KO — simultaneous prize resolution not in engine |
+| Donphan SSP 103 | sv08-103 | Guarded Rolling (atk1) | Discard 2 Energy + 100 less damage next turn — deferred damage reduction not supported |
+| Gastrodon SSP 107 | sv08-107 | Sticky Bind (ability) | Bench Stage 2 no abilities — opponent bench ability suppression not in engine |
+| Grapploct SSP 113 | sv08-113 | Raging Tentacles (atk1) | Cost reduction if damaged — conditional energy cost not supported |
+| Koraidon SSP 116 | sv08-116 | Unrelenting Onslaught (atk0) | +50 if Ancient used this attack last turn — inter-turn tracking not in state |
+| Skeledirge SSP 31 | sv08-031 | Unaware (ability) | Prevents all attack effects — broad hook not in engine |
+| Scovillain ex SSP 37 | sv08-037 | Double Type (ability) | Dual typing — not supported in damage pipeline |
+| Bruxish SSP 49 | sv08-049 | Counterattack (ability) | Place 3 counters on attacker when damaged — on-damage trigger not in engine |
+
+### Final Baseline This Session
+- **215 backend tests pass**
+- **1160 cards in DB** (up from 1061)
+- **Coverage: 97.3%** (932/1159 implemented or flat-only; 31 missing — all legitimately flagged)
+- **~68 flagged cards total**
+
+### Notes for Next Session
+Continue with **Batch 12**, starting at **Zweilous SSP 118** (`sv08-118`). Run `make reset-data` before any fresh simulation testing.
+
+---
+
+
 
 ### What Was Done
 

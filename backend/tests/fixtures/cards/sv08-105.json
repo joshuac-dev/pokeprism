@@ -1,0 +1,90 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-105",
+  "illustrator": "Teeziro",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/105",
+  "localId": "105",
+  "name": "Vibrava",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    329
+  ],
+  "hp": 90,
+  "types": [
+    "Fighting"
+  ],
+  "evolveFrom": "Trapinch",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Screech",
+      "effect": "During your next turn, the Defending Pokémon takes 50 more damage from attacks (after applying Weakness and Resistance)."
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Cutting Wind",
+      "damage": 50
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794427,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.07,
+      "avg7": 0.05,
+      "avg30": 0.04,
+      "avg-holo": 0.1,
+      "low-holo": 0.02,
+      "trend-holo": 0.06,
+      "avg1-holo": 0.05,
+      "avg7-holo": 0.09,
+      "avg30-holo": 0.1
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-048",
+  "illustrator": "kawayoo",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/048",
+  "localId": "048",
+  "name": "Black Kyurem ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "555jb0efopmyclvkikic41"
+    },
+    {
+      "type": "holo",
+      "size": "jumbo",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "7g4cbxtmtngwhnkbcgz"
+    }
+  ],
+  "dexId": [
+    646
+  ],
+  "hp": 230,
+  "types": [
+    "Water"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Ice Age",
+      "effect": "If your opponent's Active Pokémon is a {N} Pokémon, it is now Paralyzed.",
+      "damage": 90
+    },
+    {
+      "cost": [
+        "Water",
+        "Water",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Black Frost",
+      "effect": "This Pokémon also does 30 damage to itself.",
+      "damage": 250
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794314,
+      "avg": 0.61,
+      "low": 0.03,
+      "trend": 0.53,
+      "avg1": 0.38,
+      "avg7": 0.54,
+      "avg30": 0.57,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}
