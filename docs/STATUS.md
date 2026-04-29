@@ -10,11 +10,49 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | 864 |
-| Coverage | **96.6%** (835/864 implemented or flat-only; 29 flagged) |
-| Batches complete | 8 (Batches 1–8) |
-| Cards remaining in list | ~1,185 processable + 39 flagged |
-| Next batch starts at | **Pelipper JTG 39** |
+| Cards in DB | 957 |
+| Coverage | **97.0%** (928/957 implemented or flat-only; 29 missing) |
+| Batches complete | 9 (Batches 1–9) |
+| Cards remaining in list | ~1,085 processable + 40 flagged |
+| Next batch starts at | **Oinkologne JTG 140** |
+
+## Last Session — 2026-04-29 (Card Pool Expansion: Batch 9)
+
+### What Was Done
+
+**Batch 9** (94 new cards, JTG sv09-038..139): DB grew from 864 → 957 cards. 6 sv09 cards were already in DB (skipped).
+
+New attack handlers: ~59 new handlers covering Pelipper, Wingull, Regice, Veluza ex, Alolan Geodude/Graveler/Golem, N's Joltik, Iono's Electrode/Voltorb/Tadbulb/Bellibolt ex/Wattrel/Kilowattrel, Lillie's Clefairy ex, Alolan Marowak, Beldum/Metang/Metagross, Shuppet/Banette, Mr. Mime, N's Sigilyph, Oricorio, Lillie's Cutiefly/Ribombee/Comfey, Mimikyu ex, Impidimp/Morgrem/Grimmsnarl, Dhelmise, Milcery/Alcremie ex, Cubone, Swinub/Piloswine/Mamoswine ex, Larvitar/Pupitar, Rockruff/Lycanroc, Pancham, Regirock, Hop's Silicobra/Sandaconda, Toedscool/Toedscruel, Klawf, Koffing/Weezing, Paldean Wooper/Clodsire ex, N's Zorua/Purrloin/Zoroark ex, Tyranitar, Pangoro, Lokix, Bombirdier, Escavalier, N's Klink/Klang/Klinklang, Galarian Stunfisk, Magearna, Hop's Corviknight, Cufant/Copperajah, Bagon/Shelgon/Salamence ex, Druddigon, N's Reshiram, Hop's Snorlax, Sentret/Furret, Dunsparce/Dudunsparce ex, Tropius, Kecleon, Minccino/Cinccino, Noibat/Noivern, Komala, Drampa, Skwovet/Greedent, Hop's Rookidee/Corvisquire/Dubwool/Wooloo/Corviknight, Cramorant, Hop's Cramorant, Lechonk
+
+New ability handlers: 3 new (details in commit `7517c1f`)
+
+### Flagged Cards (new this batch — 11)
+
+| Card | TCGDex ID | Attack/Ability | Reason |
+|------|-----------|---------------|--------|
+| Alolan Marowak JTG 57 | sv09-057 | Retaliate (atk0) | +90 if any Pokémon KO'd last turn — inter-turn KO tracking not in state |
+| Weezing JTG 92 | sv09-092 | Crazy Blast (atk1) | +120 if Pervasive Gas used last turn — per-turn last-used-attack tracking not in state |
+| Pangoro JTG 99 | sv09-099 | Torment (atk0) | Opponent can't use same attack twice in a row — per-Pokémon last-used-attack tracking not in state |
+| Lillie's Ribombee JTG 67 | sv09-067 | Inviting Wink (ability) | On evolve: put opp's Basic from hand to bench — on-evolve-from-hand trigger not hooked |
+| Lycanroc JTG 85 | sv09-085 | Spike-Clad (ability) | On evolve: attach Spiky Energy from discard — on-evolve energy attach not supported |
+| Tyranitar JTG 95 | sv09-095 | Daunting Gaze (ability) | Opp can't play Items while Active — play-from-hand item validator needed |
+| Magearna JTG 107 | sv09-107 | Auto Heal (ability) | Heal 90 on energy attach — on-energy-attach heal hook not in engine |
+| Noivern JTG 128 | sv09-128 | Tuning Echo (ability) | Conditional energy cost based on hand sizes — action validator change required |
+| Komala JTG 129 | sv09-129 | Slumbering Smack (atk0) | +100 next turn if this attack used — inter-turn last-used-attack bonus not in state |
+| Lillie's Comfey JTG 68 | sv09-068 | Fade Out (atk1) | Return Active + attachments to hand — returning Active to hand not supported |
+| Ludicolo JTG 37 | sv09-037 | Vibrant Dance (ability) | All Pokémon +40 HP — dynamic max HP for all not supported |
+
+### Final Baseline This Session
+- **215 backend tests pass**
+- **0 TypeScript errors**
+- **957 cards in DB** (up from 864)
+- **Coverage: 97.0%** (928/957; 29 missing are all legitimately flagged)
+- **40 flagged cards total**
+
+### Notes for Next Session
+Continue with **Batch 10**, starting at **Oinkologne JTG 140** (`sv09-140`). New set **PRE** appears at line 3.
+
+---
 
 ## Last Session — 2026-04-29 (Card Pool Expansion: Batch 8)
 
