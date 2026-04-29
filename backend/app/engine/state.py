@@ -124,6 +124,7 @@ class CardInstance:
     resolute_heart_eligible: bool = False # Set in _apply_damage; read by check_ko for Pikachu ex
     last_attack_name: Optional[str] = None       # For Spiky Rolling / Mochi Rush
     moved_from_bench_this_turn: bool = False      # For Rayquaza Breakthrough Assault
+    evolved_this_turn: bool = False               # Set when this Pokémon evolved; for sv10-047 Misty's Starmie
     prevent_damage_from_basic_noncolorless: bool = False  # For Crown Opal (Terapagos ex)
     locked_attack_index: Optional[int] = None             # Can't use this specific attack index next turn
     prevent_damage_from_basic: bool = False               # Prevent all damage from Basic Pokémon next turn

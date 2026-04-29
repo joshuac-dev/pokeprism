@@ -1,103 +1,3 @@
-Ethan's Pinsir DRI 1
-Reshiram ex WHT 173
-Victini WHT 172
-Yanmega ex DRI 3
-Pineco DRI 4
-Shroomish DRI 5
-Breloom DRI 6
-Cynthia's Roselia DRI 7
-Cynthia's Roserade DRI 8
-Mow Rotom DRI 9
-Shaymin DRI 10
-Lurantis DRI 14
-Fomantis DRI 13
-Crustle DRI 12
-Dwebble DRI 11
-Team Rocket's Blipbug DRI 15
-Applin DRI 16
-Dipplin DRI 17
-Hydrapple DRI 18
-Team Rocket's Tarountula DRI 19
-Team Rocket's Spidops DRI 20
-Smoliv DRI 21
-Dolliv DRI 22
-Teal Mask Ogerpon DRI 26
-Rabsca ex DRI 25
-Rellor DRI 24
-Arboliva ex DRI 23
-Growlithe DRI 27
-Arcanine DRI 28
-Ponyta DRI 29
-Rapidash DRI 30
-Team Rocket's Moltres ex DRI 31
-Ethan's Cyndaquil DRI 32
-Ethan's Quilava DRI 33
-Ethan's Typhlosion DRI 34
-Team Rocket's Houndoom DRI 38
-Team Rocket's Houndour DRI 37
-Ethan's Magcargo DRI 36
-Ethan's Slugma DRI 35
-Ethan's Ho-Oh ex DRI 39
-Torchic DRI 40
-Combusken DRI 41
-Blaziken DRI 42
-Heat Rotom DRI 43
-Hearthflame Mask Ogerpon DRI 44
-Misty's Psyduck DRI 45
-Misty's Staryu DRI 46
-Misty's Lapras DRI 50
-Misty's Gyarados DRI 49
-Misty's Magikarp DRI 48
-Misty's Starmie DRI 47
-Team Rocket's Articuno DRI 51
-Cynthia's Feebas DRI 52
-Cynthia's Milotic DRI 53
-Clamperl DRI 54
-Huntail DRI 55
-Gorebyss DRI 56
-Buizel DRI 57
-Floatzel DRI 58
-Arrokuda DRI 62
-Wash Rotom DRI 61
-Abomasnow DRI 60
-Snover DRI 59
-Barraskewda DRI 63
-Cetoddle DRI 64
-Cetitan ex DRI 65
-Dondozo ex DRI 66
-Wellspring Mask Ogerpon DRI 67
-Electabuzz DRI 68
-Electivire ex DRI 69
-Team Rocket's Zapdos DRI 70
-Team Rocket's Ampharos DRI 74
-Team Rocket's Flaaffy DRI 73
-Team Rocket's Mareep DRI 72
-Ethan's Pichu DRI 71
-Electrike DRI 75
-Manectric DRI 76
-Rotom DRI 77
-Zeraora DRI 78
-Team Rocket's Drowzee DRI 79
-Team Rocket's Hypno DRI 80
-Team Rocket's Mewtwo ex DRI 81
-Team Rocket's Wobbuffet DRI 82
-Steven's Baltoy DRI 83
-Steven's Claydol DRI 84
-Team Rocket's Chingling DRI 85
-Steven's Carbink DRI 86
-Mankey DRI 90
-Team Rocket's Orbeetle DRI 89
-Team Rocket's Dottler DRI 88
-Team Rocket's Mimikyu DRI 87
-Primeape DRI 91
-Annihilape DRI 92
-Ethan's Sudowoodo DRI 93
-Team Rocket's Larvitar DRI 94
-Probopass DRI 98
-Nosepass DRI 97
-Team Rocket's Tyranitar DRI 96
-Team Rocket's Pupitar DRI 95
-Meditite DRI 99
 Medicham DRI 100
 Regirock ex DRI 101
 Cynthia's Gible DRI 102
@@ -1413,3 +1313,11 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Terrakion WHT 54 | sv10.5w-054 | Retaliate (atk0) | +50 damage if any of my Pokémon were KO'd during opponent's last turn — requires inter-turn KO tracking flag not currently in state |
 | Hydreigon ex WHT 67 | sv10.5w-067 | Greedy Eater (ability) | Take extra prize on KO of Basic Pokémon — requires hooking into KO/prize resolution with per-attacker source tracking |
 | Watchog WHT 73 | sv10.5w-073 | Focus Energy (atk0) | Buffs Hyper Fang base damage on next turn — requires per-attack state flag persisting across turns (not in current CardInstance) |
+| Ethan's Pinsir DRI 1 | sv10-001 | Rallying Horn (atk1) | +100 damage if any of your Ethan's Pokémon were KO'd by opponent last turn — requires inter-turn Ethan's-KO tracking flag not currently in state |
+| TR Moltres ex DRI 31 | sv10-031 | Evil Incineration (atk1) | Discard a TR Energy; if done, discard opponent's Active Pokémon and all attached cards — instant forced-KO discard mechanic not supported |
+| Ethan's Magcargo DRI 36 | sv10-036 | Melt Away (ability) | No Retreat Cost when no Energy attached — dynamic retreat cost modification based on attached energy not supported |
+| Misty's Psyduck DRI 45 | sv10-045 | Flustered Leap (ability) | Discard bottom of deck then return this Pokémon to top of deck from bench — returning Pokémon from bench to deck not supported; bottom-of-deck access not supported |
+| Huntail DRI 55 | sv10-055 | Diver's Catch (ability) | When a Water Pokémon of yours is KO'd, recover attached Basic Water Energy to hand — requires on-KO energy-salvage hook not in engine |
+| Cetitan ex DRI 65 | sv10-065 | Snow Camouflage (ability) | Prevent all effects of opponent's Item/Supporter on this Pokémon — requires global hook on trainer play to intercept targeted effects |
+| TR Ampharos DRI 74 | sv10-074 | Darkest Impulse (ability) | Put 4 damage counters on a Pokémon when opponent evolves it — requires on-evolve trigger placing damage on the evolved Pokémon |
+| TR Tyranitar DRI 96 | sv10-096 | Sand Stream (ability) | During Pokémon Checkup, place 2 damage counters on each opponent Basic Pokémon — requires a Checkup-phase damage hook not currently implemented |

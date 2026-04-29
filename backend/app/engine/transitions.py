@@ -309,6 +309,7 @@ async def _evolve(state: GameState, action: Action, get_player=None) -> GameStat
     evo_card.status_conditions = set(target.status_conditions)
     evo_card.damage_counters = target.damage_counters  # Carry damage over
     evo_card.evolved_from = target.instance_id
+    evo_card.evolved_this_turn = True
     evo_card.turn_played = state.turn_number
     evo_card.zone = target.zone
 

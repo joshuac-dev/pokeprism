@@ -306,6 +306,29 @@ def has_spherical_shield(state: GameState, player_id: str) -> bool:
     return any(p.card_def_id == "sv05-024" for p in _in_play(player))
 
 
+# Cheer On to Glory (sv10-008 Cynthia's Roserade) ─────────────────────────────
+
+def has_cheer_on_to_glory(state, player_id: str) -> bool:
+    """True if the player has Cynthia's Roserade (sv10-008) in play."""
+    player = state.get_player(player_id)
+    return any(p.card_def_id == "sv10-008" for p in _in_play(player))
+
+
+# Stone Palace (sv10-086 Steven's Carbink) ────────────────────────────────────
+
+def has_stone_palace(state, player_id: str) -> bool:
+    """True if the player has Steven's Carbink (sv10-086) on their bench."""
+    player = state.get_player(player_id)
+    return any(p.card_def_id == "sv10-086" for p in player.bench)
+
+
+# So Submerged (sv10-048 Misty's Magikarp) ────────────────────────────────────
+
+def has_so_submerged_on_bench(state, player_id: str, bench_pokemon) -> bool:
+    """True if bench_pokemon is Misty's Magikarp (sv10-048)."""
+    return bench_pokemon.card_def_id == "sv10-048"
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # On-bench trigger handlers
 # ──────────────────────────────────────────────────────────────────────────────
@@ -2419,7 +2442,185 @@ def _torrential_whirlpool(state: GameState, action):
         state.emit_event("forced_switch", player=opp_id, new_active=opp.active.card_name)
 
 
-def register_all(registry: EffectRegistry) -> None:
+# ── Batch 7: DRI ability handlers ─────────────────────────────────────────────
+
+def _hurried_gait(state, action):
+    """sv10-030 Rapidash — Hurried Gait: once per turn, draw 1 card."""
+    player = state.get_player(action.player_id)
+    caster = _find_in_play(player, action.card_instance_id)
+    if caster and caster.ability_used_this_turn:
+        state.emit_event("ability_already_used", player=action.player_id,
+                         card=caster.card_name)
+        return
+    if caster:
+        caster.ability_used_this_turn = True
+    draw_cards(state, action.player_id, 1)
+    state.emit_event("ability_used", player=action.player_id,
+                     card="Rapidash", ability="Hurried Gait")
+
+
+def _bonded_by_journey(state, action):
+    """sv10-033 Ethan's Quilava — Bonded by the Journey: once per turn,
+    search deck for Ethan's Adventure card, add to hand."""
+    player = state.get_player(action.player_id)
+    caster = _find_in_play(player, action.card_instance_id)
+    if caster and caster.ability_used_this_turn:
+        state.emit_event("ability_already_used", player=action.player_id,
+                         card=caster.card_name)
+        return
+    if caster:
+        caster.ability_used_this_turn = True
+
+    matches = [c for c in player.deck if "Ethan's Adventure" in c.card_name]
+    if not matches:
+        state.emit_event("search_failed", player=action.player_id,
+                         reason="no_ethans_adventure")
+        return
+
+    req = ChoiceRequest(
+        "choose_cards",
+        player_id=action.player_id,
+        options=[c.instance_id for c in matches],
+        min_choices=1,
+        max_choices=1,
+        context={"reason": "bonded_by_journey"},
+    )
+    response = yield req
+    chosen_ids = response.chosen_ids if hasattr(response, "chosen_ids") else []
+    chosen = next((c for c in player.deck if c.instance_id in chosen_ids), matches[0])
+    player.deck.remove(chosen)
+    chosen.zone = Zone.HAND
+    player.hand.append(chosen)
+    import random as _rnd
+    _rnd.shuffle(player.deck)
+    state.emit_event("ability_used", player=action.player_id,
+                     card="Ethan's Quilava", ability="Bonded by the Journey",
+                     found=chosen.card_name)
+
+
+def _golden_flame(state, action):
+    """sv10-039 Ethan's Ho-Oh ex — Golden Flame: once per turn,
+    choose 1 of your Benched Ethan's Pokémon; attach up to 2 Basic R Energy from hand."""
+    player = state.get_player(action.player_id)
+    caster = _find_in_play(player, action.card_instance_id)
+    if caster and caster.ability_used_this_turn:
+        state.emit_event("ability_already_used", player=action.player_id,
+                         card=caster.card_name)
+        return
+    if caster:
+        caster.ability_used_this_turn = True
+
+    ethan_bench = [b for b in player.bench if "Ethan's" in b.card_name]
+    if not ethan_bench:
+        state.emit_event("ability_no_targets", player=action.player_id,
+                         card="Ethan's Ho-Oh ex", reason="no_ethans_bench")
+        return
+
+    r_energy = [c for c in player.hand
+                if c.card_type == "Energy" and "Basic" in c.card_subtype
+                and any("Fire" in (e or "") for e in c.energy_provides)]
+    if not r_energy:
+        state.emit_event("ability_no_targets", player=action.player_id,
+                         card="Ethan's Ho-Oh ex", reason="no_fire_energy_hand")
+        return
+
+    target_req = ChoiceRequest(
+        "choose_cards",
+        player_id=action.player_id,
+        options=[b.instance_id for b in ethan_bench],
+        min_choices=1,
+        max_choices=1,
+        context={"reason": "golden_flame_target"},
+    )
+    target_resp = yield target_req
+    chosen_ids = target_resp.chosen_ids if hasattr(target_resp, "chosen_ids") else []
+    target = next((b for b in ethan_bench if b.instance_id in chosen_ids),
+                  ethan_bench[0])
+
+    energy_req = ChoiceRequest(
+        "choose_cards",
+        player_id=action.player_id,
+        options=[c.instance_id for c in r_energy],
+        min_choices=0,
+        max_choices=min(2, len(r_energy)),
+        context={"reason": "golden_flame_energy"},
+    )
+    energy_resp = yield energy_req
+    chosen_e_ids = energy_resp.chosen_ids if hasattr(energy_resp, "chosen_ids") else []
+    chosen_energy = [c for c in player.hand if c.instance_id in chosen_e_ids][:2]
+
+    for e_card in chosen_energy:
+        player.hand.remove(e_card)
+        e_card.zone = Zone.DISCARD
+        e_type = EnergyType.FIRE if "Fire" in (e_card.energy_provides or []) else EnergyType.COLORLESS
+        target.energy_attached.append(EnergyAttachment(
+            card_def_id=e_card.card_def_id,
+            energy_type=e_type,
+            card_name=e_card.card_name,
+        ))
+        state.emit_event("energy_attached", player=action.player_id,
+                         target=target.card_name, energy=e_card.card_name)
+    state.emit_event("ability_used", player=action.player_id,
+                     card="Ethan's Ho-Oh ex", ability="Golden Flame")
+
+
+def _rocket_brain(state, action):
+    """sv10-089 TR Orbeetle — Rocket Brain: as often as desired,
+    move 1 damage counter from a TR Pokémon to any Pokémon."""
+    player = state.get_player(action.player_id)
+    caster = _find_in_play(player, action.card_instance_id)
+    if caster and caster.ability_used_this_turn:
+        state.emit_event("ability_already_used", player=action.player_id,
+                         card=caster.card_name)
+        return
+    if caster:
+        caster.ability_used_this_turn = True
+
+    opp = state.get_opponent(action.player_id)
+    tr_with_counters = [p for p in _in_play(player)
+                        if "Team Rocket's" in p.card_name and p.damage_counters > 0]
+    if not tr_with_counters:
+        state.emit_event("ability_no_targets", player=action.player_id,
+                         card="TR Orbeetle", reason="no_tr_with_damage")
+        return
+
+    source_req = ChoiceRequest(
+        "choose_cards",
+        player_id=action.player_id,
+        options=[p.instance_id for p in tr_with_counters],
+        min_choices=1,
+        max_choices=1,
+        context={"reason": "rocket_brain_source"},
+    )
+    source_resp = yield source_req
+    src_ids = source_resp.chosen_ids if hasattr(source_resp, "chosen_ids") else []
+    source_poke = next((p for p in tr_with_counters if p.instance_id in src_ids),
+                        tr_with_counters[0])
+
+    all_targets = (_in_play(player) +
+                   ([opp.active] if opp.active else []) + list(opp.bench))
+    dest_req = ChoiceRequest(
+        "choose_cards",
+        player_id=action.player_id,
+        options=[p.instance_id for p in all_targets],
+        min_choices=1,
+        max_choices=1,
+        context={"reason": "rocket_brain_dest"},
+    )
+    dest_resp = yield dest_req
+    dest_ids = dest_resp.chosen_ids if hasattr(dest_resp, "chosen_ids") else []
+    dest_poke = next((p for p in all_targets if p.instance_id in dest_ids), all_targets[0])
+
+    source_poke.damage_counters -= 1
+    source_poke.current_hp = source_poke.max_hp - source_poke.damage_counters * 10
+    dest_poke.damage_counters += 1
+    dest_poke.current_hp = dest_poke.max_hp - dest_poke.damage_counters * 10
+    state.emit_event("ability_used", player=action.player_id,
+                     card="TR Orbeetle", ability="Rocket Brain",
+                     from_card=source_poke.card_name, to_card=dest_poke.card_name)
+
+
+def register_all(registry):
     """Register all ability effect handlers with the registry."""
 
     # ── On-bench triggers ────────────────────────────────────────────────────
@@ -2966,3 +3167,15 @@ def register_all(registry: EffectRegistry) -> None:
     # Passive abilities handled in _apply_damage
     registry.register_passive_ability("sv10.5b-063", "Gear Coating")   # handled in _apply_damage
     registry.register_passive_ability("sv10.5w-077", "Bouffer")        # handled in _apply_damage
+
+    # ── Batch 7: DRI ability registrations ────────────────────────────────────
+    registry.register_ability("sv10-030", "Hurried Gait", _hurried_gait)           # Rapidash — Hurried Gait
+    registry.register_ability("sv10-033", "Bonded by the Journey", _bonded_by_journey)  # Ethan's Quilava — Bonded by the Journey
+    registry.register_ability("sv10-039", "Golden Flame", _golden_flame)           # Ethan's Ho-Oh ex — Golden Flame
+    registry.register_ability("sv10-089", "Rocket Brain", _rocket_brain)           # TR Orbeetle — Rocket Brain
+
+    # Passive abilities handled in _apply_damage or _apply_bench_damage
+    registry.register_passive_ability("sv10-008", "Cheer On to Glory")  # Cynthia's Roserade
+    registry.register_passive_ability("sv10-048", "So Submerged")      # Misty's Magikarp
+    registry.register_passive_ability("sv10-086", "Stone Palace")      # Steven's Carbink
+    registry.register_passive_ability("sv10-092", "Lose Cool")         # Annihilape

@@ -411,6 +411,7 @@ class MatchRunner:
                 player.active.prevent_damage_one_turn = False
                 player.active.resolute_heart_eligible = False
                 player.active.moved_from_bench_this_turn = False
+                player.active.evolved_this_turn = False
                 player.active.prevent_damage_from_basic_noncolorless = False
                 player.active.locked_attack_index = None
                 player.active.prevent_damage_from_basic = False
@@ -423,6 +424,7 @@ class MatchRunner:
                 b.prevent_damage_one_turn = False
                 b.resolute_heart_eligible = False
                 b.moved_from_bench_this_turn = False
+                b.evolved_this_turn = False
                 b.prevent_damage_from_basic_noncolorless = False
                 b.locked_attack_index = None
                 b.prevent_damage_from_basic = False
