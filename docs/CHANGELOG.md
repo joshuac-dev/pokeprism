@@ -1,5 +1,75 @@
 # PokéPrism Changelog
 
+## Phase 13 — Polish, Hardening & Scheduling (2026-04-28/29)
+
+### Summary
+Full production hardening and polish across coach intelligence, the simulation engine, and the live console UI. The Coach was destroying decks by removing primary attacker lines (e.g., stripping all Dreepy/Drakloak from a Dragapult ex deck, causing continuous win rate decline). Three coach intelligence fixes were implemented: tiered evolution line protection, win rate regression detection with automatic deck rollback, and full performance history in the Coach prompt. Six UI/console fixes brought the console from showing generic event type names to rich formatted lines with card names, damage, and win conditions. Earlier in the phase (Groups A–G), backend hardening, copy-attack engine, Decision Map, Docker Compose, light mode polish, and Makefile infrastructure were all implemented.
+
+### Coach Intelligence Fixes (1A/1B/1C)
+
+**Fix 1A — Evolution Line Tiered Protection**
+- `identify_primary_line()` queries `match_events` for the top damage-dealing/prize-taking/active-turns Pokémon
+- PRIMARY line: hard-protected — Coach cannot remove any card in the attacker's evolution chain
+- SUPPORT lines: swappable only as complete lines (no orphaned pre-evolutions)
+- Tier list injected into Coach prompt each round: `PRIMARY (protected): Dreepy → Drakloak → Dragapult ex`
+
+**Fix 1B — Win Rate Regression Detection**
+- Consecutive regression counter: warn on 1st regression → auto-revert deck on 2nd → skip Coach entirely on 3rd
+- `best_deck_snapshot` JSONB column added to `simulations` table (Alembic migration `c3e91f7a5b22`)
+- `deck_reverted` and `coach_skipped` lifecycle events published to WebSocket and displayed in console
+
+**Fix 1C — Coach Prompt Improvement**
+- Full win rate history across all previous rounds in each prompt
+- Regression warning with explicit stability instruction ("prioritize stability, make fewer changes")
+- Tiered card list (PRIMARY / SUPPORT / UNPROTECTED) in every prompt
+
+### UI/Console Fixes (2A–3B)
+
+**Fix 2A — Rounds to Confirm**: Field existed in code; stale Docker container rebuilt and redeployed  
+**Fix 2B — Console card names**: All event types now show card names:
+- `T9 [p2] ⚔ Phantom Dive (Dragapult ex) → 120 dmg` (attack_damage)
+- `T13 [p2] ★ KO — Dwebble (by Dragapult ex)` (ko)
+- `T12 [p1] ↑ Dreepy → Drakloak` (evolve)
+- `T4 [p1] ▷ Iono` (play_supporter)
+- `T4 [p1] ↔ Retreat Dreepy → Dragapult ex` (retreat)
+- New handlers: attack_no_damage, play_stadium, play_tool, switch_active, deck_reverted, coach_skipped
+- attack_declared suppressed (redundant with attack_damage); noise events skipped
+
+**Fix 2C — Win condition**: `═══ Match 3 complete — P2 wins (prizes) ═══`  
+**Fix 2D — Clickable events**: EventDetail overlay on click; shows event data key/values + AI reasoning for ai_h/ai_ai modes  
+**Fix 2E — Deck naming**: Gemma4 needs ~60s for generation; timeout raised 30s → 120s  
+**Fix 3A/3B — Match separator and retreat display**: Incorporated in 2C and 2B changes respectively  
+
+### Backend Changes (Groups A–G, earlier in phase)
+- **Group A**: DB pool pre-ping/recycle, Ollama retry (3× exponential backoff), `/health` endpoint (7 service checks), WebSocket auto-reconnect, Celery Beat nightly schedule
+- **Group B**: Copy-attack engine — `_night_joker` (N's Zoroark ex) and `_gemstone_mimicry` (TR Mimikyu) with depth-limit-1 cycle guard
+- **Group C**: `/api/simulations/{id}/decision-graph` endpoint; DecisionMap.tsx D3 two-line labels with action-type colors
+- **Group D**: `pgvector>=0.3` in pyproject.toml; production-safe Dockerfile CMD; nginx lazy upstream resolution
+- **Group E**: Light mode polish across all pages and dashboard tiles
+- **Group F**: Makefile targets; `.dockerignore` files
+- **Group G (secondary issues A–E)**: PTCGL deck text parsing (3 format variants), energy type mapping, deck_locked enforcement, target_consecutive_rounds early-stop, PTCGL test coverage
+
+### Key Files Created
+- `backend/alembic/versions/c3e91f7a5b22_add_best_deck_snapshot.py`
+- `frontend/src/components/simulation/EventDetail.tsx`
+
+### Key Files Modified
+- `backend/app/coach/analyst.py` — tiered protection, regression detection, performance history
+- `backend/app/coach/prompts.py` — `{performance_history}` variable, tier enforcement instructions
+- `backend/app/tasks/simulation.py` — regression state machine, deck_reverted/coach_skipped events
+- `backend/app/db/models.py` — `best_deck_snapshot` JSONB column on Simulation
+- `backend/app/api/simulations.py` — Gemma timeout 120s, decisions endpoint query filters
+- `frontend/src/components/simulation/LiveConsole.tsx` — full rewrite of fmt() with all event handlers
+- `frontend/src/pages/SimulationLive.tsx` — EventDetail wiring
+- `backend/tests/test_coach/test_analyst.py` — full rewrite with 1A/1B/1C coverage
+- `backend/tests/test_tasks/test_simulation_task.py` — TestCheckRegression class
+
+### Test Results
+- **215 tests pass** (was 184 entering Phase 13; +31 new tests for coach intelligence)
+- `npm run build`: 0 TypeScript errors
+
+---
+
 ## Phase 10 — Frontend: Reporting Dashboard (2026-04-28)
 
 ### Summary

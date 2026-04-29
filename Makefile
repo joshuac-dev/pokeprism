@@ -1,5 +1,6 @@
 .PHONY: up down build logs logs-all ps migrate seed seed-cards capture-fixtures test \
-        test-engine test-cards lint dev dev-backend dev-frontend restart shell-backend help
+        test-engine test-cards lint dev dev-backend dev-frontend restart shell-backend \
+        reset-data help
 
 # ── Help ──────────────────────────────────────────────────────────────────────
 
@@ -20,6 +21,7 @@ help:
 	@echo "  Database:"
 	@echo "    make migrate       run alembic upgrade head (in container)"
 	@echo "    make seed          seed card pool into DB (in container)"
+	@echo "    make reset-data    wipe all simulation data (preserve card definitions)"
 	@echo ""
 	@echo "  Tests / Lint:"
 	@echo "    make test          run all backend pytest tests"
@@ -69,6 +71,16 @@ seed:
 
 seed-cards:
 	docker compose exec backend python /app/scripts/seed_cards.py
+
+reset-data:
+	docker compose exec postgres psql -U pokeprism -d pokeprism -c \
+	  "TRUNCATE match_events, decisions, deck_mutations, matches, \
+	   rounds, simulation_opponents, simulations, embeddings, \
+	   card_performance CASCADE;"
+	docker compose exec neo4j cypher-shell -u neo4j \
+	  -p $$(grep -m1 '^NEO4J_PASSWORD=' .env | cut -d= -f2) \
+	  "MATCH ()-[r]->() DELETE r;"
+	@echo "All simulation data cleared. Card definitions preserved."
 
 capture-fixtures:
 	cd backend && python -m scripts.capture_fixtures

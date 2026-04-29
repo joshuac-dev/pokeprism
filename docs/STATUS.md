@@ -4,11 +4,39 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-Phase 13 — Polish, Hardening & Scheduling — **IN PROGRESS. Pending final visual QA.**
+Phase 13 — Polish, Hardening & Scheduling — **COMPLETE. All 13 phases done.**
 
-Engine is confirmed working (attacks, KOs, prize-taking, Coach deck mutations, Prize Race graph, Matchup Matrix, Card Swap Heat Map, Deck Mutation Log — all verified by user visual QA). 5 console/UI QA issues fixed this session. Awaiting user retest.
+All engine, coach, UI, and infrastructure work is verified and accepted. Ready for card pool expansion.
 
-## Last Session — 2026-04-28
+## Last Session — 2026-04-29 (Phase 13 Final Acceptance)
+
+Phase 13 fully accepted by owner visual QA. All 13 phases complete.
+
+### Phase 13 Final Fixes Applied
+
+| Fix | Description | Status |
+|-----|-------------|--------|
+| 1A — Evolution line tiered protection | PRIMARY line hard-protected; SUPPORT lines line-swap only | ✅ |
+| 1B — Win rate regression detection | warn → revert → skip; best_deck_snapshot rollback | ✅ |
+| 1C — Coach prompt improvement | full win rate history, regression warning, tier list | ✅ |
+| 2A — Rounds to Confirm | field existed; Docker container rebuilt to deploy | ✅ |
+| 2B — Console card names | all event types formatted with card names, damage, icons | ✅ |
+| 2C — Win condition | `═══ Match N complete — P2 wins (prizes) ═══` | ✅ |
+| 2D — Clickable events | EventDetail overlay: event data + AI reasoning | ✅ |
+| 2E — Deck naming | Gemma4 timeout 30s → 120s (needs ~60s for generation) | ✅ |
+| 3A/3B — Separator/retreat | incorporated in 2C and 2B | ✅ |
+| reset-data | `make reset-data` wipes sim data, preserves 206 cards | ✅ |
+
+### Final Baseline
+- **215 backend tests pass**
+- **0 TypeScript errors**
+- **206 cards in DB**
+- `make reset-data` verified: truncates 11 sim tables + 3494 Neo4j relationships, cards intact
+
+### Notes for Next Session
+- Start card pool expansion (Phase 14 per PROJECT.md)
+- `make reset-data` available to wipe sim history before fresh testing runs
+- Frontend container must be rebuilt after any frontend source changes: `docker compose build frontend && docker compose up -d frontend`
 
 ### Phase 13 QA Fixes
 
@@ -137,7 +165,7 @@ Engine is confirmed working (attacks, KOs, prize-taking, Coach deck mutations, P
 - [x] Phase 10: History & Analytics Dashboard — **complete & owner-verified (2026-04-28)**
 - [x] Phase 11: History Page & Memory Explorer — **complete (2026-05-02)**
 - [x] Phase 12: Card Pool Expansion — **complete (2026-05-02)**
-- [ ] Phase 13: Polish, Hardening & Scheduling — **IN PROGRESS (visual QA pending)**
+- [ ] Phase 13: Polish, Hardening & Scheduling — **COMPLETE & owner-verified (2026-04-29)**
 
 ## Phase 7 Exit Criteria — Verified (2026-04-28)
 
