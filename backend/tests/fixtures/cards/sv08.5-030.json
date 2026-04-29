@@ -1,0 +1,89 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-030",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/030",
+  "localId": "030",
+  "name": "Jolteon ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    135
+  ],
+  "hp": 260,
+  "types": [
+    "Lightning"
+  ],
+  "evolveFrom": "Eevee",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "Flashing Spear",
+      "effect": "You may discard up to 2 Basic Energy from your Benched Pokémon. This attack does 90 more damage for each card you discarded in this way.",
+      "damage": "60+"
+    },
+    {
+      "cost": [
+        "Fire",
+        "Water",
+        "Lightning"
+      ],
+      "name": "Dravite",
+      "effect": "During your next turn, this Pokémon can't attack.",
+      "damage": 280
+    }
+  ],
+  "retreat": 0,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:44+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805419,
+      "avg": 2.77,
+      "low": 1,
+      "trend": 3.24,
+      "avg1": 2.77,
+      "avg7": 2.78,
+      "avg30": 2.78,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

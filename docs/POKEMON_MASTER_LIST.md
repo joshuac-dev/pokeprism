@@ -1,103 +1,3 @@
-Oinkologne JTG 140
-Squawkabilly JTG 141
-Pinsir PRE 3
-Exeggutor PRE 2
-Exeggcute PRE 1
-Budew PRE 4
-Leafeon PRE 5
-Leafeon ex PRE 6
-Cottonee PRE 7
-Whimsicott PRE 8
-Applin PRE 9
-Dipplin PRE 10
-Hydrapple ex PRE 11
-Pyroar PRE 16
-Litleo PRE 15
-Flareon ex PRE 14
-Teal Mask Ogerpon ex PRE 12
-Hearthflame Mask Ogerpon ex PRE 17
-Slowpoke PRE 18
-Slowking PRE 19
-Goldeen PRE 20
-Seaking PRE 21
-Vaporeon ex PRE 23
-Suicune PRE 24
-Glaceon PRE 25
-Jolteon ex PRE 30
-Pikachu ex PRE 28
-Wellspring Mask Ogerpon ex PRE 27
-Glaceon ex PRE 26
-Iron Thorns ex PRE 32
-Espeon ex PRE 34
-Duskull PRE 35
-Dusclops PRE 36
-Dusknoir PRE 37
-Spritzee PRE 38
-Aromatisse PRE 39
-Sylveon PRE 40
-Fezandipiti PRE 45
-Munkidori PRE 44
-Flutter Mane PRE 43
-Sylveon ex PRE 41
-Iron Boulder PRE 46
-Larvitar PRE 47
-Pupitar PRE 48
-Riolu PRE 50
-Lucario ex PRE 51
-Hippopotas PRE 52
-Hippowdon PRE 53
-Bloodmoon Ursaluna PRE 54
-Umbreon ex PRE 60
-Cornerstone Mask Ogerpon ex PRE 58
-Okidogi PRE 57
-Great Tusk PRE 55
-Sneasel PRE 61
-Houndour PRE 62
-Houndoom PRE 63
-Tyranitar ex PRE 64
-Roaring Moon PRE 65
-Bronzor PRE 66
-Bronzong PRE 67
-Heatran PRE 68
-Drakloak PRE 72
-Dreepy PRE 71
-Archaludon PRE 70
-Duraludon PRE 69
-Dragapult ex PRE 73
-Eevee PRE 74
-Eevee ex PRE 75
-Snorlax ex PRE 76
-Hoothoot PRE 77
-Noctowl PRE 78
-Dunsparce PRE 79
-Dudunsparce PRE 80
-Lopunny PRE 84
-Buneary PRE 83
-Lugia ex PRE 82
-Miltank PRE 81
-Fan Rotom PRE 85
-Regigigas PRE 86
-Shaymin PRE 87
-Furfrou PRE 88
-Hawlucha PRE 89
-Noibat PRE 90
-Noivern ex PRE 91
-Terapagos ex PRE 92
-Exeggcute SSP 1
-Exeggcute SSP 2
-Exeggutor SSP 3
-Durant ex SSP 4
-Scatterbug SSP 5
-Shiinotic SSP 9
-Morelull SSP 8
-Vivillon SSP 7
-Spewpa SSP 6
-Dhelmise SSP 10
-Zarude SSP 11
-Capsakid SSP 12
-Rellor SSP 13
-Rabsca SSP 14
-Wo-Chien SSP 15
 Vulpix SSP 16
 Ninetales SSP 17
 Victini SSP 21
@@ -1139,3 +1039,22 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Noivern JTG 128 | sv09-128 | Tuning Echo (ability) | Reduce Frightening Howl cost when hand size equals opponent's — conditional energy cost modification requires action validator change |
 | Komala JTG 129 | sv09-129 | Slumbering Smack (atk0) | +100 damage on next turn if this attack was used — requires inter-turn last-used-attack bonus tracking not in state |
 | Lillie's Comfey JTG 68 | sv09-068 | Fade Out (atk1) | Return this Pokémon and all attached cards to hand — returning Active Pokémon to hand mid-battle not supported |
+| Whimsicott PRE 8 | sv08.5-008 | Wafting Heal (ability) | Heal 30 from a Pokémon when this evolves — on-evolve heal hook not in engine |
+| Dipplin PRE 10 | sv08.5-010 | Festival Lead (ability) | Attack twice if Festival Grounds is in play — second-attack in one turn requires complex turn-phase tracking |
+| Goldeen PRE 20 | sv08.5-020 | Festival Lead (ability) | Attack twice if Festival Grounds is in play — second-attack in one turn not supported |
+| Seaking PRE 21 | sv08.5-021 | Festival Lead (ability) | Attack twice if Festival Grounds is in play — second-attack in one turn not supported |
+| Glaceon PRE 25 | sv08.5-025 | Permeating Chill (atk0) | Place 9 damage counters on opp's Active at end of opponent's next turn — deferred/scheduled damage not in engine |
+| Espeon ex PRE 34 | sv08.5-034 | Amazez (atk1) | Devolve all of opponent's Evolved Pokémon — engine has no previous-evolution form tracking |
+| Okidogi PRE 57 | sv08.5-057 | Adrena-Power (ability) | +150 HP if Darkness Energy attached — dynamic max HP not supported |
+| Sylveon ex PRE 41 | sv08.5-041 | Angelite (atk1) | Return 2 of opponent's Benched Pokémon to their deck — mass bounce to deck not supported |
+| Lucario ex PRE 51 | sv08.5-051 | Tornado Rush (atk1) | +100 damage on next turn if Tornado Rush was used — inter-turn last-used-attack bonus tracking not in state |
+| Umbreon ex PRE 60 | sv08.5-060 | Onyx (atk1) | Discard all Energy and take an extra Prize card — extra prize card mechanics not supported |
+| Archaludon ex PRE 70 | sv08.5-070 | Metal Bridge (ability) | Retreat for free if Metal Energy attached — dynamic retreat cost based on attachment not supported |
+| Eevee PRE 74 | sv08.5-074 | Boosted Evolution (ability) | Evolve on first turn of game — first-turn evolution exception requires action validator change |
+| Eevee ex PRE 75 | sv08.5-075 | Rainbow DNA (ability) | Eeveelutions may evolve from this card — special multi-target evolution rule not supported |
+| Noctowl PRE 78 | sv08.5-078 | Jewel Seeker (ability) | On evolve: search deck for Terapagos ex — on-evolve deck search not implemented as hook |
+| Dudunsparce PRE 80 | sv08.5-080 | Run Away Draw (ability) | Put this Pokémon into deck; draw 2 — returning Active to deck during Active position not supported |
+| Miltank PRE 81 | sv08.5-081 | Moomoo Rolling (atk1) | +100 extra damage if Rollout was used last turn — inter-turn last-used-attack tracking not in state |
+| Durant ex SSP 4 | sv08-004 | Sudden Shearing (ability) | On bench-play: discard top of opponent's deck — on-bench-play trigger hook not in engine |
+| Exeggcute SSP 1 | sv08-001 | Precocious Evolution (atk0) | Search deck for Evolution and evolve a Benched Pokémon on first turn — first-turn mid-battle evolution not supported |
+| Vivillon SSP 7 | sv08-007 | Evo-Powder (atk0) | Evolve all of your Benched Pokémon from deck simultaneously — mass in-battle evolution not supported |

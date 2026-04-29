@@ -1,0 +1,89 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-006",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/006",
+  "localId": "006",
+  "name": "Leafeon ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    470
+  ],
+  "hp": 270,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Eevee",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Grass",
+        "Colorless"
+      ],
+      "name": "Verdant Storm",
+      "effect": "This attack does 60 damage for each Energy attached to all of your opponent's Pokémon.",
+      "damage": "60×"
+    },
+    {
+      "cost": [
+        "Grass",
+        "Fire",
+        "Water"
+      ],
+      "name": "Moss Agate",
+      "effect": "Heal 100 damage from each of your Benched Pokémon.",
+      "damage": 230
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:44+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805395,
+      "avg": 3.31,
+      "low": 1,
+      "trend": 3.49,
+      "avg1": 3.19,
+      "avg7": 3.33,
+      "avg30": 3.32,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

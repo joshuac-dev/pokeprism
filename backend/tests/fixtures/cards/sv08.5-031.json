@@ -1,0 +1,89 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-031",
+  "illustrator": "PLANETA Mochizuki",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/031",
+  "localId": "031",
+  "name": "Iron Hands ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    992
+  ],
+  "hp": 230,
+  "types": [
+    "Lightning"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Lightning",
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "Arm Press",
+      "damage": 160
+    },
+    {
+      "cost": [
+        "Lightning",
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Amp You Very Much",
+      "effect": "If your opponent's Pokémon is Knocked Out by damage from this attack, take 1 more Prize card.",
+      "damage": 120
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "G",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805420,
+      "avg": 0.64,
+      "low": 0.1,
+      "trend": 0.73,
+      "avg1": 0.32,
+      "avg7": 0.81,
+      "avg30": 0.67,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

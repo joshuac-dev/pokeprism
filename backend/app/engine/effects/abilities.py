@@ -230,7 +230,7 @@ def apply_froslass_shroud(state: GameState) -> None:
 
 def has_cornerstone_stance(defender, attacker) -> bool:
     """True if defender is Cornerstone Mask Ogerpon ex AND attacker has an Ability."""
-    if defender.card_def_id != "sv06-112":
+    if defender.card_def_id not in {"sv06-112", "sv08.5-058"}:
         return False
     attacker_def = card_registry.get(attacker.card_def_id)
     return bool(attacker_def and attacker_def.abilities)
@@ -257,7 +257,7 @@ def has_adrena_power(pokemon) -> bool:
 
 def has_adrena_pheromone(pokemon) -> bool:
     """True if pokemon is Fezandipiti with at least one Darkness Energy attached."""
-    return pokemon.card_def_id == "sv06-096" and _has_d_energy(pokemon)
+    return pokemon.card_def_id in {"sv06-096", "sv08.5-045"} and _has_d_energy(pokemon)
 
 
 # Repelling Veil (sv10-051 TR Articuno) ───────────────────────────────────────
@@ -3052,6 +3052,77 @@ def _defiant_horn(state: GameState, action):
                      new_active=target.card_name)
 
 
+# ── Batch 10 ability handlers ─────────────────────────────────────────────────
+
+
+def _ripening_charge(state: GameState, action):
+    """sv08.5-011 Hydrapple ex — Ripening Charge: attach 1 Basic {G} Energy from hand to any Pokémon."""
+    from app.engine.state import EnergyAttachment
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    g_energy = [c for c in player.hand
+                if c.card_type.lower() == "energy"
+                and c.card_subtype.lower() == "basic"
+                and "Grass" in (c.energy_provides or [])]
+    if not g_energy:
+        state.emit_event("ability_failed", player=player_id,
+                         card="Hydrapple ex", ability="Ripening Charge",
+                         reason="no Basic {G} in hand")
+        return
+
+    all_player = ([player.active] if player.active else []) + list(player.bench)
+
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Ripening Charge: choose one of your Pokémon to attach a Basic {G} Energy to",
+        targets=all_player,
+    )
+    resp = yield req
+    target = None
+    if resp and hasattr(resp, "target_instance_id") and resp.target_instance_id:
+        target = next((p for p in all_player
+                       if p.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = player.active or all_player[0]
+
+    energy_card = g_energy[0]
+    player.hand.remove(energy_card)
+    energy_card.zone = target.zone
+    target.energy_attached.append(EnergyAttachment(
+        energy_type=EnergyType.GRASS,
+        source_card_id=energy_card.instance_id,
+        card_def_id=energy_card.card_def_id,
+        provides=[EnergyType.GRASS],
+    ))
+    poke_def = _find_in_play(player, action.card_instance_id)
+    if poke_def:
+        poke_def.ability_used_this_turn = True
+    state.emit_event("ability_used", player=player_id,
+                     card="Hydrapple ex", ability="Ripening Charge",
+                     target=target.card_name)
+
+
+def _calming_light(state: GameState, action):
+    """sv08-009 Shiinotic — Calming Light: your opponent's Active Pokémon is now Asleep."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    opp = state.get_opponent(player_id)
+
+    user = _find_in_play(player, action.card_instance_id)
+    if user is None or user is not player.active:
+        return
+
+    if opp.active:
+        opp.active.status_conditions.add(StatusCondition.ASLEEP)
+        state.emit_event("status_applied", status="asleep",
+                         card=opp.active.card_name, ability="Calming Light")
+    if user:
+        user.ability_used_this_turn = True
+    state.emit_event("ability_used", player=player_id,
+                     card="Shiinotic", ability="Calming Light")
+
+
 def register_all(registry):
     """Register all ability effect handlers with the registry."""
 
@@ -3671,3 +3742,89 @@ def register_all(registry):
     registry.register_passive_ability("sv09-095", "Daunting Gaze")      # Tyranitar (restrict opp Items: noop)
     registry.register_passive_ability("sv09-107", "Auto Heal")          # Magearna (on-energy-attach: noop)
     registry.register_passive_ability("sv09-128", "Tuning Echo")        # Noivern (reduce energy cost: noop)
+
+    # ── Batch 10: sv08.5 (PRE) + sv08 (SSP) abilities ───────────────────────
+
+    # Teal Dance reuse for sv08.5-012 Teal Mask Ogerpon ex
+    def _cond_teal_dance_pre(state, player_id):
+        p = state.get_player(player_id)
+        return (p.active is not None
+                and p.active.card_def_id == "sv08.5-012"
+                and not p.active.ability_used_this_turn
+                and any(c.card_type.lower() == "energy" and c.card_subtype.lower() == "basic"
+                        and "Grass" in (c.energy_provides or []) for c in p.hand))
+    registry.register_ability("sv08.5-012", "Teal Dance", _teal_dance,
+                               condition=_cond_teal_dance_pre)
+
+    # Ripening Charge for sv08.5-011 Hydrapple ex
+    def _cond_ripening_charge(state, player_id):
+        p = state.get_player(player_id)
+        return (p.active is not None
+                and p.active.card_def_id == "sv08.5-011"
+                and not p.active.ability_used_this_turn
+                and any(c.card_type.lower() == "energy" and c.card_subtype.lower() == "basic"
+                        and "Grass" in (c.energy_provides or []) for c in p.hand))
+    registry.register_ability("sv08.5-011", "Ripening Charge", _ripening_charge,
+                               condition=_cond_ripening_charge)
+
+    # Adrena-Brain reuse for sv08.5-044 Munkidori
+    def _cond_adrena_brain_pre(state, player_id):
+        p = state.get_player(player_id)
+        return (p.active is not None
+                and p.active.card_def_id == "sv08.5-044"
+                and not p.active.ability_used_this_turn
+                and _has_d_energy(p.active)
+                and any(pk.damage_counters > 0 for pk in _in_play(p)))
+    registry.register_ability("sv08.5-044", "Adrena-Brain", _adrena_brain,
+                               condition=_cond_adrena_brain_pre)
+
+    # Fan Call reuse for sv08.5-085 Fan Rotom
+    def _cond_fan_call_pre(state, player_id):
+        p = state.get_player(player_id)
+        return (p.active is not None
+                and p.active.card_def_id == "sv08.5-085"
+                and not p.active.ability_used_this_turn)
+    registry.register_ability("sv08.5-085", "Fan Call", _fan_call,
+                               condition=_cond_fan_call_pre)
+
+    # Recon Directive reuse for sv08.5-072 Drakloak
+    def _cond_recon_directive_pre(state, player_id):
+        p = state.get_player(player_id)
+        return (p.active is not None
+                and p.active.card_def_id == "sv08.5-072"
+                and not p.active.ability_used_this_turn)
+    registry.register_ability("sv08.5-072", "Recon Directive", _recon_directive,
+                               condition=_cond_recon_directive_pre)
+
+    # Calming Light for sv08-009 Shiinotic
+    def _cond_calming_light(state, player_id):
+        p = state.get_player(player_id)
+        return (p.active is not None
+                and p.active.card_def_id == "sv08-009"
+                and not p.active.ability_used_this_turn)
+    registry.register_ability("sv08-009", "Calming Light", _calming_light,
+                               condition=_cond_calming_light)
+
+    # Passive abilities (logic in _apply_damage / actions.py)
+    registry.register_passive_ability("sv08.5-040", "Safeguard")        # Sylveon (logic in _apply_damage)
+    registry.register_passive_ability("sv08.5-058", "Cornerstone Stance") # PRE Cornerstone Ogerpon (logic in has_cornerstone_stance)
+    registry.register_passive_ability("sv08.5-067", "Protective Bell")  # Bronzong (logic in _apply_damage)
+    registry.register_passive_ability("sv08.5-088", "Fur Coat")         # Furfrou (logic in _apply_damage)
+    registry.register_passive_ability("sv08.5-032", "Initialization")   # Iron Thorns ex (logic in actions.py)
+    registry.register_passive_ability("sv08.5-043", "Midnight Fluttering") # Flutter Mane (logic in actions.py)
+    registry.register_passive_ability("sv08.5-045", "Adrena-Pheromone") # PRE Fezandipiti (logic in has_adrena_pheromone)
+
+    # FLAGGED passives (stubs; complex trigger not implemented)
+    registry.register_passive_ability("sv08.5-008", "Wafting Heal")     # Whimsicott (on-evolve: noop)
+    registry.register_passive_ability("sv08.5-010", "Festival Lead")    # Dipplin (second-attack: noop)
+    registry.register_passive_ability("sv08.5-020", "Festival Lead")    # Goldeen (second-attack: noop)
+    registry.register_passive_ability("sv08.5-021", "Festival Lead")    # Seaking (second-attack: noop)
+    registry.register_passive_ability("sv08.5-051", "Adrena-Power")     # Lucario ex (FLAGGED: dynamic HP was for Okidogi)
+    registry.register_passive_ability("sv08.5-057", "Adrena-Power")     # Okidogi (FLAGGED)
+    registry.register_passive_ability("sv08.5-070", "Metal Bridge")     # Archaludon ex (retreat cost: noop)
+    registry.register_passive_ability("sv08.5-074", "Boosted Evolution") # Eevee (first-turn evolution: noop)
+    registry.register_passive_ability("sv08.5-075", "Rainbow DNA")      # Eevee ex (special evolve: noop)
+    registry.register_passive_ability("sv08.5-077", "Insomnia")         # Noctowl (can't be Asleep: noop)
+    registry.register_passive_ability("sv08.5-078", "Jewel Seeker")     # Noctowl alt (on-evolve: noop)
+    registry.register_passive_ability("sv08.5-080", "Run Away Draw")    # Dudunsparce (return to deck: noop)
+    registry.register_passive_ability("sv08-004", "Sudden Shearing")    # Durant ex (on-bench-play: noop)

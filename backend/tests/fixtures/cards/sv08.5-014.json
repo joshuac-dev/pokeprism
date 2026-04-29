@@ -1,0 +1,89 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-014",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/014",
+  "localId": "014",
+  "name": "Flareon ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    136
+  ],
+  "hp": 270,
+  "types": [
+    "Fire"
+  ],
+  "evolveFrom": "Eevee",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Fire",
+        "Colorless"
+      ],
+      "name": "Burning Charge",
+      "effect": "Search your deck for up to 2 Basic Energy cards and attach them to 1 of your Pokémon. Then, shuffle your deck.",
+      "damage": 130
+    },
+    {
+      "cost": [
+        "Fire",
+        "Water",
+        "Lightning"
+      ],
+      "name": "Carnelian",
+      "effect": "During your next turn, this Pokémon can't attack.",
+      "damage": 280
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:44+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805403,
+      "avg": 4.97,
+      "low": 2.75,
+      "trend": 5.27,
+      "avg1": 4.93,
+      "avg7": 5.14,
+      "avg30": 5.03,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

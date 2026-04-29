@@ -1,0 +1,85 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-075",
+  "illustrator": "aky CG Works",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/075",
+  "localId": "075",
+  "name": "Eevee ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    133
+  ],
+  "hp": 200,
+  "types": [
+    "Colorless"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Rainbow DNA",
+      "effect": "This Pokémon can evolve into any Pokémon ex that evolves from Eevee if you play it from your hand onto this Pokémon. (This Pokémon can't evolve during your first turn or the turn you play it.)"
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Fire",
+        "Water",
+        "Lightning"
+      ],
+      "name": "Coruscating Quartz",
+      "damage": 200
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805465,
+      "avg": 4.94,
+      "low": 2.4,
+      "trend": 5.68,
+      "avg1": 6.26,
+      "avg7": 5.42,
+      "avg30": 5.05,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

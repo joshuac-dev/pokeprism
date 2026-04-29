@@ -1,0 +1,101 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-014",
+  "illustrator": "Masako Tomii",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/014",
+  "localId": "014",
+  "name": "Rabsca",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "foil": "cosmos",
+      "variantId": "5zs5af49g93yryvw1ftj"
+    }
+  ],
+  "dexId": [
+    954
+  ],
+  "hp": 70,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Rellor",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Triple Draw",
+      "effect": "Draw 3 cards."
+    },
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Counterturn",
+      "effect": "If there are 3 or fewer cards in your deck, this attack does 200 more damage.",
+      "damage": "40+"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794269,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.12,
+      "avg7": 0.04,
+      "avg30": 0.04,
+      "avg-holo": 0.16,
+      "low-holo": 0.02,
+      "trend-holo": 0.15,
+      "avg1-holo": 0.23,
+      "avg7-holo": 0.13,
+      "avg30-holo": 0.16
+    },
+    "tcgplayer": null
+  }
+}

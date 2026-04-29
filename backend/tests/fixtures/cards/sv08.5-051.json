@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-051",
+  "illustrator": "PLANETA Tsuji",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/051",
+  "localId": "051",
+  "name": "Lucario ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    448
+  ],
+  "hp": 260,
+  "types": [
+    "Fighting"
+  ],
+  "evolveFrom": "Riolu",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting"
+      ],
+      "name": "Aura Uppercut",
+      "damage": 50
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Tornado Rush",
+      "effect": "During your next turn, this Pokémon's Tornado Rush attack does 100 more damage (before applying Weakness and Resistance).",
+      "damage": 100
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:44+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805440,
+      "avg": 0.79,
+      "low": 0.1,
+      "trend": 0.78,
+      "avg1": 0.51,
+      "avg7": 0.81,
+      "avg30": 0.79,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

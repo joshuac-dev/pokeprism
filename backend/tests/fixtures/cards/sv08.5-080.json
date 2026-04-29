@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-080",
+  "illustrator": "Teeziro",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/080",
+  "localId": "080",
+  "name": "Dudunsparce",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    982
+  ],
+  "hp": 140,
+  "types": [
+    "Colorless"
+  ],
+  "evolveFrom": "Dunsparce",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Run Away Draw",
+      "effect": "Once during your turn, you may draw 3 cards. If you drew any cards in this way, shuffle this Pokémon and all attached cards into your deck."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Land Crush",
+      "damage": 90
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:44+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805471,
+      "avg": 0.19,
+      "low": 0.02,
+      "trend": 0.19,
+      "avg1": 0.14,
+      "avg7": 0.18,
+      "avg30": 0.19,
+      "avg-holo": 0.25,
+      "low-holo": 0.02,
+      "trend-holo": 0.28,
+      "avg1-holo": 0.13,
+      "avg7-holo": 0.25,
+      "avg30-holo": 0.25
+    },
+    "tcgplayer": null
+  }
+}

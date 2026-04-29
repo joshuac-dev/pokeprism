@@ -1,0 +1,88 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-064",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/064",
+  "localId": "064",
+  "name": "Tyranitar ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    248
+  ],
+  "hp": 340,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Pupitar",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Grind",
+      "effect": "This attack does 50 damage for each Energy attached to this Pokémon.",
+      "damage": "50×"
+    },
+    {
+      "cost": [
+        "Darkness",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Tyrannical Crush",
+      "effect": "Discard a random card from your opponent's hand.",
+      "damage": 150
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:44+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805453,
+      "avg": 0.8,
+      "low": 0.2,
+      "trend": 0.69,
+      "avg1": 0.5,
+      "avg7": 0.71,
+      "avg30": 0.8,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

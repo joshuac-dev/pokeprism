@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-073",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/073",
+  "localId": "073",
+  "name": "Dragapult ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    887
+  ],
+  "hp": 320,
+  "types": [
+    "Dragon"
+  ],
+  "evolveFrom": "Drakloak",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Jet Headbutt",
+      "damage": 70
+    },
+    {
+      "cost": [
+        "Fire",
+        "Psychic"
+      ],
+      "name": "Phantom Dive",
+      "effect": "Put 6 damage counters on your opponent's Benched Pokémon in any way you like.",
+      "damage": 200
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:44+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805462,
+      "avg": 1.25,
+      "low": 0.4,
+      "trend": 1.17,
+      "avg1": 1.29,
+      "avg7": 1.26,
+      "avg30": 1.26,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

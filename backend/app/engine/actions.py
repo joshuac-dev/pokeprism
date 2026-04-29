@@ -463,6 +463,18 @@ class ActionValidator:
                     and state.active_stadium.card_def_id == "sv10-180"
                     and "Colorless" in (cdef.types or [])):
                 continue
+            # Initialization (sv08.5-032 Iron Thorns ex): rule-box Pokémon can't use abilities
+            # when Iron Thorns is active on either side.
+            opp_init = state.get_opponent(player_id)
+            if cdef.has_rule_box and (
+                (opp_init.active and opp_init.active.card_def_id == "sv08.5-032")
+                or (player.active and player.active.card_def_id == "sv08.5-032")
+            ):
+                continue
+            # Midnight Fluttering (sv08.5-043 Flutter Mane): opp's active Pokémon can't use abilities
+            if (opp_init.active and opp_init.active.card_def_id == "sv08.5-043"
+                    and poke is player.active):
+                continue
             actions.append(
                 Action(ActionType.USE_ABILITY, player_id,
                        card_instance_id=poke.instance_id)

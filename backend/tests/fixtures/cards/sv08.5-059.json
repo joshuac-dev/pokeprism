@@ -1,0 +1,87 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-059",
+  "illustrator": "matazo",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/059",
+  "localId": "059",
+  "name": "Umbreon",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    197
+  ],
+  "hp": 110,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Eevee",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Darkness"
+      ],
+      "name": "Feint Attack",
+      "effect": "This attack does 50 damage to 1 of your opponent's Pokémon. This attack's damage isn't affected by Weakness or Resistance, or by any effects on that Pokémon."
+    },
+    {
+      "cost": [
+        "Darkness",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Pitch-Black Blade",
+      "effect": "During your next turn, this Pokémon can't attack.",
+      "damage": 140
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "G",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:44+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805448,
+      "avg": 0.27,
+      "low": 0.02,
+      "trend": 0.19,
+      "avg1": 0.32,
+      "avg7": 0.23,
+      "avg30": 0.25,
+      "avg-holo": 0.35,
+      "low-holo": 0.02,
+      "trend-holo": 0.44,
+      "avg1-holo": 0.41,
+      "avg7-holo": 0.56,
+      "avg30-holo": 0.38
+    },
+    "tcgplayer": null
+  }
+}

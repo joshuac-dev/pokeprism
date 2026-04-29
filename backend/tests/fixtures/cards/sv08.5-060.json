@@ -1,0 +1,89 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-060",
+  "illustrator": "takuyoa",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/060",
+  "localId": "060",
+  "name": "Umbreon ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    197
+  ],
+  "hp": 280,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Eevee",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Moon Mirage",
+      "effect": "Your opponent's Active Pokémon is now Confused.",
+      "damage": 160
+    },
+    {
+      "cost": [
+        "Lightning",
+        "Psychic",
+        "Darkness"
+      ],
+      "name": "Onyx",
+      "effect": "Discard all Energy from this Pokémon, and take a Prize card."
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:44+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805449,
+      "avg": 5.32,
+      "low": 2,
+      "trend": 5.13,
+      "avg1": 3.88,
+      "avg7": 5.13,
+      "avg30": 5.18,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

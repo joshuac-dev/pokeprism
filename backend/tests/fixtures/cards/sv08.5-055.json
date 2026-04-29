@@ -1,0 +1,87 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-055",
+  "illustrator": "GIDORA",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/055",
+  "localId": "055",
+  "name": "Great Tusk",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    984
+  ],
+  "hp": 140,
+  "types": [
+    "Fighting"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Land Collapse",
+      "effect": "Discard the top card of your opponent's deck. If you played an Ancient Supporter card from your hand during this turn, discard 3 more cards in this way."
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Fighting",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Giant Tusk",
+      "damage": 160
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805444,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.03,
+      "avg7": 0.02,
+      "avg30": 0.03,
+      "avg-holo": 0.1,
+      "low-holo": 0.02,
+      "trend-holo": 0.22,
+      "avg1-holo": 0.21,
+      "avg7-holo": 0.46,
+      "avg30-holo": 0.17
+    },
+    "tcgplayer": null
+  }
+}

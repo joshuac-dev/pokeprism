@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-056",
+  "illustrator": "PLANETA Mochizuki",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/056",
+  "localId": "056",
+  "name": "Sandy Shocks ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    989
+  ],
+  "hp": 220,
+  "types": [
+    "Fighting"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Magnetic Absorption",
+      "effect": "Once during your turn, if your opponent has 4 or fewer Prize cards remaining, you may attach a Basic {F} Energy card from your discard pile to this Pokémon."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Fighting",
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Earthen Spike",
+      "effect": "During your next turn, this Pokémon can't attack.",
+      "damage": 200
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "G",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805445,
+      "avg": 0.6,
+      "low": 0.05,
+      "trend": 0.66,
+      "avg1": 0.45,
+      "avg7": 0.64,
+      "avg30": 0.6,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

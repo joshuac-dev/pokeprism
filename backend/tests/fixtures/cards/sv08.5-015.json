@@ -1,0 +1,85 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-015",
+  "illustrator": "Whisker",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/015",
+  "localId": "015",
+  "name": "Litleo",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    667
+  ],
+  "hp": 70,
+  "types": [
+    "Fire"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fire"
+      ],
+      "name": "Combustion",
+      "damage": 10
+    },
+    {
+      "cost": [
+        "Fire",
+        "Fire",
+        "Colorless"
+      ],
+      "name": "Headbutt",
+      "damage": 50
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805404,
+      "avg": 0.02,
+      "low": 0.02,
+      "trend": 0.02,
+      "avg1": 0.02,
+      "avg7": 0.02,
+      "avg30": 0.02,
+      "avg-holo": 0.06,
+      "low-holo": 0.02,
+      "trend-holo": 0.06,
+      "avg1-holo": 0.04,
+      "avg7-holo": 0.04,
+      "avg30-holo": 0.06
+    },
+    "tcgplayer": null
+  }
+}

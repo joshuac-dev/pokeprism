@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-012",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/012",
+  "localId": "012",
+  "name": "Teal Mask Ogerpon ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    1017
+  ],
+  "hp": 210,
+  "types": [
+    "Grass"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Teal Dance",
+      "effect": "Once during your turn, you may attach a Basic {G} Energy card from your hand to this Pokémon. If you attached Energy to a Pokémon in this way, draw a card."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Grass",
+        "Grass",
+        "Grass"
+      ],
+      "name": "Myriad Leaf Shower",
+      "effect": "This attack does 30 more damage for each Energy attached to both Active Pokémon.",
+      "damage": "30+"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805401,
+      "avg": 2.93,
+      "low": 1,
+      "trend": 4.19,
+      "avg1": 4.56,
+      "avg7": 3.89,
+      "avg30": 3.31,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

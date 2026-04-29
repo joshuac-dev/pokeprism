@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-028",
+  "illustrator": "N-DESIGN Inc.",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/028",
+  "localId": "028",
+  "name": "Pikachu ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    25
+  ],
+  "hp": 190,
+  "types": [
+    "Lightning"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Tail Whap",
+      "damage": 30
+    },
+    {
+      "cost": [
+        "Lightning",
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "Thunder",
+      "effect": "This Pokémon also does 30 damage to itself.",
+      "damage": 220
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-08-16T20:39:55Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805417,
+      "avg": 1.73,
+      "low": 0.5,
+      "trend": 1.84,
+      "avg1": 1.41,
+      "avg7": 1.93,
+      "avg30": 1.76,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

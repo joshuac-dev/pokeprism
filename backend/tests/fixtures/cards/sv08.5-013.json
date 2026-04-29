@@ -1,0 +1,88 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-013",
+  "illustrator": "Ryota Murayama",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/013",
+  "localId": "013",
+  "name": "Flareon",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    136
+  ],
+  "hp": 130,
+  "types": [
+    "Fire"
+  ],
+  "evolveFrom": "Eevee",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Fire"
+      ],
+      "name": "Destructive Flame",
+      "effect": "Flip a coin. If heads, discard an Energy from your opponent's Active Pokémon.",
+      "damage": 30
+    },
+    {
+      "cost": [
+        "Fire",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Fighting Blaze",
+      "effect": "If your opponent's Active Pokémon is a Pokémon ex or Pokémon V, this attack does 90 more damage.",
+      "damage": "90+"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "G",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:44+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805402,
+      "avg": 0.14,
+      "low": 0.02,
+      "trend": 0.16,
+      "avg1": 0.12,
+      "avg7": 0.16,
+      "avg30": 0.13,
+      "avg-holo": 0.23,
+      "low-holo": 0.02,
+      "trend-holo": 0.26,
+      "avg1-holo": 0.29,
+      "avg7-holo": 0.29,
+      "avg30-holo": 0.24
+    },
+    "tcgplayer": null
+  }
+}

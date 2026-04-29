@@ -1,0 +1,84 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-008",
+  "illustrator": "Mizue",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/008",
+  "localId": "008",
+  "name": "Whimsicott",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    547
+  ],
+  "hp": 100,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Cottonee",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Wafting Heal",
+      "effect": "When you play this Pokémon from your hand to evolve 1 of your Pokémon during your turn, you may heal all damage from your Active {G} Pokémon. If you healed any damage in this way, discard all Energy from that Pokémon."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Seed Bomb",
+      "damage": 40
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:44+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805397,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.05,
+      "avg7": 0.04,
+      "avg30": 0.04,
+      "avg-holo": 0.09,
+      "low-holo": 0.02,
+      "trend-holo": 0.07,
+      "avg1-holo": 0.03,
+      "avg7-holo": 0.09,
+      "avg30-holo": 0.09
+    },
+    "tcgplayer": null
+  }
+}

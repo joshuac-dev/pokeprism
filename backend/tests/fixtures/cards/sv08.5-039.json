@@ -1,0 +1,79 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-039",
+  "illustrator": "Wintr Wandr",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/039",
+  "localId": "039",
+  "name": "Aromatisse",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    683
+  ],
+  "hp": 120,
+  "types": [
+    "Psychic"
+  ],
+  "evolveFrom": "Spritzee",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Perfume Press",
+      "effect": "Your opponent's Active Pokémon is now Confused.",
+      "damage": 60
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:44+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805428,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.02,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.07,
+      "low-holo": 0.02,
+      "trend-holo": 0.06,
+      "avg1-holo": 0.13,
+      "avg7-holo": 0.06,
+      "avg30-holo": 0.08
+    },
+    "tcgplayer": null
+  }
+}

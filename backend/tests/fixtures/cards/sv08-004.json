@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv08-004",
+  "illustrator": "PLANETA Tsuji",
+  "image": "https://assets.tcgdex.net/en/sv/sv08/004",
+  "localId": "004",
+  "name": "Durant ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 191,
+      "total": 252
+    },
+    "id": "sv08",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08/logo",
+    "name": "Surging Sparks"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    632
+  ],
+  "hp": 190,
+  "types": [
+    "Grass"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Sudden Shearing",
+      "effect": "When you play this Pokémon from your hand onto your Bench during your turn, you may discard the top card of your opponent's deck."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Grass",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Vengeful Crush",
+      "effect": "This attack does 30 more damage for each Prize card your opponent has taken.",
+      "damage": "120+"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-12T12:59:41Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 794259,
+      "avg": 0.54,
+      "low": 0.02,
+      "trend": 0.53,
+      "avg1": 0.62,
+      "avg7": 0.5,
+      "avg30": 0.54,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

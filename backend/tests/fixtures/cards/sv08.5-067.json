@@ -1,0 +1,85 @@
+{
+  "category": "Pokemon",
+  "id": "sv08.5-067",
+  "illustrator": "Scav",
+  "image": "https://assets.tcgdex.net/en/sv/sv08.5/067",
+  "localId": "067",
+  "name": "Bronzong",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 131,
+      "total": 180
+    },
+    "id": "sv08.5",
+    "logo": "https://assets.tcgdex.net/en/sv/sv08.5/logo",
+    "name": "Prismatic Evolutions"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    437
+  ],
+  "hp": 130,
+  "types": [
+    "Metal"
+  ],
+  "evolveFrom": "Bronzor",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Protective Bell",
+      "effect": "All of your Pokémon take 10 less damage from attacks from your opponent's Pokémon (after applying Weakness and Resistance)."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Metal",
+        "Colorless"
+      ],
+      "name": "Heavy Impact",
+      "damage": 50
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-11-14T00:10:44+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 805456,
+      "avg": 0.02,
+      "low": 0.02,
+      "trend": 0.02,
+      "avg1": 0.03,
+      "avg7": 0.02,
+      "avg30": 0.02,
+      "avg-holo": 0.09,
+      "low-holo": 0.02,
+      "trend-holo": 0.07,
+      "avg1-holo": 0.22,
+      "avg7-holo": 0.06,
+      "avg30-holo": 0.09
+    },
+    "tcgplayer": null
+  }
+}
