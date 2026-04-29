@@ -412,6 +412,8 @@ class MatchRunner:
                 player.active.resolute_heart_eligible = False
                 player.active.moved_from_bench_this_turn = False
                 player.active.prevent_damage_from_basic_noncolorless = False
+                player.active.locked_attack_index = None
+                player.active.prevent_damage_from_basic = False
                 # Discard energy cards flagged for end-of-turn removal (Ignition Energy)
                 self._discard_expiring_energy(state, player.active)
             for b in player.bench:
@@ -422,6 +424,8 @@ class MatchRunner:
                 b.resolute_heart_eligible = False
                 b.moved_from_bench_this_turn = False
                 b.prevent_damage_from_basic_noncolorless = False
+                b.locked_attack_index = None
+                b.prevent_damage_from_basic = False
                 self._discard_expiring_energy(state, b)
 
         state.active_player_damage_bonus = 0

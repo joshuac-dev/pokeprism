@@ -257,7 +257,7 @@ def check_ko(
         if (attacker_cdef and attacker_cdef.is_ex
                 and "Darkness" in (target_types or [])):
             from app.engine.effects.abilities import _in_play
-            if any(p.card_def_id == "me02.5-125" for p in _in_play(target_player)):
+            if any(p.card_def_id in ("me02.5-125", "me02-056") for p in _in_play(target_player)):
                 prizes_to_take = max(0, prizes_to_take - 1)
                 state.emit_event("shadowy_concealment_triggered",
                                  ko_player=target_player_id,
@@ -283,6 +283,15 @@ def check_ko(
                 state.emit_event("wonder_kiss_triggered",
                                  ko_player=target_player_id,
                                  card_name=target.card_name)
+
+    # Fragile Husk (me01-061 Shedinja): if KO'd by opponent's Pokémon ex, opp takes 0 prizes
+    if target.card_def_id == "me01-061" and _is_attacking_active:
+        attacker_cdef2 = card_registry.get(attacker_player.active.card_def_id) if attacker_player.active else None
+        if attacker_cdef2 and attacker_cdef2.is_ex:
+            prizes_to_take = 0
+            state.emit_event("fragile_husk_triggered",
+                             ko_player=target_player_id,
+                             card_name=target.card_name)
 
     # Sandy Flapping (me02-053 Flygon): when KO'd by opponent's active, discard top 2 of opp's deck
     if target.card_def_id == "me02-053" and _is_attacking_active:

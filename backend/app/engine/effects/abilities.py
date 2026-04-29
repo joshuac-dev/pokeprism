@@ -1403,6 +1403,8 @@ EVOLVE_TRIGGER_ABILITIES: frozenset[str] = frozenset({
     "Multiplying Cocoon",    # me02.5-012 Silcoon
     "Prison Panic",          # Brambleghast — confuse opponent's active on evolve
     "Sandy Flapping",        # me02-053 Flygon — discard top 2 of opponent's deck on evolve
+    "Cast-Off Shell",        # me01-017 Ninjask — search deck for Shedinja on evolve
+    "Energized Steps",       # me01-063 Grumpig — attach {P} Energy from deck to Bench on evolve
 })
 
 
@@ -1825,6 +1827,296 @@ def _lethargic_charge(state: GameState, action):
                 card_def_id=card.card_def_id,
             ))
     state.emit_event("lethargic_charge", player=player_id)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Batch 4: MEG / PFL ability handlers
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Solar Transfer (me01-003 Mega Venusaur ex) ──────────────────────────────────
+
+def _solar_transfer(state: GameState, action):
+    """Mega Venusaur ex — Solar Transfer: Move a Basic {G} Energy between your Pokémon."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    all_in_play = _in_play(player)
+    sources = [p for p in all_in_play
+               if any(ea.energy_type == EnergyType.GRASS for ea in p.energy_attached)]
+    if not sources:
+        return
+    req_src = ChoiceRequest(
+        "choose_target", player_id,
+        "Solar Transfer: choose a Pokémon to move a {G} Energy FROM.",
+        targets=sources,
+    )
+    resp_src = yield req_src
+    source = None
+    if resp_src and resp_src.target_instance_id:
+        source = next((p for p in sources if p.instance_id == resp_src.target_instance_id), None)
+    if source is None:
+        source = sources[0]
+    g_attachments = [ea for ea in source.energy_attached if ea.energy_type == EnergyType.GRASS]
+    if not g_attachments:
+        return
+    ea_to_move = g_attachments[0]
+    source.energy_attached.remove(ea_to_move)
+
+    targets = [p for p in all_in_play if p.instance_id != source.instance_id]
+    if not targets:
+        source.energy_attached.append(ea_to_move)
+        return
+    req_tgt = ChoiceRequest(
+        "choose_target", player_id,
+        "Solar Transfer: choose a Pokémon to move the {G} Energy TO.",
+        targets=targets,
+    )
+    resp_tgt = yield req_tgt
+    target = None
+    if resp_tgt and resp_tgt.target_instance_id:
+        target = next((p for p in targets if p.instance_id == resp_tgt.target_instance_id), None)
+    if target is None:
+        target = targets[0]
+    target.energy_attached.append(ea_to_move)
+    state.emit_event("solar_transfer", player=player_id,
+                     source=source.card_name, target=target.card_name)
+
+
+def _cond_solar_transfer(state, player_id):
+    p = state.get_player(player_id)
+    return any(
+        any(ea.energy_type == EnergyType.GRASS for ea in pk.energy_attached)
+        for pk in _in_play(p)
+    )
+
+
+# Excited Dash (me02-082 Linoone) ─────────────────────────────────────────────
+
+def _excited_dash(state: GameState, action):
+    """me02-082 Linoone — Excited Dash: if Mega ex in play, draw 2 cards."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    has_mega = any(
+        "ex" in pk.card_name.lower() and pk.evolution_stage >= 2
+        for pk in _in_play(player)
+    )
+    if not has_mega:
+        return
+    drawn = draw_cards(state, player_id, 2)
+    state.emit_event("excited_dash", player=player_id, cards_drawn=drawn)
+
+
+def _cond_excited_dash(state, player_id):
+    p = state.get_player(player_id)
+    if not any(pk for pk in _in_play(p) if pk.card_def_id == "me02-082"):
+        return False
+    return any(
+        "ex" in pk.card_name.lower() and pk.evolution_stage >= 2
+        for pk in _in_play(p)
+    )
+
+
+# Fermented Juice (me01-011 Shuckle) ─────────────────────────────────────────
+
+def _fermented_juice(state: GameState, action):
+    """me01-011 Shuckle — Fermented Juice: Heal 30 from any 1 of your Pokémon."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    all_in_play = _in_play(player)
+    damaged = [p for p in all_in_play if p.damage_counters > 0]
+    if not damaged:
+        return
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Fermented Juice: choose a Pokémon to heal 30 from.",
+        targets=damaged,
+    )
+    resp = yield req
+    target = None
+    if resp and resp.target_instance_id:
+        target = next((p for p in damaged if p.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = damaged[0]
+    healed = min(target.damage_counters, 30)
+    target.damage_counters -= healed
+    state.emit_event("fermented_juice", player=player_id, card=target.card_name, healed=healed)
+
+
+def _cond_fermented_juice(state, player_id):
+    p = state.get_player(player_id)
+    shuckle = next(
+        (pk for pk in _in_play(p) if pk.card_def_id == "me01-011"), None
+    )
+    if shuckle is None:
+        return False
+    has_grass = any(ea.energy_type == EnergyType.GRASS for ea in shuckle.energy_attached)
+    has_damaged = any(pk.damage_counters > 0 for pk in _in_play(p))
+    return has_grass and has_damaged
+
+
+# Cast-Off Shell (me01-017 Ninjask) — evolve trigger ─────────────────────────
+
+def _cast_off_shell(state: GameState, action):
+    """me01-017 Ninjask — Cast-Off Shell: on evolve, search deck for Shedinja, put on Bench."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if len(player.bench) >= 5:
+        return
+    shedinja_cards = [c for c in player.deck if c.card_def_id == "me01-016"]
+    if not shedinja_cards:
+        import random
+        random.shuffle(player.deck)
+        return
+    card = shedinja_cards[0]
+    player.deck.remove(card)
+    card.zone = Zone.BENCH
+    player.bench.append(card)
+    import random
+    random.shuffle(player.deck)
+    state.emit_event("cast_off_shell", player=player_id, card=card.card_name)
+
+
+# Energized Steps (me01-063 Grumpig) — evolve trigger ────────────────────────
+
+def _energized_steps(state: GameState, action):
+    """me01-063 Grumpig — Energized Steps: on evolve, attach {P} Energy from deck to Bench."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.bench:
+        return
+    p_energy = [c for c in player.deck
+                if c.card_type.lower() == "energy"
+                and c.card_subtype.lower() == "basic"
+                and "Psychic" in (c.energy_provides or [])]
+    if not p_energy:
+        import random
+        random.shuffle(player.deck)
+        return
+    req_e = ChoiceRequest(
+        "choose_cards", player_id,
+        "Energized Steps: choose a Basic {P} Energy from deck to attach to a Benched Pokémon.",
+        cards=p_energy, min_count=0, max_count=1,
+    )
+    resp_e = yield req_e
+    chosen_e = (resp_e.selected_cards if resp_e and resp_e.selected_cards else []) or [p_energy[0].instance_id]
+    energy_card = next((c for c in player.deck if c.instance_id in chosen_e), None)
+    if energy_card is None:
+        import random
+        random.shuffle(player.deck)
+        return
+    req_t = ChoiceRequest(
+        "choose_target", player_id,
+        "Energized Steps: choose a Benched Pokémon to attach {P} Energy to.",
+        targets=player.bench,
+    )
+    resp_t = yield req_t
+    target = None
+    if resp_t and resp_t.target_instance_id:
+        target = next((p for p in player.bench if p.instance_id == resp_t.target_instance_id), None)
+    if target is None:
+        target = player.bench[0]
+    player.deck.remove(energy_card)
+    import random
+    random.shuffle(player.deck)
+    _attach_from_hand_or_discard(player, target, energy_card)
+    state.emit_event("energized_steps", player=player_id, target=target.card_name)
+
+
+# Fall Back to Reload (me01-038 Clawitzer) ────────────────────────────────────
+
+def _fall_back_to_reload(state: GameState, action):
+    """me01-038 Clawitzer — Fall Back to Reload: attach an Energy from discard to self."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    poke = _find_in_play(player, action.card_instance_id)
+    if poke is None:
+        poke = next((p for p in player.bench if p.card_def_id == "me01-038"), None)
+    if poke is None:
+        return
+    energy_in_discard = [c for c in player.discard if c.card_type.lower() == "energy"]
+    if not energy_in_discard:
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Fall Back to Reload: choose an Energy from discard to attach to Clawitzer.",
+        cards=energy_in_discard, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen = (resp.selected_cards if resp and resp.selected_cards else []) or [energy_in_discard[0].instance_id]
+    energy_card = next((c for c in player.discard if c.instance_id in chosen), None)
+    if energy_card is None:
+        return
+    _attach_from_hand_or_discard(player, poke, energy_card)
+    state.emit_event("fall_back_to_reload", player=player_id, card=poke.card_name)
+
+
+def _cond_fall_back_to_reload(state, player_id):
+    p = state.get_player(player_id)
+    clawitzer = next(
+        (pk for pk in _in_play(p) if pk.card_def_id == "me01-038"), None
+    )
+    if clawitzer is None:
+        return False
+    return bool(p.discard and any(c.card_type.lower() == "energy" for c in p.discard))
+
+
+# Sinister Surge (me02-068 Toxtricity) ────────────────────────────────────────
+
+def _sinister_surge(state: GameState, action):
+    """me02-068 Toxtricity — Sinister Surge: search deck for Basic {D} Energy, attach to any Pokémon."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    d_energy = [c for c in player.deck
+                if c.card_type.lower() == "energy"
+                and c.card_subtype.lower() == "basic"
+                and "Darkness" in (c.energy_provides or [])]
+    if not d_energy:
+        import random
+        random.shuffle(player.deck)
+        return
+    req_e = ChoiceRequest(
+        "choose_cards", player_id,
+        "Sinister Surge: choose a Basic {D} Energy from deck to attach.",
+        cards=d_energy, min_count=0, max_count=1,
+    )
+    resp_e = yield req_e
+    chosen_e = (resp_e.selected_cards if resp_e and resp_e.selected_cards else []) or [d_energy[0].instance_id]
+    energy_card = next((c for c in player.deck if c.instance_id in chosen_e), None)
+    if energy_card is None:
+        import random
+        random.shuffle(player.deck)
+        return
+    all_pokes = _in_play(player)
+    if not all_pokes:
+        import random
+        random.shuffle(player.deck)
+        return
+    req_t = ChoiceRequest(
+        "choose_target", player_id,
+        "Sinister Surge: choose a Pokémon to attach {D} Energy to.",
+        targets=all_pokes,
+    )
+    resp_t = yield req_t
+    target = None
+    if resp_t and resp_t.target_instance_id:
+        target = next((p for p in all_pokes if p.instance_id == resp_t.target_instance_id), None)
+    if target is None:
+        target = all_pokes[0]
+    player.deck.remove(energy_card)
+    import random
+    random.shuffle(player.deck)
+    _attach_from_hand_or_discard(player, target, energy_card)
+    state.emit_event("sinister_surge", player=player_id, target=target.card_name)
+
+
+def _cond_sinister_surge(state, player_id):
+    p = state.get_player(player_id)
+    has_d_in_deck = any(
+        c.card_type.lower() == "energy"
+        and c.card_subtype.lower() == "basic"
+        and "Darkness" in (c.energy_provides or [])
+        for c in p.deck
+    )
+    return has_d_in_deck and bool(_in_play(p))
 
 
 def register_all(registry: EffectRegistry) -> None:
@@ -2262,3 +2554,28 @@ def register_all(registry: EffectRegistry) -> None:
 
     registry.register_ability("me02-018", "Excited Turbo", _excited_turbo,
                                condition=_cond_excited_turbo)
+
+    # ── Batch 4 Ability Registrations ─────────────────────────────────────────
+
+    # Passive / always-on abilities (no handler needed — handled via check_ko or _apply_damage)
+    registry.register_passive_ability("me02-056", "Shadowy Concealment")   # check_ko handles prize skip
+    registry.register_passive_ability("me01-061", "Fragile Husk")          # check_ko handles prize skip
+    registry.register_passive_ability("me01-024", "Intimidating Fang")     # _apply_damage handles -30
+    registry.register_passive_ability("me02-070", "Emperor's Stance")      # effect-prevention (damage passes through)
+    registry.register_passive_ability("me02-062", "Excited Power")         # _apply_damage handles +120
+
+    # Active abilities (once per turn, usable from bench or active)
+    registry.register_ability("me01-003", "Solar Transfer", _solar_transfer,
+                               condition=_cond_solar_transfer)
+    registry.register_ability("me02-082", "Excited Dash", _excited_dash,
+                               condition=_cond_excited_dash)
+    registry.register_ability("me01-011", "Fermented Juice", _fermented_juice,
+                               condition=_cond_fermented_juice)
+    registry.register_ability("me01-038", "Fall Back to Reload", _fall_back_to_reload,
+                               condition=_cond_fall_back_to_reload)
+    registry.register_ability("me02-068", "Sinister Surge", _sinister_surge,
+                               condition=_cond_sinister_surge)
+
+    # Evolve-trigger abilities
+    registry.register_ability("me01-017", "Cast-Off Shell", _cast_off_shell)
+    registry.register_ability("me01-063", "Energized Steps", _energized_steps)

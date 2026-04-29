@@ -496,6 +496,8 @@ class ActionValidator:
         actions: list[Action] = []
         opp = state.get_opponent(player_id)
         for i, attack in enumerate(cdef.attacks):
+            if player.active.locked_attack_index is not None and i == player.active.locked_attack_index:
+                continue
             effective_cost = list(attack.cost) if attack.cost else []
             # Seasoned Skill (sv06-141 Bloodmoon Ursaluna ex): costs 1 less {C}
             # per prize card the opponent has taken.

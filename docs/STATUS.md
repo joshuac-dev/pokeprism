@@ -10,11 +10,28 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | 488 |
-| Coverage | **99.2%** (484/488 implemented or flat-only) |
-| Batches complete | 3 (Batches 1–3) |
-| Cards remaining in list | ~1,686 processable + 9 flagged |
-| Next batch starts at | **Haunter PFL 55** |
+| Cards in DB | 588 |
+| Coverage | **99.2%** (584/588 implemented or flat-only) |
+| Batches complete | 4 (Batches 1–4) |
+| Cards remaining in list | ~1,586 processable + 9 flagged |
+| Next batch starts at | **Tyrogue MEG 71** |
+
+## Last Session — 2026-05-01 (Card Pool Expansion: Batch 4)
+
+### What Was Done
+
+**Batch 4** (100 cards, PFL 55–94 + MEG 1–70): Added Phantasmal Flames (PFL) and Mega Evolution (MEG) cards. DB grew from 488 → 588 cards.
+
+New attack handlers: `_void_gale`, `_ambush_murkrow`, `_sniping_feathers`, `_cocky_claw`, `_greedy_fang`, `_hungry_jaws`, `_vengeful_fang`, `_shatter_stadium`, `_power_rush`, `_iron_feathers`, `_triple_draw`, `_tool_drop`, `_find_a_friend_togedemaru`, `_hyper_beam_duraludon`, `_coated_attack`, `_ball_roll`, `_round_wigglytuff`, `_astonish`, `_dual_tail`, `_energizing_sketch`, `_bind_down`, `_jam_packed`, `_guard_press_exeggutor`, `_stomping_wood`, `_poison_powder_tangela`, `_pumped_up_whip`, `_reversing_gust`, `_perplex_shiftry`, `_traverse_time`, `_earthen_power`, `_roasting_heat`, `_volcanic_meteor`, `_singe_only`, `_backfire`, `_jumping_kick_raboot`, `_turbo_flare`, `_coiling_crush`, `_scorching_earth`, `_riptide`, `_swirling_waves`, `_hammer_lanche`, `_frost_barrier`, `_aqua_launcher`, `_double_stab`, `_bring_down`, `_water_shot`, `_chilling_wings`, `_upper_spark`, `_flashing_bolt`, `_electro_fall`, `_flash_ray`, `_riotous_blasting`, `_dazzle_blast`, `_jynx_psychic`, `_overflowing_wishes`, `_mega_symphonia`, `_damage_beat`, `_triple_spin`, `_geo_gate`, `_bright_horns`, `_horrifying_bite`, `_gale_thrust`, `_spiky_hopper`
+
+New ability handlers: `_solar_transfer` (Mega Venusaur ex), `_excited_dash` (Linoone), `_fermented_juice` (Shuckle), `_cast_off_shell` (Ninjask, evolve trigger), `_energized_steps` (Grumpig, evolve trigger), `_fall_back_to_reload` (Clawitzer), `_sinister_surge` (Toxtricity)
+
+State/engine changes:
+- Added `locked_attack_index` and `prevent_damage_from_basic` fields to `CardInstance`
+- Runner resets both fields at end-of-turn
+- `_get_attack_actions` respects `locked_attack_index`
+- `_apply_damage`: added `prevent_damage_from_basic` check, Intimidating Fang passive (-30), Excited Power passive (+120)
+- `check_ko`: Shadowy Concealment extended to Mega Gengar ex; Fragile Husk prize-skip for Shedinja
 
 ## Last Session — 2026-04-29 (Card Pool Expansion: Batches 1–3)
 
