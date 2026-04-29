@@ -10,17 +10,46 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | 1453 |
-| Coverage | **98.0%** (1424/1453 implemented or flat-only; 29 missing — all pre-existing flagged) |
+| Cards in DB | 1457 |
+| Coverage | **98.0%** (29 missing — all legitimately flagged) |
 | Batches complete | 14 (Batches 1–14) |
-| Cards remaining in list | ~717 |
+| Processable cards remaining | 582 |
+| Flagged cards (cumulative) | ~127 entries — see `FLAGGED_CARDS` section of `POKEMON_MASTER_LIST.md` |
 | Next batch starts at | **Chimecho TWM 85** (`sv06-085`) |
 
-## Last Session — 2026-05-08 (Card Pool Expansion: Batch 14)
+## Last Session — 2026-04-29 (Card Pool Expansion: Batches 12–14)
 
 ### What Was Done
 
-**Batch 14** (93 new cards inserted, SFA sv06.5-035..053 + TWM sv06-001..081): DB grew from 1361 → 1453 cards.
+**Batch 12** (100 cards, SSP sv08-118..161 + SCR sv07-002..059): DB grew from 1159 → 1259 cards.
+- ~52 new attack handlers, 12 handler reuses, 11 passive stubs
+- New engine field `no_weakness_one_turn` on `CardInstance` (Metal Defender)
+
+**Batch 13** (102 cards, SCR sv07-060..128 + SFA sv06.5-001..034): DB grew from 1259 → 1361 cards.
+- ~60 new attack handlers, passive stubs for Emergency Rotation, Metal Bridge, Pummeling Payback, Jewel Seeker, Fan Call, Curly Wall, Soft Wool
+- 32 new flagged cards
+
+**Batch 14** (93 new cards, SFA sv06.5-035..053 + TWM sv06-001..081): DB grew from 1361 → 1457 cards.
+- ~80 new attack handlers/reuses, 18 passive stubs
+- Bug fixed: `_dynamic_blaze` (sv08.5-017) now correctly discards all Energy when opponent's Active is an Evolution Pokémon
+
+### Issues Encountered
+- Batch 13 coverage initially showed 111 missing after insert — required backend restart to pick up new handler registrations; dropped to 29 after restart
+- Adjacent card inserts (sv08-114/115, others) caused new missing-handler alerts post-insert; all resolved before committing
+- `_dynamic_blaze` had a pre-existing bug (energy discard condition inverted); fixed in Batch 14
+
+### Final Baseline This Session
+- **215 backend tests pass**
+- **1457 cards in DB**
+- **Coverage: 98.0%** (29 missing — all legitimately flagged)
+- **~127 flagged entries** (full list in `FLAGGED_CARDS` section of `docs/POKEMON_MASTER_LIST.md`)
+
+### Notes for Next Session
+Continue with **Batch 15**, starting at **Chimecho TWM 85** (`sv06-085`). Run `make reset-data` before any fresh simulation testing. If coverage drops after insert + code changes, **restart the backend** before re-checking `/api/coverage`.
+
+---
+
+
 
 New attack handlers (~80 new functions/reuses): Yveltal, Okidogi ex, Munkidori ex, Varoom, Fraxure, Haxorus, Kyurem, Meowth/Persian, Eevee, Furfrou, Stufful, Bewear, Tangrowth, Pinsir, Ariados, Sunkern, Sunflora, Heracross, Volbeat/Illumise, Leafeon, Phantump, Trevenant, Rillaboom, Applin, Dipplin, Iron Leaves, Poltchageist, Sinistcha, Sinistcha ex, Teal Mask Ogerpon, Ninetales, Slugma, Magcargo ex, Torkoal, Chimchar, Monferno, Infernape, Darumaka, Darmanitan, Litwick, Lampent, Chandelure, Hearthflame Mask Ogerpon ex, Poliwag, Poliwhirl, Poliwrath, Goldeen, Seaking, Jynx, Crawdaunt, Feebas, Glalie, Glaceon, Phione, Froakie, Cramorant, Finizen, Palafin ex, Iron Bundle, Walking Wake, Zapdos, Shinx, Luxio, Luxray ex, Emolga, Helioptile, Heliolisk, Morpeko, Bellibolt, Wattrel, Kilowattrel, Iron Thorns ex, Clefable, Kadabra, Snorunt
 
