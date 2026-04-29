@@ -1,0 +1,158 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-128",
+  "illustrator": "Anesaki Dynamic",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/128",
+  "localId": "128",
+  "name": "Noivern",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817280,
+          "avg": 0.07,
+          "low": 0.02,
+          "trend": 0.05,
+          "avg1": 0.07,
+          "avg7": 0.06,
+          "avg30": 0.07,
+          "avg-holo": 0.38,
+          "low-holo": 0.02,
+          "trend-holo": 0.29,
+          "avg1-holo": 0.25,
+          "avg7-holo": 0.26,
+          "avg30-holo": 0.37
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817280,
+          "avg": 0.07,
+          "low": 0.02,
+          "trend": 0.05,
+          "avg1": 0.07,
+          "avg7": 0.06,
+          "avg30": 0.07,
+          "avg-holo": 0.38,
+          "low-holo": 0.02,
+          "trend-holo": 0.29,
+          "avg1-holo": 0.25,
+          "avg7-holo": 0.26,
+          "avg30-holo": 0.37
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 819253,
+          "avg": 2.11,
+          "low": 0.1,
+          "trend": 2.12,
+          "avg1": 3,
+          "avg7": 2.47,
+          "avg30": 2.08,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    715
+  ],
+  "hp": 110,
+  "types": [
+    "Colorless"
+  ],
+  "evolveFrom": "Noibat",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Tuning Echo",
+      "effect": "If you have the same number of cards in your hand as your opponent, ignore all Energy in the cost of Frightening Howl used by this Pokémon."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Frightening Howl",
+      "effect": "Your opponent's Active Pokémon is now Confused.",
+      "damage": 110
+    }
+  ],
+  "retreat": 0,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817280,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.07,
+      "avg7": 0.06,
+      "avg30": 0.07,
+      "avg-holo": 0.38,
+      "low-holo": 0.02,
+      "trend-holo": 0.29,
+      "avg1-holo": 0.25,
+      "avg7-holo": 0.26,
+      "avg30-holo": 0.37
+    },
+    "tcgplayer": null
+  }
+}

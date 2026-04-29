@@ -1,0 +1,132 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-082",
+  "illustrator": "Uta",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/082",
+  "localId": "082",
+  "name": "Regirock",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817234,
+          "avg": 0.06,
+          "low": 0.02,
+          "trend": 0.07,
+          "avg1": 0.08,
+          "avg7": 0.06,
+          "avg30": 0.06,
+          "avg-holo": 0.27,
+          "low-holo": 0.02,
+          "trend-holo": 0.3,
+          "avg1-holo": 0.45,
+          "avg7-holo": 0.27,
+          "avg30-holo": 0.26
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817234,
+          "avg": 0.06,
+          "low": 0.02,
+          "trend": 0.07,
+          "avg1": 0.08,
+          "avg7": 0.06,
+          "avg30": 0.06,
+          "avg-holo": 0.27,
+          "low-holo": 0.02,
+          "trend-holo": 0.3,
+          "avg1-holo": 0.45,
+          "avg7-holo": 0.27,
+          "avg30-holo": 0.26
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    377
+  ],
+  "hp": 130,
+  "types": [
+    "Fighting"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Rock Armor",
+      "effect": "If this Pokémon has any Energy attached, it takes 30 less damage from attacks (after applying Weakness and Resistance)."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Fighting",
+        "Fighting",
+        "Fighting"
+      ],
+      "name": "Breaching Lariat",
+      "effect": "This attack's damage isn't affected by Resistance.",
+      "damage": 120
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817234,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.07,
+      "avg1": 0.08,
+      "avg7": 0.06,
+      "avg30": 0.06,
+      "avg-holo": 0.27,
+      "low-holo": 0.02,
+      "trend-holo": 0.3,
+      "avg1-holo": 0.45,
+      "avg7-holo": 0.27,
+      "avg30-holo": 0.26
+    },
+    "tcgplayer": null
+  }
+}

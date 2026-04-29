@@ -1229,3 +1229,13 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Zamazenta DRI 146 | sv10-146 | Strong Bash (atk0) | Retaliatory damage equal to damage taken from attacks during opponent's last turn — requires inter-turn damage-received tracking not currently in state |
 | TR Persian ex DRI 150 | sv10-150 | Haughty Order (atk0) | Use an attack from a Pokémon in the opponent's deck — requires deck-scanning attack execution not currently supported |
 | Ludicolo JTG 37 | sv09-037 | Vibrant Dance (ability) | All Pokémon in play get +40 HP permanently — dynamic max HP increase on all in-play Pokémon not supported |
+| Alolan Marowak JTG 57 | sv09-057 | Retaliate (atk0) | +90 damage if any of your Pokémon were KO'd during opponent's last turn — requires inter-turn KO tracking flag not currently in state |
+| Weezing JTG 92 | sv09-092 | Crazy Blast (atk1) | +120 damage if Pervasive Gas was used last turn — requires per-turn last-used-attack tracking not currently in state |
+| Pangoro JTG 99 | sv09-099 | Torment (atk0) | Opponent's Active can't use the same attack twice in a row — requires per-Pokémon last-used-attack tracking not in state |
+| Lillie's Ribombee JTG 67 | sv09-067 | Inviting Wink (ability) | On evolve: put opponent's Basic Pokémon from hand onto their bench — on-evolve-from-hand trigger not currently hooked in transitions.py |
+| Lycanroc JTG 85 | sv09-085 | Spike-Clad (ability) | On evolve: attach Spiky Energy from discard — on-evolve attach from discard not currently supported |
+| Tyranitar JTG 95 | sv09-095 | Daunting Gaze (ability) | Opponent can't play Item cards while this is Active — requires play-from-hand item validator integration |
+| Magearna JTG 107 | sv09-107 | Auto Heal (ability) | Heal 90 damage whenever energy attached — requires on-energy-attach heal hook not in engine |
+| Noivern JTG 128 | sv09-128 | Tuning Echo (ability) | Reduce Frightening Howl cost when hand size equals opponent's — conditional energy cost modification requires action validator change |
+| Komala JTG 129 | sv09-129 | Slumbering Smack (atk0) | +100 damage on next turn if this attack was used — requires inter-turn last-used-attack bonus tracking not in state |
+| Lillie's Comfey JTG 68 | sv09-068 | Fade Out (atk1) | Return this Pokémon and all attached cards to hand — returning Active Pokémon to hand mid-battle not supported |

@@ -1,0 +1,115 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-079",
+  "illustrator": "Nisota Niso",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/079",
+  "localId": "079",
+  "name": "Mamoswine ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817231,
+          "avg": 0.5,
+          "low": 0.02,
+          "trend": 0.5,
+          "avg1": 0.54,
+          "avg7": 0.47,
+          "avg30": 0.51,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "mtltux8quqoc7vwp24c9zzhgmzduu8xcik8"
+    }
+  ],
+  "dexId": [
+    473
+  ],
+  "hp": 340,
+  "types": [
+    "Fighting"
+  ],
+  "evolveFrom": "Piloswine",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Mammoth Hauler",
+      "effect": "Once during your turn, you may search your deck for a Pokémon, reveal it, and put it into your hand. Then, shuffle your deck."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Fighting",
+        "Fighting"
+      ],
+      "name": "Rumbling March",
+      "effect": "This attack does 40 more damage for each Stage 2 Pokémon on your Bench.",
+      "damage": "180+"
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817231,
+      "avg": 0.5,
+      "low": 0.02,
+      "trend": 0.5,
+      "avg1": 0.54,
+      "avg7": 0.47,
+      "avg30": 0.51,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

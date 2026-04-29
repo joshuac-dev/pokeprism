@@ -545,4 +545,10 @@ def get_retreat_cost_reduction(pokemon: CardInstance, state: "GameState", player
             and pokemon.card_name.startswith("N's")):
         return 9999  # Effectively free retreat (≥ any retreat cost)
 
+    # Secret Forest Path (sv09-089 Toedscruel): -2 retreat cost while on bench
+    if player_id is not None:
+        from app.engine.effects.abilities import has_secret_forest_path
+        if has_secret_forest_path(state, player_id):
+            reduction += 2
+
     return reduction

@@ -1,0 +1,158 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-069",
+  "illustrator": "PLANETA Igarashi",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/069",
+  "localId": "069",
+  "name": "Mimikyu ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817221,
+          "avg": 0.67,
+          "low": 0.1,
+          "trend": 0.74,
+          "avg1": 0.77,
+          "avg7": 0.8,
+          "avg30": 0.69,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "555jb0efopmyclvkikic41",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 855660,
+          "avg": 18.22,
+          "low": 16,
+          "trend": 17.67,
+          "avg1": 15,
+          "avg7": 17.19,
+          "avg30": 19.32,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "jumbo",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "7g4cbxtmtngwhnkbcgz",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 855661,
+          "avg": null,
+          "low": null,
+          "trend": null,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    778
+  ],
+  "hp": 190,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Mischievous Hands",
+      "effect": "Choose 2 of your opponent's Pokémon and put 3 damage counters on each of them."
+    },
+    {
+      "cost": [
+        "Psychic",
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Ghostly Trip",
+      "effect": "Your opponent's Active Pokémon is now Confused.",
+      "damage": 120
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817221,
+      "avg": 0.67,
+      "low": 0.1,
+      "trend": 0.74,
+      "avg1": 0.77,
+      "avg7": 0.8,
+      "avg30": 0.69,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

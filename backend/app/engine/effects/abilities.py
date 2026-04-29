@@ -314,6 +314,22 @@ def has_cheer_on_to_glory(state, player_id: str) -> bool:
     return any(p.card_def_id == "sv10-008" for p in _in_play(player))
 
 
+# Extra Helpings (sv09-117 Hop's Snorlax) ─────────────────────────────────────
+
+def has_extra_helpings(state, player_id: str) -> bool:
+    """True if the player has Hop's Snorlax (sv09-117) in play."""
+    player = state.get_player(player_id)
+    return any(p.card_def_id == "sv09-117" for p in _in_play(player))
+
+
+# Secret Forest Path (sv09-089 Toedscruel) ────────────────────────────────────
+
+def has_secret_forest_path(state, player_id: str) -> bool:
+    """True if the player has Toedscruel (sv09-089) on their bench."""
+    player = state.get_player(player_id)
+    return any(p.card_def_id == "sv09-089" for p in player.bench)
+
+
 # Stone Palace (sv10-086 Steven's Carbink) ────────────────────────────────────
 
 def has_stone_palace(state, player_id: str) -> bool:
@@ -1433,6 +1449,7 @@ EVOLVE_TRIGGER_ABILITIES: frozenset[str] = frozenset({
     "Sneaky Bite",           # sv10-121 TR Golbat — 2 counters on 1 opp Pokémon on evolve
     "Biting Spree",          # sv10-122 TR Crobat ex — 2 counters on each of 2 opp Pokémon on evolve
     "Greedy Order",          # sv10-159 Arven's Greedent — retrieve up to 2 Arven's Sandwich from discard
+    "Defiant Horn",          # sv09-136 Hop's Dubwool — gust on evolve
 })
 
 
@@ -2915,6 +2932,126 @@ def _scalding_steam(state, action):
                      card="Volcanion ex", ability="Scalding Steam")
 
 
+# ── Batch 9: JTG ability handlers ─────────────────────────────────────────────
+
+def _confectionary_gift(state: GameState, action):
+    """sv09-075 Alcremie ex — Confectionary Gift: heal 30 from 1 of your Pokémon."""
+    player = state.get_player(action.player_id)
+    caster = player.active
+    if caster is None or caster.ability_used_this_turn:
+        return
+    caster.ability_used_this_turn = True
+    all_own = ([player.active] if player.active else []) + list(player.bench)
+    targets_with_damage = [p for p in all_own if p.damage_counters > 0]
+    if not targets_with_damage:
+        state.emit_event("ability_used", player=action.player_id,
+                         card="Alcremie ex", ability="Confectionary Gift",
+                         result="no_damage")
+        return
+    req = ChoiceRequest(
+        "choose_target", action.player_id,
+        "Confectionary Gift: choose 1 of your Pokémon to heal 30 damage from",
+        targets=targets_with_damage,
+    )
+    resp = yield req
+    target = None
+    if resp and hasattr(resp, "target_instance_id") and resp.target_instance_id:
+        target = next((p for p in targets_with_damage
+                       if p.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = targets_with_damage[0]
+    heal = min(30, target.damage_counters * 10)
+    counters = min(3, target.damage_counters)
+    target.current_hp = min(target.current_hp + heal, target.max_hp)
+    target.damage_counters -= counters
+    state.emit_event("ability_used", player=action.player_id,
+                     card="Alcremie ex", ability="Confectionary Gift")
+    state.emit_event("healed", player=action.player_id,
+                     card=target.card_name, amount=heal)
+
+
+def _mammoth_hauler(state: GameState, action):
+    """sv09-079 Mamoswine ex — Mammoth Hauler: search deck for up to 3 Basic Pokémon, put on bench."""
+    player = state.get_player(action.player_id)
+    caster = player.active
+    if caster is None or caster.ability_used_this_turn:
+        return
+    caster.ability_used_this_turn = True
+    available_slots = 5 - len(player.bench)
+    if available_slots <= 0:
+        state.emit_event("ability_used", player=action.player_id,
+                         card="Mamoswine ex", ability="Mammoth Hauler",
+                         result="bench_full")
+        return
+    basics = [c for c in player.deck
+              if c.card_type.lower() == "pokemon"
+              and c.card_subtype.lower() == "basic"]
+    if not basics:
+        from app.engine.effects.attacks import _shuffle_deck
+        _shuffle_deck(player)
+        state.emit_event("ability_used", player=action.player_id,
+                         card="Mamoswine ex", ability="Mammoth Hauler",
+                         result="no_basics")
+        return
+    max_count = min(3, available_slots, len(basics))
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        "Mammoth Hauler: choose up to 3 Basic Pokémon from deck to put on bench",
+        cards=basics, min_count=0, max_count=max_count,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp else []) or []
+    placed = 0
+    for iid in chosen_ids[:max_count]:
+        if len(player.bench) >= 5:
+            break
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.BENCH
+            card.turn_played = state.turn_number
+            player.bench.append(card)
+            placed += 1
+    from app.engine.effects.attacks import _shuffle_deck
+    _shuffle_deck(player)
+    state.emit_event("ability_used", player=action.player_id,
+                     card="Mamoswine ex", ability="Mammoth Hauler", placed=placed)
+
+
+def _defiant_horn(state: GameState, action):
+    """sv09-136 Hop's Dubwool — Defiant Horn: on evolve, switch 1 opp Benched to Active."""
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    if not opp.bench:
+        state.emit_event("ability_used", player=player_id,
+                         card="Hop's Dubwool", ability="Defiant Horn",
+                         result="no_bench")
+        return
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Defiant Horn: choose 1 of your opponent's Benched Pokémon to switch to the Active Spot",
+        targets=list(opp.bench),
+    )
+    resp = yield req
+    target = None
+    if resp and hasattr(resp, "target_instance_id") and resp.target_instance_id:
+        target = next((p for p in opp.bench
+                       if p.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = opp.bench[0]
+    old_active = opp.active
+    opp.bench.remove(target)
+    if old_active:
+        opp.bench.append(old_active)
+        old_active.zone = Zone.BENCH
+    target.zone = Zone.ACTIVE
+    opp.active = target
+    state.emit_event("ability_used", player=player_id,
+                     card="Hop's Dubwool", ability="Defiant Horn",
+                     new_active=target.card_name)
+
+
 def register_all(registry):
     """Register all ability effect handlers with the registry."""
 
@@ -3496,3 +3633,41 @@ def register_all(registry):
     registry.register_passive_ability("sv10-125", "Smog Signals")       # TR Koffing (logic in _apply_damage)
     registry.register_passive_ability("sv09-008", "Exploding Needles")  # Maractus (logic in check_ko)
     registry.register_passive_ability("sv09-021", "Magma Surge")        # Magmortar (logic in runner.py)
+
+    # ── Batch 9: JTG ability registrations ────────────────────────────────────
+    # Active-use abilities
+    registry.register_ability("sv09-075", "Confectionary Gift", _confectionary_gift)    # Alcremie ex
+    registry.register_ability("sv09-079", "Mammoth Hauler", _mammoth_hauler)             # Mamoswine ex
+
+    # On-evolve trigger abilities
+    registry.register_ability("sv09-136", "Defiant Horn", _defiant_horn)                # Hop's Dubwool
+
+    # Electric Streamer reuse for Iono's Raichu ex (sv09-053)
+    def _cond_electric_streamer_sv09(state, player_id):
+        p = state.get_player(player_id)
+        return (p.active is not None
+                and p.active.card_def_id == "sv09-053"
+                and not p.active.ability_used_this_turn)
+    registry.register_ability("sv09-053", "Electric Streamer", _electric_streamer,
+                               condition=_cond_electric_streamer_sv09)
+
+    # Flashing Draw reuse for Iono's Kilowattrel (sv09-055)
+    def _cond_flashing_draw_sv09(state, player_id):
+        p = state.get_player(player_id)
+        return (p.active is not None
+                and p.active.card_def_id == "sv09-055"
+                and not p.active.ability_used_this_turn)
+    registry.register_ability("sv09-055", "Flashing Draw", _flashing_draw,
+                               condition=_cond_flashing_draw_sv09)
+
+    # Passive abilities (logic in _apply_damage / base.py)
+    registry.register_passive_ability("sv09-082", "Rock Armor")         # Regirock (logic in _apply_damage)
+    registry.register_passive_ability("sv09-089", "Secret Forest Path") # Toedscruel (logic in base.py)
+    registry.register_passive_ability("sv09-117", "Extra Helpings")     # Hop's Snorlax (logic in _apply_damage)
+
+    # FLAGGED passives (stubs; complex trigger not implemented)
+    registry.register_passive_ability("sv09-067", "Inviting Wink")      # Lillie's Ribombee (on-evolve: noop)
+    registry.register_passive_ability("sv09-085", "Spike-Clad")         # Lycanroc (on-evolve: noop)
+    registry.register_passive_ability("sv09-095", "Daunting Gaze")      # Tyranitar (restrict opp Items: noop)
+    registry.register_passive_ability("sv09-107", "Auto Heal")          # Magearna (on-energy-attach: noop)
+    registry.register_passive_ability("sv09-128", "Tuning Echo")        # Noivern (reduce energy cost: noop)

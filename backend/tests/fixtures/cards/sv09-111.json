@@ -1,0 +1,117 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-111",
+  "illustrator": "aky CG Works",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/111",
+  "localId": "111",
+  "name": "Hop's Zacian ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817263,
+          "avg": 0.57,
+          "low": 0.1,
+          "trend": 0.67,
+          "avg1": 0.88,
+          "avg7": 0.63,
+          "avg30": 0.59,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "mtltux8quqoc7vwp24c9zzhgmzduu8xcik8"
+    }
+  ],
+  "dexId": [
+    888
+  ],
+  "hp": 230,
+  "types": [
+    "Metal"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Insta-Strike",
+      "effect": "This attack also does 30 damage to 1 of your opponent's Benched Pokémon. (Don't apply Weakness and Resistance for Benched Pokémon.)",
+      "damage": 30
+    },
+    {
+      "cost": [
+        "Metal",
+        "Metal",
+        "Metal",
+        "Colorless"
+      ],
+      "name": "Brave Slash",
+      "effect": "During your next turn, this Pokémon can't use Brave Slash.",
+      "damage": 240
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817263,
+      "avg": 0.57,
+      "low": 0.1,
+      "trend": 0.67,
+      "avg1": 0.88,
+      "avg7": 0.63,
+      "avg30": 0.59,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

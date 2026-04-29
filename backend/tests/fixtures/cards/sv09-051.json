@@ -1,0 +1,99 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-051",
+  "illustrator": "PLANETA Igarashi",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/051",
+  "localId": "051",
+  "name": "Tapu Koko ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817203,
+          "avg": 0.48,
+          "low": 0.02,
+          "trend": 0.54,
+          "avg1": 0.5,
+          "avg7": 0.5,
+          "avg30": 0.48,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    785
+  ],
+  "hp": 200,
+  "types": [
+    "Lightning"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "Linked Lightning",
+      "effect": "This attack does 20 more damage for each of your Benched Pokémon.",
+      "damage": "60+"
+    }
+  ],
+  "retreat": 0,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817203,
+      "avg": 0.48,
+      "low": 0.02,
+      "trend": 0.54,
+      "avg1": 0.5,
+      "avg7": 0.5,
+      "avg30": 0.48,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

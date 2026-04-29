@@ -1,0 +1,186 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-136",
+  "illustrator": "Ryota Murayama",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/136",
+  "localId": "136",
+  "name": "Hop's Dubwool",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817288,
+          "avg": 0.06,
+          "low": 0.02,
+          "trend": 0.05,
+          "avg1": 0.07,
+          "avg7": 0.05,
+          "avg30": 0.06,
+          "avg-holo": 0.34,
+          "low-holo": 0.02,
+          "trend-holo": 0.29,
+          "avg1-holo": 0.18,
+          "avg7-holo": 0.3,
+          "avg30-holo": 0.3
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817288,
+          "avg": 0.06,
+          "low": 0.02,
+          "trend": 0.05,
+          "avg1": 0.07,
+          "avg7": 0.05,
+          "avg30": 0.06,
+          "avg-holo": 0.34,
+          "low-holo": 0.02,
+          "trend-holo": 0.29,
+          "avg1-holo": 0.18,
+          "avg7-holo": 0.3,
+          "avg30-holo": 0.3
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "555jb0efopmyclvkikic41",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817771,
+          "avg": 24.27,
+          "low": 0.16,
+          "trend": 22.74,
+          "avg1": 23.45,
+          "avg7": 24.24,
+          "avg30": 25.6,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "foil": "cosmos",
+      "variantId": "5zs5af49g93yryvw1ftj",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 819347,
+          "avg": 0.33,
+          "low": 0.02,
+          "trend": 0.25,
+          "avg1": 0.05,
+          "avg7": 0.26,
+          "avg30": 0.3,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    832
+  ],
+  "hp": 120,
+  "types": [
+    "Colorless"
+  ],
+  "evolveFrom": "Hop's Wooloo",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Defiant Horn",
+      "effect": "When you play this Pokémon from your hand to evolve 1 of your Pokémon during your turn, you may switch in 1 of your opponent's Benched Pokémon to the Active Spot."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Headbutt",
+      "damage": 80
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817288,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.07,
+      "avg7": 0.05,
+      "avg30": 0.06,
+      "avg-holo": 0.34,
+      "low-holo": 0.02,
+      "trend-holo": 0.29,
+      "avg1-holo": 0.18,
+      "avg7-holo": 0.3,
+      "avg30-holo": 0.3
+    },
+    "tcgplayer": null
+  }
+}

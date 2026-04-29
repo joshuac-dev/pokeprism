@@ -1,0 +1,167 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-114",
+  "illustrator": "toriyufu",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/114",
+  "localId": "114",
+  "name": "Salamence ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817266,
+          "avg": 0.6,
+          "low": 0.08,
+          "trend": 0.56,
+          "avg1": 0.7,
+          "avg7": 0.61,
+          "avg30": 0.6,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "555jb0efopmyclvkikic41",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 853515,
+          "avg": 3.27,
+          "low": 2.5,
+          "trend": 2.56,
+          "avg1": 3.2,
+          "avg7": 4.63,
+          "avg30": 4.21,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "jumbo",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "7g4cbxtmtngwhnkbcgz",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 853517,
+          "avg": 3.44,
+          "low": 3.45,
+          "trend": 5.65,
+          "avg1": 3.44,
+          "avg7": 7.11,
+          "avg30": 7.08,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    373
+  ],
+  "hp": 320,
+  "types": [
+    "Dragon"
+  ],
+  "evolveFrom": "Shelgon",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Fire",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Wide Blast",
+      "effect": "This attack does 50 damage to each of your opponent's Benched Pokémon. (Don't apply Weakness and Resistance for Benched Pokémon.)"
+    },
+    {
+      "cost": [
+        "Fire",
+        "Water",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Dragon Impact",
+      "effect": "Discard 2 Energy from this Pokémon.",
+      "damage": 300
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817266,
+      "avg": 0.6,
+      "low": 0.08,
+      "trend": 0.56,
+      "avg1": 0.7,
+      "avg7": 0.61,
+      "avg30": 0.6,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-108",
+  "illustrator": "GIDORA",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/108",
+  "localId": "108",
+  "name": "Hop's Corviknight",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817260,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.04,
+          "avg1": 0.06,
+          "avg7": 0.03,
+          "avg30": 0.04,
+          "avg-holo": 0.33,
+          "low-holo": 0.02,
+          "trend-holo": 0.35,
+          "avg1-holo": 0.25,
+          "avg7-holo": 0.31,
+          "avg30-holo": 0.33
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817260,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.04,
+          "avg1": 0.06,
+          "avg7": 0.03,
+          "avg30": 0.04,
+          "avg-holo": 0.33,
+          "low-holo": 0.02,
+          "trend-holo": 0.35,
+          "avg1-holo": 0.25,
+          "avg7-holo": 0.31,
+          "avg30-holo": 0.33
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    823
+  ],
+  "hp": 170,
+  "types": [
+    "Metal"
+  ],
+  "evolveFrom": "Hop's Corvisquire",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Shoot Through",
+      "effect": "This attack also does 50 damage to 1 of your opponent's Benched Pokémon. (Don't apply Weakness and Resistance for Benched Pokémon.)",
+      "damage": 50
+    },
+    {
+      "cost": [
+        "Metal",
+        "Metal",
+        "Colorless"
+      ],
+      "name": "Steel Wing",
+      "effect": "During your opponent's next turn, this Pokémon takes 60 less damage from attacks (after applying Weakness and Resistance).",
+      "damage": 150
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817260,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.06,
+      "avg7": 0.03,
+      "avg30": 0.04,
+      "avg-holo": 0.33,
+      "low-holo": 0.02,
+      "trend-holo": 0.35,
+      "avg1-holo": 0.25,
+      "avg7-holo": 0.31,
+      "avg30-holo": 0.33
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-094",
+  "illustrator": "PLANETA Tsuji",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/094",
+  "localId": "094",
+  "name": "Paldean Clodsire ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817246,
+          "avg": 0.56,
+          "low": 0.03,
+          "trend": 0.56,
+          "avg1": 0.43,
+          "avg7": 0.6,
+          "avg30": 0.56,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    980
+  ],
+  "hp": 280,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Paldean Wooper",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Poison Ring",
+      "effect": "Your opponent's Active Pokémon is now Poisoned. During your opponent's next turn, that Pokémon can't retreat.",
+      "damage": 60
+    },
+    {
+      "cost": [
+        "Darkness",
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Giga Impact",
+      "effect": "During your next turn, this Pokémon can't attack.",
+      "damage": 220
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817246,
+      "avg": 0.56,
+      "low": 0.03,
+      "trend": 0.56,
+      "avg1": 0.43,
+      "avg7": 0.6,
+      "avg30": 0.56,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-046",
+  "illustrator": "Takeshi Nakamura",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/046",
+  "localId": "046",
+  "name": "Alolan Golem",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817198,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.04,
+          "avg1": 0.03,
+          "avg7": 0.04,
+          "avg30": 0.04,
+          "avg-holo": 0.3,
+          "low-holo": 0.02,
+          "trend-holo": 0.29,
+          "avg1-holo": 0.1,
+          "avg7-holo": 0.28,
+          "avg30-holo": 0.26
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817198,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.04,
+          "avg1": 0.03,
+          "avg7": 0.04,
+          "avg30": 0.04,
+          "avg-holo": 0.3,
+          "low-holo": 0.02,
+          "trend-holo": 0.29,
+          "avg1-holo": 0.1,
+          "avg7-holo": 0.28,
+          "avg30-holo": 0.26
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    76
+  ],
+  "hp": 180,
+  "types": [
+    "Lightning"
+  ],
+  "evolveFrom": "Alolan Graveler",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Lightning"
+      ],
+      "name": "Electromagnetic Catapult",
+      "effect": "Flip a coin until you get tails. This attack does 70 damage for each heads.",
+      "damage": "70×"
+    },
+    {
+      "cost": [
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "Megaton Fall",
+      "effect": "This Pokémon also does 40 damage to itself.",
+      "damage": 160
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817198,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.03,
+      "avg7": 0.04,
+      "avg30": 0.04,
+      "avg-holo": 0.3,
+      "low-holo": 0.02,
+      "trend-holo": 0.29,
+      "avg1-holo": 0.1,
+      "avg7-holo": 0.28,
+      "avg30-holo": 0.26
+    },
+    "tcgplayer": null
+  }
+}

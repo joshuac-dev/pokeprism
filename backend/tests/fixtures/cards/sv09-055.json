@@ -1,0 +1,165 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-055",
+  "illustrator": "chibi",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/055",
+  "localId": "055",
+  "name": "Iono's Kilowattrel",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817207,
+          "avg": 0.09,
+          "low": 0.02,
+          "trend": 0.07,
+          "avg1": 0.02,
+          "avg7": 0.06,
+          "avg30": 0.08,
+          "avg-holo": 0.3,
+          "low-holo": 0.02,
+          "trend-holo": 0.36,
+          "avg1-holo": 0.71,
+          "avg7-holo": 0.31,
+          "avg30-holo": 0.31
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817207,
+          "avg": 0.09,
+          "low": 0.02,
+          "trend": 0.07,
+          "avg1": 0.02,
+          "avg7": 0.06,
+          "avg30": 0.08,
+          "avg-holo": 0.3,
+          "low-holo": 0.02,
+          "trend-holo": 0.36,
+          "avg1-holo": 0.71,
+          "avg7-holo": 0.31,
+          "avg30-holo": 0.31
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 819252,
+          "avg": 7.42,
+          "low": 0.02,
+          "trend": 7.99,
+          "avg1": 14,
+          "avg7": 6.55,
+          "avg30": 6.62,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "gx8bq2hegum3q6irsxlvqxm955ikw9gd1h311"
+    }
+  ],
+  "dexId": [
+    941
+  ],
+  "hp": 120,
+  "types": [
+    "Lightning"
+  ],
+  "evolveFrom": "Iono's Wattrel",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Flashing Draw",
+      "effect": "You must discard a Basic {L} Energy from this Pokémon in order to use this Ability. Once during your turn, you may draw cards until you have 6 cards in your hand."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Lightning",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Mach Bolt",
+      "damage": 70
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817207,
+      "avg": 0.09,
+      "low": 0.02,
+      "trend": 0.07,
+      "avg1": 0.02,
+      "avg7": 0.06,
+      "avg30": 0.08,
+      "avg-holo": 0.3,
+      "low-holo": 0.02,
+      "trend-holo": 0.36,
+      "avg1-holo": 0.71,
+      "avg7-holo": 0.31,
+      "avg30-holo": 0.31
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-121",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/121",
+  "localId": "121",
+  "name": "Dudunsparce ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817273,
+          "avg": 0.59,
+          "low": 0.04,
+          "trend": 0.71,
+          "avg1": 0.5,
+          "avg7": 0.65,
+          "avg30": 0.61,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    982
+  ],
+  "hp": 270,
+  "types": [
+    "Colorless"
+  ],
+  "evolveFrom": "Dunsparce",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Tenacious Tail",
+      "effect": "This attack does 60 damage for each of your opponent's Pokémon ex in play.",
+      "damage": "60×"
+    },
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Destructive Drill",
+      "effect": "This attack's damage isn't affected by any effects on your opponent's Active Pokémon.",
+      "damage": 150
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817273,
+      "avg": 0.59,
+      "low": 0.04,
+      "trend": 0.71,
+      "avg1": 0.5,
+      "avg7": 0.65,
+      "avg30": 0.61,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

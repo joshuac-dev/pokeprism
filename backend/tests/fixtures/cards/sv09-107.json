@@ -1,0 +1,130 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-107",
+  "illustrator": "rika",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/107",
+  "localId": "107",
+  "name": "Magearna",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817259,
+          "avg": 0.07,
+          "low": 0.02,
+          "trend": 0.07,
+          "avg1": 0.05,
+          "avg7": 0.06,
+          "avg30": 0.06,
+          "avg-holo": 0.29,
+          "low-holo": 0.02,
+          "trend-holo": 0.27,
+          "avg1-holo": 0.14,
+          "avg7-holo": 0.24,
+          "avg30-holo": 0.29
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817259,
+          "avg": 0.07,
+          "low": 0.02,
+          "trend": 0.07,
+          "avg1": 0.05,
+          "avg7": 0.06,
+          "avg30": 0.06,
+          "avg-holo": 0.29,
+          "low-holo": 0.02,
+          "trend-holo": 0.27,
+          "avg1-holo": 0.14,
+          "avg7-holo": 0.24,
+          "avg30-holo": 0.29
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    801
+  ],
+  "hp": 90,
+  "types": [
+    "Metal"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Auto Heal",
+      "effect": "As long as this Pokémon is in the Active Spot, whenever you attach an Energy card from your hand to 1 of your Pokémon, heal 90 damage from that Pokémon."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Spike Draw",
+      "effect": "Draw 2 cards.",
+      "damage": 20
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817259,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.07,
+      "avg1": 0.05,
+      "avg7": 0.06,
+      "avg30": 0.06,
+      "avg-holo": 0.29,
+      "low-holo": 0.02,
+      "trend-holo": 0.27,
+      "avg1-holo": 0.14,
+      "avg7-holo": 0.24,
+      "avg30-holo": 0.29
+    },
+    "tcgplayer": null
+  }
+}

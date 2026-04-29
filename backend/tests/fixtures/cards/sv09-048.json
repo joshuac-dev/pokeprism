@@ -1,0 +1,133 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-048",
+  "illustrator": "GOTO minori",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/048",
+  "localId": "048",
+  "name": "Iono's Electrode",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817200,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.03,
+          "avg1": 0.04,
+          "avg7": 0.03,
+          "avg30": 0.03,
+          "avg-holo": 0.45,
+          "low-holo": 0.02,
+          "trend-holo": 0.41,
+          "avg1-holo": 0.21,
+          "avg7-holo": 0.43,
+          "avg30-holo": 0.42
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817200,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.03,
+          "avg1": 0.04,
+          "avg7": 0.03,
+          "avg30": 0.03,
+          "avg-holo": 0.45,
+          "low-holo": 0.02,
+          "trend-holo": 0.41,
+          "avg1-holo": 0.21,
+          "avg7-holo": 0.43,
+          "avg30-holo": 0.42
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    101
+  ],
+  "hp": 100,
+  "types": [
+    "Lightning"
+  ],
+  "evolveFrom": "Iono's Voltorb",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Lightning",
+        "Lightning"
+      ],
+      "name": "Thump-Thump Boom",
+      "effect": "This Pokémon does 100 damage to itself. Flip a coin. If heads, your opponent's Active Pokémon is Knocked Out."
+    },
+    {
+      "cost": [
+        "Lightning",
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "Electric Ball",
+      "damage": 100
+    }
+  ],
+  "retreat": 0,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817200,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.04,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.45,
+      "low-holo": 0.02,
+      "trend-holo": 0.41,
+      "avg1-holo": 0.21,
+      "avg7-holo": 0.43,
+      "avg30-holo": 0.42
+    },
+    "tcgplayer": null
+  }
+}
