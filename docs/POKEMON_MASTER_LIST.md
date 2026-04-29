@@ -1,103 +1,3 @@
-Krookodile BLK 59
-Escavalier BLK 60
-Klink BLK 61
-Klang BLK 62
-Klinklang BLK 63
-Pawniard BLK 64
-Bisharp BLK 65
-Fraxure BLK 69
-Axew BLK 68
-Genesect ex BLK 67
-Cobalion BLK 66
-Haxorus BLK 70
-Pidove BLK 71
-Tranquill BLK 72
-Unfezant BLK 73
-Rufflet BLK 77
-Cinccino BLK 76
-Minccino BLK 75
-Audino BLK 74
-Braviary BLK 78
-Sewaddle WHT 1
-Zekrom ex BLK 172
-Victini BLK 171
-Leavanny WHT 3
-Cottonee WHT 4
-Whimsicott ex WHT 5
-Deerling WHT 6
-Sawsbuck WHT 7
-Shelmet WHT 8
-Accelgor WHT 9
-Virizion WHT 10
-Pansear WHT 14
-Emboar WHT 13
-Pignite WHT 12
-Tepig WHT 11
-Simisear WHT 15
-Litwick WHT 16
-Lampent WHT 17
-Chandelure WHT 18
-Heatmor WHT 19
-Reshiram ex WHT 20
-Oshawott WHT 21
-Dewott WHT 22
-Swanna WHT 26
-Ducklett WHT 25
-Basculin WHT 24
-Samurott WHT 23
-Vanillite WHT 27
-Vanillish WHT 28
-Vanilluxe WHT 29
-Keldeo ex WHT 30
-Galvantula WHT 34
-Joltik WHT 33
-Zebstrika WHT 32
-Blitzle WHT 31
-Stunfisk WHT 35
-Woobat WHT 36
-Swoobat WHT 37
-Sigilyph WHT 38
-Gothorita WHT 42
-Gothita WHT 41
-Cofagrigus WHT 40
-Yamask WHT 39
-Gothitelle WHT 43
-Frillish WHT 44
-Jellicent ex WHT 45
-Roggenrola WHT 46
-Boldore WHT 47
-Gigalith WHT 48
-Sawk WHT 49
-Archen WHT 50
-Terrakion WHT 54
-Mienshao WHT 53
-Mienfoo WHT 52
-Archeops WHT 51
-Purrloin WHT 55
-Liepard WHT 56
-Scraggy WHT 57
-Scrafty WHT 58
-Trubbish WHT 59
-Garbodor WHT 60
-Zorua WHT 61
-Zoroark WHT 62
-Zweilous WHT 66
-Deino WHT 65
-Mandibuzz WHT 64
-Vullaby WHT 63
-Hydreigon ex WHT 67
-Ferroseed WHT 68
-Ferrothorn WHT 69
-Durant WHT 70
-Druddigon WHT 71
-Patrat WHT 72
-Watchog WHT 73
-Lillipup WHT 74
-Tornadus WHT 78
-Bouffalant ex WHT 77
-Stoutland WHT 76
-Herdier WHT 75
-Yanma DRI 2
 Ethan's Pinsir DRI 1
 Reshiram ex WHT 173
 Victini WHT 172
@@ -1506,3 +1406,10 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Conkeldurr BLK 49 | sv10.5b-049 | Craftsmanship (ability) | +40 max HP per attached {F} Energy — dynamic max HP recalculation not supported |
 | Crawdaunt MEG 85 | me01-085 | Cutting Riposte (atk1) | Cost reduction to {D} when already damaged — conditional energy cost requires action validator change |
 | Latios MEG 101 | me01-101 | Lustrous Assist (ability) | Trigger when Mega Latias ex moves bench→active, move energy — complex event hook not supported |
+| Shelmet WHT 8 | sv10.5w-008 | Stimulated Evolution (ability) | Evolve during first turn if Karrablast in play — modifies turn-1 evolution restriction rules, requires turn-counter and bench-scanning logic |
+| Emboar WHT 13 | sv10.5w-013 | Inferno Fandango (ability) | Unlimited Basic Fire Energy attachment per turn — fundamentally overrides 1-energy-per-turn rule, requires special energy attachment hook |
+| Jellicent ex WHT 45 | sv10.5w-045 | Oceanic Curse (ability) | Passive prevents opp from playing Item/Tool cards while in Active — requires action validator integration |
+| Archeops WHT 51 | sv10.5w-051 | Ancient Wing (ability) | Devolve 1 of opp's Evolution Pokémon — requires engine to track and restore previous evolution forms, which are not preserved |
+| Terrakion WHT 54 | sv10.5w-054 | Retaliate (atk0) | +50 damage if any of my Pokémon were KO'd during opponent's last turn — requires inter-turn KO tracking flag not currently in state |
+| Hydreigon ex WHT 67 | sv10.5w-067 | Greedy Eater (ability) | Take extra prize on KO of Basic Pokémon — requires hooking into KO/prize resolution with per-attacker source tracking |
+| Watchog WHT 73 | sv10.5w-073 | Focus Energy (atk0) | Buffs Hyper Fang base damage on next turn — requires per-attack state flag persisting across turns (not in current CardInstance) |

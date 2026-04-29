@@ -2265,6 +2265,160 @@ def _alomomola_gentle_fin(state: GameState, action):
     state.emit_event("gentle_fin", player=player_id, card=poke_card.card_name)
 
 
+# ── Batch 6: BLK/WHT/DRI ability handlers ─────────────────────────────────────
+
+def _healing_leaves(state: GameState, action):
+    """sv10.5w-002 Swadloon — Healing Leaves: heal 20 from Active Pokémon."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.active or player.active.damage_counters == 0:
+        return
+    heal = min(20, player.active.damage_counters * 10)
+    heal_counters = heal // 10
+    player.active.current_hp = min(player.active.max_hp, player.active.current_hp + heal)
+    player.active.damage_counters -= heal_counters
+    state.emit_event("heal", player=player_id, card=player.active.card_name, amount=heal)
+
+
+def _metallic_signal(state: GameState, action):
+    """sv10.5b-067 Genesect ex — Metallic Signal: search deck for up to 2 Evolution Metal Pokémon."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    evo_metal = [c for c in player.deck
+                 if c.card_type.lower() in ("pokémon", "pokemon")
+                 and card_registry.get(c.card_def_id) is not None
+                 and card_registry.get(c.card_def_id).stage.lower() not in ("basic", "")
+                 and "Metal" in (card_registry.get(c.card_def_id).types or [])]
+    if not evo_metal:
+        state.emit_event("metallic_signal", player=player_id, found=0)
+        return
+    count = min(2, len(evo_metal))
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Metallic Signal: choose up to 2 Evolution Metal Pokémon from your deck",
+        cards=evo_metal, min_count=0, max_count=count,
+    )
+    resp = yield req
+    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
+                  and resp.chosen_card_ids else [c.instance_id for c in evo_metal[:count]])
+    added = 0
+    for cid in chosen_ids[:count]:
+        card = next((c for c in player.deck if c.instance_id == cid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+            added += 1
+    random.shuffle(player.deck)
+    state.emit_event("metallic_signal", player=player_id, found=added)
+
+
+def _distorted_future(state: GameState, action):
+    """sv10.5w-043 Gothitelle — Distorted Future: opp shuffles hand into deck, draws 3."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    if not player.active or player.active.zone.name != "ACTIVE":
+        return
+    for card in list(opp.hand):
+        opp.hand.remove(card)
+        card.zone = Zone.DECK
+        opp.deck.append(card)
+    random.shuffle(opp.deck)
+    state.emit_event("hand_shuffled", player=opp_id, reason="Distorted Future")
+    draw_cards(state, opp_id, 3)
+    state.emit_event("draw", player=opp_id, count=3, reason="Distorted Future")
+
+
+def _mandibuzz_look_for_prey(state: GameState, action):
+    """sv10.5w-064 Mandibuzz — Look for Prey: put a Basic Pokémon with ≤70 HP from opp's hand onto opp's bench."""
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    if len(opp.bench) >= 5:
+        state.emit_event("look_for_prey", player=player_id, reason="opp bench full")
+        return
+    candidates = [c for c in opp.hand
+                  if c.card_type.lower() in ("pokémon", "pokemon")
+                  and card_registry.get(c.card_def_id) is not None
+                  and card_registry.get(c.card_def_id).stage.lower() == "basic"
+                  and (card_registry.get(c.card_def_id).hp or 999) <= 70]
+    if not candidates:
+        state.emit_event("look_for_prey", player=player_id, reason="no eligible Basic in opp hand")
+        return
+    state.emit_event("hand_revealed", player=opp_id,
+                     cards=[c.card_name for c in opp.hand], attack="Look for Prey")
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Look for Prey: choose 1 Basic Pokémon with ≤70 HP from opp's hand to put on their bench",
+        cards=candidates, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
+                  and resp.chosen_card_ids else [candidates[0].instance_id])
+    for cid in chosen_ids[:1]:
+        card = next((c for c in opp.hand if c.instance_id == cid), None)
+        if card and len(opp.bench) < 5:
+            opp.hand.remove(card)
+            cdef = card_registry.get(card.card_def_id)
+            card.current_hp = cdef.hp if cdef and cdef.hp else 0
+            card.max_hp = card.current_hp
+            card.zone = Zone.BENCH
+            opp.bench.append(card)
+            state.emit_event("look_for_prey", player=player_id,
+                             placed=card.card_name, on_bench=opp_id)
+
+
+def _torrential_whirlpool(state: GameState, action):
+    """sv10.5w-023 Samurott — Torrential Whirlpool: switch own active with bench, then force opp switch."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    if not player.bench:
+        state.emit_event("torrential_whirlpool", player=player_id, reason="no bench")
+        return
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Torrential Whirlpool: choose a Benched Pokémon to switch with your Active",
+        targets=list(player.bench),
+    )
+    resp = yield req
+    new_active = None
+    if resp and hasattr(resp, "target_instance_id") and resp.target_instance_id:
+        new_active = next((p for p in player.bench
+                           if p.instance_id == resp.target_instance_id), None)
+    if new_active is None:
+        new_active = player.bench[0]
+    _switch_active_with_bench(player, new_active)
+    state.emit_event("self_switch", player=player_id, new_active=player.active.card_name)
+    if not opp.bench:
+        return
+    old_opp_active = opp.active
+    opp.active = None
+    if old_opp_active:
+        old_opp_active.zone = Zone.BENCH
+        opp.bench.append(old_opp_active)
+    req2 = ChoiceRequest(
+        "choose_target", opp_id,
+        "Torrential Whirlpool: choose your new Active Pokémon from the Bench",
+        targets=list(opp.bench),
+    )
+    resp2 = yield req2
+    opp_new_active = None
+    if resp2 and hasattr(resp2, "target_instance_id") and resp2.target_instance_id:
+        opp_new_active = next((p for p in opp.bench
+                               if p.instance_id == resp2.target_instance_id), None)
+    if opp_new_active is None and opp.bench:
+        opp_new_active = opp.bench[0]
+    if opp_new_active:
+        opp.bench.remove(opp_new_active)
+        opp_new_active.zone = Zone.ACTIVE
+        opp.active = opp_new_active
+        state.emit_event("forced_switch", player=opp_id, new_active=opp.active.card_name)
+
+
 def register_all(registry: EffectRegistry) -> None:
     """Register all ability effect handlers with the registry."""
 
@@ -2779,3 +2933,36 @@ def register_all(registry: EffectRegistry) -> None:
                    for c in p.discard)
     registry.register_ability("sv10.5b-024", "Gentle Fin", _alomomola_gentle_fin,
                                condition=_cond_gentle_fin)
+
+    # ── Batch 6: BLK/WHT/DRI ability registrations ─────────────────────────────
+    registry.register_ability("sv10.5w-002", "Healing Leaves", _healing_leaves)
+    registry.register_ability("sv10.5b-067", "Metallic Signal", _metallic_signal)
+
+    def _cond_distorted_future(state, player_id):
+        p = state.get_player(player_id)
+        return p.active is not None and p.active.card_def_id == "sv10.5w-043"
+    registry.register_ability("sv10.5w-043", "Distorted Future", _distorted_future,
+                               condition=_cond_distorted_future)
+
+    def _cond_look_for_prey(state, player_id):
+        opp_id = state.opponent_id(player_id)
+        opp = state.get_player(opp_id)
+        if len(opp.bench) >= 5:
+            return False
+        return any(c.card_type.lower() in ("pokémon", "pokemon")
+                   and card_registry.get(c.card_def_id) is not None
+                   and card_registry.get(c.card_def_id).stage.lower() == "basic"
+                   and (card_registry.get(c.card_def_id).hp or 999) <= 70
+                   for c in opp.hand)
+    registry.register_ability("sv10.5w-064", "Look for Prey", _mandibuzz_look_for_prey,
+                               condition=_cond_look_for_prey)
+
+    def _cond_torrential_whirlpool(state, player_id):
+        p = state.get_player(player_id)
+        return bool(p.bench)
+    registry.register_ability("sv10.5w-023", "Torrential Whirlpool", _torrential_whirlpool,
+                               condition=_cond_torrential_whirlpool)
+
+    # Passive abilities handled in _apply_damage
+    registry.register_passive_ability("sv10.5b-063", "Gear Coating")   # handled in _apply_damage
+    registry.register_passive_ability("sv10.5w-077", "Bouffer")        # handled in _apply_damage
