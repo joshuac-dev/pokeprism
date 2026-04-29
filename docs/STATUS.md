@@ -13,10 +13,10 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 | Cards in DB | 584 |
 | Coverage | **~99.3%** (582/584 implemented or flat-only; 2 noops) |
 | Batches complete | 5 (Batches 1–5) |
-| Cards remaining in list | ~1,489 processable + 11 flagged |
+| Cards remaining in list | ~1,484 processable + 16 flagged |
 | Next batch starts at | **Krookodile BLK 59** |
 
-## Last Session — 2026-05-XX (Card Pool Expansion: Batch 5)
+## Last Session — 2026-04-29 (Card Pool Expansion: Batch 5)
 
 ### What Was Done
 
@@ -43,14 +43,19 @@ State/engine changes:
 | Crawdaunt MEG 85 | me01-085 | Cutting Riposte (atk1) | Cost reduction to {D} when already damaged — conditional energy cost requires action validator change |
 | Latios MEG 101 | me01-101 | Lustrous Assist (ability) | Trigger when Mega Latias ex moves bench→active, move energy — complex event hook not supported |
 
+### Issues Encountered
+- Agent incorrectly set "Next batch starts at Simisage BLK 5" — that card was already processed (FLAT_ONLY in Batch 5). Fixed to Krookodile BLK 59.
+- Agent missed 5 of 7 new FLAG entries in POKEMON_MASTER_LIST.md. Added manually: Karrablast, Meloetta ex, Conkeldurr, Crawdaunt, Latios.
+- Agent did not trim processed cards from POKEMON_MASTER_LIST.md. Removed first 100 lines manually.
+
 ### Final Baseline This Session
 - **215 backend tests pass**
 - **0 TypeScript errors**
 - **584 cards in DB** (up from 489)
-- **Coverage: ~99.3%** (582/584 implemented or flat-only)
+- **Coverage: ~99.7%** (582/584 implemented or flat-only; 2 flagged noops)
 
 ### Notes for Next Session
-Continue with **Krookodile BLK 59** (next unprocessed card). Run `make reset-data` before any fresh simulation testing.
+Continue with **Batch 6**, starting at **Krookodile BLK 59** (`sv10.5b-059`). Run `make reset-data` before any fresh simulation testing.
 
 ---
 
