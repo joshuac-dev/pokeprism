@@ -49,12 +49,6 @@ Continue with **Batch 15**, starting at **Chimecho TWM 85** (`sv06-085`). Run `m
 
 ---
 
-
-### Notes for Next Session
-Continue with **Batch 15**, starting at **Chimecho TWM 85** (`sv06-085`). Run `make reset-data` before any fresh simulation testing.
-
----
-
 ## Last Session — 2026-05-08 (Card Pool Expansion: Batch 13)
 
 ### What Was Done
