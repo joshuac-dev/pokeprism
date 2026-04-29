@@ -1,0 +1,130 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-050",
+  "illustrator": "En Morikura",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/050",
+  "localId": "050",
+  "name": "Misty's Lapras",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825924,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.06,
+          "avg1": 0.05,
+          "avg7": 0.06,
+          "avg30": 0.05,
+          "avg-holo": 0.26,
+          "low-holo": 0.02,
+          "trend-holo": 0.27,
+          "avg1-holo": 0.52,
+          "avg7-holo": 0.25,
+          "avg30-holo": 0.26
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825924,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.06,
+          "avg1": 0.05,
+          "avg7": 0.06,
+          "avg30": 0.05,
+          "avg-holo": 0.26,
+          "low-holo": 0.02,
+          "trend-holo": 0.27,
+          "avg1-holo": 0.52,
+          "avg7-holo": 0.25,
+          "avg30-holo": 0.26
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    131
+  ],
+  "hp": 110,
+  "types": [
+    "Water"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Water"
+      ],
+      "name": "Swim Together",
+      "effect": "Search your deck for up to 3 Misty's Pokémon, reveal them, and put them into your hand. Then, shuffle your deck."
+    },
+    {
+      "cost": [
+        "Water",
+        "Colorless"
+      ],
+      "name": "Surf",
+      "damage": 60
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 825924,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.06,
+      "avg1": 0.05,
+      "avg7": 0.06,
+      "avg30": 0.05,
+      "avg-holo": 0.26,
+      "low-holo": 0.02,
+      "trend-holo": 0.27,
+      "avg1-holo": 0.52,
+      "avg7-holo": 0.25,
+      "avg30-holo": 0.26
+    },
+    "tcgplayer": null
+  }
+}

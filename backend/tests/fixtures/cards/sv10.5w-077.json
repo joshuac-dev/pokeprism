@@ -1,0 +1,87 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5w-077",
+  "illustrator": "PLANETA Tsuji",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/077",
+  "localId": "077",
+  "name": "Bouffalant ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    626
+  ],
+  "hp": 220,
+  "types": [
+    "Colorless"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Bouffer",
+      "effect": "This Pokémon takes 30 less damage from attacks (after applying Weakness and Resistance)."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Gold Breaker",
+      "effect": "If your opponent's Active Pokémon is a Pokémon ex, this attack does 100 more damage.",
+      "damage": "100+"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 836042,
+      "avg": 0.37,
+      "low": 0.02,
+      "trend": 0.37,
+      "avg1": 0.43,
+      "avg7": 0.38,
+      "avg30": 0.36,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

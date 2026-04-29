@@ -1,0 +1,123 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-004",
+  "illustrator": "Ayako Ozaki",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/004",
+  "localId": "004",
+  "name": "Paras",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817156,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.03,
+          "avg1": 0.08,
+          "avg7": 0.04,
+          "avg30": 0.04,
+          "avg-holo": 0.11,
+          "low-holo": 0.02,
+          "trend-holo": 0.13,
+          "avg1-holo": 0.11,
+          "avg7-holo": 0.11,
+          "avg30-holo": 0.11
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817156,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.03,
+          "avg1": 0.08,
+          "avg7": 0.04,
+          "avg30": 0.04,
+          "avg-holo": 0.11,
+          "low-holo": 0.02,
+          "trend-holo": 0.13,
+          "avg1-holo": 0.11,
+          "avg7-holo": 0.11,
+          "avg30-holo": 0.11
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    46
+  ],
+  "hp": 70,
+  "types": [
+    "Grass"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Leech Life",
+      "effect": "Heal from this Pokémon the same amount of damage you did to your opponent's Active Pokémon.",
+      "damage": 10
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817156,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.08,
+      "avg7": 0.04,
+      "avg30": 0.04,
+      "avg-holo": 0.11,
+      "low-holo": 0.02,
+      "trend-holo": 0.13,
+      "avg1-holo": 0.11,
+      "avg7-holo": 0.11,
+      "avg30-holo": 0.11
+    },
+    "tcgplayer": null
+  }
+}

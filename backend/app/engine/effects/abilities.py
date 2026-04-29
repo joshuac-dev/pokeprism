@@ -1430,6 +1430,9 @@ EVOLVE_TRIGGER_ABILITIES: frozenset[str] = frozenset({
     "Energized Steps",       # me01-063 Grumpig — attach {P} Energy from deck to Bench on evolve
     "Heave-Ho Catcher",      # me01-073 Hariyama — gust on evolve
     "Haphazard Hammer",      # me01-097 Tinkatuff — flip, heads = discard opp active energy
+    "Sneaky Bite",           # sv10-121 TR Golbat — 2 counters on 1 opp Pokémon on evolve
+    "Biting Spree",          # sv10-122 TR Crobat ex — 2 counters on each of 2 opp Pokémon on evolve
+    "Greedy Order",          # sv10-159 Arven's Greedent — retrieve up to 2 Arven's Sandwich from discard
 })
 
 
@@ -2620,6 +2623,298 @@ def _rocket_brain(state, action):
                      from_card=source_poke.card_name, to_card=dest_poke.card_name)
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Batch 8: DRI + JTG ability handlers
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _champions_call(state, action):
+    """sv10-103 Cynthia's Gabite — Champion's Call: once per turn,
+    search deck for a Cynthia's Pokémon and add it to hand."""
+    player = state.get_player(action.player_id)
+    caster = _find_in_play(player, action.card_instance_id)
+    if caster and caster.ability_used_this_turn:
+        state.emit_event("ability_already_used", player=action.player_id,
+                         card=caster.card_name)
+        return
+    if caster:
+        caster.ability_used_this_turn = True
+
+    matches = [c for c in player.deck
+               if c.card_type.lower() in ("pokémon", "pokemon")
+               and "Cynthia's" in c.card_name]
+    if not matches:
+        state.emit_event("search_failed", player=action.player_id,
+                         reason="no_cynthias_pokemon")
+        return
+
+    req = ChoiceRequest(
+        "choose_cards",
+        player_id=action.player_id,
+        options=[c.instance_id for c in matches],
+        min_choices=1,
+        max_choices=1,
+        context={"reason": "champions_call"},
+    )
+    response = yield req
+    chosen_ids = response.chosen_ids if hasattr(response, "chosen_ids") else []
+    chosen = next((c for c in player.deck if c.instance_id in chosen_ids), matches[0])
+    player.deck.remove(chosen)
+    chosen.zone = Zone.HAND
+    player.hand.append(chosen)
+    import random as _rnd
+    _rnd.shuffle(player.deck)
+    state.emit_event("ability_used", player=action.player_id,
+                     card="Cynthia's Gabite", ability="Champion's Call",
+                     found=chosen.card_name)
+
+
+def _sneaky_bite(state, action):
+    """sv10-121 TR Golbat — Sneaky Bite: on-evolve,
+    put 2 damage counters on 1 of opponent's Pokémon."""
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_player(opp_id)
+    targets = _in_play(opp)
+    if not targets:
+        return
+
+    req = ChoiceRequest(
+        "choose_cards",
+        player_id=action.player_id,
+        options=[t.instance_id for t in targets],
+        min_choices=1,
+        max_choices=1,
+        context={"reason": "sneaky_bite"},
+    )
+    response = yield req
+    chosen_ids = response.chosen_ids if hasattr(response, "chosen_ids") else []
+    target = next((t for t in targets if t.instance_id in chosen_ids), targets[0])
+    target.damage_counters += 2
+    check_ko(state, target, opp_id)
+    state.emit_event("ability_used", player=action.player_id,
+                     card="TR Golbat", ability="Sneaky Bite",
+                     target=target.card_name)
+
+
+def _biting_spree(state, action):
+    """sv10-122 TR Crobat ex — Biting Spree: on-evolve,
+    put 2 damage counters on each of up to 2 of opponent's Pokémon."""
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_player(opp_id)
+    targets = _in_play(opp)
+    if not targets:
+        return
+
+    max_t = min(2, len(targets))
+    req = ChoiceRequest(
+        "choose_cards",
+        player_id=action.player_id,
+        options=[t.instance_id for t in targets],
+        min_choices=0,
+        max_choices=max_t,
+        context={"reason": "biting_spree"},
+    )
+    response = yield req
+    chosen_ids = response.chosen_ids if hasattr(response, "chosen_ids") else []
+    chosen = [t for t in targets if t.instance_id in chosen_ids][:max_t]
+    for t in chosen:
+        t.damage_counters += 2
+        check_ko(state, t, opp_id)
+    state.emit_event("ability_used", player=action.player_id,
+                     card="TR Crobat ex", ability="Biting Spree",
+                     targets=[t.card_name for t in chosen])
+
+
+def _x_boot(state, action):
+    """sv10-145 Steven's Metagross ex — X-Boot: once per turn,
+    search deck for 1 Basic {P} energy + 1 Basic {M} energy;
+    attach each to a matching type Pokémon you have in play."""
+    player = state.get_player(action.player_id)
+    caster = _find_in_play(player, action.card_instance_id)
+    if caster and caster.ability_used_this_turn:
+        state.emit_event("ability_already_used", player=action.player_id,
+                         card=caster.card_name)
+        return
+    if caster:
+        caster.ability_used_this_turn = True
+
+    psychic_cards = [c for c in player.deck
+                     if c.card_type.lower() == "energy"
+                     and "basic" in (c.card_subtype or "").lower()
+                     and any("Psychic" in (e or "") for e in (c.energy_provides or []))]
+    metal_cards = [c for c in player.deck
+                   if c.card_type.lower() == "energy"
+                   and "basic" in (c.card_subtype or "").lower()
+                   and any("Metal" in (e or "") for e in (c.energy_provides or []))]
+
+    psychic_poke = [p for p in _in_play(player) if _pokemon_has_type(p, "Psychic")]
+    metal_poke = [p for p in _in_play(player) if _pokemon_has_type(p, "Metal")]
+
+    attached = []
+    for energy_pool, poke_pool, type_name in [
+        (psychic_cards, psychic_poke, "Psychic"),
+        (metal_cards, metal_poke, "Metal"),
+    ]:
+        if not energy_pool or not poke_pool:
+            continue
+
+        poke_req = ChoiceRequest(
+            "choose_cards",
+            player_id=action.player_id,
+            options=[p.instance_id for p in poke_pool],
+            min_choices=1,
+            max_choices=1,
+            context={"reason": f"x_boot_{type_name.lower()}_target"},
+        )
+        poke_resp = yield poke_req
+        chosen_ids = poke_resp.chosen_ids if hasattr(poke_resp, "chosen_ids") else []
+        target_poke = next((p for p in poke_pool if p.instance_id in chosen_ids), poke_pool[0])
+
+        energy_card = energy_pool[0]
+        player.deck.remove(energy_card)
+        energy_card.zone = target_poke.zone
+        e_type = EnergyType.PSYCHIC if type_name == "Psychic" else EnergyType.METAL
+        target_poke.energy_attached.append(EnergyAttachment(
+            card_def_id=energy_card.card_def_id,
+            energy_type=e_type,
+            card_name=energy_card.card_name,
+        ))
+        attached.append((target_poke.card_name, type_name))
+        state.emit_event("energy_attached", player=action.player_id,
+                         target=target_poke.card_name, energy=energy_card.card_name)
+
+    import random as _rnd
+    _rnd.shuffle(player.deck)
+    state.emit_event("ability_used", player=action.player_id,
+                     card="Steven's Metagross ex", ability="X-Boot",
+                     attached=attached)
+
+
+def _reconstitute(state, action):
+    """sv10-155 TR Porygon-Z — Reconstitute: discard 2 cards from hand to draw 1."""
+    player = state.get_player(action.player_id)
+    caster = _find_in_play(player, action.card_instance_id)
+    if caster and caster.ability_used_this_turn:
+        state.emit_event("ability_already_used", player=action.player_id,
+                         card=caster.card_name)
+        return
+
+    if len(player.hand) < 2:
+        state.emit_event("ability_no_targets", player=action.player_id,
+                         card="TR Porygon-Z", reason="not_enough_hand")
+        return
+
+    req = ChoiceRequest(
+        "choose_cards",
+        player_id=action.player_id,
+        options=[c.instance_id for c in player.hand],
+        min_choices=2,
+        max_choices=2,
+        context={"reason": "reconstitute_discard"},
+    )
+    response = yield req
+    chosen_ids = response.chosen_ids if hasattr(response, "chosen_ids") else []
+    discard = [c for c in player.hand if c.instance_id in chosen_ids][:2]
+    for c in discard:
+        player.hand.remove(c)
+        c.zone = Zone.DISCARD
+        player.discard.append(c)
+
+    if caster:
+        caster.ability_used_this_turn = True
+    draw_cards(state, action.player_id, 1)
+    state.emit_event("ability_used", player=action.player_id,
+                     card="TR Porygon-Z", ability="Reconstitute")
+
+
+def _greedy_order(state, action):
+    """sv10-159 Arven's Greedent — Greedy Order: on-evolve,
+    put up to 2 Arven's Sandwich trainer cards from discard into hand."""
+    player = state.get_player(action.player_id)
+    sandwiches = [c for c in player.discard
+                  if "Arven's Sandwich" in c.card_name]
+    if not sandwiches:
+        state.emit_event("ability_no_targets", player=action.player_id,
+                         card="Arven's Greedent", reason="no_sandwich_in_discard")
+        return
+
+    max_take = min(2, len(sandwiches))
+    req = ChoiceRequest(
+        "choose_cards",
+        player_id=action.player_id,
+        options=[c.instance_id for c in sandwiches],
+        min_choices=0,
+        max_choices=max_take,
+        context={"reason": "greedy_order"},
+    )
+    response = yield req
+    chosen_ids = response.chosen_ids if hasattr(response, "chosen_ids") else []
+    chosen = [c for c in sandwiches if c.instance_id in chosen_ids][:max_take]
+    for c in chosen:
+        player.discard.remove(c)
+        c.zone = Zone.HAND
+        player.hand.append(c)
+    state.emit_event("ability_used", player=action.player_id,
+                     card="Arven's Greedent", ability="Greedy Order",
+                     retrieved=[c.card_name for c in chosen])
+
+
+def _sunny_day(state, action):
+    """sv09-007 Lilligant — Sunny Day: once per turn,
+    until end of turn all Grass and Fire Pokémon deal +20 damage."""
+    player = state.get_player(action.player_id)
+    caster = _find_in_play(player, action.card_instance_id)
+    if caster and caster.ability_used_this_turn:
+        state.emit_event("ability_already_used", player=action.player_id,
+                         card=caster.card_name)
+        return
+    if caster:
+        caster.ability_used_this_turn = True
+    state.sunny_day_active = True
+    state.emit_event("ability_used", player=action.player_id,
+                     card="Lilligant", ability="Sunny Day")
+
+
+def _showtime(state, action):
+    """sv09-018 Meowscarada — Showtime: once per turn, if on bench,
+    switch this Pokémon with your active."""
+    player = state.get_player(action.player_id)
+    caster = _find_in_play(player, action.card_instance_id)
+    if caster is None or caster.zone.name != "BENCH":
+        state.emit_event("ability_no_targets", player=action.player_id,
+                         card="Meowscarada", reason="not_on_bench")
+        return
+    if caster.ability_used_this_turn:
+        state.emit_event("ability_already_used", player=action.player_id,
+                         card=caster.card_name)
+        return
+    caster.ability_used_this_turn = True
+    _switch_active_with_bench(player, caster)
+    state.emit_event("ability_used", player=action.player_id,
+                     card="Meowscarada", ability="Showtime")
+
+
+def _scalding_steam(state, action):
+    """sv09-031 Volcanion ex — Scalding Steam: once per turn, if active,
+    make the opponent's active Pokémon Burned."""
+    player = state.get_player(action.player_id)
+    caster = _find_in_play(player, action.card_instance_id)
+    if caster is None or caster.zone.name != "ACTIVE":
+        state.emit_event("ability_no_targets", player=action.player_id,
+                         card="Volcanion ex", reason="not_active")
+        return
+    if caster.ability_used_this_turn:
+        state.emit_event("ability_already_used", player=action.player_id,
+                         card=caster.card_name)
+        return
+    caster.ability_used_this_turn = True
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_player(opp_id)
+    if opp.active:
+        opp.active.status = StatusCondition.BURNED
+    state.emit_event("ability_used", player=action.player_id,
+                     card="Volcanion ex", ability="Scalding Steam")
+
+
 def register_all(registry):
     """Register all ability effect handlers with the registry."""
 
@@ -3181,3 +3476,23 @@ def register_all(registry):
     registry.register_passive_ability("sv10-092", "Lose Cool")         # Annihilape
     registry.register_passive_ability("sv10.5b-052", "Sturdy")         # Crustle (logic in _apply_damage)
     registry.register_passive_ability("sv10-003", "Buzzing Boost")     # Yanmega ex (on-promote; noop — engine lacks hook)
+
+    # ── Batch 8: DRI + JTG ability registrations ─────────────────────────────
+    # On-evolve triggers
+    registry.register_ability("sv10-121", "Sneaky Bite", _sneaky_bite)             # TR Golbat — Sneaky Bite
+    registry.register_ability("sv10-122", "Biting Spree", _biting_spree)           # TR Crobat ex — Biting Spree
+    registry.register_ability("sv10-159", "Greedy Order", _greedy_order)           # Arven's Greedent — Greedy Order
+
+    # Active-use abilities
+    registry.register_ability("sv10-103", "Champion's Call", _champions_call)      # Cynthia's Gabite
+    registry.register_ability("sv10-145", "X-Boot", _x_boot)                       # Steven's Metagross ex
+    registry.register_ability("sv10-155", "Reconstitute", _reconstitute)           # TR Porygon-Z
+    registry.register_ability("sv09-007", "Sunny Day", _sunny_day)                 # Lilligant
+    registry.register_ability("sv09-018", "Showtime", _showtime)                   # Meowscarada
+    registry.register_ability("sv09-031", "Scalding Steam", _scalding_steam)       # Volcanion ex
+
+    # Passive abilities for Batch 8 (logic handled elsewhere)
+    registry.register_passive_ability("sv10-108", "Mud Coat")           # Mudsdale (logic in _apply_damage)
+    registry.register_passive_ability("sv10-125", "Smog Signals")       # TR Koffing (logic in _apply_damage)
+    registry.register_passive_ability("sv09-008", "Exploding Needles")  # Maractus (logic in check_ko)
+    registry.register_passive_ability("sv09-021", "Magma Surge")        # Magmortar (logic in runner.py)

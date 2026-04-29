@@ -1,0 +1,109 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-069",
+  "illustrator": "PLANETA Mochizuki",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/069",
+  "localId": "069",
+  "name": "Electivire ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825943,
+          "avg": 0.53,
+          "low": 0.04,
+          "trend": 0.5,
+          "avg1": 0.25,
+          "avg7": 0.51,
+          "avg30": 0.53,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    466
+  ],
+  "hp": 280,
+  "types": [
+    "Lightning"
+  ],
+  "evolveFrom": "Electabuzz",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "Dual Bolt",
+      "effect": "This attack does 50 damage to 2 of your opponent's Pokémon. (Don't apply Weakness and Resistance for Benched Pokémon.)"
+    },
+    {
+      "cost": [
+        "Lightning",
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "High-Voltage Press",
+      "effect": "If this Pokémon has at least 2 extra Energy attached (in addition to this attack's cost), this attack does 100 more damage.",
+      "damage": "180+"
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 825943,
+      "avg": 0.53,
+      "low": 0.04,
+      "trend": 0.5,
+      "avg1": 0.25,
+      "avg7": 0.51,
+      "avg30": 0.53,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

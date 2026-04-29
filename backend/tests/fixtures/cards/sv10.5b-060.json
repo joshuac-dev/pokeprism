@@ -1,0 +1,176 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5b-060",
+  "illustrator": "DOM",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5b/060",
+  "localId": "060",
+  "name": "Escavalier",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 172
+    },
+    "id": "sv10.5b",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5b/logo",
+    "name": "Black Bolt",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5b/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836033,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.03,
+          "avg1": 0.02,
+          "avg7": 0.02,
+          "avg30": 0.03,
+          "avg-holo": 0.19,
+          "low-holo": 0.02,
+          "trend-holo": 0.2,
+          "avg1-holo": 0.08,
+          "avg7-holo": 0.12,
+          "avg30-holo": 0.18
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836033,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.03,
+          "avg1": 0.02,
+          "avg7": 0.02,
+          "avg30": 0.03,
+          "avg-holo": 0.19,
+          "low-holo": 0.02,
+          "trend-holo": 0.2,
+          "avg1-holo": 0.08,
+          "avg7-holo": 0.12,
+          "avg30-holo": 0.18
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "pokeball",
+      "variantId": "3739bbtj3i910y5ynn9xc6ryf",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836416,
+          "avg": null,
+          "low": 0.05,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 0.38,
+          "low-holo": 0.05,
+          "trend-holo": 0.37,
+          "avg1-holo": 0.28,
+          "avg7-holo": 0.33,
+          "avg30-holo": 0.4
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "masterball",
+      "variantId": "2asus05yghmpd1ud1sdmlq3as4e",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836414,
+          "avg": null,
+          "low": 1.99,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 6.24,
+          "low-holo": 1.99,
+          "trend-holo": 5.52,
+          "avg1-holo": 5.5,
+          "avg7-holo": 6.39,
+          "avg30-holo": 6.52
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    589
+  ],
+  "hp": 130,
+  "types": [
+    "Metal"
+  ],
+  "evolveFrom": "Karrablast",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Metal"
+      ],
+      "name": "Wild Lances",
+      "effect": "This Pokémon also does 30 damage to itself.",
+      "damage": 90
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T17:41:47Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 836033,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.02,
+      "avg7": 0.02,
+      "avg30": 0.03,
+      "avg-holo": 0.19,
+      "low-holo": 0.02,
+      "trend-holo": 0.2,
+      "avg1-holo": 0.08,
+      "avg7-holo": 0.12,
+      "avg30-holo": 0.18
+    },
+    "tcgplayer": null
+  }
+}

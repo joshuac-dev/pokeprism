@@ -1,0 +1,138 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-031",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/031",
+  "localId": "031",
+  "name": "Team Rocket's Moltres ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825904,
+          "avg": 0.63,
+          "low": 0.1,
+          "trend": 0.6,
+          "avg1": 0.42,
+          "avg7": 0.58,
+          "avg30": 0.63,
+          "avg-holo": 1.1,
+          "low-holo": 0.5,
+          "trend-holo": 1.21,
+          "avg1-holo": 0.5,
+          "avg7-holo": 1.27,
+          "avg30-holo": 0.87
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "555jb0efopmyclvkikic41",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 858284,
+          "avg": 4.04,
+          "low": 3,
+          "trend": 4.04,
+          "avg1": 5,
+          "avg7": 4.22,
+          "avg30": 4.1,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    146
+  ],
+  "hp": 220,
+  "types": [
+    "Fire"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fire",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Flame Screen",
+      "effect": "During your opponent's next turn, this Pokémon takes 50 less damage from attacks (after applying Weakness and Resistance).",
+      "damage": 110
+    },
+    {
+      "cost": [
+        "Fire",
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Evil Incineration",
+      "effect": "Discard a Team Rocket's Energy from this Pokémon. If you do, discard your opponent's Active Pokémon and all attached cards."
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 825904,
+      "avg": 0.63,
+      "low": 0.1,
+      "trend": 0.6,
+      "avg1": 0.42,
+      "avg7": 0.58,
+      "avg30": 0.63,
+      "avg-holo": 1.1,
+      "low-holo": 0.5,
+      "trend-holo": 1.21,
+      "avg1-holo": 0.5,
+      "avg7-holo": 1.27,
+      "avg30-holo": 0.87
+    },
+    "tcgplayer": null
+  }
+}

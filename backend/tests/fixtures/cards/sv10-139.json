@@ -1,0 +1,109 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-139",
+  "illustrator": "akagi",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/139",
+  "localId": "139",
+  "name": "Arven's Mabosstiff ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 826013,
+          "avg": 0.43,
+          "low": 0.02,
+          "trend": 0.4,
+          "avg1": 0.48,
+          "avg7": 0.38,
+          "avg30": 0.42,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    943
+  ],
+  "hp": 270,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Arven's Maschiff",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Vigorous Tackle",
+      "effect": "If this Pokémon has no damage counters on it, this attack does 120 more damage.",
+      "damage": "30+"
+    },
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Boss Headbutt",
+      "effect": "During your next turn, this Pokémon can't use Boss Headbutt.",
+      "damage": 210
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 826013,
+      "avg": 0.43,
+      "low": 0.02,
+      "trend": 0.4,
+      "avg1": 0.48,
+      "avg7": 0.38,
+      "avg30": 0.42,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

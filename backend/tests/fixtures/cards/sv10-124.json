@@ -1,0 +1,135 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-124",
+  "illustrator": "Uta",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/124",
+  "localId": "124",
+  "name": "Team Rocket's Muk",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825998,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.03,
+          "avg1": 0.03,
+          "avg7": 0.02,
+          "avg30": 0.03,
+          "avg-holo": 0.22,
+          "low-holo": 0.02,
+          "trend-holo": 0.2,
+          "avg1-holo": 0.19,
+          "avg7-holo": 0.25,
+          "avg30-holo": 0.22
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825998,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.03,
+          "avg1": 0.03,
+          "avg7": 0.02,
+          "avg30": 0.03,
+          "avg-holo": 0.22,
+          "low-holo": 0.02,
+          "trend-holo": 0.2,
+          "avg1-holo": 0.19,
+          "avg7-holo": 0.25,
+          "avg30-holo": 0.22
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    89
+  ],
+  "hp": 150,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Team Rocket's Grimer",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Gooped Up",
+      "effect": "Your opponent's Active Pokémon is now Confused. During your opponent's next turn, that Pokémon can't retreat.",
+      "damage": 40
+    },
+    {
+      "cost": [
+        "Darkness",
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Hazardous Venom",
+      "effect": "This attack does 100 damage for each Special Condition affecting your opponent's Active Pokémon.",
+      "damage": "100×"
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 825998,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.03,
+      "avg7": 0.02,
+      "avg30": 0.03,
+      "avg-holo": 0.22,
+      "low-holo": 0.02,
+      "trend-holo": 0.2,
+      "avg1-holo": 0.19,
+      "avg7-holo": 0.25,
+      "avg30-holo": 0.22
+    },
+    "tcgplayer": null
+  }
+}

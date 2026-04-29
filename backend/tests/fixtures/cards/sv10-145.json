@@ -1,0 +1,107 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-145",
+  "illustrator": "PLANETA Mochizuki",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/145",
+  "localId": "145",
+  "name": "Steven's Metagross ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 826019,
+          "avg": 0.89,
+          "low": 0.07,
+          "trend": 0.96,
+          "avg1": 1,
+          "avg7": 0.98,
+          "avg30": 0.89,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    376
+  ],
+  "hp": 340,
+  "types": [
+    "Metal"
+  ],
+  "evolveFrom": "Steven's Metang",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "X-Boot",
+      "effect": "Once during your turn, you may search your deck for a Basic {P} Energy card, a Basic {M} Energy card, or 1 of each and attach them to your {P} Pokémon and {M} Pokémon in any way you like. Then, shuffle your deck."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Metal",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Metal Stomp",
+      "damage": 200
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 826019,
+      "avg": 0.89,
+      "low": 0.07,
+      "trend": 0.96,
+      "avg1": 1,
+      "avg7": 0.98,
+      "avg30": 0.89,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-150",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/150",
+  "localId": "150",
+  "name": "Team Rocket's Persian ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 826024,
+          "avg": 0.56,
+          "low": 0.05,
+          "trend": 0.51,
+          "avg1": 0.51,
+          "avg7": 0.49,
+          "avg30": 0.55,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    53
+  ],
+  "hp": 260,
+  "types": [
+    "Colorless"
+  ],
+  "evolveFrom": "Team Rocket's Meowth",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Haughty Order",
+      "effect": "Reveal the top 10 cards of your opponent's deck. You may choose an attack from a Pokémon you find there and use it as this attack. Shuffle the revealed cards into your opponent's deck."
+    },
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Cruel Slash",
+      "effect": "Your opponent's Active Pokémon is now Confused.",
+      "damage": 140
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 826024,
+      "avg": 0.56,
+      "low": 0.05,
+      "trend": 0.51,
+      "avg1": 0.51,
+      "avg7": 0.49,
+      "avg30": 0.55,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

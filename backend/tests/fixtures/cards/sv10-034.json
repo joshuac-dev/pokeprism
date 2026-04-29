@@ -1,0 +1,214 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-034",
+  "illustrator": "danciao",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/034",
+  "localId": "034",
+  "name": "Ethan's Typhlosion",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825907,
+          "avg": 0.14,
+          "low": 0.02,
+          "trend": 0.21,
+          "avg1": 0.19,
+          "avg7": 0.19,
+          "avg30": 0.14,
+          "avg-holo": 0.3,
+          "low-holo": 0.02,
+          "trend-holo": 0.38,
+          "avg1-holo": 0.27,
+          "avg7-holo": 0.39,
+          "avg30-holo": 0.32
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825907,
+          "avg": 0.14,
+          "low": 0.02,
+          "trend": 0.21,
+          "avg1": 0.19,
+          "avg7": 0.19,
+          "avg30": 0.14,
+          "avg-holo": 0.3,
+          "low-holo": 0.02,
+          "trend-holo": 0.38,
+          "avg1-holo": 0.27,
+          "avg7-holo": 0.39,
+          "avg30-holo": 0.32
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "555jb0efopmyclvkikic41",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 826179,
+          "avg": 18.01,
+          "low": 7.49,
+          "trend": 19.89,
+          "avg1": 19.4,
+          "avg7": 15.6,
+          "avg30": 18.27,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 828100,
+          "avg": 1.9,
+          "low": 0.15,
+          "trend": 1.48,
+          "avg1": 1.55,
+          "avg7": 1.56,
+          "avg30": 1.92,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "staff"
+      ],
+      "variantId": "81yyszqt25dphmu2olh",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 833942,
+          "avg": 93.16,
+          "low": 19,
+          "trend": 113.6,
+          "avg1": 295,
+          "avg7": 98.6,
+          "avg30": 137.83,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    157
+  ],
+  "hp": 170,
+  "types": [
+    "Fire"
+  ],
+  "evolveFrom": "Ethan's Quilava",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Fire"
+      ],
+      "name": "Buddy Blast",
+      "effect": "This attack does 60 more damage for each Ethan's Adventure card in your discard pile.",
+      "damage": "40+"
+    },
+    {
+      "cost": [
+        "Fire",
+        "Fire",
+        "Colorless"
+      ],
+      "name": "Steam Artillery",
+      "damage": 160
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 825907,
+      "avg": 0.14,
+      "low": 0.02,
+      "trend": 0.21,
+      "avg1": 0.19,
+      "avg7": 0.19,
+      "avg30": 0.14,
+      "avg-holo": 0.3,
+      "low-holo": 0.02,
+      "trend-holo": 0.38,
+      "avg1-holo": 0.27,
+      "avg7-holo": 0.39,
+      "avg30-holo": 0.32
+    },
+    "tcgplayer": null
+  }
+}

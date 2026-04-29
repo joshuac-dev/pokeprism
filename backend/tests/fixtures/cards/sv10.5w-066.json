@@ -1,0 +1,90 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5w-066",
+  "illustrator": "kodama",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/066",
+  "localId": "066",
+  "name": "Zweilous",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    634
+  ],
+  "hp": 110,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Deino",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Double Hit",
+      "effect": "Flip 2 coins. This attack does 40 damage for each heads.",
+      "damage": "40×"
+    },
+    {
+      "cost": [
+        "Darkness",
+        "Darkness",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Pitch-Black Fangs",
+      "damage": 100
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 836025,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.04,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.17,
+      "low-holo": 0.02,
+      "trend-holo": 0.13,
+      "avg1-holo": 0.25,
+      "avg7-holo": 0.1,
+      "avg30-holo": 0.17
+    },
+    "tcgplayer": null
+  }
+}

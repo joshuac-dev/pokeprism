@@ -1,0 +1,163 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-030",
+  "illustrator": "PLANETA Mochizuki",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/030",
+  "localId": "030",
+  "name": "Reshiram ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817182,
+          "avg": 0.62,
+          "low": 0.18,
+          "trend": 0.63,
+          "avg1": 0.55,
+          "avg7": 0.54,
+          "avg30": 0.61,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "555jb0efopmyclvkikic41",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 841282,
+          "avg": 1,
+          "low": 0.27,
+          "trend": 1.13,
+          "avg1": 1.08,
+          "avg7": 1.16,
+          "avg30": 0.99,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "jumbo",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "7g4cbxtmtngwhnkbcgz",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 841283,
+          "avg": 1.18,
+          "low": 0.02,
+          "trend": 1.13,
+          "avg1": 0.99,
+          "avg7": 1.44,
+          "avg30": 0.99,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    643
+  ],
+  "hp": 220,
+  "types": [
+    "Fire"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fire"
+      ],
+      "name": "Fire Wing",
+      "damage": 40
+    },
+    {
+      "cost": [
+        "Fire",
+        "Fire",
+        "Colorless"
+      ],
+      "name": "Scorching Fire",
+      "effect": "Discard an Energy from this Pokémon.",
+      "damage": 200
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817182,
+      "avg": 0.62,
+      "low": 0.18,
+      "trend": 0.63,
+      "avg1": 0.55,
+      "avg7": 0.54,
+      "avg30": 0.61,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

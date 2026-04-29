@@ -1,0 +1,132 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-074",
+  "illustrator": "Shiburingaru",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/074",
+  "localId": "074",
+  "name": "Team Rocket's Ampharos",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825948,
+          "avg": 0.05,
+          "low": 0.02,
+          "trend": 0.05,
+          "avg1": 0.05,
+          "avg7": 0.04,
+          "avg30": 0.05,
+          "avg-holo": 0.24,
+          "low-holo": 0.02,
+          "trend-holo": 0.28,
+          "avg1-holo": 0.41,
+          "avg7-holo": 0.3,
+          "avg30-holo": 0.26
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825948,
+          "avg": 0.05,
+          "low": 0.02,
+          "trend": 0.05,
+          "avg1": 0.05,
+          "avg7": 0.04,
+          "avg30": 0.05,
+          "avg-holo": 0.24,
+          "low-holo": 0.02,
+          "trend-holo": 0.28,
+          "avg1-holo": 0.41,
+          "avg7-holo": 0.3,
+          "avg30-holo": 0.26
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    181
+  ],
+  "hp": 140,
+  "types": [
+    "Lightning"
+  ],
+  "evolveFrom": "Team Rocket's Flaaffy",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Darkest Impulse",
+      "effect": "Whenever your opponent plays a Pokémon from their hand to evolve 1 of their Pokémon, put 4 damage counters on that Pokémon. The effect of Darkest Impulse doesn't stack."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Lightning",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Head Bolt",
+      "damage": 140
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 825948,
+      "avg": 0.05,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.05,
+      "avg7": 0.04,
+      "avg30": 0.05,
+      "avg-holo": 0.24,
+      "low-holo": 0.02,
+      "trend-holo": 0.28,
+      "avg1-holo": 0.41,
+      "avg7-holo": 0.3,
+      "avg30-holo": 0.26
+    },
+    "tcgplayer": null
+  }
+}

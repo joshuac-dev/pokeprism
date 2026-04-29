@@ -1,0 +1,79 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5w-022",
+  "illustrator": "rika",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/022",
+  "localId": "022",
+  "name": "Dewott",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    502
+  ],
+  "hp": 100,
+  "types": [
+    "Water"
+  ],
+  "evolveFrom": "Oshawott",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Water"
+      ],
+      "name": "Energized Shell",
+      "effect": "This attack does 30 damage for each Energy attached to this Pokémon.",
+      "damage": "30×"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 835944,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.02,
+      "avg1": 0.03,
+      "avg7": 0.02,
+      "avg30": 0.03,
+      "avg-holo": 0.12,
+      "low-holo": 0.02,
+      "trend-holo": 0.12,
+      "avg1-holo": 0.06,
+      "avg7-holo": 0.1,
+      "avg30-holo": 0.11
+    },
+    "tcgplayer": null
+  }
+}

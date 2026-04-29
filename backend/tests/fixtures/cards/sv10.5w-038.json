@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5w-038",
+  "illustrator": "Krgc",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/038",
+  "localId": "038",
+  "name": "Sigilyph",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    561
+  ],
+  "hp": 120,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Reflect",
+      "effect": "During your opponent's next turn, this Pokémon takes 40 less damage from attacks (after applying Weakness and Resistance)."
+    },
+    {
+      "cost": [
+        "Psychic",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Telekinesis",
+      "effect": "This attack does 70 damage to 1 of your opponent's Pokémon. This attack's damage isn't affected by Weakness or Resistance."
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 835973,
+      "avg": 0.02,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.03,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.17,
+      "low-holo": 0.02,
+      "trend-holo": 0.15,
+      "avg1-holo": 0.05,
+      "avg7-holo": 0.11,
+      "avg30-holo": 0.16
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-003",
+  "illustrator": "takuyoa",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/003",
+  "localId": "003",
+  "name": "Yanmega ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825877,
+          "avg": 0.58,
+          "low": 0.05,
+          "trend": 0.56,
+          "avg1": 0.51,
+          "avg7": 0.57,
+          "avg30": 0.59,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    469
+  ],
+  "hp": 280,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Yanma",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Buzzing Boost",
+      "effect": "Once during your turn, when this Pokémon moves from your Bench to the Active Spot, you may search your deck for up to 3 Basic {G} Energy cards and attach them to this Pokémon. Then, shuffle your deck."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Grass",
+        "Grass",
+        "Grass",
+        "Colorless"
+      ],
+      "name": "Jet Cyclone",
+      "effect": "Move 3 Energy from this Pokémon to 1 of your Benched Pokémon.",
+      "damage": 210
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 825877,
+      "avg": 0.58,
+      "low": 0.05,
+      "trend": 0.56,
+      "avg1": 0.51,
+      "avg7": 0.57,
+      "avg30": 0.59,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

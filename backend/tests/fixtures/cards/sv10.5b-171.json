@@ -1,0 +1,99 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5b-171",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5b/171",
+  "localId": "171",
+  "name": "Victini",
+  "rarity": "Black White Rare",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 172
+    },
+    "id": "sv10.5b",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5b/logo",
+    "name": "Black Bolt",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5b/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836245,
+          "avg": 354.5,
+          "low": 249.99,
+          "trend": 360.3,
+          "avg1": 385,
+          "avg7": 396.25,
+          "avg30": 344.26,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    494
+  ],
+  "hp": 80,
+  "types": [
+    "Fire"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fire",
+        "Fire"
+      ],
+      "name": "V-Force",
+      "effect": "If you have 4 or fewer Benched Pokémon, this attack does nothing.",
+      "damage": 120
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T17:41:47Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 836245,
+      "avg": 354.5,
+      "low": 249.99,
+      "trend": 360.3,
+      "avg1": 385,
+      "avg7": 396.25,
+      "avg30": 344.26,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

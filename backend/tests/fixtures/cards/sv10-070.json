@@ -1,0 +1,217 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-070",
+  "illustrator": "Nurikabe",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/070",
+  "localId": "070",
+  "name": "Team Rocket's Zapdos",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825944,
+          "avg": 0.09,
+          "low": 0.02,
+          "trend": 0.06,
+          "avg1": 0.06,
+          "avg7": 0.07,
+          "avg30": 0.09,
+          "avg-holo": 0.24,
+          "low-holo": 0.02,
+          "trend-holo": 0.25,
+          "avg1-holo": 0.27,
+          "avg7-holo": 0.24,
+          "avg30-holo": 0.25
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825944,
+          "avg": 0.09,
+          "low": 0.02,
+          "trend": 0.06,
+          "avg1": 0.06,
+          "avg7": 0.07,
+          "avg30": 0.09,
+          "avg-holo": 0.24,
+          "low-holo": 0.02,
+          "trend-holo": 0.25,
+          "avg1-holo": 0.27,
+          "avg7-holo": 0.24,
+          "avg30-holo": 0.25
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "set-logo"
+      ],
+      "variantId": "555jb0efopmyclvkikic41",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 827836,
+          "avg": 46.91,
+          "low": 45,
+          "trend": 42.13,
+          "avg1": 48.49,
+          "avg7": 45.18,
+          "avg30": 39.95,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "eb-games"
+      ],
+      "foil": "cosmos",
+      "variantId": "1k6bkhde1s16d5eofmz2adfjxrxwo",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 848308,
+          "avg": 79.47,
+          "low": 72,
+          "trend": 77.12,
+          "avg1": 79,
+          "avg7": 77.61,
+          "avg30": 75.06,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "foil": "cosmos",
+      "variantId": "5zs5af49g93yryvw1ftj",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 862171,
+          "avg": 0.91,
+          "low": 0.05,
+          "trend": 1.31,
+          "avg1": 3.11,
+          "avg7": 1.23,
+          "avg30": 1.01,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    145
+  ],
+  "hp": 120,
+  "types": [
+    "Lightning"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Jamming Wing",
+      "effect": "You may move an Energy from your opponent's Active Pokémon to 1 of their Benched Pokémon.",
+      "damage": 30
+    },
+    {
+      "cost": [
+        "Lightning",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Wicked Thunder",
+      "effect": "If this Pokémon has any Team Rocket's Energy attached, this attack does 60 more damage.",
+      "damage": "60+"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 825944,
+      "avg": 0.09,
+      "low": 0.02,
+      "trend": 0.06,
+      "avg1": 0.06,
+      "avg7": 0.07,
+      "avg30": 0.09,
+      "avg-holo": 0.24,
+      "low-holo": 0.02,
+      "trend-holo": 0.25,
+      "avg1-holo": 0.27,
+      "avg7-holo": 0.24,
+      "avg30-holo": 0.25
+    },
+    "tcgplayer": null
+  }
+}

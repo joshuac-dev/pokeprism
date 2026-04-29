@@ -1,0 +1,86 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5w-005",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/005",
+  "localId": "005",
+  "name": "Whimsicott ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    547
+  ],
+  "hp": 230,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Cottonee",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Energy Gift",
+      "effect": "Search your deck for up to 3 Basic Energy cards and attach them to your Pokémon in any way you like. Then, shuffle your deck."
+    },
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Wondrous Cotton",
+      "effect": "Your opponent reveals their hand. This attack does 50 damage for each Trainer card you find there.",
+      "damage": "50×"
+    }
+  ],
+  "retreat": 0,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 835909,
+      "avg": 0.37,
+      "low": 0.02,
+      "trend": 0.38,
+      "avg1": 0.32,
+      "avg7": 0.35,
+      "avg30": 0.37,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

@@ -305,6 +305,18 @@ def check_ko(
         state.emit_event("sandy_flapping_ko_triggered", player=target_player_id,
                          card=target.card_name)
 
+    # Exploding Needles (sv09-008 Maractus): when KO'd while active by damage, place 6 counters on attacker
+    if target.card_def_id == "sv09-008" and _is_attacking_active:
+        if attacker_player.active and attacker_player.active.current_hp > 0:
+            attacker_player.active.current_hp -= 60
+            attacker_player.active.damage_counters += 6
+            state.emit_event("exploding_needles_triggered", player=target_player_id,
+                             card=target.card_name,
+                             attacker=attacker_player.active.card_name)
+            check_ko(state, attacker_player.active, attacker_id)
+            if state.phase == Phase.GAME_OVER:
+                return
+
     # Final Chain (me02.5-143 Pecharunt): when KO'd by opponent's active, search deck for 1 card
     if target.card_def_id == "me02.5-143" and _is_attacking_active:
         if target_player.deck:

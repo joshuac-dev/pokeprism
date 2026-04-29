@@ -1,0 +1,90 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5w-067",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/067",
+  "localId": "067",
+  "name": "Hydreigon ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    635
+  ],
+  "hp": 330,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Zweilous",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Greedy Eater",
+      "effect": "If your opponent's Basic Pokémon is Knocked Out by damage from an attack used by this Pokémon, take 1 more Prize card."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Darkness",
+        "Darkness",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Dark Bite",
+      "effect": "During your opponent's next turn, the Defending Pokémon can't retreat.",
+      "damage": 200
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 836027,
+      "avg": 0.38,
+      "low": 0.04,
+      "trend": 0.39,
+      "avg1": 0.34,
+      "avg7": 0.37,
+      "avg30": 0.39,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

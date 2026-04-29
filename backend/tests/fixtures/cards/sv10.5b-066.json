@@ -1,0 +1,185 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5b-066",
+  "illustrator": "HICO KIM",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5b/066",
+  "localId": "066",
+  "name": "Cobalion",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 172
+    },
+    "id": "sv10.5b",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5b/logo",
+    "name": "Black Bolt",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5b/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836045,
+          "avg": 0.08,
+          "low": 0.02,
+          "trend": 0.05,
+          "avg1": 0.04,
+          "avg7": 0.04,
+          "avg30": 0.07,
+          "avg-holo": 0.19,
+          "low-holo": 0.02,
+          "trend-holo": 0.26,
+          "avg1-holo": 0.11,
+          "avg7-holo": 0.25,
+          "avg30-holo": 0.23
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836045,
+          "avg": 0.08,
+          "low": 0.02,
+          "trend": 0.05,
+          "avg1": 0.04,
+          "avg7": 0.04,
+          "avg30": 0.07,
+          "avg-holo": 0.19,
+          "low-holo": 0.02,
+          "trend-holo": 0.26,
+          "avg1-holo": 0.11,
+          "avg7-holo": 0.25,
+          "avg30-holo": 0.23
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "pokeball",
+      "variantId": "3739bbtj3i910y5ynn9xc6ryf",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836447,
+          "avg": null,
+          "low": 0.06,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 0.52,
+          "low-holo": 0.06,
+          "trend-holo": 0.51,
+          "avg1-holo": 0.3,
+          "avg7-holo": 0.56,
+          "avg30-holo": 0.53
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "masterball",
+      "variantId": "2asus05yghmpd1ud1sdmlq3as4e",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836446,
+          "avg": null,
+          "low": 3.5,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 7.08,
+          "low-holo": 3.5,
+          "trend-holo": 7.06,
+          "avg1-holo": 4,
+          "avg7-holo": 6.48,
+          "avg30-holo": 6.28
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    638
+  ],
+  "hp": 120,
+  "types": [
+    "Metal"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Metal"
+      ],
+      "name": "Righteous Edge",
+      "effect": "Discard a Special Energy from your opponent's Active Pokémon.",
+      "damage": 20
+    },
+    {
+      "cost": [
+        "Metal",
+        "Metal",
+        "Colorless"
+      ],
+      "name": "Metal Arms",
+      "effect": "If this Pokémon has a Pokémon Tool attached, this attack does 40 more damage.",
+      "damage": "80+"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T17:41:47Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 836045,
+      "avg": 0.08,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.04,
+      "avg7": 0.04,
+      "avg30": 0.07,
+      "avg-holo": 0.19,
+      "low-holo": 0.02,
+      "trend-holo": 0.26,
+      "avg1-holo": 0.11,
+      "avg7-holo": 0.25,
+      "avg30-holo": 0.23
+    },
+    "tcgplayer": null
+  }
+}

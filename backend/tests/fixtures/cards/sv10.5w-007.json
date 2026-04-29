@@ -1,0 +1,89 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5w-007",
+  "illustrator": "Narano",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/007",
+  "localId": "007",
+  "name": "Sawsbuck",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    586
+  ],
+  "hp": 130,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Deerling",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Push Down",
+      "effect": "Switch out your opponent's Active Pokémon to the Bench. (Your opponent chooses the new Active Pokémon.)",
+      "damage": 50
+    },
+    {
+      "cost": [
+        "Grass",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Solar Beam",
+      "damage": 100
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 835913,
+      "avg": 0.05,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.03,
+      "avg7": 0.03,
+      "avg30": 0.04,
+      "avg-holo": 0.15,
+      "low-holo": 0.02,
+      "trend-holo": 0.13,
+      "avg1-holo": 0.09,
+      "avg7-holo": 0.13,
+      "avg30-holo": 0.14
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5w-173",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/173",
+  "localId": "173",
+  "name": "Reshiram ex",
+  "rarity": "Black White Rare",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    643
+  ],
+  "hp": 230,
+  "types": [
+    "Fire"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Slash",
+      "damage": 50
+    },
+    {
+      "cost": [
+        "Fire",
+        "Fire",
+        "Colorless"
+      ],
+      "name": "Blazing Burst",
+      "effect": "This attack does 50 more damage for each Prize card your opponent has taken. Discard an Energy from this Pokémon.",
+      "damage": "130+"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 836227,
+      "avg": 278.15,
+      "low": 171.25,
+      "trend": 308.91,
+      "avg1": 264.65,
+      "avg7": 300.17,
+      "avg30": 280.1,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5w-043",
+  "illustrator": "Mousho",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/043",
+  "localId": "043",
+  "name": "Gothitelle",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    576
+  ],
+  "hp": 150,
+  "types": [
+    "Psychic"
+  ],
+  "evolveFrom": "Gothorita",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Distorted Future",
+      "effect": "Once during your turn, if this Pokémon is in the Active Spot, you may have your opponent shuffle their hand into their deck and draw 3 cards."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Synchro Shot",
+      "effect": "If you have the same number of cards in your hand as your opponent, this attack does 90 more damage.",
+      "damage": "90+"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 835979,
+      "avg": 0.08,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.04,
+      "avg7": 0.05,
+      "avg30": 0.07,
+      "avg-holo": 0.13,
+      "low-holo": 0.02,
+      "trend-holo": 0.13,
+      "avg1-holo": 0.16,
+      "avg7-holo": 0.11,
+      "avg30-holo": 0.12
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5w-054",
+  "illustrator": "Tonji Matsuno",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/054",
+  "localId": "054",
+  "name": "Terrakion",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    639
+  ],
+  "hp": 140,
+  "types": [
+    "Fighting"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Retaliate",
+      "effect": "If any of your Pokémon were Knocked Out by damage from an attack during your opponent's last turn, this attack does 80 more damage.",
+      "damage": "50+"
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Land Crush",
+      "damage": 100
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 836001,
+      "avg": 0.09,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.04,
+      "avg7": 0.04,
+      "avg30": 0.06,
+      "avg-holo": 0.18,
+      "low-holo": 0.02,
+      "trend-holo": 0.14,
+      "avg1-holo": 0.15,
+      "avg7-holo": 0.13,
+      "avg30-holo": 0.17
+    },
+    "tcgplayer": null
+  }
+}

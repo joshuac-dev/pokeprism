@@ -1,0 +1,132 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-082",
+  "illustrator": "Kazumasa Yasukuni",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/082",
+  "localId": "082",
+  "name": "Team Rocket's Wobbuffet",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825956,
+          "avg": 0.09,
+          "low": 0.02,
+          "trend": 0.09,
+          "avg1": 0.07,
+          "avg7": 0.08,
+          "avg30": 0.09,
+          "avg-holo": 0.22,
+          "low-holo": 0.02,
+          "trend-holo": 0.16,
+          "avg1-holo": 0.12,
+          "avg7-holo": 0.16,
+          "avg30-holo": 0.23
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825956,
+          "avg": 0.09,
+          "low": 0.02,
+          "trend": 0.09,
+          "avg1": 0.07,
+          "avg7": 0.08,
+          "avg30": 0.09,
+          "avg-holo": 0.22,
+          "low-holo": 0.02,
+          "trend-holo": 0.16,
+          "avg1-holo": 0.12,
+          "avg7-holo": 0.16,
+          "avg30-holo": 0.23
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    202
+  ],
+  "hp": 110,
+  "types": [
+    "Psychic"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Rocket Mirror",
+      "effect": "Move all damage counters from 1 of your Benched Team Rocket's Pokémon to your opponent's Active Pokémon."
+    },
+    {
+      "cost": [
+        "Psychic",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Headbutt Bounce",
+      "damage": 70
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 825956,
+      "avg": 0.09,
+      "low": 0.02,
+      "trend": 0.09,
+      "avg1": 0.07,
+      "avg7": 0.08,
+      "avg30": 0.09,
+      "avg-holo": 0.22,
+      "low-holo": 0.02,
+      "trend-holo": 0.16,
+      "avg1-holo": 0.12,
+      "avg7-holo": 0.16,
+      "avg30-holo": 0.23
+    },
+    "tcgplayer": null
+  }
+}

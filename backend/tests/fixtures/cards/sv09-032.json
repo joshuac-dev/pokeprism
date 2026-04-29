@@ -1,0 +1,159 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-032",
+  "illustrator": "Takumi Wada",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/032",
+  "localId": "032",
+  "name": "Articuno",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817184,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.08,
+          "avg1": 0.05,
+          "avg7": 0.08,
+          "avg30": 0.05,
+          "avg-holo": 0.43,
+          "low-holo": 0.02,
+          "trend-holo": 0.43,
+          "avg1-holo": 0.15,
+          "avg7-holo": 0.4,
+          "avg30-holo": 0.43
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817184,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.08,
+          "avg1": 0.05,
+          "avg7": 0.08,
+          "avg30": 0.05,
+          "avg-holo": 0.43,
+          "low-holo": 0.02,
+          "trend-holo": 0.43,
+          "avg1-holo": 0.15,
+          "avg7-holo": 0.4,
+          "avg30-holo": 0.43
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "snowflake"
+      ],
+      "variantId": "4ffrmhcfia48xkc4a919v0z",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 845411,
+          "avg": 1.33,
+          "low": 0.4,
+          "trend": 0.68,
+          "avg1": 0.47,
+          "avg7": 1.22,
+          "avg30": 1.16,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    144
+  ],
+  "hp": 110,
+  "types": [
+    "Water"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Frigid Fluttering",
+      "effect": "Search your deck for up to 2 Basic {W} Energy cards and attach them to this Pokémon. Then, shuffle your deck."
+    },
+    {
+      "cost": [
+        "Water",
+        "Water",
+        "Colorless"
+      ],
+      "name": "Ice Blast",
+      "damage": 110
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817184,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.08,
+      "avg1": 0.05,
+      "avg7": 0.08,
+      "avg30": 0.05,
+      "avg-holo": 0.43,
+      "low-holo": 0.02,
+      "trend-holo": 0.43,
+      "avg1-holo": 0.15,
+      "avg7-holo": 0.4,
+      "avg30-holo": 0.43
+    },
+    "tcgplayer": null
+  }
+}

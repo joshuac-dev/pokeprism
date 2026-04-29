@@ -1,0 +1,153 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-041",
+  "illustrator": "Takeshi Nakamura",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/041",
+  "localId": "041",
+  "name": "Wailord",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817193,
+          "avg": 0.08,
+          "low": 0.02,
+          "trend": 0.08,
+          "avg1": 0.09,
+          "avg7": 0.07,
+          "avg30": 0.08,
+          "avg-holo": 0.34,
+          "low-holo": 0.02,
+          "trend-holo": 0.44,
+          "avg1-holo": 0.06,
+          "avg7-holo": 0.28,
+          "avg30-holo": 0.35
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817193,
+          "avg": 0.08,
+          "low": 0.02,
+          "trend": 0.08,
+          "avg1": 0.09,
+          "avg7": 0.07,
+          "avg30": 0.08,
+          "avg-holo": 0.34,
+          "low-holo": 0.02,
+          "trend-holo": 0.44,
+          "avg1-holo": 0.06,
+          "avg7-holo": 0.28,
+          "avg30-holo": 0.35
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "foil": "cosmos",
+      "variantId": "5zs5af49g93yryvw1ftj",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 851017,
+          "avg": 16.33,
+          "low": 18.5,
+          "trend": 17.26,
+          "avg1": 14,
+          "avg7": 16.74,
+          "avg30": 16.99,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    321
+  ],
+  "hp": 240,
+  "types": [
+    "Water"
+  ],
+  "evolveFrom": "Wailmer",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Hydro Pump",
+      "effect": "This attack does 50 more damage for each {W} Energy attached to this Pokémon.",
+      "damage": "10+"
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817193,
+      "avg": 0.08,
+      "low": 0.02,
+      "trend": 0.08,
+      "avg1": 0.09,
+      "avg7": 0.07,
+      "avg30": 0.08,
+      "avg-holo": 0.34,
+      "low-holo": 0.02,
+      "trend-holo": 0.44,
+      "avg1-holo": 0.06,
+      "avg7-holo": 0.28,
+      "avg30-holo": 0.35
+    },
+    "tcgplayer": null
+  }
+}

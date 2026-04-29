@@ -1,0 +1,88 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5w-047",
+  "illustrator": "Anesaki Dynamic",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/047",
+  "localId": "047",
+  "name": "Boldore",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    525
+  ],
+  "hp": 110,
+  "types": [
+    "Fighting"
+  ],
+  "evolveFrom": "Roggenrola",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Fighting"
+      ],
+      "name": "Smack Down",
+      "effect": "If your opponent's Active Pokémon has {F} Resistance, this attack does 50 more damage.",
+      "damage": "30+"
+    },
+    {
+      "cost": [
+        "Fighting",
+        "Fighting",
+        "Fighting"
+      ],
+      "name": "Power Gem",
+      "damage": 90
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 835987,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.03,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.11,
+      "low-holo": 0.02,
+      "trend-holo": 0.09,
+      "avg1-holo": 0.09,
+      "avg7-holo": 0.08,
+      "avg30-holo": 0.1
+    },
+    "tcgplayer": null
+  }
+}

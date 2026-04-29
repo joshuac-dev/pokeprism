@@ -1,0 +1,89 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5w-040",
+  "illustrator": "Bun Toujo",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/040",
+  "localId": "040",
+  "name": "Cofagrigus",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    563
+  ],
+  "hp": 120,
+  "types": [
+    "Psychic"
+  ],
+  "evolveFrom": "Yamask",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Extended Damagriiigus",
+      "effect": "Move all damage counters from 1 of your Benched Pokémon to 1 of your opponent's Pokémon."
+    },
+    {
+      "cost": [
+        "Psychic",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Perplex",
+      "effect": "Your opponent's Active Pokémon is now Confused.",
+      "damage": 60
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 835975,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.06,
+      "avg1": 0.07,
+      "avg7": 0.05,
+      "avg30": 0.07,
+      "avg-holo": 0.15,
+      "low-holo": 0.02,
+      "trend-holo": 0.18,
+      "avg1-holo": 0.2,
+      "avg7-holo": 0.39,
+      "avg30-holo": 0.19
+    },
+    "tcgplayer": null
+  }
+}

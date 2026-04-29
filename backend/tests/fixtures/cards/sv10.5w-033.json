@@ -1,0 +1,78 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5w-033",
+  "illustrator": "Shimaris Yukichi",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/033",
+  "localId": "033",
+  "name": "Joltik",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    595
+  ],
+  "hp": 40,
+  "types": [
+    "Lightning"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Lightning"
+      ],
+      "name": "Surprise Attack",
+      "effect": "Flip a coin. If tails, this attack does nothing.",
+      "damage": 30
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-17T23:24:59Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 835967,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.03,
+      "avg7": 0.02,
+      "avg30": 0.03,
+      "avg-holo": 0.1,
+      "low-holo": 0.02,
+      "trend-holo": 0.1,
+      "avg1-holo": 0.16,
+      "avg7-holo": 0.11,
+      "avg30-holo": 0.1
+    },
+    "tcgplayer": null
+  }
+}

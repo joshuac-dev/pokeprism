@@ -1,0 +1,87 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5w-045",
+  "illustrator": "PLANETA Igarashi",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/045",
+  "localId": "045",
+  "name": "Jellicent ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    593
+  ],
+  "hp": 270,
+  "types": [
+    "Psychic"
+  ],
+  "evolveFrom": "Frillish",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Oceanic Curse",
+      "effect": "As long as this Pokémon is in the Active Spot, your opponent can't play any Item cards or Pokémon Tool cards from their hand."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Psychic",
+        "Colorless"
+      ],
+      "name": "Power Press",
+      "effect": "If this Pokémon has at least 2 extra Energy attached (in addition to this attack's cost), this attack does 80 more damage.",
+      "damage": "80+"
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 835984,
+      "avg": 0.51,
+      "low": 0.04,
+      "trend": 0.48,
+      "avg1": 0.44,
+      "avg7": 0.47,
+      "avg30": 0.51,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

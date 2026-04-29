@@ -1,0 +1,108 @@
+{
+  "category": "Pokemon",
+  "id": "sv09-011",
+  "illustrator": "PLANETA Mochizuki",
+  "image": "https://assets.tcgdex.net/en/sv/sv09/011",
+  "localId": "011",
+  "name": "Amoonguss ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 159,
+      "total": 190
+    },
+    "id": "sv09",
+    "logo": "https://assets.tcgdex.net/en/sv/sv09/logo",
+    "name": "Journey Together",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv09/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 817163,
+          "avg": 0.51,
+          "low": 0.02,
+          "trend": 0.47,
+          "avg1": 0.44,
+          "avg7": 0.52,
+          "avg30": 0.49,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    591
+  ],
+  "hp": 260,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Foongus",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Grass"
+      ],
+      "name": "Spore Ball",
+      "effect": "Your opponent's Active Pokémon is now Asleep.",
+      "damage": 30
+    },
+    {
+      "cost": [
+        "Grass",
+        "Colorless"
+      ],
+      "name": "Champignon's Swing",
+      "effect": "Flip a coin. If heads, this attack does 80 more damage.",
+      "damage": "100+"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T20:30:14+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 817163,
+      "avg": 0.51,
+      "low": 0.02,
+      "trend": 0.47,
+      "avg1": 0.44,
+      "avg7": 0.52,
+      "avg30": 0.49,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

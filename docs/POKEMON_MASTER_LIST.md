@@ -1,103 +1,3 @@
-Medicham DRI 100
-Regirock ex DRI 101
-Cynthia's Gible DRI 102
-Hippowdon DRI 106
-Hippopotas DRI 105
-Cynthia's Garchomp ex DRI 104
-Cynthia's Gabite DRI 103
-Mudbray DRI 107
-Mudsdale DRI 108
-Arven's Toedscool DRI 109
-Arven's Toedscruel DRI 110
-Team Rocket's Nidoran♀ DRI 114
-Team Rocket's Arbok DRI 113
-Team Rocket's Ekans DRI 112
-Cornerstone Mask Ogerpon DRI 111
-Team Rocket's Nidorina DRI 115
-Team Rocket's Nidoqueen DRI 116
-Team Rocket's Nidoran♂ DRI 117
-Team Rocket's Nidorino DRI 118
-Team Rocket's Crobat ex DRI 122
-Team Rocket's Golbat DRI 121
-Team Rocket's Zubat DRI 120
-Team Rocket's Nidoking ex DRI 119
-Team Rocket's Grimer DRI 123
-Team Rocket's Muk DRI 124
-Team Rocket's Koffing DRI 125
-Team Rocket's Weezing DRI 126
-Team Rocket's Murkrow DRI 127
-Team Rocket's Sneasel DRI 128
-Cynthia's Spiritomb DRI 129
-Marnie's Purrloin DRI 130
-Marnie's Impidimp DRI 134
-Marnie's Scrafty DRI 133
-Marnie's Scraggy DRI 132
-Marnie's Liepard DRI 131
-Marnie's Morgrem DRI 135
-Marnie's Grimmsnarl ex DRI 136
-Marnie's Morpeko DRI 137
-Arven's Maschiff DRI 138
-Arven's Mabosstiff ex DRI 139
-Forretress DRI 140
-Skarmory DRI 141
-Steven's Skarmory DRI 142
-Zamazenta DRI 146
-Steven's Metagross ex DRI 145
-Steven's Metang DRI 144
-Steven's Beldum DRI 143
-Team Rocket's Rattata DRI 147
-Team Rocket's Raticate DRI 148
-Team Rocket's Meowth DRI 149
-Team Rocket's Persian ex DRI 150
-Kangaskhan DRI 151
-Tauros DRI 152
-Team Rocket's Porygon DRI 153
-Team Rocket's Porygon2 DRI 154
-Arven's Skwovet DRI 158
-Swellow DRI 157
-Taillow DRI 156
-Team Rocket's Porygon-Z DRI 155
-Arven's Greedent DRI 159
-Squawkabilly DRI 160
-Caterpie JTG 1
-Parasect JTG 5
-Paras JTG 4
-Butterfree JTG 3
-Metapod JTG 2
-Petilil JTG 6
-Lilligant JTG 7
-Maractus JTG 8
-Karrablast JTG 9
-Foongus JTG 10
-Amoonguss ex JTG 11
-Shelmet JTG 12
-Accelgor JTG 13
-Floragato JTG 17
-Sprigatito JTG 16
-Virizion JTG 15
-Durant JTG 14
-Meowscarada JTG 18
-Nymble JTG 19
-Magmar JTG 20
-Magmortar JTG 21
-Torchic JTG 22
-Combusken JTG 23
-Blaziken ex JTG 24
-Torkoal JTG 25
-Volcarona JTG 29
-Larvesta JTG 28
-N's Darmanitan JTG 27
-N's Darumaka JTG 26
-Reshiram ex JTG 30
-Volcanion ex JTG 31
-Articuno JTG 32
-Remoraid JTG 33
-Octillery JTG 34
-Lotad JTG 35
-Lombre JTG 36
-Ludicolo JTG 37
-Wailord JTG 41
-Wailmer JTG 40
 Pelipper JTG 39
 Wingull JTG 38
 Regice JTG 42
@@ -1322,3 +1222,10 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | TR Ampharos DRI 74 | sv10-074 | Darkest Impulse (ability) | Put 4 damage counters on a Pokémon when opponent evolves it — requires on-evolve trigger placing damage on the evolved Pokémon |
 | TR Tyranitar DRI 96 | sv10-096 | Sand Stream (ability) | During Pokémon Checkup, place 2 damage counters on each opponent Basic Pokémon — requires a Checkup-phase damage hook not currently implemented |
 | Yanmega ex DRI 3 | sv10-003 | Buzzing Boost (ability) | When this Pokémon moves from Bench to Active, search deck for up to 3 Basic {G} Energy — on-promote ability hook not supported in engine |
+| TR Arbok DRI 113 | sv10-113 | Potent Glare (ability) | Prevents opponent from playing Pokémon with abilities from hand — requires play-from-hand validator hook not currently in engine |
+| TR Nidorina DRI 115 | sv10-115 | Dark Awakening (atk0) | Evolve up to 2 Darkness Pokémon from deck during battle — requires mid-battle in-deck evolution not currently supported |
+| TR Grimer DRI 123 | sv10-123 | Corrosive Sludge (atk0) | Schedule KO of opponent's active at end of opponent's next turn — requires deferred/scheduled KO hook not currently in engine |
+| Forretress DRI 140 | sv10-140 | Iron Shake-Up (atk0) | Move any Metal energy freely between own Pokémon — requires arbitrary energy re-distribution not currently supported |
+| Zamazenta DRI 146 | sv10-146 | Strong Bash (atk0) | Retaliatory damage equal to damage taken from attacks during opponent's last turn — requires inter-turn damage-received tracking not currently in state |
+| TR Persian ex DRI 150 | sv10-150 | Haughty Order (atk0) | Use an attack from a Pokémon in the opponent's deck — requires deck-scanning attack execution not currently supported |
+| Ludicolo JTG 37 | sv09-037 | Vibrant Dance (ability) | All Pokémon in play get +40 HP permanently — dynamic max HP increase on all in-play Pokémon not supported |

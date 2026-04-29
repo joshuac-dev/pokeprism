@@ -1,0 +1,132 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-113",
+  "illustrator": "Teeziro",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/113",
+  "localId": "113",
+  "name": "Team Rocket's Arbok",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825987,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.04,
+          "avg1": 0.05,
+          "avg7": 0.04,
+          "avg30": 0.04,
+          "avg-holo": 0.24,
+          "low-holo": 0.02,
+          "trend-holo": 0.2,
+          "avg1-holo": 0.19,
+          "avg7-holo": 0.23,
+          "avg30-holo": 0.23
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825987,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.04,
+          "avg1": 0.05,
+          "avg7": 0.04,
+          "avg30": 0.04,
+          "avg-holo": 0.24,
+          "low-holo": 0.02,
+          "trend-holo": 0.2,
+          "avg1-holo": 0.19,
+          "avg7-holo": 0.23,
+          "avg30-holo": 0.23
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    24
+  ],
+  "hp": 130,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Team Rocket's Ekans",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Potent Glare",
+      "effect": "As long as this Pokémon is in the Active Spot, your opponent can't play any Pokémon that has an Ability from their hand, except for Team Rocket's Pokémon."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Darkness",
+        "Darkness"
+      ],
+      "name": "Spinning Tail",
+      "effect": "This attack does 30 damage to each of your opponent's Pokémon. (Don't apply Weakness and Resistance for Benched Pokémon.)"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 825987,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.05,
+      "avg7": 0.04,
+      "avg30": 0.04,
+      "avg-holo": 0.24,
+      "low-holo": 0.02,
+      "trend-holo": 0.2,
+      "avg1-holo": 0.19,
+      "avg7-holo": 0.23,
+      "avg30-holo": 0.23
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-122",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/122",
+  "localId": "122",
+  "name": "Team Rocket's Crobat ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825996,
+          "avg": 0.53,
+          "low": 0.05,
+          "trend": 0.48,
+          "avg1": 0.36,
+          "avg7": 0.49,
+          "avg30": 0.53,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    169
+  ],
+  "hp": 310,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Team Rocket's Golbat",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Biting Spree",
+      "effect": "When you play this Pokémon from your hand to evolve 1 of your Pokémon during your turn, you may choose 2 of your opponent's Pokémon and put 2 damage counters on each of them."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Darkness"
+      ],
+      "name": "Assassin's Return",
+      "effect": "You may put this Pokémon into your hand. (Discard all cards attached to this Pokémon.)",
+      "damage": 120
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 825996,
+      "avg": 0.53,
+      "low": 0.05,
+      "trend": 0.48,
+      "avg1": 0.36,
+      "avg7": 0.49,
+      "avg30": 0.53,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

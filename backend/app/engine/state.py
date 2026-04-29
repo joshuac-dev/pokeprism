@@ -128,6 +128,8 @@ class CardInstance:
     prevent_damage_from_basic_noncolorless: bool = False  # For Crown Opal (Terapagos ex)
     locked_attack_index: Optional[int] = None             # Can't use this specific attack index next turn
     prevent_damage_from_basic: bool = False               # Prevent all damage from Basic Pokémon next turn
+    heavy_poison: bool = False                            # Tainted Horn (sv10-119): 8 counters/turn instead of 1
+    prevent_damage_threshold: int = 0                    # Harden (sv09-002): prevent damage ≤ threshold next turn
 
     # Energy-card-specific ─────────────────────────────────────────────────────
     # Populated from CardDefinition.energy_provides at deck-build time.
@@ -181,6 +183,7 @@ class GameState:
     active_player_damage_bonus: int = 0        # Kieran +30, etc. — added to base_damage
     active_player_damage_bonus_vs_ex: int = 0  # Black Belt's Training +40 vs ex only
     briar_active: bool = False                 # Briar (sv07-132): +1 prize on active KO
+    sunny_day_active: bool = False             # Lilligant (sv09-007): Grass/Fire attacks +20
 
     # Event log
     events: list[dict] = field(default_factory=list)

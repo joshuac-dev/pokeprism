@@ -349,9 +349,12 @@ class MatchRunner:
                     return state
             elif StatusCondition.POISONED in active.status_conditions:
                 poison_damage = 10
-                # Toxic Subjugation (Pecharunt svp-149): +50 poison damage while in opponent's Active
                 opp_active = state.get_opponent(pid).active
-                if opp_active and opp_active.card_def_id == "svp-149":
+                # Tainted Horn (sv10-119 TR Nidoking ex): heavy_poison flag → 80 damage/turn
+                if active.heavy_poison:
+                    poison_damage = 80
+                # Toxic Subjugation (Pecharunt svp-149): +50 poison damage while in opponent's Active
+                elif opp_active and opp_active.card_def_id == "svp-149":
                     poison_damage += 50
                 active.current_hp -= poison_damage
                 active.damage_counters += poison_damage // 10
@@ -362,11 +365,24 @@ class MatchRunner:
                     return state
 
             if StatusCondition.BURNED in active.status_conditions:
+                # Magma Surge (sv09-021 Magmortar): +3 more counters on opponent's burned Pokémon
+                _magma_opp = state.get_opponent(pid)
+                _magma_surge = any(p.card_def_id == "sv09-021"
+                                   for p in (([_magma_opp.active] if _magma_opp.active else [])
+                                             + list(_magma_opp.bench)))
                 flip = self._rng.choice([True, False])
-                if flip:  # Heads: take 2 damage counters
+                if flip:  # Heads: take 2 damage counters (standard burn)
                     active.current_hp -= 20
                     active.damage_counters += 2
                     state.emit_event("burn_damage", player=pid, card=active.card_name)
+                    from app.engine.effects.base import check_ko
+                    check_ko(state, active, pid)
+                    if state.phase == Phase.GAME_OVER:
+                        return state
+                if _magma_surge:  # Extra 3 counters whether or not heads
+                    active.current_hp -= 30
+                    active.damage_counters += 3
+                    state.emit_event("magma_surge_triggered", player=pid, card=active.card_name)
                     from app.engine.effects.base import check_ko
                     check_ko(state, active, pid)
                     if state.phase == Phase.GAME_OVER:
@@ -415,6 +431,7 @@ class MatchRunner:
                 player.active.prevent_damage_from_basic_noncolorless = False
                 player.active.locked_attack_index = None
                 player.active.prevent_damage_from_basic = False
+                player.active.prevent_damage_threshold = 0
                 # Discard energy cards flagged for end-of-turn removal (Ignition Energy)
                 self._discard_expiring_energy(state, player.active)
             for b in player.bench:
@@ -428,11 +445,13 @@ class MatchRunner:
                 b.prevent_damage_from_basic_noncolorless = False
                 b.locked_attack_index = None
                 b.prevent_damage_from_basic = False
+                b.prevent_damage_threshold = 0
                 self._discard_expiring_energy(state, b)
 
         state.active_player_damage_bonus = 0
         state.active_player_damage_bonus_vs_ex = 0
         state.briar_active = False
+        state.sunny_day_active = False
         state.active_player = state.opponent_id(state.active_player)
         state.turn_number += 1
         state.phase = Phase.DRAW

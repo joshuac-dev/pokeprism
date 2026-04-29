@@ -1,0 +1,124 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-047",
+  "illustrator": "Natsumi Yoshida",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/047",
+  "localId": "047",
+  "name": "Misty's Starmie",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825921,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.05,
+          "avg1": 0.04,
+          "avg7": 0.06,
+          "avg30": 0.05,
+          "avg-holo": 0.2,
+          "low-holo": 0.02,
+          "trend-holo": 0.23,
+          "avg1-holo": 0.19,
+          "avg7-holo": 0.25,
+          "avg30-holo": 0.21
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825921,
+          "avg": 0.04,
+          "low": 0.02,
+          "trend": 0.05,
+          "avg1": 0.04,
+          "avg7": 0.06,
+          "avg30": 0.05,
+          "avg-holo": 0.2,
+          "low-holo": 0.02,
+          "trend-holo": 0.23,
+          "avg1-holo": 0.19,
+          "avg7-holo": 0.25,
+          "avg30-holo": 0.21
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    121
+  ],
+  "hp": 100,
+  "types": [
+    "Water"
+  ],
+  "evolveFrom": "Misty's Staryu",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Water"
+      ],
+      "name": "Abrupt Flash",
+      "effect": "If this Pokémon evolved from Misty's Staryu during this turn, this attack does 80 more damage.",
+      "damage": "60+"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 825921,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.04,
+      "avg7": 0.06,
+      "avg30": 0.05,
+      "avg-holo": 0.2,
+      "low-holo": 0.02,
+      "trend-holo": 0.23,
+      "avg1-holo": 0.19,
+      "avg7-holo": 0.25,
+      "avg30-holo": 0.21
+    },
+    "tcgplayer": null
+  }
+}

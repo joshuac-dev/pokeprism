@@ -1,0 +1,175 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5b-064",
+  "illustrator": "Oku",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5b/064",
+  "localId": "064",
+  "name": "Pawniard",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 172
+    },
+    "id": "sv10.5b",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5b/logo",
+    "name": "Black Bolt",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5b/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836041,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.03,
+          "avg1": 0.02,
+          "avg7": 0.03,
+          "avg30": 0.03,
+          "avg-holo": 0.08,
+          "low-holo": 0.02,
+          "trend-holo": 0.09,
+          "avg1-holo": 0.02,
+          "avg7-holo": 0.06,
+          "avg30-holo": 0.08
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836041,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.03,
+          "avg1": 0.02,
+          "avg7": 0.03,
+          "avg30": 0.03,
+          "avg-holo": 0.08,
+          "low-holo": 0.02,
+          "trend-holo": 0.09,
+          "avg1-holo": 0.02,
+          "avg7-holo": 0.06,
+          "avg30-holo": 0.08
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "pokeball",
+      "variantId": "3739bbtj3i910y5ynn9xc6ryf",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836442,
+          "avg": null,
+          "low": 0.08,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 0.42,
+          "low-holo": 0.08,
+          "trend-holo": 0.39,
+          "avg1-holo": 1,
+          "avg7-holo": 0.39,
+          "avg30-holo": 0.42
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "foil": "masterball",
+      "variantId": "2asus05yghmpd1ud1sdmlq3as4e",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 836440,
+          "avg": null,
+          "low": 1.5,
+          "trend": 0,
+          "avg1": null,
+          "avg7": null,
+          "avg30": null,
+          "avg-holo": 3.39,
+          "low-holo": 1.5,
+          "trend-holo": 3.84,
+          "avg1-holo": 2.98,
+          "avg7-holo": 3.96,
+          "avg30-holo": 3.65
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    624
+  ],
+  "hp": 60,
+  "types": [
+    "Metal"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Metal"
+      ],
+      "name": "Corner",
+      "effect": "During your opponent's next turn, the Defending Pokémon can't retreat.",
+      "damage": 10
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T17:41:47Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 836041,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.02,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.08,
+      "low-holo": 0.02,
+      "trend-holo": 0.09,
+      "avg1-holo": 0.02,
+      "avg7-holo": 0.06,
+      "avg30-holo": 0.08
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,131 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-149",
+  "illustrator": "Megumi Mizutani",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/149",
+  "localId": "149",
+  "name": "Team Rocket's Meowth",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 826023,
+          "avg": 0.05,
+          "low": 0.02,
+          "trend": 0.07,
+          "avg1": 0.02,
+          "avg7": 0.09,
+          "avg30": 0.05,
+          "avg-holo": 0.14,
+          "low-holo": 0.02,
+          "trend-holo": 0.11,
+          "avg1-holo": 0.06,
+          "avg7-holo": 0.11,
+          "avg30-holo": 0.15
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 826023,
+          "avg": 0.05,
+          "low": 0.02,
+          "trend": 0.07,
+          "avg1": 0.02,
+          "avg7": 0.09,
+          "avg30": 0.05,
+          "avg-holo": 0.14,
+          "low-holo": 0.02,
+          "trend-holo": 0.11,
+          "avg1-holo": 0.06,
+          "avg7-holo": 0.11,
+          "avg30-holo": 0.15
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    52
+  ],
+  "hp": 70,
+  "types": [
+    "Colorless"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Paw-cket Pilfer",
+      "effect": "Choose a random card from your opponent's hand. Your opponent reveals that card and shuffles it into their deck."
+    },
+    {
+      "cost": [
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Fury Swipes",
+      "effect": "Flip 3 coins. This attack does 20 damage for each heads.",
+      "damage": "20×"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 826023,
+      "avg": 0.05,
+      "low": 0.02,
+      "trend": 0.07,
+      "avg1": 0.02,
+      "avg7": 0.09,
+      "avg30": 0.05,
+      "avg-holo": 0.14,
+      "low-holo": 0.02,
+      "trend-holo": 0.11,
+      "avg1-holo": 0.06,
+      "avg7-holo": 0.11,
+      "avg30-holo": 0.15
+    },
+    "tcgplayer": null
+  }
+}

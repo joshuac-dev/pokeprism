@@ -1,0 +1,111 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-119",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/119",
+  "localId": "119",
+  "name": "Team Rocket's Nidoking ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825993,
+          "avg": 0.61,
+          "low": 0.1,
+          "trend": 0.5,
+          "avg1": 0.27,
+          "avg7": 0.49,
+          "avg30": 0.57,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    34
+  ],
+  "hp": 330,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Team Rocket's Nidorino",
+  "stage": "Stage2",
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Tainted Horn",
+      "effect": "Your opponent's Active Pokémon is now Poisoned. During Pokémon Checkup, put 8 damage counters on that Pokémon instead of 1.",
+      "damage": 100
+    },
+    {
+      "cost": [
+        "Darkness",
+        "Darkness",
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Kingly Impact",
+      "damage": 240
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 825993,
+      "avg": 0.61,
+      "low": 0.1,
+      "trend": 0.5,
+      "avg1": 0.27,
+      "avg7": 0.49,
+      "avg30": 0.57,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

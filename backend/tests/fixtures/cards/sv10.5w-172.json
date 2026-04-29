@@ -1,0 +1,79 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5w-172",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/172",
+  "localId": "172",
+  "name": "Victini",
+  "rarity": "Black White Rare",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    494
+  ],
+  "hp": 80,
+  "types": [
+    "Fire"
+  ],
+  "stage": "Basic",
+  "attacks": [
+    {
+      "cost": [
+        "Fire",
+        "Fire"
+      ],
+      "name": "V-Force",
+      "effect": "If you have 4 or fewer Benched Pokémon, this attack does nothing.",
+      "damage": 120
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 836225,
+      "avg": 372.24,
+      "low": 240,
+      "trend": 338.44,
+      "avg1": 289.3,
+      "avg7": 315.32,
+      "avg30": 348.17,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}

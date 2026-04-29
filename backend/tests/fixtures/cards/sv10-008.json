@@ -1,0 +1,132 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-008",
+  "illustrator": "En Morikura",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/008",
+  "localId": "008",
+  "name": "Cynthia's Roserade",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825882,
+          "avg": 0.16,
+          "low": 0.02,
+          "trend": 0.13,
+          "avg1": 0.08,
+          "avg7": 0.14,
+          "avg30": 0.16,
+          "avg-holo": 0.33,
+          "low-holo": 0.02,
+          "trend-holo": 0.41,
+          "avg1-holo": 0.35,
+          "avg7-holo": 0.33,
+          "avg30-holo": 0.33
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825882,
+          "avg": 0.16,
+          "low": 0.02,
+          "trend": 0.13,
+          "avg1": 0.08,
+          "avg7": 0.14,
+          "avg30": 0.16,
+          "avg-holo": 0.33,
+          "low-holo": 0.02,
+          "trend-holo": 0.41,
+          "avg1-holo": 0.35,
+          "avg7-holo": 0.33,
+          "avg30-holo": 0.33
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    407
+  ],
+  "hp": 130,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Cynthia's Roselia",
+  "stage": "Stage1",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Cheer On to Glory",
+      "effect": "Attacks used by your Cynthia's Pokémon do 30 more damage to your opponent's Active Pokémon (before applying Weakness and Resistance)."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Grass",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Leaf Step",
+      "damage": 80
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 825882,
+      "avg": 0.16,
+      "low": 0.02,
+      "trend": 0.13,
+      "avg1": 0.08,
+      "avg7": 0.14,
+      "avg30": 0.16,
+      "avg-holo": 0.33,
+      "low-holo": 0.02,
+      "trend-holo": 0.41,
+      "avg1-holo": 0.35,
+      "avg7-holo": 0.33,
+      "avg30-holo": 0.33
+    },
+    "tcgplayer": null
+  }
+}

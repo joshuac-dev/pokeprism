@@ -1,0 +1,88 @@
+{
+  "category": "Pokemon",
+  "id": "sv10.5w-062",
+  "illustrator": "akagi",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/062",
+  "localId": "062",
+  "name": "Zoroark",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    571
+  ],
+  "hp": 120,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Zorua",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Darkness"
+      ],
+      "name": "Mind Jack",
+      "effect": "This attack does 30 damage for each of your opponent's Benched Pokémon.",
+      "damage": "30×"
+    },
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Foul Play",
+      "effect": "Choose 1 of your opponent's Active Pokémon's attacks and use it as this attack."
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 836016,
+      "avg": 0.09,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.04,
+      "avg7": 0.07,
+      "avg30": 0.08,
+      "avg-holo": 0.16,
+      "low-holo": 0.02,
+      "trend-holo": 0.14,
+      "avg1-holo": 0.25,
+      "avg7-holo": 0.2,
+      "avg30-holo": 0.18
+    },
+    "tcgplayer": null
+  }
+}

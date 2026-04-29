@@ -1,0 +1,136 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-060",
+  "illustrator": "kamonabe",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/060",
+  "localId": "060",
+  "name": "Abomasnow",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825934,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.05,
+          "avg1": 0.03,
+          "avg7": 0.03,
+          "avg30": 0.03,
+          "avg-holo": 0.16,
+          "low-holo": 0.02,
+          "trend-holo": 0.16,
+          "avg1-holo": 0.13,
+          "avg7-holo": 0.17,
+          "avg30-holo": 0.16
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825934,
+          "avg": 0.03,
+          "low": 0.02,
+          "trend": 0.05,
+          "avg1": 0.03,
+          "avg7": 0.03,
+          "avg30": 0.03,
+          "avg-holo": 0.16,
+          "low-holo": 0.02,
+          "trend-holo": 0.16,
+          "avg1-holo": 0.13,
+          "avg7-holo": 0.17,
+          "avg30-holo": 0.16
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    460
+  ],
+  "hp": 150,
+  "types": [
+    "Water"
+  ],
+  "evolveFrom": "Snover",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Lunge Out",
+      "damage": 90
+    },
+    {
+      "cost": [
+        "Water",
+        "Water",
+        "Water",
+        "Colorless"
+      ],
+      "name": "Frozen Wood",
+      "effect": "If this Pokémon has 2 or more {G} Energy attached, this attack does 120 more damage.",
+      "damage": "120+"
+    }
+  ],
+  "retreat": 4,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 825934,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.05,
+      "avg1": 0.03,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.16,
+      "low-holo": 0.02,
+      "trend-holo": 0.16,
+      "avg1-holo": 0.13,
+      "avg7-holo": 0.17,
+      "avg30-holo": 0.16
+    },
+    "tcgplayer": null
+  }
+}

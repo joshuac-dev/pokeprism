@@ -1,0 +1,108 @@
+{
+  "category": "Pokemon",
+  "id": "sv10-025",
+  "illustrator": "N-DESIGN Inc.",
+  "image": "https://assets.tcgdex.net/en/sv/sv10/025",
+  "localId": "025",
+  "name": "Rabsca ex",
+  "rarity": "Double rare",
+  "set": {
+    "cardCount": {
+      "official": 182,
+      "total": 244
+    },
+    "id": "sv10",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10/logo",
+    "name": "Destined Rivals",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 825899,
+          "avg": 0.43,
+          "low": 0.02,
+          "trend": 0.36,
+          "avg1": 0.37,
+          "avg7": 0.37,
+          "avg30": 0.42,
+          "avg-holo": null,
+          "low-holo": null,
+          "trend-holo": 0,
+          "avg1-holo": null,
+          "avg7-holo": null,
+          "avg30-holo": null
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "dexId": [
+    954
+  ],
+  "hp": 250,
+  "types": [
+    "Grass"
+  ],
+  "evolveFrom": "Rellor",
+  "stage": "Stage1",
+  "attacks": [
+    {
+      "cost": [
+        "Colorless"
+      ],
+      "name": "Upside-Down Draw",
+      "effect": "Draw 3 cards from the bottom of your deck."
+    },
+    {
+      "cost": [
+        "Grass",
+        "Colorless",
+        "Colorless"
+      ],
+      "name": "Psychic",
+      "effect": "This attack does 90 more damage for each Energy attached to your opponent's Active Pokémon.",
+      "damage": "20+"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-14T22:44:49+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 825899,
+      "avg": 0.43,
+      "low": 0.02,
+      "trend": 0.36,
+      "avg1": 0.37,
+      "avg7": 0.37,
+      "avg30": 0.42,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 0,
+      "avg1-holo": null,
+      "avg7-holo": null,
+      "avg30-holo": null
+    },
+    "tcgplayer": null
+  }
+}
