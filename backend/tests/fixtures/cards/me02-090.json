@@ -1,0 +1,64 @@
+{
+  "category": "Trainer",
+  "id": "me02-090",
+  "image": "https://assets.tcgdex.net/en/me/me02/090",
+  "localId": "090",
+  "name": "Grimsley's Move",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 94,
+      "total": 130
+    },
+    "id": "me02",
+    "logo": "https://assets.tcgdex.net/en/me/me02/logo",
+    "name": "Phantasmal Flames"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "effect": "Look at the top 7 cards of your deck and put a {D} Pokémon you find there onto your Bench. Shuffle the other cards and put them on the bottom of your deck. You can't use this card during your first turn.",
+  "trainerType": "Supporter",
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-03-07T09:39:56Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 857665,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.04,
+      "avg7": 0.04,
+      "avg30": 0.03,
+      "avg-holo": 0.08,
+      "low-holo": 0.02,
+      "trend-holo": 0.1,
+      "avg1-holo": 0.08,
+      "avg7-holo": 0.09,
+      "avg30-holo": 0.08
+    },
+    "tcgplayer": null
+  }
+}

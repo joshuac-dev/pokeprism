@@ -1,0 +1,61 @@
+{
+  "category": "Trainer",
+  "id": "sv10.5w-083",
+  "illustrator": "Teeziro",
+  "image": "https://assets.tcgdex.net/en/sv/sv10.5w/083",
+  "localId": "083",
+  "name": "Harlequin",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 86,
+      "total": 173
+    },
+    "id": "sv10.5w",
+    "logo": "https://assets.tcgdex.net/en/sv/sv10.5w/logo",
+    "name": "White Flare",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5w/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "effect": "Each player shuffles their hand into their deck. Then, flip a coin. If heads, you draw 5 cards, and your opponent draws 3 cards. If tails, you draw 3 cards, and your opponent draws 5 cards.",
+  "trainerType": "Supporter",
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:06:55+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 836057,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.07,
+      "avg1": 0.04,
+      "avg7": 0.06,
+      "avg30": 0.07,
+      "avg-holo": 0.2,
+      "low-holo": 0.02,
+      "trend-holo": 0.12,
+      "avg1-holo": 0.2,
+      "avg7-holo": 0.15,
+      "avg30-holo": 0.17
+    },
+    "tcgplayer": null
+  }
+}

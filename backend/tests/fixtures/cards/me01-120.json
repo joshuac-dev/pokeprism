@@ -1,0 +1,66 @@
+{
+  "category": "Trainer",
+  "id": "me01-120",
+  "illustrator": "Hideki Ishikawa",
+  "image": "https://assets.tcgdex.net/en/me/me01/120",
+  "localId": "120",
+  "name": "Lt. Surge's Bargain",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 132,
+      "total": 188
+    },
+    "id": "me01",
+    "logo": "https://assets.tcgdex.net/en/me/me01/logo",
+    "name": "Mega Evolution",
+    "symbol": "https://assets.tcgdex.net/univ/me/me01/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "effect": "Ask your opponent if each player may take a Prize card. If yes, each player takes a Prize card. If no, you draw 4 cards.",
+  "trainerType": "Supporter",
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-01-07T13:25:47+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851191,
+      "avg": 0.05,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.04,
+      "avg7": 0.04,
+      "avg30": 0.05,
+      "avg-holo": 0.11,
+      "low-holo": 0.02,
+      "trend-holo": 0.11,
+      "avg1-holo": 0.1,
+      "avg7-holo": 0.13,
+      "avg30-holo": 0.12
+    },
+    "tcgplayer": null
+  }
+}

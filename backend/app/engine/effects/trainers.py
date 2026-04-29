@@ -2411,6 +2411,888 @@ def _mega_signal(state: GameState, action):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Batch 18 trainers
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _crushing_hammer_b18(state: GameState, action):
+    """Crushing Hammer (me03-071)
+
+    Flip a coin. If heads, choose 1 Energy attached to 1 of your opponent's
+    Pokémon and discard it.
+    """
+    player_id = action.player_id
+    opp = state.get_player(state.opponent_id(player_id))
+
+    heads = random.choice([True, False])
+    state.emit_event("coin_flip_result", card="Crushing Hammer", heads=int(heads))
+    if not heads:
+        return
+
+    options: list[tuple] = []
+    for poke in _find_in_play(opp):
+        for att in poke.energy_attached:
+            options.append((poke, att))
+
+    if not options:
+        return
+
+    labels = [f"{att.card_def_id} on {poke.card_name}" for poke, att in options]
+    req = ChoiceRequest(
+        "choose_option", player_id,
+        "Crushing Hammer: choose an Energy to discard from opponent's Pokémon",
+        options=labels,
+    )
+    resp = yield req
+    opt = (resp.selected_option if (resp is not None and resp.selected_option is not None) else 0)
+    if opt < len(options):
+        poke, att = options[opt]
+        poke.energy_attached.remove(att)
+        state.emit_event("energy_discarded", player=player_id,
+                         card_def_id=att.card_def_id, pokemon=poke.card_name,
+                         reason="crushing_hammer")
+
+
+def _energy_search_b18(state: GameState, action):
+    """Energy Search (me03-072)
+
+    Search your deck for a Basic Energy card, reveal it, and put it into
+    your hand. Shuffle your deck afterward.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    candidates = [c for c in player.deck if _is_basic_energy_card(c)]
+    if not candidates:
+        random.shuffle(player.deck)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Energy Search: choose a Basic Energy card from your deck",
+        cards=candidates, min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [candidates[0].instance_id])
+
+    for iid in chosen_ids[:1]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="energy_search")
+
+
+def _hole_digging_shovel_b18(state: GameState, action):
+    """Hole-Digging Shovel (me03-074)
+
+    Discard the top 2 cards of your deck.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    for _ in range(2):
+        if not player.deck:
+            break
+        card = player.deck.pop(0)
+        card.zone = Zone.DISCARD
+        player.discard.append(card)
+        state.emit_event("card_discarded", player=player_id, card=card.card_name,
+                         reason="hole_digging_shovel")
+
+
+def _jacinthe_b18(state: GameState, action):
+    """Jacinthe (me03-075)
+
+    Choose 1 of your Psychic-type Pokémon. Heal 150 damage from it.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    targets = [p for p in _find_in_play(player) if _pokemon_has_type(p, "Psychic")]
+    if not targets:
+        return
+
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Jacinthe: choose a Psychic-type Pokémon to heal 150 damage",
+        targets=targets,
+    )
+    resp = yield req
+    if resp and resp.target_instance_id:
+        target = _find_pokemon_in_play(player, resp.target_instance_id)
+        if target not in targets:
+            target = targets[0]
+    else:
+        target = targets[0]
+
+    if target:
+        heal = min(150, target.max_hp - target.current_hp)
+        target.current_hp += heal
+        target.damage_counters = max(0, target.damage_counters - heal // 10)
+        state.emit_event("heal", player=player_id, pokemon=target.card_name,
+                         amount=heal, source="jacinthe")
+
+
+def _lumiose_galette_b18(state: GameState, action):
+    """Lumiose Galette (me03-078)
+
+    Heal 20 damage from your Active Pokémon. Then, remove 1 Special Condition
+    from your Active Pokémon.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    if not player.active:
+        return
+
+    heal = min(20, player.active.max_hp - player.active.current_hp)
+    player.active.current_hp += heal
+    player.active.damage_counters = max(0, player.active.damage_counters - heal // 10)
+    if player.active.status_conditions:
+        cond = next(iter(player.active.status_conditions))
+        player.active.status_conditions.discard(cond)
+    state.emit_event("heal", player=player_id, pokemon=player.active.card_name,
+                     amount=heal, source="lumiose_galette")
+
+
+def _naveen_b18(state: GameState, action):
+    """Naveen (me03-079)
+
+    You may discard any number of cards from your hand. Then, draw cards
+    until you have 5 cards in your hand.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    if player.hand:
+        req = ChoiceRequest(
+            "choose_cards", player_id,
+            "Naveen: discard any cards from your hand (optional)",
+            cards=list(player.hand), min_count=0, max_count=len(player.hand),
+        )
+        resp = yield req
+        chosen_ids = resp.selected_cards if (resp and resp.selected_cards) else []
+
+        for iid in chosen_ids:
+            card = next((c for c in player.hand if c.instance_id == iid), None)
+            if card:
+                player.hand.remove(card)
+                card.zone = Zone.DISCARD
+                player.discard.append(card)
+
+    to_draw = max(0, 5 - len(player.hand))
+    if to_draw > 0:
+        draw_cards(state, player_id, to_draw)
+
+
+def _poke_ball_b18(state: GameState, action):
+    """Poké Ball (me03-080)
+
+    Flip a coin. If heads, search your deck for a Pokémon and put it into
+    your hand. Shuffle your deck afterward.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    heads = random.choice([True, False])
+    state.emit_event("coin_flip_result", card="Poké Ball", heads=int(heads))
+    if not heads:
+        return
+
+    candidates = [c for c in player.deck if c.card_type.lower() == "pokemon"]
+    if not candidates:
+        random.shuffle(player.deck)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Poké Ball: choose a Pokémon from your deck",
+        cards=candidates, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [candidates[0].instance_id])
+
+    for iid in chosen_ids[:1]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="poke_ball")
+
+
+def _pokemon_catcher_b18(state: GameState, action):
+    """Pokémon Catcher (me03-082)
+
+    Flip a coin. If heads, switch 1 of your opponent's Benched Pokémon with
+    their Active Pokémon.
+    """
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+
+    heads = random.choice([True, False])
+    state.emit_event("coin_flip_result", card="Pokémon Catcher", heads=int(heads))
+    if not heads:
+        return
+
+    if not opp.bench:
+        return
+
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Pokémon Catcher: choose an opponent's Benched Pokémon to bring Active",
+        targets=list(opp.bench),
+    )
+    resp = yield req
+    if resp and resp.target_instance_id:
+        target = next((b for b in opp.bench
+                       if b.instance_id == resp.target_instance_id), None)
+    else:
+        target = opp.bench[0]
+
+    if target:
+        _switch_active_with_bench(opp, target)
+        state.emit_event("pokemon_catcher", player=player_id, forced_active=target.card_name)
+
+
+def _potion_b18(state: GameState, action):
+    """Potion (me03-083)
+
+    Heal 30 damage from 1 of your Pokémon.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    in_play = _find_in_play(player)
+    if not in_play:
+        return
+
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Potion: choose a Pokémon to heal 30 damage",
+        targets=in_play,
+    )
+    resp = yield req
+    if resp and resp.target_instance_id:
+        target = _find_pokemon_in_play(player, resp.target_instance_id)
+    else:
+        target = player.active
+
+    if target:
+        heal = min(30, target.max_hp - target.current_hp)
+        target.current_hp += heal
+        target.damage_counters = max(0, target.damage_counters - heal // 10)
+        state.emit_event("heal", player=player_id, pokemon=target.card_name,
+                         amount=heal, source="potion")
+
+
+def _iris_b18(state: GameState, action):
+    """Iris (me02.5-190)
+
+    Discard 1 card from your hand. Then, draw cards until you have 6 cards
+    in your hand.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    if not player.hand:
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Iris: discard 1 card from your hand",
+        cards=list(player.hand), min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [player.hand[0].instance_id])
+
+    for iid in chosen_ids[:1]:
+        card = next((c for c in player.hand if c.instance_id == iid), None)
+        if card:
+            player.hand.remove(card)
+            card.zone = Zone.DISCARD
+            player.discard.append(card)
+
+    to_draw = max(0, 6 - len(player.hand))
+    if to_draw > 0:
+        draw_cards(state, player_id, to_draw)
+
+
+def _surfer_b18(state: GameState, action):
+    """Surfer (me02.5-200)
+
+    Switch your Active Pokémon with 1 of your Benched Pokémon. Then, draw
+    cards until you have 5 cards in your hand.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    if player.bench:
+        req = ChoiceRequest(
+            "choose_target", player_id,
+            "Surfer: choose a Benched Pokémon to switch in as your Active",
+            targets=list(player.bench),
+        )
+        resp = yield req
+        if resp and resp.target_instance_id:
+            target = next((b for b in player.bench
+                           if b.instance_id == resp.target_instance_id), None)
+        else:
+            target = player.bench[0]
+
+        if target:
+            _switch_active_with_bench(player, target)
+            state.emit_event("switch", player=player_id, new_active=target.card_name,
+                             source="surfer")
+
+    to_draw = max(0, 5 - len(player.hand))
+    if to_draw > 0:
+        draw_cards(state, player_id, to_draw)
+
+
+def _tr_great_ball_b18(state: GameState, action):
+    """Team Rocket's Great Ball (me02.5-205)
+
+    Flip a coin. If heads, search your deck for a Team Rocket's Evolution Pokémon
+    (excluding Pokémon ex) and put it into your hand. If tails, search for a
+    Team Rocket's Basic Pokémon. Shuffle your deck afterward.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    heads = random.choice([True, False])
+    state.emit_event("coin_flip_result", card="Team Rocket's Great Ball", heads=int(heads))
+
+    if heads:
+        candidates = [c for c in player.deck
+                      if c.card_type.lower() == "pokemon"
+                      and c.evolution_stage > 0
+                      and "team rocket" in c.card_name.lower()
+                      and not _is_pokemon_ex(c)]
+        prompt = "Team Rocket's Great Ball: choose a TR Evolution Pokémon (non-ex) from your deck"
+    else:
+        candidates = [c for c in player.deck
+                      if c.card_type.lower() == "pokemon"
+                      and c.evolution_stage == 0
+                      and "team rocket" in c.card_name.lower()]
+        prompt = "Team Rocket's Great Ball: choose a TR Basic Pokémon from your deck"
+
+    if not candidates:
+        random.shuffle(player.deck)
+        return
+
+    req = ChoiceRequest("choose_cards", player_id, prompt,
+                        cards=candidates, min_count=0, max_count=1)
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [candidates[0].instance_id])
+
+    for iid in chosen_ids[:1]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="tr_great_ball")
+
+
+def _draw_3_b18(state: GameState, action):
+    """Urbain / Cheren (me02.5-214, sv10.5w-081)
+
+    Draw 3 cards.
+    """
+    draw_cards(state, action.player_id, 3)
+
+
+def _waitress_b18(state: GameState, action):
+    """Waitress (me02.5-215)
+
+    Look at the top 6 cards of your deck. You may attach a Basic Energy card
+    you find there to 1 of your Pokémon. Shuffle the other cards back in.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    top6 = list(player.deck[:6])
+    if not top6:
+        return
+
+    energy_candidates = [c for c in top6 if _is_basic_energy_card(c)]
+    if not energy_candidates:
+        random.shuffle(player.deck)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Waitress: choose a Basic Energy from top 6 to attach (optional)",
+        cards=energy_candidates, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if (resp and resp.selected_cards) else []
+
+    if chosen_ids:
+        energy_card = next((c for c in player.deck if c.instance_id == chosen_ids[0]), None)
+        if energy_card:
+            in_play = _find_in_play(player)
+            if in_play:
+                req2 = ChoiceRequest(
+                    "choose_target", player_id,
+                    "Waitress: choose a Pokémon to attach the energy to",
+                    targets=in_play,
+                )
+                resp2 = yield req2
+                if resp2 and resp2.target_instance_id:
+                    target = _find_pokemon_in_play(player, resp2.target_instance_id)
+                else:
+                    target = player.active
+
+                if target:
+                    player.deck.remove(energy_card)
+                    att = _make_energy_attachment(energy_card)
+                    target.energy_attached.append(att)
+                    state.emit_event("energy_attached", player=player_id,
+                                     energy=energy_card.card_name, target=target.card_name,
+                                     source="waitress")
+
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="waitress")
+
+
+def _blowtorch_b18(state: GameState, action):
+    """Blowtorch (me02-086)
+
+    Discard a Basic Fire Energy from your hand. Then, discard 1 of your
+    opponent's Pokémon Tool cards, Special Energy cards, or the active Stadium.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    opp = state.get_player(state.opponent_id(player_id))
+
+    fire_energy = [c for c in player.hand
+                   if _is_basic_energy_card(c) and _energy_provides_type(c, "Fire")]
+    if not fire_energy:
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Blowtorch: discard a Basic Fire Energy from your hand (cost)",
+        cards=fire_energy, min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [fire_energy[0].instance_id])
+
+    for iid in chosen_ids[:1]:
+        card = next((c for c in player.hand if c.instance_id == iid), None)
+        if card:
+            player.hand.remove(card)
+            card.zone = Zone.DISCARD
+            player.discard.append(card)
+
+    options: list[str] = []
+    option_actions: list[tuple] = []
+
+    for poke in _find_in_play(opp):
+        for tool_def_id in poke.tools_attached:
+            options.append(f"Tool {tool_def_id} on {poke.card_name}")
+            option_actions.append(("tool", poke, tool_def_id))
+        for att in poke.energy_attached:
+            if _is_special_energy(att.card_def_id):
+                options.append(f"Special Energy {att.card_def_id} on {poke.card_name}")
+                option_actions.append(("special_energy", poke, att))
+
+    if state.active_stadium:
+        options.append(f"Stadium: {state.active_stadium.card_name}")
+        option_actions.append(("stadium", None, None))
+
+    if not options:
+        return
+
+    req2 = ChoiceRequest(
+        "choose_option", player_id,
+        "Blowtorch: choose a Tool, Special Energy, or Stadium to discard",
+        options=options,
+    )
+    resp2 = yield req2
+    opt = (resp2.selected_option
+           if (resp2 is not None and resp2.selected_option is not None) else 0)
+
+    if opt >= len(option_actions):
+        return
+
+    otype, target, data = option_actions[opt]
+    if otype == "tool":
+        target.tools_attached.remove(data)
+        state.emit_event("tool_discarded", player=player_id, tool=data,
+                         pokemon=target.card_name, reason="blowtorch")
+    elif otype == "special_energy":
+        target.energy_attached.remove(data)
+        state.emit_event("energy_discarded", player=player_id, card_def_id=data.card_def_id,
+                         pokemon=target.card_name, reason="blowtorch")
+    elif otype == "stadium":
+        state.active_stadium = None
+        state.emit_event("stadium_discarded", player=player_id, reason="blowtorch")
+
+
+def _firebreather_b18(state: GameState, action):
+    """Firebreather (me02-089)
+
+    Search your deck for up to 7 Basic Fire Energy cards and put them into
+    your hand. Shuffle your deck afterward.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    candidates = [c for c in player.deck
+                  if _is_basic_energy_card(c) and _energy_provides_type(c, "Fire")]
+    if not candidates:
+        random.shuffle(player.deck)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Firebreather: choose up to 7 Basic Fire Energy cards from your deck",
+        cards=candidates, min_count=0, max_count=7,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [c.instance_id for c in candidates[:7]])
+
+    for iid in chosen_ids[:7]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="firebreather")
+
+
+def _grimsleys_move_b18(state: GameState, action):
+    """Grimsley's Move (me02-090)
+
+    Look at the top 7 cards of your deck. You may put any Darkness-type
+    Pokémon you find there onto your Bench. Shuffle the other cards back in.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    bench_space = 5 - len(player.bench)
+    top7 = list(player.deck[:7])
+    if not top7:
+        return
+
+    candidates = [c for c in top7
+                  if c.card_type.lower() == "pokemon"
+                  and _pokemon_has_type(c, "Darkness")]
+    if not candidates or bench_space <= 0:
+        random.shuffle(player.deck)
+        return
+
+    max_choose = min(len(candidates), bench_space)
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Grimsley's Move: choose Darkness-type Pokémon from top 7 to Bench (optional)",
+        cards=candidates, min_count=0, max_count=max_choose,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if (resp and resp.selected_cards) else []
+
+    for iid in chosen_ids:
+        if len(player.bench) >= 5:
+            break
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            _bench_pokemon(state, player_id, card)
+
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="grimsleys_move")
+
+
+def _iron_defender_b18(state: GameState, action):
+    """Iron Defender (me01-118) — noop stub.
+
+    During your opponent's next turn, each of your Metal-type Pokémon takes
+    30 less damage (player-level type-filtered reduction not implemented).
+    """
+    state.emit_event("flagged_effect", card="Iron Defender",
+                     reason="metal_damage_reduction_per_player_not_implemented")
+
+
+def _pokemon_center_lady_b18(state: GameState, action):
+    """Pokémon Center Lady (me01-123)
+
+    Choose 1 of your Pokémon. Heal 60 damage from it and remove all Special
+    Conditions from it.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    in_play = _find_in_play(player)
+    if not in_play:
+        return
+
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Pokémon Center Lady: choose a Pokémon to heal 60 and remove all conditions",
+        targets=in_play,
+    )
+    resp = yield req
+    if resp and resp.target_instance_id:
+        target = _find_pokemon_in_play(player, resp.target_instance_id)
+    else:
+        target = player.active
+
+    if target:
+        heal = min(60, target.max_hp - target.current_hp)
+        target.current_hp += heal
+        target.damage_counters = max(0, target.damage_counters - heal // 10)
+        target.status_conditions.clear()
+        state.emit_event("heal", player=player_id, pokemon=target.card_name,
+                         amount=heal, source="pokemon_center_lady")
+
+
+def _premium_power_pro_b18(state: GameState, action):
+    """Premium Power Pro (me01-124, me02.5-199) — noop stub.
+
+    During this turn, attacks used by each player's Fighting-type Pokémon do
+    30 more damage (type-filtered bonus not implemented).
+    """
+    state.emit_event("flagged_effect", card="Premium Power Pro",
+                     reason="fighting_bonus_not_implemented")
+
+
+def _repel_b18(state: GameState, action):
+    """Repel (me01-126)
+
+    Switch your opponent's Active Pokémon with 1 of their Benched Pokémon.
+    Your opponent chooses which Benched Pokémon to switch in.
+    """
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+
+    if not opp.bench:
+        return
+
+    req = ChoiceRequest(
+        "choose_target", opp_id,
+        "Repel: choose a Benched Pokémon to switch in as your Active",
+        targets=list(opp.bench),
+    )
+    resp = yield req
+    if resp and resp.target_instance_id:
+        target = next((b for b in opp.bench
+                       if b.instance_id == resp.target_instance_id), None)
+    else:
+        target = opp.bench[0]
+
+    if target:
+        _switch_active_with_bench(opp, target)
+        state.emit_event("repel", player=player_id, new_active=target.card_name)
+
+
+def _switch_b18(state: GameState, action):
+    """Switch (me01-130)
+
+    Switch your Active Pokémon with 1 of your Benched Pokémon.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    if not player.bench:
+        return
+
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Switch: choose a Benched Pokémon to switch in as your Active",
+        targets=list(player.bench),
+    )
+    resp = yield req
+    if resp and resp.target_instance_id:
+        target = next((b for b in player.bench
+                       if b.instance_id == resp.target_instance_id), None)
+    else:
+        target = player.bench[0]
+
+    if target:
+        _switch_active_with_bench(player, target)
+        state.emit_event("switch", player=player_id, new_active=target.card_name)
+
+
+def _wally_b18(state: GameState, action):
+    """Wally's Compassion (me01-132) — FLAGGED noop stub.
+
+    Heal all damage from 1 Mega Evolution Pokémon ex and put all its attached
+    Energy into your hand (energy-return-to-hand not supported).
+    """
+    state.emit_event("flagged_effect", card="Wally's Compassion",
+                     reason="energy_to_hand_not_supported")
+
+
+def _energy_coin_b18(state: GameState, action):
+    """Energy Coin (sv10.5b-081)
+
+    Flip 2 coins. If both are heads, search your deck for a Basic Energy card
+    and attach it to 1 of your Pokémon. Shuffle your deck afterward.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    flips = [random.choice([True, False]) for _ in range(2)]
+    state.emit_event("coin_flip_result", card="Energy Coin", heads=sum(flips), flips=2)
+
+    if not all(flips):
+        return
+
+    in_play = _find_in_play(player)
+    candidates = [c for c in player.deck if _is_basic_energy_card(c)]
+    if not candidates or not in_play:
+        random.shuffle(player.deck)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Energy Coin: choose a Basic Energy from your deck to attach",
+        cards=candidates, min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [candidates[0].instance_id])
+
+    energy_card = None
+    for iid in chosen_ids[:1]:
+        energy_card = next((c for c in player.deck if c.instance_id == iid), None)
+
+    if not energy_card:
+        random.shuffle(player.deck)
+        return
+
+    req2 = ChoiceRequest(
+        "choose_target", player_id,
+        "Energy Coin: choose a Pokémon to attach the energy to",
+        targets=in_play,
+    )
+    resp2 = yield req2
+    if resp2 and resp2.target_instance_id:
+        target = _find_pokemon_in_play(player, resp2.target_instance_id)
+    else:
+        target = player.active
+
+    if target:
+        player.deck.remove(energy_card)
+        att = _make_energy_attachment(energy_card)
+        target.energy_attached.append(att)
+        state.emit_event("energy_attached", player=player_id,
+                         energy=energy_card.card_name, target=target.card_name,
+                         source="energy_coin")
+
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="energy_coin")
+
+
+def _fennel_b18(state: GameState, action):
+    """Fennel (sv10.5b-082)
+
+    Heal 40 damage from each of your Pokémon.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    for poke in _find_in_play(player):
+        heal = min(40, poke.max_hp - poke.current_hp)
+        if heal > 0:
+            poke.current_hp += heal
+            poke.damage_counters = max(0, poke.damage_counters - heal // 10)
+            state.emit_event("heal", player=player_id, pokemon=poke.card_name,
+                             amount=heal, source="fennel")
+
+
+def _ns_plan_b18(state: GameState, action):
+    """N's Plan (sv10.5b-083)
+
+    Move up to 2 Energy cards from your Benched Pokémon to your Active Pokémon.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    if not player.active or not player.bench:
+        return
+
+    bench_energy: list[tuple] = []
+    for poke in player.bench:
+        for att in poke.energy_attached:
+            bench_energy.append((poke, att))
+
+    if not bench_energy:
+        return
+
+    for _ in range(2):
+        if not bench_energy:
+            break
+        labels = [f"{att.card_def_id} on {poke.card_name}" for poke, att in bench_energy]
+        req = ChoiceRequest(
+            "choose_option", player_id,
+            "N's Plan: choose an Energy to move to your Active Pokémon (or Skip)",
+            options=labels + ["Skip"],
+        )
+        resp = yield req
+        opt = (resp.selected_option
+               if (resp is not None and resp.selected_option is not None)
+               else len(bench_energy))
+        if opt >= len(bench_energy):
+            break
+        poke, att = bench_energy[opt]
+        poke.energy_attached.remove(att)
+        player.active.energy_attached.append(att)
+        bench_energy.pop(opt)
+        state.emit_event("energy_moved", player=player_id, from_pokemon=poke.card_name,
+                         to_pokemon=player.active.card_name, energy=att.card_def_id)
+
+
+def _harlequin_b18(state: GameState, action):
+    """Harlequin (sv10.5w-083)
+
+    Each player shuffles their hand into their deck. Flip a coin.
+    Heads: you draw 5 cards and your opponent draws 3.
+    Tails: you draw 3 cards and your opponent draws 5.
+    """
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+
+    for pid in (player_id, opp_id):
+        p = state.get_player(pid)
+        for c in p.hand:
+            c.zone = Zone.DECK
+            p.deck.append(c)
+        p.hand.clear()
+        random.shuffle(p.deck)
+
+    heads = random.choice([True, False])
+    state.emit_event("coin_flip_result", card="Harlequin", heads=int(heads))
+
+    if heads:
+        draw_cards(state, player_id, 5)
+        draw_cards(state, opp_id, 3)
+    else:
+        draw_cards(state, player_id, 3)
+        draw_cards(state, opp_id, 5)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Registration
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -2506,3 +3388,78 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv08.5-095", _noop)  # Brave Bangle (base.py)
     registry.register_trainer("sv09-151", _noop)    # Lillie's Pearl (base.py)
     registry.register_trainer("sv10.5w-080", _noop) # Payapa Berry (base.py)
+
+    # ── Batch 18 registrations ───────────────────────────────────────────────
+
+    # Supporters
+    registry.register_trainer("me02.5-180", _acerolas_mischief)       # Acerola's Mischief alt
+    registry.register_trainer("me02.5-190", _iris_b18)                # Iris
+    registry.register_trainer("me02.5-200", _surfer_b18)              # Surfer
+    registry.register_trainer("me02.5-201", _tr_archer)               # TR Archer alt
+    registry.register_trainer("me02.5-202", _tr_ariana)               # TR Ariana alt
+    registry.register_trainer("me02.5-204", _tr_giovanni)             # TR Giovanni alt
+    registry.register_trainer("me02.5-208", _tr_proton)               # TR Proton alt
+    registry.register_trainer("me02.5-209", _tr_transceiver)          # TR Transceiver alt
+    registry.register_trainer("me02.5-214", _draw_3_b18)              # Urbain
+    registry.register_trainer("me02.5-215", _waitress_b18)            # Waitress
+    registry.register_trainer("me01-123", _pokemon_center_lady_b18)   # Pokémon Center Lady
+    registry.register_trainer("me01-126", _repel_b18)                 # Repel
+    registry.register_trainer("me01-132", _wally_b18)                 # Wally's Compassion (flagged)
+    registry.register_trainer("sv10.5w-081", _draw_3_b18)             # Cheren
+    registry.register_trainer("sv10.5w-083", _harlequin_b18)          # Harlequin
+
+    # Items
+    registry.register_trainer("me03-068", _noop)   # Antique Jaw Fossil (fossil mechanic)
+    registry.register_trainer("me03-069", _noop)   # Antique Sail Fossil (fossil mechanic)
+    registry.register_trainer("me03-070", _noop)   # Core Memory (grants attack to Mega Zygarde ex)
+    registry.register_trainer("me03-071", _crushing_hammer_b18)
+    registry.register_trainer("me03-072", _energy_search_b18)
+    registry.register_trainer("me03-073", _noop)   # Energy Swatter (hand reveal — flagged)
+    registry.register_trainer("me03-074", _hole_digging_shovel_b18)
+    registry.register_trainer("me03-075", _jacinthe_b18)
+    registry.register_trainer("me03-078", _lumiose_galette_b18)
+    registry.register_trainer("me03-079", _naveen_b18)
+    registry.register_trainer("me03-080", _poke_ball_b18)
+    registry.register_trainer("me03-082", _pokemon_catcher_b18)
+    registry.register_trainer("me03-083", _potion_b18)
+    registry.register_trainer("me02.5-182", _noop)  # Anthea & Concordia (complex passive)
+    registry.register_trainer("me02.5-185", _noop)  # Canari ({L} type search + discard cost)
+    registry.register_trainer("me02.5-187", _fighting_gong)           # Fighting Gong alt
+    registry.register_trainer("me02.5-188", _noop)  # Forest of Vitality alt (passive)
+    registry.register_trainer("me02.5-189", _glass_trumpet)           # Glass Trumpet alt
+    registry.register_trainer("me02.5-193", _mega_signal)             # Mega Signal alt
+    registry.register_trainer("me02.5-195", _ns_pp_up)                # NS PP Up alt
+    registry.register_trainer("me02.5-199", _premium_power_pro_b18)   # Premium Power Pro alt
+    registry.register_trainer("me02.5-203", _tr_factory_on_play)      # TR Factory alt
+    registry.register_trainer("me02.5-205", _tr_great_ball_b18)       # TR Great Ball
+    registry.register_trainer("me01-118", _iron_defender_b18)         # Iron Defender (noop)
+    registry.register_trainer("me01-120", _noop)   # Lt. Surge's Bargain (opponent decision — flagged)
+    registry.register_trainer("me01-122", _noop)   # Mystery Garden alt (passive stadium)
+    registry.register_trainer("me01-124", _premium_power_pro_b18)     # Premium Power Pro
+    registry.register_trainer("me01-128", _noop)   # Strange Timepiece (devolve — not supported)
+    registry.register_trainer("me01-129", _noop)   # Surfing Beach (passive stadium)
+    registry.register_trainer("me01-130", _switch_b18)                # Switch
+    registry.register_trainer("me02-086", _blowtorch_b18)             # Blowtorch
+    registry.register_trainer("me02-088", _noop)   # Dizzying Valley (passive stadium)
+    registry.register_trainer("me02-089", _firebreather_b18)          # Firebreather
+    registry.register_trainer("me02-090", _grimsleys_move_b18)        # Grimsley's Move
+    registry.register_trainer("sv10.5b-079", _noop) # Air Balloon alt (passive tool)
+    registry.register_trainer("sv10.5b-080", _noop) # Antique Cover Fossil (fossil mechanic)
+    registry.register_trainer("sv10.5b-081", _energy_coin_b18)        # Energy Coin
+    registry.register_trainer("sv10.5b-082", _fennel_b18)             # Fennel
+    registry.register_trainer("sv10.5b-083", _ns_plan_b18)            # N's Plan
+    registry.register_trainer("sv10.5b-084", _pokegear)               # Pokégear 3.0 alt
+    registry.register_trainer("sv10.5w-079", _noop) # Antique Plume Fossil (fossil mechanic)
+    registry.register_trainer("sv10.5w-082", _energy_retrieval)       # Energy Retrieval alt
+
+    # Tools (passive — handled in base.py)
+    registry.register_trainer("me02.5-186", _noop)  # Counter Gain (cost reduction tool)
+    registry.register_trainer("me02.5-191", _noop)  # Light Ball (+50 for Pikachu ex)
+    registry.register_trainer("me02.5-206", _noop)  # TR Hypnotizer (on-damage Sleep)
+    registry.register_trainer("me02.5-211", _noop)  # Thick Scale (-50 type-specific)
+    registry.register_trainer("me02-092", _noop)    # Punk Helmet (on-damage 4 counters)
+    registry.register_trainer("me02-093", _noop)    # Sacred Charm (-30 from Ability Pokémon)
+
+    # Stadiums (passive — handled elsewhere)
+    registry.register_trainer("me03-077", _noop)   # Lumiose City (bench Basic per turn)
+    registry.register_trainer("me02.5-197", _noop) # Nighttime Mine (Tera cost +{C})

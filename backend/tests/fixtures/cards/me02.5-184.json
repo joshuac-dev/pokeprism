@@ -1,0 +1,106 @@
+{
+  "category": "Trainer",
+  "id": "me02.5-184",
+  "illustrator": "AYUMI ODASHIMA",
+  "image": "https://assets.tcgdex.net/en/me/me02.5/184",
+  "localId": "184",
+  "name": "Buddy-Buddy Poffin",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 217,
+      "total": 295
+    },
+    "id": "me02.5",
+    "logo": "https://assets.tcgdex.net/en/me/me02.5/logo",
+    "name": "Ascended Heroes",
+    "symbol": "https://assets.tcgdex.net/univ/me/me02.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 869795,
+          "avg": 0.08,
+          "low": 0.02,
+          "trend": 0.08,
+          "avg1": 0.08,
+          "avg7": 0.08,
+          "avg30": 0.08,
+          "avg-holo": 0.2,
+          "low-holo": 0.02,
+          "trend-holo": 0.19,
+          "avg1-holo": 0.26,
+          "avg7-holo": 0.2,
+          "avg30-holo": 0.19
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 869795,
+          "avg": 0.08,
+          "low": 0.02,
+          "trend": 0.08,
+          "avg1": 0.08,
+          "avg7": 0.08,
+          "avg30": 0.08,
+          "avg-holo": 0.2,
+          "low-holo": 0.02,
+          "trend-holo": 0.19,
+          "avg1-holo": 0.26,
+          "avg7-holo": 0.2,
+          "avg30-holo": 0.19
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "effect": "Search your deck for up to 2 Basic Pokémon with 70 HP or less and put them onto your Bench. Then, shuffle your deck.",
+  "trainerType": "Item",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-04-15T19:47:06Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 869795,
+      "avg": 0.08,
+      "low": 0.02,
+      "trend": 0.08,
+      "avg1": 0.08,
+      "avg7": 0.08,
+      "avg30": 0.08,
+      "avg-holo": 0.2,
+      "low-holo": 0.02,
+      "trend-holo": 0.19,
+      "avg1-holo": 0.26,
+      "avg7-holo": 0.2,
+      "avg30-holo": 0.19
+    },
+    "tcgplayer": null
+  }
+}

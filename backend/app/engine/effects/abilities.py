@@ -4044,3 +4044,4 @@ def register_all(registry):
     registry.register_passive_ability("svp-154", "Obliging Heal")           # Indeedee (sv08-093 alt)
     registry.register_passive_ability("svp-159", "Overvolt Discharge")      # Magnezone (sv08-059 alt)
     registry.register_passive_ability("svp-183", "Inviting Wink")           # Lillie's Ribombee (sv09-067 alt)
+    registry.register_passive_ability("svp-216", "Power Saver")             # TR Mewtwo ex (svp-205 alt)

@@ -1,0 +1,106 @@
+{
+  "category": "Trainer",
+  "id": "me02.5-198",
+  "illustrator": "Studio Bora Inc.",
+  "image": "https://assets.tcgdex.net/en/me/me02.5/198",
+  "localId": "198",
+  "name": "Poké Pad",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 217,
+      "total": 295
+    },
+    "id": "me02.5",
+    "logo": "https://assets.tcgdex.net/en/me/me02.5/logo",
+    "name": "Ascended Heroes",
+    "symbol": "https://assets.tcgdex.net/univ/me/me02.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 869809,
+          "avg": 1.15,
+          "low": 0.02,
+          "trend": 0.76,
+          "avg1": 0.51,
+          "avg7": 0.82,
+          "avg30": 0.89,
+          "avg-holo": 1.71,
+          "low-holo": 0.03,
+          "trend-holo": 1.02,
+          "avg1-holo": 0.9,
+          "avg7-holo": 1.3,
+          "avg30-holo": 1.42
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 869809,
+          "avg": 1.15,
+          "low": 0.02,
+          "trend": 0.76,
+          "avg1": 0.51,
+          "avg7": 0.82,
+          "avg30": 0.89,
+          "avg-holo": 1.71,
+          "low-holo": 0.03,
+          "trend-holo": 1.02,
+          "avg1-holo": 0.9,
+          "avg7-holo": 1.3,
+          "avg30-holo": 1.42
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "effect": "Search your deck for a Pokémon that doesn't have a Rule Box, reveal it, and put it into your hand. Then, shuffle your deck. (Pokémon ex, Pokémon V, etc. have Rule Boxes.)",
+  "trainerType": "Item",
+  "regulationMark": "J",
+  "legal": {
+    "standard": false,
+    "expanded": false
+  },
+  "updated": "2026-04-15T19:47:06Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 869809,
+      "avg": 1.15,
+      "low": 0.02,
+      "trend": 0.76,
+      "avg1": 0.51,
+      "avg7": 0.82,
+      "avg30": 0.89,
+      "avg-holo": 1.71,
+      "low-holo": 0.03,
+      "trend-holo": 1.02,
+      "avg1-holo": 0.9,
+      "avg7-holo": 1.3,
+      "avg30-holo": 1.42
+    },
+    "tcgplayer": null
+  }
+}

@@ -22940,3 +22940,39 @@ def register_batch17_attacks(registry):
     # ── svp-212 Reuniclus ────────────────────────────────────────────────────
     registry.register_attack("svp-212", 0, _cellular_ascension_flag_b17)   # Cellular Ascension (FLAGGED)
     registry.register_attack("svp-212", 1, _evo_lariat_b17)                # Evo-Lariat
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Batch 18 attack handlers
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _haughty_order_flag_b18(state, action):
+    """svp-218 TR Persian ex atk0 — Haughty Order: FLAGGED (copy attack from top 10 opp deck)."""
+    state.emit_event("flagged_effect", attack="Haughty Order",
+                     reason="copy_attack_from_top_10_not_supported")
+
+
+def _cruel_slash_b18(state, action):
+    """svp-218 TR Persian ex atk1 — Cruel Slash: 140 + Confused on opponent's Active."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp = state.get_opponent(action.player_id)
+    if opp.active:
+        opp.active.status_conditions.add(StatusCondition.CONFUSED)
+        state.emit_event("status_applied", card=opp.active.card_name, status="CONFUSED")
+
+
+def register_batch18_attacks(registry):
+    """Register all Batch 18 Pokémon attack handlers."""
+
+    # ── svp-216 TR Mewtwo ex (alt print of svp-205) ───────────────────────────
+    registry.register_attack("svp-216", 0, _erasure_ball_flag_b17)         # Erasure Ball (FLAGGED)
+
+    # ── svp-217 TR Nidoking ex ────────────────────────────────────────────────
+    registry.register_attack("svp-217", 0, _tainted_horn)                  # Tainted Horn
+    registry.register_attack("svp-217", 1, _do_default_damage)             # Kingly Impact (240 flat)
+
+    # ── svp-218 TR Persian ex ─────────────────────────────────────────────────
+    registry.register_attack("svp-218", 0, _haughty_order_flag_b18)        # Haughty Order (FLAGGED)
+    registry.register_attack("svp-218", 1, _cruel_slash_b18)               # Cruel Slash

@@ -1,0 +1,64 @@
+{
+  "category": "Trainer",
+  "id": "me02-088",
+  "image": "https://assets.tcgdex.net/en/me/me02/088",
+  "localId": "088",
+  "name": "Dizzying Valley",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 94,
+      "total": 130
+    },
+    "id": "me02",
+    "logo": "https://assets.tcgdex.net/en/me/me02/logo",
+    "name": "Phantasmal Flames"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "effect": "Confused Pokémon (both yours and your opponent's) don't recover from that Special Condition when they evolve or devolve.",
+  "trainerType": "Stadium",
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-03-07T09:39:56Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 857663,
+      "avg": 0.03,
+      "low": 0.02,
+      "trend": 0.03,
+      "avg1": 0.02,
+      "avg7": 0.03,
+      "avg30": 0.03,
+      "avg-holo": 0.08,
+      "low-holo": 0.02,
+      "trend-holo": 0.11,
+      "avg1-holo": 0.08,
+      "avg7-holo": 0.12,
+      "avg30-holo": 0.08
+    },
+    "tcgplayer": null
+  }
+}

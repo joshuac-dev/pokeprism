@@ -1,103 +1,3 @@
-Team Rocket's Mewtwo ex PR-SV 216
-Team Rocket's Persian ex PR-SV 218
-Team Rocket's Nidoking ex PR-SV 217
-Energy Recycler DRI 164
-Antique Jaw Fossil POR 68
-Antique Sail Fossil POR 69
-Core Memory POR 70
-Crushing Hammer POR 71
-Energy Search POR 72
-Energy Swatter POR 73
-Hole-Digging Shovel POR 74
-Jacinthe POR 75
-Judge POR 76
-Lumiose City POR 77
-Lumiose Galette POR 78
-Naveen POR 79
-Poké Ball POR 80
-Poké Pad POR 81
-Pokémon Catcher POR 82
-Potion POR 83
-Rosa's Encouragement POR 84
-Tarragon POR 85
-Acerola's Mischief ASC 180
-Air Balloon ASC 181
-Anthea & Concordia ASC 182
-Boss's Orders ASC 183
-Buddy-Buddy Poffin ASC 184
-Canari ASC 185
-Counter Gain ASC 186
-Fighting Gong ASC 187
-Forest of Vitality ASC 188
-Glass Trumpet ASC 189
-Iris's Fighting Spirit ASC 190
-Light Ball ASC 191
-Lillie's Determination ASC 192
-Mega Signal ASC 193
-Mystery Garden ASC 194
-N's PP Up ASC 195
-Night Stretcher ASC 196
-Nighttime Mine ASC 197
-Poké Pad ASC 198
-Premium Power Pro ASC 199
-Surfer ASC 200
-Team Rocket's Archer ASC 201
-Team Rocket's Ariana ASC 202
-Team Rocket's Factory ASC 203
-Team Rocket's Giovanni ASC 204
-Team Rocket's Great Ball ASC 205
-Team Rocket's Hypnotizer ASC 206
-Team Rocket's Petrel ASC 207
-Team Rocket's Proton ASC 208
-Team Rocket's Transceiver ASC 209
-Team Rocket's Watchtower ASC 210
-Thick Scale ASC 211
-Tool Scrapper ASC 212
-Ultra Ball ASC 213
-Urbain ASC 214
-Waitress ASC 215
-Battle Cage PFL 85
-Blowtorch PFL 86
-Dawn PFL 87
-Dizzying Valley PFL 88
-Firebreather PFL 89
-Grimsley's Move PFL 90
-Jumbo Ice Cream PFL 91
-Punk Helmet PFL 92
-Sacred Charm PFL 93
-Wondrous Patch PFL 94
-Acerola's Mischief MEG 113
-Boss's Orders MEG 114
-Energy Switch MEG 115
-Fighting Gong MEG 116
-Forest of Vitality MEG 117
-Mega Signal MEG 121
-Lt. Surge's Bargain MEG 120
-Lillie's Determination MEG 119
-Iron Defender MEG 118
-Mystery Garden MEG 122
-Pokémon Center Lady MEG 123
-Premium Power Pro MEG 124
-Rare Candy MEG 125
-Repel MEG 126
-Risky Ruins MEG 127
-Strange Timepiece MEG 128
-Surfing Beach MEG 129
-Wally's Compassion MEG 132
-Ultra Ball MEG 131
-Switch MEG 130
-Air Balloon BLK 79
-Antique Cover Fossil BLK 80
-Energy Coin BLK 81
-Fennel BLK 82
-N's Plan BLK 83
-Pokégear 3.0 BLK 84
-Antique Plume Fossil WHT 79
-Brave Bangle WHT 80
-Cheren WHT 81
-Energy Retrieval WHT 82
-Harlequin WHT 83
-Hilda WHT 84
 Tool Scrapper WHT 85
 Arven's Sandwich DRI 161
 Cynthia's Power Weight DRI 162
@@ -513,3 +413,7 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Iono's Kilowattrel PR-SV 182 | svp-182 | Flashing Draw (ability) | Discard Basic {L} Energy from this Pokémon; draw until 6 in hand — active discard-for-draw ability with energy cost not implemented |
 | Tornadus PR-SV 210 | svp-210 | Hurricane (atk1) | Move a Basic Energy from this Pokémon to 1 of your Benched Pokémon — energy movement active→bench not in engine |
 | Reuniclus PR-SV 212 | svp-212 | Cellular Ascension (atk0) | Evolve each Benched Pokémon from deck simultaneously — mass in-battle bench evolution not supported |
+| TR Persian ex PR-SV 218 | svp-218 | Haughty Order (atk0) | Copy an attack from a Pokémon in the opponent's top 10 deck cards — deck-scanning attack execution not currently supported |
+| Energy Swatter POR 73 | me03-073 | (trainer effect) | Reveal opponent's hand; attach Basic Energy only to Pokémon whose type appears in opponent's hand — requires hand-reveal + type-matching energy attachment not supported |
+| Lt. Surge's Bargain MEG 120 | me01-120 | (trainer effect) | Opponent chooses to discard 0, 1, or 2 of their own Pokémon — opponent-interactive decision with branching discard not supported |
+| Wally's Compassion MEG 132 | me01-132 | (trainer effect) | Return Pokémon Tool + Energy to hand; then evolve attached Mega Evolution ex — Mega Evo detection and mid-battle multi-step evolution sequence not supported |

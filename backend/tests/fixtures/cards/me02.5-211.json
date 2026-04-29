@@ -1,0 +1,106 @@
+{
+  "category": "Trainer",
+  "id": "me02.5-211",
+  "illustrator": "Toyste Beach",
+  "image": "https://assets.tcgdex.net/en/me/me02.5/211",
+  "localId": "211",
+  "name": "Thick Scale",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 217,
+      "total": 295
+    },
+    "id": "me02.5",
+    "logo": "https://assets.tcgdex.net/en/me/me02.5/logo",
+    "name": "Ascended Heroes",
+    "symbol": "https://assets.tcgdex.net/univ/me/me02.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 869822,
+          "avg": 0.05,
+          "low": 0.02,
+          "trend": 0.04,
+          "avg1": 0.03,
+          "avg7": 0.05,
+          "avg30": 0.05,
+          "avg-holo": 0.23,
+          "low-holo": 0.02,
+          "trend-holo": 0.16,
+          "avg1-holo": 0.12,
+          "avg7-holo": 0.17,
+          "avg30-holo": 0.21
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 869822,
+          "avg": 0.05,
+          "low": 0.02,
+          "trend": 0.04,
+          "avg1": 0.03,
+          "avg7": 0.05,
+          "avg30": 0.05,
+          "avg-holo": 0.23,
+          "low-holo": 0.02,
+          "trend-holo": 0.16,
+          "avg1-holo": 0.12,
+          "avg7-holo": 0.17,
+          "avg30-holo": 0.21
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "effect": "The {N} Pokémon this card is attached to takes 50 less damage from attacks from your opponent's {G}, {R}, {W}, or {L} Pokémon (after applying Weakness and Resistance).",
+  "trainerType": "Tool",
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-04-15T19:47:06Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 869822,
+      "avg": 0.05,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.03,
+      "avg7": 0.05,
+      "avg30": 0.05,
+      "avg-holo": 0.23,
+      "low-holo": 0.02,
+      "trend-holo": 0.16,
+      "avg1-holo": 0.12,
+      "avg7-holo": 0.17,
+      "avg30-holo": 0.21
+    },
+    "tcgplayer": null
+  }
+}

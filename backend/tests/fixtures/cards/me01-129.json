@@ -1,0 +1,74 @@
+{
+  "category": "Trainer",
+  "id": "me01-129",
+  "illustrator": "AYUMI ODASHIMA",
+  "image": "https://assets.tcgdex.net/en/me/me01/129",
+  "localId": "129",
+  "name": "Surfing Beach",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 132,
+      "total": 188
+    },
+    "id": "me01",
+    "logo": "https://assets.tcgdex.net/en/me/me01/logo",
+    "name": "Mega Evolution",
+    "symbol": "https://assets.tcgdex.net/univ/me/me01/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "gx8bq2hegum3q6irsxlvqxm955ikw9gd1h311"
+    }
+  ],
+  "effect": "Once during each player's turn, that player may switch their Active {W} Pokémon with 1 of their Benched {W} Pokémon.",
+  "trainerType": "Stadium",
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-01-07T13:25:47+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851200,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.09,
+      "avg1": 0.12,
+      "avg7": 0.1,
+      "avg30": 0.07,
+      "avg-holo": 0.28,
+      "low-holo": 0.02,
+      "trend-holo": 0.27,
+      "avg1-holo": 0.2,
+      "avg7-holo": 0.26,
+      "avg30-holo": 0.28
+    },
+    "tcgplayer": null
+  }
+}

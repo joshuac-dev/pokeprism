@@ -1,0 +1,79 @@
+{
+  "category": "Pokemon",
+  "id": "svp-217",
+  "illustrator": "5ban Graphics",
+  "localId": "217",
+  "name": "Team Rocket's Nidoking ex",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "jr7oetx1mqug9"
+    }
+  ],
+  "dexId": [
+    34
+  ],
+  "hp": 330,
+  "types": [
+    "Darkness"
+  ],
+  "evolveFrom": "Team Rocket's Nidorino",
+  "stage": "Stage2",
+  "suffix": "EX",
+  "attacks": [
+    {
+      "cost": [
+        "Darkness",
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Tainted Horn",
+      "effect": "Your opponent's Active Pokémon is now Poisoned. During Pokémon Checkup, put 8 damage counters on that Pokémon instead of 1.",
+      "damage": "100"
+    },
+    {
+      "cost": [
+        "Darkness",
+        "Darkness",
+        "Darkness",
+        "Colorless"
+      ],
+      "name": "Kingly Impact",
+      "damage": "240"
+    }
+  ],
+  "weaknesses": [
+    {
+      "type": "Fighting",
+      "value": "×2"
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:10:00+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

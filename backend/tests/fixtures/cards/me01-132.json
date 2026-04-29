@@ -1,0 +1,84 @@
+{
+  "category": "Trainer",
+  "id": "me01-132",
+  "illustrator": "Iori Suzuki",
+  "image": "https://assets.tcgdex.net/en/me/me01/132",
+  "localId": "132",
+  "name": "Wally's Compassion",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 132,
+      "total": 188
+    },
+    "id": "me01",
+    "logo": "https://assets.tcgdex.net/en/me/me01/logo",
+    "name": "Mega Evolution",
+    "symbol": "https://assets.tcgdex.net/univ/me/me01/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "foil": "cosmos",
+      "variantId": "6x9wic2vzb5bfzn0gz10e76xy60nqt2vwbzzupgwp6"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "ultra-ball-league"
+      ],
+      "foil": "cosmos",
+      "variantId": "emhbp2dy4b76jjbuu6x2crmy9q6xg26osb8jb"
+    }
+  ],
+  "effect": "Heal all damage from 1 of your Mega Evolution Pokémon ex. If you healed any damage in this way, put all Energy attached to that Pokémon into your hand.",
+  "trainerType": "Supporter",
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-01-07T13:25:47+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 851203,
+      "avg": 0.08,
+      "low": 0.02,
+      "trend": 0.08,
+      "avg1": 0.05,
+      "avg7": 0.09,
+      "avg30": 0.08,
+      "avg-holo": 0.16,
+      "low-holo": 0.02,
+      "trend-holo": 0.17,
+      "avg1-holo": 0.16,
+      "avg7-holo": 0.16,
+      "avg30-holo": 0.16
+    },
+    "tcgplayer": null
+  }
+}

@@ -10,12 +10,40 @@ All 13 phases complete. Currently expanding card pool from 206 → full Standard
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | 1738 |
-| Coverage | **98.3%** (29 missing — all legitimately flagged) |
-| Batches complete | 17 (Batches 1–17) |
-| Processable cards remaining | ~281 |
-| Flagged cards (cumulative) | ~230 entries — see `FLAGGED_CARDS` section of `POKEMON_MASTER_LIST.md` |
-| Next batch starts at | **Team Rocket's Mewtwo ex PR-SV 216** (`svp-216`) |
+| Cards in DB | 1806 |
+| Coverage | **98.4%** (29 missing — all legitimately flagged) |
+| Batches complete | 18 (Batches 1–18) |
+| Processable cards remaining | ~181 |
+| Flagged cards (cumulative) | ~234 entries — see `FLAGGED_CARDS` section of `POKEMON_MASTER_LIST.md` |
+| Next batch starts at | **Tool Scrapper WHT 85** (`sv10.5w-085`) |
+
+## Last Session — 2026-05-27 (Card Pool Expansion: Batch 18)
+
+### What Was Done
+
+**Batch 18** (68 new cards, svp-216..218 + me03-068..083 + me02.5-180..215 + me02-085..094 + me01-113..132 + sv10.5b-079..084 + sv10.5w-079..084): DB grew from 1738 → 1806 cards.
+- 27 trainer cards were already in DB from previous batches (alt prints already inserted)
+- 5 cards in `_ALREADY_IN_DB` skip list: sv10-164, me03-076, me03-081, me03-084, me03-085
+- **3 TR Pokémon**: svp-216 (Mewtwo ex reuse), svp-217 (Nidoking ex reuse), svp-218 (Persian ex new)
+- **27 new trainer handlers** written (crushing hammer, energy search, hole-digging shovel, jacinthe, lumiose galette, naveen, poké ball, pokémon catcher, potion, iris, surfer, TR great ball, draw 3, waitress, blowtorch, firebreather, grimsley's move, iron defender stub, pokémon center lady, premium power pro stub, repel, switch, wally's compassion stub, energy coin, fennel, N's plan, harlequin)
+- **~17 handler reuses** for alt prints (acerola's mischief, fighting gong, glass trumpet, mega signal, NS PP up, TR archer/ariana/factory/giovanni/petrel/proton/transceiver, pokégear, energy retrieval, bosss orders, lillies determination, etc.)
+- `_cruel_slash_b18` attack handler added, `_haughty_order_flag_b18` flagged stub added
+- `register_batch18_attacks` wired into `__init__.py`
+- 4 new flagged entries added to FLAGGED_CARDS
+
+### Issues Encountered
+- None — clean run: all fixtures pre-fetched, all handlers written
+
+### Final Baseline This Session
+- **215 backend tests pass**
+- **1806 cards in DB**
+- **Coverage: 98.4%** (29 missing — all legitimately flagged, same set as pre-batch)
+- **~234 flagged entries** (full list in `FLAGGED_CARDS` section of `docs/POKEMON_MASTER_LIST.md`)
+
+### Notes for Next Session
+Continue with **Batch 19**, starting at **Dratini MEG 133** (`me01-133`). Run `make reset-data` before any fresh simulation testing. If coverage drops after insert + code changes, **restart the backend** before re-checking `/api/coverage`.
+
+---
 
 ## Last Session — 2026-05-26 (Card Pool Expansion: Batch 17)
 
