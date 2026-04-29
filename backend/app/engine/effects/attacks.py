@@ -4600,6 +4600,16 @@ def _mega_brave(state, action):
                          attack="Mega Brave")
 
 
+def _big_bite(state, action):
+    """me02.5-114 Stunfisk ex atk0 — Big Bite: 30 + defending Pokémon can't retreat next turn."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp = state.get_opponent(action.player_id)
+    if opp.active:
+        opp.active.cant_retreat_next_turn = True
+
+
 def _flopping_trap(state, action):
     """me02.5-114 Stunfisk ex atk1 — Flopping Trap: 100 + 100 if self has damage counters."""
     player = state.get_player(action.player_id)
@@ -5351,6 +5361,7 @@ def register_all(registry) -> None:
     registry.register_attack("me02.5-113", 1, _mega_brave)
 
     # me02.5-114 Stunfisk ex
+    registry.register_attack("me02.5-114", 0, _big_bite)
     registry.register_attack("me02.5-114", 1, _flopping_trap)
 
     # me02.5-115 Geodude — Slight Intrusion (Reckless Charge)
