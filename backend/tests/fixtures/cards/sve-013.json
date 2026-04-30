@@ -1,0 +1,39 @@
+{
+  "category": "Energy",
+  "id": "sve-013",
+  "localId": "013",
+  "name": "Psychic Energy",
+  "rarity": "Common",
+  "set": {
+    "cardCount": {
+      "official": 24,
+      "total": 24
+    },
+    "id": "sve",
+    "name": "Scarlet & Violet Energy"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "generated"
+    }
+  ],
+  "energyType": "Normal",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-03-06T18:15:02Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

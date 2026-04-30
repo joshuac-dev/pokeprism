@@ -1,0 +1,73 @@
+{
+  "category": "Trainer",
+  "id": "sv05-160",
+  "illustrator": "Ryuta Fuse",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/160",
+  "localId": "160",
+  "name": "Salvatore",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "gx8bq2hegum3q6irsxlvqxm955ikw9gd1h311"
+    }
+  ],
+  "effect": "Search your deck for a card that has no Abilities and evolves from 1 of your Pokémon, and put it onto that Pokémon to evolve it. Then, shuffle your deck. You can use this card on a Pokémon you put down when you were setting up to play or on a Pokémon that was put into play this turn.",
+  "trainerType": "Supporter",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760790,
+      "avg": 0.09,
+      "low": 0.02,
+      "trend": 0.08,
+      "avg1": 0.07,
+      "avg7": 0.08,
+      "avg30": 0.09,
+      "avg-holo": 0.24,
+      "low-holo": 0.02,
+      "trend-holo": 0.26,
+      "avg1-holo": 0.26,
+      "avg7-holo": 0.25,
+      "avg30-holo": 0.24
+    },
+    "tcgplayer": null
+  }
+}

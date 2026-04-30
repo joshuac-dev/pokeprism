@@ -1,0 +1,74 @@
+{
+  "category": "Trainer",
+  "id": "sv05-156",
+  "illustrator": "AYUMI ODASHIMA",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/156",
+  "localId": "156",
+  "name": "Perilous Jungle",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "foil": "cosmos",
+      "variantId": "6x9wic2vzb5bfzn0gz10e76xy60nqt2vwbzzupgwp6"
+    }
+  ],
+  "effect": "During Pokémon Checkup, put 2 more damage counters on each Poisoned non-{D} Pokémon (both yours and your opponent's).",
+  "trainerType": "Stadium",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760786,
+      "avg": 0.09,
+      "low": 0.02,
+      "trend": 0.1,
+      "avg1": 0.05,
+      "avg7": 0.11,
+      "avg30": 0.09,
+      "avg-holo": 0.28,
+      "low-holo": 0.02,
+      "trend-holo": 0.26,
+      "avg1-holo": 0.03,
+      "avg7-holo": 0.25,
+      "avg30-holo": 0.27
+    },
+    "tcgplayer": null
+  }
+}

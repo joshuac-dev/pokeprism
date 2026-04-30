@@ -1,0 +1,65 @@
+{
+  "category": "Trainer",
+  "id": "sv05-150",
+  "illustrator": "Ayaka Yoshida",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/150",
+  "localId": "150",
+  "name": "Hand Trimmer",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "effect": "Each player discards cards from their hand until they have 5 cards in their hand. Your opponent discards first. (If a player has 5 or fewer cards in their hand, they do not discard.)",
+  "trainerType": "Item",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760780,
+      "avg": 0.07,
+      "low": 0.02,
+      "trend": 0.06,
+      "avg1": 0.03,
+      "avg7": 0.04,
+      "avg30": 0.06,
+      "avg-holo": 0.17,
+      "low-holo": 0.02,
+      "trend-holo": 0.15,
+      "avg1-holo": 0.14,
+      "avg7-holo": 0.13,
+      "avg30-holo": 0.18
+    },
+    "tcgplayer": null
+  }
+}

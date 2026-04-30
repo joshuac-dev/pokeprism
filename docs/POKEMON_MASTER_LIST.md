@@ -1,82 +1,3 @@
-Accompanying Flute TWM 142
-Bug Catching Set TWM 143
-Caretaker TWM 144
-Carmine TWM 145
-Community Center TWM 146
-Cook TWM 147
-Enhanced Hammer TWM 148
-Festival Grounds TWM 149
-Jamming Tower TWM 153
-Hassel TWM 151
-Handheld Fan TWM 150
-Kieran TWM 154
-Lana's Aid TWM 155
-Love Ball TWM 156
-Lucian TWM 157
-Lucky Helmet TWM 158
-Ogre's Mask TWM 159
-Perrin TWM 160
-Ciphermaniac's Codebreaking TEF 145
-Buddy-Buddy Poffin TEF 144
-Boxed Order TEF 143
-Bianca's Devotion TEF 142
-Eri TEF 146
-Explorer's Guidance TEF 147
-Full Metal Lab TEF 148
-Hand Trimmer TEF 150
-Heavy Baton TEF 151
-Perilous Jungle TEF 156
-Morty's Conviction TEF 155
-Rescue Board TEF 159
-Salvatore TEF 160
-Celebratory Fanfare MEP 28
-Picnicker PR-SV 114
-Paradise Resort PR-SV 150
-Paradise Resort PR-SV 224
-Growing Grass Energy POR 86
-Rocky Fighting Energy POR 87
-Telepathic Psychic Energy POR 88
-Prism Energy ASC 216
-Team Rocket's Energy ASC 217
-Grass Energy MEE 1
-Fire Energy MEE 2
-Water Energy MEE 3
-Lightning Energy MEE 4
-Psychic Energy MEE 5
-Metal Energy MEE 8
-Darkness Energy MEE 7
-Fighting Energy MEE 6
-Prism Energy BLK 86
-Ignition Energy WHT 86
-Team Rocket's Energy DRI 182
-Spiky Energy JTG 159
-Boomerang Energy TWM 166
-Mist Energy TEF 161
-Grass Energy SVE 1
-Fire Energy SVE 2
-Water Energy SVE 3
-Lightning Energy SVE 4
-Metal Energy SVE 8
-Darkness Energy SVE 7
-Fighting Energy SVE 6
-Psychic Energy SVE 5
-Grass Energy SVE 9
-Fire Energy SVE 10
-Water Energy SVE 11
-Lightning Energy SVE 12
-Psychic Energy SVE 13
-Fighting Energy SVE 14
-Darkness Energy SVE 15
-Metal Energy SVE 16
-Lightning Energy SVE 20
-Water Energy SVE 19
-Fire Energy SVE 18
-Grass Energy SVE 17
-Psychic Energy SVE 21
-Fighting Energy SVE 22
-Darkness Energy SVE 23
-Metal Energy SVE 24
-
 ---
 
 ## FLAGGED_CARDS
@@ -326,3 +247,16 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | TM: Fluorite SSP 188 | sv08-188 | (trainer effect) | Heal 30 from all your Tera Pokémon between turns — end-of-turn Tera-wide heal not supported |
 | Tyme SSP 190 | sv08-190 | (trainer effect) | Opponent calls heads or tails; if wrong, discard 2 from hand — opponent-interactive guessing game not supported |
 | Powerglass SFA 63 | sv06.5-063 | (trainer effect) | Attached Tool: at the end of your turn, deal 60 to opponent's Active — end-of-turn damage from Tool not supported |
+| Community Center TWM 146 | sv06-146 | (trainer effect) | Caretaker synergy — when Community Center is active and Caretaker draws cards, Caretaker returns to deck instead of being discarded |
+| Handheld Fan TWM 150 | sv06-150 | (trainer effect) | Discard a card from hand to heal 90 from Active — discard-for-heal supporter effect not modelled |
+| Lucian TWM 157 | sv06-157 | (trainer effect) | Draw 3; attach a Basic Energy from hand to any Pokémon in play — combined draw+energy-attach in single supporter not supported |
+| Lucky Helmet TWM 158 | sv06-158 | (trainer effect) | When the Pokémon this Tool is attached to is damaged by opponent's attack, draw 2 — on-damage trigger hook via Tool not in engine |
+| Full Metal Lab TEF 148 | sv05-148 | (trainer effect) | Pokémon Tools attached to Pokémon in play can't be discarded by opponent's effects — per-tool protection from removal not supported |
+| Hand Trimmer TEF 150 | sv05-150 | (trainer effect) | Attached Tool: this Pokémon's attacks do +30 for each card in opponent's hand ≥ 8 — conditional per-hand-count damage bonus not in engine |
+| Heavy Baton TEF 151 | sv05-151 | (trainer effect) | When the Pokémon this Tool is attached to retreats, attach a Basic Energy from discard to the retreating Pokémon — on-retreat trigger via Tool not in engine |
+| Perilous Jungle TEF 156 | sv05-156 | (trainer effect) | Stadium: once per turn, when an opponent's Pokémon is damaged by your Pokémon's attacks, place 2 damage counters on that Pokémon — end-of-damage-event trigger per stadium not supported |
+| Celebratory Fanfare MEP 28 | mep-028 | (trainer effect) | Stadium: when a player takes their last Prize card, that player draws 3 cards — prize-zone trigger hook not in engine |
+| Paradise Resort PR-SV 150 | svp-150 | (trainer effect) | Stadium: once per turn, heal 30 from 1 of your Pokémon without an Ability — per-turn optional heal via stadium not supported |
+| Paradise Resort PR-SV 224 | svp-224 | (trainer effect) | Same as Paradise Resort (alt art) — per-turn optional heal via stadium not supported |
+| Spiky Energy JTG 159 | sv09-159 | (energy effect) | When this Energy is attached to a Pokémon, your opponent's Active Pokémon takes 20 damage — on-attach damage trigger not currently supported |
+| Boomerang Energy TWM 166 | sv06-166 | (energy effect) | When this Special Energy is discarded from a Pokémon, return it to hand — on-discard-from-play energy recycle not supported |

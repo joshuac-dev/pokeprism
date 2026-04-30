@@ -275,6 +275,11 @@ class MatchRunner:
             state = await StateTransition.apply(state, action, self._get_player)
             self._emit_since(state, prev_len)
 
+            if state.force_end_turn:
+                state.force_end_turn = False
+                state = self._end_turn(state)
+                return state
+
             if action.action_type == ActionType.PASS:
                 break  # Phase was set to ATTACK by the _pass handler
             elif action.action_type == ActionType.END_TURN:
@@ -456,6 +461,7 @@ class MatchRunner:
         state.active_player_damage_bonus_vs_ex = 0
         state.briar_active = False
         state.sunny_day_active = False
+        state.force_end_turn = False
         state.active_player = state.opponent_id(state.active_player)
         state.turn_number += 1
         state.phase = Phase.DRAW

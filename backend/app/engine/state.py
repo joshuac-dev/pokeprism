@@ -186,6 +186,7 @@ class GameState:
     active_player_damage_bonus_vs_ex: int = 0  # Black Belt's Training +40 vs ex only
     briar_active: bool = False                 # Briar (sv07-132): +1 prize on active KO
     sunny_day_active: bool = False             # Lilligant (sv09-007): Grass/Fire attacks +20
+    force_end_turn: bool = False               # Boxed Order (sv05-143): end turn after item search
 
     # Event log
     events: list[dict] = field(default_factory=list)

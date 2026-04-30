@@ -1,0 +1,45 @@
+{
+  "category": "Trainer",
+  "id": "mep-028",
+  "illustrator": "Yuu Nishida",
+  "localId": "028",
+  "name": "Celebratory Fanfare",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 0,
+      "total": 37
+    },
+    "id": "mep",
+    "name": "MEP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "stamp": [
+        "ace-trainer"
+      ],
+      "variantId": "3a83wf50tx1wqfqfzx1tg3cwq"
+    }
+  ],
+  "effect": "Once during each player's turn, that player may heal 10 damage from each of their Pokémon. If a player healed any damage in this way, their turn ends.",
+  "trainerType": "Stadium",
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-03-20T21:51:21Z",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "category": "Energy",
+  "id": "me02.5-217",
+  "image": "https://assets.tcgdex.net/en/me/me02.5/217",
+  "localId": "217",
+  "name": "Team Rocket's Energy",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 217,
+      "total": 295
+    },
+    "id": "me02.5",
+    "logo": "https://assets.tcgdex.net/en/me/me02.5/logo",
+    "name": "Ascended Heroes",
+    "symbol": "https://assets.tcgdex.net/univ/me/me02.5/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 869828,
+          "avg": 0.17,
+          "low": 0.02,
+          "trend": 0.2,
+          "avg1": 0.16,
+          "avg7": 0.2,
+          "avg30": 0.18,
+          "avg-holo": 0.4,
+          "low-holo": 0.02,
+          "trend-holo": 0.48,
+          "avg1-holo": 0.37,
+          "avg7-holo": 0.4,
+          "avg30-holo": 0.41
+        },
+        "tcgplayer": null
+      }
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f",
+      "pricing": {
+        "cardmarket": {
+          "updated": "2026-04-29T00:43:28.000Z",
+          "unit": "EUR",
+          "idProduct": 869828,
+          "avg": 0.17,
+          "low": 0.02,
+          "trend": 0.2,
+          "avg1": 0.16,
+          "avg7": 0.2,
+          "avg30": 0.18,
+          "avg-holo": 0.4,
+          "low-holo": 0.02,
+          "trend-holo": 0.48,
+          "avg1-holo": 0.37,
+          "avg7-holo": 0.4,
+          "avg30-holo": 0.41
+        },
+        "tcgplayer": null
+      }
+    }
+  ],
+  "effect": "This card can only be attached to a Team Rocket's Pokémon. If this card is attached to anything other than a Team Rocket's Pokémon, discard this card.\n\nAs long as this card is attached to a Pokémon, it provides 2 in any combination of {P} Energy and {D} Energy.",
+  "energyType": "Normal",
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-04-15T19:47:06Z",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 869828,
+      "avg": 0.17,
+      "low": 0.02,
+      "trend": 0.2,
+      "avg1": 0.16,
+      "avg7": 0.2,
+      "avg30": 0.18,
+      "avg-holo": 0.4,
+      "low-holo": 0.02,
+      "trend-holo": 0.48,
+      "avg1-holo": 0.37,
+      "avg7-holo": 0.4,
+      "avg30-holo": 0.41
+    },
+    "tcgplayer": null
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "category": "Trainer",
+  "id": "sv05-151",
+  "illustrator": "Ayaka Yoshida",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/151",
+  "localId": "151",
+  "name": "Heavy Baton",
+  "rarity": "Uncommon",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "reverse",
+      "size": "standard",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "player-rewards-program"
+      ],
+      "variantId": "gx8bq2hegum3q6irsxlvqxm955ikw9gd1h311"
+    }
+  ],
+  "effect": "If the Pokémon this card is attached to has a Retreat Cost of exactly 4, is in the Active Spot, and is Knocked Out by damage from an attack from your opponent's Pokémon, move up to 3 Basic Energy cards from that Pokémon to your Benched Pokémon in any way you like.",
+  "trainerType": "Tool",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00",
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-04-29T00:43:28.000Z",
+      "unit": "EUR",
+      "idProduct": 760781,
+      "avg": 0.06,
+      "low": 0.02,
+      "trend": 0.1,
+      "avg1": 0.05,
+      "avg7": 0.06,
+      "avg30": 0.06,
+      "avg-holo": 0.27,
+      "low-holo": 0.02,
+      "trend-holo": 0.3,
+      "avg1-holo": 0.29,
+      "avg7-holo": 0.27,
+      "avg30-holo": 0.27
+    },
+    "tcgplayer": null
+  }
+}

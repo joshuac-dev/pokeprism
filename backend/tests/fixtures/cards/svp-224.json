@@ -1,0 +1,98 @@
+{
+  "category": "Trainer",
+  "id": "svp-224",
+  "illustrator": "Naoki Saito",
+  "localId": "224",
+  "name": "Paradise Resort",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 225,
+      "total": 226
+    },
+    "id": "svp",
+    "name": "SVP Black Star Promos"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "worlds-2025"
+      ],
+      "variantId": "2fnyg4g538et3q356alcw4xm2id"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "worlds-2025",
+        "staff"
+      ],
+      "variantId": "15i9grynje65aa1e83ryxy8jc164f77b"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "worlds-2025",
+        "top-thirty-two"
+      ],
+      "variantId": "at0bsq1t2l5u5t9hxbggz3u52zobmg2gca8vtyq6"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "worlds-2025",
+        "top-sixteen"
+      ],
+      "variantId": "gx8bq2hegwv129n5tu9ke7s7kgk9mgzwrqk7v"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "worlds-2025",
+        "top-eight"
+      ],
+      "variantId": "mtltux8qutph45acr11u9bug5qjtgu6pbn2"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "worlds-2025",
+        "semi-finalist"
+      ],
+      "variantId": "cjr38ywaj8xwi0ydrwvrslxpbsutcio5g20xb3e"
+    },
+    {
+      "type": "normal",
+      "size": "standard",
+      "stamp": [
+        "worlds-2025",
+        "finalist"
+      ],
+      "variantId": "qi4g3e7u0mc9fnp7kl6nachts86gke8h3d"
+    }
+  ],
+  "effect": "The Retreat Cost of each Psyduck in play (both yours and your opponent's) is Colorless less.",
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2026-01-24T23:10:00+01:00",
+  "pricing": {
+    "cardmarket": null,
+    "tcgplayer": null
+  }
+}

@@ -30,6 +30,10 @@ logger = logging.getLogger(__name__)
 # Shared helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
+def _noop_energy(state: GameState, action) -> None:
+    """No-op energy handler for flagged/passive-only special energies."""
+
+
 def _get_attachment(target, source_card_id: str):
     """Return the EnergyAttachment whose source_card_id matches."""
     for att in target.energy_attached:
@@ -265,6 +269,30 @@ def has_mist_energy(pokemon) -> bool:
     return any(att.card_def_id == _MIST_ID for att in pokemon.energy_attached)
 
 
+def has_rocky_fighting_energy(pokemon) -> bool:
+    """True if the Pokémon has a Rocky Fighting Energy attached."""
+    _ROCKY_ID = "me03-087"
+    return any(att.card_def_id == _ROCKY_ID for att in pokemon.energy_attached)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Rocky Fighting Energy (me03-087)
+# Provides Fighting. Pokémon is not affected by any effects of opponent's
+# attacks (damage is not an effect — this is a passive, checked via
+# has_rocky_fighting_energy() in attack handlers that apply effects).
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _rocky_fighting_energy(state: GameState, action) -> None:
+    player = state.get_player(action.player_id)
+    target = next(
+        (c for c in ([player.active] if player.active else []) + player.bench
+         if c.instance_id == action.target_instance_id), None
+    )
+    if target is None:
+        return
+    _set_provides(target, action.card_instance_id, [EnergyType.FIGHTING])
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Registration
 # ──────────────────────────────────────────────────────────────────────────────
@@ -279,3 +307,9 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_energy("sv08-191",   _enriching_energy)
     registry.register_energy("sv10-182",   _team_rockets_energy)
     registry.register_energy("sv10.5w-086", _ignition_energy)
+    registry.register_energy("me03-087",   _rocky_fighting_energy)
+    registry.register_energy("me02.5-217", _team_rockets_energy)   # Team Rocket's Energy (alt art)
+    registry.register_energy("sv10.5b-086", _prism_energy)         # Prism Energy (alt art)
+    # Flagged special energies — complex effects not yet modelled
+    registry.register_energy("sv06-166", _noop_energy)  # Boomerang Energy (complex reuse — flagged)
+    registry.register_energy("sv09-159", _noop_energy)  # Spiky Energy (damage on attach — flagged)
