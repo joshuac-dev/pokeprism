@@ -230,6 +230,8 @@ def check_ko(
 
     # Track that this player had a Pokémon KO'd (for Retaliate effects)
     target_player.ko_taken_last_turn = True
+    if "Ethan's" in target.card_name:
+        target_player.ethans_pokemon_ko_last_turn = True
 
     # Determine prize count
     cdef = card_registry.get(target.card_def_id)
@@ -284,16 +286,26 @@ def check_ko(
                              ko_player=target_player_id,
                              card_name=target.card_name)
 
-    # Wonder Kiss (me02.5-082 Togekiss): when opp's active is KO'd, flip coin, heads = +1 prize
+    # Wonder Kiss (me02.5-082 / sv08-072 Togekiss): when opp's active is KO'd, flip coin, heads = +1 prize
     if (_is_attacking_active
             and attacker_id == state.active_player):
         from app.engine.effects.abilities import _in_play
-        if any(p.card_def_id == "me02.5-082" for p in _in_play(attacker_player)):
+        if any(p.card_def_id in ("me02.5-082", "sv08-072") for p in _in_play(attacker_player)):
             if _random.choice([True, False]):  # heads
                 prizes_to_take += 1
                 state.emit_event("wonder_kiss_triggered",
                                  ko_player=target_player_id,
                                  card_name=target.card_name)
+
+    # Greedy Eater (sv10.5w-067 Hydreigon ex): if this Pokémon KOs a Basic Pokémon, take 1 more prize
+    if (_is_attacking_active
+            and attacker_player.active is not None
+            and attacker_player.active.card_def_id == "sv10.5w-067"
+            and target.evolution_stage == 0):
+        prizes_to_take += 1
+        state.emit_event("greedy_eater_triggered",
+                         ko_player=target_player_id,
+                         card_name=target.card_name)
 
     # Fragile Husk (me01-061 Shedinja): if KO'd by opponent's Pokémon ex, opp takes 0 prizes
     if target.card_def_id == "me01-061" and _is_attacking_active:
@@ -345,7 +357,19 @@ def check_ko(
     )
 
     # Move KO'd Pokémon (and attached cards) to discard
-    _move_to_discard(target_player, target)
+    # Infinite Shadow (me03-050 Gengar): when KO'd by opponent's active, goes to owner's hand instead
+    if target.card_def_id == "me03-050" and _is_attacking_active:
+        # Discard all attached cards but put Gengar itself in hand
+        _discard_attached_only(target_player, target)
+        target.zone = Zone.HAND
+        target.energy_attached.clear()
+        target.tools_attached.clear()
+        target.status_conditions.clear()
+        target_player.hand.append(target)
+        state.emit_event("infinite_shadow_triggered", player=target_player_id,
+                         card=target.card_name)
+    else:
+        _move_to_discard(target_player, target)
 
     # Remove from active / bench
     if target_player.active and target_player.active.instance_id == target.instance_id:
@@ -389,6 +413,17 @@ def check_ko(
         state.win_condition = "no_bench"
         state.phase = Phase.GAME_OVER
         state.emit_event("game_over", winner=attacker_id, condition="no_bench")
+
+
+def _discard_attached_only(player: PlayerState, pokemon: CardInstance) -> None:
+    """Discard only attached energy/tools for Infinite Shadow — the Pokémon itself goes to hand."""
+    pokemon.tools_attached.clear()
+    for att in pokemon.energy_attached:
+        energy_card = _find_card_anywhere(player, att.source_card_id)
+        if energy_card:
+            energy_card.zone = Zone.DISCARD
+            if energy_card not in player.discard:
+                player.discard.append(energy_card)
 
 
 def _move_to_discard(player: PlayerState, pokemon: CardInstance) -> None:
@@ -534,6 +569,15 @@ def get_retreat_cost_reduction(pokemon: CardInstance, state: "GameState", player
     # Jamming Tower neutralizes tools
     if state.active_stadium and state.active_stadium.card_def_id == "sv06-153":
         return 0
+
+    # Melt Away (sv10-036 Ethan's Magcargo): free retreat when no Energy attached
+    if pokemon.card_def_id == "sv10-036" and not pokemon.energy_attached:
+        return 9999
+
+    # Metal Bridge (sv07-107 Archaludon SCR / sv08.5-070 Archaludon ex PRE): free retreat if Metal Energy attached
+    if pokemon.card_def_id in ("sv07-107", "sv08.5-070"):
+        if any(att.energy_type == EnergyType.METAL for att in pokemon.energy_attached):
+            return 9999
 
     # Skyliner (sv08-076 Latias ex): Basic Pokémon have free retreat
     if player_id is not None:

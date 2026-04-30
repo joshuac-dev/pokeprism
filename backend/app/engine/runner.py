@@ -412,6 +412,25 @@ class MatchRunner:
         if state.phase == Phase.GAME_OVER:
             return state
 
+        # Sand Stream (sv10-096 TR Tyranitar): during Pokémon Checkup, place 1 damage counter
+        # on each of the opponent's Pokémon. Only fires once even if multiple TR Tyranitar.
+        tr_player_id = state.active_player
+        tr_player = state.get_player(tr_player_id)
+        from app.engine.effects.abilities import _in_play as _abl_in_play_ss
+        if any(p.card_def_id == "sv10-096" for p in _abl_in_play_ss(tr_player)):
+            opp_ss_id = state.opponent_id(tr_player_id)
+            opp_ss = state.get_player(opp_ss_id)
+            all_opp = ([opp_ss.active] if opp_ss.active else []) + list(opp_ss.bench)
+            for poke in all_opp:
+                poke.current_hp -= 10
+                poke.damage_counters += 1
+            state.emit_event("sand_stream_triggered", player=tr_player_id)
+            from app.engine.effects.base import check_ko
+            for poke in list(all_opp):
+                check_ko(state, poke, opp_ss_id)
+                if state.phase == Phase.GAME_OVER:
+                    return state
+
         return state
 
     def _end_turn(self, state: GameState) -> GameState:
@@ -424,6 +443,10 @@ class MatchRunner:
             player.retreat_used_this_turn = False
             player.tr_supporter_played_this_turn = False
             player.tarragon_played_this_turn = False
+            player.janines_sa_used_this_turn = False
+            player.future_supporter_played_this_turn = False
+            player.xerosics_machinations_played_this_turn = False
+            player.daydream_active = False
             # items_locked_this_turn is set by the opponent on this player for the upcoming
             # turn. Only clear it at the end of THIS player's own turn so the effect persists
             # through the opponent's (next) turn as intended.
@@ -482,10 +505,45 @@ class MatchRunner:
         state.force_end_turn = False
         # Clear Retaliate window for the player whose turn just ended
         state.get_player(state.active_player).ko_taken_last_turn = False
+        state.get_player(state.active_player).ethans_pokemon_ko_last_turn = False
+
+        # Levincia (sv09-150): once during each player's turn, retrieve up to 2 Basic Lightning from discard to hand
+        if (state.active_stadium
+                and state.active_stadium.card_def_id == "sv09-150"):
+            _lev_player = state.get_player(state.active_player)
+            _lev_disc = [c for c in _lev_player.discard
+                         if c.card_type.lower() == "energy"
+                         and c.card_subtype.lower() == "basic"
+                         and any("Lightning" in (ep or "") for ep in (c.energy_provides or []))]
+            for _lev_card in _lev_disc[:2]:
+                _lev_player.discard.remove(_lev_card)
+                _lev_card.zone = Zone.HAND
+                _lev_player.hand.append(_lev_card)
+                state.emit_event("levincia_recovery",
+                                 player=state.active_player,
+                                 card=_lev_card.card_name)
+
+        # Community Center (sv06-146): if supporter was played this turn, heal 10 from each of your Pokémon
+        if (state.active_stadium
+                and state.active_stadium.card_def_id == "sv06-146"):
+            _cc_player = state.get_player(state.active_player)
+            if _cc_player.supporter_played_this_turn:
+                _cc_all = ([_cc_player.active] if _cc_player.active else []) + list(_cc_player.bench)
+                for _cc_poke in _cc_all:
+                    if _cc_poke.damage_counters > 0:
+                        _cc_poke.damage_counters = max(0, _cc_poke.damage_counters - 1)
+                        _cc_poke.current_hp = min(_cc_poke.max_hp, _cc_poke.current_hp + 10)
+                state.emit_event("community_center_heal",
+                                 player=state.active_player)
+
         state.active_player = state.opponent_id(state.active_player)
         state.turn_number += 1
         state.phase = Phase.DRAW
         state.emit_event("turn_start", player=state.active_player, turn=state.turn_number)
+
+        # Clear C.O.D.E.: Protect immunity for the newly-active player
+        # (immunity was set for "during your opponent's next turn")
+        state.get_player(state.active_player).future_effect_immunity = False
 
         # Clear Acerola's Mischief protection for the newly-active player's Pokémon
         # (Protection was "during your opponent's next turn" = the turn that just ended)

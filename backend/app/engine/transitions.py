@@ -174,6 +174,10 @@ async def _play_supporter(state: GameState, action: Action, get_player=None) -> 
     card.zone = Zone.DISCARD
     player.discard.append(card)
     player.supporter_played_this_turn = True
+    # Track Future Supporter for Iron Valiant Majestic Sword
+    cdef_sup = card_registry.get(card.card_def_id)
+    if cdef_sup and "Future" in (getattr(cdef_sup, "subtypes", None) or []):
+        player.future_supporter_played_this_turn = True
 
     state.emit_event(
         "play_supporter",
@@ -275,6 +279,24 @@ async def _attach_energy(state: GameState, action: Action, get_player=None) -> G
     )
     player.energy_attached_this_turn = True
 
+    # Inferno Fandango (sv10.5w-013 Emboar): Basic Fire attachments don't count toward 1-per-turn
+    from app.engine.effects.abilities import _in_play as _abl_in_play_ae
+    is_inferno_fandango = (
+        energy_card.card_type.lower() == "energy"
+        and energy_card.card_subtype.lower() == "basic"
+        and "Fire" in (energy_card.energy_provides or [])
+        and any(p.card_def_id == "sv10.5w-013" for p in _abl_in_play_ae(player))
+    )
+    if is_inferno_fandango:
+        player.energy_attached_this_turn = False
+
+    # Daydream (sv06.5-017 Hypno): if daydream_active and attaching to Active Pokémon, end turn
+    if player.daydream_active and target is player.active:
+        player.daydream_active = False
+        state.force_end_turn = True
+        state.emit_event("daydream_triggered", player=action.player_id,
+                         card=target.card_name)
+
     state.emit_event(
         "energy_attached",
         player=action.player_id,
@@ -287,6 +309,17 @@ async def _attach_energy(state: GameState, action: Action, get_player=None) -> G
     await EffectRegistry.instance().resolve_energy(
         energy_card.card_def_id, state, action, get_player
     )
+
+    # Auto Heal (sv09-107 Magearna): while Active, whenever energy is attached to any Pokémon, heal 90
+    from app.engine.effects.abilities import _in_play as _abl_in_play_ae2
+    if (player.active and player.active.card_def_id == "sv09-107"
+            and target.damage_counters > 0):
+        heal = min(target.damage_counters * 10, 90)
+        target.current_hp = min(target.max_hp, target.current_hp + heal)
+        target.damage_counters -= heal // 10
+        state.emit_event("auto_heal_triggered", player=action.player_id,
+                         card=target.card_name, healed=heal)
+
     return state
 
 
@@ -350,10 +383,24 @@ async def _evolve(state: GameState, action: Action, get_player=None) -> GameStat
                 await EffectRegistry.instance().resolve_ability(
                     evo_card.card_def_id, ability.name, state, evo_action, get_player
                 )
+
+    # Darkest Impulse (sv10-074 TR Ampharos): when opponent evolves, put 4 damage counters
+    # on the evolved Pokémon. Doesn't stack — only applied once even if multiple TR Ampharos.
+    opp_id_evolve = state.opponent_id(action.player_id)
+    opp_evolve = state.get_player(opp_id_evolve)
+    from app.engine.effects.abilities import _in_play as _abl_in_play_evolve
+    if any(p.card_def_id == "sv10-074" for p in _abl_in_play_evolve(opp_evolve)):
+        evo_card.current_hp = max(0, evo_card.current_hp - 40)
+        evo_card.damage_counters += 4
+        state.emit_event("darkest_impulse_triggered",
+                         player=opp_id_evolve, card=evo_card.card_name)
+        from app.engine.effects.base import check_ko
+        check_ko(state, evo_card, action.player_id)
+
     return state
 
 
-def _retreat(state: GameState, action: Action, get_player=None) -> GameState:
+async def _retreat(state: GameState, action: Action, get_player=None) -> GameState:
     player = state.get_player(action.player_id)
     if not player.active:
         raise ValueError("No active Pokémon to retreat")
@@ -406,6 +453,14 @@ def _retreat(state: GameState, action: Action, get_player=None) -> GameState:
             state.emit_event("swirling_prose_triggered",
                              player=action.player_id,
                              card=player.active.card_name)
+
+    # Buzzing Boost (sv10-003 Yanmega ex): when promoted from Bench to Active, search deck for up to 3 Basic G Energy
+    if player.active and player.active.card_def_id == "sv10-003":
+        bb_action = Action(action.action_type, action.player_id,
+                           card_instance_id=player.active.instance_id)
+        await EffectRegistry.instance().resolve_ability(
+            "sv10-003", "Buzzing Boost", state, bb_action, get_player
+        )
 
     return state
 
@@ -516,7 +571,7 @@ async def _attack(state: GameState, action: Action, get_player=None) -> GameStat
 # Forced actions
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _switch_active(state: GameState, action: Action, get_player=None) -> GameState:
+async def _switch_active(state: GameState, action: Action, get_player=None) -> GameState:
     """Forced switch — used when the active was KO'd and defender promotes."""
     player = state.get_player(action.player_id)
     new_active = _find(player.bench, action.target_instance_id)
@@ -536,6 +591,15 @@ def _switch_active(state: GameState, action: Action, get_player=None) -> GameSta
         player=action.player_id,
         card=new_active.card_name,
     )
+
+    # Buzzing Boost (sv10-003 Yanmega ex): when promoted from Bench to Active
+    if new_active.card_def_id == "sv10-003":
+        bb_action = Action(action.action_type, action.player_id,
+                           card_instance_id=new_active.instance_id)
+        await EffectRegistry.instance().resolve_ability(
+            "sv10-003", "Buzzing Boost", state, bb_action, get_player
+        )
+
     return state
 
 

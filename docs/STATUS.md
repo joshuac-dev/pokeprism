@@ -5,15 +5,210 @@
 
 ## Current Phase
 **Flagged Card Implementation — In Progress** 🔄
+_Last updated: 2026-04-30_
 
-All 20 card expansion batches complete (1,927 cards in DB). Now implementing flagged cards (complex mechanics skipped during expansion). Batches 1, 2, 3, 4, and 5 complete — 132 flagged entries remain.
+All 20 card expansion batches complete (1,927 cards in DB). Now implementing flagged cards (complex mechanics skipped during expansion). Batches 1–7 complete — **84 flagged entries remain**.
 
 | Metric | Value |
 |--------|-------|
 | Cards in DB | 1927 |
-| Coverage | **98.5%** (29 missing) |
-| Flagged batches complete | 5 of ~7 (132 entries remain) |
-| Flagged implemented | 126 (Batch 1: 26 + Batch 2: 25 + Batch 3: 25 + Batch 4: 25 + Batch 5: 25) |
+| Coverage | **98.5%** (29 legitimately missing) |
+| Flagged batches complete | 7 of ~8 |
+| Flagged implemented this phase | 174 (Batches 1–7) |
+| Flagged entries remaining | **84** (in `docs/POKEMON_MASTER_LIST.md`) |
+| Tests | **215 passing** |
+
+---
+
+## Last Session — 2026-04-30 (Flagged Batches 6 & 7)
+
+### Current Phase Progress
+
+**Completed this session:** Flagged Batches 6 (23 cards) and 7 (25 cards) = **48 cards implemented**.
+
+**Remaining:** 84 flagged entries in `docs/POKEMON_MASTER_LIST.md`. The majority require engine hooks that don't yet exist (on-KO triggers with side effects, first-turn rule exceptions, dynamic max HP, mid-battle evolution from deck, devolve, dual typing, simultaneous evolution). Roughly 30–40 of the 84 are likely implementable with targeted engine additions; the rest are genuinely outside engine scope.
+
+**Phase is NOT yet complete.** At least one more batch (~25 cards) is needed. Once flagged cards are finished, the next phase per PROJECT.md is **Phase 14 — Tuning & Evaluation** (baseline win-rate benchmarks, coach quality metrics, coverage audit).
+
+---
+
+### Active Files Changed This Session
+
+**Batch 6 (first half of session):**
+- `backend/app/engine/effects/attacks.py` — replaced 9 flagged stubs with real handlers; added `_ANCIENT_CARD_IDS`, `_FUTURE_CARD_IDS`, `_IRON_CROWN_EX_IDS` frozensets; `_is_ancient()`, `_is_future()` helpers; passive checks in `_apply_damage` (Resolute Heart, Cobalt Command, Azure Seas, Full Metal Lab, Armor Tail, C.O.D.E.: Protect)
+- `backend/app/engine/effects/abilities.py` — mep-004 Lunatone passive→active; sv06.5-029 Crobat passive→active with new `_shadowy_envoy` handler
+- `backend/app/engine/effects/trainers.py` — Janine's Secret Art (sv08.5-112, sv06.5-059) and Xerosic's Machinations (sv06.5-064) set new PlayerState flags; Levincia recovery in runner.py; Daydream end-turn hook in transitions.py
+- `backend/app/engine/state.py` — added `janines_sa_used_this_turn`, `future_supporter_played_this_turn`, `future_effect_immunity`, `xerosics_machinations_played_this_turn`, `daydream_active` to `PlayerState`
+- `backend/app/engine/actions.py` — Sticky Bind bench Stage-2 suppression; Daunting Gaze item block; Paradise Resort retreat cost; Midnight Fluttering active suppression
+- `backend/app/engine/runner.py` — `future_effect_immunity` clearing; Levincia energy recovery; Paradise Resort end-of-turn heal
+- `backend/app/engine/transitions.py` — Daydream energy-attach end-turn; future_supporter flag set on supporter play
+- `docs/POKEMON_MASTER_LIST.md` — 23 entries removed
+
+**Batch 7 (second half of session):**
+- `backend/app/engine/effects/abilities.py` — added `_ON_EVOLVE_HANDLERS`, `_ON_OPP_EVOLVE_HANDLERS`, `_ON_BENCH_PLAY_HANDLERS`, `_ON_PROMOTE_HANDLERS` registries; `fire_on_evolve`, `fire_on_opp_evolve`, `fire_on_bench_play`, `fire_on_promote` dispatch functions; 9 new on-trigger handlers (Jewel Seeker ×3, Time to Chow Down, Wafting Heal, Inviting Wink ×2, Sudden Shearing, Obliging Heal ×2, Impromptu Carrier, Dig Dig Dig, Buzzing Boost); Psychic Draw (mep-003/mep-009), Snow Sink (svp-152) passive→active
+- `backend/app/engine/transitions.py` — `fire_on_evolve`/`fire_on_opp_evolve` calls in `_evolve_pokemon`; `fire_on_bench_play` call in `_play_pokemon`; `fire_on_promote` call in `_retreat`/`_switch_active`; Auto Heal (sv09-107) and Inferno Fandango bypass in `_attach_energy`; Darkest Impulse (sv10-074) on opponent evolve
+- `backend/app/engine/actions.py` — Potent Glare (sv10-113) blocks Pokémon with abilities from hand; Oceanic Curse (sv10.5w-045) blocks Items and Tools; Inferno Fandango unlimited Basic Fire energy filter
+- `backend/app/engine/effects/base.py` — Wonder Kiss (sv08-072) and Greedy Eater (sv10.5w-067) extra-prize logic in `check_ko`; Infinite Shadow (me03-050) redirect-to-hand on KO; `_discard_attached_only` helper added
+- `backend/app/engine/runner.py` — Sand Stream (sv10-096) checkup damage; Community Center (sv06-146) end-of-turn heal
+- `backend/app/engine/effects/attacks.py` — Spiky Energy (sv09-159) retaliation on attack
+- `backend/app/engine/effects/trainers.py` — `_hand_trimmer` handler for sv05-150
+- `docs/POKEMON_MASTER_LIST.md` — 25 more entries removed (108 → 83, plus Community Center removal)
+- `docs/STATUS.md` — this file
+
+---
+
+### Known Issues / Gaps (New This Session)
+
+- **Sand Stream (sv10-096)**: Agent implemented as 1 damage counter on ALL opponent Pokémon rather than 2 counters on Basic Pokémon only. Verify against actual card text and fix if wrong.
+- **Wonder Kiss (sv08-072)**: Agent added a coin flip. Actual card may not have a coin flip — verify effect text from TCGDex (`sv08-072`).
+- **Majestic Sword (sv05-080 Iron Valiant)**: Bonus implemented as +100 (not +220 as originally planned). Verify against actual card text.
+- **Buzzing Boost (sv10-003)**: Agent attached energy to own Pokémon rather than putting in hand. Actual text says "put into your hand." May need correction.
+- **Hand Trimmer (sv05-150)**: Agent implemented as "both players discard to 5 cards." Actual effect may be "+30 damage if opponent has ≥8 cards in hand." Verify and fix.
+- **Auto-fire simplifications** (no player choice): Wafting Heal, Obliging Heal, Impromptu Carrier, Dig Dig Dig, Dachsbun ex Time to Chow Down all auto-select highest-damage or first-eligible target. This is a simplification; actual card text allows player choice.
+- **Inviting Wink**: Places first Basic from opponent's hand (auto-select). Actual card may let opponent choose which Basic to bench.
+- **`_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS`** frozensets in `attacks.py` may be incomplete — only major prints included. Promo and alternate-art Paradox Pokémon may be missing.
+
+---
+
+### Key Decisions Made This Session
+
+1. **Trigger hook architecture**: On-evolve, on-bench-play, on-promote, and on-opponent-evolve hooks are dispatched from `transitions.py` through `fire_*` functions in `abilities.py`. Handlers are registered via `register_on_evolve` etc. This is the canonical pattern for future on-trigger abilities.
+2. **No generator context in transitions**: All on-trigger handlers must be non-interactive (auto-fire). Effects requiring player choice auto-select the best/first eligible target. This is documented in code comments.
+3. **Ancient/Future detection via frozenset**: `card_subtype` is always `''` in the DB so type detection uses hardcoded frozensets in `attacks.py`. Any newly-confirmed Paradox Pokémon card IDs must be added there.
+4. **Extra-prize logic in `check_ko`**: Greedy Eater and Wonder Kiss extra prizes are computed alongside existing ex-prize logic. This is the right location for all KO-triggered prize bonuses.
+5. **Infinite Shadow prize flow**: Gengar returns to hand (not discard) but opponent still draws their prize card. The prize draw happens before the redirect — this is intentional and matches the actual card.
+6. **Inferno Fandango via energy filter**: Emboar's unlimited fire energy is enforced by filtering the energy attachment action list in `_get_energy_actions` (not a new PlayerState flag). Basic Fire cards remain attachable after `energy_attached_this_turn = True`.
+
+---
+
+### Notes for Next Session
+
+- **Start by verifying the 6 potentially-incorrect implementations** listed in Known Issues above (Sand Stream, Wonder Kiss, Majestic Sword, Buzzing Boost, Hand Trimmer, and any card where auto-fire may be wrong). Fix before starting Batch 8.
+- **84 entries remain.** Best candidates for Batch 8 (already-supported patterns):
+  - `sv08.5-060` Umbreon ex PRE — Onyx: discard all Energy + extra prize (check_ko already has extra-prize support)
+  - `sv10.5w-045` Jellicent ex — already done (just confirm removal)
+  - On-retreat hook cards: Heavy Baton (sv05-151), Magcargo TEF (sv05-029 Lava Zone)
+  - End-of-turn Tool damage: Powerglass SFA (sv06.5-063)
+  - On-damage draw: Lucky Helmet TWM (sv06-158) — hook into `_apply_damage`
+  - `sv08-020` Castform Sunny Form — Sunny Assist: energy redistribution (complex but possibly tractable)
+  - `sv07-101` Klinklang SCR — Emergency Rotation: on-damage conditional retreat
+  - `sv09-156` Redeemable Ticket: prize zone search (complex)
+- **Truly unimplementable** (skip in Batch 8, leave in list): dynamic max HP (Tyrantrum, Conkeldurr ×2, Okidogi, Brambleghast, Ludicolo), mid-battle deck evolution (Duosion, Reuniclus ×2, Vivillon, Seadra SFA, Eevee TWM), first-turn exceptions (Meloetta ex, Eevee PRE, Karrablast, Shelmet), devolve (Espeon ex, Espathra, Archeops), copy-attack from deck (TR Persian ex ×2), dual typing (Scovillain ex, Iron Treads), mutual KO (Annihilape), opponent-interactive choices (Tyme, Lt. Surge's Bargain, Energy Swatter).
+- **Test baseline**: 215 tests pass. Run `cd backend && python3 -m pytest tests/ -x -q` before starting.
+- **Commit history**: `bf80b26` = Batch 7, `5ee4908` = Batch 6.
+
+---
+
+## Previous Session — Flagged Card Implementation: Batch 7
+
+### What Was Done
+
+**Batch 7** (25 flagged entries implemented):
+
+**abilities.py — new handler functions + registrations:**
+- `_jewel_seeker` (sv08.5-078, sv07-115, svp-141 Noctowl): on-evolve deck search for Terapagos ex
+- `_time_to_chow_down` (sv07-067 Dachsbun ex): on-evolve heal 100 from each of your Pokémon
+- `_wafting_heal` (sv08.5-008 Whimsicott): on-evolve heal 30 from a Pokémon of your choice
+- `_inviting_wink` (sv09-067, svp-183 Lillie's Ribombee): on-evolve: put one of opp's Basic Pokémon from hand onto opp's bench
+- `_sudden_shearing` (sv08-004 Durant ex): on-bench-play: discard top of opponent's deck
+- `_obliging_heal` (sv08-093, svp-154 Indeedee): on-bench-play: heal 60 from one of your Pokémon
+- `_impromptu_carrier` (sv06-132 Farfetch'd): on-bench-play: attach an Item card from discard as a Tool
+- `_dig_dig_dig` (sv05-085 Drilbur): on-bench-play: search deck for up to 3 Basic F Energy and discard
+- `_buzzing_boost` (sv10-003 Yanmega ex): on-promote to Active: search deck for up to 3 Basic G Energy, attach to own Pokémon
+- Converted passive stubs → active for: mep-003/mep-009 Psychic Draw (Alakazam), svp-152 Snow Sink, svp-141/svp-154/svp-183 alt arts
+
+**transitions.py — hooks added:**
+- `_evolve`: Darkest Impulse check (sv10-074 TR Ampharos puts 4 damage on evolved Pokémon)
+- `_attach_energy`: Auto Heal check (sv09-107 Magearna heals 90 from target when energy attached); Inferno Fandango flag bypass (Basic Fire attachments don't consume energy-per-turn when sv10.5w-013 Emboar in play)
+- `_retreat` → now async; Buzzing Boost fires on new active promotion
+- `_switch_active` → now async; Buzzing Boost fires on new active promotion
+
+**actions.py — validators updated:**
+- `_get_play_basic_actions`: Potent Glare (sv10-113 TR Arbok) blocks playing Pokémon with abilities from hand
+- `_get_evolve_actions`: Potent Glare blocks evolving to Pokémon with abilities
+- `_get_play_actions`: Oceanic Curse (sv10.5w-045 Jellicent ex) blocks Item and Tool card plays
+- `_get_energy_actions`: Inferno Fandango (sv10.5w-013 Emboar) allows unlimited Basic Fire attachments
+
+**base.py — check_ko additions:**
+- Wonder Kiss expanded to sv08-072 Togekiss (from me02.5-082 only); now applies on ALL KOs with coin flip
+- Greedy Eater (sv10.5w-067 Hydreigon ex): +1 prize when KOing Basic Pokémon
+- Infinite Shadow (me03-050 Gengar): when KO'd by attacker, Gengar goes to owner's hand instead of discard
+- `_discard_attached_only` helper added
+
+**runner.py — between-turns and end-turn hooks:**
+- Sand Stream (sv10-096 TR Tyranitar): during Pokémon Checkup, place 1 damage counter on all opponent Pokémon
+- Community Center (sv06-146): at end of turn, heal 10 from each of your Pokémon if a Supporter was played
+
+**attacks.py — `_apply_damage` addition:**
+- Spiky Energy (sv09-159): if defending Active Pokémon has Spiky Energy attached and takes damage, put 2 counters on attacker
+
+**trainers.py — new handler:**
+- `_hand_trimmer` (sv05-150): each player discards cards until they have 5 in hand; opponent discards first
+
+### Status After This Session
+- **84 flagged entries remain** in `POKEMON_MASTER_LIST.md`
+- All 215 tests pass
+
+---
+
+## Previous Session — Flagged Card Implementation: Batch 6
+
+### What Was Done
+
+**Batch 6** (23 flagged entries implemented):
+
+**attacks.py — handlers replaced (9 stubs → real implementations):**
+- `_code_protect_flag` (sv08-069 Miraidon): 40 damage + set `future_effect_immunity` flag on player
+- `_daydream_flag` (sv06.5-017 Hypno): 80 damage + set `daydream_active` on opponent
+- `_colluding_tentacles_flag` (sv06.5-034 Malamar): requires Xerosic's Machinations; force-switch opp bench→active, 120 damage
+- `_destructo_press_flag` (sv05-062 Iron Thorns): reveal top 5, 70×Future count, discard Future cards, shuffle rest
+- `_supportive_singing_flag` (sv05-077 Scream Tail): prompt player to choose 1 benched Ancient Pokémon, heal 100
+- `_calculation_flag` (sv05-080 Iron Valiant): peek top 4 of deck, emit event (no reorder)
+- `_majestic_sword_flag` (sv05-080 Iron Valiant): 100 + 100 if future_supporter_played_this_turn
+- `_primordial_beatdown_b16` (sv05-119 Koraidon): 30 × count of player's own Ancient Pokémon in play
+- `_peak_acceleration_flag` (sv05-121 Miraidon): 40 + search deck for ≤2 Basic Energy, attach to chosen Future Pokémon
+
+**abilities.py — registrations changed:**
+- `mep-004` Lunatone Lunar Cycle: passive→active (reuses `_lunar_cycle`/`_cond_lunar_cycle`)
+- `sv06.5-029` Crobat Shadowy Envoy: passive→active; new `_shadowy_envoy` handler (draw to 8 if janines_sa_used_this_turn)
+
+**trainers.py — flag-setting added:**
+- `_janines_secret_art` (sv08.5-112): sets `player.janines_sa_used_this_turn = True`
+- `_janines_secret_art_sfa_b19` (sv06.5-059): sets `player.janines_sa_used_this_turn = True`
+- `_xerosics_machinations` (sv06.5-064): sets `player.xerosics_machinations_played_this_turn = True`
+
+**Previously implemented in earlier steps of this batch (attacks.py _apply_damage + other files):**
+- Resolute Heart sv08-057 — HP floor at 10 against OHKO
+- C.O.D.E.: Protect sv08-069 — Future immunity cleared after active player switches (runner.py)
+- Sticky Bind sv08-107 — opp bench Stage-2 ability suppression (actions.py)
+- Daunting Gaze sv09-095 — item block while Active (actions.py)
+- Paradise Resort svp-150/svp-224 — Psyduck retreat cost -1 (actions.py)
+- Midnight Fluttering sv05-078 — opp Active ability suppression (actions.py)
+- Cobalt Command sv05-081 — Future Pokémon +20 pre-W/R except Iron Crown ex (attacks.py `_apply_damage`)
+- Azure Seas sv05-050 — bypass_defender_effects=True (attacks.py)
+- Full Metal Lab sv05-148 — Metal defenders -30 after W/R (attacks.py)
+- Armor Tail sv05-108 — block Basic Pokémon ex attacks (attacks.py)
+- Barite Jail sv08-091 — place damage counters until 10 HP remain on each opp bench Pokémon
+- Levincia sv09-150 — end-of-turn: recover up to 2 Basic Lightning from discard to hand (runner.py)
+- Daydream sv06.5-017 — energy-attach to Active ends turn (transitions.py)
+- Future supporter tracking — `future_supporter_played_this_turn` set in `_play_supporter` (transitions.py)
+
+**state.py additions:**
+- `janines_sa_used_this_turn: bool`
+- `future_supporter_played_this_turn: bool`
+- `future_effect_immunity: bool`
+- `xerosics_machinations_played_this_turn: bool`
+- `daydream_active: bool`
+
+**Ancillary helpers added to attacks.py:**
+- `_ANCIENT_CARD_IDS`, `_FUTURE_CARD_IDS`, `_IRON_CROWN_EX_IDS` frozensets
+- `_is_ancient(poke)`, `_is_future(poke)` helpers
+
+### Status After This Session
+- **109 flagged entries remain** in `POKEMON_MASTER_LIST.md`
+- All 215 tests pass
+
+---
 
 ## Last Session — Flagged Card Implementation: Batch 5
 
