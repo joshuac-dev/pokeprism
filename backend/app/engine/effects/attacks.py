@@ -245,6 +245,12 @@ def _apply_damage(
                              reason="code_protect")
             return 0
 
+        # Anachronism Repulsor (sv06.5-009 Iron Moth): block damage from Ancient Pokémon
+        if defender.prevent_damage_from_ancient and _is_ancient(attacker):
+            state.emit_event("damage_prevented", card=defender.card_name,
+                             reason="prevent_damage_from_ancient")
+            return 0
+
     if not bypass_defender_effects:
         # Thick Fat (me02-022 Dewgong): reduce damage by 30 from Fire/Water attackers
         if defender.card_def_id == "me02-022":
@@ -557,6 +563,23 @@ def _apply_damage(
         check_ko(state, attacker, action.player_id)
         if state.phase == Phase.GAME_OVER:
             return total
+
+    # Repulsor Axe (sv05-099 Iron Boulder ex): if flag set and attacker hits, put 8 counters on attacker
+    if total > 0 and defender.repulsor_axe_active and attacker.current_hp > 0:
+        attacker.current_hp -= 80
+        attacker.damage_counters += 8
+        state.emit_event("repulsor_axe_triggered",
+                         defender=defender.card_name, attacker=attacker.card_name)
+        check_ko(state, attacker, action.player_id)
+        if state.phase == Phase.GAME_OVER:
+            return total
+
+    # Lucky Helmet (sv06-158): when Pokémon this tool is on is in Active and damaged, draw 2 for that player
+    if total > 0 and "sv06-158" in defender.tools_attached:
+        from app.engine.effects.base import draw_cards as _draw_cards_lh
+        _draw_cards_lh(state, opp_id, 2)
+        state.emit_event("lucky_helmet_triggered", player=opp_id,
+                         card=defender.card_name)
 
     check_ko(state, defender, opp_id)
     return total
@@ -12920,10 +12943,23 @@ def _overrun_b10(state, action):
 
 
 def _permeating_chill_b10(state, action):
-    """sv08.5-025 Glaceon atk0 — Permeating Chill: 30 (FLAGGED: deferred 9 counters not implemented)."""
+    """sv08.5-025 Glaceon atk0 — Permeating Chill: 30 + 9 deferred counters on opp at end of their next turn."""
     _do_default_damage(state, action)
-    state.emit_event("flagged_effect", attack="Permeating Chill",
-                     reason="deferred_damage_not_implemented")
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp = state.get_opponent(action.player_id)
+    opp_id = state.opponent_id(action.player_id)
+    if not opp.active:
+        return
+    state.pending_effects.append({
+        "type": "deferred_counters",
+        "target_instance_id": opp.active.instance_id,
+        "target_pid": opp_id,
+        "fires_after_player": opp_id,
+        "counters": 9,
+    })
+    state.emit_event("permeating_chill_queued", player=action.player_id,
+                     target=opp.active.card_name)
 
 
 def _frost_bullet(state, action):
@@ -13189,9 +13225,31 @@ def _moon_mirage(state, action):
 
 
 def _onyx_flag(state, action):
-    """sv08.5-060 Umbreon ex atk1 — Onyx: FLAGGED (take Prize card not implemented)."""
-    state.emit_event("flagged_effect", attack="Onyx",
-                     reason="take_prize_not_implemented")
+    """sv08.5-060 Umbreon ex atk1 — Onyx: discard all Energy from this Pokémon; take 1 Prize card."""
+    from app.engine.effects.base import draw_cards as _draw_onyx
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.active:
+        return
+    # Discard all attached energy
+    player.active.energy_attached.clear()
+    state.emit_event("energy_discarded", player=player_id,
+                     card=player.active.card_name, reason="Onyx_self_discard")
+    # Take 1 Prize card
+    if player.prizes:
+        prize_card = player.prizes.pop(0)
+        prize_card.zone = Zone.HAND
+        player.hand.append(prize_card)
+        player.prizes_remaining = max(0, player.prizes_remaining - 1)
+        state.emit_event("onyx_prize_taken", player=player_id,
+                         remaining=player.prizes_remaining)
+        if player.prizes_remaining == 0:
+            state.winner = player_id
+            state.win_condition = "prizes"
+            state.phase = Phase.GAME_OVER
+            state.emit_event("game_over", winner=player_id, condition="prizes")
+    state.emit_event("attack_no_damage", attacker=player.active.card_name if player.active else "Umbreon ex",
+                     attack_name="Onyx")
 
 
 def _call_to_muster(state, action):
@@ -13984,10 +14042,32 @@ def _shining_blaze(state, action):
 
 
 def _sunny_assist_flag(state, action):
-    """sv08-020 Castform Sunny Form atk1 — Sunny Assist: FLAGGED (arbitrary energy redistribution)."""
+    """sv08-020 Castform Sunny Form atk1 — Sunny Assist: 50 + move all Energy from this Pokémon to 1 Benched."""
     _do_default_damage(state, action)
-    state.emit_event("flagged_effect", attack="Sunny Assist",
-                     reason="arbitrary_energy_redistribution")
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if not player.active or not player.active.energy_attached or not player.bench:
+        return
+    req = ChoiceRequest(
+        "choose_target", action.player_id,
+        "Sunny Assist: choose a Benched Pokémon to move all Energy to",
+        targets=list(player.bench),
+    )
+    resp = yield req
+    target = None
+    if resp and hasattr(resp, "target_instance_id") and resp.target_instance_id:
+        target = next((p for p in player.bench
+                       if p.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = player.bench[0]
+    # Move all energy
+    moved = list(player.active.energy_attached)
+    player.active.energy_attached.clear()
+    target.energy_attached.extend(moved)
+    state.emit_event("sunny_assist_energy_moved", player=action.player_id,
+                     source=player.active.card_name, destination=target.card_name,
+                     count=len(moved))
 
 
 def _double_smash(state, action):
@@ -15159,6 +15239,26 @@ def _paralyzing_crackle(state, action):
 def _buster_swing(state, action):
     """sv08-110 Landorus atk1 — Buster Swing: 130, ignore Resistance."""
     _apply_damage(state, action, 130, bypass_resistance_only=True)
+
+
+def _corrosive_sludge(state, action):
+    """sv10-123 TR Grimer atk0 — Corrosive Sludge: at end of opponent's next turn, discard Defending Pokémon."""
+    opp = state.get_opponent(action.player_id)
+    opp_id = state.opponent_id(action.player_id)
+    if not opp.active:
+        state.emit_event("attack_no_damage", attacker="Team Rocket's Grimer",
+                         attack_name="Corrosive Sludge", reason="no_target")
+        return
+    state.pending_effects.append({
+        "type": "deferred_ko",
+        "target_instance_id": opp.active.instance_id,
+        "target_pid": opp_id,
+        "fires_after_player": opp_id,
+    })
+    state.emit_event("corrosive_sludge_queued", player=action.player_id,
+                     target=opp.active.card_name)
+    state.emit_event("attack_no_damage", attacker="Team Rocket's Grimer",
+                     attack_name="Corrosive Sludge")
 
 
 def register_all(registry):
@@ -16394,7 +16494,7 @@ def register_all(registry):
     # sv10-121 Sneaky Bite ability registered in abilities.py
     registry.register_attack("sv10-122", 0, _assassins_return)             # TR Crobat ex — Assassin's Return
     # sv10-122 Biting Spree ability registered in abilities.py
-    # sv10-123 TR Grimer: Corrosive Sludge FLAGGED
+    registry.register_attack("sv10-123", 0, _corrosive_sludge)             # TR Grimer — Corrosive Sludge
     registry.register_attack("sv10-124", 0, _gooped_up)                    # TR Muk — Gooped Up
     registry.register_attack("sv10-124", 1, _hazardous_venom)              # TR Muk — Hazardous Venom
     # sv10-125 TR Koffing: Smog Signals passive (handled in _apply_damage); ATK0 Leaking Gas (flat)
@@ -18850,10 +18950,15 @@ def _suction(state, action):
 
 
 def _anachronism_repulsor_flag(state, action):
-    """sv06.5-009 Iron Moth atk1 — Anachronism Repulsor: 120 + FLAGGED (prevent Ancient damage)."""
+    """sv06.5-009 Iron Moth atk1 — Anachronism Repulsor: 120 + prevent damage from Ancient Pokémon next turn."""
     _do_default_damage(state, action)
-    state.emit_event("flagged_effect", attack="Anachronism Repulsor",
-                     reason="prevent_ancient_pokemon_damage_next_turn_not_supported")
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if player.active:
+        player.active.prevent_damage_from_ancient = True
+        state.emit_event("anachronism_repulsor_set", player=action.player_id,
+                         card=player.active.card_name)
 
 
 def _hold_still_b13(state, action):
@@ -19219,9 +19324,50 @@ def _all_out_attack_flag(state, action):
 
 
 def _colorful_confection_flag(state, action):
-    """sv07-065 Alcremie atk0 — Colorful Confection: FLAGGED (search by attached energy type)."""
-    state.emit_event("flagged_effect", attack="Colorful Confection",
-                     reason="search_by_energy_type_not_supported")
+    """sv07-065 Alcremie atk0 — Colorful Confection: search deck for up to 5 Pokémon matching attached energy types."""
+    player = state.get_player(action.player_id)
+    if not player.active:
+        return
+    # Collect types from attached energy
+    energy_types = set()
+    for att in player.active.energy_attached:
+        for t in att.provides:
+            energy_types.add(t.value.capitalize())
+    if not energy_types:
+        state.emit_event("attack_no_damage", attacker="Alcremie", attack_name="Colorful Confection",
+                         reason="no_energy_attached")
+        return
+    # Find matching Pokémon in deck
+    matching = [c for c in player.deck
+                if c.card_type.lower() in ("pokemon", "pokémon")]
+    type_matched = []
+    for c in matching:
+        cdef = card_registry.get(c.card_def_id)
+        if cdef and any(t in energy_types for t in (cdef.types or [])):
+            type_matched.append(c)
+    if not type_matched:
+        import random as _r_cc
+        _r_cc.shuffle(player.deck)
+        state.emit_event("attack_no_damage", attacker="Alcremie", attack_name="Colorful Confection",
+                         reason="no_matching_pokemon_in_deck")
+        return
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        f"Colorful Confection: choose up to 5 Pokémon matching your attached energy types ({', '.join(energy_types)})",
+        cards=type_matched, min_count=0, max_count=5,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+    for iid in chosen_ids[:5]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+    import random as _r_cc2
+    _r_cc2.shuffle(player.deck)
+    state.emit_event("colorful_confection", player=action.player_id, found=len(chosen_ids))
+    state.emit_event("attack_no_damage", attacker="Alcremie", attack_name="Colorful Confection")
 
 
 def _swelling_wish_flag(state, action):
@@ -21758,12 +21904,14 @@ def _mirror_attack_b16(state, action):
 # ── sv05-069 Bronzong ────────────────────────────────────────────────────────
 
 def _evolution_jammer_flag(state, action):
-    """sv05-069 Bronzong atk0 — Evolution Jammer: 30 + block evolution — FLAGGED (block)."""
+    """sv05-069 Bronzong atk0 — Evolution Jammer: 30 + during opp's next turn, they can't evolve."""
     _do_default_damage(state, action)
     if state.phase == Phase.GAME_OVER:
         return
-    state.emit_event("flagged_effect", attack="Evolution Jammer",
-                     reason="evolution_block_not_supported")
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_player(opp_id)
+    opp.evolution_blocked_next_turn = True
+    state.emit_event("evolution_jammer_set", player=action.player_id)
 
 
 # ── sv05-071 Duosion ─────────────────────────────────────────────────────────
@@ -21829,12 +21977,22 @@ def _cosmic_beatdown_b16(state, action):
 # ── sv05-076 Ribombee ────────────────────────────────────────────────────────
 
 def _plentiful_pollen_flag(state, action):
-    """sv05-076 Ribombee atk0 — Plentiful Pollen: 30 + extra prizes on KO — FLAGGED (extra prizes)."""
+    """sv05-076 Ribombee atk0 — Plentiful Pollen: 30 + if Defending KO'd on YOUR next turn, take 2 more prizes."""
     _do_default_damage(state, action)
     if state.phase == Phase.GAME_OVER:
         return
-    state.emit_event("flagged_effect", attack="Plentiful Pollen",
-                     reason="extra_prizes_on_ko_not_supported")
+    opp = state.get_opponent(action.player_id)
+    if not opp.active:
+        return
+    state.pending_effects.append({
+        "type": "ribombee_prize",
+        "attacker_pid": action.player_id,
+        "target_instance_id": opp.active.instance_id,
+        "fires_on_turn": state.turn_number + 2,
+        "bonus": 2,
+    })
+    state.emit_event("plentiful_pollen_queued", player=action.player_id,
+                     target=opp.active.card_name)
 
 
 # ── sv05-077 Scream Tail ─────────────────────────────────────────────────────
@@ -21924,9 +22082,31 @@ def _majestic_sword_flag(state, action):
 # ── sv05-081 Iron Crown ex ───────────────────────────────────────────────────
 
 def _twin_shotels_flag(state, action):
-    """sv05-081 Iron Crown ex atk0 — Twin Shotels: 50 to 2 targets bypass effects — FLAGGED."""
-    state.emit_event("flagged_effect", attack="Twin Shotels",
-                     reason="multi_target_bypass_not_supported")
+    """sv05-081 Iron Crown ex atk0 — Twin Shotels: 50 damage to 2 of opponent's Pokémon (bypass W/R/effects)."""
+    opp = state.get_opponent(action.player_id)
+    opp_id = state.opponent_id(action.player_id)
+    if not opp.active:
+        return
+    # First target: the Active Pokémon (50 damage, bypass W/R)
+    _apply_damage(state, action, 50, bypass_wr=True, bypass_defender_effects=True)
+    if state.phase == Phase.GAME_OVER:
+        return
+    # Second target: choose from bench (or skip if no bench)
+    if not opp.bench:
+        return
+    req = ChoiceRequest(
+        "choose_target", action.player_id,
+        "Twin Shotels: choose 1 of your opponent's Benched Pokémon for 50 damage",
+        targets=list(opp.bench),
+    )
+    resp = yield req
+    target = None
+    if resp and hasattr(resp, "target_instance_id") and resp.target_instance_id:
+        target = next((p for p in opp.bench
+                       if p.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = opp.bench[0]
+    _apply_bench_damage(state, opp_id, target, 50)
 
 
 # ── sv05-086 Excadrill ───────────────────────────────────────────────────────
@@ -22087,9 +22267,20 @@ def _wrathful_charge_b16(state, action):
 # ── sv05-097 Great Tusk ──────────────────────────────────────────────────────
 
 def _land_collapse_flag(state, action):
-    """sv05-097 Great Tusk atk0 — Land Collapse: ancient supporter tracking — FLAGGED."""
-    state.emit_event("flagged_effect", attack="Land Collapse",
-                     reason="ancient_supporter_tracking_not_supported")
+    """sv05-097 Great Tusk atk0 — Land Collapse: discard 1 (or 4 if Ancient Supporter played) from opp deck."""
+    player = state.get_player(action.player_id)
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_player(opp_id)
+    discards = 4 if player.ancient_supporter_played_this_turn else 1
+    actual = 0
+    for _ in range(discards):
+        if opp.deck:
+            top = opp.deck.pop()
+            top.zone = Zone.DISCARD
+            opp.discard.append(top)
+            actual += 1
+    state.emit_event("land_collapse", player=action.player_id, discarded=actual)
+    state.emit_event("attack_no_damage", attacker="Great Tusk", attack_name="Land Collapse")
 
 
 # ── sv05-098 Sandy Shocks ────────────────────────────────────────────────────
@@ -22105,12 +22296,15 @@ def _magnetic_burst_b16(state, action):
 # ── sv05-099 Iron Boulder ex ─────────────────────────────────────────────────
 
 def _repulsor_axe_flag(state, action):
-    """sv05-099 Iron Boulder ex atk0 — Repulsor Axe: counter damage on hit — FLAGGED."""
+    """sv05-099 Iron Boulder ex atk0 — Repulsor Axe: 60 + if this Pokémon is hit next turn, put 8 counters on attacker."""
     _do_default_damage(state, action)
     if state.phase == Phase.GAME_OVER:
         return
-    state.emit_event("flagged_effect", attack="Repulsor Axe",
-                     reason="counter_damage_on_hit_not_supported")
+    player = state.get_player(action.player_id)
+    if player.active:
+        player.active.repulsor_axe_active = True
+        state.emit_event("repulsor_axe_armed", player=action.player_id,
+                         card=player.active.card_name)
 
 
 def _discard_2_energy_self_b16(state, action):

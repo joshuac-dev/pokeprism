@@ -348,6 +348,19 @@ def check_ko(
             state.emit_event("final_chain_triggered", player=target_player_id,
                              card=card.card_name)
 
+    # Ribombee Plentiful Pollen: if pending effect matches this KO, award extra prizes
+    for pe in list(state.pending_effects):
+        if (pe.get("type") == "ribombee_prize"
+                and pe.get("target_instance_id") == target.instance_id
+                and state.active_player == pe.get("attacker_pid")
+                and state.turn_number >= pe.get("fires_on_turn", 9999)
+                and _is_attacking_active
+                and attacker_id == pe.get("attacker_pid")):
+            prizes_to_take += pe.get("bonus", 2)
+            state.pending_effects.remove(pe)
+            state.emit_event("plentiful_pollen_bonus", player=pe["attacker_pid"],
+                             bonus=pe["bonus"])
+
     state.emit_event(
         "ko",
         ko_player=target_player_id,
@@ -369,6 +382,41 @@ def check_ko(
         state.emit_event("infinite_shadow_triggered", player=target_player_id,
                          card=target.card_name)
     else:
+        # Huntail Diver's Catch (sv10-055): if a Water Pokémon is KO'd, move Basic Water Energy to hand
+        from app.engine.effects.abilities import _in_play as _base_in_play_h
+        _huntail_in_play = any(p.card_def_id == "sv10-055" for p in _base_in_play_h(target_player))
+        if _huntail_in_play:
+            target_cdef_h = card_registry.get(target.card_def_id)
+            if target_cdef_h and "Water" in (target_cdef_h.types or []):
+                for att in list(target.energy_attached):
+                    ec = _find_card_anywhere(target_player, att.source_card_id)
+                    if (ec and ec.card_type.lower() == "energy"
+                            and ec.card_subtype.lower() == "basic"
+                            and any("Water" in e for e in (ec.energy_provides or []))):
+                        ec.zone = Zone.HAND
+                        target_player.hand.append(ec)
+                        target.energy_attached.remove(att)
+                state.emit_event("divers_catch_triggered", player=target_player_id)
+
+        # Heavy Baton (sv05-151): retreat cost 4, KO'd while active → move up to 3 Basic Energy to bench[0]
+        if ("sv05-151" in target.tools_attached
+                and _is_attacking_active
+                and target_player.bench):
+            hb_cdef = card_registry.get(target.card_def_id)
+            _SPECIAL_E = {"me02.5-216", "me03-086", "me03-088", "sv05-161",
+                          "sv06-167", "sv08-191", "sv10-182", "sv10.5w-086"}
+            if hb_cdef and getattr(hb_cdef, "retreat_cost", 0) == 4:
+                basic_atts = [att for att in target.energy_attached
+                              if att.card_def_id not in _SPECIAL_E]
+                move_count = min(3, len(basic_atts))
+                if move_count > 0:
+                    dest = target_player.bench[0]
+                    for att in basic_atts[:move_count]:
+                        target.energy_attached.remove(att)
+                        dest.energy_attached.append(att)
+                    state.emit_event("heavy_baton_triggered", player=target_player_id,
+                                     count=move_count, destination=dest.card_name)
+
         _move_to_discard(target_player, target)
 
     # Remove from active / bench

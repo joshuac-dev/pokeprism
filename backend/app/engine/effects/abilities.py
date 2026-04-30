@@ -778,6 +778,29 @@ def _stone_arms(state: GameState, action):
     state.emit_event("stone_arms", player=player_id, target=target.card_name)
 
 
+# Spike-Clad (sv09-085 Lycanroc) ──────────────────────────────────────────────
+
+def _spike_clad(state: GameState, action) -> None:
+    """On-evolve: attach up to 2 Spiky Energy (sv09-159) from discard to this Pokémon."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    poke = _find_in_play(player, action.card_instance_id)
+    if poke is None:
+        return
+    spiky_in_discard = [c for c in player.discard if c.card_def_id == "sv09-159"]
+    if not spiky_in_discard:
+        return
+    count = min(2, len(spiky_in_discard))
+    from app.engine.effects.trainers import _make_energy_attachment
+    for ec in spiky_in_discard[:count]:
+        att = _make_energy_attachment(ec)
+        player.discard.remove(ec)
+        ec.zone = poke.zone
+        poke.energy_attached.append(att)
+    state.emit_event("spike_clad_triggered", player=player_id,
+                     card=poke.card_name, count=count)
+
+
 # Run Away Draw (sv05-129 Dudunsparce) ────────────────────────────────────────
 
 def _run_away_draw(state: GameState, action) -> None:
@@ -1567,6 +1590,7 @@ EVOLVE_TRIGGER_ABILITIES: frozenset[str] = frozenset({
     "Time to Chow Down",     # sv07-067 Dachsbun ex — heal all damage from Evolution Pokémon
     "Wafting Heal",          # sv08.5-008 Whimsicott — heal all damage from Active Grass Pokémon
     "Inviting Wink",         # sv09-067 / svp-183 Lillie's Ribombee — put opp's Basics onto Bench
+    "Spike-Clad",            # sv09-085 Lycanroc — attach up to 2 Spiky Energy from discard on evolve
 })
 
 
@@ -4416,7 +4440,7 @@ def register_all(registry):
 
     # FLAGGED passives (stubs; complex trigger not implemented)
     registry.register_passive_ability("sv09-067", "Inviting Wink")      # Lillie's Ribombee (on-evolve: noop)
-    registry.register_passive_ability("sv09-085", "Spike-Clad")         # Lycanroc (on-evolve: noop)
+    registry.register_ability("sv09-085", "Spike-Clad", _spike_clad)    # Lycanroc (on-evolve: attach Spiky Energy)
     registry.register_passive_ability("sv09-095", "Daunting Gaze")      # Tyranitar (restrict opp Items: logic in actions.py)
     registry.register_passive_ability("sv09-107", "Auto Heal")          # Magearna (logic in transitions.py _attach_energy)
     registry.register_passive_ability("sv09-128", "Tuning Echo")        # Noivern (reduce energy cost: noop)
@@ -4505,7 +4529,7 @@ def register_all(registry):
     registry.register_passive_ability("sv08.5-075", "Rainbow DNA")      # Eevee ex (special evolve: noop)
     registry.register_passive_ability("sv08.5-077", "Insomnia")         # Noctowl (can't be Asleep: noop)
     registry.register_ability("sv08.5-078", "Jewel Seeker", _jewel_seeker)  # Noctowl alt (on-evolve)
-    registry.register_passive_ability("sv08.5-080", "Run Away Draw")    # Dudunsparce (return to deck: noop)
+    registry.register_ability("sv08.5-080", "Run Away Draw", _run_away_draw)  # Dudunsparce (return to deck)
     registry.register_ability("sv08-004", "Sudden Shearing", _sudden_shearing)  # Durant ex (on-bench-play)
     registry.register_passive_ability("sv08.5-056", "Magnetic Absorption") # Sandy Shocks ex (conditional energy attach: noop)
 
@@ -4721,7 +4745,7 @@ def register_all(registry):
     registry.register_ability("svp-118", "Attract Customers", _attract_customers)     # Tatsugiri alt print
     registry.register_passive_ability("svp-126", "Hero's Spirit")           # Palafin ex (sv06-061 alt)
     registry.register_passive_ability("svp-127", "Azure Seas")              # Walking Wake ex (sv05-050 alt)
-    registry.register_passive_ability("svp-128", "Rapid Vernier")           # Iron Leaves ex (on-play bench: noop)
+    registry.register_ability("svp-128", "Rapid Vernier", _rapid_vernier)   # Iron Leaves ex (on-bench: switch + energy move)
     registry.register_passive_ability("svp-133", "Glittering Star Pattern") # Ledian (sv07-003 alt)
     registry.register_passive_ability("svp-134", "Food Prep")               # Crabominable (sv07-042 alt)
     registry.register_passive_ability("svp-136", "Curly Wall")              # Bouffalant (sv07-119 alt)

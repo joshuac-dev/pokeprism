@@ -411,6 +411,8 @@ class ActionValidator:
         Rule 11: evolution must follow the correct chain.
         """
         actions: list[Action] = []
+        if player.evolution_blocked_next_turn:
+            return []
         in_play = _in_play(player)
         evolutions_in_hand = [
             c for c in player.hand

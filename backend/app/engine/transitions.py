@@ -178,6 +178,8 @@ async def _play_supporter(state: GameState, action: Action, get_player=None) -> 
     cdef_sup = card_registry.get(card.card_def_id)
     if cdef_sup and "Future" in (getattr(cdef_sup, "subtypes", None) or []):
         player.future_supporter_played_this_turn = True
+    if cdef_sup and "Ancient" in (getattr(cdef_sup, "subtypes", None) or []):
+        player.ancient_supporter_played_this_turn = True
 
     state.emit_event(
         "play_supporter",
@@ -320,6 +322,17 @@ async def _attach_energy(state: GameState, action: Action, get_player=None) -> G
         state.emit_event("auto_heal_triggered", player=action.player_id,
                          card=target.card_name, healed=heal)
 
+    # Gnawing Curse (sv05-104 Gengar ex): whenever opp attaches Energy from hand, put 2 counters on that Pokémon
+    opp_ge = state.get_opponent(action.player_id)
+    opp_ge_id = state.opponent_id(action.player_id)
+    if any(p.card_def_id == "sv05-104" for p in (([opp_ge.active] if opp_ge.active else []) + list(opp_ge.bench))):
+        target.current_hp -= 20
+        target.damage_counters += 2
+        state.emit_event("gnawing_curse_triggered", player=opp_ge_id,
+                         card=target.card_name)
+        from app.engine.effects.base import check_ko
+        check_ko(state, target, action.player_id)
+
     return state
 
 
@@ -453,6 +466,14 @@ async def _retreat(state: GameState, action: Action, get_player=None) -> GameSta
             state.emit_event("swirling_prose_triggered",
                              player=action.player_id,
                              card=player.active.card_name)
+
+    # Lava Zone (sv05-029 Magcargo): when opponent's Active Pokémon retreats, burn their new Active
+    from app.engine.effects.abilities import _in_play as _abl_in_play2
+    if (player.active
+            and any(p.card_def_id == "sv05-029" for p in _abl_in_play2(opp))):
+        player.active.status_conditions.add(StatusCondition.BURNED)
+        state.emit_event("lava_zone_triggered", player=action.player_id,
+                         card=player.active.card_name)
 
     # Buzzing Boost (sv10-003 Yanmega ex): when promoted from Bench to Active, search deck for up to 3 Basic G Energy
     if player.active and player.active.card_def_id == "sv10-003":

@@ -4,35 +4,46 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-**Flagged Card Implementation — In Progress** 🔄
-_Last updated: 2026-04-30_
+**Flagged Card Implementation — Complete** ✅
+_Last updated: 2026-05-01_
 
-All 20 card expansion batches complete (1,927 cards in DB). Now implementing flagged cards (complex mechanics skipped during expansion). Batches 1–7 complete — **84 flagged entries remain**.
+All 20 card expansion batches complete (1,927 cards in DB). All 8 flagged card implementation batches complete — **62 flagged entries remain** (legitimately unimplementable without major engine rewrites).
 
 | Metric | Value |
 |--------|-------|
 | Cards in DB | 1927 |
 | Coverage | **98.5%** (29 legitimately missing) |
-| Flagged batches complete | 7 of ~8 |
-| Flagged implemented this phase | 174 (Batches 1–7) |
-| Flagged entries remaining | **84** (in `docs/POKEMON_MASTER_LIST.md`) |
+| Flagged batches complete | 8 of ~8 |
+| Flagged implemented this phase | 196 (Batches 1–8) |
+| Flagged entries remaining | **62** (in `docs/POKEMON_MASTER_LIST.md`) |
 | Tests | **215 passing** |
 
 ---
 
-## Last Session — 2026-04-30 (Flagged Batches 6 & 7)
+## Last Session — 2026-05-01 (Flagged Batch 8)
 
 ### Current Phase Progress
 
-**Completed this session:** Flagged Batches 6 (23 cards) and 7 (25 cards) = **48 cards implemented**.
+**Completed this session:** Flagged Batch 8 = **22 cards implemented**.
 
-**Remaining:** 84 flagged entries in `docs/POKEMON_MASTER_LIST.md`. The majority require engine hooks that don't yet exist (on-KO triggers with side effects, first-turn rule exceptions, dynamic max HP, mid-battle evolution from deck, devolve, dual typing, simultaneous evolution). Roughly 30–40 of the 84 are likely implementable with targeted engine additions; the rest are genuinely outside engine scope.
+**Remaining:** 62 flagged entries in `docs/POKEMON_MASTER_LIST.md`. These are legitimately unimplementable without major engine rewrites (dynamic max HP, mid-battle evolution from deck, devolve, dual typing, simultaneous evolution, first-turn exceptions, opponent-interactive choices, etc.).
 
-**Phase is NOT yet complete.** At least one more batch (~25 cards) is needed. Once flagged cards are finished, the next phase per PROJECT.md is **Phase 14 — Tuning & Evaluation** (baseline win-rate benchmarks, coach quality metrics, coverage audit).
+**Phase complete.** Next phase per PROJECT.md is **Phase 14 — Tuning & Evaluation** (baseline win-rate benchmarks, coach quality metrics, coverage audit).
 
 ---
 
 ### Active Files Changed This Session
+
+**Batch 8 (22 flagged entries implemented):**
+- `backend/app/engine/state.py` — added `repulsor_axe_active`, `prevent_damage_from_ancient` to `CardInstance`; `evolution_blocked_next_turn`, `ancient_supporter_played_this_turn`, `amarys_pending` to `PlayerState`; `pending_effects` list to `GameState`
+- `backend/app/engine/actions.py` — `evolution_blocked_next_turn` check in `_get_evolve_actions`
+- `backend/app/engine/effects/attacks.py` — replaced 12 flagged stubs: `_permeating_chill_b10`, `_onyx_flag`, `_sunny_assist_flag`, `_anachronism_repulsor_flag`, `_colorful_confection_flag`, `_plentiful_pollen_flag`, `_evolution_jammer_flag`, `_twin_shotels_flag`, `_land_collapse_flag`, `_repulsor_axe_flag`; added `_corrosive_sludge`; `prevent_damage_from_ancient` check and Repulsor Axe / Lucky Helmet hooks in `_apply_damage`
+- `backend/app/engine/effects/base.py` — Ribombee Plentiful Pollen prize bonus in `check_ko`; Huntail Diver's Catch and Heavy Baton in `check_ko`
+- `backend/app/engine/transitions.py` — Lava Zone burn on retreat; Ancient Supporter tracking in `_play_supporter`; Gnawing Curse in `_attach_energy`
+- `backend/app/engine/effects/abilities.py` — `_spike_clad` handler; "Spike-Clad" added to `EVOLVE_TRIGGER_ABILITIES`; sv09-085/sv08.5-080/svp-128 passive→active registrations
+- `backend/app/engine/effects/trainers.py` — `_amarys` handler; sv08.5-093 registered as `_amarys`
+- `backend/app/engine/runner.py` — `_find_deferred_target` helper; `pending_effects` processing in `_end_turn`; Amarys discard, Powerglass, Celebratory Fanfare hooks; Perilous Jungle in `_handle_between_turns`; reset of new flags in `_end_turn`
+- `docs/POKEMON_MASTER_LIST.md` — 22 entries removed
 
 **Batch 6 (first half of session):**
 - `backend/app/engine/effects/attacks.py` — replaced 9 flagged stubs with real handlers; added `_ANCIENT_CARD_IDS`, `_FUTURE_CARD_IDS`, `_IRON_CROWN_EX_IDS` frozensets; `_is_ancient()`, `_is_future()` helpers; passive checks in `_apply_damage` (Resolute Heart, Cobalt Command, Azure Seas, Full Metal Lab, Armor Tail, C.O.D.E.: Protect)

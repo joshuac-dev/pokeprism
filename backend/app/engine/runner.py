@@ -88,6 +88,13 @@ def build_deck_instances(card_defs: list[CardDefinition]) -> list[CardInstance]:
 # MatchRunner
 # ──────────────────────────────────────────────────────────────────────────────
 
+def _find_deferred_target(player, instance_id):
+    """Find a Pokémon by instance_id among active/bench for deferred effect targeting."""
+    if player.active and player.active.instance_id == instance_id:
+        return player.active
+    return next((p for p in player.bench if p.instance_id == instance_id), None)
+
+
 class MatchRunner:
     """Orchestrates a single game between two players.
 
@@ -412,24 +419,47 @@ class MatchRunner:
         if state.phase == Phase.GAME_OVER:
             return state
 
-        # Sand Stream (sv10-096 TR Tyranitar): during Pokémon Checkup, place 1 damage counter
-        # on each of the opponent's Pokémon. Only fires once even if multiple TR Tyranitar.
+        # Sand Stream (sv10-096 TR Tyranitar): during Pokémon Checkup, place 2 damage counters
+        # on each of the opponent's Basic Pokémon. Only fires once even if multiple TR Tyranitar.
         tr_player_id = state.active_player
         tr_player = state.get_player(tr_player_id)
         from app.engine.effects.abilities import _in_play as _abl_in_play_ss
         if any(p.card_def_id == "sv10-096" for p in _abl_in_play_ss(tr_player)):
             opp_ss_id = state.opponent_id(tr_player_id)
             opp_ss = state.get_player(opp_ss_id)
-            all_opp = ([opp_ss.active] if opp_ss.active else []) + list(opp_ss.bench)
-            for poke in all_opp:
-                poke.current_hp -= 10
-                poke.damage_counters += 1
+            basic_opp = [p for p in ([opp_ss.active] if opp_ss.active else []) + list(opp_ss.bench)
+                         if p.evolution_stage == 0]
+            for poke in basic_opp:
+                poke.current_hp -= 20
+                poke.damage_counters += 2
             state.emit_event("sand_stream_triggered", player=tr_player_id)
             from app.engine.effects.base import check_ko
-            for poke in list(all_opp):
+            for poke in list(basic_opp):
                 check_ko(state, poke, opp_ss_id)
                 if state.phase == Phase.GAME_OVER:
                     return state
+
+        # Perilous Jungle (sv05-156): during Pokémon Checkup, put 2 more counters on each Poisoned non-{D} Pokémon
+        if (state.active_stadium
+                and state.active_stadium.card_def_id == "sv05-156"):
+            for _pj_pid in ("p1", "p2"):
+                _pj_player = state.get_player(_pj_pid)
+                _pj_all = (([_pj_player.active] if _pj_player.active else [])
+                           + list(_pj_player.bench))
+                for _pj_poke in _pj_all:
+                    if StatusCondition.POISONED in _pj_poke.status_conditions:
+                        _pj_cdef = card_registry.get(_pj_poke.card_def_id)
+                        _is_dark = _pj_cdef and "Darkness" in (_pj_cdef.types or [])
+                        if not _is_dark:
+                            _pj_poke.current_hp -= 20
+                            _pj_poke.damage_counters += 2
+                            state.emit_event("perilous_jungle_triggered",
+                                             player=_pj_pid,
+                                             card=_pj_poke.card_name)
+                            from app.engine.effects.base import check_ko
+                            check_ko(state, _pj_poke, _pj_pid)
+                            if state.phase == Phase.GAME_OVER:
+                                return state
 
         return state
 
@@ -452,6 +482,8 @@ class MatchRunner:
             # through the opponent's (next) turn as intended.
             if pid == current_pid:
                 player.items_locked_this_turn = False
+                player.evolution_blocked_next_turn = False
+                player.ancient_supporter_played_this_turn = False
             if player.active:
                 player.active.retreated_this_turn = False
                 player.active.ability_used_this_turn = False
@@ -477,6 +509,8 @@ class MatchRunner:
                 player.active.attack_requires_flip = False
                 player.active.torment_blocked_attack_name = None
                 player.active.retaliation_on_damage = False
+                player.active.repulsor_axe_active = False
+                player.active.prevent_damage_from_ancient = False
                 # Discard energy cards flagged for end-of-turn removal (Ignition Energy)
                 self._discard_expiring_energy(state, player.active)
             for b in player.bench:
@@ -496,6 +530,8 @@ class MatchRunner:
                 b.attack_requires_flip = False
                 b.torment_blocked_attack_name = None
                 b.retaliation_on_damage = False
+                b.repulsor_axe_active = False
+                b.prevent_damage_from_ancient = False
                 self._discard_expiring_energy(state, b)
 
         state.active_player_damage_bonus = 0
@@ -535,6 +571,80 @@ class MatchRunner:
                         _cc_poke.current_hp = min(_cc_poke.max_hp, _cc_poke.current_hp + 10)
                 state.emit_event("community_center_heal",
                                  player=state.active_player)
+
+        # Process deferred effects (Permeating Chill, Corrosive Sludge) that fire after current player's turn
+        for pe in list(state.pending_effects):
+            if pe.get("fires_after_player") == state.active_player:
+                state.pending_effects.remove(pe)
+                if pe["type"] == "deferred_counters":
+                    pe_player = state.get_player(pe["target_pid"])
+                    pe_target = _find_deferred_target(pe_player, pe["target_instance_id"])
+                    if pe_target and pe_target.current_hp > 0:
+                        counters = pe.get("counters", 1)
+                        pe_target.current_hp -= counters * 10
+                        pe_target.damage_counters += counters
+                        state.emit_event("deferred_counters_applied",
+                                         player=pe["target_pid"],
+                                         card=pe_target.card_name,
+                                         counters=counters)
+                        from app.engine.effects.base import check_ko
+                        check_ko(state, pe_target, pe["target_pid"])
+                        if state.phase == Phase.GAME_OVER:
+                            return state
+                elif pe["type"] == "deferred_ko":
+                    pe_player = state.get_player(pe["target_pid"])
+                    pe_target = _find_deferred_target(pe_player, pe["target_instance_id"])
+                    if pe_target and pe_target.current_hp > 0:
+                        pe_target.current_hp = 0
+                        pe_target.damage_counters = pe_target.max_hp // 10
+                        state.emit_event("deferred_ko_applied",
+                                         player=pe["target_pid"],
+                                         card=pe_target.card_name)
+                        from app.engine.effects.base import check_ko
+                        check_ko(state, pe_target, pe["target_pid"])
+                        if state.phase == Phase.GAME_OVER:
+                            return state
+
+        # Amarys: if pending, discard hand if 5+ cards
+        _amarys_player = state.get_player(state.active_player)
+        if _amarys_player.amarys_pending:
+            _amarys_player.amarys_pending = False
+            if len(_amarys_player.hand) >= 5:
+                for _hcard in list(_amarys_player.hand):
+                    _hcard.zone = Zone.DISCARD
+                    _amarys_player.discard.append(_hcard)
+                _amarys_player.hand.clear()
+                state.emit_event("amarys_discard", player=state.active_player)
+
+        # Powerglass (sv06.5-063): end of your turn, if active has Powerglass, attach Basic Energy from discard
+        _pg_player = state.get_player(state.active_player)
+        if (_pg_player.active
+                and "sv06.5-063" in _pg_player.active.tools_attached):
+            from app.engine.effects.trainers import _is_basic_energy_card, _make_energy_attachment
+            _pg_basic = [c for c in _pg_player.discard if _is_basic_energy_card(c)]
+            if _pg_basic:
+                _pg_ec = _pg_basic[0]
+                _pg_att = _make_energy_attachment(_pg_ec)
+                _pg_player.discard.remove(_pg_ec)
+                _pg_ec.zone = _pg_player.active.zone
+                _pg_player.active.energy_attached.append(_pg_att)
+                state.emit_event("powerglass_triggered", player=state.active_player,
+                                 energy=_pg_ec.card_name)
+
+        # Celebratory Fanfare (mep-028): heal 10 from each of current player's Pokémon
+        if (state.active_stadium
+                and state.active_stadium.card_def_id == "mep-028"):
+            _cf_player = state.get_player(state.active_player)
+            _cf_all = (([_cf_player.active] if _cf_player.active else [])
+                       + list(_cf_player.bench))
+            _cf_healed = False
+            for _cf_poke in _cf_all:
+                if _cf_poke.damage_counters > 0:
+                    _cf_poke.damage_counters = max(0, _cf_poke.damage_counters - 1)
+                    _cf_poke.current_hp = min(_cf_poke.max_hp, _cf_poke.current_hp + 10)
+                    _cf_healed = True
+            if _cf_healed:
+                state.emit_event("celebratory_fanfare_heal", player=state.active_player)
 
         state.active_player = state.opponent_id(state.active_player)
         state.turn_number += 1

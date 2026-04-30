@@ -135,6 +135,8 @@ class CardInstance:
     attack_requires_flip: bool = False                    # Sand Attack: must flip coin to attack next turn (tails = fail)
     torment_blocked_attack_name: Optional[str] = None     # Pangoro Torment: this attack name is blocked next turn
     retaliation_on_damage: bool = False                   # Zamazenta Strong Bash: reflect incoming damage back to attacker
+    repulsor_axe_active: bool = False         # Iron Boulder ex Repulsor Axe: 8 counters on attacker if hit next turn
+    prevent_damage_from_ancient: bool = False  # Iron Moth Anachronism Repulsor: block Ancient Pokémon damage next turn
     custom_counters: dict = field(default_factory=dict)   # Per-card counter tracking (e.g., feather counters)
 
     # Energy-card-specific ─────────────────────────────────────────────────────
@@ -173,6 +175,9 @@ class PlayerState:
     future_effect_immunity: bool = False  # Miraidon C.O.D.E.: Protect (last one turn)
     xerosics_machinations_played_this_turn: bool = False  # Malamar Colluding Tentacles
     daydream_active: bool = False  # Hypno Daydream: end opp turn if they attach to Active
+    evolution_blocked_next_turn: bool = False        # Bronzong Evolution Jammer: opp can't evolve next turn
+    ancient_supporter_played_this_turn: bool = False  # Great Tusk Land Collapse: played Ancient Supporter flag
+    amarys_pending: bool = False                      # Amarys: discard hand at end of turn if 5+ cards
 
 
 @dataclass
@@ -202,6 +207,7 @@ class GameState:
 
     # Event log
     events: list[dict] = field(default_factory=list)
+    pending_effects: list[dict] = field(default_factory=list)  # Deferred effects (Ribombee, Permeating Chill, Corrosive Sludge)
 
     # ── Helpers ────────────────────────────────────────────────────────────────
 

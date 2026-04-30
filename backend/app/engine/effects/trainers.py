@@ -242,6 +242,15 @@ def _noop(state: GameState, action) -> None:
     """Registered to suppress 'no trainer effect' warnings for passive cards."""
 
 
+def _amarys(state: GameState, action) -> None:
+    """sv08.5-093 Amarys: draw 4 cards; at end of this turn, if 5+ cards in hand, discard all."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    draw_cards(state, player_id, 4)
+    player.amarys_pending = True
+    state.emit_event("amarys_played", player=player_id)
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Supporters
 # ──────────────────────────────────────────────────────────────────────────────
@@ -5054,7 +5063,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv10-172", _noop)   # TR Bother-Bot (face-up prize + hand reveal — flagged)
     registry.register_trainer("sv09-150", _noop)   # Levincia (per-turn energy recovery — flagged)
     registry.register_trainer("sv09-156", _noop)   # Redeemable Ticket (prize zone manipulation — flagged)
-    registry.register_trainer("sv08.5-093", _noop) # Amarys (end-of-turn trigger — flagged)
+    registry.register_trainer("sv08.5-093", _amarys) # Amarys (draw 4, discard hand at end of turn if 5+)
     registry.register_trainer("sv08.5-118", _noop) # Ogre's Mask (Pokémon swap w/ full state transfer — flagged)
     registry.register_trainer("sv08-178", _jasmine_gaze)   # Jasmine's Gaze (damage reduction next turn)
     registry.register_trainer("sv08-188", _noop)   # TM: Fluorite (Tera-wide full heal TM — flagged)
