@@ -1,81 +1,51 @@
-name: Nightly Card Effect Audit
+name: Nightly Copilot Card Effect Audit
 
 on:
   schedule:
     # GitHub Actions cron is UTC.
-    # 08:07 UTC is 3:07 AM EST.
-    # During EDT this runs at 4:07 AM Eastern unless adjusted to 07:07 UTC.
+    # 08:07 UTC = 3:07 AM EST.
+    # During EDT this will run at 4:07 AM Eastern unless adjusted to 07:07 UTC.
     - cron: "7 8 * * *"
 
   workflow_dispatch:
     inputs:
       max_findings:
-        description: "Maximum findings to report"
+        description: "Maximum findings Copilot should report"
         required: false
         default: "25"
-      model:
-        description: "GitHub Models model identifier"
-        required: false
-        default: "openai/gpt-5.3-codex"
 
 permissions:
   contents: read
   issues: write
-  models: read
 
 concurrency:
-  group: nightly-card-effect-audit
+  group: nightly-copilot-card-effect-audit
   cancel-in-progress: false
 
 jobs:
-  audit-card-effects:
+  create-copilot-audit-task:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install backend package
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e backend
-
-      - name: Run card implementation audit
+      - name: Create audit issue and assign to Copilot
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_MODELS_MODEL: ${{ inputs.model || 'openai/gpt-5.3-codex' }}
-          GITHUB_MODELS_ENDPOINT: https://models.github.ai/inference/chat/completions
-        run: |
-          python backend/scripts/audit_card_implementations.py \
-            --max-findings "${{ inputs.max_findings || '25' }}" \
-            --model "$GITHUB_MODELS_MODEL" \
-            --report audit-report.md \
-            --metadata audit-metadata.json
-
-      - name: Upload audit report artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: card-effect-audit-report
-          path: |
-            audit-report.md
-            audit-metadata.json
-
-      - name: Create tracking issue when needed
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.COPILOT_AGENT_PAT }}
           GH_REPO: ${{ github.repository }}
+          MAX_FINDINGS: ${{ inputs.max_findings || '25' }}
         run: |
-          FINDINGS=$(python -c "import json; print(json.load(open('audit-metadata.json'))['finding_count'])")
-          AUDIT_WARNINGS=$(python -c "import json; print(json.load(open('audit-metadata.json'))['audit_warning_count'])")
+          set -euo pipefail
 
-          if [ "$FINDINGS" -eq 0 ] && [ "$AUDIT_WARNINGS" -eq 0 ]; then
-            echo "No findings or audit warnings to report."
+          DATE_UTC="$(date -u +%Y-%m-%d)"
+          TITLE="Nightly card effect implementation audit - ${DATE_UTC}"
+
+          EXISTING="$(gh issue list \
+            --state open \
+            --search "${TITLE} in:title" \
+            --json number \
+            --jq '.[0].number // empty')"
+
+          if [ -n "$EXISTING" ]; then
+            echo "Issue already exists for ${DATE_UTC}: #${EXISTING}"
             exit 0
           fi
 
@@ -83,19 +53,164 @@ jobs:
             --description "Automated card effect implementation audit" \
             --color 7057ff || true
 
+          gh label create copilot-agent-task \
+            --description "Task intended for GitHub Copilot coding agent" \
+            --color 0969da || true
+
           gh label create automated \
             --description "Created by automated workflow" \
             --color cfd3d7 || true
 
-          TITLE="Nightly card effect implementation audit - $(date -u +%Y-%m-%d)"
-          EXISTING=$(gh issue list --state open --search "$TITLE in:title" --json number --jq 'length')
+          BODY_FILE="$(mktemp)"
 
-          if [ "$EXISTING" -gt 0 ]; then
-            echo "An open audit issue for today already exists; not creating a duplicate."
-            exit 0
-          fi
+          cat > "$BODY_FILE" <<EOF
+          # CARD IMPLEMENTATION AUDIT
 
-          gh issue create \
+          This is a scheduled audit task for GitHub Copilot coding agent.
+
+          Please audit card effect implementations in this repository and open a pull request containing a Markdown report with your findings.
+
+          ## Required output
+
+          Create or update this file in your PR:
+
+          \`docs/audits/card-effect-audit-${DATE_UTC}.md\`
+
+          Do not directly fix card implementation bugs in this PR unless the fix is extremely small and obvious. The primary goal is to produce an audit report for tracking and later review.
+
+          ## Context
+
+          Read \`docs/CARD_EXPANSION_RULES.md\` for context on how cards should be implemented.
+
+          Perform a comprehensive audit of card effect implementations by checking them against fresh TCGDex source data.
+
+          ## Audit scope
+
+          Audit all cards from the local card list/table, starting from the top alphabetically by card name, then by set/id if names tie.
+
+          Continue until either:
+
+          1. You find ${MAX_FINDINGS} effect implementation bugs, errors, warnings, quality concerns, or engine gaps, or
+          2. You get through the entire card list with fewer than ${MAX_FINDINGS} findings.
+
+          Finding zero is acceptable if factual. Do not invent bugs that do not exist.
+
+          ## Rules
+
+          - Always fetch fresh data from TCGDex.
+          - Do not rely on cached fixture data as the source of truth.
+          - Treat every set/number combination as a unique card.
+          - Same card name does not imply same card behavior.
+          - If TCGDex data cannot be fetched for a card, record it as an audit warning, not an implementation bug.
+          - If a fix requires engine-level changes or new mechanics, classify it separately as an \`ENGINE GAP\`.
+          - Avoid duplicate findings if an open issue already tracks the same card/effect problem.
+          - Be specific and factual.
+
+          ## Checks
+
+          For each card in the audited range:
+
+          ### 1. Fetch fresh TCGDex data
+
+          Fetch the current card definition from TCGDex.
+
+          ### 2. Compare attacks
+
+          For each attack:
+
+          - Does the attack have effect text in TCGDex?
+          - If yes, is there a registered handler in \`EffectRegistry\`?
+          - If there is a handler, does the handler's docstring and logic match the TCGDex effect text?
+
+          Check for:
+
+          - Wrong damage values
+          - Missing secondary effects
+          - Wrong conditions
+          - Missing coin flip mechanics
+          - Wrong target, such as bench vs active or self vs opponent
+          - Incorrect discard, draw, search, attach, switch, status, healing, or damage-counter behavior
+
+          ### 3. Compare abilities
+
+          For each ability:
+
+          - Does TCGDex list an ability for this card?
+          - Is it registered as active, passive, or otherwise handled?
+          - Does the implementation match the ability text?
+
+          ### 4. Check trainer effects
+
+          For trainer cards:
+
+          - Does the handler match the TCGDex effect text?
+          - Is it correctly categorized as item, supporter, stadium, tool, or other relevant trainer subtype?
+
+          ### 5. Check special energy effects
+
+          For special energy cards:
+
+          - Does the handler match the TCGDex effect text?
+          - Are provided energy type, amount, restrictions, and conditional behavior correct?
+
+          ## Report format
+
+          The PR should add a Markdown report with this structure:
+
+          \`\`\`markdown
+          # Card Effect Implementation Audit - ${DATE_UTC}
+
+          ## Summary
+
+          Cards audited: X
+          Alphabetical range audited: A-D
+          Findings found: Y
+          Cards with no issues: Z
+          TCGDex fetch warnings: N
+
+          ## Errors Found
+
+          - CardName (SET #): attack "X" handler does Y, but TCGDex says Z.
+          - CardName (SET #): ability "X" is not registered despite effect text.
+          - CardName (SET #): wrong damage value. Handler: 80. TCGDex: 120.
+
+          ## Warnings
+
+          - CardName (SET #): effect text is ambiguous; implementation may be correct.
+
+          ## Engine Gaps
+
+          - CardName (SET #): effect requires mechanic X, which does not appear to exist in the engine.
+
+          ## Known Open Issues
+
+          - CardName (SET #): matching open issue #123 already exists.
+
+          ## Cards With No Issues
+
+          Count: X
+          \`\`\`
+
+          ## Pull request expectations
+
+          Open a PR with the audit report only.
+
+          Suggested PR title:
+
+          \`Nightly card effect implementation audit - ${DATE_UTC}\`
+          EOF
+
+          ISSUE_URL="$(gh issue create \
             --title "$TITLE" \
-            --label "card-effect-audit,automated" \
-            --body-file audit-report.md
+            --label "card-effect-audit,copilot-agent-task,automated" \
+            --body-file "$BODY_FILE")"
+
+          echo "Created issue: $ISSUE_URL"
+
+          ISSUE_NUMBER="${ISSUE_URL##*/}"
+
+          # Assign to GitHub Copilot coding agent.
+          # This requires COPILOT_AGENT_PAT to be a user token from an account
+          # with Copilot coding agent access.
+          gh issue edit "$ISSUE_NUMBER" --add-assignee "copilot-swe-agent" || \
+          gh issue edit "$ISSUE_NUMBER" --add-assignee "copilot-swe-agent[bot]"
