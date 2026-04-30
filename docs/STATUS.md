@@ -45,7 +45,15 @@ All 20 card expansion batches complete (1,927 cards in DB). Engine refactoring p
 - `sv05-131` Delcatty TEF — Energy Blender atk1: 110 + optional energy redistribution among your Pokémon
 
 **True skip (1):**
-- `sv08-188` TM: Fluorite SSP — TM attack framework not implemented; no Tera Pokémon in pool; `_noop` retained
+- ~~`sv08-188` TM: Fluorite SSP~~ — **Implemented post-batch** via TM attack subsystem (see below)
+
+**Post-batch addition — TM: Fluorite + TM attack subsystem:**
+- `backend/app/cards/models.py` — Replaced broken `is_tera` name-check with hardcoded `_TERA_POKEMON_IDS` frozenset (42 Tera Pokémon ex: Dragapult ex, Greninja ex, all Ogerpon ex forms, Pikachu ex, Terapagos ex, Eevee ex, all Eeveelution ex, etc.)
+- `backend/app/engine/actions.py` — Added TM attack generation: Tools with `attacks` field are offered as `attack_index = 100 + slot*10 + tm_atk_idx`
+- `backend/app/engine/transitions.py` — `_attack` decodes index ≥ 100 as TM attacks, routes `resolve_attack` to the TM card's handler
+- `backend/app/engine/runner.py` — Discards sv08-188 from all `tools_attached` at end of player's turn
+- `backend/app/engine/effects/attacks.py` — `_fluorite`: discard all energy from attacker + heal all Tera Pokémon in play
+- `backend/tests/test_engine/test_copy_attacks.py` — Updated non-Tera test card to use `"Garchomp ex"` (sv06-130 Dragapult ex is now correctly Tera)
 
 **Remaining:** 10 flagged entries in `docs/POKEMON_MASTER_LIST.md` (all require deep engine changes: dual typing, attack-effect prevention hooks, deck-scan attack execution, prior-form attacks, prize zone manipulation).
 

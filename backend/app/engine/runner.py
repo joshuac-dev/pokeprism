@@ -670,6 +670,13 @@ class MatchRunner:
             if _cf_healed:
                 state.emit_event("celebratory_fanfare_heal", player=state.active_player)
 
+        # Discard TM tools at end of owner's turn
+        _TM_DISCARD_TOOL_IDS = {"sv08-188"}
+        _ep = state.get_player(state.active_player)
+        for _poke in ([_ep.active] if _ep.active else []) + list(_ep.bench):
+            _poke.tools_attached = [t for t in _poke.tools_attached
+                                     if t not in _TM_DISCARD_TOOL_IDS]
+
         state.active_player = state.opponent_id(state.active_player)
         state.turn_number += 1
         state.phase = Phase.DRAW

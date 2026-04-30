@@ -201,8 +201,8 @@ async def test_gemstone_mimicry_no_tera_emits_event(tr_mimikyu_cdef):
     card_registry.register(tr_mimikyu_cdef)
 
     non_tera = _make_card(
-        "sv06-130", "Dragapult ex",
-        [AttackDef(name="Phantom Dive", damage="200", cost=["Psychic", "Colorless"])],
+        "test-non-tera-001", "Garchomp ex",
+        [AttackDef(name="Sonic Slash", damage="180", cost=["Fighting", "Colorless"])],
     )
     card_registry.register(non_tera)
 

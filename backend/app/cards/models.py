@@ -38,6 +38,53 @@ class ResistanceDef(BaseModel):
     value: str = ""   # e.g. "-30"
 
 
+# Hardcoded set of all Tera Pokémon ex card IDs in the pool
+_TERA_POKEMON_IDS: frozenset[str] = frozenset({
+    "sv05-060",    # Wugtrio ex
+    "sv05-108",    # Farigiraf ex
+    "sv06-025",    # Teal Mask Ogerpon ex
+    "sv06-029",    # Magcargo ex
+    "sv06-040",    # Hearthflame Mask Ogerpon ex
+    "sv06-064",    # Wellspring Mask Ogerpon ex
+    "sv06-106",    # Greninja ex
+    "sv06-112",    # Cornerstone Mask Ogerpon ex
+    "sv06-130",    # Dragapult ex
+    "sv06.5-015",  # Revavroom ex
+    "sv07-028",    # Cinderace ex
+    "sv07-032",    # Lapras ex
+    "sv07-041",    # Greninja ex (alt)
+    "sv07-051",    # Galvantula ex
+    "sv07-128",    # Terapagos ex
+    "sv08-036",    # Ceruledge ex
+    "sv08-057",    # Pikachu ex
+    "sv08-086",    # Sylveon ex
+    "sv08-091",    # Palossand ex
+    "sv08-106",    # Flygon ex
+    "sv08-119",    # Hydreigon ex
+    "sv08-133",    # Alolan Exeggutor ex
+    "sv08-142",    # Tatsugiri ex
+    "sv08-159",    # Cyclizar ex
+    "sv08.5-006",  # Leafeon ex
+    "sv08.5-012",  # Teal Mask Ogerpon ex (alt)
+    "sv08.5-014",  # Flareon ex
+    "sv08.5-017",  # Hearthflame Mask Ogerpon ex (alt)
+    "sv08.5-023",  # Vaporeon ex
+    "sv08.5-026",  # Glaceon ex
+    "sv08.5-027",  # Wellspring Mask Ogerpon ex (alt)
+    "sv08.5-028",  # Pikachu ex (alt)
+    "sv08.5-030",  # Jolteon ex
+    "sv08.5-034",  # Espeon ex
+    "sv08.5-041",  # Sylveon ex (alt)
+    "sv08.5-058",  # Cornerstone Mask Ogerpon ex (alt)
+    "sv08.5-060",  # Umbreon ex
+    "sv08.5-073",  # Dragapult ex (alt)
+    "sv08.5-075",  # Eevee ex
+    "sv08.5-092",  # Terapagos ex (alt)
+    "sv10.5w-067", # Hydreigon ex (alt)
+    "svp-106",     # Pikachu ex (promo)
+})
+
+
 class CardDefinition(BaseModel):
     """Parsed card definition sourced from TCGDex.
 
@@ -111,8 +158,7 @@ class CardDefinition(BaseModel):
 
     @property
     def is_tera(self) -> bool:
-        """True for Tera Pokémon. No Tera Pokémon are in the current card pool."""
-        return "tera" in self.name.lower() or "tera" in self.stage.lower()
+        return self.tcgdex_id in _TERA_POKEMON_IDS or "tera" in self.name.lower()
 
     @property
     def prize_value(self) -> int:

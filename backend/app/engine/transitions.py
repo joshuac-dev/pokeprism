@@ -542,12 +542,31 @@ async def _attack(state: GameState, action: Action, get_player=None) -> GameStat
         raise ValueError("No active Pokémon to attack with")
 
     cdef = card_registry.get(player.active.card_def_id)
-    attack_name = (
-        cdef.attacks[action.attack_index].name
-        if cdef and action.attack_index is not None
-        and action.attack_index < len(cdef.attacks)
-        else "Attack"
-    )
+
+    # TM attack: index >= 100 means attack comes from an attached Tool card
+    _is_tm_attack = action.attack_index is not None and action.attack_index >= 100
+    if _is_tm_attack:
+        _tm_tool_slot = (action.attack_index - 100) // 10
+        _tm_atk_idx = (action.attack_index - 100) % 10
+        _tm_def_id = (player.active.tools_attached[_tm_tool_slot]
+                      if player.active and _tm_tool_slot < len(player.active.tools_attached)
+                      else None)
+        _tm_cdef = card_registry.get(_tm_def_id) if _tm_def_id else None
+        attack_name = (
+            _tm_cdef.attacks[_tm_atk_idx].name
+            if _tm_cdef and _tm_cdef.attacks and _tm_atk_idx < len(_tm_cdef.attacks)
+            else "TM Attack"
+        )
+    else:
+        _is_tm_attack = False
+        _tm_def_id = None
+        _tm_atk_idx = 0
+        attack_name = (
+            cdef.attacks[action.attack_index].name
+            if cdef and action.attack_index is not None
+            and action.attack_index < len(cdef.attacks)
+            else "Attack"
+        )
 
     state.emit_event(
         "attack_declared",
@@ -581,13 +600,22 @@ async def _attack(state: GameState, action: Action, get_player=None) -> GameStat
                              if ea.card_def_id == "sv06-166")
                          if player.active else 0)
 
-    result = await EffectRegistry.instance().resolve_attack(
-        player.active.card_def_id,
-        action.attack_index or 0,
-        state,
-        action,
-        get_player,
-    )
+    if _is_tm_attack and _tm_def_id:
+        result = await EffectRegistry.instance().resolve_attack(
+            _tm_def_id,
+            _tm_atk_idx,
+            state,
+            action,
+            get_player,
+        )
+    else:
+        result = await EffectRegistry.instance().resolve_attack(
+            player.active.card_def_id,
+            action.attack_index or 0,
+            state,
+            action,
+            get_player,
+        )
 
     # Boomerang Energy re-attach: if attacker is still active and boomerang energy was discarded by the attack
     _result_player = result.get_player(action.player_id)

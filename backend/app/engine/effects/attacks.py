@@ -26225,3 +26225,35 @@ def register_flagged_batch5_attacks(registry):
 
     # ── sv10-001 Ethan's Pinsir ──────────────────────────────────────────────
     registry.register_attack("sv10-001", 1, _rallying_horn_b5)        # Rallying Horn
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# TM: Fluorite (sv08-188) — TM Tool attack handler
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _fluorite(state, action):
+    """sv08-188 TM: Fluorite — Discard all Energy from this Pokémon + heal all your Tera Pokémon."""
+    from app.cards.loader import card_registry as _cr
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    # Discard all energy from attacker
+    if player.active:
+        discarded = len(player.active.energy_attached)
+        player.active.energy_attached.clear()
+        state.emit_event("fluorite_discard_energy", player=player_id,
+                         attacker=player.active.card_name, count=discarded)
+
+    # Heal all Tera Pokémon in play
+    in_play = ([player.active] if player.active else []) + list(player.bench)
+    for poke in in_play:
+        pdef = _cr.get(poke.card_def_id)
+        if pdef and pdef.is_tera and poke.damage_counters > 0:
+            poke.damage_counters = 0
+            poke.current_hp = poke.max_hp
+            state.emit_event("fluorite_heal", player=player_id, card=poke.card_name)
+
+
+def register_tm_attacks(registry):
+    """Register TM card attack handlers."""
+    registry.register_attack("sv08-188", 0, _fluorite)   # TM: Fluorite

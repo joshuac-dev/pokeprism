@@ -662,6 +662,19 @@ class ActionValidator:
                 actions.append(
                     Action(ActionType.ATTACK, player_id, attack_index=i)
                 )
+
+        # TM attack support: check Pokémon tools for cards with their own attacks
+        for _tool_slot, _tm_def_id in enumerate(player.active.tools_attached):
+            _tm_cdef = card_registry.get(_tm_def_id)
+            if not _tm_cdef or not getattr(_tm_cdef, "attacks", None):
+                continue
+            for _tm_atk_idx, _tm_attack in enumerate(_tm_cdef.attacks):
+                _tm_cost = list(_tm_attack.cost) if _tm_attack.cost else []
+                if _can_pay_energy_cost(player.active, _tm_cost, state, player_id):
+                    actions.append(
+                        Action(ActionType.ATTACK, player_id,
+                               attack_index=100 + _tool_slot * 10 + _tm_atk_idx)
+                    )
         return actions
 
     # ── Matching helper ────────────────────────────────────────────────────────
