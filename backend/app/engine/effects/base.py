@@ -577,6 +577,65 @@ def _devolve_pokemon(state, opp_player_id, target, destination):
     check_ko(state, pre_evo, opp_player_id)
 
 
+def _evolve_in_play_from_deck(state, player_id: str, target: "CardInstance",
+                               evo_card: "CardInstance") -> None:
+    """Evolve `target` (in play for player_id) using `evo_card` from the player's deck.
+
+    Moves evo_card from deck to play (active or bench slot where target was).
+    Transfers energy/tools/damage from target to evo_card.
+    Sends target to discard. Sets evolved_this_turn=True.
+    """
+    player = state.get_player(player_id)
+
+    if evo_card not in player.deck:
+        return
+    player.deck.remove(evo_card)
+
+    evo_cdef = card_registry.get(evo_card.card_def_id)
+
+    # Transfer battle state
+    evo_card.energy_attached = list(target.energy_attached)
+    evo_card.tools_attached = list(target.tools_attached)
+    evo_card.status_conditions = set(target.status_conditions)
+    evo_card.damage_counters = target.damage_counters
+    evo_card.evolved_from = target.instance_id
+    evo_card.evolved_this_turn = True
+    evo_card.turn_played = state.turn_number
+    evo_card.zone = target.zone
+
+    # Set HP
+    evo_card.max_hp = evo_cdef.hp if evo_cdef else target.max_hp
+    evo_card.current_hp = max(0, evo_card.max_hp - evo_card.damage_counters * 10)
+
+    # Set evolution stage
+    _stage_map = {"stage1": 1, "stage 1": 1, "stage2": 2, "stage 2": 2, "mega": 2}
+    if evo_cdef and evo_cdef.stage:
+        evo_card.evolution_stage = _stage_map.get(evo_cdef.stage.lower(),
+                                                   target.evolution_stage + 1)
+    else:
+        evo_card.evolution_stage = target.evolution_stage + 1
+
+    # Replace target in play
+    if player.active and player.active.instance_id == target.instance_id:
+        player.active = evo_card
+    else:
+        for i, b in enumerate(player.bench):
+            if b.instance_id == target.instance_id:
+                player.bench[i] = evo_card
+                break
+
+    # Send target to discard
+    target.zone = Zone.DISCARD
+    player.discard.append(target)
+
+    state.emit_event("evolved", player=player_id,
+                     from_card=target.card_name, to_card=evo_card.card_name,
+                     via="deck_evolution")
+
+    # Check if evo_card is immediately KO'd due to carried damage
+    check_ko(state, evo_card, player_id)
+
+
 def _discard_attached_only(player: PlayerState, pokemon: CardInstance) -> None:
     """Discard only attached energy/tools for Infinite Shadow — the Pokémon itself goes to hand."""
     pokemon.tools_attached.clear()

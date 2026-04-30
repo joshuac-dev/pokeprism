@@ -3891,6 +3891,107 @@ def _emergency_rotation(state: GameState, action):
     state.emit_event("emergency_rotation", player=action.player_id, card=klinklang.card_name)
 
 
+# Emergency Evolution (sv05-133 Pidove) ──────────────────────────────────────
+
+def _emergency_evolution(state: GameState, action):
+    """sv05-133 Pidove — Emergency Evolution: if HP ≤ 30, search deck for Unfezant/Unfezant ex."""
+    from app.engine.effects.base import _evolve_in_play_from_deck
+
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    pidove = _find_in_play(player, action.card_instance_id)
+    if pidove is None or pidove.current_hp > 30:
+        return
+
+    evo_cards = [c for c in player.deck if "unfezant" in c.card_name.lower()]
+    if not evo_cards:
+        random.shuffle(player.deck)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Emergency Evolution: choose an Unfezant to evolve into",
+        cards=evo_cards, min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards else [])
+    evo_card = next((c for c in evo_cards if c.instance_id in chosen_ids), evo_cards[0])
+
+    _evolve_in_play_from_deck(state, player_id, pidove, evo_card)
+    random.shuffle(player.deck)
+
+    evo_in_play = _find_in_play(player, evo_card.instance_id)
+    if evo_in_play:
+        evo_in_play.ability_used_this_turn = True
+
+    state.emit_event("emergency_evolution", player=player_id,
+                     from_card="Pidove", to_card=evo_card.card_name)
+
+
+# Overvolt Discharge (sv08-059 Magneton) ──────────────────────────────────────
+
+def _overvolt_discharge(state: GameState, action):
+    """sv08-059 Magneton — Overvolt Discharge: attach up to 3 Basic Energy from discard to {L} Pokémon; self-KO."""
+    from app.engine.effects.base import check_ko as _check_ko
+    from app.engine.effects.trainers import _is_basic_energy_card
+    from app.cards import registry as _cr
+
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    magneton = _find_in_play(player, action.card_instance_id)
+    if magneton is None:
+        return
+
+    basic_energy = [c for c in player.discard if _is_basic_energy_card(c)]
+    lightning_pokes = [p for p in ([player.active] if player.active else []) + list(player.bench)
+                       if _cr.get(p.card_def_id) is not None
+                       and "Lightning" in (_cr.get(p.card_def_id).types or [])]
+
+    if basic_energy and lightning_pokes:
+        count = min(3, len(basic_energy))
+        req = ChoiceRequest(
+            "choose_cards", player_id,
+            "Overvolt Discharge: choose up to 3 Basic Energy from your discard pile to attach",
+            cards=basic_energy, min_count=0, max_count=count,
+        )
+        resp = yield req
+        chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                      else [c.instance_id for c in basic_energy[:count]])
+
+        chosen_energies = [c for c in basic_energy if c.instance_id in chosen_ids][:count]
+
+        for energy_card in chosen_energies:
+            if len(lightning_pokes) == 1:
+                target = lightning_pokes[0]
+            else:
+                req2 = ChoiceRequest(
+                    "choose_target", player_id,
+                    f"Overvolt Discharge: attach {energy_card.card_name} to which Lightning Pokémon?",
+                    targets=lightning_pokes,
+                )
+                resp2 = yield req2
+                target = None
+                if resp2 and resp2.target_instance_id:
+                    target = next((p for p in lightning_pokes
+                                   if p.instance_id == resp2.target_instance_id), None)
+                if target is None:
+                    target = lightning_pokes[0]
+            _attach_from_hand_or_discard(player, target, energy_card)
+            state.emit_event("overvolt_discharge_attach", player=player_id,
+                             energy=energy_card.card_name, target=target.card_name)
+
+    magneton = _find_in_play(player, action.card_instance_id)
+    if magneton is None:
+        return
+
+    state.emit_event("overvolt_discharge", player=player_id, card="Magneton")
+    magneton.current_hp = 0
+    magneton.damage_counters = magneton.max_hp // 10
+    _check_ko(state, magneton, player_id)
+
+
 def register_all(registry):
     """Register all ability effect handlers with the registry."""
 
@@ -4636,7 +4737,19 @@ def register_all(registry):
     registry.register_passive_ability("sv08-037", "Double Type")        # Scovillain ex (dual typing: noop)
     registry.register_passive_ability("sv08-049", "Counterattack")      # Bruxish (on-hit counter: noop)
     registry.register_passive_ability("sv08-057", "Resolute Heart")     # Pikachu ex (OHKO prevention: noop)
-    registry.register_passive_ability("sv08-059", "Overvolt Discharge") # Magneton (self-KO + energy: noop)
+    def _cond_overvolt_discharge(state, player_id):
+        from app.engine.effects.trainers import _is_basic_energy_card
+        from app.cards import registry as _cr
+        p = state.get_player(player_id)
+        if not any(pk.card_def_id == "sv08-059" and not pk.ability_used_this_turn
+                   for pk in _in_play(p)):
+            return False
+        has_basic_energy = any(_is_basic_energy_card(c) for c in p.discard)
+        has_lightning = any("Lightning" in (_cr.get(pk.card_def_id).types or [])
+                            for pk in _in_play(p) if _cr.get(pk.card_def_id) is not None)
+        return has_basic_energy and has_lightning
+    registry.register_ability("sv08-059", "Overvolt Discharge", _overvolt_discharge,
+                               condition=_cond_overvolt_discharge)  # Magneton
     registry.register_passive_ability("sv08-072", "Wonder Kiss")        # Togekiss (on-KO prize: logic in base.py check_ko)
     registry.register_passive_ability("sv08-074", "Glistening Bubbles") # Azumarill (cost reduction: noop)
     def _cond_beckoning_tail(state, player_id):
@@ -4792,7 +4905,16 @@ def register_all(registry):
     registry.register_ability("sv05-114", "Metal Maker", _metal_maker_b4,
                                condition=_cond_metal_maker)            # Metang
     registry.register_passive_ability("sv05-118", "Dual Core")              # Iron Treads (tool dual-type: noop)
-    registry.register_passive_ability("sv05-133", "Emergency Evolution")    # Pidove (low-HP evo search: noop)
+    def _cond_emergency_evolution(state, player_id):
+        p = state.get_player(player_id)
+        return (
+            any(pk.card_def_id == "sv05-133" and not pk.ability_used_this_turn
+                and pk.current_hp <= 30
+                for pk in _in_play(p))
+            and any("unfezant" in c.card_name.lower() for c in p.deck)
+        )
+    registry.register_ability("sv05-133", "Emergency Evolution", _emergency_evolution,
+                               condition=_cond_emergency_evolution)  # Pidove
     registry.register_passive_ability("sv05-139", "Automated Combat")       # Iron Jugulis (on-damage counter: noop)
     registry.register_passive_ability("mep-001", "Wild Growth")             # Meganium (energy doubling: noop)
     registry.register_ability("mep-003", "Psychic Draw", _psychic_draw_alakazam)  # Alakazam (on-evolve draw)

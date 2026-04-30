@@ -8300,6 +8300,46 @@ def _voltage_burst(state, action):
         check_ko(state, player.active, action.player_id)
 
 
+def _cellular_evolution(state, action):
+    """sv10.5b-038 Duosion atk0 — Cellular Evolution: evolve any 1 of your Pokémon from deck."""
+    from app.engine.effects.base import _evolve_in_play_from_deck
+
+    player = state.get_player(action.player_id)
+    in_play = ([player.active] if player.active else []) + list(player.bench)
+
+    valid_pairs = []
+    for poke in in_play:
+        poke_name = poke.card_name.lower()
+        for c in player.deck:
+            cdef = card_registry.get(c.card_def_id)
+            if cdef and (cdef.evolve_from or "").lower() == poke_name:
+                valid_pairs.append((poke, c))
+
+    if not valid_pairs:
+        _shuffle_deck(player)
+        return
+
+    evo_options = list({c.instance_id: c for (_, c) in valid_pairs}.values())
+
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        "Cellular Evolution: choose an Evolution card from deck to evolve one of your Pokémon",
+        cards=evo_options, min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards else [])
+    evo_card = next((c for c in evo_options if c.instance_id in chosen_ids), evo_options[0])
+
+    evo_cdef = card_registry.get(evo_card.card_def_id)
+    evolves_from_name = (evo_cdef.evolve_from or "").lower() if evo_cdef else ""
+    in_play_now = ([player.active] if player.active else []) + list(player.bench)
+    target = next((p for p in in_play_now if p.card_name.lower() == evolves_from_name), None)
+    if target:
+        _evolve_in_play_from_deck(state, action.player_id, target, evo_card)
+
+    _shuffle_deck(player)
+
+
 def _cellular_evolution_noop(state, action):
     """sv10.5b-038 Duosion atk0 — Cellular Evolution: FLAGGED, in-battle evolution from deck."""
     state.emit_event("attack_no_damage", attacker="Duosion",
@@ -11015,6 +11055,59 @@ def _surprise_attack_30(state, action):
     else:
         state.emit_event("coin_flip_result", attack="Surprise Attack", result="tails")
         state.emit_event("attack_no_damage", attacker="TR Nidoran♀", attack_name="Surprise Attack")
+
+
+def _dark_awakening(state, action):
+    """sv10-115 TR Nidorina atk0 — Dark Awakening: choose up to 2 {D} Pokémon, evolve each from deck."""
+    from app.engine.effects.base import _evolve_in_play_from_deck
+
+    player = state.get_player(action.player_id)
+    in_play = ([player.active] if player.active else []) + list(player.bench)
+
+    darkness_pokes = []
+    for poke in in_play:
+        cdef = card_registry.get(poke.card_def_id)
+        if cdef and "Darkness" in (cdef.types or []):
+            poke_name = poke.card_name.lower()
+            has_evo = any(
+                (card_registry.get(c.card_def_id) is not None
+                 and (card_registry.get(c.card_def_id).evolve_from or "").lower() == poke_name)
+                for c in player.deck
+            )
+            if has_evo:
+                darkness_pokes.append(poke)
+
+    if not darkness_pokes:
+        _shuffle_deck(player)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        "Dark Awakening: choose up to 2 of your {D} Pokémon to evolve",
+        cards=darkness_pokes, min_count=0, max_count=min(2, len(darkness_pokes)),
+    )
+    resp = yield req
+    chosen_ids = set(resp.selected_cards[:2] if resp and resp.selected_cards
+                     else [darkness_pokes[0].instance_id])
+
+    for poke in list(darkness_pokes):
+        if poke.instance_id not in chosen_ids:
+            continue
+        poke_name = poke.card_name.lower()
+        evo_cards = [c for c in player.deck
+                     if (card_registry.get(c.card_def_id) is not None
+                         and (card_registry.get(c.card_def_id).evolve_from or "").lower()
+                         == poke_name)]
+        if not evo_cards:
+            continue
+        in_play_now = ([player.active] if player.active else []) + list(player.bench)
+        current = next((p for p in in_play_now if p.instance_id == poke.instance_id), None)
+        if current:
+            _evolve_in_play_from_deck(state, action.player_id, current, evo_cards[0])
+            if state.phase == Phase.GAME_OVER:
+                break
+
+    _shuffle_deck(player)
 
 
 def _love_impact(state, action):
@@ -16217,8 +16310,8 @@ def register_all(registry):
     registry.register_attack("sv10.5b-035", 0, _rest_munna)                # Munna — Rest
     registry.register_attack("sv10.5b-036", 0, _dream_calling)             # Musharna — Dream Calling
     registry.register_attack("sv10.5b-036", 1, _sleep_pulse)               # Musharna — Sleep Pulse
-    registry.register_attack("sv10.5b-038", 0, _cellular_evolution_noop)   # Duosion — Cellular Evolution (FLAGGED)
-    registry.register_attack("sv10.5b-039", 0, _cellular_ascension_noop)   # Reuniclus — Cellular Ascension (FLAGGED)
+    registry.register_attack("sv10.5b-038", 0, _cellular_evolution)         # Duosion — Cellular Evolution
+    registry.register_attack("sv10.5b-039", 0, _cellular_ascension)         # Reuniclus — Cellular Ascension
     registry.register_attack("sv10.5b-039", 1, _evo_lariat)                # Reuniclus — Evo-Lariat
     registry.register_attack("sv10.5b-040", 0, _slight_shift)              # Elgyem — Slight Shift
     registry.register_attack("sv10.5b-041", 0, _calm_mind)                 # Beheeyem — Calm Mind
@@ -16583,7 +16676,8 @@ def register_all(registry):
     # sv10-113 TR Arbok: Potent Glare FLAGGED; ATK0 Spinning Tail flat below
     registry.register_attack("sv10-113", 0, _spinning_tail_all_opp)        # TR Arbok — Spinning Tail
     registry.register_attack("sv10-114", 0, _surprise_attack_30)           # TR Nidoran♀ — Surprise Attack
-    # sv10-115 TR Nidorina: Dark Awakening FLAGGED; ATK1 Scratch (flat)
+    # sv10-115 TR Nidorina: Dark Awakening; ATK1 Scratch (flat)
+    registry.register_attack("sv10-115", 0, _dark_awakening)               # TR Nidorina — Dark Awakening
     registry.register_attack("sv10-116", 0, _love_impact)                  # TR Nidoqueen — Love Impact
     # sv10-116 ATK1 Mega Kick (flat)
     # sv10-117 TR Nidoran♂: ATK0 Pierce (flat); ATK1 Hammer In (flat)
@@ -17011,7 +17105,7 @@ def register_all(registry):
     registry.register_attack("sv08-005", 0, _call_for_family)              # Durant — Call for Family (reuse)
     # sv08-005 ATK1 (flat)
     registry.register_attack("sv08-006", 0, _wander_about)                 # Spewpa — Wander About
-    registry.register_attack("sv08-007", 0, _evo_powder_flag)              # Vivillon — Evo-Powder (FLAGGED)
+    registry.register_attack("sv08-007", 0, _cellular_ascension)            # Vivillon — Evo-Powder
     # sv08-007 ATK1 (flat)
     # sv08-008 Foongus: ATK0 (flat)
     registry.register_attack("sv08-009", 0, _spiral_rush_b10)              # Shiinotic — Spiral Rush
@@ -17419,13 +17513,13 @@ def register_all(registry):
     registry.register_attack("sv06.5-009", 0, _suction)                     # Iron Moth — Suction
     registry.register_attack("sv06.5-009", 1, _anachronism_repulsor_flag)   # Iron Moth — Anachronism Repulsor (FLAGGED)
     registry.register_attack("sv06.5-010", 0, _hold_still_b13)              # Horsea — Hold Still
-    registry.register_attack("sv06.5-011", 0, _call_for_backup_flag)        # Seadra — Call for Backup (FLAGGED)
+    registry.register_attack("sv06.5-011", 0, _call_for_backup)              # Seadra — Call for Backup
     registry.register_attack("sv06.5-012", 0, _kings_order_flag)            # Kingdra ex — King's Order (FLAGGED)
     registry.register_attack("sv06.5-012", 1, _hydro_pump_sfa)              # Kingdra ex — Hydro Pump
     registry.register_attack("sv06.5-013", 1, _beset)                       # Sneasel — Beset
     registry.register_attack("sv06.5-014", 1, _hail_claw)                   # Weavile — Hail Claw (reuse)
-    registry.register_attack("sv06.5-015", 0, _accelerator_flash_flag)      # Revavroom ex — Accelerator Flash (FLAGGED)
-    registry.register_attack("sv06.5-015", 1, _shattering_speed_flag)       # Revavroom ex — Shattering Speed (FLAGGED)
+    registry.register_attack("sv06.5-015", 0, _accelerator_flash)           # Revavroom ex — Accelerator Flash
+    registry.register_attack("sv06.5-015", 1, _shattering_speed)            # Revavroom ex — Shattering Speed
     registry.register_attack("sv06.5-016", 0, _eerie_gaze)                  # Drowzee — Eerie Gaze
     registry.register_attack("sv06.5-017", 0, _daydream_flag)               # Hypno — Daydream (FLAGGED)
     registry.register_attack("sv06.5-018", 0, _come_and_get_you_flag)       # Duskull — Come and Get You (FLAGGED)
@@ -19076,6 +19170,34 @@ def _hold_still_b13(state, action):
     state.emit_event("attack_no_damage", attacker="Horsea", attack_name="Hold Still")
 
 
+def _call_for_backup(state, action):
+    """sv06.5-011 Seadra atk0 — Call for Backup: search deck for up to 3 Pokémon → hand."""
+    player = state.get_player(action.player_id)
+    poke_in_deck = [c for c in player.deck if c.card_type.lower() == "pokemon"]
+    if not poke_in_deck:
+        _shuffle_deck(player)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        "Call for Backup: search your deck for up to 3 Pokémon to put in your hand",
+        cards=poke_in_deck, min_count=0, max_count=min(3, len(poke_in_deck)),
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [c.instance_id for c in poke_in_deck[:3]])
+
+    for cid in chosen_ids[:3]:
+        card = next((c for c in player.deck if c.instance_id == cid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+
+    _shuffle_deck(player)
+    state.emit_event("call_for_backup", player=action.player_id, count=min(3, len(chosen_ids)))
+
+
 def _call_for_backup_flag(state, action):
     """sv06.5-011 Seadra atk0 — Call for Backup: FLAGGED (search for 3 Pokémon)."""
     state.emit_event("flagged_effect", attack="Call for Backup",
@@ -19108,10 +19230,30 @@ def _beset(state, action):
         state.emit_event("cant_retreat", card=opp.active.card_name)
 
 
+def _accelerator_flash(state, action):
+    """sv06.5-015 Revavroom ex atk0 — Accelerator Flash: 20 + 120 if moved from bench this turn."""
+    player = state.get_player(action.player_id)
+    bonus = 120 if (player.active and player.active.moved_from_bench_this_turn) else 0
+    _apply_damage(state, action, 20 + bonus)
+
+
 def _accelerator_flash_flag(state, action):
     """sv06.5-015 Revavroom ex atk0 — Accelerator Flash: FLAGGED (bench-to-active check)."""
     state.emit_event("flagged_effect", attack="Accelerator Flash",
                      reason="bench_pokemon_condition_check_not_supported")
+
+
+def _shattering_speed(state, action):
+    """sv06.5-015 Revavroom ex atk1 — Shattering Speed: 250 + discard self (self-KO)."""
+    _apply_damage(state, action, 250)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if player.active:
+        player.active.current_hp = 0
+        player.active.damage_counters = player.active.max_hp // 10
+        check_ko(state, player.active, player_id)
 
 
 def _shattering_speed_flag(state, action):
@@ -21660,7 +21802,7 @@ def register_batch15_attacks(registry):
     # ── Batch 15 missed cards ─────────────────────────────────────────────────
     registry.register_attack("sv06-126", 0, _find_a_friend)                 # Applin — Find a Friend (reuse)
     registry.register_attack("sv06-127", 0, _syrup_catcher_flag)            # Dipplin — Syrup Catcher (FLAGGED)
-    registry.register_attack("sv06-135", 0, _ascension_eevee_flag)          # Eevee — Ascension (FLAGGED)
+    registry.register_attack("sv06-135", 0, _ascension_eevee)               # Eevee — Ascension
     registry.register_attack("sv06-135", 1, _quick_attack_asc)              # Eevee — Quick Attack (reuse)
     registry.register_attack("sv05-022", 0, _chili_snapper_bind)            # Scovillain ex — Chili Snapper Bind
     registry.register_attack("sv05-022", 1, _two_headed_crushing_flag)      # Scovillain ex — Two-Headed Crushing (FLAGGED)
@@ -21673,6 +21815,37 @@ def register_batch15_attacks(registry):
 
 
 # ── Batch 15 missed handlers ──────────────────────────────────────────────────
+
+def _ascension_eevee(state, action):
+    """sv06-135 Eevee atk0 — Ascension: search deck for Eeveelution, evolve from deck."""
+    from app.engine.effects.base import _evolve_in_play_from_deck
+
+    player = state.get_player(action.player_id)
+    if not player.active:
+        return
+
+    eevee = player.active
+    evo_cards = [c for c in player.deck
+                 if (card_registry.get(c.card_def_id) is not None
+                     and (card_registry.get(c.card_def_id).evolve_from or "").lower() == "eevee")]
+
+    if not evo_cards:
+        _shuffle_deck(player)
+        state.emit_event("attack_failed", attack="Ascension", reason="no_eeveelution_in_deck")
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        "Ascension: choose an Eeveelution from your deck to evolve into",
+        cards=evo_cards, min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards else [])
+    evo_card = next((c for c in evo_cards if c.instance_id in chosen_ids), evo_cards[0])
+
+    _evolve_in_play_from_deck(state, action.player_id, eevee, evo_card)
+    _shuffle_deck(player)
+
 
 def _ascension_eevee_flag(state, action):
     """sv06-135 Eevee atk0 — Ascension: evolve from deck — FLAGGED (evolution from deck not supported)."""
@@ -23831,6 +24004,32 @@ def _synchro_shot_b17(state, action):
 
 # ── svp-212 Reuniclus ───────────────────────────────────────────────────────
 
+def _cellular_ascension(state, action):
+    """sv10.5b-039 / svp-212 Reuniclus / sv08-007 Vivillon — evolve all benched Pokémon from deck."""
+    from app.engine.effects.base import _evolve_in_play_from_deck
+
+    player = state.get_player(action.player_id)
+    bench_snapshot = list(player.bench)
+
+    for bench_mon in bench_snapshot:
+        bench_mon_name = bench_mon.card_name.lower()
+        evo_cards = [c for c in player.deck
+                     if (card_registry.get(c.card_def_id) is not None
+                         and (card_registry.get(c.card_def_id).evolve_from or "").lower()
+                         == bench_mon_name)]
+        if not evo_cards:
+            continue
+        current_slot = next((b for b in player.bench
+                             if b.instance_id == bench_mon.instance_id), None)
+        if current_slot is None:
+            continue
+        _evolve_in_play_from_deck(state, action.player_id, current_slot, evo_cards[0])
+        if state.phase == Phase.GAME_OVER:
+            return
+
+    _shuffle_deck(player)
+
+
 def _cellular_ascension_flag_b17(state, action):
     """svp-212 Reuniclus atk0 — Cellular Ascension: mass mid-battle evolution — FLAGGED."""
     state.emit_event("flagged_effect", attack="Cellular Ascension",
@@ -24063,7 +24262,7 @@ def register_batch17_attacks(registry):
     registry.register_attack("svp-211", 0, _synchro_shot_b17)              # Synchro Shot
 
     # ── svp-212 Reuniclus ────────────────────────────────────────────────────
-    registry.register_attack("svp-212", 0, _cellular_ascension_flag_b17)   # Cellular Ascension (FLAGGED)
+    registry.register_attack("svp-212", 0, _cellular_ascension)            # Cellular Ascension
     registry.register_attack("svp-212", 1, _evo_lariat_b17)                # Evo-Lariat
 
 
