@@ -6,13 +6,9 @@ Cards too complex for automatic handler generation. Requires manual implementati
 
 | Card | TCGDex ID | Attack/Ability | Reason |
 |------|-----------|---------------|--------|
-| Rotom ex PFL 29 | me02-029 | Multi Adapter (ability) | Each of your Pokémon that has 'Rotom' in its name may have up to 2 Tool cards attached — modifying the tool attachment limit in actions.py (currently hardcoded to 1) is too complex |
 | Duosion BLK 38 | sv10.5b-038 | Cellular Evolution (atk0) | Evolve any of your Benched Pokémon from deck mid-battle — full in-battle multi-bench evolution not supported |
 | Reuniclus BLK 39 | sv10.5b-039 | Cellular Ascension (atk0) | Evolve all of your in-play Pokémon from deck simultaneously — full simultaneous batch evolution not supported |
-| Karrablast BLK 9 | sv10.5b-009 | Stimulated Evolution (ability) | First-turn evolution requires Shelmet in play — conditional evolution rule not supported in action validator |
-| Meloetta ex BLK 44 | sv10.5b-044 | Debut Performance (ability) | Attack on first turn of the game — first-turn attack exception requires action validator change |
 | Latios MEG 101 | me01-101 | Lustrous Assist (ability) | Trigger when Mega Latias ex moves bench→active, move energy — complex event hook not supported |
-| Shelmet WHT 8 | sv10.5w-008 | Stimulated Evolution (ability) | Evolve during first turn if Karrablast in play — modifies turn-1 evolution restriction rules, requires turn-counter and bench-scanning logic |
 | Archeops WHT 51 | sv10.5w-051 | Ancient Wing (ability) | Devolve 1 of opp's Evolution Pokémon — requires engine to track and restore previous evolution forms, which are not preserved |
 | Misty's Psyduck DRI 45 | sv10-045 | Flustered Leap (ability) | Discard bottom of deck then return this Pokémon to top of deck from bench — returning Pokémon from bench to deck not supported; bottom-of-deck access not supported |
 | Cetitan ex DRI 65 | sv10-065 | Snow Camouflage (ability) | Prevent all effects of opponent's Item/Supporter on this Pokémon — requires global hook on trainer play to intercept targeted effects |
@@ -22,12 +18,8 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Goldeen PRE 20 | sv08.5-020 | Festival Lead (ability) | Attack twice if Festival Grounds is in play — second-attack in one turn not supported |
 | Seaking PRE 21 | sv08.5-021 | Festival Lead (ability) | Attack twice if Festival Grounds is in play — second-attack in one turn not supported |
 | Espeon ex PRE 34 | sv08.5-034 | Amazez (atk1) | Devolve all of opponent's Evolved Pokémon — engine has no previous-evolution form tracking |
-| Eevee PRE 74 | sv08.5-074 | Boosted Evolution (ability) | Evolve on first turn of game — first-turn evolution exception requires action validator change |
-| Eevee ex PRE 75 | sv08.5-075 | Rainbow DNA (ability) | Eeveelutions may evolve from this card — special multi-target evolution rule not supported |
-| Exeggcute SSP 1 | sv08-001 | Precocious Evolution (atk0) | Search deck for Evolution and evolve a Benched Pokémon on first turn — first-turn mid-battle evolution not supported |
 | Vivillon SSP 7 | sv08-007 | Evo-Powder (atk0) | Evolve all of your Benched Pokémon from deck simultaneously — mass in-battle evolution not supported |
 | Magneton SSP 59 | sv08-059 | Overvolt Discharge (ability) | KO this Pokémon; attach multiple Energy from deck — self-KO + multi-energy attach from deck not supported |
-| Azumarill SSP 74 | sv08-074 | Glistening Bubbles (ability) | Reduce cost of attacks by {W} for each Tera Pokémon in play — dynamic cost reduction based on Tera count not supported |
 | Espathra SSP 95 | sv08-095 | Mystical Eyes (atk0) | Devolve all of opponent's Evolved Pokémon — engine has no previous-evolution form tracking |
 | Annihilape SSP 100 | sv08-100 | Destined Fight (atk1) | Both Active Pokémon are Knocked Out — mutual-KO mechanic requires simultaneous prize resolution not in engine |
 | Skeledirge SSP 31 | sv08-031 | Unaware (ability) | Not affected by opponent's attack effects — broad attack-effect prevention hook not in engine |
@@ -35,7 +27,6 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Klinklang SCR 101 | sv07-101 | Emergency Rotation (ability) | When this Pokémon takes damage, you may retreat it for free — on-damage conditional retreat hook not in engine |
 | Seadra SFA 11 | sv06.5-011 | Call for Backup (atk0) | Search deck for Evolution Pokémon of same type and evolve immediately — mid-battle in-deck evolution not supported |
 | Revavroom ex SFA 15 | sv06.5-015 | Accelerator Flash (atk0) / Shattering Speed (atk1) | Both require attaching Energy from deck to self during attack — energy-from-deck-to-self not supported |
-| Conkeldurr TWM 105 | sv06-105 | Gutsy Swing (atk1) | Ignore energy cost if Active has Special Condition — conditional energy-cost bypass not supported |
 | Eevee TWM 135 | sv06-135 | Ascension (atk0) | Search deck for Eevee evolution and evolve — evolution-from-deck not supported |
 | Mr. Mime TEF 63 | sv05-063 | Look-Alike Show (atk0) | Reveal opponent's hand; use a Supporter effect found there — hand-reveal + Supporter mimicry not supported |
 | Delcatty TEF 131 | sv05-131 | Energy Blender (atk1) | Move any amount of Energy from any of your Pokémon to any others — arbitrary multi-source energy redistribution not in engine |
@@ -43,7 +34,6 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Iron Treads TEF 118 | sv05-118 | Dual Core (ability) | Pokémon is F+M type when Future Booster Energy Capsule attached — tool-dependent dual typing not supported |
 | Pidove TEF 133 | sv05-133 | Emergency Evolution (ability) | Evolve from deck when HP ≤ 30 — conditional HP-threshold evolution not in engine |
 | Iron Jugulis TEF 139 | sv05-139 | Automated Combat (ability) | On being damaged, counter-attack with own attacks — on-damage counter-attack trigger not in engine |
-| Meganium MEP 1 | mep-001 | Wild Growth (ability) | Each Basic G Energy counts as 2 — energy-value doubling fundamentally overrides cost system |
 | Psyduck MEP 7 | mep-007 | Damp (ability) | Suppresses all abilities requiring KO while Pokémon is in play — global KO-trigger ability suppression not in engine |
 | Golduck MEP 8 | mep-008 | Damp (ability) | Suppresses all abilities requiring KO while Pokémon is in play — global KO-trigger ability suppression not in engine |
 | Reuniclus PR-SV 212 | svp-212 | Cellular Ascension (atk0) | Evolve each Benched Pokémon from deck simultaneously — mass in-battle bench evolution not supported |

@@ -13516,9 +13516,65 @@ def _unified_beatdown_b10(state, action):
 
 
 def _precocious_evolution_flag(state, action):
-    """sv08-001 Exeggcute atk0 — Precocious Evolution: FLAGGED (first-turn evolution not implemented)."""
-    state.emit_event("flagged_effect", attack="Precocious Evolution",
-                     reason="first_turn_evolution_not_implemented")
+    """sv08-001 Exeggcute atk0 — Precocious Evolution: search deck for evolution, evolve immediately."""
+    player = state.get_player(action.player_id)
+    if not player.active:
+        return
+
+    active = player.active
+    def _evolves_from_name(card_inst, name: str) -> bool:
+        cd = card_registry.get(card_inst.card_def_id)
+        return (cd is not None and cd.evolve_from is not None
+                and cd.evolve_from.lower() == name.lower())
+
+    evo_cards = [c for c in player.deck
+                 if c.card_type.lower() == "pokemon"
+                 and _evolves_from_name(c, active.card_name)]
+    if not evo_cards:
+        state.emit_event("attack_failed", attack="Precocious Evolution",
+                         reason="no evolution in deck")
+        return
+
+    req = ChoiceRequest(
+        "choose_cards",
+        action.player_id,
+        "Precocious Evolution: search your deck for a card that evolves from Exeggcute",
+        cards=evo_cards,
+        min_count=0,
+        max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
+                  and resp.chosen_card_ids else [])
+    if not chosen_ids:
+        chosen_ids = [evo_cards[0].instance_id]
+
+    for cid in chosen_ids[:1]:
+        evo_card = next((c for c in player.deck if c.instance_id == cid), None)
+        if evo_card and player.active:
+            old_active = player.active
+            player.deck.remove(evo_card)
+
+            evo_cdef = card_registry.get(evo_card.card_def_id)
+            evo_card.zone = Zone.ACTIVE
+            evo_card.max_hp = evo_cdef.hp if evo_cdef else evo_card.max_hp
+            evo_card.current_hp = evo_card.max_hp - old_active.damage_counters * 10
+            evo_card.damage_counters = old_active.damage_counters
+            evo_card.energy_attached = list(old_active.energy_attached)
+            evo_card.tools_attached = list(old_active.tools_attached)
+            evo_card.status_conditions = set(old_active.status_conditions)
+            evo_card.evolved_from = old_active.instance_id
+            evo_card.evolution_stage = 1
+            evo_card.turn_played = state.turn_number
+
+            player.active = evo_card
+            old_active.zone = Zone.DISCARD
+            player.discard.append(old_active)
+
+            _shuffle_deck(player)
+            state.emit_event("evolved", player=action.player_id,
+                             from_card=old_active.card_name, to_card=evo_card.card_name,
+                             via="Precocious Evolution")
 
 
 def _barrage_oclock(state, action):

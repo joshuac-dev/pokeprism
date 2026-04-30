@@ -1,0 +1,57 @@
+{
+  "category": "Pokemon",
+  "id": "me02-029",
+  "image": "https://assets.tcgdex.net/en/me/me02/029",
+  "localId": "029",
+  "name": "Rotom ex",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 94,
+      "total": 130
+    },
+    "id": "me02",
+    "logo": "https://assets.tcgdex.net/en/me/me02/logo",
+    "name": "Phantasmal Flames"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "dexId": [
+    479
+  ],
+  "hp": 190,
+  "types": [
+    "Lightning"
+  ],
+  "stage": "Basic",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Multi Adapter",
+      "effect": "Each of your Pokémon that has 'Rotom' in its name may have up to 2 Pokémon Tool cards attached. If this Ability goes away, discard Pokémon Tools from those Pokémon until each has only 1."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Lightning",
+        "Colorless"
+      ],
+      "name": "Thunderbolt",
+      "effect": "Discard all Energy from this Pokémon.",
+      "damage": 120
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "I",
+  "legal": {
+    "standard": true,
+    "expanded": false
+  },
+  "updated": "2026-03-07T09:39:56Z"
+}

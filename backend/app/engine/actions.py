@@ -178,6 +178,11 @@ def _evolves_from(candidate: CardInstance, target: CardInstance, state: GameStat
         return False
     if cdef.evolve_from is None:
         return False
+    # Rainbow DNA (sv08.5-075 Eevee ex): any Pokémon ex that evolves from Eevee
+    # can be placed onto Eevee ex (bypasses the evolve_from="Eevee" vs card_name="Eevee ex" mismatch)
+    if target.card_def_id == "sv08.5-075":
+        return (cdef.evolve_from.lower() == "eevee"
+                and "ex" in candidate.card_name.lower())
     # evolve_from holds the *name* of the pre-evolution
     return cdef.evolve_from.lower() == target.card_name.lower()
 
@@ -354,9 +359,15 @@ class ActionValidator:
                     if (opp_for_oc.active
                             and opp_for_oc.active.card_def_id == "sv10.5w-045"):
                         continue
-                    # Rule 12: one Tool per Pokémon
+                    # Multi Adapter (me02-029 Rotom ex): Rotom-named Pokémon may have 2 Tools
+                    _has_multi_adapter = any(
+                        p.card_def_id == "me02-029" for p in _in_play(player)
+                    )
+                    # Rule 12: one Tool per Pokémon (two for Rotom with Multi Adapter)
                     for poke in _in_play(player):
-                        if not poke.tools_attached:
+                        max_tools = (2 if _has_multi_adapter
+                                     and "Rotom" in poke.card_name else 1)
+                        if len(poke.tools_attached) < max_tools:
                             actions.append(
                                 Action(ActionType.PLAY_TOOL, player_id,
                                        card_instance_id=card.instance_id,
@@ -439,6 +450,19 @@ class ActionValidator:
                         tdef = card_registry.get(target.card_def_id)
                         if not (tdef and "Grass" in (tdef.types or [])):
                             continue
+                    # Stimulated Evolution (sv10.5b-009 Karrablast): evo allowed if Shelmet in play
+                    elif (target.card_def_id == "sv10.5b-009"
+                          and any(p.card_def_id == "sv10.5w-008" for p in in_play)):
+                        pass  # allow evolution
+                    # Stimulated Evolution (sv10.5w-008 Shelmet): evo allowed if Karrablast in play
+                    elif (target.card_def_id == "sv10.5w-008"
+                          and any(p.card_def_id == "sv10.5b-009" for p in in_play)):
+                        pass  # allow evolution
+                    # Boosted Evolution (sv08.5-074 Eevee PRE): evo allowed if in Active Spot
+                    elif (target.card_def_id == "sv08.5-074"
+                          and player.active is not None
+                          and player.active.instance_id == target.instance_id):
+                        pass  # allow evolution while Active
                     else:
                         continue
                 # Must follow correct chain
@@ -557,7 +581,11 @@ class ActionValidator:
             return []
         # Rule 5: no attack on the very first turn for the first player
         if state.turn_number == 1 and state.active_player == state.first_player:
-            return []
+            # Debut Performance (sv10.5b-044 Meloetta ex): can attack on first turn if going first
+            # Precocious Evolution (sv08-001 Exeggcute): can use atk0 on first turn if going first
+            if not (player.active
+                    and player.active.card_def_id in ("sv10.5b-044", "sv08-001")):
+                return []
         # Multi-turn lock (e.g. Iron Leaves ex Mach Claw, Bloodmoon Ursaluna ex)
         if player.active.cant_attack_next_turn:
             return []
@@ -603,6 +631,15 @@ class ActionValidator:
                         effective_cost.remove("Colorless")
                     else:
                         break
+            # Glistening Bubbles (sv08-074 Azumarill): Double-Edge costs {P} if any Tera in play
+            if cdef.tcgdex_id == "sv08-074" and i == 0:  # Double-Edge is atk0
+                if any(getattr(card_registry.get(p.card_def_id), "is_tera", False)
+                       for p in _in_play(player)):
+                    effective_cost = ["Psychic"]
+            # Gutsy Swing (sv06-105 Conkeldurr TWM): free if has any Special Condition
+            if cdef.tcgdex_id == "sv06-105" and i == 1:  # Gutsy Swing is atk1
+                if player.active.status_conditions:
+                    effective_cost = []
             if _can_pay_energy_cost(player.active, effective_cost, state, player_id):
                 actions.append(
                     Action(ActionType.ATTACK, player_id, attack_index=i)

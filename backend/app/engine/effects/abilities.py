@@ -124,7 +124,7 @@ def _attach_from_hand_or_discard(player, poke, energy_card) -> None:
 def has_wild_growth(state: GameState, player_id: str) -> bool:
     """True if player has Meganium (Wild Growth) in play."""
     player = state.get_player(player_id)
-    return any(p.card_def_id == "me01-010" for p in _in_play(player))
+    return any(p.card_def_id in ("me01-010", "mep-001") for p in _in_play(player))
 
 
 def wild_growth_bonus_grass(pokemon) -> int:
@@ -4411,6 +4411,9 @@ def register_all(registry):
     registry.register_passive_ability("sv10.5w-045", "Oceanic Curse")        # Jellicent ex (logic in actions.py)
     registry.register_passive_ability("sv10.5w-013", "Inferno Fandango")     # Emboar (logic in actions.py + transitions.py)
     registry.register_passive_ability("sv10.5w-067", "Greedy Eater")         # Hydreigon ex (logic in base.py check_ko)
+    registry.register_passive_ability("sv10.5b-009", "Stimulated Evolution") # Karrablast (logic in actions.py)
+    registry.register_passive_ability("sv10.5w-008", "Stimulated Evolution") # Shelmet (logic in actions.py)
+    registry.register_passive_ability("sv10.5b-044", "Debut Performance")    # Meloetta ex (logic in actions.py)
 
     # ── Batch 8: DRI + JTG ability registrations ─────────────────────────────
     # On-evolve triggers

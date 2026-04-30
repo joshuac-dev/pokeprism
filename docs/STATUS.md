@@ -13,9 +13,9 @@ All 20 card expansion batches complete (1,927 cards in DB). Engine refactoring p
 |--------|-------|
 | Cards in DB | 1927 |
 | Coverage | **98.5%** (29 legitimately missing) |
-| Engine refactoring batches complete | 1 of 6 |
-| Flagged implemented this phase | 10 (Engine Batch 1) |
-| Flagged entries remaining | **51** (in `docs/POKEMON_MASTER_LIST.md`) |
+| Engine refactoring batches complete | 2 of 6 |
+| Flagged implemented this phase | 20 (Engine Batches 1–2) |
+| Flagged entries remaining | **41** (in `docs/POKEMON_MASTER_LIST.md`) |
 | Tests | **215 passing** |
 
 ---
@@ -49,7 +49,7 @@ All 20 card expansion batches complete (1,927 cards in DB). Engine refactoring p
 
 **Remaining:** 51 flagged entries in `docs/POKEMON_MASTER_LIST.md`. Engine refactoring continues with 5 more batches.
 
-**Next:** Engine Batch 2 — First-turn exceptions + quick wins (Karrablast, Shelmet, Eevee PRE, Meloetta ex, Exeggcute, Rotom ex, Conkeldurr TWM, Eevee ex, Azumarill, Meganium MEP)
+**Next:** Engine Batch 3 — Devolve mechanics + Damp + Festival Lead + Annihilape + Klinklang (10 cards)
 
 ---
 
