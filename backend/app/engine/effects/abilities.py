@@ -256,7 +256,7 @@ def has_mysterious_rock_inn(defender, attacker) -> bool:
 
 def has_adrena_power(pokemon) -> bool:
     """True if pokemon is Okidogi with at least one Darkness Energy attached."""
-    return pokemon.card_def_id == "sv06-111" and _has_d_energy(pokemon)
+    return pokemon.card_def_id in ("sv06-111", "sv08.5-057") and _has_d_energy(pokemon)
 
 
 # Adrena-Pheromone (sv06-096 Fezandipiti) ────────────────────────────────────
@@ -3780,7 +3780,31 @@ def _dig_dig_dig(state: GameState, action):
     state.emit_event("dig_dig_dig", player=player_id, discarded=discarded)
 
 
-# Buzzing Boost (sv10-003 Yanmega ex) ────────────────────────────────────────
+# Torrential Heart (sv05-041 Feraligatr TEF) ─────────────────────────────────
+
+def _torrential_heart(state: GameState, action):
+    """sv05-041 Feraligatr — Torrential Heart: put 5 damage counters on this Pokémon;
+    attacks do 120 more damage to opponent's Active Pokémon this turn."""
+    from app.engine.effects.base import check_ko
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    target = None
+    if player.active and player.active.card_def_id == "sv05-041":
+        target = player.active
+    else:
+        target = next((p for p in player.bench if p.card_def_id == "sv05-041"), None)
+    if target is None:
+        return
+    target.current_hp = max(0, target.current_hp - 50)
+    target.damage_counters += 5
+    target.attack_damage_bonus = 120
+    target.ability_used_this_turn = True
+    state.emit_event("torrential_heart_activated", player=player_id,
+                     card=target.card_name)
+    check_ko(state, target, player_id)
+
+
+
 
 def _buzzing_boost(state: GameState, action):
     """On-promote (bench→active): search deck for up to 3 Basic {G} Energy, attach to this Pokémon."""
@@ -4286,6 +4310,7 @@ def register_all(registry):
     registry.register_passive_ability("me01-087", "Spiteful Swirl")    # _apply_damage handles counter on attacker
     registry.register_passive_ability("sv10.5b-056", "Poison Point")   # _apply_damage handles poison attacker
     registry.register_passive_ability("sv10.5b-023", "Mighty Shell")   # _apply_damage handles damage block
+    registry.register_passive_ability("sv10.5b-049", "Craftsmanship")  # Conkeldurr BLK (dynamic HP: logic in base.py)
 
     # Evolve-trigger abilities
     registry.register_ability("me01-073", "Heave-Ho Catcher", _heave_ho_catcher)
@@ -4434,6 +4459,7 @@ def register_all(registry):
                                condition=_cond_flashing_draw_sv09)
 
     # Passive abilities (logic in _apply_damage / base.py)
+    registry.register_passive_ability("sv09-037", "Vibrant Dance")      # Ludicolo (dynamic HP: logic in base.py)
     registry.register_passive_ability("sv09-082", "Rock Armor")         # Regirock (logic in _apply_damage)
     registry.register_passive_ability("sv09-089", "Secret Forest Path") # Toedscruel (logic in base.py)
     registry.register_passive_ability("sv09-117", "Extra Helpings")     # Hop's Snorlax (logic in _apply_damage)
@@ -4680,10 +4706,19 @@ def register_all(registry):
     registry.register_passive_ability("sv05-010", "Solid Shell")            # Turtwig (damage reduction: noop)
     registry.register_passive_ability("sv05-015", "Wafting Heal")           # Whimsicott (turn-start heal: noop)
     registry.register_passive_ability("sv05-017", "Changing Seasons")       # Sawsbuck (energy cost modifier: noop)
-    registry.register_passive_ability("sv05-021", "Resilient Soul")         # Brambleghast (dynamic HP: flag)
+    registry.register_passive_ability("sv05-021", "Resilient Soul")         # Brambleghast (dynamic HP: logic in base.py)
     registry.register_passive_ability("sv05-029", "Lava Zone")              # Magcargo (on-retreat burn: flag)
-    registry.register_passive_ability("sv05-034", "Hustle Play")            # Incineroar ex (attack cost reduction: flag)
-    registry.register_passive_ability("sv05-041", "Torrential Heart")       # Feraligatr (energy doubling: flag)
+    registry.register_passive_ability("sv05-034", "Hustle Play")            # Incineroar ex (attack cost reduction: logic in actions.py)
+    def _cond_torrential_heart(state, player_id):
+        p = state.get_player(player_id)
+        candidate = None
+        if p.active and p.active.card_def_id == "sv05-041":
+            candidate = p.active
+        else:
+            candidate = next((pk for pk in p.bench if pk.card_def_id == "sv05-041"), None)
+        return candidate is not None and not candidate.ability_used_this_turn
+    registry.register_ability("sv05-041", "Torrential Heart", _torrential_heart,
+                               condition=_cond_torrential_heart)  # Feraligatr
 
     # ── Batch 16: TEF sv05-049..139 + MEP mep-001..011 abilities ─────────────
 

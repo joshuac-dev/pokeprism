@@ -187,6 +187,7 @@ def _apply_damage(
             total += 20
     if has_adrena_power(attacker):
         total += 100
+    total += attacker.attack_damage_bonus
 
     # Compound Eyes (sv06.5-002 Galvantula): +50 to attacks vs Active before W/R
     if any(p.card_def_id == "sv06.5-002" for p in _in_play(player)):
@@ -16846,7 +16847,7 @@ def register_all(registry):
     registry.register_attack("sv08.5-055", 0, _land_collapse)              # Great Tusk — Land Collapse
     # sv08.5-055 ATK1 (flat)
     # sv08.5-056 Okidogi: ATK0 (flat); ATK1 (flat); ability passive (FLAGGED)
-    # sv08.5-057 Munkidori (ex): ATK0 (flat); ATK1 (flat); ability passive (FLAGGED)
+    # sv08.5-057 Okidogi: ATK0 (flat); ATK1 (flat); ability Adrena-Power (dynamic HP+atk)
     # sv08.5-058 Fezandipiti: ATK0 (flat); ATK1 (flat); ability passive (Cornerstone)
     # sv08.5-059 Scyther: ATK0 (flat)
     registry.register_attack("sv08.5-060", 0, _moon_mirage)                # Umbreon ex — Moon Mirage

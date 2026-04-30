@@ -4,23 +4,54 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-**Flagged Card Implementation — Complete** ✅
-_Last updated: 2026-05-01_
+**Engine Refactoring — Unlocking Remaining Flagged Cards** 🔧
+_Last updated: 2026-05-06_
 
-All 20 card expansion batches complete (1,927 cards in DB). All 8 flagged card implementation batches complete — **61 flagged entries remain** (legitimately unimplementable without major engine rewrites).
+All 20 card expansion batches complete (1,927 cards in DB). Engine refactoring phase active — implementing 61 previously-unimplementable flagged cards in batches of 10 using targeted engine changes (dynamic HP, conditional costs, devolve, first-turn exceptions, etc.).
 
 | Metric | Value |
 |--------|-------|
 | Cards in DB | 1927 |
 | Coverage | **98.5%** (29 legitimately missing) |
-| Flagged batches complete | 8 of ~8 |
-| Flagged implemented this phase | 196 (Batches 1–8) |
-| Flagged entries remaining | **61** (in `docs/POKEMON_MASTER_LIST.md`) |
+| Engine refactoring batches complete | 1 of 6 |
+| Flagged implemented this phase | 10 (Engine Batch 1) |
+| Flagged entries remaining | **51** (in `docs/POKEMON_MASTER_LIST.md`) |
 | Tests | **215 passing** |
 
 ---
 
-## Last Session — 2026-05-01 (Flagged Batch 8)
+## Last Session — 2026-05-06 (Engine Batch 1)
+
+### Current Phase Progress
+
+**Completed this session:** Engine Batch 1 = **10 cards implemented** via targeted engine refactoring.
+
+**Engine changes:**
+- `backend/app/engine/state.py` — Added `attack_damage_bonus: int = 0` to `CardInstance` (Feraligatr Torrential Heart per-turn damage boost)
+- `backend/app/engine/effects/base.py` — Added `_get_effective_hp_bonus()` helper; replaced hardcoded sv06-111 check in `check_ko`; covers Tyrantrum (+150 if Special E), Conkeldurr BLK (+40/F), Okidogi PRE (+100 if D), Ludicolo (+40 all own), Brambleghast (+50 per opp prize taken)
+- `backend/app/engine/actions.py` — Conditional attack cost overrides in `_get_attack_actions`: Crawdaunt (Cutting Riposte → {D} if damaged), Noivern (Frightening Howl free if hand sizes equal), Grapploct (Raging Tentacles → {F} if damaged), Incineroar ex (-1{C} per opp bench)
+- `backend/app/engine/effects/abilities.py` — `has_adrena_power` updated to include sv08.5-057; `_torrential_heart` handler for sv05-041; passive registrations for sv09-037, sv10.5b-049
+- `backend/app/engine/effects/attacks.py` — `attacker.attack_damage_bonus` added to `_apply_damage` damage calculation
+- `backend/app/engine/runner.py` — Reset `attack_damage_bonus = 0` in `_end_turn`
+- `backend/tests/fixtures/cards/me03-045.json` — New Tyrantrum POR fixture
+
+**Batch 1 cards implemented:**
+- `me03-045` Tyrantrum POR — Tyrannically Gutsy (+150 HP if Special Energy)
+- `sv10.5b-049` Conkeldurr BLK — Craftsmanship (+40 HP per {F} Energy)
+- `sv08.5-057` Okidogi PRE — Adrena-Power (+100 HP + 100 atk if D Energy)
+- `sv09-037` Ludicolo JTG — Vibrant Dance (+40 HP to all your Pokémon)
+- `sv05-021` Brambleghast TEF — Resilient Soul (+50 HP per opp prize taken)
+- `me01-085` Crawdaunt MEG — Cutting Riposte costs {D} when damaged
+- `sv09-128` Noivern JTG — Frightening Howl free when hand sizes equal (Tuning Echo)
+- `sv08-113` Grapploct SSP — Raging Tentacles costs {F} when damaged
+- `sv05-034` Incineroar ex TEF — Hustle Play: -1{C} per opp Benched Pokémon
+- `sv05-041` Feraligatr TEF — Torrential Heart: 5 counters on self → +120 damage this turn
+
+**Remaining:** 51 flagged entries in `docs/POKEMON_MASTER_LIST.md`. Engine refactoring continues with 5 more batches.
+
+**Next:** Engine Batch 2 — First-turn exceptions + quick wins (Karrablast, Shelmet, Eevee PRE, Meloetta ex, Exeggcute, Rotom ex, Conkeldurr TWM, Eevee ex, Azumarill, Meganium MEP)
+
+---
 
 ### Current Phase Progress
 

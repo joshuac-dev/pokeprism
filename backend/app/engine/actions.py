@@ -583,6 +583,26 @@ class ActionValidator:
                 for _ in range(prizes_taken):
                     if "Colorless" in effective_cost:
                         effective_cost.remove("Colorless")
+            # Cutting Riposte (me01-085 Crawdaunt): cost drops to {D} if has damage counters
+            if cdef.tcgdex_id == "me01-085" and i == 1:
+                if player.active.damage_counters > 0:
+                    effective_cost = ["Darkness"]
+            # Tuning Echo (sv09-128 Noivern): Frightening Howl costs nothing if hand sizes match
+            if cdef.tcgdex_id == "sv09-128" and i == 0:
+                if len(player.hand) == len(opp.hand):
+                    effective_cost = []
+            # Raging Tentacles (sv08-113 Grapploct): cost drops to {F} if has damage counters
+            if cdef.tcgdex_id == "sv08-113" and i == 1:
+                if player.active.damage_counters > 0:
+                    effective_cost = ["Fighting"]
+            # Hustle Play (sv05-034 Incineroar ex): costs {C} less per opp Benched Pokémon
+            if cdef.tcgdex_id == "sv05-034":
+                opp_bench_count = len(opp.bench)
+                for _ in range(opp_bench_count):
+                    if "Colorless" in effective_cost:
+                        effective_cost.remove("Colorless")
+                    else:
+                        break
             if _can_pay_energy_cost(player.active, effective_cost, state, player_id):
                 actions.append(
                     Action(ActionType.ATTACK, player_id, attack_index=i)

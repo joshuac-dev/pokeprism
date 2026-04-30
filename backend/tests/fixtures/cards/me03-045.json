@@ -1,0 +1,73 @@
+{
+  "category": "Pokemon",
+  "id": "me03-045",
+  "illustrator": "5ban Graphics",
+  "image": "https://assets.tcgdex.net/en/me/me03/045",
+  "localId": "045",
+  "name": "Tyrantrum",
+  "rarity": "Rare",
+  "set": {
+    "cardCount": {
+      "official": 100,
+      "total": 130
+    },
+    "id": "me03",
+    "logo": "https://assets.tcgdex.net/en/me/me03/logo",
+    "name": "Perfect Order",
+    "symbol": "https://assets.tcgdex.net/univ/me/me03/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": false,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "holo",
+      "size": "standard",
+      "variantId": "me03-045-holo"
+    }
+  ],
+  "dexId": [
+    697
+  ],
+  "hp": 180,
+  "types": [
+    "Dragon"
+  ],
+  "evolveFrom": "Tyrunt",
+  "stage": "Stage2",
+  "abilities": [
+    {
+      "type": "Ability",
+      "name": "Tyrannically Gutsy",
+      "effect": "If this Pokémon has any Special Energy attached, it gets +150 HP."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Fighting",
+        "Colorless"
+      ],
+      "name": "Wreak Havoc",
+      "damage": 0,
+      "effect": "Flip a coin until you get tails. For each heads, discard the top card of your opponent's deck."
+    }
+  ],
+  "weaknesses": [
+    {
+      "type": "Fairy",
+      "value": "×2"
+    }
+  ],
+  "retreat": 3,
+  "regulationMark": "I",
+  "legal": {
+    "standard": false,
+    "expanded": false
+  },
+  "updated": "2026-01-07T13:25:47+01:00"
+}

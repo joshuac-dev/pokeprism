@@ -181,6 +181,45 @@ def draw_cards(state: GameState, player_id: str, count: int) -> int:
     return drawn
 
 
+def _get_effective_hp_bonus(target: "CardInstance", state: "GameState", target_player_id: str) -> int:
+    """Compute dynamic HP bonus from passive abilities. Called by check_ko."""
+    bonus = 0
+
+    # Adrena-Power: sv06-111 AND sv08.5-057 Okidogi — +100 HP if {D} Energy attached
+    if target.card_def_id in ("sv06-111", "sv08.5-057"):
+        from app.engine.effects.abilities import _has_d_energy as _hde
+        if _hde(target):
+            bonus += 100
+
+    # Tyrannically Gutsy: me03-045 Tyrantrum — +150 HP if Special Energy attached
+    if target.card_def_id == "me03-045":
+        _SPECIAL_E = {"me02.5-216", "me03-086", "me03-088", "sv05-161",
+                      "sv06-167", "sv08-191", "sv10-182", "sv10.5w-086",
+                      "sv06-166", "sv09-159", "sv10-183", "sv10.5b-083"}
+        if any(att.card_def_id in _SPECIAL_E for att in target.energy_attached):
+            bonus += 150
+
+    # Craftsmanship: sv10.5b-049 Conkeldurr BLK — +40 HP per {F} Energy attached
+    if target.card_def_id == "sv10.5b-049":
+        f_count = sum(1 for att in target.energy_attached
+                      if att.energy_type.value == "Fighting")
+        bonus += f_count * 40
+
+    # Vibrant Dance: sv09-037 Ludicolo JTG — target's own Pokémon get +40 HP (doesn't stack)
+    target_player = state.get_player(target_player_id)
+    in_play = ([target_player.active] if target_player.active else []) + list(target_player.bench)
+    if any(p.card_def_id == "sv09-037" for p in in_play):
+        bonus += 40
+
+    # Resilient Soul: sv05-021 Brambleghast TEF — +50 HP per prize opp has taken
+    if target.card_def_id == "sv05-021":
+        opp = state.get_opponent(target_player_id)
+        prizes_taken = 6 - opp.prizes_remaining
+        bonus += prizes_taken * 50
+
+    return bonus
+
+
 def check_ko(
     state: GameState,
     target: CardInstance,
@@ -195,12 +234,8 @@ def check_ko(
     """
     import random as _random
 
-    # Adrena-Power (sv06-111 Okidogi): +100 effective HP when {D} energy attached
-    effective_hp = target.current_hp
-    if target.card_def_id == "sv06-111":
-        from app.engine.effects.abilities import has_adrena_power
-        if has_adrena_power(target):
-            effective_hp += 100
+    # Dynamic HP bonuses from passive abilities
+    effective_hp = target.current_hp + _get_effective_hp_bonus(target, state, target_player_id)
     if effective_hp > 0:
         return  # Still alive
 

@@ -511,6 +511,7 @@ class MatchRunner:
                 player.active.retaliation_on_damage = False
                 player.active.repulsor_axe_active = False
                 player.active.prevent_damage_from_ancient = False
+                player.active.attack_damage_bonus = 0
                 # Discard energy cards flagged for end-of-turn removal (Ignition Energy)
                 self._discard_expiring_energy(state, player.active)
             for b in player.bench:
@@ -532,6 +533,7 @@ class MatchRunner:
                 b.retaliation_on_damage = False
                 b.repulsor_axe_active = False
                 b.prevent_damage_from_ancient = False
+                b.attack_damage_bonus = 0
                 self._discard_expiring_energy(state, b)
 
         state.active_player_damage_bonus = 0
