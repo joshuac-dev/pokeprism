@@ -564,10 +564,28 @@ class ActionValidator:
                 poke_cdef = card_registry.get(poke.card_def_id)
                 if poke_cdef and (poke_cdef.stage or "").lower() in ("stage2", "stage 2"):
                     continue
+            # Ancient Wing (sv10.5w-051 Archeops): Active only; opp must have evolved Pokémon
+            if poke.card_def_id == "sv10.5w-051":
+                if poke is not player.active:
+                    continue
+                _opp_archeops = state.get_opponent(player_id)
+                _opp_evolved = [p for p in (([_opp_archeops.active] if _opp_archeops.active else []) + _opp_archeops.bench)
+                                if p.evolved_from is not None]
+                if not _opp_evolved:
+                    continue
             actions.append(
                 Action(ActionType.USE_ABILITY, player_id,
                        card_instance_id=poke.instance_id)
             )
+        # Emergency Rotation (sv07-101 Klinklang): from hand → bench if opp has Stage 2
+        _opp_er = state.get_opponent(player_id)
+        _has_opp_stage2 = any(p.evolution_stage == 2 for p in (
+            ([_opp_er.active] if _opp_er.active else []) + _opp_er.bench))
+        if _has_opp_stage2 and len(player.bench) < ActionValidator.MAX_BENCH_SIZE:
+            for c in player.hand:
+                if c.card_def_id == "sv07-101" and not c.ability_used_this_turn:
+                    actions.append(Action(ActionType.USE_ABILITY, player_id,
+                                          card_instance_id=c.instance_id))
         return actions
 
     # ── Attack phase ──────────────────────────────────────────────────────────

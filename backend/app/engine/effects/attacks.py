@@ -13129,10 +13129,20 @@ def _psych_out(state, action):
         state.emit_event("knock_off", player=action.player_id, discarded=discarded.card_name)
 
 
-def _amazez_flag(state, action):
-    """sv08.5-034 Espeon ex atk1 — Amazez: FLAGGED (devolve not implemented)."""
-    state.emit_event("flagged_effect", attack="Amazez",
-                     reason="devolve_not_implemented")
+def _amazez(state, action):
+    """sv08.5-034 Espeon ex atk1 — Amazez: devolve ALL opp evolved → deck (shuffle)."""
+    import random as _rnd
+    from app.engine.effects.base import _devolve_pokemon
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    targets = [p for p in ([opp.active] if opp.active else []) + opp.bench
+               if p.evolved_from is not None]
+    for t in targets:
+        _devolve_pokemon(state, opp_id, t, "deck")
+    if opp.deck:
+        _rnd.shuffle(opp.deck)
+    state.emit_event("amazez_triggered", player=action.player_id,
+                     devolve_count=len(targets))
 
 
 def _magical_charm(state, action):
@@ -14979,10 +14989,28 @@ def _splashing_dodge_flag(state, action):
                      reason="conditional_immunity_not_implemented")
 
 
-def _mystical_eyes_flag(state, action):
-    """sv08-095 Espathra atk0 — Mystical Eyes: FLAGGED (devolve not implemented)."""
-    state.emit_event("flagged_effect", attack="Mystical Eyes",
-                     reason="devolve_not_implemented")
+def _mystical_eyes(state, action):
+    """sv08-095 Espathra atk0 — Mystical Eyes: devolve 1 opp evolved → opp hand."""
+    from app.engine.effects.base import _devolve_pokemon
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    targets = [p for p in ([opp.active] if opp.active else []) + opp.bench
+               if p.evolved_from is not None]
+    if not targets:
+        return
+    if len(targets) == 1:
+        _devolve_pokemon(state, opp_id, targets[0], "hand")
+    else:
+        req = ChoiceRequest("choose_target", action.player_id,
+                            "Mystical Eyes: choose an opponent's Evolved Pokémon to Devolve",
+                            targets=targets)
+        resp = yield req
+        picked = None
+        if resp and resp.target_instance_id:
+            picked = next((p for p in targets if p.instance_id == resp.target_instance_id), None)
+        if picked is None:
+            picked = targets[0]
+        _devolve_pokemon(state, opp_id, picked, "hand")
 
 
 def _perplexing_transfer_flag(state, action):
@@ -15071,10 +15099,27 @@ def _tantrum(state, action):
                          card=player.active.card_name, status="CONFUSED_SELF")
 
 
-def _destined_fight_flag(state, action):
-    """sv08-100 Annihilape atk1 — Destined Fight: FLAGGED (both Active Pokémon KO'd)."""
-    state.emit_event("flagged_effect", attack="Destined Fight",
-                     reason="mutual_ko_not_implemented")
+def _destined_fight(state, action):
+    """sv08-100 Annihilape atk1 — Destined Fight: both Active Pokémon are KO'd."""
+    from app.engine.effects.base import check_ko
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    player = state.get_player(player_id)
+    opp = state.get_opponent(player_id)
+
+    # KO the opponent's active
+    if opp.active:
+        opp.active.current_hp = 0
+        opp.active.damage_counters = opp.active.max_hp // 10
+        check_ko(state, opp.active, opp_id)
+        if state.phase == Phase.GAME_OVER:
+            return
+
+    # KO the attacker (self)
+    if player.active:
+        player.active.current_hp = 0
+        player.active.damage_counters = player.active.max_hp // 10
+        check_ko(state, player.active, player_id)
 
 
 def _blocking_stomp(state, action):
@@ -16873,7 +16918,7 @@ def register_all(registry):
     # sv08.5-032 ATK1 (flat)
     # sv08.5-033 Mime Jr.: ATK0 (flat)
     registry.register_attack("sv08.5-034", 0, _psych_out)                  # Espeon ex — Psych Out
-    registry.register_attack("sv08.5-034", 1, _amazez_flag)                # Espeon ex — Amazez (FLAGGED)
+    registry.register_attack("sv08.5-034", 1, _amazez)                     # Espeon ex — Amazez
     # sv08.5-035 Duskull: ATK0 Come and Get You (already registered)
     # sv08.5-036 Dusclops: ability already registered
     # sv08.5-037 Dusknoir: already registered
@@ -17131,7 +17176,7 @@ def register_all(registry):
     registry.register_attack("sv08-092", 1, _mental_crush)                  # Tapu Lele — Mental Crush
     # sv08-093 Indeedee: ATK0 Super Psy Bolt (flat 50); ability Obliging Heal registered in abilities.py (FLAGGED)
     registry.register_attack("sv08-094", 0, _splashing_dodge_flag)          # Flittle — Splashing Dodge (FLAGGED)
-    registry.register_attack("sv08-095", 0, _mystical_eyes_flag)            # Espathra — Mystical Eyes (FLAGGED)
+    registry.register_attack("sv08-095", 0, _mystical_eyes)                 # Espathra — Mystical Eyes
     # sv08-095 Espathra: ATK1 Spiral Drain (60+heal30) → reuse _spiral_drain_b11
     registry.register_attack("sv08-095", 1, _spiral_drain_b11)              # Espathra — Spiral Drain (reuse)
     registry.register_attack("sv08-096", 0, _perplexing_transfer_flag)      # Flutter Mane — Perplexing Transfer (FLAGGED)
@@ -17142,7 +17187,7 @@ def register_all(registry):
     registry.register_attack("sv08-099", 0, _sweep_the_leg)                 # Primeape — Sweep the Leg
     # sv08-099 Primeape: ATK1 Mega Punch (flat 70)
     registry.register_attack("sv08-100", 0, _tantrum)                       # Annihilape — Tantrum
-    registry.register_attack("sv08-100", 1, _destined_fight_flag)           # Annihilape — Destined Fight (FLAGGED)
+    registry.register_attack("sv08-100", 1, _destined_fight)                # Annihilape — Destined Fight
     # sv08-101 Paldean Tauros: ATK0 Smash Kick (flat 40)
     registry.register_attack("sv08-101", 1, _blocking_stomp)                # Paldean Tauros — Blocking Stomp
     # sv08-102 Phanpy: ATK0 Headbutt (flat 20)

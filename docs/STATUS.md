@@ -5,7 +5,7 @@
 
 ## Current Phase
 **Engine Refactoring — Unlocking Remaining Flagged Cards** 🔧
-_Last updated: 2026-05-06_
+_Last updated: 2026-05-07_
 
 All 20 card expansion batches complete (1,927 cards in DB). Engine refactoring phase active — implementing 61 previously-unimplementable flagged cards in batches of 10 using targeted engine changes (dynamic HP, conditional costs, devolve, first-turn exceptions, etc.).
 
@@ -13,43 +13,43 @@ All 20 card expansion batches complete (1,927 cards in DB). Engine refactoring p
 |--------|-------|
 | Cards in DB | 1927 |
 | Coverage | **98.5%** (29 legitimately missing) |
-| Engine refactoring batches complete | 2 of 6 |
-| Flagged implemented this phase | 20 (Engine Batches 1–2) |
-| Flagged entries remaining | **41** (in `docs/POKEMON_MASTER_LIST.md`) |
+| Engine refactoring batches complete | 3 of 6 |
+| Flagged implemented this phase | 30 (Engine Batches 1–3) |
+| Flagged entries remaining | **31** (in `docs/POKEMON_MASTER_LIST.md`) |
 | Tests | **215 passing** |
 
 ---
 
-## Last Session — 2026-05-06 (Engine Batch 1)
+## Last Session — 2026-05-07 (Engine Batch 3)
 
 ### Current Phase Progress
 
-**Completed this session:** Engine Batch 1 = **10 cards implemented** via targeted engine refactoring.
+**Completed this session:** Engine Batch 3 = **10 cards implemented** via targeted engine refactoring.
 
 **Engine changes:**
-- `backend/app/engine/state.py` — Added `attack_damage_bonus: int = 0` to `CardInstance` (Feraligatr Torrential Heart per-turn damage boost)
-- `backend/app/engine/effects/base.py` — Added `_get_effective_hp_bonus()` helper; replaced hardcoded sv06-111 check in `check_ko`; covers Tyrantrum (+150 if Special E), Conkeldurr BLK (+40/F), Okidogi PRE (+100 if D), Ludicolo (+40 all own), Brambleghast (+50 per opp prize taken)
-- `backend/app/engine/actions.py` — Conditional attack cost overrides in `_get_attack_actions`: Crawdaunt (Cutting Riposte → {D} if damaged), Noivern (Frightening Howl free if hand sizes equal), Grapploct (Raging Tentacles → {F} if damaged), Incineroar ex (-1{C} per opp bench)
-- `backend/app/engine/effects/abilities.py` — `has_adrena_power` updated to include sv08.5-057; `_torrential_heart` handler for sv05-041; passive registrations for sv09-037, sv10.5b-049
-- `backend/app/engine/effects/attacks.py` — `attacker.attack_damage_bonus` added to `_apply_damage` damage calculation
-- `backend/app/engine/runner.py` — Reset `attack_damage_bonus = 0` in `_end_turn`
-- `backend/tests/fixtures/cards/me03-045.json` — New Tyrantrum POR fixture
+- `backend/app/engine/state.py` — Added `festival_lead_pending: bool = False` to `PlayerState` (Festival Lead second-attack flag)
+- `backend/app/engine/effects/base.py` — Added `_has_damp()` helper; added `_devolve_pokemon()` helper; Damp suppression in `check_ko` (wraps Fragile Husk, Sandy Flapping, Exploding Needles, Final Chain, Infinite Shadow with `if not _has_damp(state):`)
+- `backend/app/engine/effects/abilities.py` — `_ancient_wing` handler (Archeops, USE_ABILITY devolve); `_emergency_rotation` handler (Klinklang, from-hand bench placement); replaced sv07-101 passive stub with real handler; registered sv10.5w-051 Ancient Wing
+- `backend/app/engine/effects/attacks.py` — Replaced stubs: `_mystical_eyes` (Espathra atk0, devolve 1 → hand), `_amazez` (Espeon ex atk1, devolve all → deck), `_destined_fight` (Annihilape atk1, mutual KO)
+- `backend/app/engine/actions.py` — Added Klinklang hand-based ability check to `_get_ability_actions`; added Archeops active-only condition
+- `backend/app/engine/transitions.py` — After `resolve_attack`, sets `festival_lead_pending = True` when Festival Lead Pokémon attacks with Festival Grounds active
+- `backend/app/engine/runner.py` — Festival Lead second-attack loop after `_resolve_ko_aftermath`; reset `festival_lead_pending` in `_end_turn`
 
-**Batch 1 cards implemented:**
-- `me03-045` Tyrantrum POR — Tyrannically Gutsy (+150 HP if Special Energy)
-- `sv10.5b-049` Conkeldurr BLK — Craftsmanship (+40 HP per {F} Energy)
-- `sv08.5-057` Okidogi PRE — Adrena-Power (+100 HP + 100 atk if D Energy)
-- `sv09-037` Ludicolo JTG — Vibrant Dance (+40 HP to all your Pokémon)
-- `sv05-021` Brambleghast TEF — Resilient Soul (+50 HP per opp prize taken)
-- `me01-085` Crawdaunt MEG — Cutting Riposte costs {D} when damaged
-- `sv09-128` Noivern JTG — Frightening Howl free when hand sizes equal (Tuning Echo)
-- `sv08-113` Grapploct SSP — Raging Tentacles costs {F} when damaged
-- `sv05-034` Incineroar ex TEF — Hustle Play: -1{C} per opp Benched Pokémon
-- `sv05-041` Feraligatr TEF — Torrential Heart: 5 counters on self → +120 damage this turn
+**Batch 3 cards implemented:**
+- `sv10.5w-051` Archeops WHT — Ancient Wing: USE_ABILITY devolve 1 opp evolved → hand (active-only)
+- `sv08.5-034` Espeon ex PRE — Amazez atk1: devolve ALL opp evolved → deck (shuffle)
+- `sv08-095` Espathra SSP — Mystical Eyes atk0: devolve 1 opp evolved → hand
+- `mep-007` Psyduck MEP — Damp: suppresses Sandy Flapping, Exploding Needles, Final Chain, Fragile Husk, Infinite Shadow while in play
+- `mep-008` Golduck MEP — Damp: same suppression
+- `sv08.5-010` Dipplin PRE — Festival Lead: second attack when Festival Grounds (sv06-149) active
+- `sv08.5-020` Goldeen PRE — Festival Lead: same
+- `sv08.5-021` Seaking PRE — Festival Lead: same
+- `sv08-100` Annihilape SSP — Destined Fight atk1: both Active Pokémon KO'd simultaneously
+- `sv07-101` Klinklang SCR — Emergency Rotation: from hand → bench when opp has Stage 2
 
-**Remaining:** 51 flagged entries in `docs/POKEMON_MASTER_LIST.md`. Engine refactoring continues with 5 more batches.
+**Remaining:** 31 flagged entries in `docs/POKEMON_MASTER_LIST.md`. Engine refactoring continues with 3 more batches.
 
-**Next:** Engine Batch 3 — Devolve mechanics + Damp + Festival Lead + Annihilape + Klinklang (10 cards)
+**Next:** Engine Batch 4 — Mid-battle deck evolution + Magneton + Revavroom + Seadra (10 cards)
 
 ---
 

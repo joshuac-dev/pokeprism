@@ -55,6 +55,17 @@ class ChoiceRequest:
     options: list = field(default_factory=list)  # str labels for each option
 
 
+def _has_damp(state) -> bool:
+    """Return True if Psyduck (mep-007) or Golduck (mep-008) is in play for either player."""
+    for pid in ("p1", "p2"):
+        player = state.get_player(pid)
+        if player.active and player.active.card_def_id in ("mep-007", "mep-008"):
+            return True
+        if any(b.card_def_id in ("mep-007", "mep-008") for b in player.bench):
+            return True
+    return False
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Damage parsing
 # ──────────────────────────────────────────────────────────────────────────────
@@ -342,46 +353,47 @@ def check_ko(
                          ko_player=target_player_id,
                          card_name=target.card_name)
 
-    # Fragile Husk (me01-061 Shedinja): if KO'd by opponent's Pokémon ex, opp takes 0 prizes
-    if target.card_def_id == "me01-061" and _is_attacking_active:
-        attacker_cdef2 = card_registry.get(attacker_player.active.card_def_id) if attacker_player.active else None
-        if attacker_cdef2 and attacker_cdef2.is_ex:
-            prizes_to_take = 0
-            state.emit_event("fragile_husk_triggered",
-                             ko_player=target_player_id,
-                             card_name=target.card_name)
+    if not _has_damp(state):
+        # Fragile Husk (me01-061 Shedinja): if KO'd by opponent's Pokémon ex, opp takes 0 prizes
+        if target.card_def_id == "me01-061" and _is_attacking_active:
+            attacker_cdef2 = card_registry.get(attacker_player.active.card_def_id) if attacker_player.active else None
+            if attacker_cdef2 and attacker_cdef2.is_ex:
+                prizes_to_take = 0
+                state.emit_event("fragile_husk_triggered",
+                                 ko_player=target_player_id,
+                                 card_name=target.card_name)
 
-    # Sandy Flapping (me02-053 Flygon): when KO'd by opponent's active, discard top 2 of opp's deck
-    if target.card_def_id == "me02-053" and _is_attacking_active:
-        for _ in range(2):
-            if attacker_player.deck:
-                top = attacker_player.deck.pop()
-                top.zone = Zone.DISCARD
-                attacker_player.discard.append(top)
-        state.emit_event("sandy_flapping_ko_triggered", player=target_player_id,
-                         card=target.card_name)
+        # Sandy Flapping (me02-053 Flygon): when KO'd by opponent's active, discard top 2 of opp's deck
+        if target.card_def_id == "me02-053" and _is_attacking_active:
+            for _ in range(2):
+                if attacker_player.deck:
+                    top = attacker_player.deck.pop()
+                    top.zone = Zone.DISCARD
+                    attacker_player.discard.append(top)
+            state.emit_event("sandy_flapping_ko_triggered", player=target_player_id,
+                             card=target.card_name)
 
-    # Exploding Needles (sv09-008 Maractus): when KO'd while active by damage, place 6 counters on attacker
-    if target.card_def_id == "sv09-008" and _is_attacking_active:
-        if attacker_player.active and attacker_player.active.current_hp > 0:
-            attacker_player.active.current_hp -= 60
-            attacker_player.active.damage_counters += 6
-            state.emit_event("exploding_needles_triggered", player=target_player_id,
-                             card=target.card_name,
-                             attacker=attacker_player.active.card_name)
-            check_ko(state, attacker_player.active, attacker_id)
-            if state.phase == Phase.GAME_OVER:
-                return
+        # Exploding Needles (sv09-008 Maractus): when KO'd while active by damage, place 6 counters on attacker
+        if target.card_def_id == "sv09-008" and _is_attacking_active:
+            if attacker_player.active and attacker_player.active.current_hp > 0:
+                attacker_player.active.current_hp -= 60
+                attacker_player.active.damage_counters += 6
+                state.emit_event("exploding_needles_triggered", player=target_player_id,
+                                 card=target.card_name,
+                                 attacker=attacker_player.active.card_name)
+                check_ko(state, attacker_player.active, attacker_id)
+                if state.phase == Phase.GAME_OVER:
+                    return
 
-    # Final Chain (me02.5-143 Pecharunt): when KO'd by opponent's active, search deck for 1 card
-    if target.card_def_id == "me02.5-143" and _is_attacking_active:
-        if target_player.deck:
-            card = _random.choice(target_player.deck)
-            target_player.deck.remove(card)
-            card.zone = Zone.HAND
-            target_player.hand.append(card)
-            state.emit_event("final_chain_triggered", player=target_player_id,
-                             card=card.card_name)
+        # Final Chain (me02.5-143 Pecharunt): when KO'd by opponent's active, search deck for 1 card
+        if target.card_def_id == "me02.5-143" and _is_attacking_active:
+            if target_player.deck:
+                card = _random.choice(target_player.deck)
+                target_player.deck.remove(card)
+                card.zone = Zone.HAND
+                target_player.hand.append(card)
+                state.emit_event("final_chain_triggered", player=target_player_id,
+                                 card=card.card_name)
 
     # Ribombee Plentiful Pollen: if pending effect matches this KO, award extra prizes
     for pe in list(state.pending_effects):
@@ -406,7 +418,7 @@ def check_ko(
 
     # Move KO'd Pokémon (and attached cards) to discard
     # Infinite Shadow (me03-050 Gengar): when KO'd by opponent's active, goes to owner's hand instead
-    if target.card_def_id == "me03-050" and _is_attacking_active:
+    if target.card_def_id == "me03-050" and _is_attacking_active and not _has_damp(state):
         # Discard all attached cards but put Gengar itself in hand
         _discard_attached_only(target_player, target)
         target.zone = Zone.HAND
@@ -496,6 +508,73 @@ def check_ko(
         state.win_condition = "no_bench"
         state.phase = Phase.GAME_OVER
         state.emit_event("game_over", winner=attacker_id, condition="no_bench")
+
+
+def _devolve_pokemon(state, opp_player_id, target, destination):
+    """Devolve target (an evolved Pokémon in play) by one stage.
+
+    target must be in play (active or bench) for opp_player_id.
+    destination: "hand" or "deck"
+    Energy/tools transfer to the pre-evo. Damage carries over.
+    """
+    opp = state.get_player(opp_player_id)
+
+    if not target.evolved_from:
+        return
+
+    pre_evo = next((c for c in opp.discard if c.instance_id == target.evolved_from), None)
+    if pre_evo is None:
+        return
+
+    # Transfer energy/tools/damage to pre-evo
+    pre_evo.energy_attached = list(target.energy_attached)
+    pre_evo.tools_attached = list(target.tools_attached)
+    pre_evo.damage_counters = target.damage_counters
+    pre_evo.current_hp = max(0, pre_evo.max_hp - pre_evo.damage_counters * 10)
+    pre_evo.status_conditions = list(target.status_conditions)
+
+    # Strip target
+    target.energy_attached.clear()
+    target.tools_attached.clear()
+    target.status_conditions.clear()
+    target.damage_counters = 0
+    target.current_hp = target.max_hp
+
+    # Determine where target was (active vs bench)
+    was_active = (target is opp.active)
+
+    # Remove pre_evo from discard
+    opp.discard.remove(pre_evo)
+
+    # Remove target from play
+    if was_active:
+        opp.active = None
+    else:
+        if target in opp.bench:
+            opp.bench.remove(target)
+
+    # Send target to destination
+    if destination == "hand":
+        target.zone = Zone.HAND
+        opp.hand.append(target)
+        state.emit_event("devolved_to_hand", player=opp_player_id, card=target.card_name)
+    else:
+        target.zone = Zone.DECK
+        opp.deck.append(target)
+        state.emit_event("devolved_to_deck", player=opp_player_id, card=target.card_name)
+
+    # Place pre_evo back
+    if was_active:
+        pre_evo.zone = Zone.ACTIVE
+        opp.active = pre_evo
+    else:
+        pre_evo.zone = Zone.BENCH
+        opp.bench.append(pre_evo)
+
+    state.emit_event("devolved", player=opp_player_id, pokemon=pre_evo.card_name)
+
+    # Check if pre_evo is KO'd due to damage
+    check_ko(state, pre_evo, opp_player_id)
 
 
 def _discard_attached_only(player: PlayerState, pokemon: CardInstance) -> None:

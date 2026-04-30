@@ -317,6 +317,25 @@ class MatchRunner:
                     if state.phase == Phase.GAME_OVER:
                         return state
 
+                    # Festival Lead: second attack if flag was set
+                    fl_player = state.get_player(pid)
+                    if fl_player.festival_lead_pending and state.phase != Phase.GAME_OVER:
+                        fl_player.festival_lead_pending = False
+                        if fl_player.active is not None and fl_player.active.current_hp > 0:
+                            legal2 = [a for a in ActionValidator.get_legal_actions(state, pid)
+                                      if a.action_type == ActionType.ATTACK]
+                            if legal2:
+                                action2 = await player_obj.choose_action(state, legal2)
+                                is_valid2, _ = ActionValidator.validate(state, action2)
+                                if is_valid2:
+                                    prev_len2 = len(state.events)
+                                    state = await StateTransition.apply(state, action2, self._get_player)
+                                    self._emit_since(state, prev_len2)
+                                    state.get_player(pid).festival_lead_pending = False
+                                    state = await self._resolve_ko_aftermath(state)
+                                    if state.phase == Phase.GAME_OVER:
+                                        return state
+
         # ── BETWEEN TURNS ─────────────────────────────────────────────────────
         state = self._handle_between_turns(state)
         if state.phase == Phase.GAME_OVER:
@@ -541,6 +560,9 @@ class MatchRunner:
         state.briar_active = False
         state.sunny_day_active = False
         state.force_end_turn = False
+        # Reset festival_lead_pending for all players
+        for pid in ("p1", "p2"):
+            state.get_player(pid).festival_lead_pending = False
         # Clear Retaliate window for the player whose turn just ended
         state.get_player(state.active_player).ko_taken_last_turn = False
         state.get_player(state.active_player).ethans_pokemon_ko_last_turn = False

@@ -3841,6 +3841,56 @@ def _buzzing_boost(state: GameState, action):
     random.shuffle(player.deck)
 
 
+def _ancient_wing(state: GameState, action):
+    """sv10.5w-051 Archeops — Ancient Wing: devolve 1 opp evolved → opp hand. Active only."""
+    from app.engine.effects.base import _devolve_pokemon
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+
+    targets = [p for p in ([opp.active] if opp.active else []) + opp.bench
+               if p.evolved_from is not None]
+    if not targets:
+        return
+
+    if len(targets) == 1:
+        _devolve_pokemon(state, opp_id, targets[0], "hand")
+    else:
+        req = ChoiceRequest("choose_target", action.player_id,
+                            "Ancient Wing: choose an opponent's Evolved Pokémon to Devolve",
+                            targets=targets)
+        resp = yield req
+        picked = None
+        if resp and resp.target_instance_id:
+            picked = next((p for p in targets if p.instance_id == resp.target_instance_id), None)
+        if picked is None:
+            picked = targets[0]
+        _devolve_pokemon(state, opp_id, picked, "hand")
+
+    pokemon = _find_in_play(state.get_player(action.player_id), action.card_instance_id)
+    if pokemon:
+        pokemon.ability_used_this_turn = True
+    state.emit_event("ancient_wing_used", player=action.player_id)
+
+
+def _emergency_rotation(state: GameState, action):
+    """sv07-101 Klinklang — Emergency Rotation: from hand → bench if opp has Stage 2."""
+    player = state.get_player(action.player_id)
+
+    klinklang = next((c for c in player.hand if c.instance_id == action.card_instance_id), None)
+    if klinklang is None:
+        return
+
+    if len(player.bench) >= 5:
+        return  # Bench full
+
+    player.hand.remove(klinklang)
+    klinklang.zone = Zone.BENCH
+    klinklang.ability_used_this_turn = True
+    player.bench.append(klinklang)
+
+    state.emit_event("emergency_rotation", player=action.player_id, card=klinklang.card_name)
+
+
 def register_all(registry):
     """Register all ability effect handlers with the registry."""
 
@@ -4385,6 +4435,7 @@ def register_all(registry):
         return bool(p.bench)
     registry.register_ability("sv10.5w-023", "Torrential Whirlpool", _torrential_whirlpool,
                                condition=_cond_torrential_whirlpool)
+    registry.register_ability("sv10.5w-051", "Ancient Wing", _ancient_wing)  # Archeops — devolve 1 opp evolved to hand
 
     # Passive abilities handled in _apply_damage
     registry.register_passive_ability("sv10.5b-063", "Gear Coating")   # handled in _apply_damage
@@ -4647,7 +4698,7 @@ def register_all(registry):
                                condition=_cond_fan_call_scr)
 
     # Passive stubs for remaining Batch 13 abilities
-    registry.register_passive_ability("sv07-101", "Emergency Rotation")     # Klinklang (on-damage retreat: noop)
+    registry.register_ability("sv07-101", "Emergency Rotation", _emergency_rotation)  # Klinklang — from hand to bench
     registry.register_passive_ability("sv07-107", "Metal Bridge")           # Archaludon (retreat cost: noop)
     registry.register_passive_ability("sv07-110", "Pummeling Payback")      # Orthworm ex (counter-damage: noop)
     registry.register_ability("sv07-115", "Jewel Seeker", _jewel_seeker)  # Noctowl (on-evolve)

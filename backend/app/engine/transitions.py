@@ -585,6 +585,18 @@ async def _attack(state: GameState, action: Action, get_player=None) -> GameStat
     # Track last attack used (for Spiky Rolling, Mochi Rush, etc.)
     if player.active:
         player.active.last_attack_name = attack_name
+
+    # Festival Lead: enable second attack if Festival Grounds is active
+    _FESTIVAL_LEAD_IDS = {"sv08.5-010", "sv08.5-020", "sv08.5-021"}
+    fl_player = result.get_player(action.player_id)
+    if (fl_player.active is not None
+            and fl_player.active.card_def_id in _FESTIVAL_LEAD_IDS
+            and fl_player.active.current_hp > 0
+            and result.active_stadium is not None
+            and result.active_stadium.card_def_id == "sv06-149"
+            and not fl_player.festival_lead_pending):
+        fl_player.festival_lead_pending = True
+
     return result
 
 
