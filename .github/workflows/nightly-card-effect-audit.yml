@@ -1,4 +1,4 @@
-name: Nightly Copilot Card Effect Audit
+name: Nightly Copilot Card Effect Fixes
 
 on:
   schedule:
@@ -10,33 +10,38 @@ on:
   workflow_dispatch:
     inputs:
       max_findings:
-        description: "Maximum findings Copilot should report"
+        description: "Maximum findings Copilot should audit/fix in one run"
         required: false
         default: "25"
+      copilot_model:
+        description: "Optional Copilot coding agent model. Leave blank to use Auto."
+        required: false
+        default: ""
 
 permissions:
   contents: read
   issues: write
 
 concurrency:
-  group: nightly-copilot-card-effect-audit
+  group: nightly-copilot-card-effect-fixes
   cancel-in-progress: false
 
 jobs:
-  create-copilot-audit-task:
+  create-copilot-fix-task:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Create audit issue and assign to Copilot
+      - name: Create implementation-fix issue and assign to Copilot
         env:
           GH_TOKEN: ${{ secrets.COPILOT_AGENT_PAT }}
           GH_REPO: ${{ github.repository }}
           MAX_FINDINGS: ${{ inputs.max_findings || '25' }}
+          COPILOT_MODEL: ${{ inputs.copilot_model || '' }}
         run: |
           set -euo pipefail
 
           DATE_UTC="$(date -u +%Y-%m-%d)"
-          TITLE="Nightly card effect implementation audit - ${DATE_UTC}"
+          TITLE="Nightly card effect implementation fixes - ${DATE_UTC}"
 
           EXISTING="$(gh issue list \
             --state open \
@@ -53,6 +58,10 @@ jobs:
             --description "Automated card effect implementation audit" \
             --color 7057ff || true
 
+          gh label create card-effect-fix \
+            --description "Automated card effect implementation fix" \
+            --color 2da44e || true
+
           gh label create copilot-agent-task \
             --description "Task intended for GitHub Copilot coding agent" \
             --color 0969da || true
@@ -64,47 +73,45 @@ jobs:
           BODY_FILE="$(mktemp)"
 
           cat > "$BODY_FILE" <<EOF
-          # CARD IMPLEMENTATION AUDIT
+          # CARD IMPLEMENTATION AUDIT AND FIX TASK
 
-          This is a scheduled audit task for GitHub Copilot coding agent.
+          This is a scheduled task for GitHub Copilot coding agent.
 
-          Please audit card effect implementations in this repository and open a pull request containing a Markdown report with your findings.
+          Audit card effect implementations in this repository against fresh TCGDex source data, then fix the card implementation bugs, errors, and quality concerns you find.
 
-          ## Required output
-
-          Create or update this file in your PR:
-
-          \`docs/audits/card-effect-audit-${DATE_UTC}.md\`
-
-          Do not directly fix card implementation bugs in this PR unless the fix is extremely small and obvious. The primary goal is to produce an audit report for tracking and later review.
+          Open a pull request with code changes, tests, and a short report summarizing what you audited and fixed.
 
           ## Context
 
           Read \`docs/CARD_EXPANSION_RULES.md\` for context on how cards should be implemented.
 
-          Perform a comprehensive audit of card effect implementations by checking them against fresh TCGDex source data.
+          Treat TCGDex as the source of truth for card text. Always fetch fresh TCGDex data during the audit. Do not rely on cached fixture data as the source of truth.
 
-          ## Audit scope
+          ## Scope
 
-          Audit all cards from the local card list/table, starting from the top alphabetically by card name, then by set/id if names tie.
+          Audit cards from the local card list/table, starting from the top alphabetically by card name, then by set/id if names tie.
 
           Continue until either:
 
-          1. You find ${MAX_FINDINGS} effect implementation bugs, errors, warnings, quality concerns, or engine gaps, or
+          1. You find and address ${MAX_FINDINGS} effect implementation bugs, errors, quality concerns, or engine gaps, or
           2. You get through the entire card list with fewer than ${MAX_FINDINGS} findings.
 
           Finding zero is acceptable if factual. Do not invent bugs that do not exist.
 
-          ## Rules
+          ## Implementation rules
 
-          - Always fetch fresh data from TCGDex.
-          - Do not rely on cached fixture data as the source of truth.
           - Treat every set/number combination as a unique card.
           - Same card name does not imply same card behavior.
-          - If TCGDex data cannot be fetched for a card, record it as an audit warning, not an implementation bug.
-          - If a fix requires engine-level changes or new mechanics, classify it separately as an \`ENGINE GAP\`.
-          - Avoid duplicate findings if an open issue already tracks the same card/effect problem.
-          - Be specific and factual.
+          - Always fetch fresh TCGDex data for the card being audited.
+          - If TCGDex data cannot be fetched for a card, record it in the PR summary and continue.
+          - If a handler is missing and the effect is implementable with existing engine mechanics, add the handler and registration.
+          - If a handler exists but mismatches TCGDex, fix the handler logic and docstring/comment if needed.
+          - If tests exist for similar effects, add or update focused tests for the fix.
+          - If a correct fix requires new engine-level mechanics, implement the engine support if it is reasonably scoped.
+          - If an engine change is too large or risky for one PR, document it as an \`ENGINE GAP\` in the PR summary instead of making an unsafe partial fix.
+          - Do not perform broad unrelated refactors.
+          - Do not silently replace precise mechanics with approximate behavior.
+          - Prefer small, reviewable fixes.
 
           ## Checks
 
@@ -120,7 +127,7 @@ jobs:
 
           - Does the attack have effect text in TCGDex?
           - If yes, is there a registered handler in \`EffectRegistry\`?
-          - If there is a handler, does the handler's docstring and logic match the TCGDex effect text?
+          - If there is a handler, does the handler's docstring/comment and logic match the TCGDex effect text?
 
           Check for:
 
@@ -153,64 +160,55 @@ jobs:
           - Does the handler match the TCGDex effect text?
           - Are provided energy type, amount, restrictions, and conditional behavior correct?
 
-          ## Report format
+          ## Pull request requirements
 
-          The PR should add a Markdown report with this structure:
+          Your PR should include:
 
-          \`\`\`markdown
-          # Card Effect Implementation Audit - ${DATE_UTC}
-
-          ## Summary
-
-          Cards audited: X
-          Alphabetical range audited: A-D
-          Findings found: Y
-          Cards with no issues: Z
-          TCGDex fetch warnings: N
-
-          ## Errors Found
-
-          - CardName (SET #): attack "X" handler does Y, but TCGDex says Z.
-          - CardName (SET #): ability "X" is not registered despite effect text.
-          - CardName (SET #): wrong damage value. Handler: 80. TCGDex: 120.
-
-          ## Warnings
-
-          - CardName (SET #): effect text is ambiguous; implementation may be correct.
-
-          ## Engine Gaps
-
-          - CardName (SET #): effect requires mechanic X, which does not appear to exist in the engine.
-
-          ## Known Open Issues
-
-          - CardName (SET #): matching open issue #123 already exists.
-
-          ## Cards With No Issues
-
-          Count: X
-          \`\`\`
-
-          ## Pull request expectations
-
-          Open a PR with the audit report only.
+          1. Code fixes for implementation bugs/errors/quality concerns that are safe to fix.
+          2. Tests for changed behavior where practical.
+          3. A PR summary containing:
+             - Cards audited: X
+             - Alphabetical range audited: A-D, or the actual range
+             - Bugs/errors/quality concerns fixed: Y
+             - Engine gaps left unfixed: Z
+             - TCGDex fetch warnings: N
+             - Cards with no issues: X
+          4. A list of every card/effect fixed, including what TCGDex says and what changed in the implementation.
 
           Suggested PR title:
 
-          \`Nightly card effect implementation audit - ${DATE_UTC}\`
+          \`Nightly card effect implementation fixes - ${DATE_UTC}\`
           EOF
 
-          ISSUE_URL="$(gh issue create \
-            --title "$TITLE" \
-            --label "card-effect-audit,copilot-agent-task,automated" \
-            --body-file "$BODY_FILE")"
+          ISSUE_JSON="$(
+            jq -n \
+              --arg title "$TITLE" \
+              --rawfile body "$BODY_FILE" \
+              --arg repo "$GH_REPO" \
+              --arg model "$COPILOT_MODEL" \
+              '{
+                title: $title,
+                body: $body,
+                labels: ["card-effect-audit", "card-effect-fix", "copilot-agent-task", "automated"],
+                assignees: ["copilot-swe-agent[bot]"],
+                agent_assignment: {
+                  target_repo: $repo,
+                  base_branch: "main",
+                  custom_instructions: "Audit card effect implementations against fresh TCGDex data and fix implementation bugs/errors/quality concerns. Keep changes focused and include tests where practical.",
+                  custom_agent: "",
+                  model: $model
+                }
+              }'
+          )"
 
-          echo "Created issue: $ISSUE_URL"
+          ISSUE_URL="$(
+            gh api \
+              --method POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              /repos/${GH_REPO}/issues \
+              --input - <<< "$ISSUE_JSON" \
+              --jq '.html_url'
+          )"
 
-          ISSUE_NUMBER="${ISSUE_URL##*/}"
-
-          # Assign to GitHub Copilot coding agent.
-          # This requires COPILOT_AGENT_PAT to be a user token from an account
-          # with Copilot coding agent access.
-          gh issue edit "$ISSUE_NUMBER" --add-assignee "copilot-swe-agent" || \
-          gh issue edit "$ISSUE_NUMBER" --add-assignee "copilot-swe-agent[bot]"
+          echo "Created and assigned Copilot task: $ISSUE_URL"
