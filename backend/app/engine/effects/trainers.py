@@ -271,10 +271,6 @@ def _acerolas_mischief(state: GameState, action):
             poke.protected_from_ex = True
             state.emit_event("acerola_protection", player=player_id,
                              card=poke.card_name)
-    # Draw to 4
-    shortage = max(0, 4 - len(player.hand))
-    if shortage > 0:
-        draw_cards(state, player_id, shortage)
 
 
 def _bosss_orders(state: GameState, action):
@@ -496,33 +492,60 @@ def _judge(state: GameState, action) -> None:
 def _ciphermaniacs_codebreaking(state: GameState, action):
     """Cipher Maniac's Codebreaking (sv05-145)
 
-    Look at the top 2 cards of your deck. Put them back in any order on top
-    of your deck.
+    Search your deck for 2 cards, shuffle your deck, then put those cards on
+    top of it in any order.
     """
     player_id = action.player_id
     player = state.get_player(player_id)
-    top_cards = player.deck[:2]
-    if not top_cards:
-        return
-    if len(top_cards) == 1:
-        # Only one card — no reorder needed
+    if len(player.deck) < 2:
+        random.shuffle(player.deck)
         return
 
+    # Let player choose any 2 cards from the entire deck
     req = ChoiceRequest(
         "choose_cards", player_id,
-        "Cipher Maniac's Codebreaking: choose which card to put on TOP (the other goes 2nd)",
-        cards=top_cards, min_count=1, max_count=1,
+        "Ciphermaniac's Codebreaking: choose 2 cards from your deck to put on top",
+        cards=list(player.deck), min_count=2, max_count=2,
     )
     resp = yield req
     chosen_ids = (resp.selected_cards if resp and resp.selected_cards
-                  else [top_cards[0].instance_id])
+                  else [c.instance_id for c in player.deck[:2]])
 
-    top_id = chosen_ids[0]
-    if top_cards[0].instance_id == top_id:
-        pass  # Already in correct order
+    chosen_cards = []
+    for iid in chosen_ids[:2]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card and card not in chosen_cards:
+            chosen_cards.append(card)
+
+    # Remove chosen cards from deck, then shuffle the rest
+    for card in chosen_cards:
+        player.deck.remove(card)
+    random.shuffle(player.deck)
+
+    if len(chosen_cards) < 2:
+        # Fewer than 2 found (edge case) — put them back on top
+        for card in reversed(chosen_cards):
+            player.deck.insert(0, card)
+        return
+
+    # Player chooses the order: which goes on top (first)
+    req2 = ChoiceRequest(
+        "choose_cards", player_id,
+        "Ciphermaniac's Codebreaking: choose which card to place on TOP of your deck",
+        cards=chosen_cards, min_count=1, max_count=1,
+    )
+    resp2 = yield req2
+    chosen_ids2 = (resp2.selected_cards if resp2 and resp2.selected_cards
+                   else [chosen_cards[0].instance_id])
+
+    top_id = chosen_ids2[0]
+    if chosen_cards[0].instance_id == top_id:
+        first, second = chosen_cards[0], chosen_cards[1]
     else:
-        # Swap
-        player.deck[0], player.deck[1] = player.deck[1], player.deck[0]
+        first, second = chosen_cards[1], chosen_cards[0]
+
+    player.deck.insert(0, second)
+    player.deck.insert(0, first)
 
 
 def _eri(state: GameState, action):
@@ -622,7 +645,7 @@ def _kieran(state: GameState, action):
 
     # Normalise: if bench empty the only option is +30 damage (regardless of opt)
     if not player.bench:
-        state.active_player_damage_bonus += 30
+        state.active_player_damage_bonus_vs_ex += 30
         state.emit_event("kieran_damage_bonus", player=player_id, bonus=30)
         return
 
@@ -644,7 +667,7 @@ def _kieran(state: GameState, action):
             state.emit_event("kieran_switch", player=player_id,
                              new_active=bench_poke.card_name)
     else:
-        state.active_player_damage_bonus += 30
+        state.active_player_damage_bonus_vs_ex += 30
         state.emit_event("kieran_damage_bonus", player=player_id, bonus=30)
 
 
@@ -934,60 +957,63 @@ def _cyrano(state: GameState, action):
 def _janines_secret_art(state: GameState, action):
     """Janine's Secret Art (sv08.5-112)
 
-    Search your deck for up to 2 Darkness-type Pokémon and put them onto your
-    Bench. Attach a Basic Darkness Energy from your hand to each of them. If
-    you put any Pokémon on your Bench this way, your Active Pokémon is now
-    Poisoned. Shuffle your deck afterward.
+    Choose up to 2 of your {D} Pokémon in play. For each of those Pokémon,
+    search your deck for a Basic {D} Energy card and attach it to that Pokémon.
+    Then, shuffle your deck. If you attached Energy to your Active Pokémon in
+    this way, it is now Poisoned.
     """
     player_id = action.player_id
     player = state.get_player(player_id)
     player.janines_sa_used_this_turn = True
 
-    dark_in_deck = [c for c in player.deck
-                    if c.card_type.lower() == "pokemon"
-                    and c.evolution_stage == 0
-                    and _pokemon_has_type(c, "Darkness")
-                    and len(player.bench) < 5]
-    if not dark_in_deck:
-        random.shuffle(player.deck)
+    dark_in_play = [p for p in _find_in_play(player) if _pokemon_has_type(p, "Darkness")]
+    if not dark_in_play:
         return
 
-    max_bench = min(2, 5 - len(player.bench))
     req = ChoiceRequest(
         "choose_cards", player_id,
-        "Janine's Secret Art: choose up to 2 Darkness Pokémon from your deck to bench",
-        cards=dark_in_deck, min_count=0, max_count=max_bench,
+        "Janine's Secret Art: choose up to 2 of your {D} Pokémon in play to attach energy to",
+        cards=dark_in_play, min_count=0, max_count=2,
     )
     resp = yield req
     chosen_ids = (resp.selected_cards if resp and resp.selected_cards
-                  else [c.instance_id for c in dark_in_deck[:max_bench]])
+                  else [c.instance_id for c in dark_in_play[:2]])
 
-    benched_count = 0
-    for iid in chosen_ids[:max_bench]:
-        card = next((c for c in player.deck if c.instance_id == iid), None)
-        if card and len(player.bench) < 5:
-            player.deck.remove(card)
-            _bench_pokemon(state, player_id, card)
-            benched_count += 1
+    attached_to_active = False
+    for iid in chosen_ids[:2]:
+        poke = next((p for p in dark_in_play if p.instance_id == iid), None)
+        if poke is None:
+            continue
+        dark_energy_in_deck = [c for c in player.deck
+                                if _is_basic_energy_card(c)
+                                and _energy_provides_type(c, "Darkness")]
+        if not dark_energy_in_deck:
+            break
 
-            # Auto-attach first Basic Darkness Energy from hand
-            dark_energy = next(
-                (c for c in player.hand
-                 if _is_basic_energy_card(c) and _energy_provides_type(c, "Darkness")),
-                None
-            )
-            if dark_energy:
-                att = _make_energy_attachment(dark_energy)
-                dark_energy.zone = card.zone
-                card.energy_attached.append(att)
-                player.hand.remove(dark_energy)
-                state.emit_event("energy_attached", player=player_id,
-                                 energy=dark_energy.card_name,
-                                 target=card.card_name, source="janine")
+        req2 = ChoiceRequest(
+            "choose_cards", player_id,
+            f"Janine's Secret Art: choose a Basic {{D}} Energy from deck to attach to {poke.card_name}",
+            cards=dark_energy_in_deck, min_count=1, max_count=1,
+        )
+        resp2 = yield req2
+        chosen2 = (resp2.selected_cards if resp2 and resp2.selected_cards
+                   else [dark_energy_in_deck[0].instance_id])
+        energy_card = next((c for c in player.deck if c.instance_id == chosen2[0]),
+                           dark_energy_in_deck[0])
+        player.deck.remove(energy_card)
+        att = _make_energy_attachment(energy_card)
+        energy_card.zone = poke.zone
+        poke.energy_attached.append(att)
+        state.emit_event("energy_attached", player=player_id,
+                         energy=energy_card.card_name,
+                         target=poke.card_name, source="janine")
+        if player.active and poke.instance_id == player.active.instance_id:
+            attached_to_active = True
 
     random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="janine")
 
-    if benched_count > 0 and player.active:
+    if attached_to_active and player.active:
         player.active.status_conditions.add(StatusCondition.POISONED)
         state.emit_event("status_inflicted", player=player_id,
                          card=player.active.card_name, status="POISONED",
@@ -2106,8 +2132,8 @@ def _glass_trumpet(state: GameState, action):
     """Glass Trumpet (sv07-135)
 
     You can use this card only if you have a Tera Pokémon in play. Choose up
-    to 2 of your Benched Colorless-type Pokémon. Search your deck for a Basic
-    Energy card for each of those Pokémon and attach them. Shuffle your deck.
+    to 2 of your Benched Colorless-type Pokémon and attach a Basic Energy card
+    from your discard pile to each of them.
     """
     player_id = action.player_id
     player = state.get_player(player_id)
@@ -2120,7 +2146,6 @@ def _glass_trumpet(state: GameState, action):
 
     colorless_bench = [b for b in player.bench if _pokemon_has_type(b, "Colorless")]
     if not colorless_bench:
-        random.shuffle(player.deck)
         return
 
     req = ChoiceRequest(
@@ -2136,20 +2161,27 @@ def _glass_trumpet(state: GameState, action):
         poke = next((b for b in player.bench if b.instance_id == iid), None)
         if poke is None:
             continue
-        energy_in_deck = [c for c in player.deck if _is_basic_energy_card(c)]
-        if not energy_in_deck:
+        energy_in_discard = [c for c in player.discard if _is_basic_energy_card(c)]
+        if not energy_in_discard:
             break
-        energy_card = energy_in_deck[0]
-        player.deck.remove(energy_card)
+
+        req2 = ChoiceRequest(
+            "choose_cards", player_id,
+            f"Glass Trumpet: choose a Basic Energy from discard to attach to {poke.card_name}",
+            cards=energy_in_discard, min_count=1, max_count=1,
+        )
+        resp2 = yield req2
+        chosen2 = (resp2.selected_cards if resp2 and resp2.selected_cards
+                   else [energy_in_discard[0].instance_id])
+        energy_card = next((c for c in player.discard if c.instance_id == chosen2[0]),
+                           energy_in_discard[0])
+        player.discard.remove(energy_card)
         att = _make_energy_attachment(energy_card)
         energy_card.zone = poke.zone
         poke.energy_attached.append(att)
         state.emit_event("energy_attached", player=player_id,
                          energy=energy_card.card_name,
                          target=poke.card_name, source="glass_trumpet")
-
-    random.shuffle(player.deck)
-    state.emit_event("shuffle_deck", player=player_id, reason="glass_trumpet")
 
 
 def _ns_pp_up(state: GameState, action):
@@ -4846,7 +4878,7 @@ def register_all(registry: EffectRegistry) -> None:
     # Passive stadiums — effects handled elsewhere in the engine
     registry.register_trainer("me01-117", _noop)   # Forest of Vitality (actions.py)
     registry.register_trainer("me01-127", _noop)   # Risky Ruins (transitions.py)
-    registry.register_trainer("me02-085", _noop)   # N's Castle (base.py / actions.py)
+    registry.register_trainer("me02-085", _noop)   # Battle Cage (base.py / actions.py)
     registry.register_trainer("sv06-153", _noop)   # Jamming Tower (base.py)
     registry.register_trainer("sv08-177", _gravity_mountain)
     registry.register_trainer("sv08-180", _lively_stadium)
@@ -4867,7 +4899,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv07-141", _noop)    # Payapa Berry (base.py)
     registry.register_trainer("sv08.5-095", _noop)  # Binding Mochi (base.py)
     registry.register_trainer("sv09-151", _noop)    # Lillie's Pearl (base.py)
-    registry.register_trainer("sv10.5w-080", _noop) # Payapa Berry (base.py)
+    registry.register_trainer("sv10.5w-080", _noop) # Brave Bangle (base.py)
 
     # ── Batch 18 registrations ───────────────────────────────────────────────
 

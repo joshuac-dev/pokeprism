@@ -726,7 +726,7 @@ def _flip_the_script(state: GameState, action) -> None:
     player_id = action.player_id
     opp_turn = state.turn_number - 1
     ko_happened = any(
-        e.get("event") == "ko"
+        e.get("event_type") == "ko"
         and e.get("ko_player") == player_id
         and e.get("turn", -1) == opp_turn
         for e in state.events
@@ -3845,7 +3845,7 @@ def register_all(registry):
     def _cond_flip_the_script(state, player_id):
         opp_turn = state.turn_number - 1
         return any(
-            e.get("event") == "ko"
+            e.get("event_type") == "ko"
             and e.get("ko_player") == player_id
             and e.get("turn", -1) == opp_turn
             for e in state.events
