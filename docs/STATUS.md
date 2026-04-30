@@ -6,16 +6,125 @@
 ## Current Phase
 **Flagged Card Implementation — In Progress** 🔄
 
-All 20 card expansion batches complete (1,927 cards in DB). Now implementing flagged cards (complex mechanics skipped during expansion). Batches 1, 2, and 3 complete — 178 flagged entries remain.
+All 20 card expansion batches complete (1,927 cards in DB). Now implementing flagged cards (complex mechanics skipped during expansion). Batches 1, 2, 3, 4, and 5 complete — 132 flagged entries remain.
 
 | Metric | Value |
 |--------|-------|
 | Cards in DB | 1927 |
 | Coverage | **98.5%** (29 missing) |
-| Flagged batches complete | 3 of ~9 (178 entries remain) |
-| Flagged implemented | 76 (Batch 1: 26 + Batch 2: 25 + Batch 3: 25) |
+| Flagged batches complete | 5 of ~7 (132 entries remain) |
+| Flagged implemented | 126 (Batch 1: 26 + Batch 2: 25 + Batch 3: 25 + Batch 4: 25 + Batch 5: 25) |
 
-## Last Session — Flagged Card Implementation: Batch 3
+## Last Session — Flagged Card Implementation: Batch 5
+
+### What Was Done
+
+**Batch 5** (25 flagged cards implemented):
+
+**attacks.py — New handlers (20 cards):**
+- `_flock_b5` (sv05-018 Grubbin): search deck for up to 3 Grubbin, put on Bench
+- `_storm_bolt_b5` (sv08-067 Kilowattrel): 160 damage + move ALL Energy from self to Benched Pokémon
+- `_lead_b5` (sv06.5-027 Zubat): damage = 30 × (Golbat + Crobat in hand + bench)
+- `_expelling_tornado_b5` (sv05-005 Shiftry): shuffle 1 opp Benched Pokémon into deck
+- `_kings_order_b5` (sv06.5-012 Kingdra ex): shuffle all opp Pokémon with 200+ HP into deck
+- `_opposing_winds_b5` (sv05-135 Unfezant): 70 + return up to 2 Energy from opp Active to opp hand
+- `_electrifying_dash_b5` (sv05-059 Boltund): 50 + search deck for up to 2 Basic Lightning Energy, attach to Bench
+- `_balloon_return_b5` (mep-006 Drifblim): 110 + return self and attached cards to hand
+- `_return_charge_b5` (sv08-068 Kilowattrel ex): force opp switch + attach Basic Energy from hand to new opp Active
+- `_splashing_dodge_b5` (sv08-094 Flittle): 10 + flip; heads = no Weakness next turn
+- `_tongue_pull_b5` (sv05-124 Lickitung): reveal opp hand + put up to 2 Basic Pokémon on opp Bench
+- `_summoning_gate_b5` (sv05-072 Reuniclus TEF): look at top 8 of deck, put Pokémon on Bench
+- `_guarded_rolling_b5` (sv08-103 Donphan): 120 + discard 2 Energy + take 100 less damage next turn
+- `_reaping_dash_b5` (sv07-008 Mow Rotom): 90 + discard all Tools and Special Energy from all opp Pokémon
+- `_jolting_charge_b5` (sv07-050 Joltik): search deck for 1 Basic Lightning Energy, attach to any own Pokémon
+- `_charjabug_placement_b5` (sv07-052 Charjabug): search deck for up to 2 Charjabug, put on Bench
+- `_stock_up_b5` (sv06.5-005 Decidueye atk0): put a Feather counter on this Pokémon
+- `_scream_b5` (sv06-094 Scream Tail ex): only on P2's first turn; place 4 damage counters on each opp Bench Pokémon
+- `_rallying_horn_b5` (sv10-001 Ethan's Pinsir): 50 + 100 more if Ethan's Pokémon KO'd last turn
+- sv07-053 Vikavolt SCR: reuses `_volt_switch_l`
+
+**Fixed existing handlers:**
+- `_fade_out` (sv09-068 Lillie's Comfey atk1): now properly returns self + attachments to hand
+- `_power_shot` (sv06.5-005 Decidueye atk1): now discards any amount of G energy (70 × count) + 30 bonus from feather counters
+
+**trainers.py — New handler:**
+- `_lucian_b5` (sv06-157): draw 3 + attach Basic Energy from hand to any own Pokémon
+
+**Passive ability hooks (base.py + `get_retreat_cost_reduction`):**
+- sv10-036 Ethan's Magcargo — Melt Away: free retreat when no Energy attached
+- sv07-107 Archaludon SCR — Metal Bridge: free retreat if Metal Energy attached
+- sv08.5-070 Archaludon ex PRE — Metal Bridge: same as Archaludon SCR
+
+**state.py additions:**
+- `CardInstance.custom_counters: dict` — per-card counter tracking (e.g., feather counters)
+- `PlayerState.ethans_pokemon_ko_last_turn: bool` — Ethan's Pokémon KO tracking
+
+**runner.py additions:**
+- Clear `ethans_pokemon_ko_last_turn` at end of turn (same as `ko_taken_last_turn`)
+
+### Status After This Session
+- **132 flagged entries remain** in `POKEMON_MASTER_LIST.md`
+- All 215 tests pass
+
+---
+
+## Last Session — Flagged Card Implementation: Batch 4
+
+### What Was Done
+
+**Batch 4** (25 flagged cards implemented):
+
+**abilities.py — New handlers (5 new + 1 reuse):**
+- `_beckoning_tail_b4` (sv08-085 Meowstic): if Supporter in hand, bounce 1 opp Benched Pokémon to opp's hand
+- `_captivating_invitation_b4` (sv06-088 Florges): coin flip; heads = opp switches Active with Bench (opp chooses)
+- `_happy_switch_b4` (sv06-134 Blissey ex): move 1 Basic Energy between own Pokémon
+- `_metal_maker_b4` (sv05-114 Metang): look at top 4 of deck; attach any Basic Metal Energy found to own Pokémon
+- `_battle_hardened_sfa_b4` (sv06.5-025 Bloodmoon Ursaluna SFA): place 2 damage counters on self; reduce incoming damage by 20
+- svp-182 Iono's Kilowattrel: reuse `_flashing_draw` with new condition
+
+**Upgraded from passive stubs to active abilities:**
+- sv08-085 Meowstic — Beckoning Tail
+- sv06-088 Florges — Captivating Invitation
+- sv06-134 Blissey ex — Happy Switch
+- sv05-114 Metang — Metal Maker
+- sv06.5-025 Bloodmoon Ursaluna SFA — Battle-Hardened
+- svp-182 Iono's Kilowattrel — Flashing Draw (reuse)
+
+**Shared helper added:**
+- `_is_basic_energy_att()` — checks if an EnergyAttachment is from a Basic Energy card (used by Happy Switch condition + handler)
+
+**attacks.py — New handlers (18 attack cards + 1 reuse):**
+- `_dastardly_jab_b4` (sv06-117 Scolipede): reduce opp Active HP to 10 (no KO)
+- `_kick_away_b4` (sv05-106 Mightyena): 70 + force opp to switch Active (opp chooses)
+- `_tricky_steps_b4` (sv05-104 Gengar ex): 60 + move 1 energy from opp Active to opp Bench
+- `_bring_down_b4` (mep-002 Inteleon): KO the Pokémon with lowest current HP in play (prefer opp)
+- `_lucky_find_b4` (sv05-047 Wiglett): search deck for 1 Item card
+- `_talon_hunt_b4` (sv05-127 Noctowl): 30 + search deck for up to 2 cards
+- `_cursed_edge_b4` (sv08-035 Ceruledge SSP): discard all Special Energy from all opp Pokémon
+- `_infernal_slash_b4` (mep-014 Ceruledge MEP): discard 4 Basic {R} from hand; if <4 do nothing; else 200 damage
+- `_frigid_fangs_b4` (sv08-045 Walrein): 80 + if opp Active has ≥3 Energy, set cant_attack_next_turn
+- `_evil_incineration_b4` (sv10-031 TR Moltres ex): discard TR Energy from self; KO opp Active
+- `_upthrusting_horns_b4` (sv08-039 Paldean Tauros): 80 + if opp Active is Stage 2, discard 2 Energy
+- `_crushing_pulse_b4` (sv08-061 Rotom SSP): discard all Items and Tools from opp's hand
+- `_crackling_charge_b4` (svp-158 Pachirisu): flip 3 coins; attach Basic {L} from discard to Bench per heads
+- `_memory_lock_b4` (me03-059 Klefki): lock opp Active's first attack (torment_blocked_attack_name)
+- `_cappella_b4` (sv05-132 Chatot): search deck for up to 3 Basic Pokémon to put on Bench
+- `_crimson_blaster_b4` (sv08-034 Armarouge): discard 2 {R} or 2 {P}; 200 to any opp target (active or bench)
+- `_iron_shake_up_b4` (sv10-140 Forretress): move 1 Metal Energy between own Pokémon
+- `_invite_and_strike_b4` (sv05-112 Mawile): force opp switch first (opp chooses), then 60 damage
+- svp-145 Raging Bolt ex: reuse `_bellowing_thunder`
+
+### Final Baseline This Session
+- **215 backend tests pass**
+- **1927 cards in DB**
+- **Coverage: 98.5%** (29 missing — all legitimately flagged Pokémon attack handlers)
+- **153 flagged entries remain** in `POKEMON_MASTER_LIST.md`
+
+### Notes for Next Session
+Next batch starts from the top of `docs/POKEMON_MASTER_LIST.md` FLAGGED_CARDS section.
+- 153 entries remain across all flag categories
+
+## Previous Session — Flagged Card Implementation: Batch 3
 
 ### What Was Done
 
