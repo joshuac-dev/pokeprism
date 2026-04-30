@@ -12531,13 +12531,14 @@ def _insta_strike(state, action):
 
 
 def _brave_slash(state, action):
-    """sv09-111 Hop's Zacian ex atk1 — Brave Slash: 240 + can't attack next turn."""
+    """sv09-111 Hop's Zacian ex atk1 — Brave Slash: 240 + can't use Brave Slash next turn."""
     _do_default_damage(state, action)
     player = state.get_player(action.player_id)
     if player.active:
-        player.active.cant_attack_next_turn = True
-        state.emit_event("multi_turn_lock", card=player.active.card_name,
-                         attack="Brave Slash")
+        player.active.locked_attack_index = 1
+        state.emit_event("attack_locked", player=action.player_id,
+                         card=player.active.card_name,
+                         attack_index=1)
 
 
 def _reckless_charge(state, action):
@@ -17744,7 +17745,7 @@ def register_all(registry):
     registry.register_attack("sv06-051", 0, _astonish_flag)                 # Snorunt — Astonish (FLAGGED)
     registry.register_attack("sv06-052", 0, _damage_beat)                   # Glalie — Damage Beat (reuse)
     registry.register_attack("sv06-052", 1, _scorching_fire)                # Glalie — Crazy Headbutt (reuse scorching_fire)
-    registry.register_attack("sv06-054", 0, _permeating_chill_flag)         # Glaceon — Permeating Chill (FLAGGED)
+    registry.register_attack("sv06-054", 0, _permeating_chill_b10)         # Glaceon — Permeating Chill
     registry.register_attack("sv06-055", 0, _beckon_flag)                   # Phione — Beckon (FLAGGED)
     registry.register_attack("sv06-055", 1, _energy_press)                  # Phione — Energy Press
     registry.register_attack("sv06-056", 0, _flock_flag)                    # Froakie — Flock (FLAGGED)
@@ -17945,7 +17946,10 @@ def _deleting_slash(state, action):
 
 
 def _tropical_frenzy_flag(state, action):
-    """sv08-133 Alolan Exeggutor ex atk0 — Tropical Frenzy: FLAGGED (attach any energy from hand)."""
+    """sv08-133 Alolan Exeggutor ex atk0 — Tropical Frenzy: 150 + FLAGGED (attach any energy from hand)."""
+    _apply_damage(state, action, 150)
+    if state.phase == Phase.GAME_OVER:
+        return
     state.emit_event("flagged_effect", attack="Tropical Frenzy",
                      reason="attach_multiple_energy_from_hand_player_choice_not_supported")
 
@@ -18594,8 +18598,8 @@ def _everyone_explode_now(state, action):
     """sv07-061 Drifblim atk0 — Everyone Explode Now: 50× Drifloon/Drifblim count + 30 to each of your own Drifloon/Drifblim."""
     player = state.get_player(action.player_id)
     all_self = ([player.active] if player.active else []) + list(player.bench)
-    DRIFLOON_IDS = {"sv07-060", "sv07-061"}
-    balloons = [p for p in all_self if p.card_def_id in DRIFLOON_IDS]
+    _BALLOON_NAMES = {"Drifloon", "Drifblim"}
+    balloons = [p for p in all_self if p.card_name in _BALLOON_NAMES]
     count = len(balloons)
     _apply_damage(state, action, 50 * count)
     if state.phase == Phase.GAME_OVER:
@@ -19212,41 +19216,23 @@ def _stock_up_on_feathers_flag(state, action):
 
 
 def _power_shot(state, action):
-    """sv06.5-005 Decidueye atk1 — Power Shot: discard any amount of G Energy from hand, 70 per discarded.
-    +30 bonus if there are any Feather counters on this Pokémon."""
+    """sv06.5-005 Decidueye atk1 — Power Shot: discard 1 Basic G Energy from hand; if you can't, does nothing. 170 damage."""
     player = state.get_player(action.player_id)
     g_energy = [c for c in player.hand
                 if c.card_type.lower() == "energy"
+                and c.card_subtype.lower() == "basic"
                 and "Grass" in (c.energy_provides or [])]
     if not g_energy:
         state.emit_event("attack_no_damage", attacker="Decidueye",
-                         attack_name="Power Shot", reason="no_G_energy_in_hand")
+                         attack_name="Power Shot", reason="no_Basic_G_energy_in_hand")
         return
-    req = ChoiceRequest(
-        "choose_cards", action.player_id,
-        "Power Shot: choose any amount of Basic Grass Energy from hand to discard (+70 each)",
-        cards=g_energy, min_count=0, max_count=len(g_energy),
-    )
-    resp = yield req
-    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
-                  else [c.instance_id for c in g_energy])
-    discarded = 0
-    for cid in chosen_ids:
-        card = next((c for c in player.hand if c.instance_id == cid), None)
-        if card:
-            player.hand.remove(card)
-            card.zone = Zone.DISCARD
-            player.discard.append(card)
-            discarded += 1
-    if discarded == 0:
-        state.emit_event("attack_no_damage", attacker="Decidueye",
-                         attack_name="Power Shot", reason="no_energy_discarded")
-        return
-    feather_bonus = 30 if (player.active and
-                           player.active.custom_counters.get("feather", 0) > 0) else 0
+    energy_card = g_energy[0]
+    player.hand.remove(energy_card)
+    energy_card.zone = Zone.DISCARD
+    player.discard.append(energy_card)
     state.emit_event("energy_discarded", player=action.player_id,
-                     card="hand", count=discarded, reason="Power Shot")
-    _apply_damage(state, action, 70 * discarded + feather_bonus)
+                     card="hand", count=1, reason="Power Shot")
+    _apply_damage(state, action, 170)
 
 
 def _wood_hammer_b13(state, action):
@@ -20738,7 +20724,7 @@ def _strange_hacking_flag(state, action):
                          status="confused")
     all_opp = ([opp.active] if opp.active else []) + list(opp.bench)
     damaged = [p for p in all_opp if p.damage_counters > 0]
-    if len(damaged) < 2:
+    if len(all_opp) < 2 or not damaged:
         return
     req_src = ChoiceRequest("choose_target", action.player_id,
         "Strange Hacking: choose an opponent's Pokémon to move damage counters FROM",
@@ -24514,7 +24500,7 @@ def register_batch17_attacks(registry):
     registry.register_attack("svp-170", 0, _leaflet_blessings_flag)        # Leaflet Blessings (FLAGGED)
 
     # ── svp-171 Glaceon ──────────────────────────────────────────────────────
-    registry.register_attack("svp-171", 0, _permeating_chill_flag)         # Permeating Chill (FLAGGED)
+    registry.register_attack("svp-171", 0, _permeating_chill_b10)         # Permeating Chill
 
     # ── svp-172 Sylveon ──────────────────────────────────────────────────────
     registry.register_attack("svp-172", 0, _mystical_return_flag_b17)      # Mystical Return (FLAGGED)
@@ -26498,16 +26484,14 @@ def _charjabug_placement_b5(state, action):
 
 
 def _stock_up_b5(state, action):
-    """sv06.5-005 Decidueye atk0 — Stock Up on Feathers: put a Feather counter on this Pokémon."""
+    """sv06.5-005 Decidueye atk0 — Stock Up on Feathers: draw cards until you have 7 in hand."""
     player = state.get_player(action.player_id)
-    if not player.active:
-        return
-    player.active.custom_counters["feather"] = (
-        player.active.custom_counters.get("feather", 0) + 1
-    )
-    state.emit_event("feather_counter_added", player=action.player_id,
-                     card=player.active.card_name,
-                     total=player.active.custom_counters["feather"])
+    needed = max(0, 7 - len(player.hand))
+    if needed > 0:
+        draw_cards(state, action.player_id, needed)
+    state.emit_event("attack_no_damage", attacker="Decidueye",
+                     attack_name="Stock Up on Feathers",
+                     reason="drew_to_7")
 
 
 def _scream_b5(state, action):
