@@ -293,12 +293,20 @@ class ActionValidator:
         """Play a Basic Pokémon to the bench (rule 9: max 5)."""
         if len(player.bench) >= ActionValidator.MAX_BENCH_SIZE:
             return []
+        opp = state.get_opponent(player_id)
+        # Potent Glare (sv10-113 TR Arbok): opp cannot play Pokémon with abilities from hand
+        # (except Team Rocket's Pokémon)
+        potent_glare = (opp.active and opp.active.card_def_id == "sv10-113")
         basics = [c for c in player.hand
                   if c.card_type.lower() == "pokemon" and c.evolution_stage == 0]
-        return [
-            Action(ActionType.PLAY_BASIC, player_id, card_instance_id=b.instance_id)
-            for b in basics
-        ]
+        result = []
+        for b in basics:
+            if potent_glare:
+                bcdef = card_registry.get(b.card_def_id)
+                if bcdef and bcdef.abilities and "Team Rocket's" not in b.card_name:
+                    continue
+            result.append(Action(ActionType.PLAY_BASIC, player_id, card_instance_id=b.instance_id))
+        return result
 
     @staticmethod
     def _get_play_actions(
@@ -324,6 +332,10 @@ class ActionValidator:
                         if (opp_for_dg.active
                                 and opp_for_dg.active.card_def_id == "sv09-095"):
                             continue
+                        # Oceanic Curse (sv10.5w-045 Jellicent ex): opp cannot play Item or Tool cards
+                        if (opp_for_dg.active
+                                and opp_for_dg.active.card_def_id == "sv10.5w-045"):
+                            continue
                         actions.append(
                             Action(ActionType.PLAY_ITEM, player_id,
                                    card_instance_id=card.instance_id)
@@ -337,6 +349,11 @@ class ActionValidator:
                                    card_instance_id=card.instance_id)
                         )
                 elif csub == "tool":
+                    # Oceanic Curse (sv10.5w-045 Jellicent ex): opp cannot play Item or Tool cards
+                    opp_for_oc = state.get_opponent(player_id)
+                    if (opp_for_oc.active
+                            and opp_for_oc.active.card_def_id == "sv10.5w-045"):
+                        continue
                     # Rule 12: one Tool per Pokémon
                     for poke in _in_play(player):
                         if not poke.tools_attached:
@@ -353,6 +370,24 @@ class ActionValidator:
     ) -> list[Action]:
         # Rule 2: only one manual energy attachment per turn
         if player.energy_attached_this_turn:
+            # Inferno Fandango (sv10.5w-013 Emboar): unlimited Basic Fire Energy attachments
+            if any(p.card_def_id == "sv10.5w-013" for p in _in_play(player)):
+                fire_energy = [
+                    c for c in player.hand
+                    if c.card_type.lower() == "energy"
+                    and c.card_subtype.lower() == "basic"
+                    and "Fire" in (c.energy_provides or [])
+                ]
+                if not fire_energy:
+                    return []
+                targets = _in_play(player)
+                return [
+                    Action(ActionType.ATTACH_ENERGY, player_id,
+                           card_instance_id=e.instance_id,
+                           target_instance_id=t.instance_id)
+                    for e in fire_energy
+                    for t in targets
+                ]
             return []
         energy_in_hand = [
             c for c in player.hand if c.card_type.lower() == "energy"
@@ -381,7 +416,15 @@ class ActionValidator:
             c for c in player.hand
             if c.card_type.lower() == "pokemon" and c.evolution_stage > 0
         ]
+        opp_for_pg = state.get_opponent(player_id)
+        # Potent Glare (sv10-113 TR Arbok): opp cannot play Pokémon with abilities from hand
+        potent_glare_evo = (opp_for_pg.active and opp_for_pg.active.card_def_id == "sv10-113")
         for evo in evolutions_in_hand:
+            # Potent Glare check: if evo card has abilities, skip it (unless Team Rocket's)
+            if potent_glare_evo:
+                evo_cdef_pg = card_registry.get(evo.card_def_id)
+                if evo_cdef_pg and evo_cdef_pg.abilities and "Team Rocket's" not in evo.card_name:
+                    continue
             for target in in_play:
                 # Cannot evolve a card played or evolved this turn
                 if target.turn_played == state.turn_number:

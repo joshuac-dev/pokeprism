@@ -425,6 +425,28 @@ def _apply_damage(
         final_damage=total,
     )
 
+    # Spiky Energy (sv09-159): if defender is Active and has Spiky Energy attached, put 2 counters on attacker
+    if total > 0 and attacker.current_hp > 0:
+        _def_player_se = state.get_player(opp_id)
+        _has_spiky = (
+            defender is _def_player_se.active
+            and any(
+                att.source_card_id and any(
+                    c.instance_id == att.source_card_id and c.card_def_id == "sv09-159"
+                    for c in _def_player_se.discard + _def_player_se.hand + list(_def_player_se.deck)
+                )
+                for att in defender.energy_attached
+            )
+        )
+        if _has_spiky:
+            attacker.current_hp -= 20
+            attacker.damage_counters += 2
+            state.emit_event("spiky_energy_triggered", player=opp_id,
+                             attacker=attacker.card_name)
+            check_ko(state, attacker, action.player_id)
+            if state.phase == Phase.GAME_OVER:
+                return total
+
     # Counterattack Quills (me02.5-068 Hop's Pincurchin ex): place 3 counters on attacker
     if (defender.card_def_id == "me02.5-068"
             and total > 0

@@ -1538,15 +1538,19 @@ def _gathering_of_blossoms(state: GameState, action):
 #: Ability names that trigger automatically when a Pokémon is played to bench.
 BENCH_TRIGGER_ABILITIES: frozenset[str] = frozenset({
     "Rapid Vernier",       # sv05-025 Iron Leaves ex
-    "Snow Sink",           # sv08-056 Chien-Pao
+    "Snow Sink",           # sv08-056 Chien-Pao / svp-152 Chien-Pao alt
     "Battle-Hardened",     # sv08.5-054 Bloodmoon Ursaluna
     "Toxic Subjugation",   # svp-149 Pecharunt
     "Last-Ditch Catch",    # me03-062 Meowth ex
+    "Sudden Shearing",     # sv08-004 Durant ex — discard top of opp deck
+    "Obliging Heal",       # sv08-093 / svp-154 Indeedee — heal 30 + clear conditions
+    "Impromptu Carrier",   # sv06-132 Farfetch'd — search deck for Tool, attach
+    "Dig Dig Dig",         # sv05-085 Drilbur — search deck for up to 3 Basic F Energy, discard
 })
 
 #: Ability names that trigger automatically when a Pokémon evolves.
 EVOLVE_TRIGGER_ABILITIES: frozenset[str] = frozenset({
-    "Psychic Draw",          # me01-055 Kadabra / me01-056 Alakazam
+    "Psychic Draw",          # me01-055 Kadabra / me01-056 Alakazam / mep-003 / mep-009
     "Punk Up",               # sv10-136 Marnie's Grimmsnarl ex
     "Multiplying Cocoon",    # me02.5-012 Silcoon
     "Prison Panic",          # Brambleghast — confuse opponent's active on evolve
@@ -1559,6 +1563,10 @@ EVOLVE_TRIGGER_ABILITIES: frozenset[str] = frozenset({
     "Biting Spree",          # sv10-122 TR Crobat ex — 2 counters on each of 2 opp Pokémon on evolve
     "Greedy Order",          # sv10-159 Arven's Greedent — retrieve up to 2 Arven's Sandwich from discard
     "Defiant Horn",          # sv09-136 Hop's Dubwool — gust on evolve
+    "Jewel Seeker",          # sv07-115 / sv08.5-078 / svp-141 Noctowl — search deck for 2 Trainers
+    "Time to Chow Down",     # sv07-067 Dachsbun ex — heal all damage from Evolution Pokémon
+    "Wafting Heal",          # sv08.5-008 Whimsicott — heal all damage from Active Grass Pokémon
+    "Inviting Wink",         # sv09-067 / svp-183 Lillie's Ribombee — put opp's Basics onto Bench
 })
 
 
@@ -3472,6 +3480,319 @@ def _battle_hardened_sfa_b4(state: GameState, action):
     poke.ability_used_this_turn = True
 
 
+# Jewel Seeker (sv07-115, sv08.5-078, svp-141 Noctowl) ──────────────────────
+
+def _jewel_seeker(state: GameState, action):
+    """On-evolve: if any Tera Pokémon is in play, search deck for up to 2 Trainer cards."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    opp = state.get_opponent(player_id)
+
+    all_in_play = _in_play(player) + _in_play(opp)
+    tera_in_play = any(
+        getattr(card_registry.get(p.card_def_id), "is_tera", False)
+        for p in all_in_play
+    )
+    if not tera_in_play:
+        return
+
+    trainers = [c for c in player.deck if c.card_type.lower() == "trainer"]
+    if not trainers:
+        random.shuffle(player.deck)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Jewel Seeker: Choose up to 2 Trainer cards from your deck to put into your hand.",
+        cards=trainers, min_count=0, max_count=2,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+
+    for iid in chosen_ids[:2]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+
+    random.shuffle(player.deck)
+    state.emit_event("jewel_seeker", player=player_id, cards_found=len(chosen_ids))
+
+
+# Time to Chow Down (sv07-067 Dachsbun ex) ───────────────────────────────────
+
+def _time_to_chow_down(state: GameState, action):
+    """On-evolve: heal all damage from each Evolution Pokémon; if healed, discard all Energy from those."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    evo_with_damage = [p for p in _in_play(player)
+                       if p.evolution_stage > 0 and p.damage_counters > 0]
+    if not evo_with_damage:
+        return
+
+    req = ChoiceRequest(
+        "choose_option", player_id,
+        "Time to Chow Down: Heal all damage from your Evolution Pokémon? "
+        "(Energy will be discarded from each healed Pokémon.)",
+        options=["Yes, heal and discard Energy", "No"],
+    )
+    resp = yield req
+    if resp is None or (resp.selected_option or 0) != 0:
+        return
+
+    from app.engine.effects.base import _find_card_anywhere
+    for poke in evo_with_damage:
+        poke.damage_counters = 0
+        poke.current_hp = poke.max_hp
+        for att in poke.energy_attached:
+            energy_card = _find_card_anywhere(player, att.source_card_id)
+            if energy_card:
+                energy_card.zone = Zone.DISCARD
+                if energy_card not in player.discard:
+                    player.discard.append(energy_card)
+        poke.energy_attached.clear()
+        state.emit_event("time_to_chow_down_heal", player=player_id, card=poke.card_name)
+
+
+# Wafting Heal (sv08.5-008 Whimsicott) ───────────────────────────────────────
+
+def _wafting_heal(state: GameState, action):
+    """On-evolve: heal all damage from Active {G} Pokémon; if healed, discard all Energy from it."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    target = player.active
+    if target is None or target.damage_counters == 0:
+        return
+    target_cdef = card_registry.get(target.card_def_id)
+    if not target_cdef or "Grass" not in (target_cdef.types or []):
+        return
+
+    req = ChoiceRequest(
+        "choose_option", player_id,
+        f"Wafting Heal: Heal all damage from {target.card_name}? "
+        "(All Energy attached to it will be discarded.)",
+        options=["Yes, heal and discard Energy", "No"],
+    )
+    resp = yield req
+    if resp is None or (resp.selected_option or 0) != 0:
+        return
+
+    from app.engine.effects.base import _find_card_anywhere
+    target.damage_counters = 0
+    target.current_hp = target.max_hp
+    for att in target.energy_attached:
+        energy_card = _find_card_anywhere(player, att.source_card_id)
+        if energy_card:
+            energy_card.zone = Zone.DISCARD
+            if energy_card not in player.discard:
+                player.discard.append(energy_card)
+    target.energy_attached.clear()
+    state.emit_event("wafting_heal", player=player_id, card=target.card_name)
+
+
+# Inviting Wink (sv09-067, svp-183 Lillie's Ribombee) ────────────────────────
+
+def _inviting_wink(state: GameState, action):
+    """On-evolve: opponent reveals their hand; they may put any number of Basic Pokémon onto their Bench."""
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+
+    opp_basics = [c for c in opp.hand
+                  if c.card_type.lower() == "pokemon" and c.evolution_stage == 0]
+    if not opp_basics:
+        return
+
+    bench_space = 5 - len(opp.bench)
+    if bench_space <= 0:
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", opp_id,
+        "Inviting Wink: Choose any number of your Basic Pokémon to place onto your Bench.",
+        cards=opp_basics, min_count=0, max_count=min(len(opp_basics), bench_space),
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+
+    placed = 0
+    for iid in chosen_ids:
+        if len(opp.bench) >= 5:
+            break
+        card = next((c for c in opp.hand if c.instance_id == iid), None)
+        if card:
+            opp.hand.remove(card)
+            card.zone = Zone.BENCH
+            card.turn_played = state.turn_number
+            opp.bench.append(card)
+            placed += 1
+
+    state.emit_event("inviting_wink", player=player_id, opp=opp_id, placed=placed)
+
+
+# Sudden Shearing (sv08-004 Durant ex) ───────────────────────────────────────
+
+def _sudden_shearing(state: GameState, action):
+    """On-bench: discard the top card of the opponent's deck."""
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+
+    if not opp.deck:
+        return
+
+    top = opp.deck.pop()
+    top.zone = Zone.DISCARD
+    opp.discard.append(top)
+    state.emit_event("sudden_shearing", player=player_id, discarded=top.card_name)
+
+
+# Obliging Heal (sv08-093, svp-154 Indeedee) ─────────────────────────────────
+
+def _obliging_heal(state: GameState, action):
+    """On-bench: heal 30 damage from your Active Pokémon and remove all Special Conditions."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    target = player.active
+    if target is None:
+        return
+
+    heal = min(30, target.damage_counters * 10)
+    if heal > 0:
+        target.current_hp = min(target.max_hp, target.current_hp + heal)
+        target.damage_counters = max(0, target.damage_counters - (heal // 10))
+
+    special_conditions = {sc for sc in target.status_conditions
+                          if sc.name != "PARALYZED"}
+    had_conditions = bool(target.status_conditions - special_conditions
+                          or any(sc.name in ("POISONED", "BURNED", "CONFUSED", "ASLEEP")
+                                 for sc in target.status_conditions))
+    target.status_conditions.clear()
+
+    state.emit_event("obliging_heal", player=player_id, card=target.card_name,
+                     healed=heal)
+
+
+# Impromptu Carrier (sv06-132 Farfetch'd) ────────────────────────────────────
+
+def _impromptu_carrier(state: GameState, action):
+    """On-bench: search deck for a Pokémon Tool card and attach it to this Pokémon."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    poke = _find_in_play(player, action.card_instance_id)
+    if poke is None:
+        return
+
+    if poke.tools_attached:
+        return  # Already has a tool
+
+    tools = [c for c in player.deck
+             if c.card_type.lower() == "trainer" and c.card_subtype.lower() == "tool"]
+    if not tools:
+        random.shuffle(player.deck)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Impromptu Carrier: Choose a Pokémon Tool from your deck to attach to this Pokémon.",
+        cards=tools, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+
+    if not chosen_ids:
+        random.shuffle(player.deck)
+        return
+
+    card = next((c for c in player.deck if c.instance_id in chosen_ids), None)
+    if card:
+        player.deck.remove(card)
+        card.zone = poke.zone
+        card.is_tool_attached = True
+        poke.tools_attached.append(card.card_def_id)
+        state.emit_event("impromptu_carrier", player=player_id,
+                         card=card.card_name, target=poke.card_name)
+
+    random.shuffle(player.deck)
+
+
+# Dig Dig Dig (sv05-085 Drilbur) ─────────────────────────────────────────────
+
+def _dig_dig_dig(state: GameState, action):
+    """On-bench: search deck for up to 3 Basic {F} Energy and discard them."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    f_energy = [c for c in player.deck
+                if c.card_type.lower() == "energy"
+                and c.card_subtype.lower() == "basic"
+                and "Fighting" in (c.energy_provides or [])]
+    if not f_energy:
+        random.shuffle(player.deck)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Dig Dig Dig: Choose up to 3 Basic {F} Energy from your deck to discard.",
+        cards=f_energy, min_count=0, max_count=3,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+
+    discarded = 0
+    for iid in chosen_ids[:3]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.DISCARD
+            player.discard.append(card)
+            discarded += 1
+
+    random.shuffle(player.deck)
+    state.emit_event("dig_dig_dig", player=player_id, discarded=discarded)
+
+
+# Buzzing Boost (sv10-003 Yanmega ex) ────────────────────────────────────────
+
+def _buzzing_boost(state: GameState, action):
+    """On-promote (bench→active): search deck for up to 3 Basic {G} Energy, attach to this Pokémon."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    poke = player.active
+    if poke is None or poke.card_def_id != "sv10-003":
+        return
+
+    g_energy = [c for c in player.deck
+                if c.card_type.lower() == "energy"
+                and c.card_subtype.lower() == "basic"
+                and "Grass" in (c.energy_provides or [])]
+    if not g_energy:
+        random.shuffle(player.deck)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Buzzing Boost: Choose up to 3 Basic {G} Energy from your deck to attach to Yanmega ex.",
+        cards=g_energy, min_count=0, max_count=3,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+
+    for iid in chosen_ids[:3]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            _attach_from_hand_or_discard(player, poke, card)
+            state.emit_event("buzzing_boost_attach", player=player_id,
+                             card=card.card_name, target=poke.card_name)
+
+    random.shuffle(player.deck)
+
+
 def register_all(registry):
     """Register all ability effect handlers with the registry."""
 
@@ -4032,7 +4353,15 @@ def register_all(registry):
     registry.register_passive_ability("sv10-086", "Stone Palace")      # Steven's Carbink
     registry.register_passive_ability("sv10-092", "Lose Cool")         # Annihilape
     registry.register_passive_ability("sv10.5b-052", "Sturdy")         # Crustle (logic in _apply_damage)
-    registry.register_passive_ability("sv10-003", "Buzzing Boost")     # Yanmega ex (on-promote; noop — engine lacks hook)
+    registry.register_ability("sv10-003", "Buzzing Boost", _buzzing_boost)  # Yanmega ex (on-promote trigger)
+
+    # New passive registrations: DRI + WHT cards (logic in transitions/actions/runner/base)
+    registry.register_passive_ability("sv10-074", "Darkest Impulse")        # TR Ampharos (logic in transitions.py _evolve)
+    registry.register_passive_ability("sv10-096", "Sand Stream")             # TR Tyranitar (logic in runner.py _handle_between_turns)
+    registry.register_passive_ability("sv10-113", "Potent Glare")            # TR Arbok (logic in actions.py)
+    registry.register_passive_ability("sv10.5w-045", "Oceanic Curse")        # Jellicent ex (logic in actions.py)
+    registry.register_passive_ability("sv10.5w-013", "Inferno Fandango")     # Emboar (logic in actions.py + transitions.py)
+    registry.register_passive_ability("sv10.5w-067", "Greedy Eater")         # Hydreigon ex (logic in base.py check_ko)
 
     # ── Batch 8: DRI + JTG ability registrations ─────────────────────────────
     # On-evolve triggers
@@ -4088,9 +4417,10 @@ def register_all(registry):
     # FLAGGED passives (stubs; complex trigger not implemented)
     registry.register_passive_ability("sv09-067", "Inviting Wink")      # Lillie's Ribombee (on-evolve: noop)
     registry.register_passive_ability("sv09-085", "Spike-Clad")         # Lycanroc (on-evolve: noop)
-    registry.register_passive_ability("sv09-095", "Daunting Gaze")      # Tyranitar (restrict opp Items: noop)
-    registry.register_passive_ability("sv09-107", "Auto Heal")          # Magearna (on-energy-attach: noop)
+    registry.register_passive_ability("sv09-095", "Daunting Gaze")      # Tyranitar (restrict opp Items: logic in actions.py)
+    registry.register_passive_ability("sv09-107", "Auto Heal")          # Magearna (logic in transitions.py _attach_energy)
     registry.register_passive_ability("sv09-128", "Tuning Echo")        # Noivern (reduce energy cost: noop)
+    registry.register_ability("sv09-067", "Inviting Wink", _inviting_wink)  # Lillie's Ribombee (on-evolve)
 
     # ── Batch 10: sv08.5 (PRE) + sv08 (SSP) abilities ───────────────────────
 
@@ -4164,7 +4494,7 @@ def register_all(registry):
     registry.register_passive_ability("sv08.5-045", "Adrena-Pheromone") # PRE Fezandipiti (logic in has_adrena_pheromone)
 
     # FLAGGED passives (stubs; complex trigger not implemented)
-    registry.register_passive_ability("sv08.5-008", "Wafting Heal")     # Whimsicott (on-evolve: noop)
+    registry.register_ability("sv08.5-008", "Wafting Heal", _wafting_heal)  # Whimsicott (on-evolve)
     registry.register_passive_ability("sv08.5-010", "Festival Lead")    # Dipplin (second-attack: noop)
     registry.register_passive_ability("sv08.5-020", "Festival Lead")    # Goldeen (second-attack: noop)
     registry.register_passive_ability("sv08.5-021", "Festival Lead")    # Seaking (second-attack: noop)
@@ -4174,9 +4504,9 @@ def register_all(registry):
     registry.register_passive_ability("sv08.5-074", "Boosted Evolution") # Eevee (first-turn evolution: noop)
     registry.register_passive_ability("sv08.5-075", "Rainbow DNA")      # Eevee ex (special evolve: noop)
     registry.register_passive_ability("sv08.5-077", "Insomnia")         # Noctowl (can't be Asleep: noop)
-    registry.register_passive_ability("sv08.5-078", "Jewel Seeker")     # Noctowl alt (on-evolve: noop)
+    registry.register_ability("sv08.5-078", "Jewel Seeker", _jewel_seeker)  # Noctowl alt (on-evolve)
     registry.register_passive_ability("sv08.5-080", "Run Away Draw")    # Dudunsparce (return to deck: noop)
-    registry.register_passive_ability("sv08-004", "Sudden Shearing")    # Durant ex (on-bench-play: noop)
+    registry.register_ability("sv08-004", "Sudden Shearing", _sudden_shearing)  # Durant ex (on-bench-play)
     registry.register_passive_ability("sv08.5-056", "Magnetic Absorption") # Sandy Shocks ex (conditional energy attach: noop)
 
     # ── Batch 11: sv08-016..117 abilities ─────────────────────────────────────
@@ -4203,7 +4533,7 @@ def register_all(registry):
     registry.register_passive_ability("sv08-049", "Counterattack")      # Bruxish (on-hit counter: noop)
     registry.register_passive_ability("sv08-057", "Resolute Heart")     # Pikachu ex (OHKO prevention: noop)
     registry.register_passive_ability("sv08-059", "Overvolt Discharge") # Magneton (self-KO + energy: noop)
-    registry.register_passive_ability("sv08-072", "Wonder Kiss")        # Togekiss (on-KO prize: noop)
+    registry.register_passive_ability("sv08-072", "Wonder Kiss")        # Togekiss (on-KO prize: logic in base.py check_ko)
     registry.register_passive_ability("sv08-074", "Glistening Bubbles") # Azumarill (cost reduction: noop)
     def _cond_beckoning_tail(state, player_id):
         p = state.get_player(player_id)
@@ -4218,7 +4548,7 @@ def register_all(registry):
                    for c in p.hand)
     registry.register_ability("sv08-085", "Beckoning Tail", _beckoning_tail_b4,
                                condition=_cond_beckoning_tail)         # Meowstic
-    registry.register_passive_ability("sv08-093", "Obliging Heal")      # Indeedee (on-play hook: noop)
+    registry.register_ability("sv08-093", "Obliging Heal", _obliging_heal)  # Indeedee (on-bench-play)
     registry.register_passive_ability("sv08-107", "Sticky Bind")        # Gastrodon (bench Stage 2 no abilities: noop)
 
     # ── Batch 12: sv08-118..161, sv07-002..059 abilities ─────────────────────
@@ -4239,7 +4569,7 @@ def register_all(registry):
     # ── Batch 13: sv07-060..128 (SCR) and sv06.5-001..034 (SFA) abilities ────
 
     # FLAGGED passives (complex trigger not implemented; stubs registered for coverage)
-    registry.register_passive_ability("sv07-067", "Time to Chow Down")      # Dachsbun ex (on-evolve heal: noop)
+    registry.register_ability("sv07-067", "Time to Chow Down", _time_to_chow_down)  # Dachsbun ex (on-evolve)
     registry.register_passive_ability("sv07-076", "Wide Wall")              # Rhyperior (damage reduction while Active: noop)
     registry.register_passive_ability("sv06.5-002", "Compound Eyes")        # Galvantula (+50 to all own attacks vs Active: implemented in _apply_damage)
     registry.register_ability("sv06.5-019", "Cursed Blast", _cursed_blast_dusclops_sfa)
@@ -4267,7 +4597,7 @@ def register_all(registry):
     registry.register_passive_ability("sv07-101", "Emergency Rotation")     # Klinklang (on-damage retreat: noop)
     registry.register_passive_ability("sv07-107", "Metal Bridge")           # Archaludon (retreat cost: noop)
     registry.register_passive_ability("sv07-110", "Pummeling Payback")      # Orthworm ex (counter-damage: noop)
-    registry.register_passive_ability("sv07-115", "Jewel Seeker")           # Noctowl (on-evolve: noop)
+    registry.register_ability("sv07-115", "Jewel Seeker", _jewel_seeker)  # Noctowl (on-evolve)
     registry.register_passive_ability("sv07-119", "Curly Wall")             # Bouffalant (-20 bench damage: implemented in _apply_bench_damage)
     registry.register_passive_ability("sv07-125", "Soft Wool")              # Dubwool (damage reduction: noop)
 
@@ -4307,7 +4637,7 @@ def register_all(registry):
     registry.register_passive_ability("sv06-089", "Festival Lead")          # Swirlix (stadium double attack: noop)
     registry.register_passive_ability("sv06-123", "Incandescent Body")      # Heatran (damage redirect: noop)
     registry.register_ability("sv06-131", "Attract Customers", _attract_customers)    # Tatsugiri
-    registry.register_passive_ability("sv06-132", "Impromptu Carrier")      # Farfetch'd (on-play item attach: flag)
+    registry.register_ability("sv06-132", "Impromptu Carrier", _impromptu_carrier)  # Farfetch'd (on-bench-play)
     def _cond_happy_switch(state, player_id):
         p = state.get_player(player_id)
         if not any(pk.card_def_id == "sv06-134" and not pk.ability_used_this_turn
@@ -4338,7 +4668,7 @@ def register_all(registry):
     registry.register_passive_ability("sv05-078", "Midnight Fluttering")    # Flutter Mane (suppress opp abilities: noop)
     registry.register_passive_ability("sv05-081", "Cobalt Command")         # Iron Crown ex (future +20 dmg: noop)
     registry.register_passive_ability("sv05-084", "Memory Dive")            # Relicanth (use prev-evo attacks: noop)
-    registry.register_passive_ability("sv05-085", "Dig Dig Dig")            # Drilbur (on-play energy-to-discard: noop)
+    registry.register_ability("sv05-085", "Dig Dig Dig", _dig_dig_dig)  # Drilbur (on-bench-play)
     registry.register_passive_ability("sv05-104", "Gnawing Curse")          # Gengar ex (on-attach counters: noop)
     registry.register_passive_ability("sv05-108", "Armor Tail")             # Farigiraf ex (block basic ex damage: noop)
     def _cond_metal_maker(state, player_id):
@@ -4352,12 +4682,12 @@ def register_all(registry):
     registry.register_passive_ability("sv05-133", "Emergency Evolution")    # Pidove (low-HP evo search: noop)
     registry.register_passive_ability("sv05-139", "Automated Combat")       # Iron Jugulis (on-damage counter: noop)
     registry.register_passive_ability("mep-001", "Wild Growth")             # Meganium (energy doubling: noop)
-    registry.register_passive_ability("mep-003", "Psychic Draw")            # Alakazam (on-evolve draw: noop)
+    registry.register_ability("mep-003", "Psychic Draw", _psychic_draw_alakazam)  # Alakazam (on-evolve draw)
     registry.register_ability("mep-004", "Lunar Cycle", _lunar_cycle,
                                condition=_cond_lunar_cycle)                  # Lunatone (same as me01-074)
     registry.register_passive_ability("mep-007", "Damp")                    # Psyduck (suppress KO-trigger abilities: noop)
     registry.register_passive_ability("mep-008", "Damp")                    # Golduck (suppress KO-trigger abilities: noop)
-    registry.register_passive_ability("mep-009", "Psychic Draw")            # Alakazam (on-evolve draw: noop)
+    registry.register_ability("mep-009", "Psychic Draw", _psychic_draw_alakazam)  # Alakazam alt (on-evolve draw)
 
     registry.register_passive_ability("mep-013", "Solar Transfer")          # Mega Venusaur ex (heal on energy attach: noop)
     registry.register_passive_ability("mep-016", "Sandy Flapping")          # Flygon (protect from attacks if low hp: noop)
@@ -4367,7 +4697,7 @@ def register_all(registry):
     registry.register_passive_ability("svp-089", "Torrential Heart")        # Feraligatr (on-attach energy from discard: noop)
     registry.register_passive_ability("svp-117", "Freezing Shroud")         # Froslass (on-KO bench freeze: noop)
     registry.register_passive_ability("svp-129", "Toxic Subjugation")       # Pecharunt (svp-149 same ability, alt print)
-    registry.register_passive_ability("svp-152", "Snow Sink")               # Chien-Pao (on-retreat attach snow energy: noop)
+    registry.register_ability("svp-152", "Snow Sink", _snow_sink)            # Chien-Pao alt (on-bench-play)
     registry.register_passive_ability("svp-177", "Seasoned Skill")          # Bloodmoon Ursaluna ex (no damage limit vs ex: noop)
     def _cond_flashing_draw_svp182(state, player_id):
         p = state.get_player(player_id)
@@ -4395,10 +4725,10 @@ def register_all(registry):
     registry.register_passive_ability("svp-133", "Glittering Star Pattern") # Ledian (sv07-003 alt)
     registry.register_passive_ability("svp-134", "Food Prep")               # Crabominable (sv07-042 alt)
     registry.register_passive_ability("svp-136", "Curly Wall")              # Bouffalant (sv07-119 alt)
-    registry.register_passive_ability("svp-141", "Jewel Seeker")            # Noctowl (sv07-115 alt)
+    registry.register_ability("svp-141", "Jewel Seeker", _jewel_seeker)      # Noctowl (sv07-115 alt)
     registry.register_passive_ability("svp-146", "Cobalt Command")          # Iron Crown ex (sv05-081 alt)
     registry.register_passive_ability("svp-153", "Overvolt Discharge")      # Magneton (sv08-059 alt)
-    registry.register_passive_ability("svp-154", "Obliging Heal")           # Indeedee (sv08-093 alt)
+    registry.register_ability("svp-154", "Obliging Heal", _obliging_heal)    # Indeedee (sv08-093 alt)
     registry.register_passive_ability("svp-159", "Overvolt Discharge")      # Magnezone (sv08-059 alt)
-    registry.register_passive_ability("svp-183", "Inviting Wink")           # Lillie's Ribombee (sv09-067 alt)
+    registry.register_ability("svp-183", "Inviting Wink", _inviting_wink)    # Lillie's Ribombee (sv09-067 alt)
     registry.register_passive_ability("svp-216", "Power Saver")             # TR Mewtwo ex (svp-205 alt)

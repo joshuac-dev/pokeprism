@@ -4752,6 +4752,30 @@ def _lucian_b5(state: GameState, action):
                      target=poke.card_name, source="lucian")
 
 
+def _hand_trimmer(state: GameState, action) -> None:
+    """Hand Trimmer (sv05-150): each player discards cards until they have 5. Opponent discards first."""
+    player_id = action.player_id
+    opp_id = "p2" if player_id == "p1" else "p1"
+    opp = state.get_player(opp_id)
+    player = state.get_player(player_id)
+
+    # Opponent discards first down to 5
+    while len(opp.hand) > 5:
+        discard_card = opp.hand[-1]
+        opp.hand.remove(discard_card)
+        discard_card.zone = Zone.DISCARD
+        opp.discard.append(discard_card)
+    state.emit_event("hand_trimmer_opp", player=opp_id, remaining=len(opp.hand))
+
+    # Then active player discards down to 5
+    while len(player.hand) > 5:
+        discard_card = player.hand[-1]
+        player.hand.remove(discard_card)
+        discard_card.zone = Zone.DISCARD
+        player.discard.append(discard_card)
+    state.emit_event("hand_trimmer_self", player=player_id, remaining=len(player.hand))
+
+
 def register_all(registry: EffectRegistry) -> None:
     """Register all trainer effect handlers."""
 
@@ -5031,7 +5055,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv06-157", _lucian_b5)  # Lucian (draw 3 + attach Basic Energy)
     registry.register_trainer("sv06-158", _noop)   # Lucky Helmet (damage trigger — flagged)
     registry.register_trainer("sv05-148", _noop)   # Full Metal Lab (Pokémon Tool protection — flagged)
-    registry.register_trainer("sv05-150", _noop)   # Hand Trimmer (hand-based damage boost — flagged)
+    registry.register_trainer("sv05-150", _hand_trimmer)   # Hand Trimmer (discard to 5 cards)
     registry.register_trainer("sv05-151", _noop)   # Heavy Baton (retreat-triggered tool — flagged)
     registry.register_trainer("sv05-156", _noop)   # Perilous Jungle (damage trigger stadium — flagged)
     registry.register_trainer("mep-028", _noop)    # Celebratory Fanfare (stadium, prize-triggered — flagged)

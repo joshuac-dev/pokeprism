@@ -6,14 +6,66 @@
 ## Current Phase
 **Flagged Card Implementation — In Progress** 🔄
 
-All 20 card expansion batches complete (1,927 cards in DB). Now implementing flagged cards (complex mechanics skipped during expansion). Batches 1–6 complete — 109 flagged entries remain.
+All 20 card expansion batches complete (1,927 cards in DB). Now implementing flagged cards (complex mechanics skipped during expansion). Batches 1–7 complete — 84 flagged entries remain.
 
 | Metric | Value |
 |--------|-------|
 | Cards in DB | 1927 |
 | Coverage | **98.5%** (29 missing) |
-| Flagged batches complete | 6 of ~7 (109 entries remain) |
-| Flagged implemented | 149 (Batches 1–5: 126 + Batch 6: 23) |
+| Flagged batches complete | 7 of ~8 (84 entries remain) |
+| Flagged implemented | 174 (Batches 1–6: 149 + Batch 7: 25) |
+
+## Last Session — Flagged Card Implementation: Batch 7
+
+### What Was Done
+
+**Batch 7** (25 flagged entries implemented):
+
+**abilities.py — new handler functions + registrations:**
+- `_jewel_seeker` (sv08.5-078, sv07-115, svp-141 Noctowl): on-evolve deck search for Terapagos ex
+- `_time_to_chow_down` (sv07-067 Dachsbun ex): on-evolve heal 100 from each of your Pokémon
+- `_wafting_heal` (sv08.5-008 Whimsicott): on-evolve heal 30 from a Pokémon of your choice
+- `_inviting_wink` (sv09-067, svp-183 Lillie's Ribombee): on-evolve: put one of opp's Basic Pokémon from hand onto opp's bench
+- `_sudden_shearing` (sv08-004 Durant ex): on-bench-play: discard top of opponent's deck
+- `_obliging_heal` (sv08-093, svp-154 Indeedee): on-bench-play: heal 60 from one of your Pokémon
+- `_impromptu_carrier` (sv06-132 Farfetch'd): on-bench-play: attach an Item card from discard as a Tool
+- `_dig_dig_dig` (sv05-085 Drilbur): on-bench-play: search deck for up to 3 Basic F Energy and discard
+- `_buzzing_boost` (sv10-003 Yanmega ex): on-promote to Active: search deck for up to 3 Basic G Energy, attach to own Pokémon
+- Converted passive stubs → active for: mep-003/mep-009 Psychic Draw (Alakazam), svp-152 Snow Sink, svp-141/svp-154/svp-183 alt arts
+
+**transitions.py — hooks added:**
+- `_evolve`: Darkest Impulse check (sv10-074 TR Ampharos puts 4 damage on evolved Pokémon)
+- `_attach_energy`: Auto Heal check (sv09-107 Magearna heals 90 from target when energy attached); Inferno Fandango flag bypass (Basic Fire attachments don't consume energy-per-turn when sv10.5w-013 Emboar in play)
+- `_retreat` → now async; Buzzing Boost fires on new active promotion
+- `_switch_active` → now async; Buzzing Boost fires on new active promotion
+
+**actions.py — validators updated:**
+- `_get_play_basic_actions`: Potent Glare (sv10-113 TR Arbok) blocks playing Pokémon with abilities from hand
+- `_get_evolve_actions`: Potent Glare blocks evolving to Pokémon with abilities
+- `_get_play_actions`: Oceanic Curse (sv10.5w-045 Jellicent ex) blocks Item and Tool card plays
+- `_get_energy_actions`: Inferno Fandango (sv10.5w-013 Emboar) allows unlimited Basic Fire attachments
+
+**base.py — check_ko additions:**
+- Wonder Kiss expanded to sv08-072 Togekiss (from me02.5-082 only); now applies on ALL KOs with coin flip
+- Greedy Eater (sv10.5w-067 Hydreigon ex): +1 prize when KOing Basic Pokémon
+- Infinite Shadow (me03-050 Gengar): when KO'd by attacker, Gengar goes to owner's hand instead of discard
+- `_discard_attached_only` helper added
+
+**runner.py — between-turns and end-turn hooks:**
+- Sand Stream (sv10-096 TR Tyranitar): during Pokémon Checkup, place 1 damage counter on all opponent Pokémon
+- Community Center (sv06-146): at end of turn, heal 10 from each of your Pokémon if a Supporter was played
+
+**attacks.py — `_apply_damage` addition:**
+- Spiky Energy (sv09-159): if defending Active Pokémon has Spiky Energy attached and takes damage, put 2 counters on attacker
+
+**trainers.py — new handler:**
+- `_hand_trimmer` (sv05-150): each player discards cards until they have 5 in hand; opponent discards first
+
+### Status After This Session
+- **84 flagged entries remain** in `POKEMON_MASTER_LIST.md`
+- All 215 tests pass
+
+---
 
 ## Last Session — Flagged Card Implementation: Batch 6
 

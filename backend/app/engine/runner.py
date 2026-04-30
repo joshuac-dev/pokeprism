@@ -412,6 +412,25 @@ class MatchRunner:
         if state.phase == Phase.GAME_OVER:
             return state
 
+        # Sand Stream (sv10-096 TR Tyranitar): during Pokémon Checkup, place 1 damage counter
+        # on each of the opponent's Pokémon. Only fires once even if multiple TR Tyranitar.
+        tr_player_id = state.active_player
+        tr_player = state.get_player(tr_player_id)
+        from app.engine.effects.abilities import _in_play as _abl_in_play_ss
+        if any(p.card_def_id == "sv10-096" for p in _abl_in_play_ss(tr_player)):
+            opp_ss_id = state.opponent_id(tr_player_id)
+            opp_ss = state.get_player(opp_ss_id)
+            all_opp = ([opp_ss.active] if opp_ss.active else []) + list(opp_ss.bench)
+            for poke in all_opp:
+                poke.current_hp -= 10
+                poke.damage_counters += 1
+            state.emit_event("sand_stream_triggered", player=tr_player_id)
+            from app.engine.effects.base import check_ko
+            for poke in list(all_opp):
+                check_ko(state, poke, opp_ss_id)
+                if state.phase == Phase.GAME_OVER:
+                    return state
+
         return state
 
     def _end_turn(self, state: GameState) -> GameState:
@@ -492,6 +511,19 @@ class MatchRunner:
                 state.emit_event("levincia_recovery",
                                  player=state.active_player,
                                  card=_lev_card.card_name)
+
+        # Community Center (sv06-146): if supporter was played this turn, heal 10 from each of your Pokémon
+        if (state.active_stadium
+                and state.active_stadium.card_def_id == "sv06-146"):
+            _cc_player = state.get_player(state.active_player)
+            if _cc_player.supporter_played_this_turn:
+                _cc_all = ([_cc_player.active] if _cc_player.active else []) + list(_cc_player.bench)
+                for _cc_poke in _cc_all:
+                    if _cc_poke.damage_counters > 0:
+                        _cc_poke.damage_counters = max(0, _cc_poke.damage_counters - 1)
+                        _cc_poke.current_hp = min(_cc_poke.max_hp, _cc_poke.current_hp + 10)
+                state.emit_event("community_center_heal",
+                                 player=state.active_player)
 
         state.active_player = state.opponent_id(state.active_player)
         state.turn_number += 1
