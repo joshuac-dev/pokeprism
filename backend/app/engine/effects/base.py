@@ -272,15 +272,17 @@ def check_ko(
                                  ko_player=target_player_id,
                                  card_name=target.card_name)
 
-    # Briar (sv07-132): take 1 extra prize when KO'ing opponent's Active Pokémon
+    # Briar (sv07-132): take 1 extra prize when KO'ing opponent's Active Pokémon with a Tera Pokémon
     if (state.briar_active
-            and attacker_id == state.active_player
-            and target_player.active is not None
-            and target_player.active.instance_id == target.instance_id):
-        prizes_to_take += 1
-        state.emit_event("briar_triggered",
-                         ko_player=target_player_id,
-                         card_name=target.card_name)
+            and _is_attacking_active
+            and attacker_id == state.active_player):
+        attacker_cdef_briar = (card_registry.get(attacker_player.active.card_def_id)
+                               if attacker_player.active else None)
+        if attacker_cdef_briar and getattr(attacker_cdef_briar, "is_tera", False):
+            prizes_to_take += 1
+            state.emit_event("briar_triggered",
+                             ko_player=target_player_id,
+                             card_name=target.card_name)
 
     # Wonder Kiss (me02.5-082 Togekiss): when opp's active is KO'd, flip coin, heads = +1 prize
     if (_is_attacking_active

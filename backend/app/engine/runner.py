@@ -416,21 +416,31 @@ class MatchRunner:
 
     def _end_turn(self, state: GameState) -> GameState:
         """Reset per-turn flags and advance to next player."""
+        current_pid = state.active_player
         for pid in ("p1", "p2"):
             player = state.get_player(pid)
             player.supporter_played_this_turn = False
             player.energy_attached_this_turn = False
             player.retreat_used_this_turn = False
             player.tr_supporter_played_this_turn = False
-            player.items_locked_this_turn = False
             player.tarragon_played_this_turn = False
+            # items_locked_this_turn is set by the opponent on this player for the upcoming
+            # turn. Only clear it at the end of THIS player's own turn so the effect persists
+            # through the opponent's (next) turn as intended.
+            if pid == current_pid:
+                player.items_locked_this_turn = False
             if player.active:
                 player.active.retreated_this_turn = False
                 player.active.ability_used_this_turn = False
-                # Reset multi-turn restriction flags
+                # Reset multi-turn restriction flags.
+                # attack_damage_reduction and cant_retreat_next_turn are set on the
+                # opponent's Pokémon by the current player's attacks; only clear them
+                # at the end of THIS player's own turn so they apply during the
+                # opponent's upcoming turn.
+                if pid == current_pid:
+                    player.active.cant_retreat_next_turn = False
+                    player.active.attack_damage_reduction = 0
                 player.active.cant_attack_next_turn = False
-                player.active.cant_retreat_next_turn = False
-                player.active.attack_damage_reduction = 0
                 player.active.incoming_damage_reduction = 0
                 player.active.prevent_damage_one_turn = False
                 player.active.resolute_heart_eligible = False
@@ -448,7 +458,8 @@ class MatchRunner:
                 self._discard_expiring_energy(state, player.active)
             for b in player.bench:
                 b.ability_used_this_turn = False
-                b.attack_damage_reduction = 0
+                if pid == current_pid:
+                    b.attack_damage_reduction = 0
                 b.incoming_damage_reduction = 0
                 b.prevent_damage_one_turn = False
                 b.resolute_heart_eligible = False

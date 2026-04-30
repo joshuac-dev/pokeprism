@@ -1428,7 +1428,7 @@ def _flamebody_cannon(state, action):
 
 
 def _oil_salvo(state, action):
-    """sv10-023 Arboliva ex atk0 — Oil Salvo: choose 1 of opp's Pokémon 6 times, 30 counters each."""
+    """sv10-023 Arboliva ex atk0 — Oil Salvo: choose 1 of opp's Pokémon 6 times, 20 damage each."""
     opp = state.get_opponent(action.player_id)
     opp_id = state.opponent_id(action.player_id)
 
@@ -1443,7 +1443,7 @@ def _oil_salvo(state, action):
         req = ChoiceRequest(
             "choose_target",
             action.player_id,
-            f"Oil Salvo: pick {pick_num + 1}/6 — place 3 damage counters on target",
+            f"Oil Salvo: pick {pick_num + 1}/6 — place 2 damage counters on target",
             targets=all_opp,
         )
         resp = yield req
@@ -1455,13 +1455,13 @@ def _oil_salvo(state, action):
             target = all_opp[0]
 
         if target is opp.active:
-            target.current_hp -= 30
-            target.damage_counters += 3
+            target.current_hp -= 20
+            target.damage_counters += 2
             state.emit_event("damage_counters_placed", player=opp_id,
-                             card=target.card_name, counters=3)
+                             card=target.card_name, counters=2)
             check_ko(state, target, opp_id)
         else:
-            _place_bench_counters(state, opp_id, target, 3)
+            _place_bench_counters(state, opp_id, target, 2)
 
         if state.phase == Phase.GAME_OVER:
             return
