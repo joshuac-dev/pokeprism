@@ -6,7 +6,7 @@
 ## Current Phase
 **Card Pool Expansion — COMPLETE** ✅
 
-All 13 phases complete. Card pool expansion from 206 → 1,926 cards is fully complete. All processable Standard-format cards from `docs/POKEMON_MASTER_LIST.md` have been inserted. Only the `FLAGGED_CARDS` section remains (cards requiring engine features not yet implemented).
+All 13 phases complete. Card pool expansion from 206 → 1,927 cards is fully complete. All processable Standard-format cards from `docs/POKEMON_MASTER_LIST.md` have been inserted. Only the `FLAGGED_CARDS` section remains (cards requiring engine features not yet implemented).
 
 | Metric | Value |
 |--------|-------|
@@ -14,11 +14,9 @@ All 13 phases complete. Card pool expansion from 206 → 1,926 cards is fully co
 | Coverage | **98.5%** (29 missing — all legitimately flagged Pokémon attacks) |
 | Batches complete | 20 (Batches 1–20, FINAL) |
 | Processable cards remaining | **0** — expansion complete |
-| Flagged cards (cumulative) | ~256 entries — see `FLAGGED_CARDS` section of `POKEMON_MASTER_LIST.md` |
+| Flagged cards (cumulative) | **254 entries** — see `FLAGGED_CARDS` section of `POKEMON_MASTER_LIST.md` |
 
-## Last Session — 2026-05-28 (Card Pool Expansion: Batch 20 — FINAL)
-
-## Last Session — 2026-05-28 (Card Pool Expansion: Batch 20 — FINAL)
+## Last Session — 2026-04-30 (Card Pool Expansion: Batch 20 — FINAL)
 
 ### What Was Done
 
@@ -31,22 +29,46 @@ All 13 phases complete. Card pool expansion from 206 → 1,926 cards is fully co
 - **5 handler reuses**: Carmine alt, Explorer's Guidance alt, Galactic Card noop, Penny noop, Rescue Board noop
 - **2 energy alt-art reuses** in energies.py: Team Rocket's Energy (me02.5-217), Prism Energy (sv10.5b-086)
 - **21 noop registrations** (stadiums, flat energy)
-- **13 flagged cards** registered as noop (Boomerang Energy + Spiky Energy as energy noops in energies.py; 11 trainers in trainers.py) with entries added to FLAGGED_CARDS
-- Boomerang Energy (sv06-166) and Spiky Energy (sv09-159) correctly registered via `register_energy` (not `register_trainer`) to satisfy coverage checker for special energies
+- **13 flagged cards** registered as noop with entries added to FLAGGED_CARDS:
+  - Community Center TWM 146 (sv06-146) — Caretaker synergy stadium
+  - Handheld Fan TWM 150 (sv06-150) — discard-for-heal effect
+  - Lucian TWM 157 (sv06-157) — combined draw+energy-attach
+  - Lucky Helmet TWM 158 (sv06-158) — on-damage draw trigger via Tool
+  - Full Metal Lab TEF 148 (sv05-148) — Tool protection from removal
+  - Hand Trimmer TEF 150 (sv05-150) — hand-count conditional damage bonus
+  - Heavy Baton TEF 151 (sv05-151) — on-retreat energy attach via Tool
+  - Perilous Jungle TEF 156 (sv05-156) — end-of-damage-event counter placement
+  - Celebratory Fanfare MEP 28 (mep-028) — last-prize trigger hook
+  - Paradise Resort PR-SV 150 (svp-150) — per-turn optional heal stadium
+  - Paradise Resort PR-SV 224 (svp-224) — alt art of above
+  - Spiky Energy JTG 159 (sv09-159) — on-attach damage trigger (energy)
+  - Boomerang Energy TWM 166 (sv06-166) — on-discard energy recycle (energy)
+- Boomerang Energy and Spiky Energy correctly registered via `register_energy` (not `register_trainer`) to satisfy coverage checker
 - `docs/POKEMON_MASTER_LIST.md` now contains **only the FLAGGED_CARDS section** — no processable cards remain
 
 ### Issues Encountered
-- Initial registration of Boomerang Energy + Spiky Energy as trainers caused coverage to drop to 31 missing; fixed by adding `_noop_energy` handler and registering via `register_energy` in energies.py
+- Initial registration of Boomerang Energy + Spiky Energy as `register_trainer` caused coverage to drop to 31 missing; fixed by adding `_noop_energy` and registering via `register_energy` in energies.py
 
 ### Final Baseline This Session
 - **215 backend tests pass**
 - **1927 cards in DB**
-- **Coverage: 98.5%** (29 missing — all legitimately flagged Pokémon attack handlers, same set as pre-batch)
-- **~256 flagged entries** (full list in `FLAGGED_CARDS` section of `docs/POKEMON_MASTER_LIST.md`)
+- **Coverage: 98.5%** (29 missing — all legitimately flagged Pokémon attack handlers, unchanged from pre-batch)
+- **254 flagged entries** (full list in `FLAGGED_CARDS` section of `docs/POKEMON_MASTER_LIST.md`)
+
+### Notes for Next Session
+**Card pool expansion is complete.** No further batch work needed.
+- The 29 missing cards are all legitimately complex Pokémon attacks (flagged); engine enhancements would be needed to implement them
+- The 254 FLAGGED_CARDS entries are the remaining work if further fidelity is desired
+- Suggested next work: simulation quality, coach/analyst improvements, or frontend features
+- Run `make reset-data` before any fresh simulation testing
 
 ---
 
-## Last Session — 2026-05-28 (Card Pool Expansion: Batch 19), sv10.5w-085 + sv10-161..181 + sv09-142..158 + sv08.5-093..127 + sv08-163..190 + sv07-129..141 + sv06.5-054..064): DB grew from 1806 → 1875 cards.
+## Last Session — 2026-04-29 (Card Pool Expansion: Batch 19)
+
+### What Was Done
+
+**Batch 19** (69 new cards, sv10.5w-085 + sv10-161..181 + sv09-142..158 + sv08.5-093..127 + sv08-163..190 + sv07-129..141 + sv06.5-054..064): DB grew from 1806 → 1875 cards.
 - All 100 Batch 19 cards are trainers (Items, Supporters, Stadiums, Tools, TMs, Fossils)
 - 31 cards already in DB from previous batches (alt prints already inserted)
 - **29 new trainer handlers** written: `_tool_scrapper_b19`, `_arvens_sandwich_b19`, `_cynthias_power_weight_b19`, `_emcees_hype_b19`, `_ethanss_adventure_b19`, `_granite_cave_b19`, `_tr_great_ball_b19`, `_tr_venture_bomb_b19`, `_tm_machine_b19`, `_billy_onare_b19`, `_black_belts_training_b19`, `_iris_fighting_spirit_b19`, `_hops_bag_b19`, `_hops_choice_band_b19`, `_ns_castle_b19`, `_ns_pp_up_b19`, `_lillies_pearl_b19`, `_redeemable_ticket_flag_b19`, `_bug_catching_set_b19`, `_crispins_energy_b19`, `_cassiopeia_b19`, `_chill_teaser_toy_b19`, `_lacey_b19`, `_danika_b19`, `_jasmines_secret_art_sfa_b19`, `_academy_at_night_b19`, `_binding_mochi_sfa_b19`, `_colresss_tenacity_b19`, `_xerosics_machinations_b19`
@@ -70,7 +92,7 @@ Continue with **Batch 20**, starting at **Accompanying Flute TWM 142** (`sv06-14
 
 ---
 
-## Last Session — 2026-05-27 (Card Pool Expansion: Batch 18)
+## Last Session — 2026-04-28 (Card Pool Expansion: Batch 18)
 
 ### What Was Done
 
