@@ -741,6 +741,8 @@ def _xerosics_machinations(state: GameState, action):
     Your opponent discards cards from their hand until they have 3 cards left.
     """
     player_id = action.player_id
+    player = state.get_player(player_id)
+    player.xerosics_machinations_played_this_turn = True
     opp_id = state.opponent_id(player_id)
     opp = state.get_player(opp_id)
 
@@ -939,6 +941,7 @@ def _janines_secret_art(state: GameState, action):
     """
     player_id = action.player_id
     player = state.get_player(player_id)
+    player.janines_sa_used_this_turn = True
 
     dark_in_deck = [c for c in player.deck
                     if c.card_type.lower() == "pokemon"
@@ -4188,6 +4191,7 @@ def _janines_secret_art_sfa_b19(state: GameState, action):
     """
     player_id = action.player_id
     player = state.get_player(player_id)
+    player.janines_sa_used_this_turn = True
     darkness_pokemon = [p for p in _find_in_play(player)
                         if _pokemon_has_type(p, "Darkness")]
     if not darkness_pokemon:
@@ -4686,6 +4690,68 @@ def _picnicker_b20(state: GameState, action):
                      result="heads" if heads else "tails", draw=draw_count)
     draw_cards(state, player_id, draw_count)
 
+
+def _lucian_b5(state: GameState, action):
+    """Lucian (sv06-157)
+
+    Draw 3 cards. Attach a Basic Energy card from your hand to any of your
+    Pokémon in play.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    # Draw 3 cards
+    draw_cards(state, player_id, 3)
+
+    # Find Basic Energy in hand
+    basic_energy = [c for c in player.hand
+                    if _is_basic_energy_card(c)]
+    if not basic_energy:
+        return
+
+    # Choose a Basic Energy to attach
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Lucian: choose 1 Basic Energy from your hand to attach to a Pokémon",
+        cards=basic_energy, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [basic_energy[0].instance_id])
+    if not chosen_ids:
+        return
+    energy_card = next((c for c in player.hand if c.instance_id == chosen_ids[0]), None)
+    if energy_card is None:
+        return
+
+    # Choose target Pokémon
+    in_play = ([player.active] if player.active else []) + list(player.bench)
+    if not in_play:
+        return
+    if len(in_play) == 1:
+        poke = in_play[0]
+    else:
+        req2 = ChoiceRequest(
+            "choose_target", player_id,
+            "Lucian: choose a Pokémon to attach the Energy to",
+            targets=in_play,
+        )
+        resp2 = yield req2
+        poke = None
+        if resp2 and resp2.target_instance_id:
+            poke = _find_pokemon_in_play(player, resp2.target_instance_id)
+        if poke is None:
+            poke = in_play[0]
+
+    player.hand.remove(energy_card)
+    att = _make_energy_attachment(energy_card)
+    energy_card.zone = poke.zone
+    poke.energy_attached.append(att)
+    state.emit_event("energy_attached", player=player_id,
+                     energy=energy_card.card_name,
+                     target=poke.card_name, source="lucian")
+
+
 def register_all(registry: EffectRegistry) -> None:
     """Register all trainer effect handlers."""
 
@@ -4962,7 +5028,7 @@ def register_all(registry: EffectRegistry) -> None:
     # Flagged — complex effects not yet modelled in engine
     registry.register_trainer("sv06-146", _noop)   # Community Center (Caretaker synergy — flagged)
     registry.register_trainer("sv06-150", _handheld_fan)   # Handheld Fan (discard card → heal 90)
-    registry.register_trainer("sv06-157", _noop)   # Lucian (draw + energy return — flagged)
+    registry.register_trainer("sv06-157", _lucian_b5)  # Lucian (draw 3 + attach Basic Energy)
     registry.register_trainer("sv06-158", _noop)   # Lucky Helmet (damage trigger — flagged)
     registry.register_trainer("sv05-148", _noop)   # Full Metal Lab (Pokémon Tool protection — flagged)
     registry.register_trainer("sv05-150", _noop)   # Hand Trimmer (hand-based damage boost — flagged)

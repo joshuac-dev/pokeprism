@@ -424,6 +424,10 @@ class MatchRunner:
             player.tr_supporter_played_this_turn = False
             player.items_locked_this_turn = False
             player.tarragon_played_this_turn = False
+            player.janines_sa_used_this_turn = False
+            player.future_supporter_played_this_turn = False
+            player.xerosics_machinations_played_this_turn = False
+            player.daydream_active = False
             if player.active:
                 player.active.retreated_this_turn = False
                 player.active.ability_used_this_turn = False
@@ -471,10 +475,32 @@ class MatchRunner:
         state.force_end_turn = False
         # Clear Retaliate window for the player whose turn just ended
         state.get_player(state.active_player).ko_taken_last_turn = False
+        state.get_player(state.active_player).ethans_pokemon_ko_last_turn = False
+
+        # Levincia (sv09-150): once during each player's turn, retrieve up to 2 Basic Lightning from discard to hand
+        if (state.active_stadium
+                and state.active_stadium.card_def_id == "sv09-150"):
+            _lev_player = state.get_player(state.active_player)
+            _lev_disc = [c for c in _lev_player.discard
+                         if c.card_type.lower() == "energy"
+                         and c.card_subtype.lower() == "basic"
+                         and any("Lightning" in (ep or "") for ep in (c.energy_provides or []))]
+            for _lev_card in _lev_disc[:2]:
+                _lev_player.discard.remove(_lev_card)
+                _lev_card.zone = Zone.HAND
+                _lev_player.hand.append(_lev_card)
+                state.emit_event("levincia_recovery",
+                                 player=state.active_player,
+                                 card=_lev_card.card_name)
+
         state.active_player = state.opponent_id(state.active_player)
         state.turn_number += 1
         state.phase = Phase.DRAW
         state.emit_event("turn_start", player=state.active_player, turn=state.turn_number)
+
+        # Clear C.O.D.E.: Protect immunity for the newly-active player
+        # (immunity was set for "during your opponent's next turn")
+        state.get_player(state.active_player).future_effect_immunity = False
 
         # Clear Acerola's Mischief protection for the newly-active player's Pokémon
         # (Protection was "during your opponent's next turn" = the turn that just ended)

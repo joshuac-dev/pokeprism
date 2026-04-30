@@ -174,6 +174,10 @@ async def _play_supporter(state: GameState, action: Action, get_player=None) -> 
     card.zone = Zone.DISCARD
     player.discard.append(card)
     player.supporter_played_this_turn = True
+    # Track Future Supporter for Iron Valiant Majestic Sword
+    cdef_sup = card_registry.get(card.card_def_id)
+    if cdef_sup and "Future" in (getattr(cdef_sup, "subtypes", None) or []):
+        player.future_supporter_played_this_turn = True
 
     state.emit_event(
         "play_supporter",
@@ -274,6 +278,13 @@ async def _attach_energy(state: GameState, action: Action, get_player=None) -> G
         )
     )
     player.energy_attached_this_turn = True
+
+    # Daydream (sv06.5-017 Hypno): if daydream_active and attaching to Active Pokémon, end turn
+    if player.daydream_active and target is player.active:
+        player.daydream_active = False
+        state.force_end_turn = True
+        state.emit_event("daydream_triggered", player=action.player_id,
+                         card=target.card_name)
 
     state.emit_event(
         "energy_attached",

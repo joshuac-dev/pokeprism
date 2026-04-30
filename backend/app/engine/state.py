@@ -135,6 +135,7 @@ class CardInstance:
     attack_requires_flip: bool = False                    # Sand Attack: must flip coin to attack next turn (tails = fail)
     torment_blocked_attack_name: Optional[str] = None     # Pangoro Torment: this attack name is blocked next turn
     retaliation_on_damage: bool = False                   # Zamazenta Strong Bash: reflect incoming damage back to attacker
+    custom_counters: dict = field(default_factory=dict)   # Per-card counter tracking (e.g., feather counters)
 
     # Energy-card-specific ─────────────────────────────────────────────────────
     # Populated from CardDefinition.energy_provides at deck-build time.
@@ -165,7 +166,13 @@ class PlayerState:
     items_locked_this_turn: bool = False  # Set by Budew's "Stun Spore" attack
     tr_supporter_played_this_turn: bool = False  # For Team Rocket's Factory stadium
     ko_taken_last_turn: bool = False      # One of my Pokémon was KO'd during opponent's last turn (Retaliate)
+    ethans_pokemon_ko_last_turn: bool = False  # One of my Ethan's Pokémon was KO'd during opponent's last turn
     tarragon_played_this_turn: bool = False  # Hippowdon Twister Spewing: Tarragon was played this turn
+    janines_sa_used_this_turn: bool = False  # Crobat Shadowy Envoy / Malamar Colluding Tentacles
+    future_supporter_played_this_turn: bool = False  # Iron Valiant Majestic Sword
+    future_effect_immunity: bool = False  # Miraidon C.O.D.E.: Protect (last one turn)
+    xerosics_machinations_played_this_turn: bool = False  # Malamar Colluding Tentacles
+    daydream_active: bool = False  # Hypno Daydream: end opp turn if they attach to Active
 
 
 @dataclass

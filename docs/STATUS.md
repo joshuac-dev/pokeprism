@@ -6,14 +6,73 @@
 ## Current Phase
 **Flagged Card Implementation — In Progress** 🔄
 
-All 20 card expansion batches complete (1,927 cards in DB). Now implementing flagged cards (complex mechanics skipped during expansion). Batches 1, 2, 3, 4, and 5 complete — 132 flagged entries remain.
+All 20 card expansion batches complete (1,927 cards in DB). Now implementing flagged cards (complex mechanics skipped during expansion). Batches 1–6 complete — 109 flagged entries remain.
 
 | Metric | Value |
 |--------|-------|
 | Cards in DB | 1927 |
 | Coverage | **98.5%** (29 missing) |
-| Flagged batches complete | 5 of ~7 (132 entries remain) |
-| Flagged implemented | 126 (Batch 1: 26 + Batch 2: 25 + Batch 3: 25 + Batch 4: 25 + Batch 5: 25) |
+| Flagged batches complete | 6 of ~7 (109 entries remain) |
+| Flagged implemented | 149 (Batches 1–5: 126 + Batch 6: 23) |
+
+## Last Session — Flagged Card Implementation: Batch 6
+
+### What Was Done
+
+**Batch 6** (23 flagged entries implemented):
+
+**attacks.py — handlers replaced (9 stubs → real implementations):**
+- `_code_protect_flag` (sv08-069 Miraidon): 40 damage + set `future_effect_immunity` flag on player
+- `_daydream_flag` (sv06.5-017 Hypno): 80 damage + set `daydream_active` on opponent
+- `_colluding_tentacles_flag` (sv06.5-034 Malamar): requires Xerosic's Machinations; force-switch opp bench→active, 120 damage
+- `_destructo_press_flag` (sv05-062 Iron Thorns): reveal top 5, 70×Future count, discard Future cards, shuffle rest
+- `_supportive_singing_flag` (sv05-077 Scream Tail): prompt player to choose 1 benched Ancient Pokémon, heal 100
+- `_calculation_flag` (sv05-080 Iron Valiant): peek top 4 of deck, emit event (no reorder)
+- `_majestic_sword_flag` (sv05-080 Iron Valiant): 100 + 100 if future_supporter_played_this_turn
+- `_primordial_beatdown_b16` (sv05-119 Koraidon): 30 × count of player's own Ancient Pokémon in play
+- `_peak_acceleration_flag` (sv05-121 Miraidon): 40 + search deck for ≤2 Basic Energy, attach to chosen Future Pokémon
+
+**abilities.py — registrations changed:**
+- `mep-004` Lunatone Lunar Cycle: passive→active (reuses `_lunar_cycle`/`_cond_lunar_cycle`)
+- `sv06.5-029` Crobat Shadowy Envoy: passive→active; new `_shadowy_envoy` handler (draw to 8 if janines_sa_used_this_turn)
+
+**trainers.py — flag-setting added:**
+- `_janines_secret_art` (sv08.5-112): sets `player.janines_sa_used_this_turn = True`
+- `_janines_secret_art_sfa_b19` (sv06.5-059): sets `player.janines_sa_used_this_turn = True`
+- `_xerosics_machinations` (sv06.5-064): sets `player.xerosics_machinations_played_this_turn = True`
+
+**Previously implemented in earlier steps of this batch (attacks.py _apply_damage + other files):**
+- Resolute Heart sv08-057 — HP floor at 10 against OHKO
+- C.O.D.E.: Protect sv08-069 — Future immunity cleared after active player switches (runner.py)
+- Sticky Bind sv08-107 — opp bench Stage-2 ability suppression (actions.py)
+- Daunting Gaze sv09-095 — item block while Active (actions.py)
+- Paradise Resort svp-150/svp-224 — Psyduck retreat cost -1 (actions.py)
+- Midnight Fluttering sv05-078 — opp Active ability suppression (actions.py)
+- Cobalt Command sv05-081 — Future Pokémon +20 pre-W/R except Iron Crown ex (attacks.py `_apply_damage`)
+- Azure Seas sv05-050 — bypass_defender_effects=True (attacks.py)
+- Full Metal Lab sv05-148 — Metal defenders -30 after W/R (attacks.py)
+- Armor Tail sv05-108 — block Basic Pokémon ex attacks (attacks.py)
+- Barite Jail sv08-091 — place damage counters until 10 HP remain on each opp bench Pokémon
+- Levincia sv09-150 — end-of-turn: recover up to 2 Basic Lightning from discard to hand (runner.py)
+- Daydream sv06.5-017 — energy-attach to Active ends turn (transitions.py)
+- Future supporter tracking — `future_supporter_played_this_turn` set in `_play_supporter` (transitions.py)
+
+**state.py additions:**
+- `janines_sa_used_this_turn: bool`
+- `future_supporter_played_this_turn: bool`
+- `future_effect_immunity: bool`
+- `xerosics_machinations_played_this_turn: bool`
+- `daydream_active: bool`
+
+**Ancillary helpers added to attacks.py:**
+- `_ANCIENT_CARD_IDS`, `_FUTURE_CARD_IDS`, `_IRON_CROWN_EX_IDS` frozensets
+- `_is_ancient(poke)`, `_is_future(poke)` helpers
+
+### Status After This Session
+- **109 flagged entries remain** in `POKEMON_MASTER_LIST.md`
+- All 215 tests pass
+
+---
 
 ## Last Session — Flagged Card Implementation: Batch 5
 

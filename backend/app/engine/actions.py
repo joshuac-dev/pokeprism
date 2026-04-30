@@ -319,6 +319,11 @@ class ActionValidator:
                         )
                 elif csub == "item":
                     if not player.items_locked_this_turn:
+                        # Daunting Gaze (sv09-095 Tyranitar): opp cannot play Item cards while Active
+                        opp_for_dg = state.get_opponent(player_id)
+                        if (opp_for_dg.active
+                                and opp_for_dg.active.card_def_id == "sv09-095"):
+                            continue
                         actions.append(
                             Action(ActionType.PLAY_ITEM, player_id,
                                    card_instance_id=card.instance_id)
@@ -426,6 +431,11 @@ class ActionValidator:
 
         cdef = card_registry.get(player.active.card_def_id)
         retreat_cost = cdef.retreat_cost if cdef else 0
+        # Paradise Resort (svp-150 / svp-224): Psyduck retreat cost reduced by 1
+        if (state.active_stadium
+                and state.active_stadium.card_def_id in ("svp-150", "svp-224")
+                and player.active.card_def_id == "mep-007"):
+            retreat_cost = max(0, retreat_cost - 1)
         if not _can_pay_retreat(player.active, retreat_cost, state, player_id):  # Rule 7
             return []
 
@@ -475,6 +485,16 @@ class ActionValidator:
             if (opp_init.active and opp_init.active.card_def_id == "sv08.5-043"
                     and poke is player.active):
                 continue
+            # Midnight Fluttering (sv05-078 / svp-097 Flutter Mane alt prints): same effect
+            if (opp_init.active and opp_init.active.card_def_id in ("sv05-078", "svp-097")
+                    and poke is player.active):
+                continue
+            # Sticky Bind (sv08-107 Gastrodon): opp's Benched Stage-2 Pokémon can't use abilities
+            if (opp_init.active and opp_init.active.card_def_id == "sv08-107"
+                    and poke is not player.active):
+                poke_cdef = card_registry.get(poke.card_def_id)
+                if poke_cdef and (poke_cdef.stage or "").lower() in ("stage2", "stage 2"):
+                    continue
             actions.append(
                 Action(ActionType.USE_ABILITY, player_id,
                        card_instance_id=poke.instance_id)

@@ -230,6 +230,8 @@ def check_ko(
 
     # Track that this player had a Pokémon KO'd (for Retaliate effects)
     target_player.ko_taken_last_turn = True
+    if "Ethan's" in target.card_name:
+        target_player.ethans_pokemon_ko_last_turn = True
 
     # Determine prize count
     cdef = card_registry.get(target.card_def_id)
@@ -532,6 +534,15 @@ def get_retreat_cost_reduction(pokemon: CardInstance, state: "GameState", player
     # Jamming Tower neutralizes tools
     if state.active_stadium and state.active_stadium.card_def_id == "sv06-153":
         return 0
+
+    # Melt Away (sv10-036 Ethan's Magcargo): free retreat when no Energy attached
+    if pokemon.card_def_id == "sv10-036" and not pokemon.energy_attached:
+        return 9999
+
+    # Metal Bridge (sv07-107 Archaludon SCR / sv08.5-070 Archaludon ex PRE): free retreat if Metal Energy attached
+    if pokemon.card_def_id in ("sv07-107", "sv08.5-070"):
+        if any(att.energy_type == EnergyType.METAL for att in pokemon.energy_attached):
+            return 9999
 
     # Skyliner (sv08-076 Latias ex): Basic Pokémon have free retreat
     if player_id is not None:
