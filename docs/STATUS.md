@@ -13,41 +13,38 @@ All 20 card expansion batches complete (1,927 cards in DB). Engine refactoring p
 |--------|-------|
 | Cards in DB | 1927 |
 | Coverage | **98.5%** (29 legitimately missing) |
-| Engine refactoring batches complete | 3 of 6 |
-| Flagged implemented this phase | 30 (Engine Batches 1–3) |
-| Flagged entries remaining | **31** (in `docs/POKEMON_MASTER_LIST.md`) |
+| Engine refactoring batches complete | 4 of 6 |
+| Flagged implemented this phase | 40 (Engine Batches 1–4) |
+| Flagged entries remaining | **21** (in `docs/POKEMON_MASTER_LIST.md`) |
 | Tests | **215 passing** |
 
 ---
 
-## Last Session — 2026-05-07 (Engine Batch 3)
+## Last Session — 2026-05-07 (Engine Batches 3–4)
 
 ### Current Phase Progress
 
-**Completed this session:** Engine Batch 3 = **10 cards implemented** via targeted engine refactoring.
+**Completed this session:** Engine Batches 3 & 4 = **20 cards implemented** via targeted engine refactoring.
 
-**Engine changes:**
-- `backend/app/engine/state.py` — Added `festival_lead_pending: bool = False` to `PlayerState` (Festival Lead second-attack flag)
-- `backend/app/engine/effects/base.py` — Added `_has_damp()` helper; added `_devolve_pokemon()` helper; Damp suppression in `check_ko` (wraps Fragile Husk, Sandy Flapping, Exploding Needles, Final Chain, Infinite Shadow with `if not _has_damp(state):`)
-- `backend/app/engine/effects/abilities.py` — `_ancient_wing` handler (Archeops, USE_ABILITY devolve); `_emergency_rotation` handler (Klinklang, from-hand bench placement); replaced sv07-101 passive stub with real handler; registered sv10.5w-051 Ancient Wing
-- `backend/app/engine/effects/attacks.py` — Replaced stubs: `_mystical_eyes` (Espathra atk0, devolve 1 → hand), `_amazez` (Espeon ex atk1, devolve all → deck), `_destined_fight` (Annihilape atk1, mutual KO)
-- `backend/app/engine/actions.py` — Added Klinklang hand-based ability check to `_get_ability_actions`; added Archeops active-only condition
-- `backend/app/engine/transitions.py` — After `resolve_attack`, sets `festival_lead_pending = True` when Festival Lead Pokémon attacks with Festival Grounds active
-- `backend/app/engine/runner.py` — Festival Lead second-attack loop after `_resolve_ko_aftermath`; reset `festival_lead_pending` in `_end_turn`
+**Engine changes (Batch 4, added to Batch 3 base):**
+- `backend/app/engine/effects/base.py` — Added `_evolve_in_play_from_deck()` helper (shared by all mid-battle deck-evolution attacks/abilities): transfers energy/tools/damage/status, places evolved card in active/bench slot, sends pre-evo to discard, calls `check_ko`
+- `backend/app/engine/effects/attacks.py` — Added/replaced: `_call_for_backup` (Seadra, deck→hand search); `_ascension_eevee` (Eevee TWM, ChoiceRequest for Eeveelution); `_cellular_evolution` (Duosion, choose any evo of any your Pokémon); `_cellular_ascension` (Reuniclus BLK/PR-SV + Vivillon, auto-evolve all bench from deck); `_dark_awakening` (TR Nidorina, choose up to 2 Darkness Pokémon → evolve each from deck); `_accelerator_flash` (Revavroom ex atk0, +120 if moved_from_bench_this_turn); `_shattering_speed` (Revavroom ex atk1, 250 + self-KO)
+- `backend/app/engine/effects/abilities.py` — Replaced passive stubs: `_emergency_evolution` (Pidove, HP ≤ 30 condition, skip-stage evolve to Unfezant); `_overvolt_discharge` (Magneton, attach up to 3 Basic Energy from discard to {L} Pokémon + self-KO; per-energy ChoiceRequest for target)
+- `backend/app/engine/actions.py` — Added conditions for sv05-133 Emergency Evolution (HP ≤ 30 + Unfezant in deck) and sv08-059 Overvolt Discharge (Basic Energy in discard + Lightning Pokémon in play)
 
-**Batch 3 cards implemented:**
-- `sv10.5w-051` Archeops WHT — Ancient Wing: USE_ABILITY devolve 1 opp evolved → hand (active-only)
-- `sv08.5-034` Espeon ex PRE — Amazez atk1: devolve ALL opp evolved → deck (shuffle)
-- `sv08-095` Espathra SSP — Mystical Eyes atk0: devolve 1 opp evolved → hand
-- `mep-007` Psyduck MEP — Damp: suppresses Sandy Flapping, Exploding Needles, Final Chain, Fragile Husk, Infinite Shadow while in play
-- `mep-008` Golduck MEP — Damp: same suppression
-- `sv08.5-010` Dipplin PRE — Festival Lead: second attack when Festival Grounds (sv06-149) active
-- `sv08.5-020` Goldeen PRE — Festival Lead: same
-- `sv08.5-021` Seaking PRE — Festival Lead: same
-- `sv08-100` Annihilape SSP — Destined Fight atk1: both Active Pokémon KO'd simultaneously
-- `sv07-101` Klinklang SCR — Emergency Rotation: from hand → bench when opp has Stage 2
+**Batch 4 cards implemented:**
+- `sv10-115` TR Nidorina DRI — Dark Awakening atk0: choose ≤2 Darkness Pokémon, evolve each from deck
+- `sv06.5-011` Seadra SFA — Call for Backup atk0: search deck for ≤3 Pokémon → hand, shuffle
+- `sv06-135` Eevee TWM — Ascension atk0: search deck for Eeveelution, evolve self
+- `sv10.5b-038` Duosion BLK — Cellular Evolution atk0: choose evolution of any in-play Pokémon from deck, evolve it
+- `sv10.5b-039` Reuniclus BLK — Cellular Ascension atk0: auto-evolve all bench Pokémon from deck
+- `sv08-007` Vivillon SSP — Evo-Powder atk0: same as Cellular Ascension
+- `svp-212` Reuniclus PR-SV — Cellular Ascension atk0: same as sv10.5b-039
+- `sv05-133` Pidove TEF — Emergency Evolution ability: if HP ≤ 30, skip-evolve to Unfezant/Unfezant ex from deck
+- `sv08-059` Magneton SSP — Overvolt Discharge ability: attach ≤3 Basic Energy from discard to {L} Pokémon, then self-KO
+- `sv06.5-015` Revavroom ex SFA — Accelerator Flash (20+120 bench-move bonus) + Shattering Speed (250 + self-KO)
 
-**Remaining:** 31 flagged entries in `docs/POKEMON_MASTER_LIST.md`. Engine refactoring continues with 3 more batches.
+**Remaining:** 21 flagged entries in `docs/POKEMON_MASTER_LIST.md`. 2 batches remain.
 
 **Next:** Engine Batch 4 — Mid-battle deck evolution + Magneton + Revavroom + Seadra (10 cards)
 
