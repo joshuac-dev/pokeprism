@@ -32,7 +32,6 @@ Cards too complex for automatic handler generation. Requires manual implementati
 | Eevee ex PRE 75 | sv08.5-075 | Rainbow DNA (ability) | Eeveelutions may evolve from this card — special multi-target evolution rule not supported |
 | Exeggcute SSP 1 | sv08-001 | Precocious Evolution (atk0) | Search deck for Evolution and evolve a Benched Pokémon on first turn — first-turn mid-battle evolution not supported |
 | Vivillon SSP 7 | sv08-007 | Evo-Powder (atk0) | Evolve all of your Benched Pokémon from deck simultaneously — mass in-battle evolution not supported |
-| Castform Sunny Form SSP 20 | sv08-020 | Sunny Assist (atk1) | Redistribute all attached Energy to any of your Pokémon — arbitrary energy redistribution not supported |
 | Magneton SSP 59 | sv08-059 | Overvolt Discharge (ability) | KO this Pokémon; attach multiple Energy from deck — self-KO + multi-energy attach from deck not supported |
 | Azumarill SSP 74 | sv08-074 | Glistening Bubbles (ability) | Reduce cost of attacks by {W} for each Tera Pokémon in play — dynamic cost reduction based on Tera count not supported |
 | Espathra SSP 95 | sv08-095 | Mystical Eyes (atk0) | Devolve all of opponent's Evolved Pokémon — engine has no previous-evolution form tracking |

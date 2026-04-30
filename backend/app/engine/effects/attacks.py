@@ -16956,7 +16956,7 @@ def register_all(registry):
     registry.register_attack("sv08-019", 1, _shining_blaze)                 # Ho-Oh — Shining Blaze
     # sv08-020 Castform Sunny Form: ATK0 Singe → reuse _singe
     registry.register_attack("sv08-020", 0, _singe)                         # Castform Sunny Form — Singe (reuse)
-    registry.register_attack("sv08-020", 1, _sunny_assist_flag)             # Castform Sunny Form — Sunny Assist (FLAGGED)
+    registry.register_attack("sv08-020", 1, _sunny_assist_flag)             # Castform Sunny Form — Sunny Assist
     # sv08-021 Victini: ATK0 Flare (flat 30); ability registered in abilities.py
     # sv08-022 Pansear: ATK0 Combustion (flat 20)
     registry.register_attack("sv08-023", 0, _double_smash)                  # Simisear — Double Smash

@@ -7,7 +7,7 @@
 **Flagged Card Implementation — Complete** ✅
 _Last updated: 2026-05-01_
 
-All 20 card expansion batches complete (1,927 cards in DB). All 8 flagged card implementation batches complete — **62 flagged entries remain** (legitimately unimplementable without major engine rewrites).
+All 20 card expansion batches complete (1,927 cards in DB). All 8 flagged card implementation batches complete — **61 flagged entries remain** (legitimately unimplementable without major engine rewrites).
 
 | Metric | Value |
 |--------|-------|
@@ -15,7 +15,7 @@ All 20 card expansion batches complete (1,927 cards in DB). All 8 flagged card i
 | Coverage | **98.5%** (29 legitimately missing) |
 | Flagged batches complete | 8 of ~8 |
 | Flagged implemented this phase | 196 (Batches 1–8) |
-| Flagged entries remaining | **62** (in `docs/POKEMON_MASTER_LIST.md`) |
+| Flagged entries remaining | **61** (in `docs/POKEMON_MASTER_LIST.md`) |
 | Tests | **215 passing** |
 
 ---
