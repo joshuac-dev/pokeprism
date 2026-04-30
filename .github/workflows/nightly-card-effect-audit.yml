@@ -1,0 +1,101 @@
+name: Nightly Card Effect Audit
+
+on:
+  schedule:
+    # GitHub Actions cron is UTC.
+    # 08:07 UTC is 3:07 AM EST.
+    # During EDT this runs at 4:07 AM Eastern unless adjusted to 07:07 UTC.
+    - cron: "7 8 * * *"
+
+  workflow_dispatch:
+    inputs:
+      max_findings:
+        description: "Maximum findings to report"
+        required: false
+        default: "25"
+      model:
+        description: "GitHub Models model identifier"
+        required: false
+        default: "openai/gpt-5.3-codex"
+
+permissions:
+  contents: read
+  issues: write
+  models: read
+
+concurrency:
+  group: nightly-card-effect-audit
+  cancel-in-progress: false
+
+jobs:
+  audit-card-effects:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e backend
+
+      - name: Run card implementation audit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_MODELS_MODEL: ${{ inputs.model || 'openai/gpt-5.3-codex' }}
+          GITHUB_MODELS_ENDPOINT: https://models.github.ai/inference/chat/completions
+        run: |
+          python backend/scripts/audit_card_implementations.py \
+            --max-findings "${{ inputs.max_findings || '25' }}" \
+            --model "$GITHUB_MODELS_MODEL" \
+            --report audit-report.md \
+            --metadata audit-metadata.json
+
+      - name: Upload audit report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: card-effect-audit-report
+          path: |
+            audit-report.md
+            audit-metadata.json
+
+      - name: Create tracking issue when needed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          FINDINGS=$(python -c "import json; print(json.load(open('audit-metadata.json'))['finding_count'])")
+          AUDIT_WARNINGS=$(python -c "import json; print(json.load(open('audit-metadata.json'))['audit_warning_count'])")
+
+          if [ "$FINDINGS" -eq 0 ] && [ "$AUDIT_WARNINGS" -eq 0 ]; then
+            echo "No findings or audit warnings to report."
+            exit 0
+          fi
+
+          gh label create card-effect-audit \
+            --description "Automated card effect implementation audit" \
+            --color 7057ff || true
+
+          gh label create automated \
+            --description "Created by automated workflow" \
+            --color cfd3d7 || true
+
+          TITLE="Nightly card effect implementation audit - $(date -u +%Y-%m-%d)"
+          EXISTING=$(gh issue list --state open --search "$TITLE in:title" --json number --jq 'length')
+
+          if [ "$EXISTING" -gt 0 ]; then
+            echo "An open audit issue for today already exists; not creating a duplicate."
+            exit 0
+          fi
+
+          gh issue create \
+            --title "$TITLE" \
+            --label "card-effect-audit,automated" \
+            --body-file audit-report.md
