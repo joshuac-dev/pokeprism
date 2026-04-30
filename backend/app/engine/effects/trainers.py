@@ -19,6 +19,7 @@ from app.engine.state import (
     EnergyAttachment,
     EnergyType,
     GameState,
+    Phase,
     StatusCondition,
     Zone,
 )
@@ -3179,14 +3180,48 @@ def _switch_b18(state: GameState, action):
         state.emit_event("switch", player=player_id, new_active=target.card_name)
 
 
-def _wally_b18(state: GameState, action):
-    """Wally's Compassion (me01-132) — FLAGGED noop stub.
+def _wallys_compassion(state: GameState, action):
+    """me01-132 Wally's Compassion — Heal 1 Mega ex; if healed, return all energy to hand."""
+    from app.cards.loader import card_registry as _cr
+    player_id = action.player_id
+    player = state.get_player(player_id)
 
-    Heal all damage from 1 Mega Evolution Pokémon ex and put all its attached
-    Energy into your hand (energy-return-to-hand not supported).
-    """
-    state.emit_event("flagged_effect", card="Wally's Compassion",
-                     reason="energy_to_hand_not_supported")
+    in_play = ([player.active] if player.active else []) + list(player.bench)
+    all_mega = [p for p in in_play if "mega" in p.card_name.lower()]
+    if not all_mega:
+        return
+
+    target = all_mega[0]
+    if len(all_mega) > 1:
+        req = ChoiceRequest(
+            "choose_target", player_id,
+            "Wally's Compassion: choose a Mega Evolution Pokémon to heal",
+            targets=all_mega,
+        )
+        resp = yield req
+        if resp and resp.target_instance_id:
+            target = next((p for p in all_mega
+                           if p.instance_id == resp.target_instance_id), all_mega[0])
+
+    healed = target.damage_counters > 0
+    if healed:
+        target.damage_counters = 0
+        target.current_hp = target.max_hp
+        state.emit_event("wallys_compassion_heal", player=player_id, card=target.card_name)
+
+    if healed and target.energy_attached:
+        for ea in list(target.energy_attached):
+            cdef = _cr.get(ea.card_def_id)
+            new_energy = CardInstance(
+                card_def_id=ea.card_def_id,
+                card_name=cdef.name if cdef else "Energy",
+                card_type="Energy",
+                zone=Zone.HAND,
+            )
+            player.hand.append(new_energy)
+        target.energy_attached.clear()
+        state.emit_event("wallys_compassion_energy", player=player_id,
+                         card=target.card_name)
 
 
 def _energy_coin_b18(state: GameState, action):
@@ -4817,6 +4852,217 @@ def _hand_trimmer(state: GameState, action) -> None:
     state.emit_event("hand_trimmer_self", player=player_id, remaining=len(player.hand))
 
 
+def _energy_swatter(state: GameState, action):
+    """me03-073 Energy Swatter — Choose energy from opp's hand → put on bottom of opp's deck."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    opp = state.get_player(state.opponent_id(player_id))
+
+    energy_in_opp_hand = [c for c in opp.hand if c.card_type == "Energy"]
+    if not energy_in_opp_hand:
+        state.emit_event("energy_swatter", player=player_id, result="no_energy")
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Energy Swatter: choose an Energy card from your opponent's hand to put on the bottom of their deck",
+        cards=energy_in_opp_hand, min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+    chosen = next((c for c in energy_in_opp_hand if c.instance_id in chosen_ids),
+                  energy_in_opp_hand[0])
+
+    opp.hand.remove(chosen)
+    chosen.zone = Zone.DECK
+    opp.deck.append(chosen)  # append = bottom of deck
+
+    state.emit_event("energy_swatter", player=player_id, card=chosen.card_name)
+
+
+def _lt_surges_bargain(state: GameState, action):
+    """me01-120 Lt. Surge's Bargain — Ask opp to each take a prize, or player draws 4."""
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    player = state.get_player(player_id)
+    opp = state.get_player(opp_id)
+
+    if not player.prizes and not opp.prizes:
+        draw_cards(state, player_id, 4)
+        return
+
+    req = ChoiceRequest(
+        "choose_option", opp_id,
+        "Lt. Surge's Bargain: Do you agree to each player taking a Prize card?",
+        options=["Yes, each take a Prize card", "No"],
+    )
+    resp = yield req
+    opt = resp.selected_option if (resp is not None and resp.selected_option is not None) else 1
+
+    if opt == 0:
+        # Yes: each player takes one prize
+        if player.prizes:
+            prize = player.prizes.pop(0)
+            prize.zone = Zone.HAND
+            player.hand.append(prize)
+            player.prizes_remaining = max(0, player.prizes_remaining - 1)
+        if opp.prizes:
+            opp_prize = opp.prizes.pop(0)
+            opp_prize.zone = Zone.HAND
+            opp.hand.append(opp_prize)
+            opp.prizes_remaining = max(0, opp.prizes_remaining - 1)
+        state.emit_event("lt_surges_bargain", player=player_id, outcome="prizes")
+        if player.prizes_remaining == 0:
+            state.winner = player_id
+            state.win_condition = "prizes"
+            state.phase = Phase.GAME_OVER
+            state.emit_event("game_over", winner=player_id, condition="prizes")
+            return
+        if opp.prizes_remaining == 0:
+            state.winner = opp_id
+            state.win_condition = "prizes"
+            state.phase = Phase.GAME_OVER
+            state.emit_event("game_over", winner=opp_id, condition="prizes")
+            return
+    else:
+        draw_cards(state, player_id, 4)
+        state.emit_event("lt_surges_bargain", player=player_id, outcome="draw4")
+
+
+def _redeemable_ticket(state: GameState, action):
+    """sv09-156 Redeemable Ticket — Swap prize pile with top N cards of deck."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    prize_count = len(player.prizes)
+    if prize_count == 0 or len(player.deck) < prize_count:
+        return
+
+    # Shuffle prizes and put on bottom of deck
+    random.shuffle(player.prizes)
+    for c in player.prizes:
+        c.zone = Zone.DECK
+    player.deck.extend(player.prizes)
+    player.prizes = []
+
+    # Take top prize_count cards from deck as new prizes
+    player.prizes = player.deck[:prize_count]
+    player.deck = player.deck[prize_count:]
+    player.prizes_remaining = prize_count
+    for c in player.prizes:
+        c.zone = Zone.DECK  # prizes don't have a specific zone in this engine
+
+    state.emit_event("redeemable_ticket", player=player_id, prizes=prize_count)
+
+
+def _ogres_mask(state: GameState, action):
+    """sv08.5-118 Ogre's Mask — Swap Ogerpon ex in discard with in-play Ogerpon ex."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    from_discard_options = [c for c in player.discard
+                            if "ogerpon" in c.card_name.lower()]
+    if not from_discard_options:
+        return
+
+    in_play = ([player.active] if player.active else []) + list(player.bench)
+    in_play_options = [c for c in in_play if "ogerpon" in c.card_name.lower()]
+    if not in_play_options:
+        return
+
+    from_discard = from_discard_options[0]
+    if len(from_discard_options) > 1:
+        req = ChoiceRequest(
+            "choose_cards", player_id,
+            "Ogre's Mask: choose an Ogerpon Pokémon from your discard pile",
+            cards=from_discard_options, min_count=1, max_count=1,
+        )
+        resp = yield req
+        chosen = resp.selected_cards if resp and resp.selected_cards else []
+        from_discard = next((c for c in from_discard_options if c.instance_id in chosen),
+                            from_discard_options[0])
+
+    in_play_target = in_play_options[0]
+    if len(in_play_options) > 1:
+        req2 = ChoiceRequest(
+            "choose_target", player_id,
+            "Ogre's Mask: choose an Ogerpon Pokémon in play to swap out",
+            targets=in_play_options,
+        )
+        resp2 = yield req2
+        if resp2 and resp2.target_instance_id:
+            in_play_target = next(
+                (c for c in in_play_options if c.instance_id == resp2.target_instance_id),
+                in_play_options[0],
+            )
+
+    # Transfer all battle state from in_play_target → from_discard
+    from_discard.energy_attached = list(in_play_target.energy_attached)
+    from_discard.tools_attached = list(in_play_target.tools_attached)
+    from_discard.damage_counters = in_play_target.damage_counters
+    from_discard.status_conditions = set(in_play_target.status_conditions)
+    from_discard.current_hp = max(0, from_discard.max_hp - from_discard.damage_counters * 10)
+    from_discard.evolved_from = in_play_target.evolved_from
+    from_discard.turn_played = in_play_target.turn_played
+    from_discard.zone = in_play_target.zone
+
+    # Clear in_play_target state
+    in_play_target.energy_attached = []
+    in_play_target.tools_attached = []
+    in_play_target.damage_counters = 0
+    in_play_target.status_conditions = set()
+    in_play_target.current_hp = in_play_target.max_hp
+    in_play_target.zone = Zone.DISCARD
+
+    # Replace in play
+    if player.active and player.active.instance_id == in_play_target.instance_id:
+        player.active = from_discard
+    else:
+        for i, b in enumerate(player.bench):
+            if b.instance_id == in_play_target.instance_id:
+                player.bench[i] = from_discard
+                break
+
+    player.discard.remove(from_discard)
+    player.discard.append(in_play_target)
+
+    state.emit_event("ogres_mask", player=player_id,
+                     from_card=in_play_target.card_name, to_card=from_discard.card_name)
+
+
+def _tyme(state: GameState, action):
+    """sv08-190 Tyme — Pokémon HP guessing game; wrong guesser draws 4."""
+    import random as _rnd
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    player = state.get_player(player_id)
+
+    pokes_in_hand = [c for c in player.hand if c.card_type == "Pokemon"]
+    if not pokes_in_hand:
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Tyme: choose a Pokémon from your hand (face-down for HP guessing)",
+        cards=pokes_in_hand, min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+    chosen = next((c for c in pokes_in_hand if c.instance_id in chosen_ids), pokes_in_hand[0])
+
+    # Simulate opponent's guess with a coin flip
+    opp_correct = _rnd.choice([True, False])
+
+    if opp_correct:
+        draw_cards(state, opp_id, 4)
+        state.emit_event("tyme_result", player=player_id, winner="opponent",
+                         card=chosen.card_name)
+    else:
+        draw_cards(state, player_id, 4)
+        state.emit_event("tyme_result", player=player_id, winner="player",
+                         card=chosen.card_name)
+
+
 def register_all(registry: EffectRegistry) -> None:
     """Register all trainer effect handlers."""
 
@@ -4925,7 +5171,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("me02.5-215", _waitress_b18)            # Waitress
     registry.register_trainer("me01-123", _pokemon_center_lady_b18)   # Pokémon Center Lady
     registry.register_trainer("me01-126", _repel_b18)                 # Repel
-    registry.register_trainer("me01-132", _wally_b18)                 # Wally's Compassion (flagged)
+    registry.register_trainer("me01-132", _wallys_compassion)               # Wally's Compassion
     registry.register_trainer("sv10.5w-081", _draw_3_b18)             # Cheren
     registry.register_trainer("sv10.5w-083", _harlequin_b18)          # Harlequin
 
@@ -4935,7 +5181,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("me03-070", _noop)   # Core Memory (grants attack to Mega Zygarde ex)
     registry.register_trainer("me03-071", _crushing_hammer_b18)
     registry.register_trainer("me03-072", _energy_search_b18)
-    registry.register_trainer("me03-073", _noop)   # Energy Swatter (hand reveal — flagged)
+    registry.register_trainer("me03-073", _energy_swatter)   # Energy Swatter
     registry.register_trainer("me03-074", _hole_digging_shovel_b18)
     registry.register_trainer("me03-075", _jacinthe_b18)
     registry.register_trainer("me03-078", _lumiose_galette_b18)
@@ -4954,7 +5200,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("me02.5-203", _tr_factory_on_play)      # TR Factory alt
     registry.register_trainer("me02.5-205", _tr_great_ball_b18)       # TR Great Ball
     registry.register_trainer("me01-118", _iron_defender_b18)         # Iron Defender (noop)
-    registry.register_trainer("me01-120", _noop)   # Lt. Surge's Bargain (opponent decision — flagged)
+    registry.register_trainer("me01-120", _lt_surges_bargain)  # Lt. Surge's Bargain
     registry.register_trainer("me01-122", _noop)   # Mystery Garden alt (passive stadium)
     registry.register_trainer("me01-124", _premium_power_pro_b18)     # Premium Power Pro
     registry.register_trainer("me01-128", _noop)   # Strange Timepiece (devolve — not supported)
@@ -5062,12 +5308,12 @@ def register_all(registry: EffectRegistry) -> None:
     # Flagged — complex effects not yet modelled in engine
     registry.register_trainer("sv10-172", _noop)   # TR Bother-Bot (face-up prize + hand reveal — flagged)
     registry.register_trainer("sv09-150", _noop)   # Levincia (per-turn energy recovery — flagged)
-    registry.register_trainer("sv09-156", _noop)   # Redeemable Ticket (prize zone manipulation — flagged)
+    registry.register_trainer("sv09-156", _redeemable_ticket)  # Redeemable Ticket
     registry.register_trainer("sv08.5-093", _amarys) # Amarys (draw 4, discard hand at end of turn if 5+)
-    registry.register_trainer("sv08.5-118", _noop) # Ogre's Mask (Pokémon swap w/ full state transfer — flagged)
+    registry.register_trainer("sv08.5-118", _ogres_mask)  # Ogre's Mask
     registry.register_trainer("sv08-178", _jasmine_gaze)   # Jasmine's Gaze (damage reduction next turn)
     registry.register_trainer("sv08-188", _noop)   # TM: Fluorite (Tera-wide full heal TM — flagged)
-    registry.register_trainer("sv08-190", _noop)   # Tyme (interactive guessing game — flagged)
+    registry.register_trainer("sv08-190", _tyme)   # Tyme
     registry.register_trainer("sv06.5-063", _noop) # Powerglass (end-of-turn trigger tool — flagged)
 
     # ── Batch 20 ─────────────────────────────────────────────────────────────

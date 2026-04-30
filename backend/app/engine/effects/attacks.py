@@ -22933,13 +22933,59 @@ def _tail_trickery_b16(state, action):
                          card=opp.active.card_name, status="confused")
 
 
-def _energy_blender_flag(state, action):
-    """sv05-131 Delcatty atk1 — Energy Blender: 110 + move own energy — FLAGGED."""
+def _energy_blender(state, action):
+    """sv05-131 Delcatty atk1 — Energy Blender: 110 + optionally redistribute energy."""
     _do_default_damage(state, action)
     if state.phase == Phase.GAME_OVER:
         return
-    state.emit_event("flagged_effect", attack="Energy Blender",
-                     reason="energy_movement_own_not_supported")
+
+    player = state.get_player(action.player_id)
+    in_play = ([player.active] if player.active else []) + list(player.bench)
+    sources = [p for p in in_play if p.energy_attached]
+    if not sources:
+        return
+
+    req = ChoiceRequest(
+        "choose_option", action.player_id,
+        "Energy Blender: move Energy from one of your Pokémon to another?",
+        options=["Yes, move energy", "No"],
+    )
+    resp = yield req
+    if resp is None or (resp.selected_option or 0) != 0:
+        return
+
+    req2 = ChoiceRequest(
+        "choose_target", action.player_id,
+        "Energy Blender: choose the Pokémon to take Energy FROM",
+        targets=sources,
+    )
+    resp2 = yield req2
+    src = None
+    if resp2 and resp2.target_instance_id:
+        src = next((p for p in sources if p.instance_id == resp2.target_instance_id), None)
+    if src is None:
+        src = sources[0]
+
+    dests = [p for p in in_play if p.instance_id != src.instance_id]
+    if not dests:
+        return
+
+    req3 = ChoiceRequest(
+        "choose_target", action.player_id,
+        "Energy Blender: choose the Pokémon to move Energy TO",
+        targets=dests,
+    )
+    resp3 = yield req3
+    dest = None
+    if resp3 and resp3.target_instance_id:
+        dest = next((p for p in dests if p.instance_id == resp3.target_instance_id), None)
+    if dest is None:
+        dest = dests[0]
+
+    dest.energy_attached.extend(src.energy_attached)
+    src.energy_attached = []
+    state.emit_event("energy_blender", player=action.player_id,
+                     from_card=src.card_name, to_card=dest.card_name)
 
 
 # ── sv05-132 Chatot ──────────────────────────────────────────────────────────
@@ -23361,7 +23407,7 @@ def register_batch16_attacks(registry):
 
     # ── sv05-131 Delcatty ────────────────────────────────────────────────────
     registry.register_attack("sv05-131", 0, _tail_trickery_b16)            # Tail Trickery
-    registry.register_attack("sv05-131", 1, _energy_blender_flag)          # Energy Blender (FLAGGED)
+    registry.register_attack("sv05-131", 1, _energy_blender)             # Energy Blender
 
     # ── sv05-132 Chatot ──────────────────────────────────────────────────────
     registry.register_attack("sv05-132", 0, _cappella_flag)                # A Cappella (FLAGGED)

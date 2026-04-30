@@ -575,6 +575,12 @@ async def _attack(state: GameState, action: Action, get_player=None) -> GameStat
                              attacker=player.active.card_name, attack=attack_name)
             return state
 
+    # Boomerang Energy (sv06-166): capture count before attack
+    _boomerang_attacker_id = player.active.instance_id if player.active else None
+    _boomerang_before = (sum(1 for ea in player.active.energy_attached
+                             if ea.card_def_id == "sv06-166")
+                         if player.active else 0)
+
     result = await EffectRegistry.instance().resolve_attack(
         player.active.card_def_id,
         action.attack_index or 0,
@@ -582,6 +588,26 @@ async def _attack(state: GameState, action: Action, get_player=None) -> GameStat
         action,
         get_player,
     )
+
+    # Boomerang Energy re-attach: if attacker is still active and boomerang energy was discarded by the attack
+    _result_player = result.get_player(action.player_id)
+    if (_boomerang_before > 0
+            and _result_player.active is not None
+            and _result_player.active.instance_id == _boomerang_attacker_id):
+        _boomerang_after = sum(1 for ea in _result_player.active.energy_attached
+                               if ea.card_def_id == "sv06-166")
+        _reattach_count = _boomerang_before - _boomerang_after
+        if _reattach_count > 0:
+            import uuid as _buuid
+            for _ in range(_reattach_count):
+                _result_player.active.energy_attached.append(EnergyAttachment(
+                    energy_type=EnergyType.COLORLESS,
+                    source_card_id=str(_buuid.uuid4()),
+                    card_def_id="sv06-166",
+                    provides=[EnergyType.COLORLESS],
+                ))
+            result.emit_event("boomerang_energy_reattach", player=action.player_id,
+                              count=_reattach_count)
     # Track last attack used (for Spiky Rolling, Mochi Rush, etc.)
     if player.active:
         player.active.last_attack_name = attack_name

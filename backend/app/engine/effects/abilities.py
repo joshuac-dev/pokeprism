@@ -3992,6 +3992,85 @@ def _overvolt_discharge(state: GameState, action):
     _check_ko(state, magneton, player_id)
 
 
+def _flustered_leap(state: GameState, action):
+    """sv10-045 Misty's Psyduck — Flustered Leap: bench → discard deck bottom → put Psyduck on deck top."""
+    from app.engine.effects.base import _discard_attached_only
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    psyduck = _find_in_play(player, action.card_instance_id)
+    if psyduck is None or psyduck not in player.bench:
+        return
+
+    if not player.deck:
+        return
+
+    # Discard bottom card of deck (deck[-1] = bottom)
+    bottom_card = player.deck.pop(-1)
+    bottom_card.zone = Zone.DISCARD
+    player.discard.append(bottom_card)
+    state.emit_event("flustered_leap_discard", player=player_id, card=bottom_card.card_name)
+
+    # Discard all attached cards from Psyduck
+    _discard_attached_only(player, psyduck)
+
+    # Remove from bench and put on top of deck
+    player.bench.remove(psyduck)
+    psyduck.zone = Zone.DECK
+    psyduck.damage_counters = 0
+    psyduck.current_hp = psyduck.max_hp
+    psyduck.status_conditions = set()
+    psyduck.evolved_from = None
+    psyduck.evolved_this_turn = False
+    player.deck.insert(0, psyduck)
+    psyduck.ability_used_this_turn = True
+
+    state.emit_event("flustered_leap", player=player_id)
+
+
+def _lustrous_assist(state: GameState, action):
+    """me01-101 Latios — Lustrous Assist: when Mega Latias ex moves from bench to active, move energy from bench to active."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    # Active must be Mega Latias ex that just moved from bench
+    if not player.active:
+        return
+    if not ("latias" in player.active.card_name.lower() and "mega" in player.active.card_name.lower()):
+        return
+    if not player.active.moved_from_bench_this_turn:
+        return
+
+    # Find bench Pokémon with energy
+    donors = [p for p in player.bench if p.energy_attached]
+    if not donors:
+        return
+
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Lustrous Assist: choose a Benched Pokémon to move all Energy from to Mega Latias ex",
+        targets=donors,
+    )
+    resp = yield req
+    src = None
+    if resp and resp.target_instance_id:
+        src = next((p for p in donors if p.instance_id == resp.target_instance_id), None)
+    if src is None:
+        src = donors[0]
+
+    # Move all energy from src to active Mega Latias ex
+    player.active.energy_attached.extend(src.energy_attached)
+    src.energy_attached = []
+
+    # Mark ability used on Latios
+    latios = _find_in_play(player, action.card_instance_id)
+    if latios:
+        latios.ability_used_this_turn = True
+
+    state.emit_event("lustrous_assist", player=player_id,
+                     from_card=src.card_name, to_card=player.active.card_name)
+
+
 def register_all(registry):
     """Register all ability effect handlers with the registry."""
 
@@ -4967,3 +5046,29 @@ def register_all(registry):
     registry.register_passive_ability("svp-159", "Overvolt Discharge")      # Magnezone (sv08-059 alt)
     registry.register_ability("svp-183", "Inviting Wink", _inviting_wink)    # Lillie's Ribombee (sv09-067 alt)
     registry.register_passive_ability("svp-216", "Power Saver")             # TR Mewtwo ex (svp-205 alt)
+
+    # ── Batch 5 ───────────────────────────────────────────────────────────────
+
+    # Flustered Leap (sv10-045 Misty's Psyduck): must be on bench + deck not empty
+    def _cond_flustered_leap(state, player_id, poke):
+        p = state.get_player(player_id)
+        if poke not in p.bench:
+            return False
+        return bool(p.deck)
+
+    registry.register_ability("sv10-045", "Flustered Leap", _flustered_leap,
+                               condition=_cond_flustered_leap)  # Misty's Psyduck
+
+    # Lustrous Assist (me01-101 Latios): Mega Latias ex must be active + moved from bench + bench has energy
+    def _cond_lustrous_assist(state, player_id, poke):
+        p = state.get_player(player_id)
+        if not (p.active
+                and "latias" in p.active.card_name.lower()
+                and "mega" in p.active.card_name.lower()):
+            return False
+        if not p.active.moved_from_bench_this_turn:
+            return False
+        return any(b.energy_attached for b in p.bench)
+
+    registry.register_ability("me01-101", "Lustrous Assist", _lustrous_assist,
+                               condition=_cond_lustrous_assist)  # Latios

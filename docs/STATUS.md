@@ -5,7 +5,7 @@
 
 ## Current Phase
 **Engine Refactoring — Unlocking Remaining Flagged Cards** 🔧
-_Last updated: 2026-05-07_
+_Last updated: 2026-05-08_
 
 All 20 card expansion batches complete (1,927 cards in DB). Engine refactoring phase active — implementing 61 previously-unimplementable flagged cards in batches of 10 using targeted engine changes (dynamic HP, conditional costs, devolve, first-turn exceptions, etc.).
 
@@ -13,10 +13,43 @@ All 20 card expansion batches complete (1,927 cards in DB). Engine refactoring p
 |--------|-------|
 | Cards in DB | 1927 |
 | Coverage | **98.5%** (29 legitimately missing) |
-| Engine refactoring batches complete | 4 of 6 |
-| Flagged implemented this phase | 40 (Engine Batches 1–4) |
-| Flagged entries remaining | **21** (in `docs/POKEMON_MASTER_LIST.md`) |
+| Engine refactoring batches complete | 5 of 6 |
+| Flagged implemented this phase | 50 (Engine Batches 1–5) |
+| Flagged entries remaining | **10** (in `docs/POKEMON_MASTER_LIST.md`) |
 | Tests | **215 passing** |
+
+---
+
+## Last Session — 2026-05-08 (Engine Batch 5)
+
+### Current Phase Progress
+
+**Completed this session:** Engine Batch 5 = **10 cards implemented** (+ 1 true skip).
+
+**Engine changes (Batch 5):**
+- `backend/app/engine/effects/abilities.py` — Added `_flustered_leap` (Misty's Psyduck: bench → discard deck bottom + put Psyduck on deck top); added `_lustrous_assist` (Latios: when Mega Latias ex moves bench→active, move energy from bench to active); added conditions in `actions.py`
+- `backend/app/engine/effects/trainers.py` — Replaced stubs: `_redeemable_ticket` (sv09-156: shuffle prizes into deck bottom, take new from top); `_ogres_mask` (sv08.5-118: swap Ogerpon ex discard↔in-play with full state transfer); `_tyme` (sv08-190: Pokémon HP guessing game → coin flip draw 4); `_lt_surges_bargain` (me01-120: opponent yes/no → mutual prize or draw 4); `_energy_swatter` (me03-073: pick energy from opp hand → bottom of their deck); `_wallys_compassion` (me01-132: heal Mega ex + return energy to hand as new CardInstances)
+- `backend/app/engine/effects/attacks.py` — Replaced `_energy_blender_flag` with `_energy_blender` (sv05-131 Delcatty: 110 + optional energy redistribution via ChoiceRequests)
+- `backend/app/engine/transitions.py` — Added Boomerang Energy (sv06-166) hook in `_attack`: count EnergyAttachments before/after `resolve_attack`, re-add any that were discarded
+
+**Batch 5 cards implemented:**
+- `sv10-045` Misty's Psyduck DRI — Flustered Leap: bench → discard deck bottom + return Psyduck to deck top
+- `sv09-156` Redeemable Ticket JTG — Trainer: shuffle prizes to deck bottom, take same count from top
+- `sv08.5-118` Ogre's Mask PRE — Trainer: swap Ogerpon ex in discard with in-play Ogerpon ex, transfer all state
+- `sv08-190` Tyme SSP — Trainer: pick Pokémon from hand, coin flip → winner draws 4
+- `sv06-166` Boomerang Energy TWM — Special Energy (C): re-attach after own attacker's attack discards it
+- `me01-120` Lt. Surge's Bargain MEG — Supporter: opponent yes/no → both take prize, or player draws 4
+- `me03-073` Energy Swatter POR — Item: choose energy from opponent's hand → bottom of their deck
+- `me01-132` Wally's Compassion MEG — Supporter: heal 1 Mega ex; if healed, return all energy to hand
+- `me01-101` Latios MEG — Lustrous Assist: move bench energy to Mega Latias ex when it activates
+- `sv05-131` Delcatty TEF — Energy Blender atk1: 110 + optional energy redistribution among your Pokémon
+
+**True skip (1):**
+- `sv08-188` TM: Fluorite SSP — TM attack framework not implemented; no Tera Pokémon in pool; `_noop` retained
+
+**Remaining:** 10 flagged entries in `docs/POKEMON_MASTER_LIST.md` (all require deep engine changes: dual typing, attack-effect prevention hooks, deck-scan attack execution, prior-form attacks, prize zone manipulation).
+
+**Next:** Engine Batch 6 — Final 10 flagged entries (all hard/skip cases); will assess each for feasibility.
 
 ---
 
