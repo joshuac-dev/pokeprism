@@ -474,6 +474,7 @@ def _tarragon(state: GameState, action):
             player.hand.append(card)
 
     state.emit_event("tarragon", player=player_id, count=len(chosen_ids[:4]))
+    state.get_player(player_id).tarragon_played_this_turn = True
 
 
 def _judge(state: GameState, action) -> None:
@@ -4240,6 +4241,50 @@ def _janines_secret_art_sfa_b19(state: GameState, action):
 # ──────────────────────────────────────────────────────────────────────────────
 
 
+def _handheld_fan(state: GameState, action):
+    """Handheld Fan (sv06-150) — Item
+
+    Discard 1 card from your hand. Heal 90 damage from your Active Pokémon.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.hand or not player.active:
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Handheld Fan: choose 1 card from your hand to discard",
+        cards=list(player.hand), min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [player.hand[0].instance_id])
+    for iid in chosen_ids[:1]:
+        card = next((c for c in player.hand if c.instance_id == iid), None)
+        if card:
+            player.hand.remove(card)
+            card.zone = Zone.DISCARD
+            player.discard.append(card)
+    heal = min(90, player.active.damage_counters * 10)
+    counters = min(9, player.active.damage_counters)
+    player.active.damage_counters -= counters
+    player.active.current_hp = min(player.active.max_hp, player.active.current_hp + heal)
+    state.emit_event("heal", player=player_id, card=player.active.card_name,
+                     amount=heal, source="Handheld Fan")
+
+
+def _jasmine_gaze(state: GameState, action):
+    """Jasmine's Gaze (sv08-178) — Supporter
+
+    During your opponent's next turn, your Active Pokémon takes 30 less damage.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if player.active:
+        player.active.incoming_damage_reduction += 30
+        state.emit_event("jasmine_gaze", player=player_id,
+                         card=player.active.card_name, reduction=30)
+
+
 def _accompanying_flute_b20(state: GameState, action):
     """Accompanying Flute (sv06-142) — Item
 
@@ -4889,7 +4934,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv09-156", _noop)   # Redeemable Ticket (prize zone manipulation — flagged)
     registry.register_trainer("sv08.5-093", _noop) # Amarys (end-of-turn trigger — flagged)
     registry.register_trainer("sv08.5-118", _noop) # Ogre's Mask (Pokémon swap w/ full state transfer — flagged)
-    registry.register_trainer("sv08-178", _noop)   # Jasmine's Gaze (cross-turn damage reduction — flagged)
+    registry.register_trainer("sv08-178", _jasmine_gaze)   # Jasmine's Gaze (damage reduction next turn)
     registry.register_trainer("sv08-188", _noop)   # TM: Fluorite (Tera-wide full heal TM — flagged)
     registry.register_trainer("sv08-190", _noop)   # Tyme (interactive guessing game — flagged)
     registry.register_trainer("sv06.5-063", _noop) # Powerglass (end-of-turn trigger tool — flagged)
@@ -4916,7 +4961,7 @@ def register_all(registry: EffectRegistry) -> None:
 
     # Flagged — complex effects not yet modelled in engine
     registry.register_trainer("sv06-146", _noop)   # Community Center (Caretaker synergy — flagged)
-    registry.register_trainer("sv06-150", _noop)   # Handheld Fan (hand discard to heal — flagged)
+    registry.register_trainer("sv06-150", _handheld_fan)   # Handheld Fan (discard card → heal 90)
     registry.register_trainer("sv06-157", _noop)   # Lucian (draw + energy return — flagged)
     registry.register_trainer("sv06-158", _noop)   # Lucky Helmet (damage trigger — flagged)
     registry.register_trainer("sv05-148", _noop)   # Full Metal Lab (Pokémon Tool protection — flagged)

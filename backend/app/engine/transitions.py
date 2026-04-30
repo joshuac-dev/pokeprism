@@ -481,6 +481,24 @@ async def _attack(state: GameState, action: Action, get_player=None) -> GameStat
         attack_index=action.attack_index,
     )
 
+    # Sand Attack: defender must flip coin; tails = this attack fails
+    if player.active and player.active.attack_requires_flip:
+        import random as _rnd_sand
+        player.active.attack_requires_flip = False
+        if not _rnd_sand.choice([True, False]):  # tails
+            state.emit_event("sand_attack_blocked", player=action.player_id,
+                             attacker=player.active.card_name,
+                             attack_name=attack_name)
+            return state
+
+    # Torment: check if this Pokémon is blocked from using this specific attack
+    if player.active and player.active.torment_blocked_attack_name:
+        if attack_name == player.active.torment_blocked_attack_name:
+            player.active.torment_blocked_attack_name = None
+            state.emit_event("torment_blocked", player=action.player_id,
+                             attacker=player.active.card_name, attack=attack_name)
+            return state
+
     result = await EffectRegistry.instance().resolve_attack(
         player.active.card_def_id,
         action.attack_index or 0,

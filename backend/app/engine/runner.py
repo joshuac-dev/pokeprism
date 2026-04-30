@@ -423,6 +423,7 @@ class MatchRunner:
             player.retreat_used_this_turn = False
             player.tr_supporter_played_this_turn = False
             player.items_locked_this_turn = False
+            player.tarragon_played_this_turn = False
             if player.active:
                 player.active.retreated_this_turn = False
                 player.active.ability_used_this_turn = False
@@ -440,6 +441,9 @@ class MatchRunner:
                 player.active.prevent_damage_from_basic = False
                 player.active.prevent_damage_threshold = 0
                 player.active.no_weakness_one_turn = False
+                player.active.attack_requires_flip = False
+                player.active.torment_blocked_attack_name = None
+                player.active.retaliation_on_damage = False
                 # Discard energy cards flagged for end-of-turn removal (Ignition Energy)
                 self._discard_expiring_energy(state, player.active)
             for b in player.bench:
@@ -455,6 +459,9 @@ class MatchRunner:
                 b.prevent_damage_from_basic = False
                 b.prevent_damage_threshold = 0
                 b.no_weakness_one_turn = False
+                b.attack_requires_flip = False
+                b.torment_blocked_attack_name = None
+                b.retaliation_on_damage = False
                 self._discard_expiring_energy(state, b)
 
         state.active_player_damage_bonus = 0
@@ -462,6 +469,8 @@ class MatchRunner:
         state.briar_active = False
         state.sunny_day_active = False
         state.force_end_turn = False
+        # Clear Retaliate window for the player whose turn just ended
+        state.get_player(state.active_player).ko_taken_last_turn = False
         state.active_player = state.opponent_id(state.active_player)
         state.turn_number += 1
         state.phase = Phase.DRAW

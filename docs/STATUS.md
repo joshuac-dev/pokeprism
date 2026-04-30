@@ -4,19 +4,80 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-**Card Pool Expansion — COMPLETE** ✅
+**Flagged Card Implementation — In Progress** 🔄
 
-All 13 phases complete. Card pool expansion from 206 → 1,927 cards is fully complete. All processable Standard-format cards from `docs/POKEMON_MASTER_LIST.md` have been inserted. Only the `FLAGGED_CARDS` section remains (cards requiring engine features not yet implemented).
+All 20 card expansion batches complete (1,927 cards in DB). Now implementing flagged cards (complex mechanics skipped during expansion). Batches 1, 2, and 3 complete — 178 flagged entries remain.
 
 | Metric | Value |
 |--------|-------|
 | Cards in DB | 1927 |
-| Coverage | **98.5%** (29 missing — all legitimately flagged Pokémon attacks) |
-| Batches complete | 20 (Batches 1–20, FINAL) |
-| Processable cards remaining | **0** — expansion complete |
-| Flagged cards (cumulative) | **254 entries** — see `FLAGGED_CARDS` section of `POKEMON_MASTER_LIST.md` |
+| Coverage | **98.5%** (29 missing) |
+| Flagged batches complete | 3 of ~9 (178 entries remain) |
+| Flagged implemented | 76 (Batch 1: 26 + Batch 2: 25 + Batch 3: 25) |
 
-## Last Session — 2026-04-30 (Card Pool Expansion: Batch 20 — FINAL)
+## Last Session — Flagged Card Implementation: Batch 3
+
+### What Was Done
+
+**Batch 3** (25 flagged cards implemented):
+
+**abilities.py — New handlers:**
+- `_cursed_blast_sfa` / `_cursed_blast_dusclops_sfa` / `_cursed_blast_dusknoir_sfa` (sv06.5-019/020): once-per-turn place N damage counters on any opp Pokémon (no self-KO)
+- `_attract_customers` (sv06-131, svp-118 Tatsugiri): look at top 3 of deck, choose 1 to hand, shuffle rest
+- `_run_errand` (mep-025 Mega Kangaskhan ex): once per turn draw 2 cards when Active
+
+**Upgraded from passive stubs to active abilities:**
+- sv06.5-019 Dusclops SFA — Cursed Blast (5 counters, once per turn)
+- sv06.5-020 Dusknoir SFA — Cursed Blast (13 counters, once per turn)
+- sv06-131 Tatsugiri — Attract Customers
+- svp-118 Tatsugiri alt — Attract Customers (alt print)
+- mep-025 Mega Kangaskhan ex — Run Errand
+
+**attacks.py — New handlers (21 attack cards + fix):**
+- `_come_and_get_you_flag` fixed: forced gust + default damage (sv06.5-018 Duskull)
+- `_syrup_catcher_b3` (sv06-127 Dipplin): force-switch opp bench + 70 damage
+- `_pull_drifloon_b3` (mep-005 Drifloon): coin-flip forced gust (heads)
+- `_minor_errand_running_b3` (sv06-087 Floette): search 1 basic energy to hand
+- `_charge_energy_ponyta_b3` (sv05-026 Ponyta): search 1 basic energy to hand
+- `_mountain_stroll_b3` (svp-123 Ogerpon): search up to 2 basic energy to hand
+- `_pluck_off_zarude_b3` (svp-199 Zarude): search up to 3 basic {G} energy to hand
+- `_scoop_water_b3` (svp-155 Wooper): shuffle up to 3 basic {W} energy from discard into deck
+- `_collateral_bolts_b3` (sv05-052 Raichu): 50 to all Pokémon with damage counters (W/R for active only)
+- `_hex_hurl_b3` (sv05-078 Flutter Mane TEF): place 2 counters on opp bench in any way
+- `_damage_collection_b3` (sv05-107 Sableye): move all counters from opp bench to opp active
+- `_perplexing_transfer_b3` (sv08-096 Flutter Mane SSP): move all counters from opp bench to opp active
+- `_tricolor_pump_b3` (sv05-060 Wugtrio ex): discard up to 3 energy from hand; 60 dmg per energy to any target
+- `_drenched_headbutt_b3` (svp-156 Quagsire): discard top 3 deck; +80 per energy discarded
+- `_rocket_mirror_b3` (svp-203 TR Wobbuffet): move all counters from 1 benched TR Pokémon to opp active
+- `_wheel_pass_b3` (sv05-118 Iron Treads): move 1 energy from active to bench
+- `_hurricane_tornadus_b3` (svp-210 Tornadus): move 1 basic energy from active to bench
+- `_cross_breaker_b3` (sv05-111 Scizor ex): discard up to 2 Metal energy; +120 per discarded
+- `_erasure_ball_b3` (svp-205 TR Mewtwo ex): discard up to 2 energy from bench Pokémon; +60 per discarded
+- `_angelite_b3` (sv08.5-041 Sylveon ex): bounce up to 2 opp bench Pokémon to deck (full reset)
+- `_nab_n_dash_b3` (svp-188 Scrafty): search deck for cards up to own bench count
+
+**Shared helpers added:**
+- `_search_basic_energy_to_hand()` — reused by Floette, Ponyta, Ogerpon, Zarude
+- `_move_bench_counters_to_active()` — reused by Sableye, Flutter Mane SSP
+- `_move_energy_active_to_bench()` — reused by Iron Treads, Tornadus
+
+**Bug fix:**
+- `__init__.py`: Removed non-existent `register_flagged_batch2_attacks` call — batch 2 registrations live inside `register_flagged_batch3_attacks`
+
+### Final Baseline This Session
+- **215 backend tests pass**
+- **1927 cards in DB**
+- **Coverage: 98.5%** (29 missing — all legitimately flagged Pokémon attack handlers)
+- **178 flagged entries remain** in `POKEMON_MASTER_LIST.md`
+
+### Notes for Next Session
+Next batch starts from the top of `docs/POKEMON_MASTER_LIST.md` FLAGGED_CARDS section.
+- 178 entries remain across all flag categories
+- Engine is solid — most remaining flagged cards use patterns already established
+
+---
+
+## Previous Session — 2026-04-30 (Card Pool Expansion: Batch 20 — FINAL)
 
 ### What Was Done
 

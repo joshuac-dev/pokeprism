@@ -132,6 +132,9 @@ class CardInstance:
     double_poison: bool = False                           # Crobat SFA Poison Fang: 2 counters/turn instead of 1
     prevent_damage_threshold: int = 0                    # Harden (sv09-002): prevent damage ≤ threshold next turn
     no_weakness_one_turn: bool = False                    # Metal Defender (sv08-130): no Weakness during opp's next turn
+    attack_requires_flip: bool = False                    # Sand Attack: must flip coin to attack next turn (tails = fail)
+    torment_blocked_attack_name: Optional[str] = None     # Pangoro Torment: this attack name is blocked next turn
+    retaliation_on_damage: bool = False                   # Zamazenta Strong Bash: reflect incoming damage back to attacker
 
     # Energy-card-specific ─────────────────────────────────────────────────────
     # Populated from CardDefinition.energy_provides at deck-build time.
@@ -161,6 +164,8 @@ class PlayerState:
     vstar_used: bool = False
     items_locked_this_turn: bool = False  # Set by Budew's "Stun Spore" attack
     tr_supporter_played_this_turn: bool = False  # For Team Rocket's Factory stadium
+    ko_taken_last_turn: bool = False      # One of my Pokémon was KO'd during opponent's last turn (Retaliate)
+    tarragon_played_this_turn: bool = False  # Hippowdon Twister Spewing: Tarragon was played this turn
 
 
 @dataclass

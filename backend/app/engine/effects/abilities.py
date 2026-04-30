@@ -1011,7 +1011,96 @@ def _cursed_blast_dusknoir(state: GameState, action):
     yield from _cursed_blast(state, action, counters=13)
 
 
-# Seething Spirit (sv09-024 Blaziken ex) ──────────────────────────────────────
+# Cursed Blast SFA (sv06.5-019/020) — once-per-turn, no self-KO ──────────────
+
+def _cursed_blast_sfa(state: GameState, action, counters: int):
+    """Place N damage counters on any of opponent's Pokémon, once per turn."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    poke = _find_in_play(player, action.card_instance_id)
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    opp_targets = _in_play(opp)
+    if not opp_targets:
+        return
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        f"Cursed Blast: place {counters} damage counters on 1 of your opponent's Pokémon.",
+        targets=opp_targets,
+    )
+    resp = yield req
+    target = None
+    if resp and resp.target_instance_id:
+        target = next((p for p in opp_targets if p.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = min(opp_targets, key=lambda p: p.current_hp)
+    target.damage_counters += counters
+    target.current_hp = max(0, target.current_hp - counters * 10)
+    if poke:
+        poke.ability_used_this_turn = True
+    state.emit_event("cursed_blast_sfa", player=player_id,
+                     target=target.card_name, counters=counters)
+    check_ko(state, target, opp_id)
+
+
+def _cursed_blast_dusclops_sfa(state: GameState, action):
+    """sv06.5-019 Dusclops SFA — Cursed Blast: once per turn, 5 damage counters on opp Pokémon."""
+    yield from _cursed_blast_sfa(state, action, counters=5)
+
+
+def _cursed_blast_dusknoir_sfa(state: GameState, action):
+    """sv06.5-020 Dusknoir SFA — Cursed Blast: once per turn, 13 damage counters on opp Pokémon."""
+    yield from _cursed_blast_sfa(state, action, counters=13)
+
+
+# Attract Customers (sv06-131 Tatsugiri) ─────────────────────────────────────
+
+def _attract_customers(state: GameState, action):
+    """sv06-131 Tatsugiri — Attract Customers: look at top 3 cards, choose 1 to put in hand."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    poke = _find_in_play(player, action.card_instance_id)
+    top3 = player.deck[:3]
+    if not top3:
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Attract Customers: look at top 3 cards of your deck and choose 1 to put into your hand.",
+        cards=top3, min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else [top3[0].instance_id]
+    chosen_id = chosen_ids[0] if chosen_ids else top3[0].instance_id
+    card = next((c for c in player.deck if c.instance_id == chosen_id and c in top3), top3[0])
+    player.deck.remove(card)
+    card.zone = Zone.HAND
+    player.hand.append(card)
+    random.shuffle(player.deck)
+    if poke:
+        poke.ability_used_this_turn = True
+    state.emit_event("attract_customers", player=player_id, card=card.card_name)
+
+
+# Run Errand (mep-025 Mega Kangaskhan ex) ─────────────────────────────────────
+
+def _run_errand(state: GameState, action):
+    """mep-025 Mega Kangaskhan ex — Run Errand: once per turn, draw 2 cards."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    poke = _find_in_play(player, action.card_instance_id)
+    drawn = 0
+    for _ in range(2):
+        if player.deck:
+            card = player.deck.pop(0)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+            drawn += 1
+    if poke:
+        poke.ability_used_this_turn = True
+    state.emit_event("run_errand", player=player_id, drawn=drawn)
+
+
+
 
 def _seething_spirit(state: GameState, action):
     """Attach 1 Basic Energy from discard pile to 1 of your Pokémon."""
@@ -3927,9 +4016,9 @@ def register_all(registry):
     # FLAGGED passives (complex trigger not implemented; stubs registered for coverage)
     registry.register_passive_ability("sv07-067", "Time to Chow Down")      # Dachsbun ex (on-evolve heal: noop)
     registry.register_passive_ability("sv07-076", "Wide Wall")              # Rhyperior (damage reduction while Active: noop)
-    registry.register_passive_ability("sv06.5-002", "Compound Eyes")        # Galvantula (attack +50 vs Active: noop)
-    registry.register_passive_ability("sv06.5-019", "Cursed Blast")         # Dusclops (once-per-turn 5 counters: noop)
-    registry.register_passive_ability("sv06.5-020", "Cursed Blast")         # Dusknoir (once-per-turn 13 counters: noop)
+    registry.register_passive_ability("sv06.5-002", "Compound Eyes")        # Galvantula (+50 to all own attacks vs Active: implemented in _apply_damage)
+    registry.register_ability("sv06.5-019", "Cursed Blast", _cursed_blast_dusclops_sfa)
+    registry.register_ability("sv06.5-020", "Cursed Blast", _cursed_blast_dusknoir_sfa)
     registry.register_passive_ability("sv06.5-025", "Battle-Hardened")      # Bloodmoon Ursaluna (on-play bench trigger: noop)
     registry.register_passive_ability("sv06.5-029", "Shadowy Envoy")        # Crobat (conditional on Janine's Secret Art: noop)
 
@@ -3947,7 +4036,7 @@ def register_all(registry):
     registry.register_passive_ability("sv07-107", "Metal Bridge")           # Archaludon (retreat cost: noop)
     registry.register_passive_ability("sv07-110", "Pummeling Payback")      # Orthworm ex (counter-damage: noop)
     registry.register_passive_ability("sv07-115", "Jewel Seeker")           # Noctowl (on-evolve: noop)
-    registry.register_passive_ability("sv07-119", "Curly Wall")             # Bouffalant (damage reduction: noop)
+    registry.register_passive_ability("sv07-119", "Curly Wall")             # Bouffalant (-20 bench damage: implemented in _apply_bench_damage)
     registry.register_passive_ability("sv07-125", "Soft Wool")              # Dubwool (damage reduction: noop)
 
     # Passive stubs for Batch 14: SFA sv06.5-035..053
@@ -3977,7 +4066,7 @@ def register_all(registry):
     registry.register_passive_ability("sv06-088", "Captivating Invitation") # Florges (flip force switch: flag)
     registry.register_passive_ability("sv06-089", "Festival Lead")          # Swirlix (stadium double attack: noop)
     registry.register_passive_ability("sv06-123", "Incandescent Body")      # Heatran (damage redirect: noop)
-    registry.register_passive_ability("sv06-131", "Attract Customers")      # Tatsugiri (top deck look: flag)
+    registry.register_ability("sv06-131", "Attract Customers", _attract_customers)    # Tatsugiri
     registry.register_passive_ability("sv06-132", "Impromptu Carrier")      # Farfetch'd (on-play item attach: flag)
     registry.register_passive_ability("sv06-134", "Happy Switch")           # Blissey ex (energy move: flag)
     registry.register_passive_ability("sv06-138", "Wicked Tail")            # Ambipom (on-bench damage: noop)
@@ -4014,7 +4103,7 @@ def register_all(registry):
 
     registry.register_passive_ability("mep-013", "Solar Transfer")          # Mega Venusaur ex (heal on energy attach: noop)
     registry.register_passive_ability("mep-016", "Sandy Flapping")          # Flygon (protect from attacks if low hp: noop)
-    registry.register_passive_ability("mep-025", "Run Errand")              # Mega Kangaskhan ex (on-bench search energy: noop)
+    registry.register_ability("mep-025", "Run Errand", _run_errand)                   # Mega Kangaskhan ex
 
     # New SVP passives
     registry.register_passive_ability("svp-089", "Torrential Heart")        # Feraligatr (on-attach energy from discard: noop)
@@ -4031,7 +4120,7 @@ def register_all(registry):
     registry.register_passive_ability("svp-097", "Midnight Fluttering")     # Flutter Mane (sv05-078 alt)
     registry.register_passive_ability("svp-115", "Boom Boom Groove")        # Thwackey (sv06-015 alt)
     registry.register_passive_ability("svp-116", "Pyro Dance")              # Infernape (sv06-033 alt)
-    registry.register_passive_ability("svp-118", "Attract Customers")       # Tatsugiri (sv06-131 alt)
+    registry.register_ability("svp-118", "Attract Customers", _attract_customers)     # Tatsugiri alt print
     registry.register_passive_ability("svp-126", "Hero's Spirit")           # Palafin ex (sv06-061 alt)
     registry.register_passive_ability("svp-127", "Azure Seas")              # Walking Wake ex (sv05-050 alt)
     registry.register_passive_ability("svp-128", "Rapid Vernier")           # Iron Leaves ex (on-play bench: noop)

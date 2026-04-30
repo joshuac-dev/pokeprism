@@ -228,6 +228,9 @@ def check_ko(
     attacker_id = state.opponent_id(target_player_id)
     attacker_player = state.get_player(attacker_id)
 
+    # Track that this player had a Pokémon KO'd (for Retaliate effects)
+    target_player.ko_taken_last_turn = True
+
     # Determine prize count
     cdef = card_registry.get(target.card_def_id)
     prizes_to_take = cdef.prize_value if cdef else 1
