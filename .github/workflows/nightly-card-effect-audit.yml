@@ -3,24 +3,16 @@ name: Nightly Copilot Card Effect Fixes
 on:
   schedule:
     # GitHub Actions cron is UTC.
-    # 08:07 UTC = 3:07 AM EST / 4:07 AM EDT.
+    # 08:07 UTC = 3:07 AM EST.
+    # During EDT this will run at 4:07 AM Eastern unless adjusted to 07:07 UTC.
     - cron: "7 8 * * *"
 
   workflow_dispatch:
     inputs:
-      target_findings:
-        description: "Hard target: Copilot should keep auditing until this many findings are fixed/documented unless the full card list is exhausted"
+      max_findings:
+        description: "Maximum findings Copilot should audit/fix in one run"
         required: false
         default: "25"
-      start_after_card:
-        description: "Optional resume cursor, e.g. 'Cyrano sv08-170'. Leave blank to start at the top alphabetically."
-        required: false
-        default: ""
-      force_new_issue:
-        description: "Create a new issue even if today's scheduled issue already exists"
-        required: false
-        type: boolean
-        default: false
       copilot_model:
         description: "Optional Copilot coding agent model. Leave blank to use Auto."
         required: false
@@ -43,36 +35,23 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.COPILOT_AGENT_PAT }}
           GH_REPO: ${{ github.repository }}
-          TARGET_FINDINGS: ${{ inputs.target_findings || '25' }}
-          START_AFTER_CARD: ${{ inputs.start_after_card || '' }}
-          FORCE_NEW_ISSUE: ${{ inputs.force_new_issue || 'false' }}
+          MAX_FINDINGS: ${{ inputs.max_findings || '25' }}
           COPILOT_MODEL: ${{ inputs.copilot_model || '' }}
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-          GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: |
           set -euo pipefail
 
           DATE_UTC="$(date -u +%Y-%m-%d)"
-          TITLE_BASE="Nightly card effect implementation fixes - ${DATE_UTC}"
+          TITLE="Nightly card effect implementation fixes - ${DATE_UTC}"
 
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && { [ "$FORCE_NEW_ISSUE" = "true" ] || [ -n "$START_AFTER_CARD" ]; }; then
-            TITLE="${TITLE_BASE} - manual run ${GITHUB_RUN_NUMBER}"
-          else
-            TITLE="$TITLE_BASE"
-          fi
+          EXISTING="$(gh issue list \
+            --state open \
+            --search "${TITLE} in:title" \
+            --json number \
+            --jq '.[0].number // empty')"
 
-          if [ "$FORCE_NEW_ISSUE" != "true" ]; then
-            EXISTING="$(gh issue list \
-              --state open \
-              --search "${TITLE_BASE} in:title" \
-              --json number \
-              --jq '.[0].number // empty')"
-
-            if [ -n "$EXISTING" ]; then
-              echo "Issue already exists for ${DATE_UTC}: #${EXISTING}"
-              echo "Use workflow_dispatch with force_new_issue=true to create another run."
-              exit 0
-            fi
+          if [ -n "$EXISTING" ]; then
+            echo "Issue already exists for ${DATE_UTC}: #${EXISTING}"
+            exit 0
           fi
 
           gh label create card-effect-audit \
@@ -94,161 +73,112 @@ jobs:
           BODY_FILE="$(mktemp)"
 
           cat > "$BODY_FILE" <<EOF
-# CARD IMPLEMENTATION AUDIT AND FIX TASK
+          # CARD IMPLEMENTATION AUDIT AND FIX TASK
 
-This is a scheduled task for GitHub Copilot coding agent.
+          This is a scheduled task for GitHub Copilot coding agent.
 
-Audit card effect implementations in this repository against fresh TCGDex source data, then fix the card implementation bugs, errors, quality concerns, and engine gaps you find.
+          Audit card effect implementations in this repository against fresh TCGDex source data, then fix the card implementation bugs, errors, and quality concerns you find.
 
-Open a pull request with code changes, tests, and a short report summarizing what you audited and fixed.
+          Open a pull request with code changes, tests, and a short report summarizing what you audited and fixed.
 
-## Critical completion rule
+          ## Context
 
-Target findings for this run: **${TARGET_FINDINGS}**.
+          Read \`docs/CARD_EXPANSION_RULES.md\` for context on how cards should be implemented.
 
-Do **not** stop after the first coherent batch of fixes. Do **not** stop merely because tests are green. Do **not** stop after auditing a small alphabetical range if unexplored cards remain.
+          Treat TCGDex as the source of truth for card text. Always fetch fresh TCGDex data during the audit. Do not rely on cached fixture data as the source of truth.
 
-You may finish with a normal PR only when one of these is true:
+          ## Scope
 
-1. **TARGET REACHED:** You have fixed or documented at least **${TARGET_FINDINGS}** findings.
-2. **FULL LIST EXHAUSTED:** You audited the entire local card list/table and found fewer than **${TARGET_FINDINGS}** findings.
-3. **HARD BLOCKER:** A blocker prevents a reliable audit, such as inability to access TCGDex and no approved exact local source is available. If this happens, make the PR or issue comment clearly start with \`BLOCKED:\`, explain the blocker, include the next recommended action, and do not claim the audit is complete.
+          Audit cards from the local card list/table, starting from the top alphabetically by card name, then by set/id if names tie.
 
-If you have fewer than **${TARGET_FINDINGS}** findings and the full local card list is not exhausted, continue to the next card alphabetically.
+          Continue until either:
 
-## TCGDex source-of-truth rule
+          1. You find and address ${MAX_FINDINGS} effect implementation bugs, errors, quality concerns, or engine gaps, or
+          2. You get through the entire card list with fewer than ${MAX_FINDINGS} findings.
 
-Treat TCGDex as the source of truth for card text. Always fetch fresh TCGDex data during the audit. Do not rely on cached fixture data as the source of truth unless the repository contains an explicitly approved exact TCGDex snapshot with card IDs, set IDs, and fetch timestamp.
+          Finding zero is acceptable if factual. Do not invent bugs that do not exist.
 
-Before auditing the first card, run a TCGDex access preflight. Record the result in the PR report:
+          ## Implementation rules
 
-- \`TCGDEX_PREFLIGHT=ok\`
-- \`TCGDEX_PREFLIGHT=blocked\`
-- \`TCGDEX_PREFLIGHT=partial\`
+          - Treat every set/number combination as a unique card.
+          - Same card name does not imply same card behavior.
+          - Always fetch fresh TCGDex data for the card being audited.
+          - If TCGDex data cannot be fetched for a card, record it in the PR summary and continue.
+          - If a handler is missing and the effect is implementable with existing engine mechanics, add the handler and registration.
+          - If a handler exists but mismatches TCGDex, fix the handler logic and docstring/comment if needed.
+          - If tests exist for similar effects, add or update focused tests for the fix.
+          - If a correct fix requires new engine-level mechanics, implement the engine support if it is reasonably scoped.
+          - If an engine change is too large or risky for one PR, document it as an \`ENGINE GAP\` in the PR summary instead of making an unsafe partial fix.
+          - Do not perform broad unrelated refactors.
+          - Do not silently replace precise mechanics with approximate behavior.
+          - Prefer small, reviewable fixes.
 
-If TCGDex is blocked, do not guess. Either use an approved exact local source or mark the run blocked.
+          ## Checks
 
-## Context
+          For each card in the audited range:
 
-Read \`docs/CARD_EXPANSION_RULES.md\` for context on how cards should be implemented.
+          ### 1. Fetch fresh TCGDex data
 
-## Scope and cursor
+          Fetch the current card definition from TCGDex.
 
-Audit cards from the local card list/table, sorted alphabetically by card name, then by set/id if names tie.
+          ### 2. Compare attacks
 
-Start cursor: \`${START_AFTER_CARD:-START_OF_LIST}\`
+          For each attack:
 
-If \`Start cursor\` is not \`START_OF_LIST\`, resume with the first card after that card in sorted order.
+          - Does the attack have effect text in TCGDex?
+          - If yes, is there a registered handler in \`EffectRegistry\`?
+          - If there is a handler, does the handler's docstring/comment and logic match the TCGDex effect text?
 
-A finding means any implementation bug, effect mismatch, missing implementable handler, wrong registration, wrong condition, missing secondary effect, incorrect target, wrong damage/counter value, incorrect search/draw/discard/attach/switch/status/heal behavior, incorrect trainer/special-energy subtype behavior, or engine gap that prevents faithful implementation.
+          Check for:
 
-Registration comments count only if they can mislead implementation or review. Pure cosmetic comments should be fixed opportunistically but should not be counted toward the target.
+          - Wrong damage values
+          - Missing secondary effects
+          - Wrong conditions
+          - Missing coin flip mechanics
+          - Wrong target, such as bench vs active or self vs opponent
+          - Incorrect discard, draw, search, attach, switch, status, healing, or damage-counter behavior
 
-Finding zero is acceptable only if factual after the full list has been exhausted or the run is blocked. Do not invent bugs.
+          ### 3. Compare abilities
 
-## Implementation rules
+          For each ability:
 
-- Treat every set/number combination as a unique card.
-- Same card name does not imply same card behavior.
-- Always fetch fresh TCGDex data for the card being audited.
-- If TCGDex data cannot be fetched for an individual card, record it in the PR summary and continue only if other cards can still be checked reliably.
-- If a handler is missing and the effect is implementable with existing engine mechanics, add the handler and registration.
-- If a handler exists but mismatches TCGDex, fix the handler logic and docstring/comment if needed.
-- Add or update focused tests for changed behavior wherever practical.
-- Do not stop at “tests are green” if assertions are weak or missing; add targeted assertions for the fixed card effects.
-- If a correct fix requires new engine-level mechanics, implement the engine support if it is reasonably scoped.
-- If an engine change is too large or risky for one PR, document it as an \`ENGINE GAP\` and count it as a finding.
-- Do not perform broad unrelated refactors.
-- Do not silently replace precise mechanics with approximate behavior.
-- Prefer small, reviewable fixes, but continue auditing until the completion rule is satisfied.
+          - Does TCGDex list an ability for this card?
+          - Is it registered as active, passive, or otherwise handled?
+          - Does the implementation match the ability text?
 
-## Per-card audit checklist
+          ### 4. Check trainer effects
 
-For every audited card, record one ledger row in the PR body.
+          For trainer cards:
 
-Required ledger columns:
+          - Does the handler match the TCGDex effect text?
+          - Is it correctly categorized as item, supporter, stadium, tool, or other relevant trainer subtype?
 
-| # | Card | Set/ID | TCGDex fetch | Category | Effects checked | Result | Finding count contribution |
-|---|------|--------|--------------|----------|-----------------|--------|----------------------------|
+          ### 5. Check special energy effects
 
-Use these result values:
+          For special energy cards:
 
-- \`fixed\`
-- \`engine-gap\`
-- \`no-issue\`
-- \`source-unavailable\`
-- \`skipped-blocked\`
+          - Does the handler match the TCGDex effect text?
+          - Are provided energy type, amount, restrictions, and conditional behavior correct?
 
-## Checks
+          ## Pull request requirements
 
-For each card in the audited range:
+          Your PR should include:
 
-### 1. Fetch fresh TCGDex data
+          1. Code fixes for implementation bugs/errors/quality concerns that are safe to fix.
+          2. Tests for changed behavior where practical.
+          3. A PR summary containing:
+             - Cards audited: X
+             - Alphabetical range audited: A-D, or the actual range
+             - Bugs/errors/quality concerns fixed: Y
+             - Engine gaps left unfixed: Z
+             - TCGDex fetch warnings: N
+             - Cards with no issues: X
+          4. A list of every card/effect fixed, including what TCGDex says and what changed in the implementation.
 
-Fetch the current card definition from TCGDex and verify the card name, set, and number match the local implementation.
+          Suggested PR title:
 
-### 2. Compare attacks
-
-For each attack:
-
-- Does the attack have effect text in TCGDex?
-- If yes, is there a registered handler in \`EffectRegistry\`?
-- If there is a handler, does the handler's docstring/comment and logic match the TCGDex effect text?
-
-Check for:
-
-- Wrong damage values
-- Missing secondary effects
-- Wrong conditions
-- Missing coin flip mechanics
-- Wrong target, such as bench vs active or self vs opponent
-- Incorrect discard, draw, search, attach, switch, status, healing, or damage-counter behavior
-
-### 3. Compare abilities
-
-For each ability:
-
-- Does TCGDex list an ability for this card?
-- Is it registered as active, passive, or otherwise handled?
-- Does the implementation match the ability text?
-
-### 4. Check trainer effects
-
-For trainer cards:
-
-- Does the handler match the TCGDex effect text?
-- Is it correctly categorized as item, supporter, stadium, tool, or other relevant trainer subtype?
-
-### 5. Check special energy effects
-
-For special energy cards:
-
-- Does the handler match the TCGDex effect text?
-- Are provided energy type, amount, restrictions, and conditional behavior correct?
-
-## Pull request requirements
-
-Your PR must include:
-
-1. Code fixes for implementation bugs/errors/quality concerns that are safe to fix.
-2. Tests for changed behavior where practical, with meaningful assertions.
-3. A PR summary containing:
-   - Target findings: ${TARGET_FINDINGS}
-   - Completion status: TARGET_REACHED, FULL_LIST_EXHAUSTED, or BLOCKED
-   - Cards audited: X
-   - Alphabetical range audited: A-D, or the actual range
-   - Bugs/errors/quality concerns fixed: Y
-   - Engine gaps left unfixed: Z
-   - TCGDex fetch warnings: N
-   - Cards with no issues: X
-   - Next card cursor if continuation is needed: card name + set/id
-4. A list of every card/effect fixed, including what TCGDex says and what changed in the implementation.
-5. The per-card audit ledger described above.
-
-Suggested PR title:
-
-\`Nightly card effect implementation fixes - ${DATE_UTC}\`
-EOF
+          \`Nightly card effect implementation fixes - ${DATE_UTC}\`
+          EOF
 
           ISSUE_JSON="$(
             jq -n \
@@ -256,7 +186,6 @@ EOF
               --rawfile body "$BODY_FILE" \
               --arg repo "$GH_REPO" \
               --arg model "$COPILOT_MODEL" \
-              --arg target "$TARGET_FINDINGS" \
               '{
                 title: $title,
                 body: $body,
@@ -265,13 +194,7 @@ EOF
                 agent_assignment: {
                   target_repo: $repo,
                   base_branch: "main",
-                  custom_instructions: (
-                    "Hard completion rule: do not finish with a normal PR until at least " + $target +
-                    " card-effect findings are fixed/documented, or the full local card list is exhausted. " +
-                    "If fewer than target findings are found and unexplored cards remain, continue scanning alphabetically. " +
-                    "Run a TCGDex access preflight; if TCGDex is blocked and no approved exact local source exists, mark the run BLOCKED and do not claim fresh TCGDex validation. " +
-                    "Include a per-card audit ledger, meaningful tests for changed behavior, and a next-card cursor if continuation is needed."
-                  ),
+                  custom_instructions: "Audit card effect implementations against fresh TCGDex data and fix implementation bugs/errors/quality concerns. Keep changes focused and include tests where practical.",
                   custom_agent: "",
                   model: $model
                 }
