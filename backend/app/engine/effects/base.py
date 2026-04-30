@@ -152,6 +152,11 @@ def apply_weakness_resistance(
         ):
             damage = int(damage * 2)
 
+    # Double Type (sv08-037 Scovillain ex): is also Fire type → Water ×2 weakness
+    if defender.card_def_id == "sv08-037" and not weakness_applied:
+        if "water" in attacker_types:
+            damage = int(damage * 2)
+
     if not skip_resistance:
         # Resistance − value
         for resistance in defender_def.resistances:

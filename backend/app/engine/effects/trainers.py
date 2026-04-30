@@ -69,6 +69,12 @@ def _switch_active_with_bench(player, bench_poke) -> None:
     player.bench.append(old_active)
 
 
+def _has_snow_camouflage(pokemon) -> bool:
+    """Return True if this Pokémon has the Snow Camouflage ability (sv10-065 Cetitan ex)."""
+    cdef = card_registry.get(pokemon.card_def_id)
+    return bool(cdef and any(ab.name == "Snow Camouflage" for ab in (cdef.abilities or [])))
+
+
 def _is_basic_energy_cdef(cdef) -> bool:
     """True if a CardDefinition represents a basic energy card."""
     if cdef is None:
@@ -306,6 +312,10 @@ def _bosss_orders(state: GameState, action):
     else:
         target = opp.bench[0]
     if target:
+        if _has_snow_camouflage(target):
+            state.emit_event("snow_camouflage_blocked", player=opp_id,
+                             card=target.card_name, blocked_by="Boss's Orders")
+            return
         _switch_active_with_bench(opp, target)
         state.emit_event("boss_orders", player=player_id,
                          forced_active=target.card_name)
@@ -1271,8 +1281,12 @@ def _tr_giovanni(state: GameState, action):
         else:
             opp_target = opp.bench[0]
         if opp_target:
-            _switch_active_with_bench(opp, opp_target)
-            state.emit_event("giovanni_opp_switch", player=player_id,
+            if _has_snow_camouflage(opp_target):
+                state.emit_event("snow_camouflage_blocked", player=opp_id,
+                                 card=opp_target.card_name, blocked_by="Giovanni")
+            else:
+                _switch_active_with_bench(opp, opp_target)
+                state.emit_event("giovanni_opp_switch", player=player_id,
                              forced_active=opp_target.card_name)
 
     _mark_tr_supporter(state, player_id)
@@ -1950,9 +1964,13 @@ def _prime_catcher(state: GameState, action):
         else:
             opp_target = opp.bench[0]
         if opp_target:
-            _switch_active_with_bench(opp, opp_target)
-            state.emit_event("prime_catcher_opp_switch", player=player_id,
-                             forced_active=opp_target.card_name)
+            if _has_snow_camouflage(opp_target):
+                state.emit_event("snow_camouflage_blocked", player=opp_id,
+                                 card=opp_target.card_name, blocked_by="Prime Catcher")
+            else:
+                _switch_active_with_bench(opp, opp_target)
+                state.emit_event("prime_catcher_opp_switch", player=player_id,
+                                 forced_active=opp_target.card_name)
 
     # Player bench switch
     if player.bench:
@@ -2706,6 +2724,10 @@ def _pokemon_catcher_b18(state: GameState, action):
         target = opp.bench[0]
 
     if target:
+        if _has_snow_camouflage(target):
+            state.emit_event("snow_camouflage_blocked", player=opp_id,
+                             card=target.card_name, blocked_by="Pokémon Catcher")
+            return
         _switch_active_with_bench(opp, target)
         state.emit_event("pokemon_catcher", player=player_id, forced_active=target.card_name)
 
@@ -3148,6 +3170,10 @@ def _repel_b18(state: GameState, action):
         target = opp.bench[0]
 
     if target:
+        if _has_snow_camouflage(target):
+            state.emit_event("snow_camouflage_blocked", player=opp_id,
+                             card=target.card_name, blocked_by="Repel")
+            return
         _switch_active_with_bench(opp, target)
         state.emit_event("repel", player=player_id, new_active=target.card_name)
 
@@ -4139,6 +4165,10 @@ def _lisias_appeal_b19(state: GameState, action):
     else:
         target = basic_bench[0]
     if target:
+        if _has_snow_camouflage(target):
+            state.emit_event("snow_camouflage_blocked", player=opp_id,
+                             card=target.card_name, blocked_by="Lisia's Appeal")
+            return
         _switch_active_with_bench(opp, target)
         target.status_conditions.add(StatusCondition.CONFUSED)
         state.emit_event("gust", player=player_id, new_opp_active=target.card_name,
@@ -5063,6 +5093,71 @@ def _tyme(state: GameState, action):
                          card=chosen.card_name)
 
 
+def _bother_bot(state: GameState, action):
+    """sv10-172 Team Rocket's Bother-Bot — Item.
+
+    Turn 1 of your opponent's face-down Prize cards face up.
+    Choose a random card from your opponent's hand, opponent reveals it.
+    You may have your opponent switch that card with the face-up Prize card.
+    """
+    import random as _rnd_bb
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+
+    prizes_remaining = opp.prizes_remaining
+    if prizes_remaining == 0:
+        state.emit_event("bother_bot_no_prizes", player=player_id)
+        return
+
+    # Flip one face-down prize face up
+    face_down_indices = [i for i in range(prizes_remaining)
+                         if i not in opp.face_up_prize_indices]
+    if not face_down_indices:
+        state.emit_event("bother_bot_all_prizes_up", player=player_id)
+        chosen_prize_idx = None
+    else:
+        chosen_prize_idx = _rnd_bb.choice(face_down_indices)
+        opp.face_up_prize_indices.append(chosen_prize_idx)
+        state.emit_event("bother_bot_prize_revealed", player=player_id,
+                         prize_index=chosen_prize_idx)
+
+    # Reveal random card from opp's hand
+    if not opp.hand:
+        return
+    revealed_card = _rnd_bb.choice(opp.hand)
+    state.emit_event("bother_bot_hand_revealed", player=player_id,
+                     revealed_card=revealed_card.card_name,
+                     revealed_id=revealed_card.card_def_id)
+
+    if chosen_prize_idx is None:
+        return
+
+    # Player may choose to swap
+    req = ChoiceRequest(
+        "choose_option", player_id,
+        "Bother-Bot: swap the face-up Prize card with the revealed hand card?",
+        options=["Yes, swap", "No, keep as is"],
+    )
+    resp = yield req
+    if resp and resp.selected_option == 0:
+        # Swap: revealed_card → discard, prize card → opp hand (simulated via deck)
+        if revealed_card in opp.hand:
+            opp.hand.remove(revealed_card)
+            revealed_card.zone = Zone.DISCARD
+            opp.discard.append(revealed_card)
+        if opp.deck:
+            prize_card = opp.deck.pop(0)
+            prize_card.zone = Zone.HAND
+            opp.hand.append(prize_card)
+        if chosen_prize_idx in opp.face_up_prize_indices:
+            opp.face_up_prize_indices.remove(chosen_prize_idx)
+        state.emit_event("bother_bot_swapped", player=player_id,
+                         swapped_card=revealed_card.card_name)
+    else:
+        state.emit_event("bother_bot_no_swap", player=player_id)
+
+
 def register_all(registry: EffectRegistry) -> None:
     """Register all trainer effect handlers."""
 
@@ -5306,7 +5401,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv07-130", _noop)   # Antique Root Fossil
 
     # Flagged — complex effects not yet modelled in engine
-    registry.register_trainer("sv10-172", _noop)   # TR Bother-Bot (face-up prize + hand reveal — flagged)
+    registry.register_trainer("sv10-172", _bother_bot)   # TR Bother-Bot
     registry.register_trainer("sv09-150", _noop)   # Levincia (per-turn energy recovery — flagged)
     registry.register_trainer("sv09-156", _redeemable_ticket)  # Redeemable Ticket
     registry.register_trainer("sv08.5-093", _amarys) # Amarys (draw 4, discard hand at end of turn if 5+)

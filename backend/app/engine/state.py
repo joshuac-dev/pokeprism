@@ -180,6 +180,7 @@ class PlayerState:
     ancient_supporter_played_this_turn: bool = False  # Great Tusk Land Collapse: played Ancient Supporter flag
     amarys_pending: bool = False                      # Amarys: discard hand at end of turn if 5+ cards
     festival_lead_pending: bool = False               # Festival Lead: second attack if Festival Grounds active
+    face_up_prize_indices: list = field(default_factory=list)  # Bother-Bot: indices of face-up prizes
 
 
 @dataclass

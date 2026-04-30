@@ -543,9 +543,42 @@ async def _attack(state: GameState, action: Action, get_player=None) -> GameStat
 
     cdef = card_registry.get(player.active.card_def_id)
 
-    # TM attack: index >= 100 means attack comes from an attached Tool card
-    _is_tm_attack = action.attack_index is not None and action.attack_index >= 100
-    if _is_tm_attack:
+    # Unaware (sv08-031 Skeledirge): snapshot non-damage state to restore after attack
+    _unaware_snapshot = None
+    _unaware_instance_id = None
+    _opp_for_unaware = state.get_player(state.opponent_id(action.player_id))
+    if _opp_for_unaware.active:
+        _def_cdef_unaware = card_registry.get(_opp_for_unaware.active.card_def_id)
+        if _def_cdef_unaware and any(
+            ab.name == "Unaware"
+            for ab in (_def_cdef_unaware.abilities or [])
+        ):
+            from copy import deepcopy
+            _unaware_instance_id = _opp_for_unaware.active.instance_id
+            _unaware_snapshot = {
+                "status_conditions": set(_opp_for_unaware.active.status_conditions),
+                "energy_attached": list(_opp_for_unaware.active.energy_attached),
+            }
+
+    # Memory Dive (sv05-084 Relicanth): index >= 200 = prior-form attack
+    _is_md_attack = action.attack_index is not None and action.attack_index >= 200
+    # TM attack: index 100–199 means attack comes from an attached Tool card
+    _is_tm_attack = action.attack_index is not None and 100 <= action.attack_index < 200
+    if _is_md_attack:
+        _tm_def_id = None
+        _tm_atk_idx = 0
+        _md_atk_idx = action.attack_index - 200
+        _md_pre_evo_inst = player.active.evolved_from if player.active else None
+        _md_pre_evo_card = next(
+            (c for c in player.discard if c.instance_id == _md_pre_evo_inst), None
+        ) if _md_pre_evo_inst else None
+        _md_cdef = card_registry.get(_md_pre_evo_card.card_def_id) if _md_pre_evo_card else None
+        attack_name = (
+            _md_cdef.attacks[_md_atk_idx].name
+            if _md_cdef and _md_cdef.attacks and _md_atk_idx < len(_md_cdef.attacks)
+            else "Memory Dive Attack"
+        )
+    elif _is_tm_attack:
         _tm_tool_slot = (action.attack_index - 100) // 10
         _tm_atk_idx = (action.attack_index - 100) % 10
         _tm_def_id = (player.active.tools_attached[_tm_tool_slot]
@@ -600,7 +633,24 @@ async def _attack(state: GameState, action: Action, get_player=None) -> GameStat
                              if ea.card_def_id == "sv06-166")
                          if player.active else 0)
 
-    if _is_tm_attack and _tm_def_id:
+    if _is_md_attack:
+        _md_atk_idx2 = action.attack_index - 200
+        _md_player = state.get_player(action.player_id)
+        _md_pre_evo_inst2 = _md_player.active.evolved_from if _md_player.active else None
+        _md_pre_evo_card2 = next(
+            (c for c in _md_player.discard if c.instance_id == _md_pre_evo_inst2), None
+        ) if _md_pre_evo_inst2 else None
+        if _md_pre_evo_card2:
+            result = await EffectRegistry.instance().resolve_attack(
+                _md_pre_evo_card2.card_def_id,
+                _md_atk_idx2,
+                state,
+                action,
+                get_player,
+            )
+        else:
+            result = state
+    elif _is_tm_attack and _tm_def_id:
         result = await EffectRegistry.instance().resolve_attack(
             _tm_def_id,
             _tm_atk_idx,
@@ -616,6 +666,14 @@ async def _attack(state: GameState, action: Action, get_player=None) -> GameStat
             action,
             get_player,
         )
+
+    # Restore Unaware snapshot
+    if _unaware_snapshot is not None:
+        _opp_after_unaware = result.get_player(state.opponent_id(action.player_id))
+        if (_opp_after_unaware.active
+                and _opp_after_unaware.active.instance_id == _unaware_instance_id):
+            _opp_after_unaware.active.status_conditions = _unaware_snapshot["status_conditions"]
+            _opp_after_unaware.active.energy_attached = _unaware_snapshot["energy_attached"]
 
     # Boomerang Energy re-attach: if attacker is still active and boomerang energy was discarded by the attack
     _result_player = result.get_player(action.player_id)

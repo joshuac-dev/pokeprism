@@ -467,6 +467,18 @@ def _apply_damage(
         if state.phase == Phase.GAME_OVER:
             return total
 
+    # Automated Combat (sv05-139 Iron Jugulis): when damaged, put 3 counters on attacker
+    if (defender.card_def_id == "sv05-139"
+            and total > 0
+            and attacker.current_hp > 0):
+        attacker.current_hp -= 30
+        attacker.damage_counters += 3
+        state.emit_event("automated_combat_triggered", player=opp_id,
+                         attacker=attacker.card_name)
+        check_ko(state, attacker, action.player_id)
+        if state.phase == Phase.GAME_OVER:
+            return total
+
     # Spiteful Swirl (me01-087 Spiritomb): when Spiritomb on defender's side AND defender is Dark type, place 10 HP on attacker
     if total > 0 and attacker.current_hp > 0:
         _def_player = state.get_player(opp_id)
@@ -22111,10 +22123,55 @@ def _destructo_press_flag(state, action):
 
 # ── sv05-063 Mr. Mime ────────────────────────────────────────────────────────
 
-def _look_alike_show_flag(state, action):
-    """sv05-063 Mr. Mime atk0 — Look-Alike Show: copy supporter from opp hand — FLAGGED."""
-    state.emit_event("flagged_effect", attack="Look-Alike Show",
-                     reason="supporter_effect_copy_not_supported")
+def _look_alike_show(state, action):
+    """sv05-063 Mr. Mime atk0 — Look-Alike Show.
+
+    Opponent reveals their hand. Player may use the effect of a Supporter found there.
+    """
+    import inspect as _inspect
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+
+    # Find Supporter cards in opponent's hand
+    supporters = [c for c in opp.hand if c.card_subtype.lower() == "supporter"]
+
+    state.emit_event("look_alike_show_reveal", player=player_id,
+                     opp_hand_size=len(opp.hand), supporters_found=len(supporters))
+
+    if not supporters:
+        state.emit_event("look_alike_show_no_target", player=player_id)
+        return
+
+    # Player chooses which Supporter from opp's hand to copy (or pass)
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Look-Alike Show: choose a Supporter from opponent's hand to copy (or pass)",
+        cards=supporters, min_count=0, max_count=1,
+    )
+    resp = yield req
+    if resp and resp.selected_cards:
+        chosen = next((c for c in supporters if c.instance_id == resp.selected_cards[0]), None)
+    else:
+        chosen = None
+
+    if chosen is None:
+        state.emit_event("look_alike_show_passed", player=player_id)
+        return
+
+    state.emit_event("look_alike_show", player=player_id,
+                     copied_card=chosen.card_name, copied_id=chosen.card_def_id)
+
+    # Use its effect as our own (action.player_id = Mr. Mime player, so benefits go to us)
+    from app.engine.effects.registry import EffectRegistry
+    handler = EffectRegistry.instance()._trainer_effects.get(chosen.card_def_id)
+    if handler:
+        result = handler(state, action)
+        if _inspect.isgenerator(result):
+            yield from result
+    else:
+        state.emit_event("look_alike_show_no_handler", player=player_id,
+                         card=chosen.card_name, card_id=chosen.card_def_id)
 
 
 def _eerie_wave_b16(state, action):
@@ -23222,7 +23279,7 @@ def register_batch16_attacks(registry):
     registry.register_attack("sv05-062", 0, _destructo_press_flag)         # Destructo-Press (FLAGGED)
 
     # ── sv05-063 Mr. Mime ────────────────────────────────────────────────────
-    registry.register_attack("sv05-063", 0, _look_alike_show_flag)         # Look-Alike Show (FLAGGED)
+    registry.register_attack("sv05-063", 0, _look_alike_show)              # Look-Alike Show
     registry.register_attack("sv05-063", 1, _eerie_wave_b16)               # Eerie Wave
 
     # ── sv05-064 Marill ──────────────────────────────────────────────────────
@@ -24322,6 +24379,88 @@ def _haughty_order_flag_b18(state, action):
                      reason="copy_attack_from_top_10_not_supported")
 
 
+def _haughty_order(state, action):
+    """sv10-150/svp-218 TR Persian ex atk0 — Haughty Order.
+
+    Reveal top 10 of opponent's deck. Choose a Pokémon and use one of its attacks.
+    Your opponent can't prevent this attack's effects with Abilities.
+    """
+    import inspect as _inspect
+    import random as _rnd_ho
+    from app.engine.effects.registry import EffectRegistry
+
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    player = state.get_player(player_id)
+
+    # Reveal top 10 of opponent's deck
+    top10 = list(opp.deck[:10])
+    pokemon_cards = [c for c in top10 if c.card_type.lower() in ("pokemon", "pokémon")]
+
+    state.emit_event("haughty_order_reveal", player=player_id,
+                     top10_count=len(top10), pokemon_count=len(pokemon_cards))
+
+    # Shuffle opponent's deck
+    _rnd_ho.shuffle(opp.deck)
+
+    if not pokemon_cards:
+        state.emit_event("haughty_order_no_pokemon", player=player_id)
+        return
+
+    # Choose a Pokémon from the top 10 (or pass)
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Haughty Order: choose a Pokémon from opponent's top 10 to copy an attack from (or pass)",
+        cards=pokemon_cards, min_count=0, max_count=1,
+    )
+    resp = yield req
+    if resp and resp.selected_cards:
+        chosen = next((c for c in pokemon_cards if c.instance_id == resp.selected_cards[0]), None)
+    else:
+        chosen = None
+
+    if chosen is None:
+        state.emit_event("haughty_order_passed", player=player_id)
+        return
+
+    chosen_cdef = card_registry.get(chosen.card_def_id)
+    if not chosen_cdef or not chosen_cdef.attacks:
+        return
+
+    attack_names = [atk.name for atk in chosen_cdef.attacks]
+    req2 = ChoiceRequest(
+        "choose_option", player_id,
+        f"Haughty Order: choose an attack from {chosen.card_name}",
+        options=attack_names,
+    )
+    resp2 = yield req2
+    if resp2 is not None and resp2.selected_option is not None:
+        chosen_atk_idx = min(int(resp2.selected_option), len(attack_names) - 1)
+    else:
+        chosen_atk_idx = 0
+
+    chosen_atk = chosen_cdef.attacks[chosen_atk_idx]
+    state.emit_event("haughty_order", player=player_id,
+                     attacker=player.active.card_name if player.active else "Persian ex",
+                     copied_from=chosen.card_name,
+                     copied_attack=attack_names[chosen_atk_idx],
+                     bypass_defender_effects=True)
+
+    # Use the copied attack's handler directly
+    key = f"{chosen.card_def_id}:{chosen_atk_idx}"
+    handler = EffectRegistry.instance()._attack_effects.get(key)
+    if handler:
+        result = handler(state, action)
+        if _inspect.isgenerator(result):
+            yield from result
+    else:
+        # No handler: apply flat damage from the chosen attack's damage value
+        dmg = parse_damage(chosen_atk.damage) if chosen_atk.damage else 0
+        if dmg > 0:
+            _apply_damage(state, action, dmg)
+
+
 def _cruel_slash_b18(state, action):
     """svp-218 TR Persian ex atk1 — Cruel Slash: 140 + Confused on opponent's Active."""
     _do_default_damage(state, action)
@@ -24344,7 +24483,7 @@ def register_batch18_attacks(registry):
     registry.register_attack("svp-217", 1, _do_default_damage)             # Kingly Impact (240 flat)
 
     # ── svp-218 TR Persian ex ─────────────────────────────────────────────────
-    registry.register_attack("svp-218", 0, _haughty_order_flag_b18)        # Haughty Order (FLAGGED)
+    registry.register_attack("svp-218", 0, _haughty_order)             # Haughty Order
     registry.register_attack("svp-218", 1, _cruel_slash_b18)               # Cruel Slash
 
 
@@ -26257,3 +26396,25 @@ def _fluorite(state, action):
 def register_tm_attacks(registry):
     """Register TM card attack handlers."""
     registry.register_attack("sv08-188", 0, _fluorite)   # TM: Fluorite
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Flagged Batch 6 — new handlers for previously-flagged cards
+# ──────────────────────────────────────────────────────────────────────────────
+
+def register_flagged_batch6_attacks(registry):
+    """Register Flagged Batch 6 attack handlers."""
+    # ── sv10-150 TR Persian ex ────────────────────────────────────────────────
+    registry.register_attack("sv10-150", 0, _haughty_order)          # Haughty Order
+
+    # ── svp-218 TR Persian ex (alt print) ─────────────────────────────────────
+    registry.register_attack("svp-218", 0, _haughty_order)           # Haughty Order (overrides flag)
+
+    # ── sv05-063 Mr. Mime ─────────────────────────────────────────────────────
+    registry.register_attack("sv05-063", 0, _look_alike_show)        # Look-Alike Show (overrides flag)
+
+    # ── sv05-084 Relicanth ────────────────────────────────────────────────────
+    registry.register_attack("sv05-084", 0, _do_default_damage)      # Razor Fin (30, no effect)
+
+    # ── sv05-139 Iron Jugulis ─────────────────────────────────────────────────
+    registry.register_attack("sv05-139", 0, _do_default_damage)      # Blasting Wind (110, no effect)

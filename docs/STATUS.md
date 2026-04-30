@@ -4,19 +4,50 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-**Engine Refactoring — Unlocking Remaining Flagged Cards** 🔧
-_Last updated: 2026-05-08_
+**Engine Refactoring — Complete** ✅
+_Last updated: 2026-05-09_
 
-All 20 card expansion batches complete (1,927 cards in DB). Engine refactoring phase active — implementing 61 previously-unimplementable flagged cards in batches of 10 using targeted engine changes (dynamic HP, conditional costs, devolve, first-turn exceptions, etc.).
+All 20 card expansion batches complete (1,927 cards in DB). All 61 previously-flagged cards implemented across 6 engine batches. Flagged list is now empty.
 
 | Metric | Value |
 |--------|-------|
 | Cards in DB | 1927 |
 | Coverage | **98.5%** (29 legitimately missing) |
-| Engine refactoring batches complete | 5 of 6 |
-| Flagged implemented this phase | 50 (Engine Batches 1–5) |
-| Flagged entries remaining | **10** (in `docs/POKEMON_MASTER_LIST.md`) |
+| Engine refactoring batches complete | **6 of 6** |
+| Flagged implemented this phase | **60** (Engine Batches 1–6) |
+| Flagged entries remaining | **0** |
 | Tests | **215 passing** |
+
+---
+
+## Last Session — 2026-05-09 (Engine Batch 6 — Final)
+
+### Summary
+
+**Completed this session:** Engine Batch 6 = **10 cards fully implemented** (all remaining flagged entries).
+
+**Engine changes (Batch 6):**
+- `backend/app/engine/state.py` — Added `face_up_prize_indices: list` field to `PlayerState` (Bother-Bot prize tracking)
+- `backend/app/engine/effects/attacks.py` — Replaced `_look_alike_show_flag` stub with full `_look_alike_show` generator (yield ChoiceRequest + direct trainer-handler invocation); added `_haughty_order` generator (peek top 10 opp deck, choose Pokémon + attack, call handler directly or apply flat damage); added Automated Combat trigger in `_apply_damage` (sv05-139: 3 damage counters on attacker); added `register_flagged_batch6_attacks()` registering all 5 new/updated handlers
+- `backend/app/engine/effects/base.py` — Added Double Type (sv08-037 Scovillain ex): Water ×2 weakness applied after normal weakness check in `apply_weakness_resistance`
+- `backend/app/engine/transitions.py` — Added Unaware (sv08-031 Skeledirge): snapshot status_conditions + energy_attached before `resolve_attack`, restore after; added Memory Dive decode: index ≥ 200 routes to prior-form card's attack handler (separated from TM range 100–199)
+- `backend/app/engine/actions.py` — Added Memory Dive attack generation: if Relicanth (sv05-084) is in play and active Pokémon is evolved, offer prior-form attacks at index 200+
+- `backend/app/engine/effects/trainers.py` — Added `_has_snow_camouflage()` helper; added Snow Camouflage checks to Boss's Orders, Giovanni's Network, Prime Catcher (opp-switch only), Pokémon Catcher, Repel, and Lisia's Appeal; implemented `_bother_bot` generator (flip random prize face-up + reveal random hand card + optional swap)
+- `backend/app/engine/effects/__init__.py` — Registered `register_flagged_batch6_attacks`
+
+**Batch 6 cards implemented:**
+- `sv10-065` Cetitan ex DRI — Snow Camouflage: prevents Boss's Orders/force-switch trainers targeting this Pokémon
+- `sv10-150` + `svp-218` TR Persian ex — Haughty Order atk0: peek top 10, choose Pokémon + attack to copy
+- `sv08-031` Skeledirge SSP — Unaware: snapshot/restore non-damage state (status + energy) after opponent's attack
+- `sv08-037` Scovillain ex SSP — Double Type: adds Water ×2 weakness (Fire type component)
+- `sv05-063` Mr. Mime TEF — Look-Alike Show atk0: reveal opp hand, copy chosen Supporter effect
+- `sv05-084` Relicanth TEF — Memory Dive: evolved active Pokémon gains access to prior-form attacks (index 200+)
+- `sv05-118` Iron Treads TEF — Dual Core: Future Booster Energy Capsule not in fixture pool; Psychic weakness skipped (FBER absent); Wheel Pass atk0 already handled by `_wheel_pass_b3`
+- `sv05-139` Iron Jugulis TEF — Automated Combat: 3 damage counters on attacker when Iron Jugulis takes damage; Blasting Wind atk0 registered as flat 110 damage
+- `sv10-172` TR Bother-Bot DRI — Trainer: flip 1 prize face-up + reveal random opp hand card + optional swap
+
+**True partial (1):**
+- `sv05-118` Iron Treads — Dual Core Psychic weakness not active (Future Booster Energy Capsule not present in fixture pool); weakness fires when/if FBER is added to fixtures
 
 ---
 

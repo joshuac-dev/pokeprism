@@ -675,6 +675,29 @@ class ActionValidator:
                         Action(ActionType.ATTACK, player_id,
                                attack_index=100 + _tool_slot * 10 + _tm_atk_idx)
                     )
+
+        # Memory Dive (sv05-084 Relicanth): evolved active Pokémon can use prior-form attacks
+        _relicanth_ids = {"sv05-084"}
+        _all_in_play_md = ([player.active] if player.active else []) + list(player.bench)
+        if (player.active
+                and player.active.evolved_from
+                and any(p.card_def_id in _relicanth_ids for p in _all_in_play_md)):
+            _pre_evo_inst = player.active.evolved_from
+            _pre_evo = next(
+                (c for c in player.discard if c.instance_id == _pre_evo_inst), None
+            )
+            if _pre_evo:
+                _pre_cdef = card_registry.get(_pre_evo.card_def_id)
+                if _pre_cdef and _pre_cdef.attacks:
+                    for _md_atk_idx, _md_atk in enumerate(_pre_cdef.attacks):
+                        _md_cost = list(_md_atk.cost) if _md_atk.cost else []
+                        if _can_pay_energy_cost(player.active, _md_cost, state, player_id):
+                            actions.append(Action(
+                                action_type=ActionType.ATTACK,
+                                player_id=player_id,
+                                attack_index=200 + _md_atk_idx,
+                            ))
+
         return actions
 
     # ── Matching helper ────────────────────────────────────────────────────────
