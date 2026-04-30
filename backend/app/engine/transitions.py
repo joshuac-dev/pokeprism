@@ -333,6 +333,16 @@ async def _attach_energy(state: GameState, action: Action, get_player=None) -> G
         from app.engine.effects.base import check_ko
         check_ko(state, target, action.player_id)
 
+    # Electrified Incisors (me01-051 Pachirisu): whenever opponent attaches Energy from hand to their Active, 8 counters
+    if target.energy_attach_punish_counters > 0 and target is player.active:
+        counters = target.energy_attach_punish_counters
+        target.damage_counters += counters
+        target.current_hp -= counters * 10
+        state.emit_event("electrified_incisors_triggered", player=action.player_id,
+                         card=target.card_name, counters=counters)
+        from app.engine.effects.base import check_ko as _check_ko_ei
+        _check_ko_ei(state, target, action.player_id)
+
     return state
 
 

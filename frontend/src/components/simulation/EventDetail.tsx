@@ -33,6 +33,10 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
     const matchId = event.match_id;
     const turn = event.turn as number;
     const player = event.player ?? undefined;
+    // Map the event type to a decision action_type for precise matching.
+    // Engine events and AI decision action_types share the same names (e.g.
+    // "attack", "play_trainer", "attach_energy") so pass it through directly.
+    const actionType = event.eventType || undefined;
 
     let cancelled = false;
     setLoading(true);
@@ -40,7 +44,8 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
       match_id: matchId,
       turn_number: turn,
       player_id: player,
-      limit: 10,
+      action_type: actionType,
+      limit: 5,
     })
       .then((r) => { if (!cancelled) setDecisions(r.decisions); })
       .catch(() => {})

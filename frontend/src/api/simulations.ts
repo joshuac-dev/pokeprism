@@ -61,7 +61,7 @@ export async function getSimulationEvents(
 
 export async function getSimulationDecisions(
   id: string,
-  opts: { limit?: number; offset?: number; match_id?: string; turn_number?: number; player_id?: string } = {}
+  opts: { limit?: number; offset?: number; match_id?: string; turn_number?: number; player_id?: string; action_type?: string } = {}
 ): Promise<DecisionsResponse> {
   const params: Record<string, string | number> = {
     limit: opts.limit ?? 50,
@@ -70,6 +70,7 @@ export async function getSimulationDecisions(
   if (opts.match_id)    params.match_id    = opts.match_id;
   if (opts.turn_number != null) params.turn_number = opts.turn_number;
   if (opts.player_id)   params.player_id   = opts.player_id;
+  if (opts.action_type) params.action_type = opts.action_type;
   const resp = await api.get(`/api/simulations/${id}/decisions`, { params });
   return resp.data as DecisionsResponse;
 }

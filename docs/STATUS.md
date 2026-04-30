@@ -4,27 +4,113 @@
 > Read this BEFORE reading PROJECT.md to understand current state.
 
 ## Current Phase
-**Engine Refactoring — Complete** ✅
-_Last updated: 2026-05-09_
+**Card Pool Expansion — Complete** ✅
+_Last updated: 2026-04-30_
 
-All 20 card expansion batches complete (1,927 cards in DB). All 61 previously-flagged cards implemented across 6 engine batches. Flagged list is now empty.
+All 20 card expansion batches complete. 103-card audit complete (93 missing cards inserted). All flagged cards implemented across 8 engine batches. **0 missing handlers. 2001 real cards in DB.**
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | 1927 |
-| Coverage | **98.5%** (29 legitimately missing) |
-| Engine refactoring batches complete | **6 of 6** |
-| Flagged implemented this phase | **60** (Engine Batches 1–6) |
-| Flagged entries remaining | **0** |
+| Cards in DB | **2001** |
+| Coverage | **100%** (0 missing handlers) |
+| Flat-damage-only cards | 292 |
 | Tests | **215 passing** |
+| Flagged entries remaining | **0** |
 
 ---
 
-## Last Session — 2026-05-09 (Engine Batch 6 — Final)
+## Last Session — 2026-04-30 (103-Card Audit + Final 5 Handlers)
 
 ### Summary
 
-**Completed this session:** Engine Batch 6 = **10 cards fully implemented** (all remaining flagged entries).
+**Completed this session:**
+1. **103-card audit** — Identified 103 cards missing from the DB across PFL (me02), MEG (me01), MEP (mep), and DRI (sv10) sets. Fetched from TCGDex and inserted 93 successfully. 10 MEP cards do not exist in TCGDex and were removed from the master list.
+2. **POKEMON_MASTER_LIST.md cleanup** — Removed 10 non-existent MEP entries (MEP 17, 30, 31, 64–70); fixed "Mega Charizard X ex MEP 29" → "MEP 23". List went from 1983 → 1973 entries.
+3. **5 missing handlers implemented** — Coverage went from 5 missing → 0 missing. All 2001 real cards are now handled.
+
+### Cards Inserted (93)
+- **MEG (me01)**: cards 1–53, 57, 60–70 (+63)
+- **PFL (me02)**: cards 55–66, 69–84 (+28)
+- **DRI (sv10)**: sv10-001 (+1)
+- **MEP (mep)**: mep-023 Mega Charizard X ex (+1; corrected from wrong MEP 29 listing)
+
+### Non-Existent MEP Cards Removed from Master List
+- MEP 17 (Toxtricity) — appears in TCGDex set listing but 404 on individual fetch
+- MEP 29, 30, 31 (Mega Charizard X/Y ex, N's Zekrom) — don't exist at those numbers
+- MEP 64–70 — set only goes to 045
+
+### Handlers Implemented (5)
+- **me01-020 Ninetales — Supernatural Shapeshifter**: Discard top card of deck; if it's a Supporter, copy its effect by invoking the registered trainer handler directly
+- **me01-051 Pachirisu — Electrified Incisors**: 10 damage + set `energy_attach_punish_counters = 8` on opponent's Active; triggered in `_attach_energy` every time opponent attaches from hand to their Active next turn
+- **me01-069 Sandslash — Sand Attack**: Reused `_sand_attack_flag` (50 damage + `attack_requires_flip = True` on defender)
+- **mep-023 Mega Charizard X ex — Inferno X**: Reused `_inferno_x_charizard` (discard all Fire Energy from attacker, 90 damage × each discarded)
+- **me01-028 Cinderace — Explosiveness**: Registered as `register_passive_ability` (setup-only: start in Active during deck setup; engine doesn't model setup so registered as no-op passive)
+
+### Engine Changes
+- `backend/app/engine/state.py` — Added `energy_attach_punish_counters: int = 0` to `CardInstance`
+- `backend/app/engine/transitions.py` — Added Electrified Incisors hook in `_attach_energy` (after Gnawing Curse block): if `target.energy_attach_punish_counters > 0` and target is `player.active`, apply damage counters and call `check_ko`
+- `backend/app/engine/runner.py` — Added `energy_attach_punish_counters = 0` reset alongside `attack_requires_flip` in between-turns cleanup
+- `backend/app/engine/effects/attacks.py` — Added `_supernatural_shapeshifter`, `_electrified_incisors`; registered me01-020/0, me01-051/0, me01-069/0, mep-023/0
+- `backend/app/engine/effects/abilities.py` — Added `register_passive_ability("me01-028", "Explosiveness")`
+
+---
+
+## Active Files Changed This Session
+
+- `backend/app/engine/state.py`
+- `backend/app/engine/transitions.py`
+- `backend/app/engine/runner.py`
+- `backend/app/engine/effects/attacks.py`
+- `backend/app/engine/effects/abilities.py`
+- `docs/POKEMON_MASTER_LIST.md`
+
+---
+
+## Known Issues / Gaps
+
+Carried from prior sessions (not yet verified/fixed):
+- **Sand Stream (sv10-096)**: Implemented as 1 counter on ALL opponent Pokémon — actual card may be 2 counters on Basic Pokémon only.
+- **Wonder Kiss (sv08-072)**: Coin flip added — verify against actual card text.
+- **Majestic Sword (sv05-080)**: Bonus implemented as +100 — verify against card text.
+- **Buzzing Boost (sv10-003)**: Attaches energy to own Pokémon — actual text says "put into your hand."
+- **Hand Trimmer (sv05-150)**: Implemented as discard to 5 — actual effect may be "+30 if opponent has ≥8 cards."
+- **Auto-fire simplifications**: Wafting Heal, Obliging Heal, Impromptu Carrier, Dig Dig Dig, Time to Chow Down auto-select targets without player choice.
+- **Inviting Wink**: Places first Basic from opponent's hand (auto-select); actual card may let opponent choose.
+- **`_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets**: May be missing promo/alt-art Paradox Pokémon prints.
+
+New this session:
+- **mep-017 Toxtricity**: Appears in TCGDex set listing for `mep` but individual card endpoint returns 404. Not inserted into DB. If TCGDex ever fixes this data gap, it will need to be fetched and its handler implemented.
+
+---
+
+## Key Decisions Made This Session
+
+1. **asyncpg jsonb serialization**: Python lists must be `json.dumps()`-ed before passing to asyncpg for `jsonb` columns (`types`, `attacks`, `abilities`, `weaknesses`, `resistances`, `raw_tcgdex`). asyncpg does NOT auto-serialize Python lists.
+2. **Supernatural Shapeshifter pattern**: To copy a Supporter effect from within an attack handler, look up the handler directly from `EffectRegistry._trainer_effects` dict. If it's a generator function, use `yield from`; if regular function, call directly. Do not go through the async `resolve_trainer()` path.
+3. **Electrified Incisors pattern**: "Punish next attachment" effects use a counter field on `CardInstance` (`energy_attach_punish_counters`) checked in `_attach_energy`. This is the preferred pattern for any future "whenever opponent attaches energy" triggers.
+4. **MEP set structure confirmed**: `mep` set contains cards 001–028 and 037–045 only (37 cards total). Cards 029–036 and 064+ do not exist. Any future MEP expansion should check TCGDex first.
+
+---
+
+## Notes for Next Session
+
+- **DB is at 2001 real cards, 0 missing handlers. Coverage is 100%.** Phase 12 (Card Pool Expansion) is complete.
+- **Next phase per PROJECT.md**: No Phase 14 is defined. Logical next steps are:
+  1. Verify the 8 known potentially-incorrect implementations listed in Known Issues above
+  2. Phase 14 — Tuning & Evaluation (baseline win-rate benchmarks, coach quality metrics)
+  3. Or expand card pool further when new Pokémon TCG Pocket sets release
+- **Test baseline**: 215 tests pass. Run `cd backend && python3 -m pytest tests/ -x -q`.
+- **DB connection**: PostgreSQL on port 5433, password `changeme_postgres`. `docker exec pokeprism-postgres psql -U pokeprism -d pokeprism`
+- **MEP Mega Charizard X ex** is now correctly at `mep-023` in both the DB and the master list (was incorrectly listed as MEP 29).
+- **POKEMON_MASTER_LIST.md** now has 1973 entries (all real cards). If it needs to be rebuilt from scratch, the canonical source is TCGDex — use `SET_CODE_MAP` in `backend/app/cards/loader.py` for set abbreviation → TCGDex ID mapping.
+
+---
+
+## Previous Session — Engine Refactoring: Batch 6 (2026-05-09)
+
+### Summary
+
+**Completed:** Engine Batch 6 = **10 cards fully implemented** (all remaining flagged entries).
 
 **Engine changes (Batch 6):**
 - `backend/app/engine/state.py` — Added `face_up_prize_indices: list` field to `PlayerState` (Bother-Bot prize tracking)

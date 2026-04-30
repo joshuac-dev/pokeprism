@@ -887,19 +887,32 @@ async def _deck_text_to_card_defs(
     return defs_ptcgl
 
 
+_TCGDEX_ID_RE = re.compile(r"^[a-z][a-z0-9.]*-[0-9]+[a-z]*$")
+
+
 def _apply_mutations(
     current_deck: list,
     current_deck_text: str,
     mutations: list[dict],
 ) -> tuple[list, str]:
     """Apply analyst mutations to the in-memory deck and return updated (deck, deck_text)."""
+    import logging as _logging
     from app.cards.models import CardDefinition
+
+    _log = _logging.getLogger(__name__)
 
     new_deck = list(current_deck)
     for mutation in mutations:
         remove_id = mutation.get("card_removed")
         add_id = mutation.get("card_added")
         if not remove_id or not add_id:
+            continue
+        # Reject any add_id that isn't a valid tcgdex_id pattern to prevent
+        # coach-generated placeholder strings from entering the database.
+        if not _TCGDEX_ID_RE.match(add_id):
+            _log.warning(
+                "Coach proposed invalid card_added '%s' — skipping mutation", add_id
+            )
             continue
         for i, card in enumerate(new_deck):
             if card.tcgdex_id == remove_id:

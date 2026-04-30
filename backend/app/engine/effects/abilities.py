@@ -4238,6 +4238,9 @@ def register_all(registry):
     registry.register_passive_ability("me03-068",   "Intimidating Jaw")
     registry.register_passive_ability("me03-069",   "Protective Sail")
     registry.register_passive_ability("me02.5-024", "Melt Away")
+    registry.register_passive_ability("sv10-036",   "Melt Away")          # DRI Ethan's Magcargo
+    registry.register_passive_ability("sv10-065",   "Snow Camouflage")    # DRI Cetitan ex
+    registry.register_passive_ability("sv10-055",   "Diver's Catch")      # DRI Huntail
     registry.register_passive_ability("me02.5-027", "Incandescent Body")
 
     # ── New abilities (Batch 2: ASC me02.5-034 through me02.5-133) ────────────
@@ -4513,6 +4516,7 @@ def register_all(registry):
     registry.register_passive_ability("me02-056", "Shadowy Concealment")   # check_ko handles prize skip
     registry.register_passive_ability("me01-061", "Fragile Husk")          # check_ko handles prize skip
     registry.register_passive_ability("me01-024", "Intimidating Fang")     # _apply_damage handles -30
+    registry.register_passive_ability("me01-028", "Explosiveness")          # setup: start in Active during deck setup
     registry.register_passive_ability("me02-070", "Emperor's Stance")      # effect-prevention (damage passes through)
     registry.register_passive_ability("me02-062", "Excited Power")         # _apply_damage handles +120
 

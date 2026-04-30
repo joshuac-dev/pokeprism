@@ -862,12 +862,13 @@ async def get_simulation_decisions(
     match_id: Optional[str] = None,
     turn_number: Optional[int] = None,
     player_id: Optional[str] = None,
+    action_type: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Return paginated AI decisions for a simulation.
 
     Only populated for ai_h / ai_ai game modes.
-    Supports optional filtering by match_id, turn_number, and player_id.
+    Supports optional filtering by match_id, turn_number, player_id, and action_type.
     """
     import uuid as _uuid_mod
 
@@ -889,6 +890,8 @@ async def get_simulation_decisions(
         conditions.append(Decision.turn_number == turn_number)
     if player_id is not None:
         conditions.append(Decision.player_id == player_id)
+    if action_type is not None:
+        conditions.append(Decision.action_type == action_type)
 
     total: int = (await db.execute(
         select(func.count(Decision.id)).where(*conditions)

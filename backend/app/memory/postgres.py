@@ -87,13 +87,20 @@ class MatchMemoryWriter:
         card_defs: list[CardDefinition],
         db: AsyncSession,
     ) -> uuid.UUID:
-        """Upsert a deck (by name) and return its UUID."""
+        """Upsert a deck (by name) and return its UUID.
+
+        If a deck with this name already exists but has no deck_cards (e.g. it
+        was created by the simulation API without card data), the deck_cards are
+        populated from ``card_defs`` so that ``_update_card_performance`` works.
+        """
         result = await db.execute(select(Deck).where(Deck.name == deck_name))
         deck = result.scalars().first()
+
+        counts: dict[str, int] = {}
+        for c in card_defs:
+            counts[c.tcgdex_id] = counts.get(c.tcgdex_id, 0) + 1
+
         if deck is None:
-            counts: dict[str, int] = {}
-            for c in card_defs:
-                counts[c.tcgdex_id] = counts.get(c.tcgdex_id, 0) + 1
             deck_text = "\n".join(
                 f"{qty} {tid}" for tid, qty in sorted(counts.items())
             )
@@ -112,6 +119,20 @@ class MatchMemoryWriter:
             ]
             db.add_all(deck_cards)
             await db.flush()
+        else:
+            # Check whether the existing deck already has deck_cards.
+            existing = (await db.execute(
+                select(DeckCard).where(DeckCard.deck_id == deck.id).limit(1)
+            )).scalar_one_or_none()
+            if existing is None and counts:
+                # Deck was created without card data — populate now.
+                deck_cards = [
+                    DeckCard(deck_id=deck.id, card_tcgdex_id=tid, quantity=qty)
+                    for tid, qty in counts.items()
+                ]
+                db.add_all(deck_cards)
+                await db.flush()
+
         return deck.id
 
     async def ensure_simulation(

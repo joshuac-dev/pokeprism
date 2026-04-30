@@ -1,6 +1,25 @@
 # PokéPrism Changelog
 
-## Phase 13 — Polish, Hardening & Scheduling (2026-04-28/29)
+## Phase 12 — Card Pool Expansion: Final Completion (2026-04-30)
+
+### Summary
+Completed the 103-card audit: identified 103 cards missing from the DB across MEG (me01), PFL (me02), MEP (mep), and DRI (sv10) sets. Fetched from TCGDex and inserted 93 cards successfully. Removed 10 non-existent MEP cards from the master list (MEP 17, 29–31, 64–70). Implemented the final 5 missing engine handlers, bringing coverage to **100% (0 missing handlers, 2001 real cards)**. Added new `energy_attach_punish_counters` flag to `CardInstance` for Pachirisu's Electrified Incisors mechanic.
+
+### Key Files Modified
+- `backend/app/engine/state.py` — `energy_attach_punish_counters: int = 0` added to `CardInstance`
+- `backend/app/engine/transitions.py` — Electrified Incisors hook in `_attach_energy`
+- `backend/app/engine/runner.py` — `energy_attach_punish_counters` reset in between-turns cleanup
+- `backend/app/engine/effects/attacks.py` — `_supernatural_shapeshifter`, `_electrified_incisors`; 4 new registrations
+- `backend/app/engine/effects/abilities.py` — `register_passive_ability("me01-028", "Explosiveness")`
+- `docs/POKEMON_MASTER_LIST.md` — 10 non-existent MEP entries removed; MEP 29 → MEP 23 corrected
+
+### Test Results
+- **215 tests pass**
+- Coverage: **2001 cards, 0 missing handlers, 100%**
+
+---
+
+
 
 ### Summary
 Full production hardening and polish across coach intelligence, the simulation engine, and the live console UI. The Coach was destroying decks by removing primary attacker lines (e.g., stripping all Dreepy/Drakloak from a Dragapult ex deck, causing continuous win rate decline). Three coach intelligence fixes were implemented: tiered evolution line protection, win rate regression detection with automatic deck rollback, and full performance history in the Coach prompt. Six UI/console fixes brought the console from showing generic event type names to rich formatted lines with card names, damage, and win conditions. Earlier in the phase (Groups A–G), backend hardening, copy-attack engine, Decision Map, Docker Compose, light mode polish, and Makefile infrastructure were all implemented.

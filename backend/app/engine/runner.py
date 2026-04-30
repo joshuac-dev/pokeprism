@@ -526,7 +526,7 @@ class MatchRunner:
                 player.active.prevent_damage_threshold = 0
                 player.active.no_weakness_one_turn = False
                 player.active.attack_requires_flip = False
-                player.active.torment_blocked_attack_name = None
+                player.active.energy_attach_punish_counters = 0
                 player.active.retaliation_on_damage = False
                 player.active.repulsor_axe_active = False
                 player.active.prevent_damage_from_ancient = False

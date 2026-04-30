@@ -7019,6 +7019,51 @@ def _turbo_flare(state, action):
     state.emit_event("turbo_flare_attach", player=action.player_id, count=attached)
 
 
+def _supernatural_shapeshifter(state, action):
+    """me01-020 Ninetales atk0 — Supernatural Shapeshifter: discard top card of deck; if Supporter, use its effect."""
+    import inspect as _inspect
+    from app.engine.effects.registry import EffectRegistry as _EffReg
+    from app.engine.actions import Action as _A, ActionType as _AT
+    player = state.get_player(action.player_id)
+    if not player.deck:
+        state.emit_event("attack_no_effect", attack="Supernatural Shapeshifter", reason="deck_empty")
+        return
+    top_card = player.deck.pop(0)
+    player.discard.append(top_card)
+    state.emit_event("card_discarded", card=top_card.card_name, player=action.player_id,
+                     reason="supernatural_shapeshifter")
+    if top_card.card_subtype.lower() != "supporter":
+        state.emit_event("shapeshifter_no_effect", card=top_card.card_name, reason="not_a_supporter")
+        return
+    synth = _A(_AT.PLAY_SUPPORTER, action.player_id, card_instance_id=top_card.instance_id)
+    reg = _EffReg.instance()
+    handler = reg._trainer_effects.get(top_card.card_def_id)
+    if handler is None:
+        state.emit_event("shapeshifter_no_effect", card=top_card.card_name, reason="no_handler")
+        return
+    try:
+        result = handler(state, synth)
+        if _inspect.isgenerator(result):
+            yield from result
+        state.emit_event("shapeshifter_copied", card=top_card.card_name, player=action.player_id)
+    except Exception as _exc:
+        state.emit_event("shapeshifter_no_effect", card=top_card.card_name,
+                         reason=f"error:{type(_exc).__name__}")
+
+
+def _electrified_incisors(state, action):
+    """me01-051 Pachirisu atk0 — Electrified Incisors: 10 damage; during opponent's next turn, each Energy attached from hand to Active = 8 damage counters."""
+    _apply_damage(state, action, 10)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp = state.get_opponent(action.player_id)
+    if opp and opp.active:
+        opp.active.energy_attach_punish_counters = 8
+        state.emit_event("electrified_incisors", player=action.player_id,
+                         defender=opp.active.card_name)
+
+
+
 def _coiling_crush(state, action):
     """me01-030 Centiskorch atk0 — Coiling Crush: 50 + flip 2 coins, discard 1 Energy per heads."""
     _do_default_damage(state, action)
@@ -16210,6 +16255,7 @@ def register_all(registry):
     registry.register_attack("me01-015", 1, _perplex_shiftry)              # Shiftry — Perplex (100 + confused)
     registry.register_attack("me01-017", 0, _teleportation_attack)         # Ninjask — U-turn
     registry.register_attack("me01-018", 0, _earthen_power)                # Dhelmise — Earthen Power
+    registry.register_attack("me01-020", 0, _supernatural_shapeshifter)    # Ninetales — Supernatural Shapeshifter
     registry.register_attack("me01-021", 0, _call_for_family)              # Numel — Call for Family
     registry.register_attack("me01-022", 0, _roasting_heat)                # Mega Camerupt ex — Roasting Heat
     registry.register_attack("me01-022", 1, _volcanic_meteor)              # Mega Camerupt ex — Volcanic Meteor
@@ -16242,6 +16288,7 @@ def register_all(registry):
     registry.register_attack("me01-049", 0, _take_down)                    # Electrike — Thunder Jolt (recoil)
     registry.register_attack("me01-050", 0, _flash_ray)                    # Mega Manectric ex — Flash Ray
     registry.register_attack("me01-050", 1, _riotous_blasting)             # Mega Manectric ex — Riotous Blasting
+    registry.register_attack("me01-051", 0, _electrified_incisors)         # Pachirisu — Electrified Incisors
     registry.register_attack("me01-052", 0, _double_headbutt)              # Helioptile — Double Scratch
     registry.register_attack("me01-053", 0, _dazzle_blast)                 # Heliolisk — Dazzle Blast
     registry.register_attack("me01-057", 0, _jynx_psychic)                 # Jynx — Psychic
@@ -16253,6 +16300,7 @@ def register_all(registry):
     registry.register_attack("me01-064", 1, _bright_horns)                 # Xerneas — Bright Horns
     registry.register_attack("me01-065", 1, _take_down)                    # Greavard — Take Down
     registry.register_attack("me01-066", 0, _horrifying_bite)              # Houndstone — Horrifying Bite
+    registry.register_attack("me01-069", 0, _sand_attack_flag)             # Sandslash — Sand Attack (50 + coin-flip to attack)
     registry.register_attack("me01-070", 0, _bind)                         # Onix — Bind (flip paralyzed)
 
     # ── Batch 5: MEG attack registrations ─────────────────────────────────────
@@ -24181,6 +24229,7 @@ def register_batch17_attacks(registry):
     registry.register_attack("mep-021", 0, _retaliatory_claw_b17)          # Retaliatory Claw
 
     # ── mep-025 Mega Kangaskhan ex ───────────────────────────────────────────
+    registry.register_attack("mep-023", 0, _inferno_x_charizard)           # Mega Charizard X ex — Inferno X (discard R energy, 90× each)
     registry.register_attack("mep-025", 0, _rapid_fire_combo)              # Rapid-Fire Combo
 
     # ── mep-026 Meloetta ─────────────────────────────────────────────────────

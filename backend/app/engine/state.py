@@ -133,6 +133,7 @@ class CardInstance:
     prevent_damage_threshold: int = 0                    # Harden (sv09-002): prevent damage ≤ threshold next turn
     no_weakness_one_turn: bool = False                    # Metal Defender (sv08-130): no Weakness during opp's next turn
     attack_requires_flip: bool = False                    # Sand Attack: must flip coin to attack next turn (tails = fail)
+    energy_attach_punish_counters: int = 0                # Electrified Incisors (me01-051): 8 damage counters per energy opponent attaches next turn
     torment_blocked_attack_name: Optional[str] = None     # Pangoro Torment: this attack name is blocked next turn
     retaliation_on_damage: bool = False                   # Zamazenta Strong Bash: reflect incoming damage back to attacker
     attack_damage_bonus: int = 0                          # Feraligatr Torrential Heart: +120 damage this turn
