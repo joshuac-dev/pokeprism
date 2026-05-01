@@ -287,6 +287,9 @@ def _acerolas_mischief(state: GameState, action):
             poke.protected_from_ex = True
             state.emit_event("acerola_protection", player=player_id,
                              card=poke.card_name)
+            to_draw = max(0, 4 - len(player.hand))
+            if to_draw > 0:
+                draw_cards(state, player_id, to_draw)
 
 
 def _bosss_orders(state: GameState, action):
@@ -2144,7 +2147,7 @@ def _unfair_stamp(state: GameState, action):
         return
 
     opp_id = state.opponent_id(player_id)
-    for pid, draw_n in ((player_id, 5), (opp_id, 2)):
+    for pid, draw_n in ((player_id, 3), (opp_id, 2)):
         p = state.get_player(pid)
         for c in p.hand:
             c.zone = Zone.DECK
