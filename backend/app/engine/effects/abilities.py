@@ -863,8 +863,7 @@ def _teal_dance(state: GameState, action):
         cards=g_energy, min_count=0, max_count=1,
     )
     resp = yield req
-    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
-                  else [g_energy[0].instance_id])
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards else [])
     if not chosen_ids:
         return
 
@@ -2122,9 +2121,11 @@ def _fermented_juice(state: GameState, action):
         target = next((p for p in damaged if p.instance_id == resp.target_instance_id), None)
     if target is None:
         target = damaged[0]
-    healed = min(target.damage_counters, 30)
-    target.damage_counters -= healed
-    state.emit_event("fermented_juice", player=player_id, card=target.card_name, healed=healed)
+    counters_to_heal = min(target.damage_counters, 3)  # 3 counters = 30 HP
+    target.damage_counters -= counters_to_heal
+    target.current_hp = min(target.max_hp, target.current_hp + counters_to_heal * 10)
+    state.emit_event("fermented_juice", player=player_id, card=target.card_name,
+                     healed=counters_to_heal * 10)
 
 
 def _cond_fermented_juice(state, player_id):
@@ -2847,6 +2848,7 @@ def _sneaky_bite(state, action):
     chosen_ids = response.chosen_ids if hasattr(response, "chosen_ids") else []
     target = next((t for t in targets if t.instance_id in chosen_ids), targets[0])
     target.damage_counters += 2
+    target.current_hp = max(0, target.current_hp - 20)
     check_ko(state, target, opp_id)
     state.emit_event("ability_used", player=action.player_id,
                      card="TR Golbat", ability="Sneaky Bite",
@@ -2876,6 +2878,7 @@ def _biting_spree(state, action):
     chosen = [t for t in targets if t.instance_id in chosen_ids][:max_t]
     for t in chosen:
         t.damage_counters += 2
+        t.current_hp = max(0, t.current_hp - 20)
         check_ko(state, t, opp_id)
     state.emit_event("ability_used", player=action.player_id,
                      card="TR Crobat ex", ability="Biting Spree",
@@ -3068,7 +3071,7 @@ def _scalding_steam(state, action):
     opp_id = state.opponent_id(action.player_id)
     opp = state.get_player(opp_id)
     if opp.active:
-        opp.active.status = StatusCondition.BURNED
+        opp.active.status_conditions.add(StatusCondition.BURNED)
     state.emit_event("ability_used", player=action.player_id,
                      card="Volcanion ex", ability="Scalding Steam")
 
@@ -3296,7 +3299,7 @@ def _up_tempo(state: GameState, action):
         card_to_discard = player.hand[0]
     if card_to_discard:
         player.hand.remove(card_to_discard)
-        player.discard_pile.append(card_to_discard)
+        player.discard.append(card_to_discard)
         state.emit_event("card_discarded", player=player_id,
                          card=card_to_discard.card_name, reason="up_tempo")
 
@@ -4529,8 +4532,7 @@ def register_all(registry):
                                condition=_cond_fermented_juice)
     registry.register_ability("me01-038", "Fall Back to Reload", _fall_back_to_reload,
                                condition=_cond_fall_back_to_reload)
-    registry.register_ability("me02-068", "Sinister Surge", _sinister_surge,
-                               condition=_cond_sinister_surge)
+    # Note: me02-068 Toxtricity Sinister Surge is registered earlier with its own condition
 
     # Evolve-trigger abilities
     registry.register_ability("me01-017", "Cast-Off Shell", _cast_off_shell)
