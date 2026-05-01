@@ -4674,6 +4674,7 @@ def _cursed_words(state, action):
     if state.phase == Phase.GAME_OVER:
         return
     opp = state.get_opponent(action.player_id)
+    opp_id = state.opponent_id(action.player_id)
     if len(opp.hand) <= 3:
         for c in list(opp.hand):
             opp.hand.remove(c)
@@ -4684,7 +4685,7 @@ def _cursed_words(state, action):
         return
 
     req = ChoiceRequest(
-        "choose_cards", action.player_id,
+        "choose_cards", opp_id,
         "Cursed Words: choose 3 cards from opponent's hand to shuffle into deck",
         cards=opp.hand, min_count=3, max_count=3,
     )
@@ -7447,8 +7448,16 @@ def _stony_kick(state, action):
     opp = state.get_opponent(action.player_id)
     opp_id = state.opponent_id(action.player_id)
     if opp.bench:
-        target = opp.bench[0]
-        _apply_bench_damage(state, opp_id, target, 20)
+        req_t = ChoiceRequest("choose_target", action.player_id,
+            "Stony Kick: choose 1 of your opponent's Benched Pokémon for 20 damage",
+            targets=list(opp.bench))
+        resp_t = yield req_t
+        t = None
+        if resp_t and resp_t.target_instance_id:
+            t = next((p for p in opp.bench if p.instance_id == resp_t.target_instance_id), None)
+        if t is None:
+            t = opp.bench[0]
+        _apply_bench_damage(state, opp_id, t, 20)
 
 
 def _boundless_power(state, action):
@@ -17714,7 +17723,7 @@ def register_all(registry):
     registry.register_attack("sv06-022", 1, _spill_the_tea_flag)            # Sinistcha — Spill the Tea (FLAGGED)
     registry.register_attack("sv06-023", 0, _re_brew_flag)                  # Sinistcha ex — Re-Brew (FLAGGED)
     registry.register_attack("sv06-023", 1, _matcha_splash)                 # Sinistcha ex — Matcha Splash
-    registry.register_attack("sv06-024", 0, _mountain_stroll_flag)          # Teal Mask Ogerpon — Mountain Stroll (FLAGGED)
+    registry.register_attack("sv06-024", 0, _mountain_stroll_b3)          # Teal Mask Ogerpon — Mountain Stroll
     registry.register_attack("sv06-024", 1, _ogre_comeback)                 # Teal Mask Ogerpon — Ogre Comeback
     registry.register_attack("sv06-027", 0, _eerie_glow_ninetales)          # Ninetales — Eerie Glow
     registry.register_attack("sv06-028", 0, _hot_magma)                     # Slugma — Hot Magma
@@ -17747,7 +17756,7 @@ def register_all(registry):
     registry.register_attack("sv06-052", 0, _damage_beat)                   # Glalie — Damage Beat (reuse)
     registry.register_attack("sv06-052", 1, _scorching_fire)                # Glalie — Crazy Headbutt (reuse scorching_fire)
     registry.register_attack("sv06-054", 0, _permeating_chill_b10)         # Glaceon — Permeating Chill
-    registry.register_attack("sv06-055", 0, _beckon_flag)                   # Phione — Beckon (FLAGGED)
+    registry.register_attack("sv06-055", 0, _beckon)                   # Phione — Beckon
     registry.register_attack("sv06-055", 1, _energy_press)                  # Phione — Energy Press
     registry.register_attack("sv06-056", 0, _flock_flag)                    # Froakie — Flock (FLAGGED)
     registry.register_attack("sv06-058", 1, _spit_shot)                     # Cramorant — Spit Shot
@@ -18253,13 +18262,28 @@ def _break_through(state, action):
     opp_id = state.opponent_id(action.player_id)
     opp = state.get_opponent(action.player_id)
     if opp.bench:
-        _apply_bench_damage(state, opp_id, opp.bench[0], 30)
+        req_t = ChoiceRequest("choose_target", action.player_id,
+            "Break Through: choose 1 of your opponent's Benched Pokémon for 30 damage",
+            targets=list(opp.bench))
+        resp_t = yield req_t
+        t = None
+        if resp_t and resp_t.target_instance_id:
+            t = next((p for p in opp.bench if p.instance_id == resp_t.target_instance_id), None)
+        if t is None:
+            t = opp.bench[0]
+        _apply_bench_damage(state, opp_id, t, 30)
 
 
 def _zircon_road(state, action):
     """sv08-159 Cyclizar ex atk1 — Zircon Road: 180 + draw 5 cards."""
     _do_default_damage(state, action)
     if state.phase == Phase.GAME_OVER:
+        return
+    req = ChoiceRequest("choose_option", action.player_id,
+        "Zircon Road: do you want to draw 5 cards?",
+        options=["Draw 5 cards", "Skip"])
+    resp = yield req
+    if not (resp and resp.option == "Draw 5 cards"):
         return
     draw_cards(state, action.player_id, 5)
 
@@ -20773,13 +20797,19 @@ def _dual_headbutt(state, action):
     if state.phase == Phase.GAME_OVER:
         return
     opp = state.get_opponent(action.player_id)
+    opp_id = state.opponent_id(action.player_id)
     if opp.bench:
-        target = opp.bench[0]
-        target.damage_counters += 1
-        target.current_hp = max(0, target.current_hp - 10)
-        state.emit_event("bench_damage", target=target.card_name, damage=10,
-                         attack="Dual Headbutt")
-        check_ko(state, target, state.opponent_id(action.player_id))
+        req_t = ChoiceRequest("choose_target", action.player_id,
+            "Dual Headbutt: choose 1 of your opponent's Benched Pokémon for 10 damage",
+            targets=list(opp.bench))
+        resp_t = yield req_t
+        t = None
+        if resp_t and resp_t.target_instance_id:
+            t = next((p for p in opp.bench if p.instance_id == resp_t.target_instance_id), None)
+        if t is None:
+            t = opp.bench[0]
+        _apply_bench_damage(state, opp_id, t, 10)
+        check_ko(state, t, opp_id)
 
 
 # ── sv06-084 Farigiraf ───────────────────────────────────────────────────────
@@ -21682,12 +21712,17 @@ def _spit_out_shot(state, action):
         state.emit_event("attack_no_damage", attacker="Turtonator",
                          attack_name="Spit-Out Shot", reason="no_opp_bench")
         return
-    target = opp.bench[0]
-    target.damage_counters += 4
-    target.current_hp = max(0, target.current_hp - 40)
-    state.emit_event("bench_damage", target=target.card_name, damage=40,
-                     attack="Spit-Out Shot")
-    check_ko(state, target, opp_id)
+    req_t = ChoiceRequest("choose_target", action.player_id,
+        "Spit-Out Shot: choose 1 of your opponent's Benched Pokémon for 40 damage",
+        targets=list(opp.bench))
+    resp_t = yield req_t
+    t = None
+    if resp_t and resp_t.target_instance_id:
+        t = next((p for p in opp.bench if p.instance_id == resp_t.target_instance_id), None)
+    if t is None:
+        t = opp.bench[0]
+    _apply_bench_damage(state, opp_id, t, 40)
+    check_ko(state, t, opp_id)
 
 
 # ── sv05-037 Centiskorch ─────────────────────────────────────────────────────
@@ -22591,7 +22626,16 @@ def _gemini_laser_b16(state, action):
     opp_id = state.opponent_id(action.player_id)
     opp = state.get_player(opp_id)
     if opp.bench:
-        _apply_bench_damage(state, opp_id, opp.bench[0], 20)
+        req_t = ChoiceRequest("choose_target", action.player_id,
+            "Gemini Laser: choose 1 of your opponent's Benched Pokémon for 20 damage",
+            targets=list(opp.bench))
+        resp_t = yield req_t
+        t = None
+        if resp_t and resp_t.target_instance_id:
+            t = next((p for p in opp.bench if p.instance_id == resp_t.target_instance_id), None)
+        if t is None:
+            t = opp.bench[0]
+        _apply_bench_damage(state, opp_id, t, 20)
 
 
 def _self_lock1_b16(state, action):
@@ -22987,7 +23031,16 @@ def _dirty_beam_b16(state, action):
     opp_id = state.opponent_id(action.player_id)
     opp = state.get_player(opp_id)
     if opp.bench:
-        _apply_bench_damage(state, opp_id, opp.bench[0], 30)
+        req_t = ChoiceRequest("choose_target", action.player_id,
+            "Dirty Beam: choose 1 of your opponent's Benched Pokémon for 30 damage",
+            targets=list(opp.bench))
+        resp_t = yield req_t
+        t = None
+        if resp_t and resp_t.target_instance_id:
+            t = next((p for p in opp.bench if p.instance_id == resp_t.target_instance_id), None)
+        if t is None:
+            t = opp.bench[0]
+        _apply_bench_damage(state, opp_id, t, 30)
 
 
 # ── sv05-110 Forretress ──────────────────────────────────────────────────────
@@ -24103,7 +24156,16 @@ def _flamebody_cannon_b17(state, action):
         state.emit_event("energy_discarded", player=action.player_id,
                          count="all", reason="Flamebody Cannon")
     if opp.bench:
-        _apply_bench_damage(state, opp_id, opp.bench[0], 90)
+        req_t = ChoiceRequest("choose_target", action.player_id,
+            "Flamebody Cannon: choose 1 of your opponent's Benched Pokémon for 90 damage",
+            targets=list(opp.bench))
+        resp_t = yield req_t
+        t = None
+        if resp_t and resp_t.target_instance_id:
+            t = next((p for p in opp.bench if p.instance_id == resp_t.target_instance_id), None)
+        if t is None:
+            t = opp.bench[0]
+        _apply_bench_damage(state, opp_id, t, 90)
 
 
 # ── svp-184 Hop's Snorlax ───────────────────────────────────────────────────
@@ -24187,7 +24249,16 @@ def _insta_strike_b17(state, action):
     opp = state.get_opponent(action.player_id)
     opp_id = state.opponent_id(action.player_id)
     if opp.bench:
-        _apply_bench_damage(state, opp_id, opp.bench[0], 30)
+        req_t = ChoiceRequest("choose_target", action.player_id,
+            "Insta-Strike: choose 1 of your opponent's Benched Pokémon for 30 damage",
+            targets=list(opp.bench))
+        resp_t = yield req_t
+        t = None
+        if resp_t and resp_t.target_instance_id:
+            t = next((p for p in opp.bench if p.instance_id == resp_t.target_instance_id), None)
+        if t is None:
+            t = opp.bench[0]
+        _apply_bench_damage(state, opp_id, t, 30)
 
 
 # ── svp-197 Koraidon ex ─────────────────────────────────────────────────────
