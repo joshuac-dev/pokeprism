@@ -840,6 +840,38 @@ def _run_away_draw(state: GameState, action) -> None:
                      cards_drawn=drawn, card=poke.card_name)
 
 
+def _teleporter(state: GameState, action):
+    """sv06-080 Abra — Teleporter: if Active, shuffle Abra + attached into deck."""
+    player = state.get_player(action.player_id)
+    poke = _find_in_play(player, action.card_instance_id)
+    if poke is None or player.active is None or poke.instance_id != player.active.instance_id:
+        return
+    if not player.bench:
+        return
+
+    req = ChoiceRequest(
+        "choose_target",
+        action.player_id,
+        "Teleporter: choose your new Active Pokémon",
+        targets=list(player.bench),
+    )
+    resp = yield req
+    target = None
+    if resp and resp.target_instance_id:
+        target = next((b for b in player.bench if b.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = player.bench[0]
+    _switch_active_with_bench(player, target)
+
+    player.bench = [b for b in player.bench if b.instance_id != poke.instance_id]
+    poke.energy_attached = []
+    poke.tools_attached = []
+    poke.zone = Zone.DECK
+    player.deck.append(poke)
+    random.shuffle(player.deck)
+    state.emit_event("teleporter", player=action.player_id, card=poke.card_name)
+
+
 # Teal Dance (sv06-025 Teal Mask Ogerpon ex) ──────────────────────────────────
 
 def _teal_dance(state: GameState, action):
@@ -4928,7 +4960,16 @@ def register_all(registry):
     registry.register_passive_ability("sv06-061", "Hero's Spirit")          # Palafin ex (placement restriction: noop)
     registry.register_passive_ability("sv06-072", "Snack Seek")             # Morpeko (top deck look: noop)
     registry.register_passive_ability("sv06-077", "Initialization")         # Iron Thorns ex (attack-lock active: noop)
-    registry.register_passive_ability("sv06-080", "Teleporter")             # Abra (active shuffle to deck: noop)
+    def _cond_teleporter(state, player_id, poke):
+        p = state.get_player(player_id)
+        return (
+            poke is not None
+            and p.active is not None
+            and poke.instance_id == p.active.instance_id
+            and bool(p.bench)
+        )
+    registry.register_ability("sv06-080", "Teleporter", _teleporter,
+                               condition=_cond_teleporter)  # Abra
     registry.register_passive_ability("sv06-033", "Pyro Dance")             # Infernape (energy attach from deck: noop)
 
     # Passive stubs for Batch 15: TWM sv06-082..141 + TEF sv05-001..048

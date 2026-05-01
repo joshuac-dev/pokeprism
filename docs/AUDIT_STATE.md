@@ -5,14 +5,14 @@ This file stores the rotating cursor for the DB-backed card effect audit workflo
 It does not define card text. It does not define the audit candidate set. The database defines audit scope, and TCGDex defines card behavior.
 
 ```text
-next_start_cursor: START_OF_DATABASE_CARD_LIST
-last_run_status: never
-last_run_date_utc:
+next_start_cursor: Accelgor | JTG | 13 | sv09-013
+last_run_status: PARTIAL_TIME_BUDGET
+last_run_date_utc: 2026-05-01
 last_pr:
-last_issue:
-last_first_card_audited:
-last_card_fully_audited:
-notes: Initial state. The first run starts at the first database card in deterministic sort order.
+last_issue: Nightly DB-backed card effect implementation audit - 2026-05-01
+last_first_card_audited: Abomasnow | DRI | 60 | sv10-060
+last_card_fully_audited: Academy at Night | SFA | 54 | sv06.5-054
+notes: Audited 5 cards from start cursor. Fixed sv06-080 Teleporter ability; documented sv06.5-054 Academy at Night as a true stadium-action engine gap.
 ```
 
 ## Cursor rules
