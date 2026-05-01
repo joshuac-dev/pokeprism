@@ -397,7 +397,7 @@ def _choice_to_legal_actions(request) -> list:
     from app.engine.actions import Action, ActionType
 
     if request.choice_type == "choose_cards":
-        cards = request.cards or request.options
+        cards = request.cards if request.cards else (request.options or [])
         # Single action carrying the full list; player picks from it
         return [Action(
             action_type=ActionType.CHOOSE_CARDS,
@@ -435,7 +435,7 @@ def _default_choice(request) -> "Action":
     from app.engine.actions import Action, ActionType
 
     if request.choice_type == "choose_cards":
-        cards = request.cards or request.options
+        cards = request.cards if request.cards else (request.options or [])
         chosen = [_card_choice_id(c) for c in cards[:request.max_count]]
         return Action(ActionType.CHOOSE_CARDS, request.player_id, selected_cards=chosen,
                       choice_context=request)

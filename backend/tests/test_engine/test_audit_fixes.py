@@ -404,7 +404,7 @@ async def test_bench_manipulation_emits_coin_flip_for_each_bench():
     assert total_flips == 2, f"Expected 2 total flips for 2 benched Pokémon, got {total_flips}"
 
 
-def test_choice_request_choose_cards_legacy_options_are_supported():
+def test_choice_request_choose_cards_supports_legacy_options():
     """Legacy choose_cards requests that pass `options=` still map to selected_cards."""
     req = ChoiceRequest(
         "choose_cards",
