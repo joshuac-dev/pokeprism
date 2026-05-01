@@ -70,7 +70,7 @@ def _prism_energy(state: GameState, action) -> None:
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Growing Grass Energy (me03-086)
-# Provides Grass. Gives +20 HP to the attached Pokémon.
+# Provides Grass. The Grass Pokémon this card is attached to gets +20 HP.
 # ──────────────────────────────────────────────────────────────────────────────
 
 def _growing_grass_energy(state: GameState, action) -> None:
@@ -82,10 +82,12 @@ def _growing_grass_energy(state: GameState, action) -> None:
     if target is None:
         return
     _set_provides(target, action.card_instance_id, [EnergyType.GRASS])
-    target.max_hp += 20
-    target.current_hp += 20
-    state.emit_event("hp_boost", player=action.player_id, card=target.card_name,
-                     amount=20, reason="growing_grass_energy")
+    target_def = card_registry.get(target.card_def_id)
+    if target_def and "Grass" in (target_def.types or []):
+        target.max_hp += 20
+        target.current_hp += 20
+        state.emit_event("hp_boost", player=action.player_id, card=target.card_name,
+                         amount=20, reason="growing_grass_energy")
 
 
 # ──────────────────────────────────────────────────────────────────────────────

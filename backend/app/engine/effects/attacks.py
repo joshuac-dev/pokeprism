@@ -1608,12 +1608,12 @@ def _oil_salvo(state, action):
 
 
 def _erasure_ball(state, action):
-    """sv10-081 TR Mewtwo ex atk0 — Erasure Ball: 160 + discard up to 2 bench energy + 60/each."""
-    opp = state.get_opponent(action.player_id)
+    """sv10-081 TR Mewtwo ex atk0 — Erasure Ball: 160 + discard up to 2 own bench energy + 60/each."""
+    player = state.get_player(action.player_id)
     opp_id = state.opponent_id(action.player_id)
 
     all_bench_energy: list = []
-    for bench_poke in opp.bench:
+    for bench_poke in player.bench:
         for att in bench_poke.energy_attached:
             all_bench_energy.append((bench_poke, att))
 
@@ -1625,7 +1625,7 @@ def _erasure_ball(state, action):
     req = ChoiceRequest(
         "choose_cards",
         action.player_id,
-        "Erasure Ball: discard up to 2 Energy from opponent's Benched Pokémon (+60 each)",
+        "Erasure Ball: discard up to 2 Energy from your Benched Pokémon (+60 each)",
         cards=energy_structs,
         min_count=0,
         max_count=2,
@@ -1642,7 +1642,7 @@ def _erasure_ball(state, action):
             if att.source_card_id == src_id and att in bench_poke.energy_attached:
                 bench_poke.energy_attached.remove(att)
                 discarded += 1
-                state.emit_event("energy_discarded", player=opp_id,
+                state.emit_event("energy_discarded", player=action.player_id,
                                  card=bench_poke.card_name, reason="Erasure Ball")
                 break
 
