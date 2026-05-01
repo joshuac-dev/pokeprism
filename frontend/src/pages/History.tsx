@@ -131,7 +131,7 @@ export default function History() {
   const columns = [
     col.display({
       id: 'select',
-      header: () => <span className="text-slate-500 text-xs">CMP</span>,
+      header: () => <span className="text-app-text-muted text-xs">CMP</span>,
       cell: ({ row }) => {
         const id = row.original.id;
         const checked = selected.has(id);
@@ -153,7 +153,7 @@ export default function History() {
       cell: ({ row }) => (
         <button
           onClick={() => handleStar(row.original.id)}
-          className={`text-lg leading-none ${row.original.starred ? 'text-yellow-400' : 'text-slate-600 hover:text-yellow-400'}`}
+          className={`text-lg leading-none ${row.original.starred ? 'text-ctp-yellow' : 'text-slate-600 hover:text-ctp-yellow'}`}
         >
           {row.original.starred ? '\u2605' : '\u2606'}
         </button>
@@ -167,12 +167,12 @@ export default function History() {
     col.accessor('created_at', {
       header: 'Created',
       enableSorting: true,
-      cell: ({ getValue }) => <span className="text-slate-700 dark:text-slate-300 text-xs">{fmtDate(getValue())}</span>,
+      cell: ({ getValue }) => <span className="text-app-text-muted text-xs">{fmtDate(getValue())}</span>,
     }),
     col.accessor('user_deck_name', {
       header: 'Your Deck',
       enableSorting: true,
-      cell: ({ getValue }) => <span className="text-slate-900 dark:text-white">{getValue() ?? '\u2014'}</span>,
+      cell: ({ getValue }) => <span className="text-app-text">{getValue() ?? '\u2014'}</span>,
     }),
     col.accessor('opponents', {
       header: 'Opponent(s)',
@@ -196,7 +196,7 @@ export default function History() {
       header: 'Win Rate',
       enableSorting: true,
       cell: ({ getValue }) => (
-        <span className={(getValue() as number | null) != null && (getValue() as number) >= 0.5 ? 'text-green-600 dark:text-green-400' : 'text-slate-600 dark:text-slate-300'}>
+        <span className={(getValue() as number | null) != null && (getValue() as number) >= 0.5 ? 'text-green-600 dark:text-ctp-green' : 'text-slate-600 dark:text-slate-300'}>
           {fmtWinRate(getValue() as number | null)}
         </span>
       ),
@@ -211,13 +211,13 @@ export default function History() {
             <button
               onClick={() => navigate(`/dashboard/${sim.id}`)}
               disabled={sim.status !== 'complete'}
-              className="px-2 py-1 rounded text-xs bg-blue-700 hover:bg-blue-600 text-white disabled:opacity-30 disabled:cursor-not-allowed"
+              className="px-2 py-1 rounded text-xs bg-blue-700 hover:bg-app-primary text-ctp-base disabled:opacity-30 disabled:cursor-not-allowed"
             >
               View
             </button>
             <button
               onClick={() => setDeleteId(sim.id)}
-              className="px-2 py-1 rounded text-xs bg-red-900 hover:bg-red-700 text-white"
+              className="px-2 py-1 rounded text-xs bg-red-900 hover:bg-app-danger text-ctp-base"
             >
               Delete
             </button>
@@ -257,7 +257,7 @@ export default function History() {
             <button
               onClick={() => setComparing(true)}
               disabled={selected.size < 2}
-              className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm disabled:opacity-40"
+              className="px-3 py-1 rounded-lg bg-app-primary hover:bg-app-primaryHover text-ctp-base text-sm disabled:opacity-40"
             >
               Compare
             </button>
@@ -270,21 +270,21 @@ export default function History() {
           </div>
         )}
 
-        {loading && <p className="text-slate-400 text-sm mb-4">Loading...</p>}
-        {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+        {loading && <p className="text-app-text-subtle text-sm mb-4">Loading...</p>}
+        {error && <p className="text-ctp-red text-sm mb-4">{error}</p>}
 
         {!loading && !error && (
           <>
-            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="overflow-x-auto rounded-xl border border-app-border">
               <table className="w-full text-sm">
-                <thead className="bg-slate-100 dark:bg-slate-800">
+                <thead className="bg-app-surface">
                   {table.getHeaderGroups().map(hg => (
                     <tr key={hg.id}>
                       {hg.headers.map(header => (
                         <th
                           key={header.id}
                           onClick={header.column.getToggleSortingHandler()}
-                          className={`px-4 py-3 text-left text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap ${header.column.getCanSort() ? 'cursor-pointer select-none hover:text-slate-900 dark:hover:text-white' : ''}`}
+                          className={`px-4 py-3 text-left text-app-text-muted font-medium whitespace-nowrap ${header.column.getCanSort() ? 'cursor-pointer select-none hover:text-slate-900 dark:hover:text-ctp-base' : ''}`}
                         >
                           {flexRender(header.column.columnDef.header, header.getContext())}
                           {header.column.getIsSorted() === 'asc' && ' \u2191'}
@@ -297,13 +297,13 @@ export default function History() {
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                   {table.getRowModel().rows.length === 0 ? (
                     <tr>
-                      <td colSpan={columns.length} className="px-4 py-10 text-center text-slate-500">
+                      <td colSpan={columns.length} className="px-4 py-10 text-center text-app-text-muted">
                         No simulations found.
                       </td>
                     </tr>
                   ) : (
                     table.getRowModel().rows.map(row => (
-                      <tr key={row.id} className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                      <tr key={row.id} className="bg-app-bg-secondary hover:bg-slate-50 dark:hover:bg-slate-800/60">
                         {row.getVisibleCells().map(cell => (
                           <td key={cell.id} className="px-4 py-3 whitespace-nowrap">
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -316,13 +316,13 @@ export default function History() {
               </table>
             </div>
 
-            <div className="mt-4 flex items-center justify-between text-sm text-slate-400">
+            <div className="mt-4 flex items-center justify-between text-sm text-app-text-subtle">
               <span>{total} simulation{total !== 1 ? 's' : ''}</span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="px-3 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30"
+                  className="px-3 py-1 rounded bg-app-surface hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30"
                 >
                   Prev
                 </button>
@@ -330,7 +330,7 @@ export default function History() {
                 <button
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}
-                  className="px-3 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30"
+                  className="px-3 py-1 rounded bg-app-surface hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30"
                 >
                   Next
                 </button>
@@ -341,23 +341,23 @@ export default function History() {
 
         {deleteId && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
-              <h3 className="text-slate-900 dark:text-white font-semibold mb-2">Delete simulation?</h3>
-              <p className="text-slate-500 dark:text-slate-400 text-sm mb-5">
+            <div className="bg-app-bg-secondary border border-app-border rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
+              <h3 className="text-app-text font-semibold mb-2">Delete simulation?</h3>
+              <p className="text-app-text-muted text-sm mb-5">
                 This will permanently delete the simulation and all associated matches, events,
                 decisions, mutations, and embeddings. This cannot be undone.
               </p>
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setDeleteId(null)}
-                  className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-900 dark:text-white text-sm"
+                  className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-app-text text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDelete}
                   disabled={deleting}
-                  className="px-4 py-2 rounded-lg bg-red-700 hover:bg-red-600 text-white text-sm disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg bg-app-danger hover:bg-ctp-maroon text-ctp-base text-sm disabled:opacity-50"
                 >
                   {deleting ? 'Deleting...' : 'Delete'}
                 </button>

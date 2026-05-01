@@ -201,7 +201,7 @@ export default function DecisionMap({ simulationId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
+      <div className="flex items-center justify-center h-48 text-app-text-subtle text-sm">
         Loading decision graph…
       </div>
     );
@@ -209,7 +209,7 @@ export default function DecisionMap({ simulationId }: Props) {
 
   if (fetched && !graphData?.nodes.length) {
     return (
-      <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
+      <div className="flex items-center justify-center h-48 text-app-text-subtle text-sm">
         No AI decisions recorded for this simulation.
       </div>
     );

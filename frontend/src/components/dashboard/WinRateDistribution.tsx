@@ -12,7 +12,7 @@ export default function WinRateDistribution({ matches, opponents }: Props) {
 
   if (!matches.length) {
     return (
-      <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
+      <div className="flex items-center justify-center h-48 text-app-text-subtle text-sm">
         No match data
       </div>
     );
@@ -47,7 +47,7 @@ export default function WinRateDistribution({ matches, opponents }: Props) {
         <select
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
-          className="text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded px-2 py-1"
+          className="text-xs bg-app-bg-secondary border border-app-border text-app-text-muted rounded px-2 py-1"
         >
           <option value="__all__">All opponents</option>
           {opponentNames.map((n) => (

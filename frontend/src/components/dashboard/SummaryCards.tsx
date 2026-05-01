@@ -20,10 +20,10 @@ export default function SummaryCards({ numRounds, roundsCompleted, matchesPerOpp
       {cards.map((card) => (
         <div
           key={card.label}
-          className="bg-slate-100 dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700"
+          className="bg-app-surface rounded-xl p-5 border border-app-border"
         >
-          <p className="text-sm text-slate-400 mb-1">{card.label}</p>
-          <p className="text-3xl font-bold text-slate-900 dark:text-white">{card.value}</p>
+          <p className="text-sm text-app-text-subtle mb-1">{card.label}</p>
+          <p className="text-3xl font-bold text-app-text">{card.value}</p>
         </div>
       ))}
     </div>

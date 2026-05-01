@@ -9,7 +9,7 @@ interface PageShellProps {
 
 export default function PageShell({ title, children }: PageShellProps) {
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-slate-950">
+    <div className="flex h-screen overflow-hidden bg-app-bg">
       <Sidebar />
       <div className="flex flex-col flex-1 min-w-0">
         <TopBar title={title} />

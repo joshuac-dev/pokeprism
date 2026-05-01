@@ -11,8 +11,8 @@ interface Props {
 const ACTION_COLOR: Record<string, string> = {
   attack: 'text-orange-400',
   bench:  'text-blue-400',
-  energy: 'text-yellow-400',
-  retreat: 'text-slate-400',
+  energy: 'text-ctp-yellow',
+  retreat: 'text-app-text-subtle',
   trainer: 'text-purple-400',
 };
 
@@ -69,16 +69,16 @@ export default function DecisionDetail({ simulationId, open, onClose }: Props) {
       />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-lg bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700 z-50 flex flex-col shadow-2xl">
+      <div className="fixed right-0 top-0 h-full w-full max-w-lg bg-app-bg-secondary border-l border-app-border z-50 flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-app-border">
           <div>
-            <h2 className="text-slate-900 dark:text-slate-100 font-semibold">AI Decisions</h2>
-            <p className="text-xs text-slate-500">{total} total decisions</p>
+            <h2 className="text-app-text font-semibold">AI Decisions</h2>
+            <p className="text-xs text-app-text-muted">{total} total decisions</p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors text-xl leading-none"
+            className="text-app-text-muted hover:text-slate-900 dark:hover:text-slate-100 transition-colors text-xl leading-none"
           >
             ✕
           </button>
@@ -87,7 +87,7 @@ export default function DecisionDetail({ simulationId, open, onClose }: Props) {
         {/* Decision list */}
         <div className="flex-1 overflow-y-auto">
           {decisions.length === 0 && !loading && (
-            <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-2">
+            <div className="flex flex-col items-center justify-center h-full text-app-text-muted gap-2">
               <span className="text-3xl">🤖</span>
               <p className="text-sm">No AI decisions recorded.</p>
               <p className="text-xs text-slate-600">Only ai_h and ai_ai modes generate decisions.</p>
@@ -98,11 +98,11 @@ export default function DecisionDetail({ simulationId, open, onClose }: Props) {
             {decisions.map((d) => (
               <li key={d.id} className="px-4 py-3 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-slate-500 font-mono">T{d.turn_number}</span>
-                  <span className="text-xs text-slate-500">{d.player_id}</span>
+                  <span className="text-xs text-app-text-muted font-mono">T{d.turn_number}</span>
+                  <span className="text-xs text-app-text-muted">{d.player_id}</span>
                   <ActionBadge type={d.action_type} />
                   {d.card_played && (
-                    <span className="text-xs text-slate-700 dark:text-slate-300 font-mono truncate max-w-[160px]">
+                    <span className="text-xs text-app-text-muted font-mono truncate max-w-[160px]">
                       {d.card_played}
                     </span>
                   )}
@@ -114,7 +114,7 @@ export default function DecisionDetail({ simulationId, open, onClose }: Props) {
                 </div>
 
                 {d.reasoning && (
-                  <p className="text-xs text-slate-400 leading-relaxed line-clamp-3">
+                  <p className="text-xs text-app-text-subtle leading-relaxed line-clamp-3">
                     {d.reasoning}
                   </p>
                 )}
@@ -134,7 +134,7 @@ export default function DecisionDetail({ simulationId, open, onClose }: Props) {
               <button
                 onClick={loadMore}
                 disabled={loading}
-                className="w-full py-2 text-sm text-blue-400 border border-slate-200 dark:border-slate-700 rounded
+                className="w-full py-2 text-sm text-blue-400 border border-app-border rounded
                            hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
               >
                 {loading ? 'Loading…' : `Load more (${total - decisions.length} remaining)`}

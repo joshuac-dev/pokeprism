@@ -7,9 +7,9 @@ interface Props {
 
 function StatItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-3">
-      <div className="text-xs text-slate-500 mb-1">{label}</div>
-      <div className="text-slate-900 dark:text-white font-semibold">{value}</div>
+    <div className="bg-app-surface rounded-lg p-3">
+      <div className="text-xs text-app-text-muted mb-1">{label}</div>
+      <div className="text-app-text font-semibold">{value}</div>
     </div>
   );
 }
@@ -29,7 +29,7 @@ export default function CardProfile({ profile }: Props) {
   }, [lightboxOpen]);
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-5">
+    <div className="bg-app-bg-secondary border border-app-border rounded-2xl p-5">
       {/* Card header */}
       <div className="flex items-start gap-4 mb-4">
         {profile.image_url && (
@@ -37,13 +37,13 @@ export default function CardProfile({ profile }: Props) {
             src={profile.image_url}
             alt={profile.name}
             onClick={() => setLightboxOpen(true)}
-            className="w-20 h-28 object-contain rounded-lg bg-slate-100 dark:bg-slate-800 cursor-pointer transition-transform hover:scale-105 hover:shadow-lg"
+            className="w-20 h-28 object-contain rounded-lg bg-app-surface cursor-pointer transition-transform hover:scale-105 hover:shadow-lg"
           />
         )}
         <div>
-          <h2 className="text-slate-900 dark:text-white text-xl font-bold">{profile.name}</h2>
+          <h2 className="text-app-text text-xl font-bold">{profile.name}</h2>
           {setLabel && (
-            <div className="text-slate-400 text-sm">{setLabel}</div>
+            <div className="text-app-text-subtle text-sm">{setLabel}</div>
           )}
           {profile.category && (
             <span className="inline-block mt-1 px-2 py-0.5 rounded text-xs bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">

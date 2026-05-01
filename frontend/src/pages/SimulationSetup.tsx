@@ -171,7 +171,7 @@ export default function SimulationSetup() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-md text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+          className="w-full py-3 bg-app-primary hover:bg-app-primaryHover disabled:opacity-50 disabled:cursor-not-allowed text-ctp-base font-semibold rounded-md text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-app-focus focus:ring-offset-2 focus:ring-offset-slate-950"
         >
           {submitting ? 'Starting Simulation…' : 'Start Simulation'}
         </button>

@@ -36,10 +36,10 @@ const STATUS_LABEL: Record<string, string> = {
 interface StatTileProps { label: string; value: number; sub?: string; accent?: string }
 function StatTile({ label, value, sub, accent = 'text-slate-800 dark:text-slate-100' }: StatTileProps) {
   return (
-    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{label}</p>
+    <div className="bg-app-surface border border-app-border rounded-lg p-4">
+      <p className="text-xs text-app-text-muted uppercase tracking-wider mb-1">{label}</p>
       <p className={`text-2xl font-bold ${accent}`}>{value.toLocaleString()}</p>
-      {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+      {sub && <p className="text-xs text-app-text-subtle mt-0.5">{sub}</p>}
     </div>
   );
 }
@@ -106,7 +106,7 @@ export default function Coverage() {
   if (loading) {
     return (
       <PageShell title="Card Coverage">
-        <p className="text-slate-500 text-sm">Loading coverage data…</p>
+        <p className="text-app-text-muted text-sm">Loading coverage data…</p>
       </PageShell>
     );
   }
@@ -134,25 +134,25 @@ export default function Coverage() {
         <StatTile
           label="Implemented"
           value={data.implemented}
-          accent="text-green-600 dark:text-green-400"
+          accent="text-green-600 dark:text-ctp-green"
         />
         <StatTile
           label="Flat Damage Only"
           value={data.flat_only}
-          accent="text-yellow-600 dark:text-yellow-400"
+          accent="text-yellow-600 dark:text-ctp-yellow"
           sub="No effect text — no handler needed"
         />
         <StatTile
           label="Missing Handlers"
           value={data.missing}
-          accent="text-red-600 dark:text-red-400"
+          accent="text-red-600 dark:text-ctp-red"
         />
       </div>
 
       {/* Coverage bar */}
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 mb-6 flex items-center gap-4">
+      <div className="bg-app-surface border border-app-border rounded-lg p-4 mb-6 flex items-center gap-4">
         <div className="flex-1">
-          <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+          <div className="flex justify-between text-xs text-app-text-muted mb-1">
             <span>Coverage</span>
             <span className="font-semibold text-slate-800 dark:text-slate-100">
               {data.coverage_pct}% &mdash; {data.implemented + data.flat_only}/{data.total} cards ready
@@ -165,7 +165,7 @@ export default function Coverage() {
             />
           </div>
         </div>
-        <div className="flex gap-3 text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex gap-3 text-xs text-app-text-muted">
           <span className="flex items-center gap-1"><CheckCircle size={12} className="text-green-500" /> Impl.</span>
           <span className="flex items-center gap-1"><Zap size={12} className="text-yellow-500" /> Flat</span>
           <span className="flex items-center gap-1"><AlertCircle size={12} className="text-red-500" /> Missing</span>
@@ -181,8 +181,8 @@ export default function Coverage() {
               onClick={() => setFilter(value)}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 filter === value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  ? 'bg-app-primary text-ctp-base'
+                  : 'bg-app-surface text-app-text-muted hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
               {label}
@@ -194,29 +194,29 @@ export default function Coverage() {
           placeholder="Search by name or set…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="ml-auto px-3 py-1.5 text-xs rounded-md bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500"
+          className="ml-auto px-3 py-1.5 text-xs rounded-md bg-app-surface border border-app-border text-app-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-app-focus"
         />
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+      <div className="bg-app-surface border border-app-border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <tr className="border-b border-app-border bg-app-surfaceRaised">
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-app-text-muted uppercase tracking-wider">
                   <SortButton k="name" label="Card Name" />
                 </th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-app-text-muted uppercase tracking-wider">
                   <SortButton k="set_abbrev" label="Set" />
                 </th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-app-text-muted uppercase tracking-wider">
                   <SortButton k="category" label="Category" />
                 </th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-app-text-muted uppercase tracking-wider">
                   <SortButton k="status" label="Status" />
                 </th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-app-text-muted uppercase tracking-wider">
                   Missing Effects
                 </th>
               </tr>
@@ -224,32 +224,32 @@ export default function Coverage() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-400 text-sm">
+                  <td colSpan={5} className="px-4 py-8 text-center text-app-text-subtle text-sm">
                     No cards match the current filter.
                   </td>
                 </tr>
               ) : rows.map(card => (
                 <tr key={card.tcgdex_id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
-                  <td className="px-4 py-2.5 font-medium text-slate-800 dark:text-slate-200">
+                  <td className="px-4 py-2.5 font-medium text-app-text">
                     {card.name}
-                    <span className="ml-1.5 text-xs text-slate-400 font-mono">{card.tcgdex_id}</span>
+                    <span className="ml-1.5 text-xs text-app-text-subtle font-mono">{card.tcgdex_id}</span>
                   </td>
-                  <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400 font-mono text-xs whitespace-nowrap">
+                  <td className="px-4 py-2.5 text-app-text-muted font-mono text-xs whitespace-nowrap">
                     {card.set_abbrev} {card.set_number}
                   </td>
-                  <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400 capitalize text-xs">
+                  <td className="px-4 py-2.5 text-app-text-muted capitalize text-xs">
                     {card.category}{card.subcategory ? ` / ${card.subcategory}` : ''}
                   </td>
                   <td className="px-4 py-2.5 text-xs whitespace-nowrap">
                     <span className={
-                      card.status === 'implemented' ? 'text-green-600 dark:text-green-400' :
-                      card.status === 'flat_only'   ? 'text-yellow-600 dark:text-yellow-400' :
-                                                      'text-red-600 dark:text-red-400'
+                      card.status === 'implemented' ? 'text-green-600 dark:text-ctp-green' :
+                      card.status === 'flat_only'   ? 'text-yellow-600 dark:text-ctp-yellow' :
+                                                      'text-red-600 dark:text-ctp-red'
                     }>
                       {STATUS_LABEL[card.status]}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-xs text-slate-400 dark:text-slate-500">
+                  <td className="px-4 py-2.5 text-xs text-app-text-subtle">
                     {card.missing_effects.length > 0
                       ? card.missing_effects.join(', ')
                       : <span className="opacity-40">—</span>
@@ -261,7 +261,7 @@ export default function Coverage() {
           </table>
         </div>
         {rows.length > 0 && (
-          <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-400">
+          <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-700 text-xs text-app-text-subtle">
             Showing {rows.length} of {data.total} cards
           </div>
         )}

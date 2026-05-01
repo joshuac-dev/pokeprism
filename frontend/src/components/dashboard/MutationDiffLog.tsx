@@ -27,14 +27,14 @@ export default function MutationDiffLog({ mutations }: Props) {
       accessorKey: 'card_removed',
       header: 'Card Removed',
       cell: (info) => (
-        <span className="text-red-400">{info.getValue<string>()}</span>
+        <span className="text-ctp-red">{info.getValue<string>()}</span>
       ),
     },
     {
       accessorKey: 'card_added',
       header: 'Card Added',
       cell: (info) => (
-        <span className="text-green-400">{info.getValue<string>()}</span>
+        <span className="text-ctp-green">{info.getValue<string>()}</span>
       ),
     },
     {
@@ -43,7 +43,7 @@ export default function MutationDiffLog({ mutations }: Props) {
       cell: (info) => {
         const val = info.getValue<string | null>() ?? '';
         return (
-          <span className="text-slate-400 truncate block max-w-[200px]" title={val}>
+          <span className="text-app-text-subtle truncate block max-w-[200px]" title={val}>
             {val.length > 60 ? `${val.slice(0, 60)}…` : val}
           </span>
         );
@@ -62,7 +62,7 @@ export default function MutationDiffLog({ mutations }: Props) {
 
   if (!mutations.length) {
     return (
-      <div className="flex items-center justify-center h-24 text-slate-400 text-sm">
+      <div className="flex items-center justify-center h-24 text-app-text-subtle text-sm">
         No deck mutations recorded.
       </div>
     );
@@ -77,7 +77,7 @@ export default function MutationDiffLog({ mutations }: Props) {
               {hg.headers.map((header) => (
                 <th
                   key={header.id}
-                  className="text-slate-400 text-xs uppercase tracking-wide text-left px-3 py-2 cursor-pointer select-none"
+                  className="text-app-text-subtle text-xs uppercase tracking-wide text-left px-3 py-2 cursor-pointer select-none"
                   onClick={header.column.getToggleSortingHandler()}
                 >
                   {flexRender(header.column.columnDef.header, header.getContext())}
@@ -97,7 +97,7 @@ export default function MutationDiffLog({ mutations }: Props) {
                 onClick={() => setExpandedId(expandedId === row.original.id ? null : row.original.id)}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-3 py-2 text-slate-900 dark:text-white">
+                  <td key={cell.id} className="px-3 py-2 text-app-text">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}

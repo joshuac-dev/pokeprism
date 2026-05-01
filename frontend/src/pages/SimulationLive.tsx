@@ -89,7 +89,7 @@ export default function SimulationLive() {
           {status === 'complete' && id && (
             <button
               onClick={() => navigate(`/dashboard/${id}`)}
-              className="w-full py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
+              className="w-full py-2 text-sm font-medium bg-app-primary hover:bg-app-primaryHover text-ctp-base rounded-lg transition-colors"
             >
               View Report
             </button>

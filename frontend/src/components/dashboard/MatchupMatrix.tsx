@@ -14,7 +14,7 @@ function cellColor(winRate: number): string {
 export default function MatchupMatrix({ matches, rounds }: Props) {
   if (!matches.length) {
     return (
-      <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
+      <div className="flex items-center justify-center h-48 text-app-text-subtle text-sm">
         No match data
       </div>
     );
@@ -41,13 +41,13 @@ export default function MatchupMatrix({ matches, rounds }: Props) {
       <table className="border-collapse text-xs min-w-max">
         <thead>
           <tr>
-            <th className="text-slate-500 dark:text-slate-400 font-medium text-left px-2 py-1 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+            <th className="text-app-text-muted font-medium text-left px-2 py-1 border border-app-border bg-slate-50 dark:bg-slate-900">
               Round
             </th>
             {opponentNames.map((name) => (
               <th
                 key={name}
-                className="text-slate-500 dark:text-slate-400 font-medium px-2 py-1 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 max-w-[120px] truncate"
+                className="text-app-text-muted font-medium px-2 py-1 border border-app-border bg-slate-50 dark:bg-slate-900 max-w-[120px] truncate"
                 title={name}
               >
                 <span className="block max-w-[100px] truncate">{name}</span>
@@ -58,7 +58,7 @@ export default function MatchupMatrix({ matches, rounds }: Props) {
         <tbody>
           {roundNumbers.map((rn) => (
             <tr key={rn}>
-              <td className="text-slate-700 dark:text-slate-300 px-2 py-1 border border-slate-200 dark:border-slate-700 text-center font-mono">
+              <td className="text-app-text-muted px-2 py-1 border border-app-border text-center font-mono">
                 {rn}
               </td>
               {opponentNames.map((opp) => {
@@ -66,7 +66,7 @@ export default function MatchupMatrix({ matches, rounds }: Props) {
                 const s = statsMap.get(key);
                 if (!s) {
                   return (
-                    <td key={opp} className="px-2 py-1 border border-slate-200 dark:border-slate-700 text-center text-slate-400 dark:text-slate-600">
+                    <td key={opp} className="px-2 py-1 border border-app-border text-center text-app-text-subtle dark:text-slate-600">
                       —
                     </td>
                   );
@@ -75,7 +75,7 @@ export default function MatchupMatrix({ matches, rounds }: Props) {
                 return (
                   <td
                     key={opp}
-                    className={`px-2 py-1 border border-slate-200 dark:border-slate-700 text-center text-white ${cellColor(wr)}`}
+                    className={`px-2 py-1 border border-app-border text-center text-ctp-base ${cellColor(wr)}`}
                     title={`${s.wins}/${s.total}`}
                   >
                     {Math.round(wr * 100)}%

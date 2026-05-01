@@ -10,8 +10,8 @@ const NAV = [
 
 export default function Sidebar() {
   return (
-    <aside className="w-56 shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col">
-      <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+    <aside className="w-56 shrink-0 bg-app-bg-secondary border-r border-app-border flex flex-col">
+      <div className="p-4 border-b border-app-border">
         <span className="text-lg font-bold text-blue-500 dark:text-blue-400 tracking-tight">PokéPrism</span>
       </div>
       <nav className="flex-1 p-3 space-y-1">
@@ -23,8 +23,8 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
                 isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-app-primary text-ctp-base'
+                  : 'text-app-text-muted hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`
             }
           >

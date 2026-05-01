@@ -145,8 +145,8 @@ export default function MindMapGraph({ graph, onNodeClick }: Props) {
   }, [graph, onNodeClick]);
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4">
-      <div className="text-slate-500 text-xs mb-2 flex items-center gap-4">
+    <div className="bg-app-bg-secondary border border-app-border rounded-2xl p-4">
+      <div className="text-app-text-muted text-xs mb-2 flex items-center gap-4">
         <span>Scroll to zoom &bull; Drag nodes &bull; Click to navigate</span>
         <div className="flex items-center gap-2 ml-auto">
           <div className="w-3 h-3 rounded-full bg-red-500 inline-block" />
@@ -157,7 +157,7 @@ export default function MindMapGraph({ graph, onNodeClick }: Props) {
       </div>
       <svg ref={svgRef} className="w-full" style={{ height: 560 }} />
       {graph.nodes.length === 0 && (
-        <div className="text-center text-slate-500 py-10">No synergy data available.</div>
+        <div className="text-center text-app-text-muted py-10">No synergy data available.</div>
       )}
     </div>
   );

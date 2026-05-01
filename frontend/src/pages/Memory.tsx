@@ -92,10 +92,10 @@ export default function Memory() {
             value={searchQ}
             onChange={e => setSearchQ(e.target.value)}
             placeholder="Search card by name..."
-            className="w-full px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+            className="w-full px-4 py-2 rounded-xl bg-app-surface border border-slate-300 dark:border-slate-700 text-app-text placeholder:text-app-text-subtle dark:placeholder:text-app-text-muted focus:outline-none focus:border-app-focus"
           />
           {showDropdown && (
-            <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden">
+            <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-app-surface border border-app-border rounded-xl shadow-xl overflow-hidden">
               {searchResults.map(card => (
                 <button
                   key={card.tcgdex_id}
@@ -106,8 +106,8 @@ export default function Memory() {
                     <img src={card.image_url} alt="" className="w-8 h-10 object-contain rounded" />
                   )}
                   <div>
-                    <div className="text-slate-900 dark:text-white text-sm">{card.name}</div>
-                    <div className="text-slate-500 text-xs">{card.set_abbrev} {card.set_number}</div>
+                    <div className="text-app-text text-sm">{card.name}</div>
+                    <div className="text-app-text-muted text-xs">{card.set_abbrev} {card.set_number}</div>
                   </div>
                 </button>
               ))}
@@ -117,7 +117,7 @@ export default function Memory() {
 
         {/* Empty state */}
         {initialEmpty && !loadingCard && !profile && (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+          <div className="flex flex-col items-center justify-center py-20 text-app-text-muted">
             <div className="text-6xl mb-4">🧠</div>
             <div className="text-lg font-semibold mb-2">No memory data yet</div>
             <div className="text-sm">Run simulations with AI players to populate card memory.</div>
@@ -125,7 +125,7 @@ export default function Memory() {
         )}
 
         {loadingCard && (
-          <div className="text-slate-400 text-sm py-10 text-center">Loading card data...</div>
+          <div className="text-app-text-subtle text-sm py-10 text-center">Loading card data...</div>
         )}
 
         {/* Main content */}
@@ -136,10 +136,10 @@ export default function Memory() {
               <CardProfile profile={profile} />
 
               {/* Top synergies panel */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-5">
-                <h3 className="text-slate-900 dark:text-white font-semibold mb-4">Top Synergies</h3>
+              <div className="bg-app-bg-secondary border border-app-border rounded-2xl p-5">
+                <h3 className="text-app-text font-semibold mb-4">Top Synergies</h3>
                 {profile.partners.length === 0 ? (
-                  <p className="text-slate-500 text-sm">No synergy data recorded yet.</p>
+                  <p className="text-app-text-muted text-sm">No synergy data recorded yet.</p>
                 ) : (
                   <div className="divide-y divide-slate-200 dark:divide-slate-800">
                     {profile.partners.map((p, i) => (
@@ -149,12 +149,12 @@ export default function Memory() {
                         className="w-full flex items-center justify-between py-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 px-2 rounded text-left"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-slate-400 dark:text-slate-600 text-xs w-4">{i + 1}</span>
-                          <span className="text-slate-900 dark:text-white text-sm">{p.name}</span>
+                          <span className="text-app-text-subtle dark:text-slate-600 text-xs w-4">{i + 1}</span>
+                          <span className="text-app-text text-sm">{p.name}</span>
                         </div>
                         <div className="text-right">
                           <div className="text-slate-600 dark:text-slate-300 text-sm">{p.weight.toFixed(2)}</div>
-                          <div className="text-slate-400 dark:text-slate-600 text-xs">{p.games_observed} games</div>
+                          <div className="text-app-text-subtle dark:text-slate-600 text-xs">{p.games_observed} games</div>
                         </div>
                       </button>
                     ))}

@@ -8,7 +8,7 @@ interface Props {
 export default function WinRateDonut({ winRate, totalMatches }: Props) {
   if (winRate === null) {
     return (
-      <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
+      <div className="flex items-center justify-center h-48 text-app-text-subtle text-sm">
         No data available
       </div>
     );
@@ -46,11 +46,11 @@ export default function WinRateDonut({ winRate, totalMatches }: Props) {
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-3xl font-bold text-slate-900 dark:text-white">{winPct}%</span>
-          <span className="text-xs text-slate-400">win rate</span>
+          <span className="text-3xl font-bold text-app-text">{winPct}%</span>
+          <span className="text-xs text-app-text-subtle">win rate</span>
         </div>
       </div>
-      <div className="flex gap-6 text-sm text-slate-400">
+      <div className="flex gap-6 text-sm text-app-text-subtle">
         <span>
           <span className="inline-block w-3 h-3 rounded-full bg-blue-500 mr-1" />
           Wins ({wins} matches)

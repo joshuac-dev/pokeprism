@@ -23,7 +23,7 @@ interface TooltipProps {
 function CustomTooltip({ active, payload, label }: TooltipProps) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-3 py-2 text-xs text-slate-900 dark:text-white">
+    <div className="bg-app-bg-secondary border border-app-border rounded px-3 py-2 text-xs text-app-text">
       Round {label}: {payload[0].value.toFixed(1)}%
     </div>
   );
@@ -34,7 +34,7 @@ export default function WinRateProgress({ rounds, targetWinRate }: Props) {
 
   if (!withData.length) {
     return (
-      <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
+      <div className="flex items-center justify-center h-48 text-app-text-subtle text-sm">
         Waiting for round data
       </div>
     );

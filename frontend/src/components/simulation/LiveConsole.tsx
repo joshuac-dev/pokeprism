@@ -50,7 +50,7 @@ function fmt(ev: NormalisedEvent): FmtResult {
   if (t === 'deck_mutation') {
     const ci = (ev.data?.card_in  as string) ?? '?';
     const co = (ev.data?.card_out as string) ?? '?';
-    return { text: `⟳ Deck swap: −${co} / +${ci}`, cls: 'text-yellow-400 font-semibold' };
+    return { text: `⟳ Deck swap: −${co} / +${ci}`, cls: 'text-ctp-yellow font-semibold' };
   }
   if (t === 'deck_reverted') {
     const wr = ev.data?.reverted_to_win_rate != null ? ` (best was ${ev.data.reverted_to_win_rate}%)` : '';
@@ -69,14 +69,14 @@ function fmt(ev: NormalisedEvent): FmtResult {
     const wr = ev.data?.final_win_rate != null
       ? ` | final win rate: ${Math.round((ev.data.final_win_rate as number) * 100)}%`
       : '';
-    return { text: `✓ Simulation complete${wr}`, cls: 'text-green-400 font-semibold' };
+    return { text: `✓ Simulation complete${wr}`, cls: 'text-ctp-green font-semibold' };
   }
   if (t === 'simulation_cancelled') {
-    return { text: '⊘ Simulation cancelled', cls: 'text-yellow-400' };
+    return { text: '⊘ Simulation cancelled', cls: 'text-ctp-yellow' };
   }
   if (t === 'simulation_error') {
     const msg = (ev.data?.error as string) ?? 'unknown error';
-    return { text: `✗ Simulation error: ${msg}`, cls: 'text-red-400 font-semibold' };
+    return { text: `✗ Simulation error: ${msg}`, cls: 'text-ctp-red font-semibold' };
   }
 
   // ── match_event discriminated by event_type ──────────────────────────────
@@ -98,24 +98,24 @@ function fmt(ev: NormalisedEvent): FmtResult {
       const attacker = (ev.data?.attacker     as string) ?? '';
       const atkName  = ((ev.data?.attack_name  as string) ?? attacker) || 'attack';
       const atkLabel = attacker ? `${atkName} (${attacker})` : atkName;
-      return { text: `${turn}${who}⚔ ${atkLabel} → ${dmg} dmg`, cls: 'text-white' };
+      return { text: `${turn}${who}⚔ ${atkLabel} → ${dmg} dmg`, cls: 'text-ctp-base' };
     }
     if (et === 'attack_no_damage') {
       const attacker = (ev.data?.attacker    as string) ?? '';
       const atkName  = ((ev.data?.attack_name as string) ?? attacker) || 'attack';
       const atkLabel = attacker ? `${atkName} (${attacker})` : atkName;
-      return { text: `${turn}${who}⚔ ${atkLabel} → no damage`, cls: 'text-slate-500' };
+      return { text: `${turn}${who}⚔ ${atkLabel} → no damage`, cls: 'text-app-text-muted' };
     }
     if (et === 'ko') {
       const card     = (ev.data?.card_name as string) || (ev.data?.card as string) || 'Pokémon';
       const attacker = (ev.data?.attacker  as string) ?? '';
       const byStr    = attacker ? ` (by ${attacker})` : '';
-      return { text: `${turn}${who}★ KO — ${card}${byStr}`, cls: 'text-green-400 font-semibold' };
+      return { text: `${turn}${who}★ KO — ${card}${byStr}`, cls: 'text-ctp-green font-semibold' };
     }
     if (et === 'prizes_taken' || et === 'prize_taken') {
       const cnt = (ev.data?.count as number) ?? 1;
       const rem = ev.data?.remaining != null ? ` (${ev.data.remaining} left)` : '';
-      return { text: `${turn}${who}◆ Prize ×${cnt}${rem}`, cls: 'text-yellow-400' };
+      return { text: `${turn}${who}◆ Prize ×${cnt}${rem}`, cls: 'text-ctp-yellow' };
     }
     if (et === 'energy_attached') {
       const card   = (ev.data?.card   as string) || (ev.data?.energy as string) || 'energy';
@@ -149,7 +149,7 @@ function fmt(ev: NormalisedEvent): FmtResult {
     if (et === 'retreat') {
       const from = (ev.data?.from_card as string) || (ev.data?.from as string) || '?';
       const to   = (ev.data?.to_card   as string) || (ev.data?.to   as string) || '?';
-      return { text: `${turn}${who}↔ Retreat ${from} → ${to}`, cls: 'text-slate-500' };
+      return { text: `${turn}${who}↔ Retreat ${from} → ${to}`, cls: 'text-app-text-muted' };
     }
     if (et === 'switch_active') {
       const card = (ev.data?.card as string) || '?';
@@ -157,7 +157,7 @@ function fmt(ev: NormalisedEvent): FmtResult {
     }
     if (et === 'draw') {
       const count = (ev.data?.count as number) ?? 1;
-      return { text: `${turn}${who}↓ Draw ×${count}`, cls: 'text-slate-500' };
+      return { text: `${turn}${who}↓ Draw ×${count}`, cls: 'text-app-text-muted' };
     }
     // skip noise events
     if (et === 'turn_start' || et === 'end_turn' || et === 'pass' || et === 'prizes_set') {
@@ -176,7 +176,7 @@ function fmtMatchEnd(winner: string | undefined, cond: string | undefined, match
   const winnerLabel = raw === 'p1' ? 'P1' : raw === 'p2' ? 'P2' : raw;
   const condLabel   = cond ? ` (${WIN_COND_LABELS[cond] ?? cond})` : '';
   const matchLabel  = matchNum != null ? `Match ${matchNum} ` : '';
-  return { text: `═══ ${matchLabel}complete — ${winnerLabel} wins${condLabel} ═══`, cls: 'text-slate-400 font-semibold' };
+  return { text: `═══ ${matchLabel}complete — ${winnerLabel} wins${condLabel} ═══`, cls: 'text-app-text-subtle font-semibold' };
 }
 
 // ---------------------------------------------------------------------------
@@ -236,7 +236,7 @@ export default function LiveConsole({
       {hasMore && (
         <button
           onClick={handleLoadEarlier}
-          className="w-full py-1.5 px-4 text-xs text-slate-400 hover:text-slate-100
+          className="w-full py-1.5 px-4 text-xs text-app-text-subtle hover:text-slate-100
                      bg-slate-900 border-b border-slate-800 hover:bg-slate-800
                      transition-colors text-left shrink-0"
         >

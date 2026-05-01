@@ -27,7 +27,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-3 py-2 text-xs text-slate-900 dark:text-white">
+    <div className="bg-app-bg-secondary border border-app-border rounded px-3 py-2 text-xs text-app-text">
       <p className="font-medium">{d.name}</p>
       <p>{d.wins} wins / {d.total} total ({Math.round(d.win_rate * 100)}%)</p>
     </div>
@@ -37,7 +37,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
 export default function OpponentWinRateBar({ opponents }: Props) {
   if (!opponents.length) {
     return (
-      <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
+      <div className="flex items-center justify-center h-48 text-app-text-subtle text-sm">
         No opponent data
       </div>
     );

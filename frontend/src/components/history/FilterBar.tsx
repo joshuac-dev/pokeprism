@@ -31,7 +31,7 @@ export default function FilterBar({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 mb-4 space-y-3">
+    <div className="bg-slate-50 dark:bg-slate-800 border border-app-border rounded-xl p-4 mb-4 space-y-3">
       {/* Row 1: search + status + starred + toggle */}
       <div className="flex flex-wrap gap-3 items-center">
         <input
@@ -39,13 +39,13 @@ export default function FilterBar({
           placeholder="Search deck name…"
           value={search}
           onChange={e => onSearch(e.target.value)}
-          className="flex-1 min-w-[200px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500"
+          className="flex-1 min-w-[200px] bg-app-bg-secondary border border-app-border rounded-lg px-3 py-1.5 text-sm text-app-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-app-focus"
         />
 
         <select
           value={status}
           onChange={e => onStatus(e.target.value)}
-          className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+          className="bg-app-bg-secondary border border-app-border rounded-lg px-3 py-1.5 text-sm text-app-text focus:outline-none focus:border-app-focus"
         >
           {STATUSES.map(s => (
             <option key={s} value={s}>{STATUS_LABEL[s]}</option>
@@ -64,14 +64,14 @@ export default function FilterBar({
 
         <button
           onClick={() => setExpanded(x => !x)}
-          className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-1.5"
+          className="text-xs text-app-text-muted hover:text-slate-800 dark:hover:text-slate-200 border border-app-border rounded-lg px-3 py-1.5"
         >
           {expanded ? 'Fewer filters ▲' : 'More filters ▼'}
         </button>
 
         <button
           onClick={onReset}
-          className="text-xs text-slate-400 hover:text-red-400"
+          className="text-xs text-app-text-subtle hover:text-ctp-red"
         >
           Reset
         </button>
@@ -79,21 +79,21 @@ export default function FilterBar({
 
       {/* Row 2: expanded filters */}
       {expanded && (
-        <div className="flex flex-wrap gap-3 items-center pt-1 border-t border-slate-200 dark:border-slate-700">
+        <div className="flex flex-wrap gap-3 items-center pt-1 border-t border-app-border">
           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
             <span>From</span>
             <input
               type="date"
               value={dateFrom}
               onChange={e => onDateFrom(e.target.value)}
-              className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+              className="bg-app-bg-secondary border border-app-border rounded-lg px-2 py-1 text-sm text-app-text focus:outline-none focus:border-app-focus"
             />
             <span>To</span>
             <input
               type="date"
               value={dateTo}
               onChange={e => onDateTo(e.target.value)}
-              className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+              className="bg-app-bg-secondary border border-app-border rounded-lg px-2 py-1 text-sm text-app-text focus:outline-none focus:border-app-focus"
             />
           </div>
 
@@ -105,7 +105,7 @@ export default function FilterBar({
               placeholder="min %"
               value={minWinRate}
               onChange={e => onMinWinRate(e.target.value)}
-              className="w-20 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+              className="w-20 bg-app-bg-secondary border border-app-border rounded-lg px-2 py-1 text-sm text-app-text focus:outline-none focus:border-app-focus"
             />
             <span>–</span>
             <input
@@ -114,7 +114,7 @@ export default function FilterBar({
               placeholder="max %"
               value={maxWinRate}
               onChange={e => onMaxWinRate(e.target.value)}
-              className="w-20 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+              className="w-20 bg-app-bg-secondary border border-app-border rounded-lg px-2 py-1 text-sm text-app-text focus:outline-none focus:border-app-focus"
             />
           </div>
         </div>

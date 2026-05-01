@@ -69,15 +69,15 @@ export default function ParamForm({
   }
 
   const inputClass =
-    'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-full';
+    'bg-app-bg-secondary border border-app-border text-app-text rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-app-focus focus:ring-1 focus:ring-app-focus w-full';
 
   return (
-    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 flex flex-col gap-4">
-      <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Parameters</h2>
+    <div className="bg-app-surface border border-app-border rounded-lg p-4 flex flex-col gap-4">
+      <h2 className="text-xs font-semibold text-app-text-subtle uppercase tracking-wider">Parameters</h2>
 
       {/* Game Mode */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-slate-400">Game Mode</label>
+        <label className="text-xs text-app-text-subtle">Game Mode</label>
         <select
           value={gameMode}
           onChange={(e) => onGameModeChange(e.target.value as GameMode)}
@@ -91,7 +91,7 @@ export default function ParamForm({
 
       {/* Matches per Opponent */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-slate-400">Matches per Opponent</label>
+        <label className="text-xs text-app-text-subtle">Matches per Opponent</label>
         <input
           type="number"
           min={1}
@@ -104,7 +104,7 @@ export default function ParamForm({
 
       {/* Rounds */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-slate-400">Rounds</label>
+        <label className="text-xs text-app-text-subtle">Rounds</label>
         <input
           type="number"
           min={1}
@@ -117,7 +117,7 @@ export default function ParamForm({
 
       {/* Target Win Rate */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-slate-400">Target Win Rate</label>
+        <label className="text-xs text-app-text-subtle">Target Win Rate</label>
         <div className="relative">
           <input
             type="number"
@@ -128,7 +128,7 @@ export default function ParamForm({
             onChange={(e) => onTargetWinRatePctChange(Number(e.target.value))}
             className={`${inputClass} pr-7`}
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-app-text-subtle text-sm pointer-events-none">
             %
           </span>
         </div>
@@ -136,7 +136,7 @@ export default function ParamForm({
 
       {/* Rounds to Confirm */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-slate-400" title="Number of consecutive rounds the target must be met before stopping early.">
+        <label className="text-xs text-app-text-subtle" title="Number of consecutive rounds the target must be met before stopping early.">
           Rounds to Confirm
         </label>
         <input
@@ -152,7 +152,7 @@ export default function ParamForm({
 
       {/* Target Mode */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-xs text-slate-400">Target Mode</span>
+        <span className="text-xs text-app-text-subtle">Target Mode</span>
         {(['aggregate', 'per_opponent'] as const).map((mode) => (
           <label key={mode} className="flex items-center gap-2 cursor-pointer">
             <input
@@ -163,7 +163,7 @@ export default function ParamForm({
               onChange={() => onTargetModeChange(mode)}
               className="accent-blue-500"
             />
-            <span className="text-sm text-slate-700 dark:text-slate-300">
+            <span className="text-sm text-app-text-muted">
               {mode === 'aggregate' ? 'Aggregate' : 'Per Opponent'}
             </span>
           </label>
@@ -172,7 +172,7 @@ export default function ParamForm({
 
       {/* Excluded Cards */}
       <div className="flex flex-col gap-2">
-        <span className="text-xs text-slate-400">Excluded Cards</span>
+        <span className="text-xs text-app-text-subtle">Excluded Cards</span>
 
         <div className="relative" ref={dropdownRef}>
           <input
@@ -184,21 +184,21 @@ export default function ParamForm({
             className={inputClass}
           />
           {loading && (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-app-text-muted text-xs">
               …
             </span>
           )}
           {dropdownOpen && results.length > 0 && (
-            <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
+            <ul className="absolute z-10 w-full mt-1 bg-app-surface border border-app-border rounded-md shadow-lg max-h-48 overflow-y-auto">
               {results.map((card) => (
                 <li key={card.tcgdex_id}>
                   <button
                     type="button"
                     onClick={() => handleSelectCard(card)}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm text-app-text hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                   >
                     <span className="font-medium">{card.name}</span>
-                    <span className="ml-2 text-slate-500 text-xs">
+                    <span className="ml-2 text-app-text-muted text-xs">
                       {card.set_abbrev}-{card.set_number}
                     </span>
                   </button>
@@ -213,13 +213,13 @@ export default function ParamForm({
             {excludedCards.map((card) => (
               <span
                 key={card.tcgdex_id}
-                className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 text-xs px-2 py-0.5 rounded-full"
+                className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 border border-app-border text-app-text text-xs px-2 py-0.5 rounded-full"
               >
                 {card.name}
                 <button
                   type="button"
                   onClick={() => onRemoveExcludedCard(card.tcgdex_id)}
-                  className="text-slate-400 hover:text-slate-100 transition-colors ml-0.5"
+                  className="text-app-text-subtle hover:text-slate-100 transition-colors ml-0.5"
                   aria-label={`Remove ${card.name}`}
                 >
                   <X size={11} />

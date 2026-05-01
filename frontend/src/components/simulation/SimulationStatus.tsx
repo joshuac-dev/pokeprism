@@ -12,10 +12,10 @@ interface Props {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  pending:   'text-slate-400',
+  pending:   'text-app-text-subtle',
   running:   'text-blue-400',
-  complete:  'text-green-400',
-  failed:    'text-red-400',
+  complete:  'text-ctp-green',
+  failed:    'text-ctp-red',
   cancelled: 'text-amber-400',
 };
 
@@ -46,7 +46,7 @@ function WinRateBar({ value, target }: { value: number | null; target: number })
           />
         )}
       </div>
-      <span className="text-slate-900 dark:text-slate-100 text-sm tabular-nums w-12 text-right">
+      <span className="text-app-text text-sm tabular-nums w-12 text-right">
         {pct != null ? `${pct}%` : '—'}
       </span>
     </div>
@@ -60,29 +60,29 @@ export default function SimulationStatus({ detail, onCancel, cancelling }: Props
     : 0;
 
   return (
-    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-4">
+    <div className="bg-app-surface border border-app-border rounded-lg p-4 space-y-4">
       {/* Header row */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wide">Simulation</p>
-          <p className="text-slate-900 dark:text-slate-100 font-semibold truncate max-w-xs">
+          <p className="text-xs text-app-text-muted uppercase tracking-wide">Simulation</p>
+          <p className="text-app-text font-semibold truncate max-w-xs">
             {detail.user_deck_name ?? 'Custom Deck'}
           </p>
         </div>
-        <span className={`text-sm font-semibold ${STATUS_COLOR[detail.status] ?? 'text-slate-400'}`}>
+        <span className={`text-sm font-semibold ${STATUS_COLOR[detail.status] ?? 'text-app-text-subtle'}`}>
           {STATUS_LABEL[detail.status] ?? detail.status}
         </span>
       </div>
 
       {/* Round progress bar */}
       <div>
-        <div className="flex justify-between text-xs text-slate-400 mb-1">
+        <div className="flex justify-between text-xs text-app-text-subtle mb-1">
           <span>Round progress</span>
           <span>{detail.rounds_completed} / {detail.num_rounds}</span>
         </div>
         <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
           <div
-            className="h-full bg-blue-600 rounded-full transition-all duration-700"
+            className="h-full bg-app-primary rounded-full transition-all duration-700"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -90,7 +90,7 @@ export default function SimulationStatus({ detail, onCancel, cancelling }: Props
 
       {/* Win rate */}
       <div>
-        <div className="flex justify-between text-xs text-slate-400 mb-1">
+        <div className="flex justify-between text-xs text-app-text-subtle mb-1">
           <span>Win rate</span>
           <span className="text-amber-400">target {Math.round(detail.target_win_rate * 100)}%</span>
         </div>
@@ -100,22 +100,22 @@ export default function SimulationStatus({ detail, onCancel, cancelling }: Props
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-2 text-center text-xs">
         <div className="bg-slate-100 dark:bg-slate-900 rounded p-2">
-          <p className="text-slate-500">Mode</p>
-          <p className="text-slate-800 dark:text-slate-200 font-mono uppercase">{detail.game_mode}</p>
+          <p className="text-app-text-muted">Mode</p>
+          <p className="text-app-text font-mono uppercase">{detail.game_mode}</p>
         </div>
         <div className="bg-slate-100 dark:bg-slate-900 rounded p-2">
-          <p className="text-slate-500">Matches</p>
-          <p className="text-slate-800 dark:text-slate-200 font-mono">{detail.total_matches}</p>
+          <p className="text-app-text-muted">Matches</p>
+          <p className="text-app-text font-mono">{detail.total_matches}</p>
         </div>
         <div className="bg-slate-100 dark:bg-slate-900 rounded p-2">
-          <p className="text-slate-500">Per opp.</p>
-          <p className="text-slate-800 dark:text-slate-200 font-mono">{detail.matches_per_opponent}</p>
+          <p className="text-app-text-muted">Per opp.</p>
+          <p className="text-app-text font-mono">{detail.matches_per_opponent}</p>
         </div>
       </div>
 
       {/* Error message */}
       {detail.error_message && (
-        <p className="text-xs text-red-400 bg-red-950/30 border border-red-800 rounded px-3 py-2">
+        <p className="text-xs text-ctp-red bg-red-950/30 border border-red-800 rounded px-3 py-2">
           {detail.error_message}
         </p>
       )}
@@ -125,7 +125,7 @@ export default function SimulationStatus({ detail, onCancel, cancelling }: Props
         <button
           onClick={onCancel}
           disabled={cancelling}
-          className="w-full py-1.5 px-4 text-sm rounded border border-red-700 text-red-400
+          className="w-full py-1.5 px-4 text-sm rounded border border-red-700 text-ctp-red
                      hover:bg-red-900/30 disabled:opacity-50 disabled:cursor-not-allowed
                      transition-colors"
         >

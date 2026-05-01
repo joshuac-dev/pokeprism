@@ -31,8 +31,8 @@ function DashboardTile({
   className?: string;
 }) {
   return (
-    <div className={`bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 ${className}`}>
-      <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-4">{title}</h2>
+    <div className={`bg-app-surface rounded-xl border border-app-border p-5 ${className}`}>
+      <h2 className="text-sm font-medium text-app-text-subtle uppercase tracking-wide mb-4">{title}</h2>
       {children}
     </div>
   );
@@ -103,11 +103,11 @@ export default function Dashboard() {
         >
           ← Back to Simulation
         </button>
-        <span className="text-slate-400 font-mono text-xs">{id}</span>
+        <span className="text-app-text-subtle font-mono text-xs">{id}</span>
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center h-64 text-slate-400 text-sm">
+        <div className="flex items-center justify-center h-64 text-app-text-subtle text-sm">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
             Loading dashboard…
@@ -117,9 +117,9 @@ export default function Dashboard() {
 
       {error && (
         <div className="flex items-center justify-center h-64">
-          <div className="bg-slate-100 dark:bg-slate-800 border border-red-200 dark:border-red-800 rounded-xl p-8 text-center">
-            <p className="text-red-400 font-medium mb-1">{error}</p>
-            <p className="text-slate-400 text-sm">Check the simulation ID and try again.</p>
+          <div className="bg-app-surface border border-red-200 dark:border-red-800 rounded-xl p-8 text-center">
+            <p className="text-ctp-red font-medium mb-1">{error}</p>
+            <p className="text-app-text-subtle text-sm">Check the simulation ID and try again.</p>
           </div>
         </div>
       )}

@@ -15,7 +15,7 @@ function DataRow({ k, v }: { k: string; v: unknown }) {
   if (v == null || v === '') return null;
   return (
     <div className="flex gap-2 py-0.5">
-      <span className="text-slate-500 shrink-0 w-32 truncate">{k}</span>
+      <span className="text-app-text-muted shrink-0 w-32 truncate">{k}</span>
       <span className="text-slate-100 font-mono text-xs break-all">{String(v)}</span>
     </div>
   );
@@ -90,12 +90,12 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
           <div>
             <span className="font-mono text-sm text-slate-200 font-semibold">{et}</span>
             {(turn || who) && (
-              <span className="text-slate-500 text-xs ml-2 font-mono">{turn}{who}</span>
+              <span className="text-app-text-muted text-xs ml-2 font-mono">{turn}{who}</span>
             )}
           </div>
           <button
             onClick={onClose}
-            className="text-slate-500 hover:text-slate-200 text-lg leading-none"
+            className="text-app-text-muted hover:text-slate-200 text-lg leading-none"
             aria-label="Close"
           >
             ×
@@ -107,7 +107,7 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
           {/* Event data */}
           {dataEntries.length > 0 && (
             <section>
-              <h3 className="text-xs text-slate-500 uppercase tracking-wider mb-1">Event Data</h3>
+              <h3 className="text-xs text-app-text-muted uppercase tracking-wider mb-1">Event Data</h3>
               <div className="text-xs space-y-0.5">
                 {dataEntries.map(([k, v]) => (
                   <DataRow key={k} k={k} v={v} />
@@ -119,7 +119,7 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
           {/* AI Reasoning */}
           {isAiMode && (
             <section>
-              <h3 className="text-xs text-slate-500 uppercase tracking-wider mb-1">AI Reasoning</h3>
+              <h3 className="text-xs text-app-text-muted uppercase tracking-wider mb-1">AI Reasoning</h3>
               {loading && (
                 <p className="text-xs text-slate-600 italic">Loading…</p>
               )}
@@ -136,7 +136,7 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
                       <span className="text-xs text-slate-300">{d.card_played}</span>
                     )}
                     {d.target && (
-                      <span className="text-xs text-slate-500">→ {d.target}</span>
+                      <span className="text-xs text-app-text-muted">→ {d.target}</span>
                     )}
                   </div>
                   {d.reasoning && (
@@ -145,7 +145,7 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
                     </p>
                   )}
                   {d.game_state_summary && (
-                    <p className="text-xs text-slate-500 italic">
+                    <p className="text-xs text-app-text-muted italic">
                       {d.game_state_summary}
                     </p>
                   )}
