@@ -22,7 +22,7 @@ name: Nightly Copilot Card Effect Fixes
         type: boolean
         default: false
       copilot_model:
-        description: "Optional Copilot coding agent model. Leave blank to use Auto."
+        description: "Optional Copilot coding agent model"
         required: false
         default: "gpt-5.3-codex"
 
@@ -40,16 +40,16 @@ jobs:
 
     steps:
       - name: Check out repository for audit state
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Create implementation-fix issue and assign to Copilot
         env:
           GH_TOKEN: ${{ secrets.COPILOT_AGENT_PAT }}
           GH_REPO: ${{ github.repository }}
-          TARGET_FINDINGS: ${{ inputs.target_findings || '25' }}
-          START_CURSOR_OVERRIDE: ${{ inputs.start_cursor_override || '' }}
-          FORCE_NEW_ISSUE: ${{ inputs.force_new_issue || 'false' }}
-          COPILOT_MODEL: ${{ inputs.copilot_model || '' }}
+          TARGET_FINDINGS: ${{ github.event_name == 'workflow_dispatch' && inputs.target_findings || '25' }}
+          START_CURSOR_OVERRIDE: ${{ github.event_name == 'workflow_dispatch' && inputs.start_cursor_override || '' }}
+          FORCE_NEW_ISSUE: ${{ github.event_name == 'workflow_dispatch' && inputs.force_new_issue || false }}
+          COPILOT_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.copilot_model || 'gpt-5.3-codex' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: |
@@ -77,14 +77,15 @@ jobs:
 
           echo "Audit start cursor: $START_CURSOR"
           echo "Audit start cursor source: $START_CURSOR_SOURCE"
+          echo "Copilot model: $COPILOT_MODEL"
 
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && { [ "$FORCE_NEW_ISSUE" = "true" ] || [ -n "$START_CURSOR_OVERRIDE" ]; }; then
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && { [ "$FORCE_NEW_ISSUE" = "true" ] || [ "$FORCE_NEW_ISSUE" = "True" ] || [ -n "$START_CURSOR_OVERRIDE" ]; }; then
             TITLE="${TITLE_BASE} - manual run ${GITHUB_RUN_NUMBER}"
           else
             TITLE="$TITLE_BASE"
           fi
 
-          if [ "$FORCE_NEW_ISSUE" != "true" ]; then
+          if [ "$FORCE_NEW_ISSUE" != "true" ] && [ "$FORCE_NEW_ISSUE" != "True" ]; then
             EXISTING="$(gh issue list \
               --state open \
               --search "${TITLE_BASE} in:title" \
