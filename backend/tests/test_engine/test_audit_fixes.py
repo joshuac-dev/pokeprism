@@ -13,7 +13,7 @@ import pytest
 
 import app.engine.effects  # noqa: F401 — triggers register_all via __init__
 from app.cards import registry as card_registry
-from app.cards.models import AttackDef, CardDefinition
+from app.cards.models import AbilityDef, AttackDef, CardDefinition
 from app.engine.actions import Action, ActionType
 from app.engine.effects.base import ChoiceRequest
 from app.engine.effects.registry import _choice_to_legal_actions, _default_choice
@@ -27,6 +27,7 @@ from app.engine.state import CardInstance, EnergyAttachment, EnergyType, GameSta
 
 def _make_card(tcgdex_id: str, name: str, hp: int = 120,
                attacks: list[AttackDef] | None = None,
+               abilities: list[AbilityDef] | None = None,
                stage: str = "Basic") -> CardDefinition:
     return CardDefinition(
         tcgdex_id=tcgdex_id,
@@ -37,6 +38,7 @@ def _make_card(tcgdex_id: str, name: str, hp: int = 120,
         stage=stage,
         hp=hp,
         attacks=attacks or [],
+        abilities=abilities or [],
     )
 
 
@@ -425,3 +427,38 @@ def test_choice_request_prompt_defaults_empty_for_legacy_calls():
     """ChoiceRequest prompt defaults to empty string for older keyword-style calls."""
     req = ChoiceRequest("choose_cards", player_id="p1", cards=[])
     assert req.prompt == ""
+
+
+@pytest.mark.asyncio
+async def test_teleporter_ability_switches_and_shuffles_abra():
+    """sv06-080 Teleporter should replace Active, then shuffle Abra into deck."""
+    abra = _make_card(
+        "sv06-080", "Abra", hp=50,
+        attacks=[AttackDef(name="Beam", damage="10", cost=["Colorless"])],
+        abilities=[AbilityDef(name="Teleporter", type="Ability")],
+    )
+    bench_cdef = _make_card("tst-tel-001", "BenchMon", hp=120)
+    opp_cdef = _make_card("tst-tel-002", "OppMon", hp=120)
+    card_registry.register(abra)
+    card_registry.register(bench_cdef)
+    card_registry.register(opp_cdef)
+
+    abra_inst = _make_instance(abra, hp=50)
+    abra_inst.energy_attached.append(_make_energy(EnergyType.PSYCHIC))
+    bench_inst = _make_instance(bench_cdef, zone=Zone.BENCH, hp=120)
+    opp_active = _make_instance(opp_cdef, hp=120)
+    state = _make_state(p1_active=abra_inst, p1_bench=[bench_inst], p2_active=opp_active)
+
+    action = Action(
+        player_id="p1",
+        action_type=ActionType.USE_ABILITY,
+        card_instance_id=abra_inst.instance_id,
+    )
+
+    await EffectRegistry.instance().resolve_ability("sv06-080", "Teleporter", state, action)
+
+    assert state.p1.active is not None
+    assert state.p1.active.instance_id == bench_inst.instance_id
+    assert all(p.instance_id != abra_inst.instance_id for p in state.p1.bench)
+    assert any(c.instance_id == abra_inst.instance_id for c in state.p1.deck)
+    assert abra_inst.energy_attached == []
