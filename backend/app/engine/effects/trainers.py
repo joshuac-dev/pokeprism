@@ -377,27 +377,26 @@ def _dawn(state: GameState, action):
 def _rosas_encouragement(state: GameState, action):
     """Rosa's Encouragement (me03-084)
 
-    You can use this card only if your opponent has more Prize cards remaining
-    than you. Search your deck for up to 2 Basic Energy cards, reveal them,
-    and put them into your hand. Shuffle your deck afterward. Then, choose
-    1 of your Pokémon and attach those Energy cards to it.
+    You can use this card only if you have more Prize cards remaining than your
+    opponent. Search your discard pile for up to 2 Basic Energy cards, reveal
+    them, and put them into your hand. Then, choose 1 of your Stage 2 Pokémon
+    and attach those Energy cards to it.
     """
     player_id = action.player_id
     player = state.get_player(player_id)
     opp = state.get_player(state.opponent_id(player_id))
-    if not (opp.prizes_remaining > player.prizes_remaining):
+    if not (player.prizes_remaining > opp.prizes_remaining):
         state.emit_event("rosa_not_applicable", player=player_id,
                          reason="condition_not_met")
         return
 
-    energy_in_deck = [c for c in player.deck if _is_basic_energy_card(c)]
+    energy_in_deck = [c for c in player.discard if _is_basic_energy_card(c)]
     if not energy_in_deck:
-        random.shuffle(player.deck)
         return
 
     req = ChoiceRequest(
         "choose_cards", player_id,
-        "Rosa's Encouragement: choose up to 2 Basic Energy from your deck",
+        "Rosa's Encouragement: choose up to 2 Basic Energy from your discard pile",
         cards=energy_in_deck, min_count=0, max_count=2,
     )
     resp = yield req
@@ -406,20 +405,19 @@ def _rosas_encouragement(state: GameState, action):
 
     chosen_cards = []
     for iid in chosen_ids[:2]:
-        card = next((c for c in player.deck if c.instance_id == iid), None)
+        card = next((c for c in player.discard if c.instance_id == iid), None)
         if card:
-            player.deck.remove(card)
+            player.discard.remove(card)
             card.zone = Zone.HAND
             player.hand.append(card)
             chosen_cards.append(card)
 
-    random.shuffle(player.deck)
-
     if not chosen_cards:
         return
 
-    # Choose a Pokémon to attach them to
-    in_play = _find_in_play(player)
+    # Choose a Stage 2 Pokémon in play to attach them to
+    in_play = [p for p in _find_in_play(player)
+               if p.evolution_stage == 2]
     if not in_play:
         return
 
@@ -2146,7 +2144,7 @@ def _unfair_stamp(state: GameState, action):
         return
 
     opp_id = state.opponent_id(player_id)
-    for pid, draw_n in ((player_id, 3), (opp_id, 2)):
+    for pid, draw_n in ((player_id, 5), (opp_id, 2)):
         p = state.get_player(pid)
         for c in p.hand:
             c.zone = Zone.DECK
