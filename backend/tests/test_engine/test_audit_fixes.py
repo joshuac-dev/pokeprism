@@ -430,7 +430,7 @@ def test_choice_request_prompt_defaults_empty_for_legacy_calls():
 
 
 @pytest.mark.asyncio
-async def test_teleporter_ability_switches_and_shuffles_abra():
+async def test_sv06_080_teleporter_switches_active_and_shuffles():
     """sv06-080 Teleporter should replace Active, then shuffle Abra into deck."""
     abra = _make_card(
         "sv06-080", "Abra", hp=50,
