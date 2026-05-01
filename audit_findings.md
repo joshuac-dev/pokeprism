@@ -269,18 +269,18 @@
 
 ## Root Cause Patterns
 
-### Pattern A — Python function-name shadowing (11 of 20 bugs)
+### Pattern A — Python function-name shadowing (14 of 24 bugs)
 Python resolves a bare function name to the *last* assignment at module scope. When two handlers share the same Python function name, every card registered against that name silently receives the behavior of the second definition, even if only one card was intended to use it. All 1 427 handlers in `attacks.py` are plain module-level functions; any name collision causes this failure silently and without error. **Recommendation:** use a linter rule (e.g., `flake8-bugbear B006`, or a custom AST check) to forbid duplicate top-level function names in these files.
 
-### Pattern B — "You may" fallback auto-executes on empty selection (4 of 20 bugs)
+### Pattern B — "You may" fallback auto-executes on empty selection (4 of 24 bugs)
 Several optional effects use the pattern:
 ```python
 chosen_ids = resp.chosen_card_ids if resp and resp.chosen_card_ids else [auto_default]
 ```
 When the player declines (responds with an empty list), the `else` branch fires the auto-default, violating card text. **Recommendation:** test `resp is None` and `bool(resp.chosen_card_ids)` separately; when `resp` is not `None` but the list is empty, respect the player's decline.
 
-### Pattern C — Bounce discards instead of returning to hand (2 of 20 bugs)
+### Pattern C — Bounce discards instead of returning to hand (2 of 24 bugs)
 Handlers that implement "put this Pokémon and its attached cards into your hand" call `.clear()` on the attached-cards lists, which destroys the Card objects. The correct implementation is to locate each Card by `source_card_id`, remove it from whatever zone tracking it is in, update `card.zone`, and append it to `player.hand`. **Recommendation:** extract a `_bounce_pokemon_to_hand(player, poke)` helper.
 
-### Pattern D — Missing game-rule precondition checks (2 of 20 bugs)
+### Pattern D — Missing game-rule precondition checks (2 of 24 bugs)
 At least one Supporter card (Acerola's Mischief) and one Ability (Run Errand) lack the board-state precondition check specified on the card. **Recommendation:** add a unit test that calls each handler from an illegal board state and verifies the handler returns without effect.
