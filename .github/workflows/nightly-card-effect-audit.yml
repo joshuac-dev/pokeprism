@@ -24,7 +24,7 @@ name: Nightly Copilot Card Effect Fixes
       copilot_model:
         description: "Optional Copilot coding agent model. Leave blank to use Auto."
         required: false
-        default: ""
+        default: "gpt-5.3-codex"
 
 permissions:
   contents: read
