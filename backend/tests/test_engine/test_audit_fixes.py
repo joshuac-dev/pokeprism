@@ -15,6 +15,8 @@ import app.engine.effects  # noqa: F401 — triggers register_all via __init__
 from app.cards import registry as card_registry
 from app.cards.models import AttackDef, CardDefinition
 from app.engine.actions import Action, ActionType
+from app.engine.effects.base import ChoiceRequest
+from app.engine.effects.registry import _choice_to_legal_actions, _default_choice
 from app.engine.effects.registry import EffectRegistry
 from app.engine.state import CardInstance, EnergyAttachment, EnergyType, GameState, Zone
 
@@ -400,3 +402,26 @@ async def test_bench_manipulation_emits_coin_flip_for_each_bench():
     # 2 benched Pokémon → 2 flips total
     total_flips = sum(e.get("flips", 0) for e in flip_events)
     assert total_flips == 2, f"Expected 2 total flips for 2 benched Pokémon, got {total_flips}"
+
+
+def test_choice_request_choose_cards_legacy_options_are_supported():
+    """Legacy choose_cards requests that pass `options=` still map to selected_cards."""
+    req = ChoiceRequest(
+        "choose_cards",
+        player_id="p1",
+        options=["c1", "c2", "c3"],
+        min_count=1,
+        max_count=2,
+    )
+    legal = _choice_to_legal_actions(req)
+    assert len(legal) == 1
+    assert legal[0].selected_cards == ["c1", "c2", "c3"]
+
+    default = _default_choice(req)
+    assert default.selected_cards == ["c1", "c2"]
+
+
+def test_choice_request_prompt_defaults_empty_for_legacy_calls():
+    """ChoiceRequest prompt defaults to empty string for older keyword-style calls."""
+    req = ChoiceRequest("choose_cards", player_id="p1", cards=[])
+    assert req.prompt == ""

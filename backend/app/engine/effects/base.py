@@ -41,7 +41,7 @@ class ChoiceRequest:
 
     choice_type: str        # "choose_cards" | "choose_target" | "choose_option"
     player_id: str          # Which player makes this choice
-    prompt: str             # Human-readable label (used by AI players for reasoning)
+    prompt: str = ""        # Human-readable label (used by AI players for reasoning)
 
     # For "choose_cards":
     cards: list = field(default_factory=list)    # CardInstance objects available
