@@ -12,8 +12,8 @@ name: Nightly Copilot Card Effect Fixes
         description: "Target implemented fixes/documented engine gaps for this run"
         required: false
         default: "25"
-      start_after_card:
-        description: "Optional DB resume cursor from the previous PR report. Leave blank to start at the first DB card."
+      start_cursor_override:
+        description: "Optional DB cursor to start from instead of docs/AUDIT_STATE.md"
         required: false
         default: ""
       force_new_issue:
@@ -39,12 +39,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check out repository for audit state
+        uses: actions/checkout@v4
+
       - name: Create implementation-fix issue and assign to Copilot
         env:
           GH_TOKEN: ${{ secrets.COPILOT_AGENT_PAT }}
           GH_REPO: ${{ github.repository }}
           TARGET_FINDINGS: ${{ inputs.target_findings || '25' }}
-          START_AFTER_CARD: ${{ inputs.start_after_card || '' }}
+          START_CURSOR_OVERRIDE: ${{ inputs.start_cursor_override || '' }}
           FORCE_NEW_ISSUE: ${{ inputs.force_new_issue || 'false' }}
           COPILOT_MODEL: ${{ inputs.copilot_model || '' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
@@ -54,8 +57,28 @@ jobs:
 
           DATE_UTC="$(date -u +%Y-%m-%d)"
           TITLE_BASE="Nightly DB-backed card effect implementation audit - ${DATE_UTC}"
+          STATE_FILE="docs/AUDIT_STATE.md"
+          STATE_CURSOR=""
 
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && { [ "$FORCE_NEW_ISSUE" = "true" ] || [ -n "$START_AFTER_CARD" ]; }; then
+          if [ -f "$STATE_FILE" ]; then
+            STATE_CURSOR="$(grep -E '^next_start_cursor:' "$STATE_FILE" | head -n 1 | sed 's/^next_start_cursor:[[:space:]]*//' || true)"
+          fi
+
+          if [ -n "$START_CURSOR_OVERRIDE" ]; then
+            START_CURSOR="$START_CURSOR_OVERRIDE"
+            START_CURSOR_SOURCE="manual workflow input"
+          elif [ -n "$STATE_CURSOR" ]; then
+            START_CURSOR="$STATE_CURSOR"
+            START_CURSOR_SOURCE="docs/AUDIT_STATE.md"
+          else
+            START_CURSOR="START_OF_DATABASE_CARD_LIST"
+            START_CURSOR_SOURCE="default"
+          fi
+
+          echo "Audit start cursor: $START_CURSOR"
+          echo "Audit start cursor source: $START_CURSOR_SOURCE"
+
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && { [ "$FORCE_NEW_ISSUE" = "true" ] || [ -n "$START_CURSOR_OVERRIDE" ]; }; then
             TITLE="${TITLE_BASE} - manual run ${GITHUB_RUN_NUMBER}"
           else
             TITLE="$TITLE_BASE"
@@ -93,12 +116,14 @@ jobs:
 
           BODY_FILE="$(mktemp)"
 
-          cat > "$BODY_FILE" <<EOF_BODY
+          cat > "$BODY_FILE" <<EOF
           # DB-BACKED CARD IMPLEMENTATION AUDIT AND FIX TASK
 
           This is a scheduled task for GitHub Copilot coding agent.
 
           Read docs/AUDIT_RULES.md first and follow it as the authoritative instruction set for this task.
+
+          Also read docs/AUDIT_STATE.md to understand the persisted audit cursor.
 
           Do not use docs/CARD_EXPANSION_RULES.md, docs/CARDLIST.md, or docs/POKEMON_MASTER_LIST.md to choose audit candidates. Those files are not audit sources.
 
@@ -122,20 +147,26 @@ jobs:
 
           Do not count unfixed candidate issues.
 
-          ## Resume cursor
+          ## Start cursor
 
-          Start after this database cursor if supplied:
+          Start cursor source: ${START_CURSOR_SOURCE}
 
-          ${START_AFTER_CARD:-START_OF_DATABASE_CARD_LIST}
+          Start cursor:
 
-          If a cursor is supplied, resume with the first database card after that cursor in deterministic database-card sort order.
+          ${START_CURSOR}
 
-          ## Completion statuses
+          This cursor identifies the first database card to attempt in this run. It is not a markdown-card-list position.
 
-          Finish with one of these statuses:
+          ## Circular traversal rule
+
+          Build the deterministic sorted database-card list.
+
+          Start at the start cursor. Continue forward through database cards. If the end of the database list is reached before the target finding count is reached, wrap to the beginning and continue.
+
+          Keep auditing until one of the allowed completion statuses is reached:
 
           - TARGET_REACHED: at least ${TARGET_FINDINGS} findings were fixed or documented as true engine gaps.
-          - DB_EXHAUSTED: every database card was audited and fewer than ${TARGET_FINDINGS} findings existed.
+          - DB_EXHAUSTED: every database card was audited in one circular pass from this run's start cursor and fewer than ${TARGET_FINDINGS} findings existed.
           - BLOCKED_TCGDEX: TCGDex was blocked, down, or unusable. Stop gracefully. Do not use local fallback card text.
           - BLOCKED_DB_ACCESS: the agent could not locate or query the application database.
           - PARTIAL_TIME_BUDGET: Copilot warned that its time budget was nearly exhausted before the target was reached.
@@ -155,7 +186,17 @@ jobs:
 
           If TCGDex is unavailable, blocked, or down, stop and report BLOCKED_TCGDEX. Do not guess. Do not fall back to local card lists.
 
-          If Copilot warns that the time budget is nearly exhausted, stop auditing new cards, finish the current safe fix, run focused tests, open the PR, and include the next resume cursor.
+          If Copilot warns that the time budget is nearly exhausted, stop auditing new cards, finish the current safe fix if practical, run focused tests, update docs/AUDIT_STATE.md with the next database cursor, open the PR, and include the next resume cursor.
+
+          ## Required state update
+
+          Update docs/AUDIT_STATE.md in the PR unless no database card was audited.
+
+          On TARGET_REACHED or PARTIAL_TIME_BUDGET, set next_start_cursor to the next database card after the last fully audited card.
+
+          On BLOCKED_TCGDEX before any card is audited, do not advance next_start_cursor.
+
+          On DB_EXHAUSTED, keep or reset next_start_cursor according to docs/AUDIT_RULES.md.
 
           ## Required PR report
 
@@ -163,6 +204,9 @@ jobs:
           - Completion status
           - TCGDEX_PREFLIGHT
           - DB_CARD_SOURCE
+          - Start cursor source
+          - Start cursor used
+          - Traversal wrapped: yes/no
           - Target findings
           - Implemented fixes
           - Documented engine gaps
@@ -171,6 +215,7 @@ jobs:
           - First card audited
           - Last card fully audited
           - Next resume cursor
+          - AUDIT_STATE.md updated: yes/no
           - Focused tests run
           - Full tests run, if any
           - Per-card audit ledger
@@ -178,7 +223,7 @@ jobs:
           Suggested PR title:
 
           Nightly DB-backed card effect implementation fixes - ${DATE_UTC}
-          EOF_BODY
+          EOF
 
           ISSUE_JSON="$(
             jq -n \
@@ -187,6 +232,7 @@ jobs:
               --arg repo "$GH_REPO" \
               --arg model "$COPILOT_MODEL" \
               --arg target "$TARGET_FINDINGS" \
+              --arg cursor "$START_CURSOR" \
               '{
                 title: $title,
                 body: $body,
@@ -196,11 +242,13 @@ jobs:
                   target_repo: $repo,
                   base_branch: "main",
                   custom_instructions: (
-                    "Read docs/AUDIT_RULES.md first. This is a database-backed implementation audit, not a card-list expansion task. " +
-                    "Use the application database to determine cards in scope. Use TCGDex as the only source of truth for card text. " +
+                    "Read docs/AUDIT_RULES.md and docs/AUDIT_STATE.md first. This is a DB-backed rotating implementation audit, not a card-list expansion task. " +
+                    "Use the database to determine cards in scope. Use TCGDex as the only source of truth for card text. " +
+                    "Start at this DB cursor: " + $cursor + ". Traverse the DB card list circularly: after the end, wrap to the beginning until target, full-cycle exhaustion, TCGDex block, DB block, or time budget. " +
                     "Do not use CARD_EXPANSION_RULES.md, CARDLIST.md, or POKEMON_MASTER_LIST.md as audit candidate sources. " +
                     "Do not run a discovery-only pass; fix and test issues card-by-card. " +
                     "Target " + $target + " implemented fixes/documented engine gaps. " +
+                    "Update docs/AUDIT_STATE.md with the next DB cursor in the PR. " +
                     "If TCGDex is unavailable, stop gracefully with BLOCKED_TCGDEX and do not use local fallback card data. " +
                     "If time budget warnings appear, stop auditing new cards, finish the current safe fix, test, PR, and include the next DB resume cursor."
                   ),
