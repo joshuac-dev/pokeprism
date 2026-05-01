@@ -5267,7 +5267,7 @@ def _torment(state, action):
         locked_idx = 0
 
     locked_idx = max(0, min(locked_idx, len(opp_cdef.attacks) - 1))
-    opp.active.cant_attack_next_turn = True
+    opp.active.locked_attack_index = locked_idx
     state.emit_event("torment", player=action.player_id,
                      locked_attack=opp_cdef.attacks[locked_idx].name,
                      target=opp.active.card_name)
@@ -5924,6 +5924,19 @@ def _mountain_ramming(state, action):
             c.zone = Zone.DISCARD
             opp.discard.append(c)
     state.emit_event("deck_mill", player=action.player_id, count=2)
+
+
+def _cornerstone_mountain_ramming(state, action):
+    """sv10-111 Cornerstone Mask Ogerpon atk1 — Mountain Ramming: 100 + mill 1 from opp's deck."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp = state.get_opponent(action.player_id)
+    if opp.deck:
+        c = opp.deck.pop()
+        c.zone = Zone.DISCARD
+        opp.discard.append(c)
+    state.emit_event("deck_mill", player=action.player_id, count=1)
 
 
 def _bugs_cannon(state, action):
@@ -8654,6 +8667,17 @@ def _do_the_wave(state, action):
     _apply_damage(state, action, 20 + 20 * bench_count)
 
 
+def _do_the_wave_dipplin(state, action):
+    """sv08.5-010 Dipplin atk0 — Do the Wave: 20 damage for each of your Benched Pokémon."""
+    player = state.get_player(action.player_id)
+    bench_count = len(player.bench)
+    if bench_count == 0:
+        state.emit_event("attack_no_damage", attacker="Dipplin", attack_name="Do the Wave",
+                         reason="no benched Pokémon")
+        return
+    _apply_damage(state, action, 20 * bench_count)
+
+
 def _aerial_ace(state, action):
     """sv10.5b-078 Braviary atk0 — Aerial Ace: 40 + flip; heads=+40."""
     _do_default_damage(state, action)
@@ -9000,7 +9024,7 @@ def _keldeo_gale_thrust(state, action):
     _apply_damage(state, action, 30 + bonus)
 
 
-def _sonic_edge(state, action):
+def _sonic_edge_keldeo(state, action):
     """sv10.5w-030 Keldeo ex atk1 — Sonic Edge: 120, not affected by opp's effects."""
     _apply_damage(state, action, 120, bypass_defender_effects=True)
 
@@ -9726,11 +9750,11 @@ def _lurantis_petal_blade(state, action):
 
 
 def _searching_eyes(state, action):
-    """sv10-015 Fomantis atk0 — Searching Eyes: look at 1 face-down Prize card."""
-    player = state.get_player(action.player_id)
-    if not player.prizes:
+    """sv10-015 TR Blipbug atk0 — Searching Eyes: look at 1 face-down Prize card of opponent."""
+    opp = state.get_opponent(action.player_id)
+    if not opp.prizes:
         return
-    prize_ids = [c.instance_id for c in player.prizes]
+    prize_ids = [c.instance_id for c in opp.prizes]
     req = ChoiceRequest(
         "choose_cards",
         player_id=action.player_id,
@@ -9740,7 +9764,7 @@ def _searching_eyes(state, action):
         context={"reason": "searching_eyes"},
     )
     yield req
-    state.emit_event("attack_no_damage", attacker="Fomantis", attack_name="Searching Eyes")
+    state.emit_event("attack_no_damage", attacker="TR Blipbug", attack_name="Searching Eyes")
 
 
 def _mini_drain(state, action):
@@ -11226,8 +11250,34 @@ def _confuse_ray_30(state, action):
 
 
 def _assassins_return(state, action):
-    """sv10-122 TR Crobat ex atk0 — Assassin's Return: 120 damage."""
+    """sv10-122 TR Crobat ex atk0 — Assassin's Return: 120 + optionally return this Pokémon to hand."""
     _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if not player.active:
+        return
+    req = ChoiceRequest(
+        "yes_no",
+        player_id=action.player_id,
+        context={"reason": "assassins_return_bounce"},
+    )
+    resp = yield req
+    do_bounce = getattr(resp, "confirmed", False)
+    if do_bounce:
+        crobat = player.active
+        for e in list(crobat.energy_attached):
+            e.zone = Zone.DISCARD
+            player.discard.append(e)
+        crobat.energy_attached.clear()
+        for t in list(crobat.tools_attached):
+            t.zone = Zone.DISCARD
+            player.discard.append(t)
+        crobat.tools_attached.clear()
+        player.active = None
+        crobat.zone = Zone.HAND
+        player.hand.append(crobat)
+        state.emit_event("self_bounce", player=action.player_id, card=crobat.card_name)
 
 
 def _gooped_up(state, action):
@@ -16550,7 +16600,7 @@ def register_all(registry):
     # sv10.5w-029 ATK0 Ram (flat)
     registry.register_attack("sv10.5w-029", 1, _double_freeze)             # Vanilluxe — Double Freeze
     registry.register_attack("sv10.5w-030", 0, _keldeo_gale_thrust)        # Keldeo ex — Gale Thrust
-    registry.register_attack("sv10.5w-030", 1, _sonic_edge)                # Keldeo ex — Sonic Edge
+    registry.register_attack("sv10.5w-030", 1, _sonic_edge_keldeo)             # Keldeo ex — Sonic Edge
     # sv10.5w-031 Blitzle both flat
     # sv10.5w-032 ATK0 Smash Kick (flat)
     registry.register_attack("sv10.5w-032", 1, _zebstrika_electrobullet)   # Zebstrika — Electrobullet
@@ -16810,7 +16860,7 @@ def register_all(registry):
     registry.register_attack("sv10-110", 0, _pull_bench_to_active)         # Arven's Toedscruel — Pull
     registry.register_attack("sv10-110", 1, _reckless_charge_recoil30)     # Arven's Toedscruel — Reckless Charge
     registry.register_attack("sv10-111", 0, _rock_kagura_attach)           # Cornerstone Mask Ogerpon — Rock Kagura
-    registry.register_attack("sv10-111", 1, _mountain_ramming)             # Cornerstone Mask Ogerpon — Mountain Ramming (reuse)
+    registry.register_attack("sv10-111", 1, _cornerstone_mountain_ramming)   # Cornerstone Mask Ogerpon — Mountain Ramming (mill 1)
     registry.register_attack("sv10-112", 0, _drag_down_paralyze)           # TR Ekans — Drag Down
     # sv10-112 ATK1 Gnaw (flat)
     # sv10-113 TR Arbok: Potent Glare FLAGGED; ATK0 Spinning Tail flat below
@@ -17112,7 +17162,7 @@ def register_all(registry):
     # sv08.5-007 ATK1 Stun Spore (flat)
     # sv08.5-008 Whimsicott: ATK0 Sheep Tackle (flat)
     # sv08.5-009 Applin: ATK0 (flat)
-    registry.register_attack("sv08.5-010", 0, _do_the_wave)                # Dipplin — Do the Wave (reuse)
+    registry.register_attack("sv08.5-010", 0, _do_the_wave_dipplin)          # Dipplin — Do the Wave (20× per bench)
     registry.register_attack("sv08.5-011", 0, _syrup_storm)                # Hydrapple ex — Syrup Storm
     # sv08.5-011 ATK1 Grass Knot (flat)
     registry.register_attack("sv08.5-012", 0, _myriad_leaf_shower)         # Teal Mask Ogerpon ex — Myriad Leaf Shower (reuse)
@@ -17242,7 +17292,7 @@ def register_all(registry):
     registry.register_attack("sv08-003", 0, _barrage_oclock)               # Exeggutor — Barrage O'Clock
     registry.register_attack("sv08-004", 0, _vengeful_crush_durant)        # Durant ex — Vengeful Crush
     # sv08-004 ATK1 (flat)
-    registry.register_attack("sv08-005", 0, _call_for_family)              # Durant — Call for Family (reuse)
+    registry.register_attack("sv08-005", 0, _call_for_family_1)             # Scatterbug — Call for Family (1 Basic)
     # sv08-005 ATK1 (flat)
     registry.register_attack("sv08-006", 0, _wander_about)                 # Spewpa — Wander About
     registry.register_attack("sv08-007", 0, _cellular_ascension)            # Vivillon — Evo-Powder
@@ -26795,10 +26845,10 @@ def _scream_b5(state, action):
 
 
 def _rallying_horn_b5(state, action):
-    """sv10-001 Ethan's Pinsir atk1 — Rallying Horn: 50 + 100 more if Ethan's Pokémon KO'd last turn."""
+    """sv10-001 Ethan's Pinsir atk1 — Rallying Horn: 70 + 100 more if Ethan's Pokémon KO'd last turn."""
     player = state.get_player(action.player_id)
     bonus = 100 if player.ethans_pokemon_ko_last_turn else 0
-    _apply_damage(state, action, 50 + bonus)
+    _apply_damage(state, action, 70 + bonus)
 
 
 def register_flagged_batch5_attacks(registry):
