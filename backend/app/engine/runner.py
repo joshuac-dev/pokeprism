@@ -503,6 +503,7 @@ class MatchRunner:
                 player.items_locked_this_turn = False
                 player.evolution_blocked_next_turn = False
                 player.ancient_supporter_played_this_turn = False
+                player.supporters_locked_next_turn = False
             if player.active:
                 player.active.retreated_this_turn = False
                 player.active.ability_used_this_turn = False
