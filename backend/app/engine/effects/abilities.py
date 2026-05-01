@@ -4242,7 +4242,7 @@ def register_all(registry):
     registry.register_passive_ability("me03-069",   "Protective Sail")
     # Antique Fossil cards — passive abilities (engine handles effect in damage pipeline)
     registry.register_passive_ability("sv07-129",   "Protective Cover")   # Antique Cover Fossil SCR
-    registry.register_passive_ability("sv10.5b-080","Protective Cover")   # Antique Cover Fossil BLK
+    registry.register_passive_ability("sv10.5b-080", "Protective Cover")  # Antique Cover Fossil BLK
     registry.register_passive_ability("sv10.5w-079","Plume Protection")   # Antique Plume Fossil WHT
     registry.register_passive_ability("sv07-130",   "Primal Root")        # Antique Root Fossil SCR
     registry.register_passive_ability("me02.5-024", "Melt Away")
