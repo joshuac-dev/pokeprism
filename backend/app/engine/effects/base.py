@@ -54,6 +54,9 @@ class ChoiceRequest:
     # For "choose_option":
     options: list = field(default_factory=list)  # str labels for each option
 
+    # Optional metadata passed to AI/player agents for reasoning context:
+    context: dict = field(default_factory=dict)
+
 
 def _has_damp(state) -> bool:
     """Return True if Psyduck (mep-007) or Golduck (mep-008) is in play for either player."""

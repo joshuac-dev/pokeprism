@@ -78,6 +78,16 @@ class Action:
     # Choice metadata (populated for CHOOSE_* action types so players can read constraints)
     choice_context: Optional[object] = None  # ChoiceRequest — avoids circular import
 
+    @property
+    def chosen_card_ids(self) -> Optional[list[str]]:
+        """Alias for selected_cards, used by many attack handlers."""
+        return self.selected_cards
+
+    @property
+    def chosen_ids(self) -> Optional[list[str]]:
+        """Alias for selected_cards, used by batch-style attack handlers."""
+        return self.selected_cards
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Helpers
