@@ -326,6 +326,8 @@ class ActionValidator:
                 if csub == "supporter":
                     # Rule 1: only one Supporter per turn
                     if not player.supporter_played_this_turn:
+                        if player.supporters_locked_next_turn:
+                            continue  # Scream Tail ex locked Supporter plays this turn
                         actions.append(
                             Action(ActionType.PLAY_SUPPORTER, player_id,
                                    card_instance_id=card.instance_id)

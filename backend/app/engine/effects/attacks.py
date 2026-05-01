@@ -2419,7 +2419,7 @@ def _poison_jab(state, action):
 
 
 def _hazardous_tail(state, action):
-    """me03-052 Drapion atk1 — Hazardous Tail: 100 + 70 recoil to self + Paralyzed."""
+    """me03-052 Drapion atk1 — Hazardous Tail: 100 + 70 recoil to self + Paralyzed and Poisoned."""
     _do_default_damage(state, action)
     if state.phase == Phase.GAME_OVER:
         return
@@ -2435,8 +2435,9 @@ def _hazardous_tail(state, action):
             return
     if opp.active:
         opp.active.status_conditions.add(StatusCondition.PARALYZED)
+        opp.active.status_conditions.add(StatusCondition.POISONED)
         state.emit_event("status_applied", card=opp.active.card_name,
-                         status="paralyzed", attack="Hazardous Tail")
+                         status="paralyzed_and_poisoned", attack="Hazardous Tail")
 
 
 def _ericas_gloom_poison_spray(state, action):
@@ -25372,6 +25373,8 @@ def _dastardly_jab_b4(state, action):
     if not opp.active:
         return
     if opp.active.current_hp > 10:
+        counters_added = (opp.active.current_hp - 10) // 10
+        opp.active.damage_counters += counters_added
         opp.active.current_hp = 10
         state.emit_event("hp_set", player=opp_id, card=opp.active.card_name, hp=10,
                          attack="Dastardly Jab")
@@ -25410,7 +25413,7 @@ def _kick_away_b4(state, action):
 
 
 def _tricky_steps_b4(state, action):
-    """sv05-104 Gengar ex atk0 — Tricky Steps: 60 + move 1 energy from opp Active to opp Bench."""
+    """sv05-104 Gengar ex atk0 — Tricky Steps: 160 + attacker may move 1 Energy from opp Active to opp Bench."""
     _do_default_damage(state, action)
     if state.phase == Phase.GAME_OVER:
         return
@@ -25418,9 +25421,20 @@ def _tricky_steps_b4(state, action):
     opp = state.get_player(opp_id)
     if not opp.active or not opp.active.energy_attached or not opp.bench:
         return
+    req_opt = ChoiceRequest(
+        "choose_option", action.player_id,
+        "Tricky Steps: move 1 Energy from opponent's Active to their Bench?",
+        options=["Move Energy", "Skip"],
+    )
+    resp_opt = yield req_opt
+    option_index = 0
+    if resp_opt and hasattr(resp_opt, "option_index") and resp_opt.option_index is not None:
+        option_index = resp_opt.option_index
+    if option_index == 1:
+        return
     req = ChoiceRequest(
-        "choose_target", opp_id,
-        "Tricky Steps: choose a Benched Pokémon to receive 1 Energy from Active",
+        "choose_target", action.player_id,
+        "Tricky Steps: choose a Benched Pokémon to move 1 Energy to",
         targets=list(opp.bench),
     )
     resp = yield req
@@ -25444,8 +25458,7 @@ def _bring_down_b4(state, action):
     opp = state.get_player(opp_id)
 
     all_pokes = []
-    if player.active:
-        all_pokes.append((player_id, player.active))
+    # Own Pokémon: exclude the attacker (Inteleon itself)
     for p in player.bench:
         all_pokes.append((player_id, p))
     if opp.active:
@@ -25559,17 +25572,20 @@ def _infernal_slash_b4(state, action):
 
 
 def _frigid_fangs_b4(state, action):
-    """sv08-045 Walrein atk0 — Frigid Fangs: 80 + if opp Active has ≥3 Energy, can't attack next turn."""
+    """sv08-045 Walrein atk0 — Frigid Fangs: 60 + all opp Pokémon with ≤2 Energy can't attack next turn."""
     _do_default_damage(state, action)
     if state.phase == Phase.GAME_OVER:
         return
     opp_id = state.opponent_id(action.player_id)
     opp = state.get_player(opp_id)
-    if opp.active and len(opp.active.energy_attached) >= 3:
-        opp.active.cant_attack_next_turn = True
-        state.emit_event("frigid_fangs_lock", player=opp_id,
-                         card=opp.active.card_name,
-                         energy_count=len(opp.active.energy_attached))
+    all_opp = ([opp.active] if opp.active else []) + list(opp.bench)
+    locked = []
+    for poke in all_opp:
+        if len(poke.energy_attached) <= 2:
+            poke.cant_attack_next_turn = True
+            locked.append(poke.card_name)
+    if locked:
+        state.emit_event("frigid_fangs_lock", player=opp_id, locked=locked)
 
 
 def _evil_incineration_b4(state, action):
@@ -25601,21 +25617,59 @@ def _evil_incineration_b4(state, action):
 
 
 def _upthrusting_horns_b4(state, action):
-    """sv08-039 Paldean Tauros atk0 — Upthrusting Horns: 80 + if opp Active is Stage 2, discard 2 Energy."""
+    """sv08-039 Paldean Tauros atk0 — Upthrusting Horns: 30 + if opp Active is Stage 2, may put 2 Energy into opp's hand."""
     _do_default_damage(state, action)
     if state.phase == Phase.GAME_OVER:
         return
     opp_id = state.opponent_id(action.player_id)
     opp = state.get_player(opp_id)
-    if not opp.active or opp.active.stage != 2:
+    if not opp.active or opp.active.evolution_stage != 2 or not opp.active.energy_attached:
         return
-    removed = 0
-    while opp.active.energy_attached and removed < 2:
-        opp.active.energy_attached.pop(0)
-        removed += 1
-    if removed:
+    req = ChoiceRequest(
+        "choose_option", action.player_id,
+        "Upthrusting Horns: put 2 Energy from opponent's Stage 2 into their hand?",
+        options=["Put in hand", "Skip"],
+    )
+    resp = yield req
+    option_index = 0
+    if resp and hasattr(resp, "option_index") and resp.option_index is not None:
+        option_index = resp.option_index
+    if option_index == 1:
+        return
+    returned = 0
+    while opp.active.energy_attached and returned < 2:
+        att = opp.active.energy_attached.pop(0)
+        energy_card = None
+        if att.source_card_id:
+            for zone_list in (opp.discard, opp.deck):
+                energy_card = next((c for c in zone_list
+                                    if c.instance_id == att.source_card_id), None)
+                if energy_card:
+                    break
+        if energy_card is None:
+            cdef = card_registry.get(att.card_def_id)
+            if cdef:
+                from app.engine.state import CardInstance
+                energy_card = CardInstance(
+                    card_def_id=att.card_def_id,
+                    card_name=cdef.name,
+                    card_type="Energy",
+                    card_subtype=getattr(cdef, "subcategory", "Basic"),
+                    max_hp=0, current_hp=0,
+                    energy_provides=list(att.provides if att.provides else []),
+                    zone=Zone.HAND,
+                )
+        if energy_card:
+            if energy_card in opp.discard:
+                opp.discard.remove(energy_card)
+            elif energy_card in opp.deck:
+                opp.deck.remove(energy_card)
+            energy_card.zone = Zone.HAND
+            opp.hand.append(energy_card)
+        returned += 1
+    if returned:
         state.emit_event("upthrusting_horns_energy", player=opp_id,
-                         card=opp.active.card_name, count=removed)
+                         card=opp.active.card_name, count=returned, destination="hand")
 
 
 def _crushing_pulse_b4(state, action):
@@ -25681,7 +25735,10 @@ def _crackling_charge_b4(state, action):
 
 
 def _memory_lock_b4(state, action):
-    """me03-059 Klefki atk0 — Memory Lock: lock opp Active's first attack for their next turn."""
+    """me03-059 Klefki atk0 — Memory Lock: 30 + attacker chooses 1 opp Active attack to lock next turn."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
     opp_id = state.opponent_id(action.player_id)
     opp = state.get_player(opp_id)
     if not opp.active:
@@ -25689,7 +25746,20 @@ def _memory_lock_b4(state, action):
     cdef = card_registry.get(opp.active.card_def_id)
     if not cdef or not cdef.attacks:
         return
-    locked = cdef.attacks[0].name
+    attack_names = [atk.name for atk in cdef.attacks]
+    if len(attack_names) == 1:
+        locked = attack_names[0]
+    else:
+        req = ChoiceRequest(
+            "choose_option", action.player_id,
+            "Memory Lock: choose an attack of your opponent's Active Pokémon to lock",
+            options=attack_names,
+        )
+        resp = yield req
+        option_index = 0
+        if resp and hasattr(resp, "option_index") and resp.option_index is not None:
+            option_index = min(resp.option_index, len(attack_names) - 1)
+        locked = attack_names[option_index]
     opp.active.torment_blocked_attack_name = locked
     state.emit_event("memory_lock", attacker=action.player_id, player=opp_id,
                      card=opp.active.card_name, locked_attack=locked)
@@ -25777,50 +25847,65 @@ def _crimson_blaster_b4(state, action):
 
 
 def _iron_shake_up_b4(state, action):
-    """sv10-140 Forretress atk0 — Iron Shake-Up: move 1 Metal Energy from 1 own Pokémon to another."""
+    """sv10-140 Forretress atk0 — Iron Shake-Up: 20 + may move any amount of Metal Energy among own Pokémon."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
     player = state.get_player(action.player_id)
     all_own = ([player.active] if player.active else []) + list(player.bench)
-    sources = [p for p in all_own
-               if any(att.energy_type == EnergyType.METAL for att in p.energy_attached)]
-    if not sources or len(all_own) < 2:
-        state.emit_event("iron_shake_up_no_metal", player=action.player_id)
+    if len(all_own) < 2:
         return
-    req = ChoiceRequest(
-        "choose_target", action.player_id,
-        "Iron Shake-Up: choose Pokémon to move Metal Energy FROM",
-        targets=sources,
-    )
-    resp = yield req
-    source = None
-    if resp and resp.target_instance_id:
-        source = next((p for p in sources if p.instance_id == resp.target_instance_id), None)
-    if source is None:
-        source = sources[0]
-    metal_atts = [att for att in source.energy_attached
-                  if att.energy_type == EnergyType.METAL]
-    if not metal_atts:
-        return
-    att_to_move = metal_atts[0]
-    source.energy_attached.remove(att_to_move)
-    destinations = [p for p in all_own if p.instance_id != source.instance_id]
-    if not destinations:
-        source.energy_attached.append(att_to_move)
-        return
-    req2 = ChoiceRequest(
-        "choose_target", action.player_id,
-        "Iron Shake-Up: choose Pokémon to move Metal Energy TO",
-        targets=destinations,
-    )
-    resp2 = yield req2
-    dest = None
-    if resp2 and resp2.target_instance_id:
-        dest = next((p for p in destinations if p.instance_id == resp2.target_instance_id), None)
-    if dest is None:
-        dest = destinations[0]
-    dest.energy_attached.append(att_to_move)
-    state.emit_event("energy_moved", player=action.player_id,
-                     source=source.card_name, destination=dest.card_name,
-                     attack="Iron Shake-Up")
+    while True:
+        sources = [p for p in all_own
+                   if any(att.energy_type == EnergyType.METAL for att in p.energy_attached)]
+        if not sources:
+            break
+        req_opt = ChoiceRequest(
+            "choose_option", action.player_id,
+            "Iron Shake-Up: move a Metal Energy to another Pokémon?",
+            options=["Move Energy", "Stop"],
+        )
+        resp_opt = yield req_opt
+        option_index = 0
+        if resp_opt and hasattr(resp_opt, "option_index") and resp_opt.option_index is not None:
+            option_index = resp_opt.option_index
+        if option_index == 1:
+            break
+        req_src = ChoiceRequest(
+            "choose_target", action.player_id,
+            "Iron Shake-Up: choose Pokémon to move Metal Energy FROM",
+            targets=sources,
+        )
+        resp_src = yield req_src
+        source = None
+        if resp_src and resp_src.target_instance_id:
+            source = next((p for p in sources if p.instance_id == resp_src.target_instance_id), None)
+        if source is None:
+            source = sources[0]
+        metal_atts = [att for att in source.energy_attached if att.energy_type == EnergyType.METAL]
+        if not metal_atts:
+            break
+        att_to_move = metal_atts[0]
+        source.energy_attached.remove(att_to_move)
+        destinations = [p for p in all_own if p.instance_id != source.instance_id]
+        if not destinations:
+            source.energy_attached.append(att_to_move)
+            break
+        req_dst = ChoiceRequest(
+            "choose_target", action.player_id,
+            "Iron Shake-Up: choose Pokémon to move Metal Energy TO",
+            targets=destinations,
+        )
+        resp_dst = yield req_dst
+        dest = None
+        if resp_dst and resp_dst.target_instance_id:
+            dest = next((p for p in destinations if p.instance_id == resp_dst.target_instance_id), None)
+        if dest is None:
+            dest = destinations[0]
+        dest.energy_attached.append(att_to_move)
+        state.emit_event("energy_moved", player=action.player_id,
+                         source=source.card_name, destination=dest.card_name,
+                         attack="Iron Shake-Up")
 
 
 def _invite_and_strike_b4(state, action):
@@ -25917,7 +26002,7 @@ def register_flagged_batch4_attacks(registry):
 # ── Flagged Batch 5 Handlers ─────────────────────────────────────────────────
 
 def _flock_b5(state, action):
-    """sv05-018 Grubbin atk0 — Flock: search deck for up to 3 Grubbin, put on Bench."""
+    """sv05-018 Grubbin atk0 — Flock: search deck for up to 2 Grubbin, put on Bench."""
     player = state.get_player(action.player_id)
     available_slots = 5 - len(player.bench)
     if available_slots <= 0 or not player.deck:
@@ -25932,7 +26017,7 @@ def _flock_b5(state, action):
         state.emit_event("deck_search_bench", player=action.player_id,
                          attack="Flock", placed=0)
         return
-    max_count = min(3, available_slots, len(matches))
+    max_count = min(2, available_slots, len(matches))
     req = ChoiceRequest(
         "choose_cards", action.player_id,
         f"Flock: choose up to {max_count} {target_name} from your deck to put on Bench",
@@ -25989,63 +26074,54 @@ def _storm_bolt_b5(state, action):
 
 
 def _lead_b5(state, action):
-    """sv06.5-027 Zubat atk0 — Lead: 30 × (Golbat + Crobat in hand + Bench)."""
+    """sv06.5-027 Zubat atk0 — Lead: search deck for a Supporter card and put it in hand."""
     player = state.get_player(action.player_id)
-    count = sum(1 for c in list(player.hand) + list(player.bench)
-                if c.card_name in ("Golbat", "Crobat"))
-    damage = 30 * count
-    if damage > 0:
-        _apply_damage(state, action, damage)
-    else:
-        state.emit_event("attack_no_damage", attacker="Zubat", attack_name="Lead")
+    if not player.deck:
+        _shuffle_deck(player)
+        state.emit_event("deck_search", player=action.player_id, attack="Lead", found=0)
+        return
+    supporters = [c for c in player.deck
+                  if c.card_type == "Trainer" and c.card_subtype == "Supporter"]
+    if not supporters:
+        _shuffle_deck(player)
+        state.emit_event("deck_search", player=action.player_id, attack="Lead", found=0)
+        return
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        "Lead: choose a Supporter card from your deck",
+        cards=supporters, min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen = (resp.selected_cards if resp and resp.selected_cards
+              else [supporters[0].instance_id])
+    card = next((c for c in player.deck if c.instance_id == chosen[0]), None)
+    if card:
+        player.deck.remove(card)
+        card.zone = Zone.HAND
+        player.hand.append(card)
+        state.emit_event("deck_search", player=action.player_id, attack="Lead",
+                         found=1, card=card.card_name)
+    _shuffle_deck(player)
 
 
 def _expelling_tornado_b5(state, action):
-    """sv05-005 Shiftry atk0 — Expelling Tornado: shuffle 1 opp Benched Pokémon + attachments into deck."""
+    """sv05-005 Shiftry atk0 — Expelling Tornado: choose 3 opp Bench to KEEP; shuffle the rest into deck."""
     opp_id = state.opponent_id(action.player_id)
     opp = state.get_player(opp_id)
-    if not opp.bench:
+    if len(opp.bench) <= 3:
+        state.emit_event("expelling_tornado_no_targets", player=action.player_id)
         return
     req = ChoiceRequest(
-        "choose_target", action.player_id,
-        "Expelling Tornado: choose 1 of your opponent's Benched Pokémon to shuffle into their deck",
-        targets=list(opp.bench),
+        "choose_cards", action.player_id,
+        "Expelling Tornado: choose 3 of your opponent's Benched Pokémon to keep",
+        cards=list(opp.bench), min_count=3, max_count=3,
     )
     resp = yield req
-    target = None
-    if resp and resp.target_instance_id:
-        target = next((p for p in opp.bench if p.instance_id == resp.target_instance_id), None)
-    if target is None:
-        target = opp.bench[0]
-    opp.bench.remove(target)
-    target.energy_attached.clear()
-    target.tools_attached.clear()
-    target.damage_counters = 0
-    target.current_hp = target.max_hp
-    target.status_conditions.clear()
-    target.zone = Zone.DECK
-    opp.deck.append(target)
-    state.emit_event("bounce_to_deck", player=opp_id, card=target.card_name,
-                     source="Expelling Tornado")
-    _shuffle_deck(opp)
-
-
-def _kings_order_b5(state, action):
-    """sv06.5-012 Kingdra ex atk0 — King's Order: shuffle all opp Pokémon with 200+ HP into deck."""
-    opp_id = state.opponent_id(action.player_id)
-    opp = state.get_player(opp_id)
-    all_opp = ([opp.active] if opp.active else []) + list(opp.bench)
-    targets = [p for p in all_opp if p.max_hp >= 200]
-    if not targets:
-        state.emit_event("kings_order_no_targets", player=action.player_id)
-        return
-    active_bounced = False
-    for poke in targets:
-        if poke is opp.active:
-            opp.active = None
-            active_bounced = True
-        elif poke in opp.bench:
-            opp.bench.remove(poke)
+    keep_ids = set(resp.selected_cards if resp and resp.selected_cards
+                   else [c.instance_id for c in opp.bench[:3]])
+    to_shuffle = [p for p in list(opp.bench) if p.instance_id not in keep_ids]
+    for poke in to_shuffle:
+        opp.bench.remove(poke)
         poke.energy_attached.clear()
         poke.tools_attached.clear()
         poke.damage_counters = 0
@@ -26054,27 +26130,62 @@ def _kings_order_b5(state, action):
         poke.zone = Zone.DECK
         opp.deck.append(poke)
         state.emit_event("bounce_to_deck", player=opp_id, card=poke.card_name,
-                         source="King's Order")
+                         source="Expelling Tornado")
     _shuffle_deck(opp)
-    if active_bounced and opp.bench:
-        req = ChoiceRequest(
-            "choose_target", opp_id,
-            "King's Order: choose your new Active Pokémon",
-            targets=list(opp.bench),
-        )
-        resp = yield req
-        new_active = None
-        if resp and resp.target_instance_id:
-            new_active = next((p for p in opp.bench
-                               if p.instance_id == resp.target_instance_id), None)
-        if new_active is None:
-            new_active = opp.bench[0]
-        opp.bench.remove(new_active)
-        new_active.zone = Zone.ACTIVE
-        opp.active = new_active
-        state.emit_event("promotion", player=opp_id,
-                         new_active=opp.active.card_name,
-                         source="King's Order")
+
+
+def _card_has_type(card_instance, type_str: str) -> bool:
+    """Return True if the card's definition includes the given type."""
+    cdef = card_registry.get(card_instance.card_def_id)
+    if not cdef:
+        return False
+    types = getattr(cdef, "types", None) or getattr(cdef, "type", None) or []
+    if isinstance(types, str):
+        types = [types]
+    return any(t.lower() == type_str.lower() for t in types)
+
+
+def _kings_order_b5(state, action):
+    """sv06.5-012 Kingdra ex atk0 — King's Order: put up to 3 Water Pokémon from discard onto Bench."""
+    from app.engine.state import EnergyAttachment as _EA
+    player = state.get_player(action.player_id)
+    available_slots = 5 - len(player.bench)
+    if available_slots <= 0:
+        state.emit_event("kings_order_no_space", player=action.player_id)
+        return
+    water_pokes = [c for c in player.discard
+                   if c.card_type.lower() in ("pokemon", "pokémon")]
+    water_pokes = [c for c in water_pokes
+                   if _card_has_type(c, "Water")]
+    if not water_pokes:
+        state.emit_event("kings_order_no_targets", player=action.player_id)
+        return
+    max_count = min(3, available_slots, len(water_pokes))
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        f"King's Order: choose up to {max_count} Water Pokémon from your discard to put on Bench",
+        cards=water_pokes, min_count=0, max_count=max_count,
+    )
+    resp = yield req
+    chosen = (resp.selected_cards if resp and resp.selected_cards
+              else [c.instance_id for c in water_pokes[:max_count]])
+    placed = 0
+    for cid in chosen[:max_count]:
+        if len(player.bench) >= 5:
+            break
+        card = next((c for c in player.discard if c.instance_id == cid), None)
+        if card:
+            player.discard.remove(card)
+            card.zone = Zone.BENCH
+            card.turn_played = state.turn_number
+            card.damage_counters = 0
+            card.current_hp = card.max_hp
+            card.status_conditions.clear()
+            player.bench.append(card)
+            placed += 1
+            state.emit_event("play_from_discard", player=action.player_id,
+                             card=card.card_name, source="King's Order")
+    state.emit_event("kings_order", player=action.player_id, placed=placed)
 
 
 def _opposing_winds_b5(state, action):
@@ -26086,6 +26197,17 @@ def _opposing_winds_b5(state, action):
     opp_id = state.opponent_id(action.player_id)
     opp = state.get_player(opp_id)
     if not opp.active or not opp.active.energy_attached:
+        return
+    req_opt = ChoiceRequest(
+        "choose_option", action.player_id,
+        "Opposing Winds: put 2 Energy from opponent's Active into their hand?",
+        options=["Return Energy", "Skip"],
+    )
+    resp_opt = yield req_opt
+    option_index = 0
+    if resp_opt and hasattr(resp_opt, "option_index") and resp_opt.option_index is not None:
+        option_index = resp_opt.option_index
+    if option_index == 1:
         return
     count = min(2, len(opp.active.energy_attached))
     for _ in range(count):
@@ -26154,21 +26276,36 @@ def _electrifying_dash_b5(state, action):
     if not chosen_ids:
         chosen_ids = [c.instance_id for c in lightning_energy[:max_count]]
     attached = 0
-    bench_idx = 0
     for cid in chosen_ids[:2]:
-        if bench_idx >= len(player.bench):
+        if not player.bench:
             break
         card = next((c for c in player.deck if c.instance_id == cid), None)
         if card:
             player.deck.remove(card)
-            target = player.bench[bench_idx]
+            if len(player.bench) == 1:
+                target = player.bench[0]
+            else:
+                req_tgt = ChoiceRequest(
+                    "choose_target", action.player_id,
+                    f"Electrifying Dash: choose a Benched Pokémon to attach {card.card_name} to",
+                    targets=list(player.bench),
+                )
+                resp_tgt = yield req_tgt
+                target = None
+                if resp_tgt and resp_tgt.target_instance_id:
+                    target = next((p for p in player.bench
+                                   if p.instance_id == resp_tgt.target_instance_id), None)
+                if target is None:
+                    target = player.bench[0]
             target.energy_attached.append(_EA(
                 energy_type=_ET.LIGHTNING,
                 source_card_id=card.instance_id,
                 card_def_id=card.card_def_id,
             ))
             card.zone = target.zone
-            bench_idx += 1
+            state.emit_event("energy_attached", player=action.player_id,
+                             energy=card.card_name, target=target.card_name,
+                             source="Electrifying Dash")
             attached += 1
     _shuffle_deck(player)
     state.emit_event("electrifying_dash_attach", player=action.player_id, count=attached)
@@ -26183,84 +26320,148 @@ def _balloon_return_b5(state, action):
     if not player.active:
         return
     drifblim = player.active
+    # Return all energy cards to hand
+    for att in list(drifblim.energy_attached):
+        energy_card = None
+        if att.source_card_id:
+            energy_card = next((c for c in player.discard
+                                if c.instance_id == att.source_card_id), None)
+            if energy_card is None:
+                energy_card = next((c for c in player.deck
+                                    if c.instance_id == att.source_card_id), None)
+        if energy_card is None:
+            cdef = card_registry.get(att.card_def_id)
+            if cdef:
+                from app.engine.state import CardInstance as _CI
+                energy_card = _CI(
+                    card_def_id=att.card_def_id,
+                    card_name=cdef.name,
+                    card_type="Energy",
+                    card_subtype=getattr(cdef, "subcategory", "Basic"),
+                    max_hp=0, current_hp=0,
+                    energy_provides=list(att.provides if att.provides else []),
+                    zone=Zone.HAND,
+                )
+        if energy_card:
+            if energy_card in player.discard:
+                player.discard.remove(energy_card)
+            elif energy_card in player.deck:
+                player.deck.remove(energy_card)
+            energy_card.zone = Zone.HAND
+            player.hand.append(energy_card)
     drifblim.energy_attached.clear()
+    # Return all tool cards to hand
+    for tool_id in list(drifblim.tools_attached):
+        tool_card = next((c for c in player.discard if c.instance_id == tool_id), None)
+        if tool_card:
+            player.discard.remove(tool_card)
+            tool_card.zone = Zone.HAND
+            player.hand.append(tool_card)
     drifblim.tools_attached.clear()
+    # Return Drifblim itself to hand
     player.active = None
     drifblim.zone = Zone.HAND
+    drifblim.damage_counters = 0
+    drifblim.current_hp = drifblim.max_hp
+    drifblim.status_conditions.clear()
     player.hand.append(drifblim)
     state.emit_event("self_bounce", player=action.player_id, card=drifblim.card_name)
 
 
+def _card_has_type_by_def(card_instance, type_str: str) -> bool:
+    """Return True if card definition has the given energy type."""
+    cdef = card_registry.get(card_instance.card_def_id)
+    if not cdef:
+        return False
+    types = getattr(cdef, "types", None) or getattr(cdef, "type", None) or []
+    if isinstance(types, str):
+        types = [types]
+    return any(t.lower() == type_str.lower() for t in types)
+
+
 def _return_charge_b5(state, action):
-    """sv08-068 Kilowattrel ex atk0 — Return Charge: force opp switch, then attach Basic Energy from hand to new Active."""
+    """sv08-068 Kilowattrel ex atk0 — Return Charge: self-switch with Benched Lightning Pokémon + attach up to 2 Basic Lightning to self."""
     from app.engine.state import EnergyAttachment as _EA
-    opp_id = state.opponent_id(action.player_id)
-    opp = state.get_player(opp_id)
     player = state.get_player(action.player_id)
-
-    # Step 1: Force opponent to switch their Active with a Benched Pokémon
-    if opp.bench:
-        old_active = opp.active
-        if old_active:
-            old_active.zone = Zone.BENCH
-            opp.bench.append(old_active)
-        opp.active = None
-        req = ChoiceRequest(
-            "choose_target", opp_id,
-            "Return Charge: choose your new Active Pokémon",
-            targets=list(opp.bench),
-        )
-        resp = yield req
-        new_active = None
-        if resp and resp.target_instance_id:
-            new_active = next((p for p in opp.bench
-                               if p.instance_id == resp.target_instance_id), None)
-        if new_active is None:
-            new_active = opp.bench[0]
-        opp.bench.remove(new_active)
-        new_active.zone = Zone.ACTIVE
-        opp.active = new_active
-        state.emit_event("forced_switch", player=opp_id,
-                         new_active=opp.active.card_name,
-                         source="Return Charge")
-
-    # Step 2: Attach 1 Basic Energy from this player's hand to the new opp Active
-    if not opp.active:
+    if not player.active or not player.bench:
         return
-    basic_energy = [c for c in player.hand
-                    if c.card_type.lower() == "energy"
-                    and c.card_subtype.lower() == "basic"]
-    if not basic_energy:
-        return
-    req2 = ChoiceRequest(
-        "choose_cards", action.player_id,
-        "Return Charge: choose 1 Basic Energy from your hand to attach to opponent's Active",
-        cards=basic_energy, min_count=0, max_count=1,
+    kilowattrel = player.active
+    # Step 1: Choose a benched Lightning Pokémon to switch with
+    lightning_bench = [p for p in player.bench
+                       if _card_has_type_by_def(p, "Lightning")]
+    if not lightning_bench:
+        lightning_bench = list(player.bench)  # fallback: any benched Pokémon
+    req = ChoiceRequest(
+        "choose_target", action.player_id,
+        "Return Charge: choose a Benched Pokémon to switch with",
+        targets=lightning_bench,
     )
-    resp2 = yield req2
-    chosen_ids = (resp2.selected_cards if resp2 and resp2.selected_cards
-                  else [basic_energy[0].instance_id])
-    if not chosen_ids:
-        return
-    energy_card = next((c for c in player.hand if c.instance_id == chosen_ids[0]), None)
-    if energy_card is None:
-        return
-    player.hand.remove(energy_card)
-    provides_raw = energy_card.energy_provides or []
-    from app.engine.state import EnergyType as _ET
-    provides = [_ET.from_str(t) for t in provides_raw] or [_ET.COLORLESS]
-    att = _EA(
-        energy_type=provides[0],
-        source_card_id=energy_card.instance_id,
-        card_def_id=energy_card.card_def_id,
-        provides=provides,
-    )
-    energy_card.zone = opp.active.zone
-    opp.active.energy_attached.append(att)
-    state.emit_event("energy_attached", player=action.player_id,
-                     energy=energy_card.card_name,
-                     target=opp.active.card_name,
+    resp = yield req
+    new_active = None
+    if resp and resp.target_instance_id:
+        new_active = next((p for p in player.bench
+                           if p.instance_id == resp.target_instance_id), None)
+    if new_active is None:
+        new_active = player.bench[0]
+    # Perform the switch
+    player.bench.remove(new_active)
+    player.active = new_active
+    new_active.zone = Zone.ACTIVE
+    kilowattrel.zone = Zone.BENCH
+    player.bench.append(kilowattrel)
+    state.emit_event("self_switch", player=action.player_id,
+                     new_active=new_active.card_name,
+                     benched=kilowattrel.card_name,
                      source="Return Charge")
+    # Step 2: Attach up to 2 Basic Lightning Energy from hand to Kilowattrel ex (now on bench)
+    lightning_hand = [c for c in player.hand
+                      if c.card_type.lower() == "energy"
+                      and "Lightning" in (c.energy_provides or [])]
+    if not lightning_hand:
+        return
+    max_attach = min(2, len(lightning_hand))
+    for _ in range(max_attach):
+        if not lightning_hand:
+            break
+        req_e = ChoiceRequest(
+            "choose_option", action.player_id,
+            "Return Charge: attach a Basic Lightning Energy to Kilowattrel ex?",
+            options=["Attach", "Stop"],
+        )
+        resp_e = yield req_e
+        opt = 0
+        if resp_e and hasattr(resp_e, "option_index") and resp_e.option_index is not None:
+            opt = resp_e.option_index
+        if opt == 1:
+            break
+        req_pick = ChoiceRequest(
+            "choose_cards", action.player_id,
+            "Return Charge: choose a Basic Lightning Energy from your hand",
+            cards=lightning_hand, min_count=1, max_count=1,
+        )
+        resp_pick = yield req_pick
+        chosen = (resp_pick.selected_cards if resp_pick and resp_pick.selected_cards
+                  else [lightning_hand[0].instance_id])
+        energy_card = next((c for c in player.hand if c.instance_id == chosen[0]), None)
+        if not energy_card:
+            continue
+        player.hand.remove(energy_card)
+        lightning_hand = [c for c in player.hand
+                          if c.card_type.lower() == "energy"
+                          and "Lightning" in (c.energy_provides or [])]
+        provides = [EnergyType.LIGHTNING]
+        att = _EA(
+            energy_type=EnergyType.LIGHTNING,
+            source_card_id=energy_card.instance_id,
+            card_def_id=energy_card.card_def_id,
+            provides=provides,
+        )
+        energy_card.zone = kilowattrel.zone
+        kilowattrel.energy_attached.append(att)
+        state.emit_event("energy_attached", player=action.player_id,
+                         energy=energy_card.card_name,
+                         target=kilowattrel.card_name,
+                         source="Return Charge")
 
 
 def _splashing_dodge_b5(state, action):
@@ -26271,8 +26472,8 @@ def _splashing_dodge_b5(state, action):
     player = state.get_player(action.player_id)
     if _random.choice([True, False]):  # Heads
         if player.active:
-            player.active.no_weakness_one_turn = True
-            state.emit_event("no_weakness_next_turn", player=action.player_id,
+            player.active.prevent_damage_one_turn = True
+            state.emit_event("prevent_damage_next_turn", player=action.player_id,
                              card=player.active.card_name, attack="Splashing Dodge")
     else:
         state.emit_event("coin_flip_tails", player=action.player_id,
@@ -26365,28 +26566,24 @@ def _guarded_rolling_b5(state, action):
 
 
 def _reaping_dash_b5(state, action):
-    """sv07-008 Mow Rotom atk0 — Reaping Dash: 90 + discard all Tools and Special Energy from all opp Pokémon."""
-    _do_default_damage(state, action)
-    if state.phase == Phase.GAME_OVER:
-        return
+    """sv07-008 Mow Rotom atk0 — Reaping Dash: before damage, discard all Tools and Special Energy from opp Active."""
     opp_id = state.opponent_id(action.player_id)
     opp = state.get_player(opp_id)
-    all_opp = ([opp.active] if opp.active else []) + list(opp.bench)
-    for poke in all_opp:
-        # Discard all Tools
-        if poke.tools_attached:
-            poke.tools_attached.clear()
+    # Discard happens BEFORE damage
+    if opp.active:
+        if opp.active.tools_attached:
+            opp.active.tools_attached.clear()
             state.emit_event("tool_discarded", player=opp_id,
-                             card=poke.card_name, reason="Reaping Dash")
-        # Discard all Special Energy
-        special = [att for att in poke.energy_attached
+                             card=opp.active.card_name, reason="Reaping Dash")
+        special = [att for att in opp.active.energy_attached
                    if _is_special_energy_attachment(att)]
         for att in special:
-            poke.energy_attached.remove(att)
+            opp.active.energy_attached.remove(att)
         if special:
             state.emit_event("special_energy_discarded", player=opp_id,
-                             card=poke.card_name, count=len(special),
+                             card=opp.active.card_name, count=len(special),
                              reason="Reaping Dash")
+    _do_default_damage(state, action)
 
 
 def _is_special_energy_attachment(att) -> bool:
@@ -26396,55 +26593,70 @@ def _is_special_energy_attachment(att) -> bool:
 
 
 def _jolting_charge_b5(state, action):
-    """sv07-050 Joltik atk0 — Jolting Charge: search deck for 1 Basic Lightning Energy, attach to any own Pokémon."""
+    """sv07-050 Joltik atk0 — Jolting Charge: search deck for up to 2 Basic Grass + up to 2 Basic Lightning, attach to own Pokémon."""
     player = state.get_player(action.player_id)
     if not player.deck:
         return
     from app.engine.state import EnergyAttachment as _EA, EnergyType as _ET
+    in_play = ([player.active] if player.active else []) + list(player.bench)
+    if not in_play:
+        return
+    grass_energy = [c for c in player.deck
+                    if c.card_type.lower() == "energy"
+                    and "Grass" in (c.energy_provides or [])]
     lightning_energy = [c for c in player.deck
                         if c.card_type.lower() == "energy"
                         and "Lightning" in (c.energy_provides or [])]
-    if not lightning_energy:
+    candidates = grass_energy[:2] + lightning_energy[:2]
+    if not candidates:
         _shuffle_deck(player)
         state.emit_event("jolting_charge_no_energy", player=action.player_id)
         return
-    energy_card = lightning_energy[0]
-    # Choose target: active or bench
-    in_play = ([player.active] if player.active else []) + list(player.bench)
-    if not in_play:
-        _shuffle_deck(player)
-        return
-    if len(in_play) == 1:
-        target = in_play[0]
-    else:
-        req = ChoiceRequest(
+    max_count = min(len(candidates), 4)
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        "Jolting Charge: choose up to 2 Basic Grass and up to 2 Basic Lightning Energy from your deck",
+        cards=candidates, min_count=0, max_count=max_count,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [c.instance_id for c in candidates[:max_count]])
+    for cid in chosen_ids[:4]:
+        card = next((c for c in player.deck if c.instance_id == cid), None)
+        if not card or not in_play:
+            continue
+        req_target = ChoiceRequest(
             "choose_target", action.player_id,
-            "Jolting Charge: choose a Pokémon to attach the Lightning Energy to",
-            targets=in_play,
+            f"Jolting Charge: choose a Pokémon to attach {card.card_name} to",
+            targets=list(in_play),
         )
-        resp = yield req
+        resp_target = yield req_target
         target = None
-        if resp and resp.target_instance_id:
-            target = next((p for p in in_play if p.instance_id == resp.target_instance_id), None)
+        if resp_target and resp_target.target_instance_id:
+            target = next((p for p in in_play
+                           if p.instance_id == resp_target.target_instance_id), None)
         if target is None:
             target = in_play[0]
-    player.deck.remove(energy_card)
-    att = _EA(
-        energy_type=_ET.LIGHTNING,
-        source_card_id=energy_card.instance_id,
-        card_def_id=energy_card.card_def_id,
-    )
-    energy_card.zone = target.zone
-    target.energy_attached.append(att)
+        player.deck.remove(card)
+        provides_raw = card.energy_provides or []
+        provides = [_ET.from_str(t) for t in provides_raw] or [_ET.COLORLESS]
+        att = _EA(
+            energy_type=provides[0],
+            source_card_id=card.instance_id,
+            card_def_id=card.card_def_id,
+            provides=provides,
+        )
+        card.zone = target.zone
+        target.energy_attached.append(att)
+        state.emit_event("energy_attached", player=action.player_id,
+                         energy=card.card_name,
+                         target=target.card_name,
+                         source="Jolting Charge")
     _shuffle_deck(player)
-    state.emit_event("energy_attached", player=action.player_id,
-                     energy=energy_card.card_name,
-                     target=target.card_name,
-                     source="Jolting Charge")
 
 
 def _charjabug_placement_b5(state, action):
-    """sv07-052 Charjabug atk0 — Parallel Placement: search deck for up to 2 Charjabug, put on Bench."""
+    """sv07-052 Charjabug atk0 — Parallel Placement: search deck for up to 3 Charjabug, put on Bench."""
     player = state.get_player(action.player_id)
     available_slots = 5 - len(player.bench)
     if available_slots <= 0 or not player.deck:
@@ -26458,7 +26670,7 @@ def _charjabug_placement_b5(state, action):
         state.emit_event("deck_search_bench", player=action.player_id,
                          attack="Parallel Placement", placed=0)
         return
-    max_count = min(2, available_slots, len(matches))
+    max_count = min(3, available_slots, len(matches))
     req = ChoiceRequest(
         "choose_cards", action.player_id,
         f"Parallel Placement: choose up to {max_count} Charjabug from your deck to put on Bench",
@@ -26495,8 +26707,7 @@ def _stock_up_b5(state, action):
 
 
 def _scream_b5(state, action):
-    """sv06-094 Scream Tail ex atk0 — Scream: only on P2's first turn; place 4 damage counters on each opp Bench."""
-    # Only usable during P2's first turn (turn_number == 1, player is not first player)
+    """sv06-094 Scream Tail ex atk0 — Scream: only going second first turn; lock opp from playing Supporters next turn."""
     if not (state.turn_number == 1 and action.player_id != state.first_player):
         state.emit_event("attack_no_damage", attacker="Scream Tail ex",
                          attack_name="Scream",
@@ -26504,14 +26715,8 @@ def _scream_b5(state, action):
         return
     opp_id = state.opponent_id(action.player_id)
     opp = state.get_player(opp_id)
-    for poke in list(opp.bench):
-        poke.damage_counters += 4
-        poke.current_hp = max(0, poke.current_hp - 40)
-        state.emit_event("damage_counters_placed", player=opp_id,
-                         card=poke.card_name, counters=4, reason="Scream")
-        check_ko(state, poke, opp_id)
-        if state.phase == Phase.GAME_OVER:
-            return
+    opp.supporters_locked_next_turn = True
+    state.emit_event("scream_supporter_lock", attacker=action.player_id, player=opp_id)
 
 
 def _rallying_horn_b5(state, action):

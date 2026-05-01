@@ -178,6 +178,7 @@ class PlayerState:
     xerosics_machinations_played_this_turn: bool = False  # Malamar Colluding Tentacles
     daydream_active: bool = False  # Hypno Daydream: end opp turn if they attach to Active
     evolution_blocked_next_turn: bool = False        # Bronzong Evolution Jammer: opp can't evolve next turn
+    supporters_locked_next_turn: bool = False        # Scream Tail ex Scream: opp can't play Supporters next turn
     ancient_supporter_played_this_turn: bool = False  # Great Tusk Land Collapse: played Ancient Supporter flag
     amarys_pending: bool = False                      # Amarys: discard hand at end of turn if 5+ cards
     festival_lead_pending: bool = False               # Festival Lead: second attack if Festival Grounds active
