@@ -19,6 +19,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.coach.deck_builder import DeckBuildError, DeckBuilder
 import redis as redis_module
 from app.db.models import Card, Deck, DeckCard, DeckMutation, Decision, Match, MatchEvent, Round, Simulation, SimulationOpponent
 from app.db.session import AsyncSessionLocal
@@ -26,6 +27,7 @@ from app.tasks.simulation import (
     count_deck_cards,
     ensure_deck_cards_in_db,
     run_simulation,
+    _card_def_from_row,
     _parse_deck_text,
     _parse_ptcgl_deck_text,
 )
@@ -107,9 +109,59 @@ async def _check_deck_coverage(deck_texts: list[str], db: AsyncSession) -> list[
 
     return missing_cards
 
+
+async def _load_available_card_defs(db: AsyncSession) -> list:
+    rows = (await db.execute(select(Card))).scalars().all()
+    return [_card_def_from_row(row) for row in rows]
+
+
+async def _load_deck_defs_from_text(deck_text: str, db: AsyncSession) -> list:
+    """Resolve deck text to CardDefinition copies using cards already in DB."""
+    if not deck_text.strip():
+        return []
+
+    tcgdex_entries = _parse_deck_text(deck_text)
+    if tcgdex_entries:
+        ids = [tcgdex_id for _, tcgdex_id in tcgdex_entries]
+        rows = (await db.execute(select(Card).where(Card.tcgdex_id.in_(ids)))).scalars().all()
+        by_id = {row.tcgdex_id: _card_def_from_row(row) for row in rows}
+        missing = sorted({tcgdex_id for _, tcgdex_id in tcgdex_entries if tcgdex_id not in by_id})
+        if missing:
+            raise ValueError("Deck contains cards not found in database: " + ", ".join(missing))
+        defs = []
+        for count, tcgdex_id in tcgdex_entries:
+            defs.extend([by_id[tcgdex_id]] * count)
+        return defs
+
+    ptcgl_entries = _parse_ptcgl_deck_text(deck_text)
+    if not ptcgl_entries:
+        raise ValueError("Deck text does not contain any valid card lines.")
+
+    abbrevs = {entry["set_abbrev"] for entry in ptcgl_entries}
+    rows = (await db.execute(select(Card).where(Card.set_abbrev.in_(abbrevs)))).scalars().all()
+    by_key = {}
+    for row in rows:
+        norm = str(int(row.set_number)) if (row.set_number and row.set_number.isdigit()) else (row.set_number or "")
+        by_key[(row.set_abbrev, norm)] = _card_def_from_row(row)
+
+    defs = []
+    missing = []
+    for entry in ptcgl_entries:
+        raw_number = entry["set_number"]
+        norm = str(int(raw_number)) if raw_number.isdigit() else raw_number
+        card = by_key.get((entry["set_abbrev"], norm))
+        if card is None:
+            missing.append(f"{entry['name']} {entry['set_abbrev']} {raw_number}")
+            continue
+        defs.extend([card] * entry["count"])
+    if missing:
+        raise ValueError("Deck contains cards not found in database: " + ", ".join(missing))
+    return defs
+
 MINIMUM_MATCHES_RECOMMENDED = 5_000
 _VALID_GAME_MODES = {"hh", "ai_h", "ai_ai"}
 _VALID_DECK_MODES = {"full", "partial", "none"}
+_VALID_TARGET_MODES = {"aggregate", "per_opponent"}
 
 
 # ---------------------------------------------------------------------------
@@ -134,6 +186,7 @@ class SimulationCreate(BaseModel):
     matches_per_opponent: int = Field(default=10, ge=1, le=1000)
     target_win_rate: float = Field(default=0.60, ge=0.0, le=1.0)
     target_consecutive_rounds: int = Field(default=1, ge=1, le=100)
+    target_mode: str = "aggregate"
     opponent_deck_texts: list[str] = Field(default_factory=list)
     excluded_card_ids: list[str] = Field(default_factory=list)
 
@@ -149,6 +202,10 @@ class SimulationCreate(BaseModel):
             )
         if self.deck_locked and self.deck_mode == "none":
             raise ValueError("deck_locked=True is contradictory with deck_mode='none'")
+        if self.target_mode not in _VALID_TARGET_MODES:
+            raise ValueError(
+                f"target_mode must be one of {sorted(_VALID_TARGET_MODES)}, got {self.target_mode!r}"
+            )
         return self
 
 
@@ -323,19 +380,28 @@ async def create_simulation(
     """Create and enqueue a new simulation."""
     # ── deck card-count validation ──────────────────────────────────────────
     user_card_count = count_deck_cards(body.deck_text)
-    if body.deck_mode != "none":
+    if body.deck_mode == "full":
         if user_card_count != 60:
             raise HTTPException(
                 status_code=422,
                 detail=f"Deck must contain exactly 60 cards (got {user_card_count})",
             )
-    elif body.deck_text.strip() and user_card_count != 60:
+    elif body.deck_mode == "partial":
+        if user_card_count <= 0:
+            raise HTTPException(status_code=422, detail="Partial deck mode requires at least 1 card.")
+        if user_card_count >= 60:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Partial deck mode requires fewer than 60 cards (got {user_card_count})",
+            )
+    elif body.deck_text.strip():
         raise HTTPException(
             status_code=422,
-            detail=f"Provided deck_text must contain exactly 60 cards (got {user_card_count})",
+            detail="No-deck mode does not accept deck_text. Use partial or full deck mode.",
         )
 
     warning: Optional[str] = None
+    deck_build_metadata: dict | None = None
 
     # ── ensure all deck cards are in DB before coverage gate ────────────────
     # For PTCGL-format decks, cards unknown to the DB are fetched from TCGDex
@@ -347,6 +413,27 @@ async def create_simulation(
             await ensure_deck_cards_in_db(all_deck_texts, db)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc))
+
+    if body.deck_mode in ("partial", "none"):
+        available_cards = await _load_available_card_defs(db)
+        try:
+            builder = DeckBuilder(
+                available_cards=available_cards,
+                excluded_ids=body.excluded_card_ids,
+                rng_seed=0,
+            )
+            if body.deck_mode == "partial":
+                partial_defs = await _load_deck_defs_from_text(body.deck_text, db)
+                build_result = builder.complete_deck(partial_defs)
+            else:
+                build_result = builder.build_from_scratch()
+        except (DeckBuildError, ValueError) as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+
+        body.deck_text = build_result.deck_text
+        user_card_count = count_deck_cards(body.deck_text)
+        deck_build_metadata = build_result.metadata
+        all_deck_texts = [body.deck_text] + [t for t in body.opponent_deck_texts if t.strip()]
 
     # ── coverage check — reject if any card lacks required effect handlers ──
     if all_deck_texts:
@@ -405,7 +492,7 @@ async def create_simulation(
         num_rounds=body.num_rounds,
         target_win_rate=target_win_rate_int,
         target_consecutive_rounds=body.target_consecutive_rounds,
-        target_mode="aggregate",
+        target_mode=body.target_mode,
         excluded_cards=body.excluded_card_ids,
         user_deck_name=deck_name,
     )
@@ -450,6 +537,8 @@ async def create_simulation(
     response: dict = {"simulation_id": str(sim.id), "status": "pending"}
     if warning:
         response["warning"] = warning
+    if deck_build_metadata:
+        response["deck_build"] = deck_build_metadata
     return response
 
 

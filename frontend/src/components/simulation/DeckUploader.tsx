@@ -74,7 +74,7 @@ export default function DeckUploader({
                 onChange={() => onDeckModeChange(mode)}
                 className="accent-blue-500"
               />
-              <span className="text-sm text-slate-700 dark:text-slate-300 capitalize">
+              <span className="text-sm text-slate-700 dark:text-slate-300">
                 {mode === 'none' ? 'No Deck' : mode === 'partial' ? 'Partial Deck' : 'Full Deck'}
               </span>
             </label>

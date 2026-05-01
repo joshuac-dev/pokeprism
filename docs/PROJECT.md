@@ -167,7 +167,8 @@ pokeprism/
 │
 ├── docs/
 │   ├── PROJECT.md                      # THIS FILE
-│   ├── CARDLIST.md                     # Master list of all cards in scope
+│   ├── POKEMON_MASTER_LIST.md          # Current master list of all cards in scope
+│   ├── CARDLIST.md                     # Retired compatibility note
 │   └── CHANGELOG.md
 │
 ├── backend/
@@ -223,7 +224,7 @@ pokeprism/
 │   │   │
 │   │   ├── cards/
 │   │   │   ├── __init__.py
-│   │   │   ├── loader.py               # CARDLIST.md parser + TCGDex sync
+│   │   │   ├── loader.py               # POKEMON_MASTER_LIST.md parser + TCGDex sync
 │   │   │   ├── models.py               # Card Pydantic models
 │   │   │   └── tcgdex.py               # TCGDex API client
 │   │   │
@@ -328,7 +329,7 @@ pokeprism/
 │       └── favicon.svg
 │
 └── scripts/
-    ├── seed_cards.py                    # One-shot: load CARDLIST.md → TCGDex → DB
+    ├── seed_cards.py                    # One-shot: load POKEMON_MASTER_LIST.md → TCGDex → DB
     ├── capture_fixtures.py              # Capture live TCGDex responses for test fixtures
     └── generate_cardlist_stubs.py       # Generate skeleton effect files for cards
 ```
@@ -983,9 +984,10 @@ class PlayerInterface(ABC):
 
 **Exit Criteria:** All 157 cards have definitions in the card registry (already done via Phase 1 fixtures) AND implemented effects in the effect registry. Every attack with non-flat-damage effects, every ability, every trainer card, and every special energy needs a working handler. Cards with flat-damage-only attacks must be explicitly verified as handled by the engine’s default damage path. Re-running 100 Greedy vs Greedy games should show avg game length dropping to 15-30 turns (from Phase 1’s 53.9) and deck_out rate below 5%.
 
-### 7.1 CARDLIST.md Format
+### 7.1 Card List Format
 
-Each line in `docs/CARDLIST.md` follows this format:
+The current populated source file is `docs/POKEMON_MASTER_LIST.md`. Each
+processable line follows this format:
 
 ```
 CardName SET CardNumber
@@ -1102,10 +1104,10 @@ SET_CODE_MAP = {
 
 class CardListLoader:
     """
-    Parses CARDLIST.md and resolves each entry against TCGDex.
+    Parses POKEMON_MASTER_LIST.md and resolves each entry against TCGDex.
     
     Pipeline:
-    1. Read CARDLIST.md
+    1. Read POKEMON_MASTER_LIST.md
     2. Parse each line into (name, set_abbrev, number)
     3. Map set_abbrev to TCGDex set ID
     4. Fetch full card data from TCGDex
@@ -1304,7 +1306,7 @@ The initial pool is **157 cards** sourced from CARDLIST.md (160 entries minus 2 
 Run this script ONCE to capture live TCGDex responses for the initial card pool.
 Saves JSON responses to backend/tests/fixtures/ so tests don't hit the API.
 
-Usage: python scripts/capture_fixtures.py docs/CARDLIST.md backend/tests/fixtures/
+Usage: make capture-fixtures
 """
 
 import asyncio
@@ -1315,7 +1317,7 @@ from app.cards.loader import CardListLoader, SET_CODE_MAP
 
 async def capture():
     loader = CardListLoader()
-    entries = loader.parse_cardlist(Path("docs/CARDLIST.md"))
+    entries = loader.parse_cardlist(Path("docs/POKEMON_MASTER_LIST.md"))
     client = TCGDexClient()
     fixtures_dir = Path("backend/tests/fixtures/cards")
     fixtures_dir.mkdir(parents=True, exist_ok=True)
@@ -2584,19 +2586,19 @@ The **Mind Map Graph** is the centerpiece. It’s a D3 force-directed graph wher
 
 **Goal:** Expand the card pool to include all Standard-legal cards beyond the initial 157. This includes two categories:
 
-1. **New cards added to CARDLIST.md** — As the meta evolves and new archetypes emerge, additional cards will be added to the master list. Each new card needs a TCGDex fixture, a card definition, and an effect implementation.
+1. **New cards added to POKEMON_MASTER_LIST.md** — As the meta evolves and new archetypes emerge, additional cards will be added to the master list. Each new card needs a TCGDex fixture, a card definition, and an effect implementation.
 1. **M4 / Chaos Rising cards** — The 2 cards excluded from Phase 1 (set code M4, mapped to Chaos Rising ME04) release May 22, 2026. Once the English set is available and indexed by TCGDex, add the M4 entries back to SET_CODE_MAP, capture fixtures, and implement effects.
 1. **PR-SV promo set** — Pecharunt PR-SV 149 failed to resolve in Phase 1 due to missing promo set mapping. Resolve the TCGDex promo set ID and add to SET_CODE_MAP.
 
 ### 17.1 Expansion Strategy
 
-1. **Run `capture_fixtures.py` on the full CARDLIST.md** to fetch all TCGDex data for the new cards. Store fixtures for test coverage.
+1. **Run `make capture-fixtures` on the full POKEMON_MASTER_LIST.md** to fetch all TCGDex data for the new cards. Store fixtures for test coverage.
 1. **Run `seed_cards.py`** to load all new card definitions into PostgreSQL. The cards exist in the DB immediately — they just don’t have effect implementations yet.
 1. **Generate effect stubs** using `generate_cardlist_stubs.py`:
    
    ```python
    # scripts/generate_cardlist_stubs.py
-   # Reads CARDLIST.md, checks which cards lack effect implementations,
+   # Reads POKEMON_MASTER_LIST.md, checks which cards lack effect implementations,
    # and generates skeleton Python files with TODO markers.
    # Each stub includes the card's attack/ability text from TCGDex
    # as a docstring to guide implementation.
@@ -2611,7 +2613,7 @@ The **Mind Map Graph** is the centerpiece. It’s a D3 force-directed graph wher
 
 ### 17.2 Effect Implementation Velocity Target
 
-The number of new cards depends on how many are added to CARDLIST.md. Many cards share common patterns that can be templated:
+The number of new cards depends on how many are added to POKEMON_MASTER_LIST.md. Many cards share common patterns that can be templated:
 
 - **~40% of cards**: Flat damage attacks only → no effect code needed (engine handles generically)
 - **~25% of cards**: Simple effects (draw N, discard energy, do X damage + effect) → can use helper functions
@@ -3349,7 +3351,7 @@ Respond with ONLY a JSON object:
 |Method|Path             |Description                                |
 |------|-----------------|-------------------------------------------|
 |`GET` |`/api/health`    |System health check                        |
-|`POST`|`/api/cards/sync`|Trigger card sync from CARDLIST.md + TCGDex|
+|`POST`|`/api/cards/sync`|Trigger card sync from POKEMON_MASTER_LIST.md + TCGDex|
 
 -----
 

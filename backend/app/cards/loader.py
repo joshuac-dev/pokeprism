@@ -1,4 +1,4 @@
-"""CARDLIST.md parser and TCGDex card loader.
+"""Card-list parser and TCGDex card loader.
 
 DEVIATIONS FROM BLUEPRINT (§7.3):
   1. SET_CODE_MAP values use actual TCGDex IDs (verified via /v2/en/sets):
@@ -74,10 +74,10 @@ _PROMO_PREFIXES = {"PR-SV"}  # e.g. "Pecharunt PR-SV 149"
 
 
 class CardListLoader:
-    """Parse CARDLIST.md and resolve each entry against TCGDex.
+    """Parse a project card list and resolve each entry against TCGDex.
 
     Phase 1 pipeline (no DB):
-      1. Parse CARDLIST.md → list of (name, set_abbrev, number) tuples
+      1. Parse docs/POKEMON_MASTER_LIST.md → list of (name, set_abbrev, number) tuples
       2. Map set_abbrev to TCGDex set ID
       3. Fetch full card data from TCGDex
       4. Transform into CardDefinition objects
@@ -90,12 +90,12 @@ class CardListLoader:
     _KNOWN_EXCLUDED_SETS = {"M4"}
 
     def parse_cardlist(self, path: Path) -> list[dict]:
-        """Parse CARDLIST.md into raw entry dicts.
+        """Parse a card-list markdown file into raw entry dicts.
 
         Handles:
           • Multi-word card names: "Boss's Orders MEG 114"
           • Promo codes: "Pecharunt PR-SV 149"
-          • Blank/comment lines
+          • Blank/comment/header lines
           • Numbered list format (leading "123. ")
         """
         entries: list[dict] = []
@@ -116,6 +116,8 @@ class CardListLoader:
                             "number": m.group(3),
                         }
                     )
+                elif line.startswith("|") or line.startswith("-") or line.startswith(">"):
+                    continue
                 else:
                     logger.debug("Unrecognised CARDLIST line, skipping: %r", line)
         return entries
@@ -125,7 +127,7 @@ class CardListLoader:
         cardlist_path: Path,
         tcgdex: TCGDexClient,
     ) -> dict[str, CardDefinition]:
-        """Fetch every card in CARDLIST.md from TCGDex.
+        """Fetch every card in a project card-list file from TCGDex.
 
         Returns a dict[tcgdex_id → CardDefinition].
         Logs a warning and skips any card whose set is unknown or missing.

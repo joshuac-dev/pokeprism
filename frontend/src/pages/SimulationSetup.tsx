@@ -39,14 +39,18 @@ export default function SimulationSetup() {
   const [warning, setWarning] = useState<string | null>(null);
 
   function validateForm(): string | null {
-    if (deckMode === 'none' && deckLocked) {
-      return 'Cannot lock deck when deck mode is "None".';
+    const parsed = parsePTCGDeck(deckText);
+    if (deckMode === 'full' && parsed.totalCards !== 60) {
+      return `Full deck mode requires exactly 60 cards. You have ${parsed.totalCards}.`;
     }
-    if (deckMode === 'full' || deckMode === 'partial') {
-      const parsed = parsePTCGDeck(deckText);
-      if (deckMode === 'full' && parsed.totalCards !== 60) {
-        return `Full deck mode requires exactly 60 cards. You have ${parsed.totalCards}.`;
-      }
+    if (deckMode === 'partial' && (parsed.totalCards <= 0 || parsed.totalCards >= 60)) {
+      return `Partial deck mode requires 1-59 cards. You have ${parsed.totalCards}.`;
+    }
+    if (deckMode === 'none' && deckText.trim()) {
+      return 'No Deck mode starts from the card pool; clear your deck text or choose Partial Deck.';
+    }
+    if (deckMode === 'none' && deckLocked) {
+      return 'Cannot lock deck when deck mode is "No Deck".';
     }
     if (matchesPerOpponent < 1 || matchesPerOpponent > 1000) {
       return 'Matches per opponent must be between 1 and 1000.';
@@ -83,6 +87,7 @@ export default function SimulationSetup() {
         matches_per_opponent: matchesPerOpponent,
         target_win_rate: targetWinRatePct / 100,
         target_consecutive_rounds: targetConsecutiveRounds,
+        target_mode: targetMode,
         game_mode: gameMode,
         deck_mode: deckMode,
         deck_locked: deckLocked,

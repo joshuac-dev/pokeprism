@@ -63,6 +63,15 @@ class TestSimulationCreateValidation:
         obj = SimulationCreate(**self._valid_payload())
         assert obj.game_mode == "hh"
         assert obj.deck_mode == "none"
+        assert obj.target_mode == "aggregate"
+
+    def test_target_mode_per_opponent_accepted(self):
+        obj = SimulationCreate(**self._valid_payload(target_mode="per_opponent"))
+        assert obj.target_mode == "per_opponent"
+
+    def test_invalid_target_mode_raises(self):
+        with pytest.raises(Exception):
+            SimulationCreate(**self._valid_payload(target_mode="by_prize_cards"))
 
     def test_invalid_game_mode_raises(self):
         with pytest.raises(Exception):
@@ -235,30 +244,180 @@ class TestPostSimulation:
         app.fastapi_app.dependency_overrides.clear()
         assert resp.status_code == 422
 
-    def test_valid_none_deck_mode_returns_201(self, client, mock_celery):
-        """deck_mode='none' with no deck_text should create a simulation."""
+    def test_no_deck_mode_builds_deck_and_enqueues(self, mock_celery):
         from app.api.simulations import get_db
+        from app.coach.deck_builder import DeckBuildResult
         import uuid as _uuid
 
         sim_id = _uuid.uuid4()
+        added_objects = []
 
         async def override_db():
             session = AsyncMock()
             session.commit = AsyncMock()
+            session.flush = AsyncMock()
             session.delete = AsyncMock()
 
-            # Track objects added to session so we can give them an id
             def track_add(obj):
-                if hasattr(obj, "id") and obj.id is None:
-                    obj.id = sim_id
-                # Simulation gets id assigned
                 if obj.__class__.__name__ == "Simulation":
                     obj.id = sim_id
+                if obj.__class__.__name__ == "Deck" and obj.id is None:
+                    obj.id = _uuid.uuid4()
+                added_objects.append(obj)
 
             session.add = MagicMock(side_effect=track_add)
-            session.flush = AsyncMock()
+            mock_result = MagicMock()
+            mock_result.scalar.return_value = 0
+            mock_result.scalar_one_or_none.return_value = None
+            mock_result.scalars.return_value.all.return_value = []
+            session.execute = AsyncMock(return_value=mock_result)
+            yield session
 
-            # execute() returns something with scalar() = 0 for count queries
+        class FakeBuilder:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def build_from_scratch(self):
+                from app.cards.models import CardDefinition
+                card = CardDefinition(
+                    tcgdex_id="sv06-128", name="Dreepy", set_abbrev="TWM",
+                    set_number="128", category="Pokemon", stage="Basic",
+                )
+                return DeckBuildResult(deck=[card], metadata={"mode": "none"})
+
+        from app.main import create_app
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        from fastapi.testclient import TestClient
+        with (
+            patch("app.api.simulations.ensure_deck_cards_in_db", new=AsyncMock()),
+            patch("app.api.simulations._load_available_card_defs", new=AsyncMock(return_value=[])),
+            patch("app.api.simulations.DeckBuilder", FakeBuilder),
+            patch("app.api.simulations.count_deck_cards", side_effect=lambda text: 60 if text else 0),
+            patch("app.api.simulations._check_deck_coverage", new=AsyncMock(return_value=[])),
+            TestClient(app) as c,
+        ):
+            resp = c.post(
+                "/api/simulations",
+                json={
+                    "deck_mode": "none",
+                    "game_mode": "hh",
+                    "opponent_deck_texts": [_MINIMAL_DECK_60],
+                },
+            )
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 201
+        assert resp.json()["deck_build"]["mode"] == "none"
+        created_sim = next(obj for obj in added_objects if obj.__class__.__name__ == "Simulation")
+        assert created_sim.deck_mode == "none"
+        assert created_sim.user_deck_id is not None
+        mock_celery.delay.assert_called_once()
+
+    def test_partial_deck_mode_builds_deck_and_enqueues(self, mock_celery):
+        from app.api.simulations import get_db
+        from app.coach.deck_builder import DeckBuildResult
+        import uuid as _uuid
+
+        sim_id = _uuid.uuid4()
+        added_objects = []
+
+        async def override_db():
+            session = AsyncMock()
+            session.commit = AsyncMock()
+            session.flush = AsyncMock()
+            session.delete = AsyncMock()
+
+            def track_add(obj):
+                if obj.__class__.__name__ == "Simulation":
+                    obj.id = sim_id
+                if obj.__class__.__name__ == "Deck" and obj.id is None:
+                    obj.id = _uuid.uuid4()
+                added_objects.append(obj)
+
+            session.add = MagicMock(side_effect=track_add)
+            mock_result = MagicMock()
+            mock_result.scalar.return_value = 0
+            mock_result.scalar_one_or_none.return_value = None
+            mock_result.scalars.return_value.all.return_value = []
+            session.execute = AsyncMock(return_value=mock_result)
+            yield session
+
+        class FakeBuilder:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def complete_deck(self, partial):
+                from app.cards.models import CardDefinition
+                card = CardDefinition(
+                    tcgdex_id="sv06-128", name="Dreepy", set_abbrev="TWM",
+                    set_number="128", category="Pokemon", stage="Basic",
+                )
+                return DeckBuildResult(deck=[card], metadata={"mode": "partial", "cards_preserved": ["sv06-128"]})
+
+        partial_text = "4 Dreepy sv06-128"
+
+        from app.main import create_app
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        from fastapi.testclient import TestClient
+        with (
+            patch("app.api.simulations.ensure_deck_cards_in_db", new=AsyncMock()),
+            patch("app.api.simulations._load_available_card_defs", new=AsyncMock(return_value=[])),
+            patch("app.api.simulations._load_deck_defs_from_text", new=AsyncMock(return_value=[])),
+            patch("app.api.simulations.DeckBuilder", FakeBuilder),
+            patch("app.api.simulations.count_deck_cards", side_effect=lambda text: 4 if text == partial_text else (60 if text else 0)),
+            patch("app.api.simulations._check_deck_coverage", new=AsyncMock(return_value=[])),
+            patch("app.api.simulations._get_deck_name_from_gemma", new=AsyncMock(return_value=None)),
+            TestClient(app) as c,
+        ):
+            resp = c.post(
+                "/api/simulations",
+                json={
+                    "deck_text": partial_text,
+                    "deck_mode": "partial",
+                    "game_mode": "hh",
+                    "opponent_deck_texts": [_MINIMAL_DECK_60],
+                },
+            )
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 201
+        assert resp.json()["deck_build"]["mode"] == "partial"
+        created_sim = next(obj for obj in added_objects if obj.__class__.__name__ == "Simulation")
+        assert created_sim.deck_mode == "partial"
+        mock_celery.delay.assert_called_once()
+
+    def test_invalid_builder_request_does_not_enqueue(self, client, mock_celery):
+        resp = client.post(
+            "/api/simulations",
+            json={"deck_mode": "partial", "game_mode": "hh", "deck_text": ""},
+        )
+
+        assert resp.status_code == 422
+        mock_celery.delay.assert_not_called()
+
+    def test_target_mode_is_persisted_from_create_payload(self, mock_celery):
+        """The setup UI's target_mode control must reach the Simulation row."""
+        from app.api.simulations import get_db
+        import uuid as _uuid
+
+        sim_id = _uuid.uuid4()
+        added_objects = []
+
+        async def override_db():
+            session = AsyncMock()
+            session.commit = AsyncMock()
+            session.flush = AsyncMock()
+            session.delete = AsyncMock()
+
+            def track_add(obj):
+                if obj.__class__.__name__ == "Simulation":
+                    obj.id = sim_id
+                added_objects.append(obj)
+
+            session.add = MagicMock(side_effect=track_add)
+
             mock_result = MagicMock()
             mock_result.scalar_one_or_none.return_value = None
             mock_result.scalar.return_value = 0
@@ -271,22 +430,27 @@ class TestPostSimulation:
         app = create_app()
         app.fastapi_app.dependency_overrides[get_db] = override_db
         from fastapi.testclient import TestClient
-        with TestClient(app) as c:
+        with (
+            patch("app.api.simulations.ensure_deck_cards_in_db", new=AsyncMock()),
+            patch("app.api.simulations._check_deck_coverage", new=AsyncMock(return_value=[])),
+            patch("app.api.simulations._get_deck_name_from_gemma", new=AsyncMock(return_value=None)),
+            TestClient(app) as c,
+        ):
             resp = c.post(
                 "/api/simulations",
                 json={
-                    "deck_mode": "none",
+                    "deck_text": _MINIMAL_DECK_60,
+                    "opponent_deck_texts": [_MINIMAL_DECK_60],
+                    "deck_mode": "full",
                     "game_mode": "hh",
-                    "num_rounds": 1,
-                    "matches_per_opponent": 5,
+                    "target_mode": "per_opponent",
                 },
             )
         app.fastapi_app.dependency_overrides.clear()
 
         assert resp.status_code == 201
-        data = resp.json()
-        assert "simulation_id" in data
-        assert data["status"] == "pending"
+        created_sim = next(obj for obj in added_objects if obj.__class__.__name__ == "Simulation")
+        assert created_sim.target_mode == "per_opponent"
 
     def test_celery_task_enqueued_on_success(self, mock_celery):
         """Verify run_simulation.delay is called when a simulation is created."""
@@ -319,10 +483,20 @@ class TestPostSimulation:
         app = create_app()
         app.fastapi_app.dependency_overrides[get_db] = override_db
         from fastapi.testclient import TestClient
-        with TestClient(app) as c:
+        with (
+            patch("app.api.simulations.ensure_deck_cards_in_db", new=AsyncMock()),
+            patch("app.api.simulations._check_deck_coverage", new=AsyncMock(return_value=[])),
+            patch("app.api.simulations._get_deck_name_from_gemma", new=AsyncMock(return_value=None)),
+            TestClient(app) as c,
+        ):
             resp = c.post(
                 "/api/simulations",
-                json={"deck_mode": "none", "game_mode": "hh"},
+                json={
+                    "deck_text": _MINIMAL_DECK_60,
+                    "opponent_deck_texts": [_MINIMAL_DECK_60],
+                    "deck_mode": "full",
+                    "game_mode": "hh",
+                },
             )
         app.fastapi_app.dependency_overrides.clear()
 

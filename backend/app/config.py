@@ -1,8 +1,10 @@
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 
 class Settings(BaseSettings):
+    model_config = ConfigDict(env_file=[".env", "../.env"], extra="ignore")
+
     # Database
     DATABASE_URL: str = Field(
         default="postgresql+asyncpg://pokeprism:pokeprism@localhost:5433/pokeprism"
@@ -28,9 +30,16 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = Field(default="INFO")
 
-    class Config:
-        env_file = [".env", "../.env"]
-        extra = "ignore"
+    # HTTP/WebSocket browser origins. Use "*" only for explicitly trusted local
+    # deployments; production should list concrete origins.
+    CORS_ORIGINS: str = Field(
+        default="http://localhost:3000,http://localhost:5173,https://pokeprism.joshuac.dev"
+    )
+
+    @property
+    def cors_origins_list(self) -> list[str] | str:
+        origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        return "*" if origins == ["*"] else origins
 
 
 settings = Settings()

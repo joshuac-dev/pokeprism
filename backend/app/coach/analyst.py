@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_TCGDEX_ID_RE = re.compile(r"^[a-z][a-z0-9.]*-[0-9]+[a-z]*$")
+
 
 class CoachAnalyst:
     """Post-round Coach that queries memory and proposes 0–N card swaps.
@@ -208,10 +210,11 @@ class CoachAnalyst:
         for attempt in range(retries):
             raw = await self._call_ollama(prompt)
             parsed = self._parse_response(raw)
-            if parsed is not None:
-                return parsed.get("swaps", [])
-            logger.warning("Coach parse failed (attempt %d/%d)", attempt + 1, retries)
-        logger.error("Coach gave unparseable response after %d retries", retries)
+            swaps = self._validate_swap_response(parsed)
+            if swaps is not None:
+                return swaps
+            logger.warning("Coach response validation failed (attempt %d/%d)", attempt + 1, retries)
+        logger.error("Coach gave invalid response after %d retries", retries)
         return []
 
     async def _call_ollama(self, prompt: str) -> str:
@@ -222,7 +225,7 @@ class CoachAnalyst:
             "model": self._model,
             "messages": [{"role": "user", "content": prompt}],
             "stream": False,
-            "options": {"temperature": 0.3, "num_predict": -1},
+            "options": {"temperature": 0.3, "num_predict": 1024},
         }
         _CONNECT_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout)
         for attempt in range(3):
@@ -266,6 +269,37 @@ class CoachAnalyst:
             except json.JSONDecodeError:
                 pass
         return None
+
+    def _validate_swap_response(self, parsed: dict | None) -> list[dict] | None:
+        """Validate model JSON before applying deck-mutation rules."""
+        if not isinstance(parsed, dict):
+            return None
+        swaps = parsed.get("swaps", [])
+        if swaps is None:
+            swaps = []
+        if not isinstance(swaps, list):
+            return None
+        swaps = swaps[:self._max_swaps]
+
+        valid: list[dict] = []
+        for swap in swaps:
+            if not isinstance(swap, dict):
+                return None
+            remove = swap.get("remove")
+            add = swap.get("add")
+            reasoning = swap.get("reasoning", "")
+            if not isinstance(remove, str) or not isinstance(add, str):
+                return None
+            if not _TCGDEX_ID_RE.match(remove) or not _TCGDEX_ID_RE.match(add):
+                return None
+            if not isinstance(reasoning, str):
+                return None
+            valid.append({
+                "remove": remove,
+                "add": add,
+                "reasoning": reasoning[:500],
+            })
+        return valid
 
     def _summarize_round(
         self, card_stats: dict, round_results: list[MatchResult]

@@ -83,7 +83,7 @@ reset-data:
 	@echo "All simulation data cleared. Card definitions preserved."
 
 capture-fixtures:
-	cd backend && python -m scripts.capture_fixtures
+	cd backend && python3 -m scripts.capture_fixtures
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
@@ -99,7 +99,7 @@ test-cards:
 # ── Linting ───────────────────────────────────────────────────────────────────
 
 lint:
-	cd backend && python -m py_compile app/**/*.py && echo "Syntax OK"
+	cd backend && python3 -m compileall -q app tests && echo "Syntax OK"
 
 # ── Dev (host) ────────────────────────────────────────────────────────────────
 # Run backend + frontend directly on the host (outside Docker) for development.

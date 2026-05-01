@@ -10,6 +10,7 @@ Findings:
 from __future__ import annotations
 
 import pytest
+import random
 
 import app.engine.effects  # noqa: F401 — triggers register_all via __init__
 from app.cards import registry as card_registry
@@ -18,6 +19,7 @@ from app.engine.actions import Action, ActionType
 from app.engine.effects.base import ChoiceRequest
 from app.engine.effects.registry import _choice_to_legal_actions, _default_choice
 from app.engine.effects.registry import EffectRegistry
+from app.engine.runner import MatchRunner
 from app.engine.state import CardInstance, EnergyAttachment, EnergyType, GameState, Zone
 
 
@@ -97,6 +99,12 @@ def _make_action(player_id: str = "p1", attack_index: int = 0) -> Action:
     )
 
 
+def _runner_for_between_turns() -> MatchRunner:
+    runner = object.__new__(MatchRunner)
+    runner._rng = random.Random(0)
+    return runner
+
+
 @pytest.fixture(autouse=True)
 def clear_card_registry():
     yield
@@ -120,6 +128,70 @@ def test_fossil_passive_ability_registered(card_id: str, ability_name: str):
     assert key in reg._passive_abilities, (
         f"Passive ability '{ability_name}' for {card_id} not registered"
     )
+
+
+def test_sand_stream_only_active_tyranitar_triggers():
+    """Sand Stream fires from Active TR Tyranitar, not benched Tyranitar."""
+    tyranitar = _make_card(
+        "sv10-096", "Team Rocket's Tyranitar", hp=180,
+        abilities=[AbilityDef(name="Sand Stream", effect="")],
+    )
+    basic = _make_card("tst-ss-001", "Basic Target", hp=100)
+    stage1 = _make_card("tst-ss-002", "Stage One Target", hp=100, stage="Stage 1")
+    card_registry.register(tyranitar)
+    card_registry.register(basic)
+    card_registry.register(stage1)
+
+    benched_tyranitar = _make_instance(tyranitar, zone=Zone.BENCH, hp=180)
+    p1_active = _make_instance(basic, hp=100)
+    p2_active = _make_instance(basic, hp=100)
+    p2_stage1 = _make_instance(stage1, zone=Zone.BENCH, hp=100)
+    p2_stage1.evolution_stage = 1
+    state = _make_state(
+        p1_active=p1_active,
+        p1_bench=[benched_tyranitar],
+        p2_active=p2_active,
+        p2_bench=[p2_stage1],
+    )
+
+    _runner_for_between_turns()._handle_between_turns(state)
+
+    assert p2_active.damage_counters == 0
+    assert p2_stage1.damage_counters == 0
+
+    state.p1.active = benched_tyranitar
+    state.p1.active.zone = Zone.ACTIVE
+    state.p1.bench = [p1_active]
+    p1_active.zone = Zone.BENCH
+
+    _runner_for_between_turns()._handle_between_turns(state)
+
+    assert p2_active.damage_counters == 2
+    assert p2_active.current_hp == 80
+    assert p2_stage1.damage_counters == 0
+    assert any(e["event_type"] == "sand_stream_triggered" and e["player"] == "p1" for e in state.events)
+
+
+def test_sand_stream_checks_non_turn_player_active():
+    """Pokémon Checkup applies Sand Stream regardless of whose turn just ended."""
+    tyranitar = _make_card(
+        "sv10-096", "Team Rocket's Tyranitar", hp=180,
+        abilities=[AbilityDef(name="Sand Stream", effect="")],
+    )
+    basic = _make_card("tst-ss-003", "Basic Target", hp=100)
+    card_registry.register(tyranitar)
+    card_registry.register(basic)
+
+    state = _make_state(
+        p1_active=_make_instance(basic, hp=100),
+        p2_active=_make_instance(tyranitar, hp=180),
+    )
+    state.active_player = "p1"
+
+    _runner_for_between_turns()._handle_between_turns(state)
+
+    assert state.p1.active.damage_counters == 2
+    assert any(e["event_type"] == "sand_stream_triggered" and e["player"] == "p2" for e in state.events)
 
 
 # ──────────────────────────────────────────────────────────────────────────────

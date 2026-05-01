@@ -2,10 +2,11 @@
 
 > This file is updated at the end of every development session.
 > Read this BEFORE reading PROJECT.md to understand current state.
+> Historical session entries below are retained as written; date-relative or future-looking notes in those entries may reflect the environment used when that session was recorded. The Current Phase section is authoritative as of 2026-05-01.
 
 ## Current Phase
 **Card Pool Expansion — Complete** ✅
-_Last updated: 2026-04-30_
+_Last updated: 2026-05-01_
 
 All 20 card expansion batches complete. 103-card audit complete (93 missing cards inserted). All flagged cards implemented across 8 engine batches. **0 missing handlers. 2001 real cards in DB.**
 
@@ -14,7 +15,7 @@ All 20 card expansion batches complete. 103-card audit complete (93 missing card
 | Cards in DB | **2001** |
 | Coverage | **100%** (0 missing handlers) |
 | Flat-damage-only cards | 292 |
-| Tests | **215 passing** |
+| Tests | **253 backend + 4 frontend passing** |
 | Flagged entries remaining | **0** |
 
 ---
@@ -68,15 +69,12 @@ All 20 card expansion batches complete. 103-card audit complete (93 missing card
 
 ## Known Issues / Gaps
 
-Carried from prior sessions (not yet verified/fixed):
-- **Sand Stream (sv10-096)**: Implemented as 1 counter on ALL opponent Pokémon — actual card may be 2 counters on Basic Pokémon only.
-- **Wonder Kiss (sv08-072)**: Coin flip added — verify against actual card text.
-- **Majestic Sword (sv05-080)**: Bonus implemented as +100 — verify against card text.
-- **Buzzing Boost (sv10-003)**: Attaches energy to own Pokémon — actual text says "put into your hand."
-- **Hand Trimmer (sv05-150)**: Implemented as discard to 5 — actual effect may be "+30 if opponent has ≥8 cards."
+Carried from prior sessions:
 - **Auto-fire simplifications**: Wafting Heal, Obliging Heal, Impromptu Carrier, Dig Dig Dig, Time to Chow Down auto-select targets without player choice.
 - **Inviting Wink**: Places first Basic from opponent's hand (auto-select); actual card may let opponent choose.
 - **`_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets**: May be missing promo/alt-art Paradox Pokémon prints.
+- **Partial/no-deck simulations**: Restored and runnable. `DeckBuilder.complete_deck` and `DeckBuilder.build_from_scratch` now provide deterministic baseline decks from DB-backed card data and return warnings below the 5,000-match memory-quality threshold.
+- **Verified in hardening sweep (2026-05-01)**: Sand Stream, Wonder Kiss, Majestic Sword, Buzzing Boost, and Hand Trimmer were checked against captured TCGDex fixtures. Sand Stream needed a trigger-location fix and is now covered by regression tests; the other listed implementations matched the captured text.
 
 New this session:
 - **mep-017 Toxtricity**: Appears in TCGDex set listing for `mep` but individual card endpoint returns 404. Not inserted into DB. If TCGDex ever fixes this data gap, it will need to be fetched and its handler implemented.
@@ -99,7 +97,7 @@ New this session:
   1. Verify the 8 known potentially-incorrect implementations listed in Known Issues above
   2. Phase 14 — Tuning & Evaluation (baseline win-rate benchmarks, coach quality metrics)
   3. Or expand card pool further when new Pokémon TCG Pocket sets release
-- **Test baseline**: 215 tests pass. Run `cd backend && python3 -m pytest tests/ -x -q`.
+- **Test baseline**: 253 backend tests pass plus 4 frontend tests. Run `cd backend && python3 -m pytest tests/ -x -q` and `cd frontend && npm test`.
 - **DB connection**: PostgreSQL on port 5433, password `changeme_postgres`. `docker exec pokeprism-postgres psql -U pokeprism -d pokeprism`
 - **MEP Mega Charizard X ex** is now correctly at `mep-023` in both the DB and the master list (was incorrectly listed as MEP 29).
 - **POKEMON_MASTER_LIST.md** now has 1973 entries (all real cards). If it needs to be rebuilt from scratch, the canonical source is TCGDex — use `SET_CODE_MAP` in `backend/app/cards/loader.py` for set abbreviation → TCGDex ID mapping.
@@ -1803,4 +1801,3 @@ The asymmetry is deck matchup, not seating. Deck-out dropped 21% → 4% (G/G →
 - Analytics charts: win rate over time, top cards, deck performance comparisons
 - GET /api/history endpoints (list, filter by date/deck/status)
 - Recharts or Chart.js for visualisation
-

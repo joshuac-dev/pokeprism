@@ -11,6 +11,7 @@ export interface SimulationCreateRequest {
   matches_per_opponent: number;
   target_win_rate: number;
   target_consecutive_rounds?: number;
+  target_mode?: 'aggregate' | 'per_opponent';
   game_mode: 'hh' | 'ai_h' | 'ai_ai';
   deck_mode: 'full' | 'partial' | 'none';
   deck_locked: boolean;
@@ -21,6 +22,7 @@ export interface SimulationCreateResponse {
   simulation_id: string;
   status: string;
   warning?: string;
+  deck_build?: Record<string, unknown>;
 }
 
 export interface EventsResponse {

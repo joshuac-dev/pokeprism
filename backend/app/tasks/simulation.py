@@ -44,6 +44,17 @@ _PTCGL_LINE_RE = re.compile(
     r"^(\d+)\s+(.+?)\s+([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)?)\s+(\d+)\s*$"
 )
 
+_BASIC_ENERGY_PTCGL_NUMBERS = {
+    "Grass Energy": "1",
+    "Fire Energy": "2",
+    "Water Energy": "3",
+    "Lightning Energy": "4",
+    "Psychic Energy": "5",
+    "Fighting Energy": "6",
+    "Darkness Energy": "7",
+    "Metal Energy": "8",
+}
+
 
 def _parse_ptcgl_deck_text(deck_text: str) -> list[dict]:
     """Parse PTCGL export format into structured entries.
@@ -52,6 +63,7 @@ def _parse_ptcgl_deck_text(deck_text: str) -> list[dict]:
       - "4 Dreepy PRE 71"
       - "2 Boss's Orders MEG 114"
       - "1 Pecharunt PR-SV 149"
+      - "10 Psychic Energy" (PTCGL basic-energy shorthand; maps to SVE)
       - Section headers (Pokémon:, Trainer:, Energy:) — skipped
       - Blank lines and # comments — skipped
 
@@ -65,13 +77,30 @@ def _parse_ptcgl_deck_text(deck_text: str) -> list[dict]:
         if _PTCGL_SECTION_RE.match(line):
             continue
         m = _PTCGL_LINE_RE.match(line)
-        if not m:
+        if m:
+            entries.append({
+                "count": int(m.group(1)),
+                "name": m.group(2).strip(),
+                "set_abbrev": m.group(3),
+                "set_number": m.group(4),
+            })
+            continue
+
+        shorthand = re.match(r"^(\d+)\s+(.+ Energy)\s*$", line, re.IGNORECASE)
+        if not shorthand:
+            continue
+        energy_name = shorthand.group(2).strip()
+        canonical_name = next(
+            (name for name in _BASIC_ENERGY_PTCGL_NUMBERS if name.lower() == energy_name.lower()),
+            None,
+        )
+        if canonical_name is None:
             continue
         entries.append({
-            "count": int(m.group(1)),
-            "name": m.group(2).strip(),
-            "set_abbrev": m.group(3),
-            "set_number": m.group(4),
+            "count": int(shorthand.group(1)),
+            "name": canonical_name,
+            "set_abbrev": "SVE",
+            "set_number": _BASIC_ENERGY_PTCGL_NUMBERS[canonical_name],
         })
     return entries
 
@@ -198,6 +227,10 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
             sim = row.scalar_one_or_none()
             if sim is None:
                 raise ValueError(f"Simulation {simulation_id} not found")
+            if sim.status == "cancelled":
+                logger.info("Simulation %s was cancelled before worker start", simulation_id)
+                _publish({"type": "simulation_cancelled", "simulation_id": simulation_id})
+                return {"status": "cancelled"}
 
             num_rounds = sim.num_rounds
             matches_per_opponent = sim.matches_per_opponent

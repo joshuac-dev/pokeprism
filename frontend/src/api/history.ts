@@ -38,9 +38,9 @@ export async function getCompareStats(id: string): Promise<CompareStats> {
     rounds_completed: sim.rounds_completed,
     total_matches: sim.total_matches,
     final_win_rate: sim.final_win_rate,
-    target_win_rate: sim.target_win_rate != null ? sim.target_win_rate / 100 : null,
+    target_win_rate: sim.target_win_rate ?? null,
     target_met: sim.final_win_rate != null && sim.target_win_rate != null
-      ? sim.final_win_rate >= sim.target_win_rate / 100
+      ? sim.final_win_rate >= sim.target_win_rate
       : false,
     avg_turns: avgTurns != null ? Math.round(avgTurns * 10) / 10 : null,
     deck_out_pct: deckOutPct,

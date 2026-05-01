@@ -91,6 +91,29 @@ class TestParseResponse:
         analyst = _make_analyst()
         assert analyst._parse_response("") is None
 
+    def test_validate_swap_response_accepts_bounded_schema(self):
+        analyst = _make_analyst(max_swaps=2)
+        parsed = {
+            "swaps": [
+                {"remove": "sv06-128", "add": "sv05-144", "reasoning": "more setup"}
+            ],
+            "analysis": "ok",
+        }
+
+        assert analyst._validate_swap_response(parsed) == [
+            {"remove": "sv06-128", "add": "sv05-144", "reasoning": "more setup"}
+        ]
+
+    @pytest.mark.parametrize("parsed", [
+        {"swaps": "not-a-list"},
+        {"swaps": [{"remove": "sv06-128", "add": "not a card id", "reasoning": "bad"}]},
+        {"swaps": [{"remove": "sv06-128", "add": "sv05-144", "reasoning": 123}]},
+    ])
+    def test_validate_swap_response_rejects_malformed_schema(self, parsed):
+        analyst = _make_analyst(max_swaps=1)
+
+        assert analyst._validate_swap_response(parsed) is None
+
 
 # ---------------------------------------------------------------------------
 # _identify_primary_line
