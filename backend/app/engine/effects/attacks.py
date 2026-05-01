@@ -17594,7 +17594,7 @@ def register_all(registry):
     registry.register_attack("sv07-026", 0, _quick_attack_b12)              # Scorbunny — Quick Attack
     # sv07-027 Raboot (flat 60)
     registry.register_attack("sv07-028", 0, _flare_strike_scr)              # Cinderace ex — Flare Strike
-    registry.register_attack("sv07-028", 1, _garnet_volley)                 # Cinderace ex — Garnet Volley
+    registry.register_attack("sv07-028", 1, _garnet_volley_sv07)                # Cinderace ex — Garnet Volley
     # sv07-029 Horsea (flat 30)
     # sv07-030 Seadra (flat 60)
     # sv07-031 Slowpoke (flat 10) — different from sv07-057 Slowpoke
@@ -18483,9 +18483,30 @@ def _flare_strike_scr(state, action):
                          attack_name="Flare Strike")
 
 
-def _garnet_volley(state, action):
-    """sv07-028 Cinderace ex atk1 — Garnet Volley: 180 to 1 opponent's Pokémon (no W/R for bench)."""
-    _apply_damage(state, action, 180)
+def _garnet_volley_sv07(state, action):
+    """sv07-028 Cinderace ex atk1 — Garnet Volley: 180 to 1 of opponent's Pokémon (no W/R for bench)."""
+    opp = state.get_opponent(action.player_id)
+    opp_id = state.opponent_id(action.player_id)
+    all_opp = ([opp.active] if opp.active else []) + list(opp.bench)
+    if not all_opp:
+        return
+
+    req = ChoiceRequest(
+        "choose_target", action.player_id,
+        "Garnet Volley: choose 1 of opponent's Pokémon",
+        targets=all_opp,
+    )
+    resp = yield req
+    target = None
+    if resp and resp.target_instance_id:
+        target = next((p for p in all_opp if p.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = opp.active or opp.bench[0]
+
+    if target is opp.active:
+        _apply_damage(state, action, 180)
+    else:
+        _apply_bench_damage(state, opp_id, target, 180)
 
 
 def _power_splash(state, action):
