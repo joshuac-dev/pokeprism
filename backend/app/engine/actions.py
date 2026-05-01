@@ -78,6 +78,26 @@ class Action:
     # Choice metadata (populated for CHOOSE_* action types so players can read constraints)
     choice_context: Optional[object] = None  # ChoiceRequest — avoids circular import
 
+    @property
+    def chosen_card_ids(self) -> Optional[list[str]]:
+        """Compatibility alias for selected_cards.
+
+        Many attack handlers were written reading resp.chosen_card_ids, but the
+        Action dataclass stores chosen card IDs in selected_cards. This property
+        bridges both naming conventions.
+        """
+        return self.selected_cards
+
+    @property
+    def chosen_ids(self) -> Optional[list[str]]:
+        """Compatibility alias for selected_cards used by batch-style handlers.
+
+        A batch of handlers in attacks.py and abilities.py reads resp.chosen_ids
+        to retrieve chosen card IDs. Like chosen_card_ids, this redirects to the
+        canonical selected_cards field.
+        """
+        return self.selected_cards
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Helpers

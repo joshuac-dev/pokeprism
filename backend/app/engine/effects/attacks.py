@@ -1172,8 +1172,6 @@ def _resentful_refrain(state, action):
 def _cosmic_beam(state, action):
     """me01-075 Solrock atk0 — Cosmic Beam: 70 if Lunatone on bench; no W/R."""
     player = state.get_player(action.player_id)
-    opp = state.get_opponent(action.player_id)
-    opp_id = state.opponent_id(action.player_id)
 
     has_lunatone = any(p.card_def_id == "me01-074" for p in player.bench)
     if not has_lunatone:
@@ -1181,15 +1179,7 @@ def _cosmic_beam(state, action):
                          reason="no Lunatone on bench")
         return
 
-    if not opp.active:
-        return
-
-    damage = 70
-    opp.active.current_hp -= damage
-    opp.active.damage_counters += damage // 10
-    state.emit_event("attack_damage", attacker="Solrock", defender=opp.active.card_name,
-                     attack_name="Cosmic Beam", base_damage=damage, final_damage=damage)
-    check_ko(state, opp.active, opp_id)
+    _apply_damage(state, action, 70, bypass_wr=True)
 
 
 def _shred(state, action):
@@ -1486,12 +1476,7 @@ def _mirage_barrage(state, action):
             target = all_opp_pokemon[0]
 
         if target is opp.active:
-            target.current_hp -= 120
-            target.damage_counters += 12
-            state.emit_event("attack_damage", attacker="Greninja ex",
-                             defender=target.card_name, attack_name="Mirage Barrage",
-                             base_damage=120, final_damage=120)
-            check_ko(state, target, opp_id)
+            _apply_damage(state, action, 120)
         else:
             _apply_bench_damage(state, opp_id, target, 120)
 
@@ -1568,7 +1553,7 @@ def _flamebody_cannon(state, action):
 
 
 def _oil_salvo(state, action):
-    """sv10-023 Arboliva ex atk0 — Oil Salvo: choose 1 of opp's Pokémon 6 times, 20 damage each."""
+    """sv10-023 Arboliva ex atk0 — Oil Salvo: choose 1 of opp's Pokémon 6 times, 20 damage each; no W/R."""
     opp = state.get_opponent(action.player_id)
     opp_id = state.opponent_id(action.player_id)
 
@@ -1595,11 +1580,7 @@ def _oil_salvo(state, action):
             target = all_opp[0]
 
         if target is opp.active:
-            target.current_hp -= 20
-            target.damage_counters += 2
-            state.emit_event("damage_counters_placed", player=opp_id,
-                             card=target.card_name, counters=2)
-            check_ko(state, target, opp_id)
+            _apply_damage(state, action, 20, bypass_wr=True)
         else:
             _place_bench_counters(state, opp_id, target, 2)
 
@@ -9877,8 +9858,8 @@ def _searching_eyes(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=prize_ids,
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "searching_eyes"},
     )
     yield req
@@ -9906,8 +9887,8 @@ def _energy_loop_steenee(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[att.card_def_id for att in player.active.energy_attached],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "energy_loop"},
     )
     resp = yield req
@@ -9965,8 +9946,8 @@ def _jet_cyclone(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[b.instance_id for b in player.bench],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "jet_cyclone_move_energy"},
     )
     resp = yield req
@@ -9996,8 +9977,8 @@ def _grass_kagura(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[c.instance_id for c in grass_in_deck],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "grass_kagura_energy"},
     )
     e_resp = yield energy_req
@@ -10008,8 +9989,8 @@ def _grass_kagura(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[p.instance_id for p in in_play],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "grass_kagura_target"},
     )
     t_resp = yield target_req
@@ -10087,25 +10068,25 @@ def _buddy_blast(state, action):
 
 
 def _lava_burst(state, action):
-    """sv10-036 Magmar ex atk0 — Lava Burst: discard up to 5 R Energy; 70× discarded."""
+    """sv10-036 Ethan's Magcargo atk0 — Lava Burst: discard up to 5 R Energy; 70× discarded."""
     player = state.get_player(action.player_id)
     r_energy_attached = [att for att in (player.active.energy_attached if player.active else [])
                          if att.energy_type == EnergyType.FIRE]
     if not r_energy_attached:
-        state.emit_event("attack_no_damage", attacker="Magmar ex", attack_name="Lava Burst")
+        state.emit_event("attack_no_damage", attacker="Ethan's Magcargo", attack_name="Lava Burst")
         return
     to_discard = r_energy_attached[:5]
     req = ChoiceRequest(
         "choose_cards",
-        player_id=action.player_id,
-        options=[att.card_def_id for att in to_discard],
-        min_choices=0,
-        max_choices=min(5, len(to_discard)),
-        context={"reason": "lava_burst_discard"},
+        action.player_id,
+        "Lava Burst: choose up to 5 {R} Energy to discard (+70 damage each)",
+        cards=to_discard,
+        min_count=0,
+        max_count=len(to_discard),
     )
     resp = yield req
-    chosen_ids = resp.chosen_ids if hasattr(resp, "chosen_ids") else []
-    discarded = [att for att in to_discard if att.card_def_id in chosen_ids]
+    chosen_ids = resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids") else []
+    discarded = [att for att in to_discard if att.source_card_id in chosen_ids]
     if not discarded:
         discarded = to_discard
     for att in discarded:
@@ -10165,8 +10146,8 @@ def _inferno_kick_flurry(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[b.instance_id for b in opp.bench],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "inferno_kick_flurry_bench"},
     )
     resp = yield req
@@ -10201,8 +10182,8 @@ def _fire_kagura(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[c.instance_id for c in fire_in_deck],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "fire_kagura_energy"},
     )
     e_resp = yield energy_req
@@ -10212,8 +10193,8 @@ def _fire_kagura(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[p.instance_id for p in in_play],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "fire_kagura_target"},
     )
     t_resp = yield target_req
@@ -10292,8 +10273,8 @@ def _swim_together(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[c.instance_id for c in mistys],
-        min_choices=0,
-        max_choices=count,
+        min_count=0,
+        max_count=count,
         context={"reason": "swim_together"},
     )
     resp = yield req
@@ -10350,8 +10331,8 @@ def _crescendo_wave(state, action):
             "choose_cards",
             player_id=action.player_id,
             options=[c.instance_id for c in w_in_hand],
-            min_choices=0,
-            max_choices=len(w_in_hand),
+            min_count=0,
+            max_count=len(w_in_hand),
             context={"reason": "crescendo_wave_attach"},
         )
         resp = yield attach_req
@@ -10499,8 +10480,8 @@ def _water_kagura(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[c.instance_id for c in water_in_deck],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "water_kagura_energy"},
     )
     e_resp = yield energy_req
@@ -10510,8 +10491,8 @@ def _water_kagura(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[p.instance_id for p in in_play],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "water_kagura_target"},
     )
     t_resp = yield target_req
@@ -10544,23 +10525,29 @@ def _bubble_drain(state, action):
 
 
 def _dual_bolt(state, action):
-    """sv10-069 Magnezone atk0 — Dual Bolt: 50 to 2 of opp's Pokémon (pick from active+bench)."""
+    """sv10-069 Electivire ex atk0 — Dual Bolt: 50 to 2 of opp's Pokémon (no W/R for bench)."""
     opp = state.get_opponent(action.player_id)
     opp_id = state.opponent_id(action.player_id)
     all_opp = (([opp.active] if opp.active else []) + list(opp.bench))
-    if len(all_opp) < 2:
+    if len(all_opp) <= 2:
         targets = all_opp
     else:
-        req = ChoiceRequest(
-            "choose_cards",
-            player_id=action.player_id,
-            options=[p.instance_id for p in all_opp],
-            min_choices=min(2, len(all_opp)),
-            max_choices=2,
-            context={"reason": "dual_bolt"},
+        resp1 = yield ChoiceRequest(
+            "choose_target", action.player_id,
+            "Dual Bolt: choose first of opponent's Pokémon (50 damage)",
+            targets=all_opp,
         )
-        resp = yield req
-        chosen_ids = resp.chosen_ids if hasattr(resp, "chosen_ids") else []
+        first_id = (resp1.target_instance_id if resp1 and resp1.target_instance_id
+                    else all_opp[0].instance_id)
+        remaining = [p for p in all_opp if p.instance_id != first_id]
+        resp2 = yield ChoiceRequest(
+            "choose_target", action.player_id,
+            "Dual Bolt: choose second of opponent's Pokémon (50 damage)",
+            targets=remaining,
+        )
+        second_id = (resp2.target_instance_id if resp2 and resp2.target_instance_id
+                     else remaining[0].instance_id)
+        chosen_ids = {first_id, second_id}
         targets = [p for p in all_opp if p.instance_id in chosen_ids][:2]
         if not targets:
             targets = all_opp[:2]
@@ -10572,9 +10559,10 @@ def _dual_bolt(state, action):
 
 
 def _high_voltage_press(state, action):
-    """sv10-069 Magnezone atk1 — High Voltage Press: 180 + 100 if ≥2 extra Energy attached."""
+    """sv10-069 Electivire ex atk1 — High Voltage Press: 180 + 100 if ≥2 extra Energy attached (cost is {L}{L}{C}=3)."""
     player = state.get_player(action.player_id)
-    extra_energy = max(0, len(player.active.energy_attached if player.active else []) - 1)
+    # Attack cost is 3 ({L}{L}{C}); "extra" means beyond the cost
+    extra_energy = max(0, len(player.active.energy_attached if player.active else []) - 3)
     bonus = 100 if extra_energy >= 2 else 0
     _apply_damage(state, action, 180 + bonus)
 
@@ -10588,30 +10576,29 @@ def _jamming_wing(state, action):
         return
     req_energy = ChoiceRequest(
         "choose_cards",
-        player_id=action.player_id,
-        options=[att.card_def_id for att in opp.active.energy_attached],
-        min_choices=0,
-        max_choices=1,
-        context={"reason": "jamming_wing_energy"},
+        action.player_id,
+        "Jamming Wing: choose an Energy from opponent's Active Pokémon to move (or skip)",
+        cards=opp.active.energy_attached,
+        min_count=0,
+        max_count=1,
     )
     e_resp = yield req_energy
-    e_ids = e_resp.chosen_ids if hasattr(e_resp, "chosen_ids") else []
+    e_ids = e_resp.chosen_card_ids if e_resp and hasattr(e_resp, "chosen_card_ids") else []
     if not e_ids:
         return
-    chosen_att = next((a for a in opp.active.energy_attached if a.card_def_id in e_ids), None)
+    chosen_att = next((a for a in opp.active.energy_attached if a.source_card_id in e_ids), None)
     if not chosen_att:
         return
     req_bench = ChoiceRequest(
-        "choose_cards",
-        player_id=action.player_id,
-        options=[b.instance_id for b in opp.bench],
-        min_choices=1,
-        max_choices=1,
-        context={"reason": "jamming_wing_bench"},
+        "choose_target",
+        action.player_id,
+        "Jamming Wing: choose one of opponent's Benched Pokémon to receive the Energy",
+        targets=list(opp.bench),
     )
     b_resp = yield req_bench
-    b_ids = b_resp.chosen_ids if hasattr(b_resp, "chosen_ids") else []
-    target_bench = next((b for b in opp.bench if b.instance_id in b_ids), opp.bench[0])
+    bench_id = (b_resp.target_instance_id if b_resp and b_resp.target_instance_id
+                else opp.bench[0].instance_id)
+    target_bench = next((b for b in opp.bench if b.instance_id == bench_id), opp.bench[0])
     opp.active.energy_attached.remove(chosen_att)
     target_bench.energy_attached.append(chosen_att)
     state.emit_event("energy_moved", player=opp_id, from_card=opp.active.card_name,
@@ -10645,8 +10632,8 @@ def _procurement_item(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[c.instance_id for c in items],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "procurement"},
     )
     resp = yield req
@@ -10681,8 +10668,8 @@ def _flash_impact(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[b.instance_id for b in player.bench],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "flash_impact_self_bench"},
     )
     resp = yield req
@@ -10747,13 +10734,14 @@ def _hypnotic_ray(state, action):
 
 
 def _bench_manipulation(state, action):
-    """sv10-080 TR Gengar ex atk1 — Bench Manipulation: flip coin per opp Bench; 80 to Active per tails."""
+    """sv10-080 TR Hypno atk1 — Bench Manipulation: flip coin per opp Bench; 80 to Active per tails (no W/R)."""
     opp = state.get_opponent(action.player_id)
     if not opp.bench:
         return
     tails = sum(1 for _ in opp.bench if not _random.choice([True, False]))
+    state.emit_event("coin_flip_result", attack="Bench Manipulation", tails=tails, flips=len(opp.bench))
     if tails > 0:
-        _apply_damage(state, action, 80 * tails)
+        _apply_damage(state, action, 80 * tails, bypass_wr=True)
 
 
 def _rocket_mirror(state, action):
@@ -10769,8 +10757,8 @@ def _rocket_mirror(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[b.instance_id for b in tr_bench],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "rocket_mirror_source"},
     )
     resp = yield req
@@ -10806,8 +10794,8 @@ def _summoning_sign(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[c.instance_id for c in candidates],
-        min_choices=0,
-        max_choices=count,
+        min_count=0,
+        max_count=count,
         context={"reason": "summoning_sign"},
     )
     resp = yield req
@@ -10875,8 +10863,8 @@ def _disruptive_radar(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[c.instance_id for c in top5],
-        min_choices=len(top5),
-        max_choices=len(top5),
+        min_count=len(top5),
+        max_count=len(top5),
         context={"reason": "disruptive_radar_reorder"},
     )
     resp = yield req
@@ -10915,8 +10903,8 @@ def _primeape_drag_off(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[b.instance_id for b in opp.bench],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "primeape_drag_off"},
     )
     resp = yield req
@@ -10973,8 +10961,8 @@ def _try_to_imitate(state, action):
         "choose_attack",
         player_id=action.player_id,
         options=[str(i) for i in available],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "try_to_imitate", "card": opp.active.card_def_id},
     )
     resp = yield req
@@ -11030,8 +11018,8 @@ def _explosive_ascension(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[c.instance_id for c in evo_cards],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "explosive_ascension"},
     )
     resp = yield req
@@ -11535,17 +11523,24 @@ def _sonic_double(state, action):
             if state.phase == Phase.GAME_OVER:
                 return
         return
-    req = ChoiceRequest(
-        "choose_targets", action.player_id,
-        "Sonic Double: choose 2 of your opponent's Pokémon (50 each)",
-        targets=all_opp, min_count=2, max_count=2,
+
+    resp1 = yield ChoiceRequest(
+        "choose_target", action.player_id,
+        "Sonic Double: choose first of opponent's Pokémon (50 damage)",
+        targets=all_opp,
     )
-    resp = yield req
-    chosen_ids = set()
-    if resp and hasattr(resp, "target_instance_ids") and resp.target_instance_ids:
-        chosen_ids = set(resp.target_instance_ids[:2])
-    if len(chosen_ids) < 2:
-        chosen_ids = {p.instance_id for p in all_opp[:2]}
+    first_id = (resp1.target_instance_id if resp1 and resp1.target_instance_id
+                else all_opp[0].instance_id)
+    remaining = [p for p in all_opp if p.instance_id != first_id]
+    resp2 = yield ChoiceRequest(
+        "choose_target", action.player_id,
+        "Sonic Double: choose second of opponent's Pokémon (50 damage)",
+        targets=remaining,
+    )
+    second_id = (resp2.target_instance_id if resp2 and resp2.target_instance_id
+                 else remaining[0].instance_id)
+
+    chosen_ids = {first_id, second_id}
     for poke in list(all_opp):
         if poke.instance_id not in chosen_ids:
             continue
@@ -12304,33 +12299,42 @@ def _mischievous_hands(state, action):
     all_opp = ([opp.active] if opp.active else []) + list(opp.bench)
     if not all_opp:
         return
-    if len(all_opp) == 1:
-        target = all_opp[0]
-        target.current_hp -= 30
-        target.damage_counters += 3
-        state.emit_event("damage_counters_placed", player=opp_id,
-                         card=target.card_name, counters=3, reason="Mischievous Hands")
-        check_ko(state, target, opp_id)
-        return
-    req = ChoiceRequest(
-        "choose_targets", action.player_id,
-        "Mischievous Hands: choose 2 of opponent's Pokémon to place 3 damage counters on each",
-        targets=all_opp, min_count=2, max_count=2,
-    )
-    resp = yield req
-    chosen_ids = set()
-    if resp and hasattr(resp, "target_instance_ids") and resp.target_instance_ids:
-        chosen_ids = set(resp.target_instance_ids[:2])
-    if len(chosen_ids) < 2:
-        chosen_ids = {p.instance_id for p in all_opp[:2]}
-    for poke in list(all_opp):
-        if poke.instance_id not in chosen_ids:
-            continue
+
+    def _place_counters(poke):
         poke.current_hp -= 30
         poke.damage_counters += 3
         state.emit_event("damage_counters_placed", player=opp_id,
                          card=poke.card_name, counters=3, reason="Mischievous Hands")
         check_ko(state, poke, opp_id)
+
+    if len(all_opp) <= 2:
+        for poke in all_opp:
+            _place_counters(poke)
+            if state.phase == Phase.GAME_OVER:
+                return
+        return
+
+    resp1 = yield ChoiceRequest(
+        "choose_target", action.player_id,
+        "Mischievous Hands: choose first Pokémon (3 damage counters)",
+        targets=all_opp,
+    )
+    first_id = (resp1.target_instance_id if resp1 and resp1.target_instance_id
+                else all_opp[0].instance_id)
+    remaining = [p for p in all_opp if p.instance_id != first_id]
+    resp2 = yield ChoiceRequest(
+        "choose_target", action.player_id,
+        "Mischievous Hands: choose second Pokémon (3 damage counters)",
+        targets=remaining,
+    )
+    second_id = (resp2.target_instance_id if resp2 and resp2.target_instance_id
+                 else remaining[0].instance_id)
+
+    chosen_ids = {first_id, second_id}
+    for poke in list(all_opp):
+        if poke.instance_id not in chosen_ids:
+            continue
+        _place_counters(poke)
         if state.phase == Phase.GAME_OVER:
             return
 
@@ -17368,7 +17372,7 @@ def register_all(registry):
     registry.register_attack("sv08.5-065", 0, _vengeance_fletching)        # Roaring Moon — Vengeance Fletching
     # sv08.5-065 ATK1 (flat)
     # sv08.5-066 Metang: ATK0 (flat)
-    registry.register_attack("sv08.5-067", 0, _energy_feather)             # Bronzong — Bells of the Abyss (reuse energy feather-style; flat is fine) # noqa: E501
+    registry.register_attack("sv08.5-067", 0, _do_default_damage)            # Bronzong — Heavy Impact (flat 50, no special effect)
     registry.register_attack("sv08.5-068", 1, _metal_slash)                # Iron Hands — Iron Buster (reuse)
     # sv08.5-068 ATK0 (flat)
     # sv08.5-069 Duraludon ATK0 (flat)
@@ -19255,14 +19259,34 @@ def _rock_tomb(state, action):
 
 
 def _thunderburst_storm(state, action):
-    """sv07-111 Raging Bolt atk0 — Thunderburst Storm: 30 × energy on self to opp Active."""
+    """sv07-111 Raging Bolt atk0 — Thunderburst Storm: 30×energy to 1 chosen opp Pokémon (no W/R for bench)."""
     player = state.get_player(action.player_id)
     energy_count = len(player.active.energy_attached) if player.active else 0
     if energy_count == 0:
         state.emit_event("attack_no_damage", attacker="Raging Bolt",
                          attack_name="Thunderburst Storm", reason="no_energy")
         return
-    _apply_damage(state, action, 30 * energy_count, bypass_wr=False)
+    opp = state.get_opponent(action.player_id)
+    opp_id = state.opponent_id(action.player_id)
+    all_opp = ([opp.active] if opp.active else []) + list(opp.bench)
+    if not all_opp:
+        return
+    req = ChoiceRequest(
+        "choose_target", action.player_id,
+        "Thunderburst Storm: choose 1 of opponent's Pokémon",
+        targets=all_opp,
+    )
+    resp = yield req
+    target = None
+    if resp and resp.target_instance_id:
+        target = next((p for p in all_opp if p.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = opp.active or opp.bench[0]
+    damage = 30 * energy_count
+    if target is opp.active:
+        _apply_damage(state, action, damage)
+    else:
+        _apply_bench_damage(state, opp_id, target, damage)
 
 
 def _triple_stab(state, action):
@@ -26073,7 +26097,7 @@ def _cappella_b4(state, action):
 
 
 def _crimson_blaster_b4(state, action):
-    """sv08-034 Armarouge atk1 — Crimson Blaster: discard 2 {R} or 2 {P} energy, 200 to any opp Pokémon."""
+    """sv08-034 Armarouge atk1 — Crimson Blaster: discard ALL {R} Energy, 180 to a Benched Pokémon."""
     player = state.get_player(action.player_id)
     opp_id = state.opponent_id(action.player_id)
     opp = state.get_player(opp_id)
@@ -26081,38 +26105,32 @@ def _crimson_blaster_b4(state, action):
         return
     fire_att = [att for att in player.active.energy_attached
                 if att.energy_type == EnergyType.FIRE]
-    psychic_att = [att for att in player.active.energy_attached
-                   if att.energy_type == EnergyType.PSYCHIC]
-    if len(fire_att) >= 2:
-        to_discard = fire_att[:2]
-    elif len(psychic_att) >= 2:
-        to_discard = psychic_att[:2]
-    else:
+    if not fire_att:
         state.emit_event("crimson_blaster_fail", player=action.player_id,
-                         reason="insufficient_energy")
+                         reason="no_fire_energy")
         return
-    for att in to_discard:
+    count = len(fire_att)
+    for att in fire_att:
         player.active.energy_attached.remove(att)
     state.emit_event("energy_discarded", card=player.active.card_name,
-                     reason="Crimson Blaster", count=2)
-    all_opp = ([opp.active] if opp.active else []) + list(opp.bench)
-    if not all_opp:
+                     reason="Crimson Blaster", count=count)
+    bench = list(opp.bench)
+    if not bench:
+        state.emit_event("attack_no_damage", attacker="Armarouge",
+                         attack_name="Crimson Blaster", reason="no_benched_pokemon")
         return
     req = ChoiceRequest(
         "choose_target", action.player_id,
-        "Crimson Blaster: choose any of opponent's Pokémon to deal 200 damage",
-        targets=all_opp,
+        "Crimson Blaster: choose 1 of your opponent's Benched Pokémon to deal 180 damage",
+        targets=bench,
     )
     resp = yield req
     target = None
     if resp and resp.target_instance_id:
-        target = next((p for p in all_opp if p.instance_id == resp.target_instance_id), None)
+        target = next((p for p in bench if p.instance_id == resp.target_instance_id), None)
     if target is None:
-        target = all_opp[0]
-    if target is opp.active:
-        _apply_damage(state, action, 200)
-    else:
-        _apply_bench_damage(state, opp_id, target, 200)
+        target = bench[0]
+    _apply_bench_damage(state, opp_id, target, 180)
 
 
 def _iron_shake_up_b4(state, action):

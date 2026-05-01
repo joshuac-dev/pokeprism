@@ -2643,8 +2643,8 @@ def _bonded_by_journey(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[c.instance_id for c in matches],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "bonded_by_journey"},
     )
     response = yield req
@@ -2690,8 +2690,8 @@ def _golden_flame(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[b.instance_id for b in ethan_bench],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "golden_flame_target"},
     )
     target_resp = yield target_req
@@ -2703,8 +2703,8 @@ def _golden_flame(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[c.instance_id for c in r_energy],
-        min_choices=0,
-        max_choices=min(2, len(r_energy)),
+        min_count=0,
+        max_count=min(2, len(r_energy)),
         context={"reason": "golden_flame_energy"},
     )
     energy_resp = yield energy_req
@@ -2750,8 +2750,8 @@ def _rocket_brain(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[p.instance_id for p in tr_with_counters],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "rocket_brain_source"},
     )
     source_resp = yield source_req
@@ -2765,8 +2765,8 @@ def _rocket_brain(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[p.instance_id for p in all_targets],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "rocket_brain_dest"},
     )
     dest_resp = yield dest_req
@@ -2810,8 +2810,8 @@ def _champions_call(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[c.instance_id for c in matches],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "champions_call"},
     )
     response = yield req
@@ -2840,8 +2840,8 @@ def _sneaky_bite(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[t.instance_id for t in targets],
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         context={"reason": "sneaky_bite"},
     )
     response = yield req
@@ -2869,8 +2869,8 @@ def _biting_spree(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[t.instance_id for t in targets],
-        min_choices=0,
-        max_choices=max_t,
+        min_count=0,
+        max_count=max_t,
         context={"reason": "biting_spree"},
     )
     response = yield req
@@ -2922,8 +2922,8 @@ def _x_boot(state, action):
             "choose_cards",
             player_id=action.player_id,
             options=[p.instance_id for p in poke_pool],
-            min_choices=1,
-            max_choices=1,
+            min_count=1,
+            max_count=1,
             context={"reason": f"x_boot_{type_name.lower()}_target"},
         )
         poke_resp = yield poke_req
@@ -2968,8 +2968,8 @@ def _reconstitute(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[c.instance_id for c in player.hand],
-        min_choices=2,
-        max_choices=2,
+        min_count=2,
+        max_count=2,
         context={"reason": "reconstitute_discard"},
     )
     response = yield req
@@ -3003,8 +3003,8 @@ def _greedy_order(state, action):
         "choose_cards",
         player_id=action.player_id,
         options=[c.instance_id for c in sandwiches],
-        min_choices=0,
-        max_choices=max_take,
+        min_count=0,
+        max_count=max_take,
         context={"reason": "greedy_order"},
     )
     response = yield req
@@ -3287,8 +3287,8 @@ def _up_tempo(state: GameState, action):
         player_id=player_id,
         choice_type="select_card_from_hand",
         options=discard_choices,
-        min_choices=1,
-        max_choices=1,
+        min_count=1,
+        max_count=1,
         prompt="Discard 1 card for Up-Tempo",
     )
     response = yield req
@@ -4240,6 +4240,11 @@ def register_all(registry):
     registry.register_passive_ability("me03-017",   "Shell Spikes")
     registry.register_passive_ability("me03-068",   "Intimidating Jaw")
     registry.register_passive_ability("me03-069",   "Protective Sail")
+    # Antique Fossil cards — passive abilities (engine handles effect in damage pipeline)
+    registry.register_passive_ability("sv07-129",   "Protective Cover")   # Antique Cover Fossil SCR
+    registry.register_passive_ability("sv10.5b-080", "Protective Cover")  # Antique Cover Fossil BLK
+    registry.register_passive_ability("sv10.5w-079","Plume Protection")   # Antique Plume Fossil WHT
+    registry.register_passive_ability("sv07-130",   "Primal Root")        # Antique Root Fossil SCR
     registry.register_passive_ability("me02.5-024", "Melt Away")
     registry.register_passive_ability("sv10-036",   "Melt Away")          # DRI Ethan's Magcargo
     registry.register_passive_ability("sv10-065",   "Snow Camouflage")    # DRI Cetitan ex

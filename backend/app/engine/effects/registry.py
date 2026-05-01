@@ -383,6 +383,10 @@ def _card_choice_id(c) -> str:
     CardInstance objects use instance_id; EnergyAttachment objects (passed by
     energy-discard handlers) use source_card_id as the unique identifier.
     """
+    # Some legacy handlers passed choose_cards `options=[id, ...]` instead of
+    # `cards=[CardInstance|EnergyAttachment, ...]`; keep plain string IDs valid.
+    if isinstance(c, str):
+        return c
     if hasattr(c, "instance_id"):
         return c.instance_id
     if hasattr(c, "source_card_id"):
@@ -395,11 +399,12 @@ def _choice_to_legal_actions(request) -> list:
     from app.engine.actions import Action, ActionType
 
     if request.choice_type == "choose_cards":
+        cards = request.cards or request.options or []
         # Single action carrying the full list; player picks from it
         return [Action(
             action_type=ActionType.CHOOSE_CARDS,
             player_id=request.player_id,
-            selected_cards=[_card_choice_id(c) for c in request.cards],
+            selected_cards=[_card_choice_id(c) for c in cards],
             choice_context=request,
         )]
     elif request.choice_type == "choose_target":
@@ -432,7 +437,8 @@ def _default_choice(request) -> "Action":
     from app.engine.actions import Action, ActionType
 
     if request.choice_type == "choose_cards":
-        chosen = [_card_choice_id(c) for c in request.cards[:request.max_count]]
+        cards = request.cards or request.options or []
+        chosen = [_card_choice_id(c) for c in cards[:request.max_count]]
         return Action(ActionType.CHOOSE_CARDS, request.player_id, selected_cards=chosen,
                       choice_context=request)
     elif request.choice_type == "choose_target":
