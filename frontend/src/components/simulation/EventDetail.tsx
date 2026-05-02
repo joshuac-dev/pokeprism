@@ -11,6 +11,32 @@ interface Props {
 
 const SKIP_KEYS = new Set(['event_type', 'active_player', 'phase']);
 
+// Map engine event_type strings (lowercase) to Decision action_type enum names (UPPERCASE).
+// Engine events that don't correspond to AI decisions are left unmapped (return undefined).
+const EVENT_TO_ACTION: Record<string, string> = {
+  attack: 'ATTACK',
+  attack_declared: 'ATTACK',
+  attack_damage: 'ATTACK',
+  attack_no_damage: 'ATTACK',
+  energy_attached: 'ATTACH_ENERGY',
+  attach_energy: 'ATTACH_ENERGY',
+  play_item: 'PLAY_ITEM',
+  play_supporter: 'PLAY_SUPPORTER',
+  play_basic: 'PLAY_BASIC',
+  play_stadium: 'PLAY_STADIUM',
+  evolve: 'EVOLVE',
+  pass: 'PASS',
+  end_turn: 'END_TURN',
+  retreat: 'RETREAT',
+  switch_active: 'SWITCH_ACTIVE',
+  use_ability: 'USE_ABILITY',
+};
+
+function toActionType(eventType: string | undefined): string | undefined {
+  if (!eventType) return undefined;
+  return EVENT_TO_ACTION[eventType.toLowerCase()] ?? eventType.toUpperCase();
+}
+
 function DataRow({ k, v }: { k: string; v: unknown }) {
   if (v == null || v === '') return null;
   return (
@@ -33,10 +59,8 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
     const matchId = event.match_id;
     const turn = event.turn as number;
     const player = event.player ?? undefined;
-    // Map the event type to a decision action_type for precise matching.
-    // Engine events and AI decision action_types share the same names (e.g.
-    // "attack", "play_trainer", "attach_energy") so pass it through directly.
-    const actionType = event.eventType || undefined;
+    // Map the engine event_type (lowercase) to the Decision action_type (UPPERCASE enum name).
+    const actionType = toActionType(event.eventType);
 
     let cancelled = false;
     setLoading(true);
@@ -45,7 +69,7 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
       turn_number: turn,
       player_id: player,
       action_type: actionType,
-      limit: 5,
+      limit: 3,
     })
       .then((r) => { if (!cancelled) setDecisions(r.decisions); })
       .catch(() => {})

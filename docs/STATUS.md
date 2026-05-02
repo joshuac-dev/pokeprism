@@ -6,21 +6,101 @@
 
 ## Current Phase
 **Production Readiness Follow-Up — In Progress**
-_Last updated: 2026-05-01_
+_Last updated: 2026-05-02_
 
-Phase 13 and Phase 12 are complete, but follow-up production-readiness work is still active. Today's work focused on simulation reliability, Stage 1 AI/coach hardening, and Docker runtime hygiene.
+Phase 13 and Phase 12 are complete. Production-readiness follow-up continues. This session confirmed the full test suite, fixed two simulation bugs, fixed an AI overlay bug, and produced four new proposal documents.
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | **2001** |
-| Coverage | **100%** (0 missing handlers) |
+| Cards in DB | **2002** (2000 real + 2 test fixtures) |
+| Coverage | **100%** (0 missing handlers, Coverage API sees 2001 excluding test-002) |
 | Flat-damage-only cards | 292 |
-| Tests | **121 targeted backend tests passing** today; prior full baseline was **253 backend + 4 frontend** |
+| Tests | **260 backend + 4 frontend** passing (full suite confirmed) |
 | Flagged entries remaining | **0** |
 
 ---
 
-## Last Session — 2026-05-01 (Simulation Reliability + AI/Coach Stage 1 Hardening)
+## Last Session — 2026-05-02 (Bug Fixes + Production Proposals)
+
+### Current Phase Progress
+
+**Completed this session:**
+1. **Full test suite confirmed** — `260 backend + 4 frontend` tests pass. Prior session's targeted run (121) is superseded.
+2. **Bug A (fake cards) — investigated and closed** — No fake cards in the current DB. The cards table has 2000 real cards + 2 test fixtures. The current code path (`ensure_deck_cards_in_db`) only inserts TCGDex-fetched cards; DeckBuilder only uses DB-backed cards. No active source for fake cards found or in code.
+3. **Bug B (Memory page / card_performance) — fixed** — Root cause: `_create_deck_record` in `simulations.py` creates Deck rows without `DeckCard` rows. The simulation task called `ensure_deck` only for P1, not P2. `_update_card_performance` queried `DeckCard` by deck_id for both sides and got empty results for P2, writing only P1 card data. Fixed by adding `ensure_deck` call for P2 deck in `simulation.py`. Also: `GraphMemoryWriter.write_match` was never called from the simulation task — Neo4j synergy edges were only written when `run_hh_batch(persist=True)` was used directly. Fixed by importing `GraphMemoryWriter` and calling it after each match's Postgres write with a non-fatal try/except.
+4. **Bug C (AI Reasoning overlay) — fixed** — Root cause: engine event types are lowercase (`attack_declared`, `energy_attached`) but Decision `action_type` is UPPERCASE enum names (`ATTACK`, `ATTACH_ENERGY`). The case mismatch caused the action_type filter to never match, returning ALL decisions for the turn. Fixed by adding `EVENT_TO_ACTION` mapping in `EventDetail.tsx` plus `toActionType()` normalizer. Reduced overlay limit from 5 to 3. Live-during-simulation fetching already works by design (no status gate on the decisions endpoint).
+5. **3A — Vite upgrade plan** — Written to `docs/proposals/VITE_UPGRADE_PLAN.md`. Advisory is dev-server-only, not production. Recommended path: vite 5 → 6 (Option A, low-medium risk). Do NOT run `npm audit fix --force`.
+6. **3B — Playwright E2E plan** — Written to `docs/proposals/PLAYWRIGHT_E2E_PLAN.md`. Covers 9 critical workflows, tier structure (smoke/feature/error), CI integration sketch, and risk assessment. Playwright not installed.
+7. **3C — AI/Coach Stage 2/3 assessment** — Written to `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md`. Stage 2 (provider interface) deferred until a second LLM provider is needed. Stage 3 injection fixture tests can be added now; DB evidence schema change deferred. One Stage 1 gap found: `test_coach_repair_does_not_resend_untrusted_context` uses `await` in a non-async test body and may not actually run.
+8. **3D — DeckBuilder roadmap** — Written to `docs/proposals/DECKBUILDER_ROADMAP.md`. 8-phase incremental roadmap from deterministic baseline to matchup-specific construction. Phases 1/2/4/5 (role tagging, archetype templates, staple balance, dead-card detection) require no sim data and should be done first as a single PR.
+9. **3E — Celery non-root verified** — `docker compose exec celery-worker whoami` → `app`. `docker compose exec celery-beat whoami` → `app`. Both services confirmed non-root.
+
+**Remaining in current production-readiness follow-up:**
+- Vite/esbuild upgrade (awaiting approval of VITE_UPGRADE_PLAN.md)
+- Playwright E2E tests (awaiting approval of PLAYWRIGHT_E2E_PLAN.md)
+- Stage 1 hardening gap: add async prompt-injection fixture tests to `test_analyst.py`
+- Fix `test_coach_repair_does_not_resend_untrusted_context` to use `pytest-asyncio`
+- DeckBuilder Phase 1 (role tagging + energy curve) — no sim data required, can start any time
+- Full browser verification of charts, Socket.IO live rendering, AI overlay behavior post-fix
+
+---
+
+## Active Files Changed This Session
+
+- `backend/app/tasks/simulation.py` — Bug B fix: `ensure_deck` for P2 deck; `GraphMemoryWriter` import and calls
+- `frontend/src/components/simulation/EventDetail.tsx` — Bug C fix: `EVENT_TO_ACTION` mapping, `toActionType()`, limit 5→3
+- `docs/proposals/VITE_UPGRADE_PLAN.md` — new (3A)
+- `docs/proposals/PLAYWRIGHT_E2E_PLAN.md` — new (3B)
+- `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md` — new (3C)
+- `docs/proposals/DECKBUILDER_ROADMAP.md` — new (3D)
+- `docs/STATUS.md`
+
+---
+
+## Known Issues / Gaps
+
+Carried from prior sessions:
+- **Auto-fire simplifications**: Wafting Heal, Obliging Heal, Impromptu Carrier, Dig Dig Dig, Time to Chow Down auto-select targets without player choice.
+- **Inviting Wink**: Places first Basic from opponent's hand (auto-select); actual card may let opponent choose.
+- **`_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets**: May be missing promo/alt-art Paradox Pokémon prints.
+- **Browser E2E missing**: No Playwright tests. API/curl smoke only.
+- **AI/coach Stage 1 gap**: `test_coach_repair_does_not_resend_untrusted_context` test is not properly async. Injection fixture tests for hostile card names / memory text not yet written.
+- **DeckBuilder quality remains baseline**: Not role-tagged, archetype-aware, synergy-scored, or win-rate-evolved. Roadmap written.
+
+New this session:
+- **Card_performance historically sparse**: 1,145 matches produced only 85 card_performance rows because opponent deck_cards were not populated. The fix (added `ensure_deck` for P2) applies going forward; existing data is not backfilled.
+- **Neo4j synergy edges from prior direct batch runs only**: The 1,612 existing SYNERGIZES_WITH edges came from runs using `run_hh_batch(persist=True)` directly. All future simulation task runs will now also write to Neo4j.
+- **Vite esbuild advisory**: Dev-server only. Do not `npm audit fix --force` without approval per VITE_UPGRADE_PLAN.md.
+
+---
+
+## Key Decisions Made This Session
+
+1. **Bug A closed without action**: No fake cards in DB; current code cannot create them. The bug was likely from a pre-git code path.
+2. **Bug B fix scope**: Fixed only the forward path (new simulations). Existing card_performance data (85 rows) is not backfilled — too risky without knowing which historical matches had incomplete deck_cards.
+3. **GraphMemoryWriter wrapped in try/except**: Neo4j write failures are logged as warnings, not raised. Simulation does not fail if Neo4j is temporarily unavailable.
+4. **AI overlay action_type mapping**: Added `EVENT_TO_ACTION` dict in EventDetail.tsx rather than normalizing in the backend, since the frontend has full context of which event types map to which decision types.
+5. **Stage 2/3 hardening deferred**: Provider abstraction not needed until a second LLM provider is added. Injection fixture tests are the priority Stage 1 gap.
+6. **DeckBuilder roadmap**: Phases 1/2/4/5 can start immediately (no sim data needed); Phase 3 (Neo4j synergy) requires ≥1,000 games with the core card; Phase 7 (flex-slot evolution) needs ≥5,000 total matches.
+
+---
+
+## Notes for Next Session
+
+- **Full suite is confirmed**: `260 backend + 4 frontend`. No need to re-run before starting.
+- **Next code work (in priority order)**:
+  1. Add async injection fixture tests to `test_analyst.py` (Stage 1 hardening gap)
+  2. Fix `test_coach_repair_does_not_resend_untrusted_context` to use `@pytest.mark.asyncio`
+  3. DeckBuilder Phase 1: role tagging + energy curve (no sim data, clean PR)
+  4. DeckBuilder Phase 2: archetype templates
+  5. DeckBuilder Phase 4: opening-hand staple validation
+- **Do not run `npm audit fix --force`**: See VITE_UPGRADE_PLAN.md for the controlled upgrade path.
+- **Do not install Playwright without approval**: See PLAYWRIGHT_E2E_PLAN.md.
+- **Proposals written this session**: VITE_UPGRADE_PLAN.md, PLAYWRIGHT_E2E_PLAN.md, AI_COACH_HARDENING_ASSESSMENT.md, DECKBUILDER_ROADMAP.md — all in `docs/proposals/`.
+
+---
+
+## Previous Session — 2026-05-01 (Simulation Reliability + AI/Coach Stage 1 Hardening)
 
 ### Current Phase Progress
 

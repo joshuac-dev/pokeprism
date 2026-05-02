@@ -206,6 +206,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
     """Full simulation lifecycle."""
     from app.engine.batch import run_hh_batch
     from app.memory.postgres import MatchMemoryWriter
+    from app.memory.graph import GraphMemoryWriter
 
     sim_uuid = uuid.UUID(simulation_id)
     r = redis.Redis.from_url(settings.REDIS_URL)
@@ -281,6 +282,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
             )
         current_deck_text = user_deck_text
         writer = MatchMemoryWriter()
+        graph_writer = GraphMemoryWriter()
         final_win_rate = 0
         total_round_matches = 0
         consecutive_target_hits = 0
@@ -426,6 +428,10 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                     p1_deck_db_id = await writer.ensure_deck(
                         user_deck_name, current_deck_cards, db
                     )
+                    p2_deck_db_id = await writer.ensure_deck(
+                        opp_name, opp_cards, db
+                    )
+                    match_ids: list[uuid.UUID] = []
                     for idx, result_item in enumerate(batch.results):
                         match_id = await writer.write_match(
                             result=result_item,
@@ -433,9 +439,10 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                             round_id=round_id,
                             round_number=round_number,
                             p1_deck_id=p1_deck_db_id,
-                            p2_deck_id=opp_deck_id,
+                            p2_deck_id=p2_deck_db_id,
                             db=db,
                         )
+                        match_ids.append(match_id)
                         game_decisions = (
                             batch.decisions_per_game[idx]
                             if idx < len(batch.decisions_per_game) else []
@@ -448,6 +455,19 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                                 db=db,
                             )
                     await db.commit()
+
+                for idx, result_item in enumerate(batch.results):
+                    try:
+                        await graph_writer.write_match(
+                            result=result_item,
+                            match_id=match_ids[idx],
+                            p1_deck_id=p1_deck_db_id,
+                            p2_deck_id=p2_deck_db_id,
+                            p1_card_defs=current_deck_cards,
+                            p2_card_defs=opp_cards,
+                        )
+                    except Exception as exc:
+                        logger.warning("Graph write failed for match %s: %s", match_ids[idx], exc)
 
                 all_round_results.extend(batch.results)
                 p1_wins_round += batch.p1_wins
