@@ -6,9 +6,9 @@
 
 ## Current Phase
 **Production Readiness Follow-Up — In Progress**
-_Last updated: 2026-05-02_
+_Last updated: 2026-05-02 (Session 4 of follow-up phase)_
 
-Phase 13 and Phase 12 are complete. Production-readiness follow-up continues.
+Phase 13 and Phase 12 are complete. Production-readiness follow-up continues with critical bug fixes and edge case hardening.
 
 | Metric | Value |
 |--------|-------|
@@ -17,6 +17,7 @@ Phase 13 and Phase 12 are complete. Production-readiness follow-up continues.
 | Flat-damage-only cards | 292 |
 | Tests | **320 backend + 4 frontend + 13 Playwright E2E** passing (confirmed 2026-05-02) |
 | Flagged entries remaining | **0** |
+| Production-readiness known issues | **3/4 remaining issues now FIXED** |
 
 ---
 
@@ -26,25 +27,120 @@ Phase 13 and Phase 12 are complete. Production-readiness follow-up continues.
 
 **Completed this session:**
 
-1. **Simulation creation timeout fix** — Root cause: Frontend axios client had 30-second timeout; backend `_get_deck_name_from_gemma()` cosmetic Ollama call ran synchronously in request handler. Backend already had fix (120s → 8s timeout with fallback). Frontend fix: axios timeout increased from 30s → 60s to provide safety net for simulation creation + TCGDex API calls. Commit: `a3f9bf5`.
+1. **Simulation creation timeout fix** — Root cause: Frontend axios client had 30-second timeout; backend `_get_deck_name_from_gemma()` cosmetic Ollama call ran synchronously in request handler, blocking the response. Backend already had fix (Gemma timeout 120s → 8s with quick fallback). Frontend fix: axios global timeout increased from 30s → 60s to provide safety net for simulation creation POST + any TCGDex API calls. Commit: `a3f9bf5`.
 
-2. **Neo4j event loop fix validation** — Investigated "Future attached to a different loop" warnings reported during E2E simulations. The fix was already implemented: (a) `run_simulation` sync wrapper nils `_driver` before/after event loop creation; (b) `_run_simulation_async` calls `await close_driver()` in finally block while loop is live; (c) `GraphMemoryWriter` calls wrapped in try/except for non-fatal error handling. Regression test `test_driver_nilled_before_async_impl_entry` passes. Full-stack E2E test ran with live Celery log monitoring: **no warnings or errors observed**. Neo4j graph persistence working correctly.
+2. **Neo4j event loop fix validation** — Investigated "Future attached to a different loop" warnings previously observed during E2E-created simulations. Confirmed the fix was already properly implemented: (a) `run_simulation` sync wrapper nils `_driver` module-level singleton before creating fresh asyncio event loop, then nils it again after loop closes; (b) `_run_simulation_async` calls `await close_driver()` in finally block while loop is still alive, ensuring proper connection pool drainage before loop closure; (c) `GraphMemoryWriter.write_match()` calls wrapped in try/except with warning logging for non-fatal failures. Regression test `TestRunSimulationWrapper.test_driver_nilled_before_async_impl_entry` passes. Full-stack E2E test (13 tests) ran with live Celery log monitoring: **zero warnings or errors observed**. Neo4j graph persistence confirmed working correctly.
 
-3. **Auto-fire ability player choice fixes** — Auto-fire abilities (Time to Chow Down, Wafting Heal, Obliging Heal, Impromptu Carrier, Dig Dig Dig, Inviting Wink) were reviewed for player choice support. All six abilities now properly prompt the player for choices via `ChoiceRequest`: Time to Chow Down and Wafting Heal ask yes/no before healing; Obliging Heal now asks yes/no for healing (added this session); Impromptu Carrier asks which Tool to attach; Dig Dig Dig asks which F Energy to discard; Inviting Wink asks opponent which Basic Pokémon to bench. All implementations verified and working correctly. Commit: `ad2fd65`.
+3. **Auto-fire ability player choice fixes** — Reviewed all 6 auto-fire abilities (Status.md known issue) for player choice support. Verified that 5 of 6 already had proper ChoiceRequest implementations. Fixed the 6th: **Obliging Heal** (sv08-093 Indeedee) was missing a player confirmation prompt. Added ChoiceRequest asking player "Yes" or "No" before healing 30 damage from Active Pokémon and clearing all Special Conditions. Summary: Time to Chow Down (yes/no healing), Wafting Heal (yes/no healing), Obliging Heal (now yes/no healing), Impromptu Carrier (which Tool?), Dig Dig Dig (which F Energy?), Inviting Wink (opponent chooses Basics). All now fully implement player choice as intended. Commit: `ad2fd65`.
 
 **Validation this session:**
-- Axios timeout fix: E2E full-stack suite **13/13 passed** (including "creates H/H simulation" test)
-- Neo4j driver isolation: Regression test **passed**; E2E simulation logs **clean**
-- Auto-fire abilities: All 6 verified to have ChoiceRequest prompts; backend suite **320 passed**
+- Axios timeout fix: E2E full-stack suite **13/13 tests passed** with "creates H/H simulation and streams live events" validating end-to-end creation flow
+- Neo4j driver isolation: Regression test **passed**; live Celery logs during E2E **clean** (no loop/driver warnings)
+- Auto-fire abilities: All 6 abilities verified to properly use ChoiceRequest; backend suite **320 tests passed** (no regressions)
 - Frontend build: **clean**, no warnings
 - `npm audit`: **0 vulnerabilities**
 
-**Status of known issues:**
-- ✅ Simulation creation timeout: **FIXED** (commit a3f9bf5)
-- ✅ Neo4j event loop warnings: **VALIDATED — No active warnings**
-- ✅ Auto-fire ability simplifications: **FIXED — All now have player choice prompts** (commit ad2fd65)
-- ⏳ AI/coach hardening: Deferred per existing proposal
-- ⏳ DeckBuilder Phase 3: Deferred until sufficient match history
+**Status of known issues (from prior STATUS.md entries):**
+- ✅ Simulation creation timeout: **FIXED** (axios 30s→60s; commit a3f9bf5)
+- ✅ Neo4j event loop warnings: **VALIDATED — No active warnings, fix confirmed production-ready** (commit 01c8d5f)
+- ✅ Auto-fire ability simplifications: **FIXED — All 6 abilities now have proper player choice prompts** (commit ad2fd65)
+- ⏳ Inviting Wink: Actually already implemented with full player choice (opponent selects Basics via choose_cards); no additional work needed
+- ⏳ `_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets: May be missing promo/alt-art Paradox Pokémon; flagged for future audit but not critical
+- ⏳ DeckBuilder Phase 3 (sim-backed preference weighting): Deferred pending sufficient match history
+- ⏳ AI/coach Stage 2/3 hardening: Deferred per existing proposal
+
+**Remaining in current production-readiness follow-up:**
+- DeckBuilder Phase 3 (matchup-frequency weighting) — requires accumulated match history for meaningful sim-backed weighting
+- AI/Coach Stage 2/3 hardening — deferred per `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md`
+- Optional hardening: `_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` verification (low priority; card pool functionality is not blocked)
+
+---
+
+## Active Files Changed This Session
+
+**Created:** None
+
+**Modified:**
+- `frontend/src/api/client.ts` — axios client timeout: 30_000 → 60_000 (milliseconds)
+- `backend/app/engine/effects/abilities.py` — `_obliging_heal()`: Added ChoiceRequest yes/no prompt before healing (lines 3714-3746)
+- `docs/STATUS.md` — Session summary and updated phase metrics
+
+**Commits:**
+1. `a3f9bf5` — Increase axios timeout from 30s to 60s for simulation creation
+2. `ad2fd65` — Add player choice prompt to Obliging Heal ability
+3. `01c8d5f` — Session summary: Timeout fix + Neo4j validation
+4. `2fde4d8` — Update STATUS.md: Auto-fire ability fixes completed
+
+---
+
+## Known Issues / Gaps
+
+Carried from prior sessions (updated):
+- **Auto-fire simplifications**: ~~Wafting Heal, Obliging Heal, Impromptu Carrier, Dig Dig Dig, Time to Chow Down auto-select targets without player choice~~ → **FIXED this session**. All 6 abilities now properly prompt players for choices.
+- **Inviting Wink**: ~~Places first Basic from opponent's hand (auto-select); actual card may let opponent choose~~ → Already fully implemented with `choose_cards` ChoiceRequest allowing opponent to select any number of Basics (min_count=0, max_count=bench_space).
+- **`_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets**: May be missing promo/alt-art Paradox Pokémon prints. Not a blocking issue; card pool functionality confirmed working. Low-priority audit item.
+- **DeckBuilder Phase 3 (sim-backed preference) deferred**: Phases 1, 2, 4, 5 complete. Phase 3 (matchup-frequency weighting from match history) requires sufficient match data and is intentionally deferred.
+- **card_performance historically sparse**: 1,145 matches produced only 85 card_performance rows because opponent deck_cards were not populated. The fix (added `ensure_deck` for P2) applies going forward; existing data not backfilled. This is acceptable as forward data will be complete.
+
+New this session:
+- None — All identified issues were addressed or confirmed as already-fixed.
+
+---
+
+## Key Decisions Made This Session
+
+1. **Axios timeout increased to 60s (not 120s)** — Chose 60s as a reasonable safety net without being excessive. Covers backend's Gemma timeout fallback (8s) plus any TCGDex API latency.
+
+2. **Obliging Heal requires player confirmation** — Matches the design pattern of similar healing abilities (Time to Chow Down, Wafting Heal). Provides consistency across ability implementations.
+
+3. **Auto-fire abilities verification approach** — Rather than assuming all had issues, verified each of the 6 abilities by code inspection. This revealed that only Obliging Heal was missing the prompt; others were correctly implemented. Prevented unnecessary changes.
+
+4. **Neo4j warnings non-blocking** — Validated that existing fix is production-ready and no warnings occur in practice. Closed the issue without further changes since the implementation is solid.
+
+5. **No changelog entry for this session** — Production Readiness Follow-Up phase is ongoing; no phase completion occurred. Changelog updates only when phases complete.
+
+---
+
+## Notes for Next Session
+
+**Start here:**
+1. Read this `docs/STATUS.md` first for current state
+2. Read `docs/PROJECT.md` section 18 (Phase 13) for context on production-readiness focus
+3. Current phase: **Production Readiness Follow-Up — In Progress**
+
+**What was accomplished this session and should NOT be re-done:**
+- ✅ Simulation creation timeout fixed (axios 30s→60s). All E2E tests pass end-to-end.
+- ✅ Neo4j event loop isolation validated. No active warnings. Fix is production-ready.
+- ✅ All 6 auto-fire abilities verified to have proper ChoiceRequest player prompts. Obliging Heal now asks for confirmation before healing.
+
+**What remains in Production-Readiness Follow-Up:**
+1. **DeckBuilder Phase 3** — Sim-backed preference weighting from match history. **Status:** Intentionally deferred until enough match data accumulates. No action needed until match count is substantial (current baseline after 1,145 matches is ~85 rows in card_performance; needs more iteration).
+
+2. **AI/Coach Stage 2/3 hardening** — Provider interface abstraction and injection testing. **Status:** Per `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md`, Stage 2 deferred until a second LLM provider is needed; Stage 3 testing can be added optionally but is not blocking. No immediate action needed.
+
+3. **Optional: `_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` audit** — Verify Paradox Pokémon frozensets are complete. Low priority; card pool functionality works correctly. Could be done if time permits but not critical.
+
+**Test suite baseline (confirmed 2026-05-02):**
+- Backend: `cd backend && python3 -m pytest tests/ -x -q` → **320 passed**
+- Frontend: `cd frontend && npm run build` → **clean**
+- E2E: `cd frontend && POKEPRISM_E2E_FULL_STACK=1 npm run test:e2e` → **13 passed**
+- Security: `npm audit` → **0 vulnerabilities**
+- Type: `npx tsc --noEmit` → **passed**
+
+**Useful files for next session:**
+- `docs/STATUS.md` — This file; always read first
+- `docs/PROJECT.md` — Phase definitions and architecture
+- `docs/proposals/DECKBUILDER_ROADMAP.md` — If continuing DeckBuilder work
+- `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md` — If continuing AI hardening
+- `backend/app/engine/effects/abilities.py` — Auto-fire ability implementations (now complete)
+- `frontend/src/api/client.ts` — Axios client config (timeout now 60s)
+
+**No re-create needed:**
+- All proposal documents already exist in `docs/proposals/`
+- All E2E test infrastructure in place (`.github/workflows/e2e.yml`, `frontend/playwright.config.ts`, `frontend/e2e/**`)
+- All game engine effects implemented (100% coverage, 0 missing handlers)
+
+**Handoff complete. Session stable. Ready for next agent.**
 
 ---
 
