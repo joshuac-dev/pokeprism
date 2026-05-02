@@ -28,6 +28,59 @@ BASIC_ENERGY_NAMES = {
     "Dragon Energy", "Fairy Energy", "Colorless Energy",
 }
 
+# Role-tagging keyword sets for trainer cards (Phase 1).
+_ENERGY_ACCEL_TRAINER_KEYWORDS: frozenset[str] = frozenset({
+    "raihan", "energy retrieval", "energy switch", "exp. share",
+    "earthen vessel", "superior energy retrieval",
+})
+_DISRUPTION_TRAINER_KEYWORDS: frozenset[str] = frozenset({
+    "boss", "catcher", "lost vacuum", "eject button",
+    "iono", "judge",
+})
+_HEALING_TRAINER_KEYWORDS: frozenset[str] = frozenset({
+    "potion", "mela", "miriam",
+})
+_SETUP_TRAINER_KEYWORDS: frozenset[str] = frozenset({
+    "ball", "candy", "research", "colress", "arven", "irida",
+    "pal pad", "trekking shoes", "rotom phone", "stretcher",
+})
+
+# Draw-Supporter and search-Item detection keywords (Phase 4).
+_DRAW_SUPPORTER_KEYWORDS: frozenset[str] = frozenset({
+    "iono", "research", "colress", "judge", "magnolia",
+    "cress", "lillie", "hau", "hop", "marnie",
+})
+
+# Archetype composition templates (Phase 2).
+# Each entry specifies inclusive [min, max] card counts for pokemon/trainer/energy.
+ARCHETYPE_TEMPLATES: dict[str, dict[str, int]] = {
+    "aggro": {
+        "pokemon_min": 10, "pokemon_max": 14,
+        "trainer_min": 34, "trainer_max": 40,
+        "energy_min": 8,  "energy_max": 14,
+    },
+    "evolution-ramp": {
+        "pokemon_min": 16, "pokemon_max": 22,
+        "trainer_min": 26, "trainer_max": 34,
+        "energy_min": 8,  "energy_max": 12,
+    },
+    "control": {
+        "pokemon_min": 8,  "pokemon_max": 12,
+        "trainer_min": 38, "trainer_max": 44,
+        "energy_min": 4,  "energy_max": 10,
+    },
+    "spread": {
+        "pokemon_min": 14, "pokemon_max": 18,
+        "trainer_min": 28, "trainer_max": 36,
+        "energy_min": 8,  "energy_max": 14,
+    },
+    "stall": {
+        "pokemon_min": 12, "pokemon_max": 16,
+        "trainer_min": 30, "trainer_max": 38,
+        "energy_min": 8,  "energy_max": 12,
+    },
+}
+
 
 class DeckBuildError(ValueError):
     """Raised when a deck cannot be built without violating hard rules."""
@@ -98,7 +151,10 @@ class DeckBuilder:
             if not any(c.tcgdex_id == card.tcgdex_id for c in deck):
                 self._add_copies(deck, card, 1)
 
-        self._fill_deck(deck, target_size, warnings)
+        self._fill_deck(
+            deck, target_size, warnings,
+            protected_names=frozenset(c.name for c in partial_deck),
+        )
         final_errors = self.validate_deck(deck, target_size)
         if final_errors:
             raise DeckBuildError("Generated deck failed validation: " + "; ".join(final_errors))
@@ -135,8 +191,11 @@ class DeckBuilder:
         ]
         if avoid_meta:
             warnings.append("avoid_meta requested, but meta-frequency data is not modeled yet.")
-        if target_archetype:
-            warnings.append("target_archetype is recorded as a preference only; archetype labels are not modeled yet.")
+        if target_archetype and target_archetype not in ARCHETYPE_TEMPLATES:
+            warnings.append(
+                f"Unknown archetype '{target_archetype}'; known archetypes: "
+                + ", ".join(sorted(ARCHETYPE_TEMPLATES)) + ". Using default composition."
+            )
 
         deck: list[CardDefinition] = []
         core_cards = [self._require_pool_card(cid) for cid in (build_around_ids or [])]
@@ -151,7 +210,7 @@ class DeckBuilder:
             self._add_evolution_support(deck, core)
             self._add_copies(deck, core, copies)
 
-        self._fill_deck(deck, target_size, warnings)
+        self._fill_deck(deck, target_size, warnings, target_archetype=target_archetype)
         final_errors = self.validate_deck(deck, target_size)
         if final_errors:
             raise DeckBuildError("Generated deck failed validation: " + "; ".join(final_errors))
@@ -184,14 +243,28 @@ class DeckBuilder:
 
     def validate_deck(self, deck: list[CardDefinition], target_size: int = DECK_SIZE) -> list[str]:
         errors: list[str] = []
+        # Hard structural constraints
         if len(deck) != target_size:
             errors.append(f"Deck must be exactly {target_size} cards, got {len(deck)}")
-        if not any(card.is_basic_pokemon for card in deck):
+        basic_count = sum(1 for c in deck if c.is_basic_pokemon)
+        if basic_count == 0:
             errors.append("Deck must contain at least 1 Basic Pokémon")
+        elif basic_count < 4:
+            errors.append(
+                f"Opening hand quality: only {basic_count} Basic Pokémon "
+                f"(recommend ≥4 to avoid heavy mulligan odds)"
+            )
         by_name = Counter(card.name for card in deck)
         for name, count in sorted(by_name.items()):
             if name not in BASIC_ENERGY_NAMES and count > MAX_COPIES:
                 errors.append(f"Too many copies of '{name}': {count} (max {MAX_COPIES})")
+        # Stadium copy limit (Phase 4)
+        for name, count in by_name.items():
+            card = next((c for c in deck if c.name == name), None)
+            if card and card.is_trainer and card.subcategory.lower() == "stadium" and count > 2:
+                errors.append(
+                    f"Too many copies of Stadium '{name}': {count} (recommend ≤2; stadiums replace each other)"
+                )
         excluded = sorted({card.tcgdex_id for card in deck if card.tcgdex_id in self._excluded_ids})
         if excluded:
             errors.append("Deck contains excluded cards: " + ", ".join(excluded))
@@ -200,13 +273,23 @@ class DeckBuilder:
             errors.append("Deck contains cards outside available pool: " + ", ".join(unknown))
         return errors
 
-    def _fill_deck(self, deck: list[CardDefinition], target_size: int, warnings: list[str]) -> None:
-        desired = self._desired_counts(deck, target_size)
+    def _fill_deck(
+        self,
+        deck: list[CardDefinition],
+        target_size: int,
+        warnings: list[str],
+        target_archetype: str | None = None,
+        protected_names: frozenset[str] | None = None,
+    ) -> None:
+        desired = self._desired_counts(deck, target_size, target_archetype)
         self._ensure_basic_pokemon(deck)
+        self._ensure_staples(deck, target_size, warnings)
         self._fill_category(deck, "pokemon", desired["pokemon"], target_size)
         self._fill_category(deck, "trainer", desired["trainer"], target_size)
         self._fill_category(deck, "energy", desired["energy"], target_size)
         self._fill_any(deck, target_size)
+        # Phase 5: replace structurally unplayable cards (orphaned evolutions, wrong-type energy).
+        self._replace_dead_cards(deck, target_size, protected_names or frozenset(), warnings)
         if len(deck) < target_size:
             raise DeckBuildError(
                 f"Not enough eligible cards to build a {target_size}-card deck "
@@ -216,7 +299,14 @@ class DeckBuilder:
             del deck[target_size:]
             warnings.append("Deck was trimmed to target size after preserving required cards.")
 
-    def _desired_counts(self, deck: list[CardDefinition], target_size: int) -> dict[str, int]:
+    def _desired_counts(
+        self,
+        deck: list[CardDefinition],
+        target_size: int,
+        target_archetype: str | None = None,
+    ) -> dict[str, int]:
+        if target_archetype and target_archetype in ARCHETYPE_TEMPLATES:
+            return self._desired_counts_from_archetype(target_archetype, deck, target_size)
         # Conservative baseline composition used only when the project has no
         # archetype-specific rules available.
         if target_size != DECK_SIZE:
@@ -225,6 +315,24 @@ class DeckBuilder:
             trainer = target_size - pokemon - energy
             return {"pokemon": pokemon, "trainer": trainer, "energy": energy}
         return {"pokemon": 18, "trainer": 32, "energy": 10}
+
+    def _desired_counts_from_archetype(
+        self,
+        archetype: str,
+        deck: list[CardDefinition],
+        target_size: int,
+    ) -> dict[str, int]:
+        """Return category targets from an archetype template, respecting already-placed cards."""
+        t = ARCHETYPE_TEMPLATES[archetype]
+        already_pokemon = sum(1 for c in deck if c.is_pokemon)
+        already_energy = sum(1 for c in deck if c.is_energy)
+        pokemon = max(already_pokemon, (t["pokemon_min"] + t["pokemon_max"]) // 2)
+        energy = max(already_energy, (t["energy_min"] + t["energy_max"]) // 2)
+        trainer = target_size - pokemon - energy
+        # Clamp trainer to template bounds; re-derive pokemon if needed
+        trainer = max(t["trainer_min"], min(t["trainer_max"], trainer))
+        pokemon = target_size - trainer - energy
+        return {"pokemon": pokemon, "trainer": trainer, "energy": energy}
 
     def _fill_category(self, deck: list[CardDefinition], category: str, desired: int, target_size: int) -> None:
         while len(deck) < target_size and self._category_count(deck, category) < desired:
@@ -301,6 +409,109 @@ class DeckBuilder:
             self._add_copies(deck, prior, 3 if prior.is_pokemon and not prior.is_basic_pokemon else 4)
             current = prior
 
+    def _ensure_staples(
+        self,
+        deck: list[CardDefinition],
+        target_size: int,
+        warnings: list[str],
+    ) -> None:
+        """Add one draw Supporter and one search Item to the deck if either is absent.
+
+        Called before category filling so that these staples are always present
+        unless the pool genuinely has none.
+        """
+        if len(deck) >= target_size:
+            return
+        if not any(_is_draw_supporter(c) for c in deck):
+            candidate = next(
+                (c for c in self._pool.values() if _is_draw_supporter(c) and self._can_add(deck, c)),
+                None,
+            )
+            if candidate:
+                self._add_copies(deck, candidate, 1)
+            else:
+                warnings.append("No draw Supporter available in card pool; opening-hand consistency may be low.")
+        if len(deck) >= target_size:
+            return
+        if not any(_is_search_item(c) for c in deck):
+            candidate = next(
+                (c for c in self._pool.values() if _is_search_item(c) and self._can_add(deck, c)),
+                None,
+            )
+            if candidate:
+                self._add_copies(deck, candidate, 1)
+            else:
+                warnings.append("No search Item (Ball) available in card pool; setup consistency may be low.")
+
+    def _trainer_role_counts(self, deck: list[CardDefinition]) -> dict[str, int]:
+        """Count Trainer cards in the deck by their role tag."""
+        counts: dict[str, int] = {}
+        for card in deck:
+            if not card.is_trainer:
+                continue
+            role = self._tag_card(card)
+            counts[role] = counts.get(role, 0) + 1
+        return counts
+
+    def _find_dead_cards(self, deck: list[CardDefinition]) -> list[CardDefinition]:
+        """Return cards that are structurally unplayable given deck composition.
+
+        Detected cases:
+        - Evolution Pokémon whose immediate pre-evolution is absent from the deck.
+        - Energy cards that provide a type no Pokémon in the deck can use.
+        """
+        pokemon_names = {c.name for c in deck if c.is_pokemon}
+        usable_types: set[str] = set()
+        for card in deck:
+            if card.is_pokemon:
+                usable_types.update(card.types)
+                for attack in card.attacks:
+                    for cost in attack.cost:
+                        if cost != "Colorless":
+                            usable_types.add(cost)
+
+        dead: list[CardDefinition] = []
+        for card in deck:
+            if card.is_pokemon and card.evolve_from and card.evolve_from not in pokemon_names:
+                dead.append(card)
+            elif card.is_energy and card.energy_provides:
+                if not any(t in usable_types for t in card.energy_provides):
+                    dead.append(card)
+        return dead
+
+    def _replace_dead_cards(
+        self,
+        deck: list[CardDefinition],
+        target_size: int,
+        protected_names: frozenset[str],
+        warnings: list[str],
+    ) -> None:
+        """Remove structurally dead cards and refill the deck with live alternatives.
+
+        Cards named in protected_names (user-supplied partial deck) are never removed.
+        Dead card IDs are temporarily excluded during refill to prevent re-addition.
+        Up to 5 passes are made to handle cascading dead-card situations.
+        """
+        replaced: list[str] = []
+        for _ in range(5):
+            dead = [c for c in self._find_dead_cards(deck) if c.name not in protected_names]
+            if not dead:
+                break
+            dead_ids = {c.tcgdex_id for c in dead if c.tcgdex_id}
+            for dead_card in dead:
+                if dead_card in deck:
+                    deck.remove(dead_card)
+                    replaced.append(dead_card.name)
+            orig_excluded = self._excluded_ids
+            self._excluded_ids = self._excluded_ids | dead_ids
+            self._fill_any(deck, target_size)
+            self._excluded_ids = orig_excluded
+        if replaced:
+            warnings.append(
+                "Replaced dead card(s) with better alternatives: "
+                + ", ".join(dict.fromkeys(replaced))
+            )
+
     def _ensure_basic_pokemon(self, deck: list[CardDefinition]) -> None:
         if any(card.is_basic_pokemon for card in deck):
             return
@@ -344,15 +555,74 @@ class DeckBuilder:
             return sum(1 for c in deck if c.is_energy)
         return 0
 
+    def _tag_card(self, card: CardDefinition) -> str:
+        """Return the primary role of this card for deck composition purposes.
+
+        Roles:
+          attacker     — ≥120 base damage on any attack
+          setup        — Stage-1/2 Pokémon; search/draw Trainers
+          energy_accel — Trainers/abilities that attach extra energy
+          disruption   — Force-switch, hand reset
+          healing      — HP recovery
+          tech         — Situational counters
+          energy       — All energy cards
+        """
+        if card.is_energy:
+            return "energy"
+        if card.is_trainer:
+            return self._tag_trainer(card)
+        # Pokémon: attacker check comes first regardless of stage
+        max_damage = max((_damage_value(a.damage) for a in card.attacks), default=0)
+        if max_damage >= 120:
+            return "attacker"
+        # Evolution cards with modest damage → setup
+        if card.stage.lower().startswith("stage"):
+            return "setup"
+        # Check Pokémon abilities for energy acceleration
+        for ability in card.abilities:
+            if _is_energy_accel_ability(ability):
+                return "energy_accel"
+        return "tech"
+
+    def _tag_trainer(self, card: CardDefinition) -> str:
+        name = card.name.lower()
+        if any(kw in name for kw in _ENERGY_ACCEL_TRAINER_KEYWORDS):
+            return "energy_accel"
+        if any(kw in name for kw in _DISRUPTION_TRAINER_KEYWORDS):
+            return "disruption"
+        if any(kw in name for kw in _HEALING_TRAINER_KEYWORDS):
+            return "healing"
+        if any(kw in name for kw in _SETUP_TRAINER_KEYWORDS):
+            return "setup"
+        if card.subcategory.lower() == "supporter":
+            return "setup"
+        return "tech"
+
+    def _energy_curve_for_deck(self, deck: list[CardDefinition]) -> Counter[str]:
+        """Count non-Colorless attack-cost requirements across all attacker-tagged cards.
+
+        Used to determine which Basic Energy type(s) the deck actually needs.
+        """
+        counts: Counter[str] = Counter()
+        for card in deck:
+            if self._tag_card(card) == "attacker":
+                for attack in card.attacks:
+                    for cost in attack.cost:
+                        if cost != "Colorless":
+                            counts[cost] += 1
+        return counts
+
     def _deck_energy_preferences(self, deck: list[CardDefinition]) -> Counter[str]:
         prefs: Counter[str] = Counter()
         for card in deck:
+            # Weight attacker type/cost preferences 3× over other Pokémon
+            weight = 3 if self._tag_card(card) == "attacker" else 1
             for t in card.types:
-                prefs[t] += 2
+                prefs[t] += weight
             for attack in card.attacks:
                 for cost in attack.cost:
                     if cost != "Colorless":
-                        prefs[cost] += 1
+                        prefs[cost] += weight
         return prefs
 
     def _validate_target_size(self, target_size: int) -> None:
@@ -382,6 +652,39 @@ class DeckBuilder:
         if unknown:
             errors.append("Partial deck contains cards outside available pool: " + ", ".join(unknown))
         return errors
+
+
+def _is_draw_supporter(card: CardDefinition) -> bool:
+    """Return True if this card is a draw/shuffle Supporter."""
+    return (
+        card.is_trainer
+        and card.subcategory.lower() == "supporter"
+        and any(kw in card.name.lower() for kw in _DRAW_SUPPORTER_KEYWORDS)
+    )
+
+
+def _is_search_item(card: CardDefinition) -> bool:
+    """Return True if this card is a search Item (i.e. a Ball)."""
+    return (
+        card.is_trainer
+        and card.subcategory.lower() in {"item", ""}
+        and "ball" in card.name.lower()
+    )
+
+
+def _is_energy_accel_ability(ability) -> bool:
+    """Return True if a Pokémon ability accelerates energy attachment."""
+    effect = ability.effect.lower()
+    return (
+        "attach" in effect
+        and "energy" in effect
+        and any(kw in effect for kw in (
+            "from your hand",
+            "from your discard",
+            "from your deck",
+            "as many",
+        ))
+    )
 
 
 def _sort_key(card: CardDefinition) -> tuple:

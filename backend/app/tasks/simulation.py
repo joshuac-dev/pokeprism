@@ -191,11 +191,21 @@ from app.tasks.celery_app import celery_app  # noqa: E402
 @celery_app.task(bind=True, name="pokeprism.run_simulation")
 def run_simulation(self, simulation_id: str) -> dict:
     """Synchronous Celery entry point — wraps async implementation."""
+    # Each Celery task runs in a fresh asyncio event loop. The Neo4j AsyncDriver
+    # singleton is bound to whichever loop first called get_driver(); reusing it
+    # across loops raises "Future attached to a different loop". Nil it here so
+    # it is recreated inside the new loop below (mirrors reset_neo4j_singleton
+    # in tests/test_memory/conftest.py which fixes the same issue for pytest).
+    from app.db import graph as _graph_module
+    _graph_module._driver = None
+
     loop = asyncio.new_event_loop()
     try:
         return loop.run_until_complete(_run_simulation_async(self, simulation_id))
     finally:
         loop.close()
+        # Belt-and-suspenders: nil again in case close_driver() failed inside the task.
+        _graph_module._driver = None
 
 
 # ---------------------------------------------------------------------------
@@ -687,6 +697,11 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
 
     finally:
         await engine.dispose()
+        from app.db.graph import close_driver
+        try:
+            await close_driver()
+        except Exception as exc:
+            logger.warning("Neo4j driver close failed: %s", exc)
         try:
             r.close()
         except Exception:

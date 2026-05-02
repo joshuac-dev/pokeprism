@@ -257,6 +257,38 @@ class TestRunSimulationWrapper:
 
         assert result == expected_result
 
+    def test_driver_nilled_before_async_impl_entry(self):
+        """Stale Neo4j driver singleton is cleared before _run_simulation_async runs.
+
+        Regression: each Celery task creates a new event loop; the module-level
+        AsyncDriver singleton binds to the first loop and raises
+        'Future attached to a different loop' on subsequent tasks unless nilled.
+        """
+        from app.db import graph as graph_module
+        from app.tasks.simulation import run_simulation
+
+        driver_at_entry: list = []
+
+        async def _stub_impl(task_self, sim_id):
+            # Capture _driver state at the moment the async impl starts.
+            driver_at_entry.append(graph_module._driver)
+            return {"status": "cancelled"}
+
+        fake_driver = MagicMock(name="stale_driver")
+        graph_module._driver = fake_driver
+
+        try:
+            with patch("app.tasks.simulation._run_simulation_async", side_effect=_stub_impl):
+                # With bind=True, run_simulation.run() already has self bound to
+                # the Celery task instance — pass only simulation_id.
+                run_simulation.run(str(uuid.uuid4()))
+        finally:
+            graph_module._driver = None
+
+        assert len(driver_at_entry) == 1, "async impl must be called exactly once"
+        assert driver_at_entry[0] is None, "_driver must be nil'd before async impl enters"
+        assert graph_module._driver is None, "_driver must remain nil after task completes"
+
 
 # ---------------------------------------------------------------------------
 # Win-rate calculation

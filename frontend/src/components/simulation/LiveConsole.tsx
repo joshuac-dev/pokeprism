@@ -231,7 +231,10 @@ export default function LiveConsole({
   const hidden  = Math.max(0, totalEvents - showing);
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 rounded-lg border border-slate-700 overflow-hidden">
+    <div
+      className="flex flex-col h-full bg-slate-950 rounded-lg border border-slate-700 overflow-hidden"
+      data-testid="live-console"
+    >
       {/* Load-earlier bar */}
       {hasMore && (
         <button
@@ -253,6 +256,7 @@ export default function LiveConsole({
         className="flex-1 min-h-0 overflow-y-auto py-1"
         onScroll={handleScroll}
         style={{ fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace' }}
+        data-testid="live-console-events"
       >
         {events.length === 0 && (
           <p className="text-slate-600 text-xs px-3 py-2">Waiting for events…</p>
@@ -267,6 +271,7 @@ export default function LiveConsole({
               className={`px-3 py-px text-xs leading-5 whitespace-pre-wrap break-all select-text
                 ${cls}
                 ${onEventClick ? 'cursor-pointer hover:bg-slate-900 rounded' : ''}`}
+              data-testid="live-console-event"
             >
               {text}
             </div>
@@ -283,4 +288,3 @@ export default function LiveConsole({
     </div>
   );
 }
-

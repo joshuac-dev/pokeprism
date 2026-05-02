@@ -108,6 +108,7 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
         ref={panelRef}
         className="relative z-10 w-full max-w-md bg-slate-900 border border-slate-700 rounded-xl
                    shadow-2xl flex flex-col max-h-[80vh] overflow-hidden"
+        data-testid="event-detail-overlay"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
@@ -142,7 +143,7 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
 
           {/* AI Reasoning */}
           {isAiMode && (
-            <section>
+            <section data-testid="event-detail-ai-reasoning">
               <h3 className="text-xs text-slate-500 uppercase tracking-wider mb-1">AI Reasoning</h3>
               {loading && (
                 <p className="text-xs text-slate-600 italic">Loading…</p>
@@ -153,7 +154,7 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
                 </p>
               )}
               {decisions.map((d) => (
-                <div key={d.id} className="bg-slate-800/60 rounded-lg p-3 mb-2 space-y-2">
+                <div key={d.id} className="bg-slate-800/60 rounded-lg p-3 mb-2 space-y-2" data-testid="event-detail-reasoning-block">
                   <div className="flex gap-2 flex-wrap">
                     <span className="text-xs text-orange-400 font-semibold">{d.action_type}</span>
                     {d.card_played && (

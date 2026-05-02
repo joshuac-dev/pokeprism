@@ -93,14 +93,16 @@ export default function Memory() {
             onChange={e => setSearchQ(e.target.value)}
             placeholder="Search card by name..."
             className="w-full px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+            data-testid="memory-search-input"
           />
           {showDropdown && (
-            <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden">
+            <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden" data-testid="memory-search-dropdown">
               {searchResults.map(card => (
                 <button
                   key={card.tcgdex_id}
                   onClick={() => handleSelectCard(card)}
                   className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 text-left"
+                  data-testid="memory-search-result"
                 >
                   {card.image_url && (
                     <img src={card.image_url} alt="" className="w-8 h-10 object-contain rounded" />

@@ -1,6 +1,6 @@
 # Playwright E2E Test Plan
 
-**Status:** proposal only — do not install Playwright  
+**Status:** approved; Tier 1 baseline + Tier 2/3 expansion implemented 2026-05-02; CI wired (.github/workflows/e2e.yml)
 **Date:** 2026-05-02  
 
 ---

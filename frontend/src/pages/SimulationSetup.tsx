@@ -110,7 +110,8 @@ export default function SimulationSetup() {
           setError(`Server error: ${err.response.status}`);
         }
       } else {
-        setError('An unexpected error occurred. Please try again.');
+        const msg = err instanceof Error ? err.message : String(err);
+        setError(`Unexpected error: ${msg}`);
       }
     } finally {
       setSubmitting(false);
@@ -119,14 +120,24 @@ export default function SimulationSetup() {
 
   return (
     <PageShell title="Simulation Setup">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-5xl mx-auto">
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-6 max-w-5xl mx-auto"
+        data-testid="simulation-form"
+      >
         {warning && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/40 border border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-300 rounded-md px-4 py-3 text-sm">
+          <div
+            className="bg-yellow-50 dark:bg-yellow-900/40 border border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-300 rounded-md px-4 py-3 text-sm"
+            data-testid="simulation-warning"
+          >
             ⚠ {warning}
           </div>
         )}
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/40 border border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 rounded-md px-4 py-3 text-sm">
+          <div
+            className="bg-red-50 dark:bg-red-900/40 border border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 rounded-md px-4 py-3 text-sm"
+            data-testid="simulation-error"
+          >
             {error}
           </div>
         )}
@@ -177,6 +188,7 @@ export default function SimulationSetup() {
           type="submit"
           disabled={submitting}
           className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-md text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+          data-testid="start-simulation-button"
         >
           {submitting ? 'Starting Simulation…' : 'Start Simulation'}
         </button>

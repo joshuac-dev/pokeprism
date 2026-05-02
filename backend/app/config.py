@@ -33,7 +33,10 @@ class Settings(BaseSettings):
     # HTTP/WebSocket browser origins. Use "*" only for explicitly trusted local
     # deployments; production should list concrete origins.
     CORS_ORIGINS: str = Field(
-        default="http://localhost:3000,http://localhost:5173,https://pokeprism.joshuac.dev"
+        default=(
+            "http://localhost:3000,http://localhost:5173,http://localhost:4173,"
+            "http://127.0.0.1:4173,https://pokeprism.joshuac.dev"
+        )
     )
 
     @property

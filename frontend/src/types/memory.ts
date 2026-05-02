@@ -29,7 +29,7 @@ export interface CardProfile {
 
 export interface MemoryNode {
   id: string;
-  name: string;
+  name: string | null;
   category: string | null;
   weight: number | null;
   games_observed: number | null;

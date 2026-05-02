@@ -72,7 +72,10 @@ export default function ParamForm({
     'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-full';
 
   return (
-    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 flex flex-col gap-4">
+    <div
+      className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 flex flex-col gap-4"
+      data-testid="simulation-parameters"
+    >
       <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Parameters</h2>
 
       {/* Game Mode */}
@@ -82,6 +85,7 @@ export default function ParamForm({
           value={gameMode}
           onChange={(e) => onGameModeChange(e.target.value as GameMode)}
           className={inputClass}
+          data-testid="game-mode-select"
         >
           <option value="hh">H/H (Human vs Human)</option>
           <option value="ai_h">AI vs Heuristic</option>
@@ -99,6 +103,7 @@ export default function ParamForm({
           value={matchesPerOpponent}
           onChange={(e) => onMatchesPerOpponentChange(Number(e.target.value))}
           className={inputClass}
+          data-testid="matches-per-opponent-input"
         />
       </div>
 
@@ -112,6 +117,7 @@ export default function ParamForm({
           value={numRounds}
           onChange={(e) => onNumRoundsChange(Number(e.target.value))}
           className={inputClass}
+          data-testid="rounds-input"
         />
       </div>
 
@@ -127,6 +133,7 @@ export default function ParamForm({
             value={targetWinRatePct}
             onChange={(e) => onTargetWinRatePctChange(Number(e.target.value))}
             className={`${inputClass} pr-7`}
+            data-testid="target-win-rate-input"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">
             %
@@ -147,6 +154,7 @@ export default function ParamForm({
           onChange={(e) => onTargetConsecutiveRoundsChange(Number(e.target.value))}
           className={inputClass}
           title="Number of consecutive rounds the target must be met before stopping early."
+          data-testid="target-confirm-rounds-input"
         />
       </div>
 
@@ -162,6 +170,7 @@ export default function ParamForm({
               checked={targetMode === mode}
               onChange={() => onTargetModeChange(mode)}
               className="accent-blue-500"
+              data-testid={`target-mode-${mode}`}
             />
             <span className="text-sm text-slate-700 dark:text-slate-300">
               {mode === 'aggregate' ? 'Aggregate' : 'Per Opponent'}
@@ -182,6 +191,7 @@ export default function ParamForm({
             onFocus={() => results.length > 0 && setDropdownOpen(true)}
             placeholder="Search cards to exclude…"
             className={inputClass}
+            data-testid="excluded-card-search"
           />
           {loading && (
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">

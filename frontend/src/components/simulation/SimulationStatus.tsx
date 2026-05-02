@@ -60,7 +60,10 @@ export default function SimulationStatus({ detail, onCancel, cancelling }: Props
     : 0;
 
   return (
-    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-4">
+    <div
+      className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-4"
+      data-testid="simulation-status"
+    >
       {/* Header row */}
       <div className="flex items-center justify-between">
         <div>
@@ -69,7 +72,10 @@ export default function SimulationStatus({ detail, onCancel, cancelling }: Props
             {detail.user_deck_name ?? 'Custom Deck'}
           </p>
         </div>
-        <span className={`text-sm font-semibold ${STATUS_COLOR[detail.status] ?? 'text-slate-400'}`}>
+        <span
+          className={`text-sm font-semibold ${STATUS_COLOR[detail.status] ?? 'text-slate-400'}`}
+          data-testid="simulation-status-badge"
+        >
           {STATUS_LABEL[detail.status] ?? detail.status}
         </span>
       </div>
@@ -128,6 +134,7 @@ export default function SimulationStatus({ detail, onCancel, cancelling }: Props
           className="w-full py-1.5 px-4 text-sm rounded border border-red-700 text-red-400
                      hover:bg-red-900/30 disabled:opacity-50 disabled:cursor-not-allowed
                      transition-colors"
+          data-testid="cancel-simulation-button"
         >
           {cancelling ? 'Cancelling…' : 'Cancel Simulation'}
         </button>
