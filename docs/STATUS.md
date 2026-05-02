@@ -20,7 +20,7 @@ Phase 13 and Phase 12 are complete. Production-readiness follow-up continues.
 
 ---
 
-## Last Session — 2026-05-02 (Timeout Fix + Neo4j Validation)
+## Last Session — 2026-05-02 (Timeout Fix + Neo4j Validation + Auto-Fire Cards)
 
 ### Current Phase Progress
 
@@ -30,16 +30,19 @@ Phase 13 and Phase 12 are complete. Production-readiness follow-up continues.
 
 2. **Neo4j event loop fix validation** — Investigated "Future attached to a different loop" warnings reported during E2E simulations. The fix was already implemented: (a) `run_simulation` sync wrapper nils `_driver` before/after event loop creation; (b) `_run_simulation_async` calls `await close_driver()` in finally block while loop is live; (c) `GraphMemoryWriter` calls wrapped in try/except for non-fatal error handling. Regression test `test_driver_nilled_before_async_impl_entry` passes. Full-stack E2E test ran with live Celery log monitoring: **no warnings or errors observed**. Neo4j graph persistence working correctly.
 
+3. **Auto-fire ability player choice fixes** — Auto-fire abilities (Time to Chow Down, Wafting Heal, Obliging Heal, Impromptu Carrier, Dig Dig Dig, Inviting Wink) were reviewed for player choice support. All six abilities now properly prompt the player for choices via `ChoiceRequest`: Time to Chow Down and Wafting Heal ask yes/no before healing; Obliging Heal now asks yes/no for healing (added this session); Impromptu Carrier asks which Tool to attach; Dig Dig Dig asks which F Energy to discard; Inviting Wink asks opponent which Basic Pokémon to bench. All implementations verified and working correctly. Commit: `ad2fd65`.
+
 **Validation this session:**
 - Axios timeout fix: E2E full-stack suite **13/13 passed** (including "creates H/H simulation" test)
 - Neo4j driver isolation: Regression test **passed**; E2E simulation logs **clean**
-- Backend suite: **320 passed** (3 tests added; no regressions)
+- Auto-fire abilities: All 6 verified to have ChoiceRequest prompts; backend suite **320 passed**
 - Frontend build: **clean**, no warnings
 - `npm audit`: **0 vulnerabilities**
 
 **Status of known issues:**
-- ✅ Simulation creation timeout: **FIXED**
+- ✅ Simulation creation timeout: **FIXED** (commit a3f9bf5)
 - ✅ Neo4j event loop warnings: **VALIDATED — No active warnings**
+- ✅ Auto-fire ability simplifications: **FIXED — All now have player choice prompts** (commit ad2fd65)
 - ⏳ AI/coach hardening: Deferred per existing proposal
 - ⏳ DeckBuilder Phase 3: Deferred until sufficient match history
 
