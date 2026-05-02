@@ -5,22 +5,110 @@
 > Historical session entries below are retained as written; date-relative or future-looking notes in those entries may reflect the environment used when that session was recorded. The Current Phase section is authoritative as of 2026-05-01.
 
 ## Current Phase
-**Card Pool Expansion — Complete** ✅
+**Production Readiness Follow-Up — In Progress**
 _Last updated: 2026-05-01_
 
-All 20 card expansion batches complete. 103-card audit complete (93 missing cards inserted). All flagged cards implemented across 8 engine batches. **0 missing handlers. 2001 real cards in DB.**
+Phase 13 and Phase 12 are complete, but follow-up production-readiness work is still active. Today's work focused on simulation reliability, Stage 1 AI/coach hardening, and Docker runtime hygiene.
 
 | Metric | Value |
 |--------|-------|
 | Cards in DB | **2001** |
 | Coverage | **100%** (0 missing handlers) |
 | Flat-damage-only cards | 292 |
-| Tests | **253 backend + 4 frontend passing** |
+| Tests | **121 targeted backend tests passing** today; prior full baseline was **253 backend + 4 frontend** |
 | Flagged entries remaining | **0** |
 
 ---
 
-## Last Session — 2026-04-30 (103-Card Audit + Final 5 Handlers)
+## Last Session — 2026-05-01 (Simulation Reliability + AI/Coach Stage 1 Hardening)
+
+### Current Phase Progress
+
+**Completed this session:**
+1. **H/H pending simulation investigation** — Found heuristic-vs-heuristic simulations were sitting in `pending` because Celery worker/beat services were not running. Restarted the Docker services and confirmed backend health reports `celery_workers: 1`.
+2. **Simulation engine regressions fixed** — Fixed tool-return handlers that treated `tools_attached` strings as card instances; fixed Telepathic Psychic Energy using nonexistent `Zone.IN_PLAY`; cleared stale `error_message` when simulations transition back to `running` or `complete`.
+3. **AI/coach hardening proposal created** — Added a reviewable proposal covering actual prompt-injection/provider risks, staged hardening, Playwright/browser E2E explanation, and remaining-risk remediation plan.
+4. **AI/coach Stage 1 hardening implemented** — Separated trusted system instructions from untrusted deck/log/card/simulation data; wrapped untrusted data blocks; required strict JSON-only model output; added bounded repair without resending untrusted context; required evidence on swap recommendations; capped reasoning/output size.
+5. **AI player prompt hardening** — Marked board state/card names/action descriptions as data, not instructions; capped parsed reasoning.
+6. **Celery non-root runtime** — Updated backend image to run as non-root `app`; updated Celery Beat to use `/tmp/celerybeat-schedule` so Beat can run non-root without permission errors.
+7. **Validation** — Targeted backend tests passed: `121 passed in 0.72s`. Syntax check passed. Docker backend, worker, and beat are up; backend health is OK.
+
+**Remaining in current production-readiness follow-up:**
+- Run a clean full backend test pass. A full `backend/tests` run was started but the Codex runner session stopped producing output and did not return a trustworthy result; targeted suites passed.
+- Vite/esbuild advisory still needs a controlled upgrade plan and approval before dependency changes.
+- Browser E2E is still not implemented; Playwright plan exists but needs approval before adding dependencies/config.
+- DeckBuilder remains deterministic baseline behavior, not a competitive/meta-aware optimizer.
+- AI/coach hardening is Stage 1 only. Provider abstraction and deeper provenance model remain staged follow-ups.
+- Full browser verification of charts, Socket.IO live rendering, and backend failure UX remains open.
+
+---
+
+## Active Files Changed This Session
+
+- `backend/Dockerfile`
+- `backend/app/coach/analyst.py`
+- `backend/app/coach/prompts.py`
+- `backend/app/engine/effects/attacks.py`
+- `backend/app/engine/effects/energies.py`
+- `backend/app/players/ai_player.py`
+- `backend/app/tasks/simulation.py`
+- `backend/tests/test_coach/test_analyst.py`
+- `backend/tests/test_engine/test_audit_fixes.py`
+- `backend/tests/test_players/test_ai_player.py`
+- `docker-compose.yml`
+- `docs/proposals/AI_COACH_HARDENING_PROPOSAL.md`
+- `docs/STATUS.md`
+
+---
+
+## Known Issues / Gaps
+
+Carried from prior sessions:
+- **Auto-fire simplifications**: Wafting Heal, Obliging Heal, Impromptu Carrier, Dig Dig Dig, Time to Chow Down auto-select targets without player choice.
+- **Inviting Wink**: Places first Basic from opponent's hand (auto-select); actual card may let opponent choose.
+- **`_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets**: May be missing promo/alt-art Paradox Pokémon prints.
+- **Partial/no-deck simulations**: Restored and runnable. `DeckBuilder.complete_deck` and `DeckBuilder.build_from_scratch` now provide deterministic baseline decks from DB-backed card data and return warnings below the 5,000-match memory-quality threshold.
+- **Verified in hardening sweep (2026-05-01)**: Sand Stream, Wonder Kiss, Majestic Sword, Buzzing Boost, and Hand Trimmer were checked against captured TCGDex fixtures. Sand Stream needed a trigger-location fix and is now covered by regression tests; the other listed implementations matched the captured text.
+
+New this session:
+- **Full backend suite result is not confirmed today**: The targeted suites for today's changes passed, but a full `cd backend && python3 -m pytest tests/ -x -q` run did not return a usable result from the Codex runner session. Re-run next session before stacking larger changes.
+- **Vite/esbuild audit advisory remains**: Current package state observed today: `vite` declared `^5.3.1`, lockfile `5.4.21`; `vitest` `4.1.5`; `@vitejs/plugin-react` lockfile `4.7.0`; `esbuild` `0.21.5`. `npm audit` wants `vite@8.0.10` as a semver-major fix. Do not run `npm audit fix --force` without approval.
+- **Browser E2E still missing**: API/curl smoke verifies services and endpoints, but not rendered charts, route behavior in a real browser, Socket.IO live UI, or visible backend-error UX.
+- **AI/coach hardening is partial**: Stage 1 prompt/schema hardening is implemented. Provider interface cleanup, stronger provenance/citation modeling, and broader prompt-injection redesign remain open.
+- **DeckBuilder quality remains baseline**: It is deterministic and runnable, but not role-tagged, archetype-template-driven, synergy-scored, matchup-aware, or win-rate-evolved.
+
+---
+
+## Key Decisions Made This Session
+
+1. **Prompt hardening scope**: Implemented only targeted Stage 1 hardening. No broad provider rewrite, Vite upgrade, Playwright install, or DeckBuilder optimizer work was done.
+2. **Trusted/untrusted separation**: Coach prompts now use a trusted system message plus a user/data message with explicit `<untrusted_data>` blocks for decklists, battle logs, card text, simulation summaries, and candidate cards.
+3. **Strict coach output parsing**: Coach model output must be pure JSON. The parser no longer extracts JSON from surrounding prose. Invalid JSON enters a bounded repair path.
+4. **Bounded repair behavior**: Repair prompts include the schema/error and previous malformed response only; they do not resend untrusted battle/deck/card context.
+5. **Evidence requirement**: Coach swap recommendations now require evidence entries tied to simulation/card facts where possible. Evidence is packed into mutation reasoning because the DB schema does not yet have a dedicated evidence column.
+6. **Tool attachment model**: `tools_attached` stores card definition IDs/strings, not tracked card instances. Return-to-deck effects should clear `tools_attached` directly rather than trying to move nonexistent tool instances between zones.
+7. **Telepathic Psychic Energy zone fix**: There is no `Zone.IN_PLAY`; when moving Psychic Energy from discard to a benched Psychic Pokémon, the energy card's zone should be `Zone.BENCH`.
+8. **Docker non-root runtime**: Backend-derived containers now run as `USER app`. Celery Beat's persistent scheduler file must live in a writable path (`/tmp/celerybeat-schedule`) under this model.
+
+---
+
+## Notes for Next Session
+
+- **Start by running a clean full backend test pass**: `cd backend && python3 -m pytest tests/ -x -q`. If it hangs again, investigate the test that is blocking before doing new feature work.
+- **Then review current diff**: The worktree contains simulation fixes, AI/coach Stage 1 hardening, Docker non-root changes, and the proposal doc. Do not assume these are committed.
+- **Useful targeted validation already run**: `cd backend && python3 -m pytest tests/test_coach/test_analyst.py tests/test_players/test_ai_player.py tests/test_tasks/test_simulation_task.py tests/test_engine/test_audit_fixes.py -q` passed with `121 passed in 0.72s`.
+- **Docker services are currently healthy**: `docker compose ps backend celery-worker celery-beat` showed all up; `/health` returned OK for Postgres, Neo4j, Redis, Ollama, and Celery worker count.
+- **Next recommended work order**:
+  1. Clean full backend test run and any resulting fix
+  2. Review/commit current hardening batch
+  3. Controlled Vite/esbuild upgrade plan, no `npm audit fix --force`
+  4. Playwright browser E2E implementation only after approving the plan
+  5. DeckBuilder competitive roadmap work after hardening/test infrastructure is stable
+- **Do not redo proposal research**: The AI/coach hardening proposal is in `docs/proposals/AI_COACH_HARDENING_PROPOSAL.md`.
+
+---
+
+## Previous Session — 2026-04-30 (103-Card Audit + Final 5 Handlers)
 
 ### Summary
 
@@ -53,54 +141,6 @@ All 20 card expansion batches complete. 103-card audit complete (93 missing card
 - `backend/app/engine/runner.py` — Added `energy_attach_punish_counters = 0` reset alongside `attack_requires_flip` in between-turns cleanup
 - `backend/app/engine/effects/attacks.py` — Added `_supernatural_shapeshifter`, `_electrified_incisors`; registered me01-020/0, me01-051/0, me01-069/0, mep-023/0
 - `backend/app/engine/effects/abilities.py` — Added `register_passive_ability("me01-028", "Explosiveness")`
-
----
-
-## Active Files Changed This Session
-
-- `backend/app/engine/state.py`
-- `backend/app/engine/transitions.py`
-- `backend/app/engine/runner.py`
-- `backend/app/engine/effects/attacks.py`
-- `backend/app/engine/effects/abilities.py`
-- `docs/POKEMON_MASTER_LIST.md`
-
----
-
-## Known Issues / Gaps
-
-Carried from prior sessions:
-- **Auto-fire simplifications**: Wafting Heal, Obliging Heal, Impromptu Carrier, Dig Dig Dig, Time to Chow Down auto-select targets without player choice.
-- **Inviting Wink**: Places first Basic from opponent's hand (auto-select); actual card may let opponent choose.
-- **`_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets**: May be missing promo/alt-art Paradox Pokémon prints.
-- **Partial/no-deck simulations**: Restored and runnable. `DeckBuilder.complete_deck` and `DeckBuilder.build_from_scratch` now provide deterministic baseline decks from DB-backed card data and return warnings below the 5,000-match memory-quality threshold.
-- **Verified in hardening sweep (2026-05-01)**: Sand Stream, Wonder Kiss, Majestic Sword, Buzzing Boost, and Hand Trimmer were checked against captured TCGDex fixtures. Sand Stream needed a trigger-location fix and is now covered by regression tests; the other listed implementations matched the captured text.
-
-New this session:
-- **mep-017 Toxtricity**: Appears in TCGDex set listing for `mep` but individual card endpoint returns 404. Not inserted into DB. If TCGDex ever fixes this data gap, it will need to be fetched and its handler implemented.
-
----
-
-## Key Decisions Made This Session
-
-1. **asyncpg jsonb serialization**: Python lists must be `json.dumps()`-ed before passing to asyncpg for `jsonb` columns (`types`, `attacks`, `abilities`, `weaknesses`, `resistances`, `raw_tcgdex`). asyncpg does NOT auto-serialize Python lists.
-2. **Supernatural Shapeshifter pattern**: To copy a Supporter effect from within an attack handler, look up the handler directly from `EffectRegistry._trainer_effects` dict. If it's a generator function, use `yield from`; if regular function, call directly. Do not go through the async `resolve_trainer()` path.
-3. **Electrified Incisors pattern**: "Punish next attachment" effects use a counter field on `CardInstance` (`energy_attach_punish_counters`) checked in `_attach_energy`. This is the preferred pattern for any future "whenever opponent attaches energy" triggers.
-4. **MEP set structure confirmed**: `mep` set contains cards 001–028 and 037–045 only (37 cards total). Cards 029–036 and 064+ do not exist. Any future MEP expansion should check TCGDex first.
-
----
-
-## Notes for Next Session
-
-- **DB is at 2001 real cards, 0 missing handlers. Coverage is 100%.** Phase 12 (Card Pool Expansion) is complete.
-- **Next phase per PROJECT.md**: No Phase 14 is defined. Logical next steps are:
-  1. Verify the 8 known potentially-incorrect implementations listed in Known Issues above
-  2. Phase 14 — Tuning & Evaluation (baseline win-rate benchmarks, coach quality metrics)
-  3. Or expand card pool further when new Pokémon TCG Pocket sets release
-- **Test baseline**: 253 backend tests pass plus 4 frontend tests. Run `cd backend && python3 -m pytest tests/ -x -q` and `cd frontend && npm test`.
-- **DB connection**: PostgreSQL on port 5433, password `changeme_postgres`. `docker exec pokeprism-postgres psql -U pokeprism -d pokeprism`
-- **MEP Mega Charizard X ex** is now correctly at `mep-023` in both the DB and the master list (was incorrectly listed as MEP 29).
-- **POKEMON_MASTER_LIST.md** now has 1973 entries (all real cards). If it needs to be rebuilt from scratch, the canonical source is TCGDex — use `SET_CODE_MAP` in `backend/app/cards/loader.py` for set abbreviation → TCGDex ID mapping.
 
 ---
 

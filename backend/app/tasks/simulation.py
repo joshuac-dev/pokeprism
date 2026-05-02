@@ -243,6 +243,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
 
             sim.status = "running"
             sim.started_at = datetime.now(timezone.utc)
+            sim.error_message = None
             await db.commit()
 
         # ── 3 & 4. Load user deck and opponent decks ────────────────────────
@@ -627,6 +628,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                 .values(
                     status="complete",
                     final_win_rate=final_win_rate,
+                    error_message=None,
                     completed_at=datetime.now(timezone.utc),
                 )
             )

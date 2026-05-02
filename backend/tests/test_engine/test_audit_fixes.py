@@ -194,6 +194,95 @@ def test_sand_stream_checks_non_turn_player_active():
     assert any(e["event_type"] == "sand_stream_triggered" and e["player"] == "p2" for e in state.events)
 
 
+@pytest.mark.asyncio
+async def test_tuck_tail_handles_attached_tool_ids():
+    """Tuck Tail must not treat tools_attached entries as CardInstance objects."""
+    meowth = _make_card(
+        "me03-062", "Meowth ex", hp=200,
+        attacks=[AttackDef(name="Tuck Tail", damage="60", cost=["Colorless"],
+                           effect="Put this Pokémon and all attached cards into your hand.")],
+    )
+    target = _make_card("tst-tt-001", "Opp Target", hp=200)
+    card_registry.register(meowth)
+    card_registry.register(target)
+
+    attacker = _make_instance(meowth, hp=200)
+    attacker.tools_attached = ["sv05-151"]
+    defender = _make_instance(target, hp=200)
+    state = _make_state(p1_active=attacker, p2_active=defender)
+
+    await EffectRegistry.instance().resolve_attack("me03-062", 0, state, _make_action())
+
+    assert state.p1.active is None
+    assert attacker.tools_attached == []
+    assert attacker in state.p1.hand
+    assert defender.current_hp == 140
+
+
+@pytest.mark.asyncio
+async def test_happy_return_handles_attached_tool_ids():
+    """Happy Return bounce path must clear attached tool IDs without crashing."""
+    swoobat = _make_card(
+        "sv10.5w-037", "Swoobat", hp=120,
+        attacks=[AttackDef(name="Happy Return", damage="", cost=["Colorless"],
+                           effect="Put 1 of your Benched Pokémon and all attached cards into your hand.")],
+    )
+    bench_card = _make_card("tst-hr-001", "Bench Target", hp=100)
+    opp_card = _make_card("tst-hr-002", "Opp Target", hp=100)
+    card_registry.register(swoobat)
+    card_registry.register(bench_card)
+    card_registry.register(opp_card)
+
+    active = _make_instance(swoobat, hp=120)
+    benched = _make_instance(bench_card, zone=Zone.BENCH, hp=100)
+    benched.tools_attached = ["sv05-151"]
+    defender = _make_instance(opp_card, hp=100)
+    state = _make_state(p1_active=active, p1_bench=[benched], p2_active=defender)
+
+    await EffectRegistry.instance().resolve_attack("sv10.5w-037", 0, state, _make_action())
+
+    assert benched.tools_attached == []
+    assert benched not in state.p1.bench
+    assert benched in state.p1.hand
+
+
+@pytest.mark.asyncio
+async def test_telepathic_psychic_energy_benches_basic_psychic():
+    """Telepathic Psychic Energy uses the real BENCH zone, not a non-existent IN_PLAY zone."""
+    active_cdef = _make_card("tst-tpe-001", "Psychic Active", hp=100)
+    active_cdef.types = ["Psychic"]
+    deck_cdef = _make_card("tst-tpe-002", "Psychic Basic", hp=70)
+    deck_cdef.types = ["Psychic"]
+    card_registry.register(active_cdef)
+    card_registry.register(deck_cdef)
+
+    active = _make_instance(active_cdef, hp=100)
+    active.energy_attached.append(
+        EnergyAttachment(
+            energy_type=EnergyType.PSYCHIC,
+            source_card_id="energy-inst",
+            card_def_id="me03-088",
+            provides=[EnergyType.PSYCHIC],
+        )
+    )
+    deck_basic = _make_instance(deck_cdef, zone=Zone.DECK, hp=70)
+    deck_basic.card_type = "Pokemon"
+    state = _make_state(p1_active=active, p2_active=_make_instance(_make_card("tst-tpe-003", "Opp", hp=100)))
+    state.p1.deck = [deck_basic]
+
+    action = Action(
+        player_id="p1",
+        action_type=ActionType.ATTACH_ENERGY,
+        card_instance_id="energy-inst",
+        target_instance_id=active.instance_id,
+    )
+    await EffectRegistry.instance().resolve_energy("me03-088", state, action)
+
+    assert deck_basic not in state.p1.deck
+    assert deck_basic in state.p1.bench
+    assert deck_basic.zone == Zone.BENCH
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Finding #5: _crimson_blaster_b4 — sv08-034 Armarouge atk1
 # ──────────────────────────────────────────────────────────────────────────────

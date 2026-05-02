@@ -144,7 +144,7 @@ def _telepathic_psychic_energy(state: GameState, action):
         poke = next((c for c in player.deck if c.instance_id == iid), None)
         if poke:
             player.deck.remove(poke)
-            poke.zone = Zone.IN_PLAY
+            poke.zone = Zone.BENCH
             poke.turn_played = state.turn_number
             player.bench.append(poke)
             state.emit_event("bench", player=action.player_id, card=poke.card_name,

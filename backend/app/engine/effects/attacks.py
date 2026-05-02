@@ -1802,14 +1802,8 @@ def _tuck_tail(state, action):
             energy_card.zone = Zone.HAND
             player.hand.append(energy_card)
     meowth.energy_attached.clear()
-    # Return attached tool cards to hand
-    for tool in list(meowth.tools_attached):
-        tool_card = next((c for c in player.discard
-                          if c.instance_id == tool.instance_id), None)
-        if tool_card:
-            player.discard.remove(tool_card)
-            tool_card.zone = Zone.HAND
-            player.hand.append(tool_card)
+    # Attached tools are tracked as card definition IDs, not CardInstance
+    # objects. The tool instances are removed from zone lists when attached.
     meowth.tools_attached.clear()
 
     player.active = None
@@ -9193,14 +9187,8 @@ def _swoobat_happy_return(state, action):
             energy_card.zone = Zone.HAND
             player.hand.append(energy_card)
     target.energy_attached.clear()
-    # Return attached tool cards to hand
-    for tool in list(target.tools_attached):
-        tool_card = next((c for c in player.discard
-                          if c.instance_id == tool.instance_id), None)
-        if tool_card:
-            player.discard.remove(tool_card)
-            tool_card.zone = Zone.HAND
-            player.hand.append(tool_card)
+    # Attached tools are tracked as card definition IDs, not CardInstance
+    # objects. The tool instances are removed from zone lists when attached.
     target.tools_attached.clear()
     target.zone = Zone.HAND
     player.hand.append(target)
