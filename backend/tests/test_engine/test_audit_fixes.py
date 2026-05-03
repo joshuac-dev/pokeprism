@@ -839,7 +839,7 @@ async def test_swim_together_moves_mistys_to_hand():
     from app.engine.effects.attacks import _swim_together
     gen = _swim_together(state, action)
     try:
-        req = next(gen)
+        next(gen)
         # Choose both Misty's Pokémon
         resp = Action(
             player_id="p1",
@@ -940,7 +940,7 @@ async def test_pick_and_stick_attaches_energy_from_discard():
     from app.engine.effects.attacks import _pick_and_stick
     gen = _pick_and_stick(state, action)
     try:
-        req = next(gen)
+        next(gen)
         # Choose Morpeko as the target
         resp = Action(
             player_id="p1",
