@@ -12008,18 +12008,23 @@ def _aqua_wash(state, action):
     resp = yield req
     if resp is not None and (resp.selected_option or 0) != 0:
         return  # No
-    # Find the source card in the deck/hand/discard for the attachment
-    att = opp.active.energy_attached[0]
-    opp.active.energy_attached.pop(0)
-    # Try to find the actual energy card instance
-    from app.engine.effects.base import _find_card_anywhere
-    energy_card = _find_card_anywhere(opp, att.source_card_id)
-    if energy_card and energy_card in opp.discard:
-        opp.discard.remove(energy_card)
-        energy_card.zone = Zone.HAND
-        opp.hand.append(energy_card)
+    att = opp.active.energy_attached.pop(0)
+    # Reconstruct the energy card and put it in opponent's hand
+    cdef = card_registry.get(att.card_def_id)
+    if cdef:
+        from app.engine.state import CardInstance as _CI_AW
+        new_card = _CI_AW(
+            card_def_id=att.card_def_id,
+            card_name=cdef.name,
+            card_type=cdef.category,
+            card_subtype=cdef.subcategory,
+            energy_provides=list(cdef.energy_provides),
+            zone=Zone.HAND,
+        )
+        opp.hand.append(new_card)
         state.emit_event("energy_to_hand", player=opp_id,
-                         card=opp.active.card_name, reason="aqua_wash")
+                         card=opp.active.card_name, energy=cdef.name,
+                         reason="aqua_wash")
 
 
 def _octo_beatdown(state, action):
@@ -13619,7 +13624,7 @@ def _moon_mirage(state, action):
                          card=opp.active.card_name, attack="Moon Mirage")
 
 
-def _onyx_flag(state, action):
+def _onyx(state, action):
     """sv08.5-060 Umbreon ex atk1 — Onyx: discard all Energy from this Pokémon; take 1 Prize card."""
     from app.engine.effects.base import draw_cards as _draw_onyx
     player_id = action.player_id
@@ -13789,7 +13794,7 @@ def _dig_b10(state, action):
         state.emit_event("coin_flip_result", attack="Dig", result="tails")
 
 
-def _moomoo_rolling_flag(state, action):
+def _moomoo_rolling(state, action):
     """sv08.5-081 Miltank atk1 — Moomoo Rolling: 100 only if Rollout was used last turn."""
     player = state.get_player(action.player_id)
     if player.active and player.active.last_attack_name == "Rollout":
@@ -14722,16 +14727,55 @@ def _charcadet_flamethrower(state, action):
                          reason="Flamethrower", count=1)
 
 
-def _crimson_blaster_flag(state, action):
-    """sv08-034 Armarouge atk1 — Crimson Blaster: FLAGGED (discard Fire energy + 180 bench)."""
-    state.emit_event("flagged_effect", attack="Crimson Blaster",
-                     reason="discard_specific_energy_type_then_bench_target")
+def _crimson_blaster(state, action):
+    """sv08-034 Armarouge atk1 — Crimson Blaster: discard all Fire Energy + 180 to 1 Benched Pokémon."""
+    player = state.get_player(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    opp_id = state.opponent_id(action.player_id)
+    # Discard all Fire Energy from self
+    if player.active:
+        fire_atts = [a for a in player.active.energy_attached
+                     if a.energy_type == EnergyType.FIRE or EnergyType.FIRE in a.provides]
+        for att in fire_atts:
+            player.active.energy_attached.remove(att)
+        if fire_atts:
+            state.emit_event("energy_discarded", card=player.active.card_name,
+                             reason="Crimson Blaster", count=len(fire_atts))
+    # 180 to 1 Benched Pokémon (Don't apply Weakness/Resistance)
+    if not opp.bench:
+        state.emit_event("attack_no_damage", attacker="Armarouge", attack_name="Crimson Blaster",
+                         reason="no_benched_pokemon")
+        return
+    req = ChoiceRequest("choose_target", action.player_id,
+        "Crimson Blaster: choose 1 Benched Pokémon for 180 damage",
+        targets=list(opp.bench))
+    resp = yield req
+    target = None
+    if resp and resp.target_instance_id:
+        target = next((p for p in opp.bench if p.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = opp.bench[0]
+    _apply_bench_damage(state, opp_id, target, 180)
+    check_ko(state, target, opp_id)
 
 
-def _cursed_edge_flag(state, action):
-    """sv08-035 Ceruledge atk0 — Cursed Edge: FLAGGED (discard all Special Energy from all opp's Pokémon)."""
-    state.emit_event("flagged_effect", attack="Cursed Edge",
-                     reason="discard_special_energy_from_all_opp_pokemon")
+def _cursed_edge(state, action):
+    """sv08-035 Ceruledge atk0 — Cursed Edge: discard all Special Energy from all opponent's Pokémon."""
+    opp = state.get_opponent(action.player_id)
+    opp_id = state.opponent_id(action.player_id)
+    all_opp_pokemon = ([opp.active] if opp.active else []) + list(opp.bench)
+    total_discarded = 0
+    for pokemon in all_opp_pokemon:
+        specials = [a for a in list(pokemon.energy_attached) if not _is_basic_energy(a)]
+        for att in specials:
+            pokemon.energy_attached.remove(att)
+            total_discarded += 1
+    if total_discarded > 0:
+        state.emit_event("cursed_edge", attacker=action.player_id,
+                         player=opp_id, discarded=total_discarded)
+    else:
+        state.emit_event("attack_no_damage", attacker="Ceruledge", attack_name="Cursed Edge",
+                         reason="no_special_energy_on_opponent_pokemon")
 
 
 def _black_blaze_slash(state, action):
@@ -14780,11 +14824,46 @@ def _blazing_charge(state, action):
     _apply_damage(state, action, 100 + bonus)
 
 
-def _upthrusting_horns_flag(state, action):
-    """sv08-039 Paldean Tauros atk0 — Upthrusting Horns: 30 + FLAGGED (return opp Stage 2 energy)."""
+def _upthrusting_horns(state, action):
+    """sv08-039 Paldean Tauros atk0 — Upthrusting Horns: 30 + may put 2 Energy from opp Active Stage 2 to hand."""
     _do_default_damage(state, action)
-    state.emit_event("flagged_effect", attack="Upthrusting Horns",
-                     reason="return_energy_from_stage2_to_hand_not_implemented")
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp = state.get_opponent(action.player_id)
+    opp_id = state.opponent_id(action.player_id)
+    if not opp.active or not opp.active.energy_attached:
+        return
+    opp_cdef = card_registry.get(opp.active.card_def_id)
+    if not opp_cdef or (opp_cdef.stage or "").lower() not in ("stage 2", "stage2", "mega"):
+        return  # Not a Stage 2 Pokémon
+    req = ChoiceRequest(
+        "choose_option", action.player_id,
+        "Upthrusting Horns: put 2 Energy from opponent's Active Stage 2 into their hand?",
+        options=["Yes (put 2 energy to hand)", "No"],
+    )
+    resp = yield req
+    wants_effect = (resp.selected_option == 0) if resp and hasattr(resp, "selected_option") else False
+    if not wants_effect:
+        return
+    put_back = min(2, len(opp.active.energy_attached))
+    for _ in range(put_back):
+        if not opp.active.energy_attached:
+            break
+        att = opp.active.energy_attached.pop(0)
+        cdef = card_registry.get(att.card_def_id)
+        if cdef:
+            from app.engine.state import CardInstance as _CI_UH
+            new_card = _CI_UH(
+                card_def_id=att.card_def_id,
+                card_name=cdef.name,
+                card_type=cdef.category,
+                card_subtype=cdef.subcategory,
+                energy_provides=list(cdef.energy_provides),
+                zone=Zone.HAND,
+            )
+            opp.hand.append(new_card)
+    state.emit_event("upthrusting_horns_energy_returned", attacker=action.player_id,
+                     player=opp_id, count=put_back)
 
 
 def _aqua_dive_50(state, action):
@@ -17389,7 +17468,7 @@ def register_all(registry):
     # sv08.5-058 Fezandipiti: ATK0 (flat); ATK1 (flat); ability passive (Cornerstone)
     # sv08.5-059 Scyther: ATK0 (flat)
     registry.register_attack("sv08.5-060", 0, _moon_mirage)                # Umbreon ex — Moon Mirage
-    registry.register_attack("sv08.5-060", 1, _onyx_flag)                  # Umbreon ex — Onyx (FLAGGED)
+    registry.register_attack("sv08.5-060", 1, _onyx)                        # Umbreon ex — Onyx
     # sv08.5-061 Sableye: ATK0 (flat); ATK1 (flat)
     # sv08.5-062 Houndour: ATK0 (flat)
     registry.register_attack("sv08.5-063", 0, _call_to_muster)             # Houndoom — Call to Muster
@@ -17418,7 +17497,7 @@ def register_all(registry):
     registry.register_attack("sv08.5-079", 1, _dig_b10)                    # Dunsparce — Dig
     # sv08.5-079 ATK0 (flat)
     # sv08.5-080 Dudunsparce: ATK0 (flat); ATK1 (flat); ability passive (FLAGGED)
-    registry.register_attack("sv08.5-081", 1, _moomoo_rolling_flag)        # Miltank — Moomoo Rolling (FLAGGED)
+    registry.register_attack("sv08.5-081", 1, _moomoo_rolling)             # Miltank — Moomoo Rolling
     # sv08.5-081 ATK0 (flat)
     registry.register_attack("sv08.5-082", 0, _hyper_whirlpool)            # Lugia ex — Hyper Whirlpool
     # sv08.5-082 ATK1 (flat)
@@ -17515,8 +17594,8 @@ def register_all(registry):
     # sv08-033 Charcadet: ATK0 Light Punch (flat 10)
     registry.register_attack("sv08-033", 1, _charcadet_flamethrower)        # Charcadet — Flamethrower
     # sv08-034 Armarouge: ATK0 Combustion (flat 50)
-    registry.register_attack("sv08-034", 1, _crimson_blaster_flag)          # Armarouge — Crimson Blaster (FLAGGED)
-    registry.register_attack("sv08-035", 0, _cursed_edge_flag)              # Ceruledge — Cursed Edge (FLAGGED)
+    registry.register_attack("sv08-034", 1, _crimson_blaster)               # Armarouge — Crimson Blaster
+    registry.register_attack("sv08-035", 0, _cursed_edge)                   # Ceruledge — Cursed Edge
     registry.register_attack("sv08-035", 1, _black_blaze_slash)             # Ceruledge — Black Blaze Slash
     registry.register_attack("sv08-036", 0, _abyssal_flames)                # Ceruledge ex — Abyssal Flames
     registry.register_attack("sv08-036", 1, _raging_amethyst)               # Ceruledge ex — Raging Amethyst
@@ -17524,7 +17603,7 @@ def register_all(registry):
     # sv08-037 Scovillain ex: ability Double Type registered in abilities.py
     # sv08-038 Gouging Fire: ATK0 Lunge Out (flat 30)
     registry.register_attack("sv08-038", 1, _blazing_charge)                # Gouging Fire — Blazing Charge
-    registry.register_attack("sv08-039", 0, _upthrusting_horns_flag)        # Paldean Tauros — Upthrusting Horns (FLAGGED)
+    registry.register_attack("sv08-039", 0, _upthrusting_horns)             # Paldean Tauros — Upthrusting Horns
     # sv08-039 Paldean Tauros: ATK1 Jet Headbutt (flat 100)
     # sv08-040 Mantine: ATK0 Wave Splash (flat 30)
     registry.register_attack("sv08-040", 1, _aqua_dive_50)                  # Mantine — Aqua Dive
