@@ -6,22 +6,100 @@
 
 ## Current Phase
 **Production Readiness Follow-Up — In Progress**
-_Last updated: 2026-05-02 (Session 4 of follow-up phase)_
+_Last updated: 2026-05-03 (Session 5 of follow-up phase)_
 
 Phase 13 and Phase 12 are complete. Production-readiness follow-up continues with critical bug fixes and edge case hardening.
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | **2002** (2000 real + 2 test fixtures) |
-| Coverage | **100%** (0 missing handlers, Coverage API sees 2001 excluding test-002) |
+| Cards in DB | **2005** (2003 real + 2 test fixtures) |
+| Coverage | **100%** (0 missing handlers, only test-002 fixture unhandled) |
 | Flat-damage-only cards | 292 |
-| Tests | **320 backend + 4 frontend + 13 Playwright E2E** passing (confirmed 2026-05-02) |
+| Tests | **320 backend + 4 frontend + 13 Playwright E2E** passing (confirmed 2026-05-03) |
 | Flagged entries remaining | **0** |
-| Production-readiness known issues | **3/4 remaining issues now FIXED** |
+| Production-readiness known issues | **All actionable issues FIXED** |
 
 ---
 
-## Last Session — 2026-05-02 (Timeout Fix + Neo4j Validation + Auto-Fire Cards)
+## Last Session — 2026-05-03 (Hardening Sweep: Frozensets, Coverage Gaps, Error Handling)
+
+### Current Phase Progress
+
+**Completed this session:**
+
+1. **`_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozenset audit** — Full DB cross-reference revealed 19 wrong/phantom IDs (pointing to Wiglett, Charjabug, Bronzor, etc., or not in DB at all; Miraidon misclassified as Ancient; Gouging Fire ex misclassified as Future). Added 44 missing real Paradox cards across both sets. Result: 33 Ancient IDs, 29 Future IDs — all verified against DB, zero phantom IDs, zero overlap. Commit: `65e0ce7`.
+
+2. **Trainer coverage gaps fixed** — Three cards added to DB since last coverage audit had no effect handlers, causing 422 on simulation submission: `Scoop Up Cyclone` (sv06-162, bench Pokémon → hand with energy returned), `Miracle Headset` (sv08-183, retrieve up to 2 Supporters from discard), `Judge` sv10-167 (registered with existing `_judge` handler). Coverage now clean: only test-002 fixture remains unhandled. Commit: `6d3d390`.
+
+3. **Frontend 422 error handler fix** — Coverage check returns `detail` as a dict `{error, cards, message}`. Frontend fell through to generic "Server error: 422" branch. Added object branch that reads `detail.message` when present. Commit: `69ef653`.
+
+4. **AI/Coach hardening assessment updated** — Both Stage 1 gap items (injection fixture tests + async repair test fix) were already completed in a prior session. Updated `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md` to reflect completed status. Stage 2 and Stage 3 DB work remain intentionally deferred. Commit: `6f818cf`.
+
+**Validation this session:**
+- Backend suite: **320 tests passed** (no regressions)
+- Coverage check: **0 cards with missing handlers** (excluding test-002)
+- Frozensets: **33 Ancient + 29 Future IDs, all in DB, no overlap**
+- Simulation submission: **unblocked** for Scoop Up Cyclone, Miracle Headset, Judge sv10-167
+
+**Status of known issues:**
+- ✅ `_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets: **FIXED** — full DB audit, 44 missing IDs added, 19 wrong IDs removed (commit 65e0ce7)
+- ✅ Simulation submission 422 on coverage check: **FIXED** — three trainer handlers implemented + frontend error display fixed (commits 6d3d390, 69ef653)
+- ✅ AI/Coach Stage 1 gap (injection tests, async repair test): **CONFIRMED DONE** in prior session
+- ⏳ DeckBuilder Phase 3 (sim-backed preference weighting): Deferred — needs sufficient match history
+- ⏳ AI/Coach Stage 2/3: Stage 2 deferred until second LLM provider; Stage 3 DB schema deferred until frontend needs separate evidence display
+
+**Remaining in current production-readiness follow-up:**
+- DeckBuilder Phase 3 — intentionally deferred, no immediate action
+- AI/Coach Stage 2/3 — intentionally deferred, no immediate action
+- **No actionable unblocked items remain in this phase**
+
+---
+
+## Active Files Changed This Session
+
+**Modified:**
+- `backend/app/engine/effects/attacks.py` — `_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets rebuilt from DB ground truth
+- `backend/app/engine/effects/trainers.py` — Added `_scoop_up_cyclone`, `_miracle_headset` handlers; registered `sv10-167` with `_judge`
+- `frontend/src/pages/SimulationSetup.tsx` — 422 error handler: added `detail.message` branch for dict errors
+- `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md` — Updated status: Stage 1 gaps marked complete
+- `docs/STATUS.md` — This file
+
+**Commits:**
+1. `65e0ce7` — Fix _ANCIENT_CARD_IDS and _FUTURE_CARD_IDS frozensets in attacks.py
+2. `6d3d390` — Implement handlers for Scoop Up Cyclone, Miracle Headset, and Judge sv10-167
+3. `69ef653` — Fix simulation 422 error handler to display coverage check message
+4. `6f818cf` — Update AI_COACH_HARDENING_ASSESSMENT: mark Stage 1 gap items complete
+
+---
+
+## Notes for Next Session
+
+**Start here:**
+1. Read this `docs/STATUS.md` first for current state
+2. Current phase: **Production Readiness Follow-Up — winding down**
+
+**What was accomplished this session and should NOT be re-done:**
+- ✅ Frozenset audit complete and committed
+- ✅ All trainer coverage gaps closed; 320 tests pass
+- ✅ Frontend 422 error display fixed
+- ✅ AI/Coach hardening assessment accurate
+
+**What remains (all intentionally deferred):**
+- DeckBuilder Phase 3: needs match history accumulation
+- AI/Coach Stage 2: needs second LLM provider
+- AI/Coach Stage 3 DB schema: needs frontend evidence display requirement
+
+**Test suite baseline (confirmed 2026-05-03):**
+- Backend: `cd backend && python3 -m pytest tests/ -x -q` → **320 passed**
+- Frontend: `cd frontend && npm run build` → **clean**
+- E2E: `POKEPRISM_E2E_FULL_STACK=1 npm run test:e2e` → **13 passed**
+- Coverage: 0 missing handlers (excluding test-002)
+
+**Handoff complete. Session stable. Ready for next agent.**
+
+---
+
+## Previous Session — 2026-05-02 (Timeout Fix + Neo4j Validation + Auto-Fire Cards)
 
 ### Current Phase Progress
 
@@ -55,21 +133,6 @@ Phase 13 and Phase 12 are complete. Production-readiness follow-up continues wit
 - Optional hardening: `_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` verification (low priority; card pool functionality is not blocked)
 
 ---
-
-## Active Files Changed This Session
-
-**Created:** None
-
-**Modified:**
-- `frontend/src/api/client.ts` — axios client timeout: 30_000 → 60_000 (milliseconds)
-- `backend/app/engine/effects/abilities.py` — `_obliging_heal()`: Added ChoiceRequest yes/no prompt before healing (lines 3714-3746)
-- `docs/STATUS.md` — Session summary and updated phase metrics
-
-**Commits:**
-1. `a3f9bf5` — Increase axios timeout from 30s to 60s for simulation creation
-2. `ad2fd65` — Add player choice prompt to Obliging Heal ability
-3. `01c8d5f` — Session summary: Timeout fix + Neo4j validation
-4. `2fde4d8` — Update STATUS.md: Auto-fire ability fixes completed
 
 ---
 
