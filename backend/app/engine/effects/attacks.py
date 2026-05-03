@@ -57,35 +57,53 @@ _TR_ENERGY_ID = "sv10-182"  # Team Rocket's Energy (used by multiple handlers)
 
 # Ancient and Future Pokémon card-def IDs (Paradox Rift / Temporal Forces era)
 _ANCIENT_CARD_IDS = frozenset({
-    "sv05-050", "svp-127",   # Walking Wake ex
-    "sv05-077", "svp-076",   # Scream Tail
-    "sv05-078", "svp-097",   # Flutter Mane
-    "sv05-075",              # Brute Bonnet
-    "sv05-076",              # Brute Bonnet ex (if present)
-    "sv05-119", "svp-148",   # Koraidon
-    "sv05-120",              # Koraidon ex
-    "sv05-047",              # Sandy Shocks
-    "sv05-048",              # Sandy Shocks ex
-    "sv05-068",              # Roaring Moon
-    "sv05-069",              # Roaring Moon ex
-    "sv05-055",              # Slither Wing
-    "sv05-056",              # Slither Wing
-    "sv05-074",              # Brute Bonnet
+    # Walking Wake
+    "sv05-050", "svp-127", "sv06-063",
+    # Scream Tail
+    "sv05-077", "sv06-094", "sv08.5-042",
+    # Flutter Mane
+    "sv05-078", "svp-097", "sv08-096", "sv08.5-043",
+    # Brute Bonnet
+    "sv06-118",
+    # Sandy Shocks
+    "sv05-098", "sv08.5-056",
+    # Slither Wing
+    "sv06.5-026",
+    # Roaring Moon
+    "sv05-109", "sv08.5-065",
+    # Koraidon
+    "sv05-119", "sv05-120", "sv07-090", "sv08-116", "svp-091", "svp-197", "me02.5-121",
+    # Great Tusk
+    "sv05-096", "sv05-097", "sv08.5-055",
+    # Raging Bolt
+    "sv05-123", "sv07-111", "svp-145",
+    # Gouging Fire
+    "sv05-038", "sv08-038", "svp-144", "svp-151",
 })
 
 _FUTURE_CARD_IDS = frozenset({
-    "sv05-062", "svp-170",        # Iron Thorns
-    "sv05-079", "svp-143",        # Iron Valiant
-    "sv05-080", "svp-144",        # Iron Valiant
-    "sv05-081", "svp-146",        # Iron Crown ex
-    "sv05-121", "svp-210",        # Miraidon
-    "sv05-122", "svp-083",        # Miraidon ex
-    "sv08-069",                   # Miraidon (SSP)
-    "sv05-025", "svp-025",        # Iron Leaves ex
-    "sv05-118",                   # Iron Treads
-    "sv05-139",                   # Iron Jugulis
-    "sv05-082",                   # Iron Hands ex
-    "sv05-083",                   # Iron Boulder
+    # Iron Thorns
+    "sv05-062", "sv06-077", "sv08.5-032", "svp-098",
+    # Iron Valiant
+    "sv05-079", "sv05-080",
+    # Iron Crown
+    "sv05-081", "svp-146", "sv08-132",
+    # Miraidon
+    "sv05-121", "sv05-122", "sv08-069", "me02.5-073", "svp-092", "svp-148",
+    # Iron Leaves
+    "sv05-025", "sv06-019", "svp-128",
+    # Iron Treads
+    "sv05-118",
+    # Iron Jugulis
+    "sv05-139",
+    # Iron Hands
+    "sv05-061", "sv08.5-031",
+    # Iron Bundle
+    "sv06-062", "sv08-055",
+    # Iron Moth
+    "sv06.5-009",
+    # Iron Boulder
+    "sv05-099", "sv07-071", "sv08.5-046", "svp-147",
 })
 
 _IRON_CROWN_EX_IDS = frozenset({"sv05-081", "svp-146"})  # excluded from Cobalt Command
