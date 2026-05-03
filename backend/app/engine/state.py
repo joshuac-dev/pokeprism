@@ -138,6 +138,7 @@ class CardInstance:
     retaliation_on_damage: bool = False                   # Zamazenta Strong Bash: reflect incoming damage back to attacker
     attack_damage_bonus: int = 0                          # Feraligatr Torrential Heart: +120 damage this turn
     repulsor_axe_active: bool = False         # Iron Boulder ex Repulsor Axe: 8 counters on attacker if hit next turn
+    ready_to_ram_active: bool = False         # Bouffalant Ready to Ram: 6 counters on attacker if hit next turn
     prevent_damage_from_ancient: bool = False  # Iron Moth Anachronism Repulsor: block Ancient Pokémon damage next turn
     custom_counters: dict = field(default_factory=dict)   # Per-card counter tracking (e.g., feather counters)
 

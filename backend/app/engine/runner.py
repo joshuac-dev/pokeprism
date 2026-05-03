@@ -541,6 +541,7 @@ class MatchRunner:
                 player.active.energy_attach_punish_counters = 0
                 player.active.retaliation_on_damage = False
                 player.active.repulsor_axe_active = False
+                player.active.ready_to_ram_active = False
                 player.active.prevent_damage_from_ancient = False
                 player.active.attack_damage_bonus = 0
                 # Discard energy cards flagged for end-of-turn removal (Ignition Energy)
@@ -563,6 +564,7 @@ class MatchRunner:
                 b.torment_blocked_attack_name = None
                 b.retaliation_on_damage = False
                 b.repulsor_axe_active = False
+                b.ready_to_ram_active = False
                 b.prevent_damage_from_ancient = False
                 b.attack_damage_bonus = 0
                 self._discard_expiring_energy(state, b)
