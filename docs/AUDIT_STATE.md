@@ -6,13 +6,13 @@ It does not define card text. It does not define the audit candidate set. The da
 
 ```text
 next_start_cursor: Wondrous Patch | PFL | 94 | me02-094
-last_run_status: TARGET_REACHED
+last_run_status: PARTIAL_TIME_BUDGET
 last_run_date_utc: 2026-05-03
 last_pr:
 last_issue: Nightly DB-backed card effect implementation audit - 2026-05-03
-last_first_card_audited: Mimikyu ex | JTG | 69 | sv09-069
-last_card_fully_audited: Wo-Chien | PAR | 15 | sv08-015
-notes: TARGET_REACHED with 31 findings. Start sv09-069, end sv08-015. Key fixes: deck.pop(0) for top-card discard in 9 handlers (Sudden Shearing, Outlaw Leg, Mountain Ramming x2, Brighten and Burn, Land Collapse x2, Hammer-lanche, Entangling Whip, Sandy Flapping); torment_blocked_attack_name not cleared for Active (runner.py); Hop's Choice Band unimplemented tool (damage bonus + cost reduction); Auto Heal wrong amount (90->10); Mammoth Hauler wrong behavior; Postwick damage bonus; Snack Seek passivization; 14 option_index->selected_option fixes. Engine gap: Wide Wall (sv07-076).
+last_first_card_audited: Wondrous Patch | PFL | 94 | me02-094
+last_card_fully_audited:
+notes: PARTIAL_TIME_BUDGET. DB verified (1606 cards). TCGDEX_PREFLIGHT=ok (Wondrous Patch and Xerosic's Machinations fetched successfully). Start cursor located at DB index 1565. Registration grep completed for all 41 tail-of-alphabet cards. Time budget exhausted before card-by-card TCGDex comparison and fixes could be completed. Next run should restart at same cursor.
 ```
 
 ## Cursor rules
