@@ -1,6 +1,6 @@
 # AI/Coach Hardening — Stage 2 & 3 Assessment
 
-**Status:** assessment only  
+**Status:** Stage 1 gap items completed 2026-05-03  
 **Date:** 2026-05-02  
 **References:** `docs/proposals/AI_COACH_HARDENING_PROPOSAL.md`
 
@@ -17,7 +17,7 @@ Stage 1 is committed and tested. Implemented:
 - AI player prompt hardening (data labels, reasoning cap, parse recovery tag)
 - 121 targeted tests pass; 260 full suite pass
 
-**Known Stage 1 gap:** The evidence requirement (`test_coach_rejects_swaps_without_evidence`) is tested, but there are no prompt-injection fixture tests — tests that put hostile strings inside card names, deck names, memory text, and battle logs and assert they are treated as inert data. The proposal's `test_coach_repair_does_not_resend_untrusted_context` test (which uses `async/await` in a non-async test body) may not actually execute the async call. These should be addressed before Stage 3 adds deeper trust assumptions.
+**Known Stage 1 gap (now resolved):** The injection fixture tests and the async repair test fix were completed in a prior session. `TestPromptInjectionHardening` (6 tests: hostile card names, hostile memory text, hostile candidate names, hostile tier labels, repair prompt exclusion) is in `test_analyst.py` and all pass. `test_repair_prompt_does_not_resend_untrusted_context` is correctly declared `async def` with `@pytest.mark.asyncio`. 47 analyst tests pass total.
 
 ---
 
@@ -69,8 +69,8 @@ Neither is currently needed.
 
 | Priority | Work | Complexity |
 |---|---|---|
-| Now | Add async prompt-injection fixture tests to `test_analyst.py` | Low |
-| Now | Fix the `test_coach_repair_does_not_resend_untrusted_context` test to properly use `asyncio.run` or `pytest-asyncio` | Low |
+| ~~Now~~ **Done** | ~~Add async prompt-injection fixture tests to `test_analyst.py`~~ Completed 2026-05-03 | Low |
+| ~~Now~~ **Done** | ~~Fix the `test_coach_repair_does_not_resend_untrusted_context` test~~ Completed 2026-05-03 | Low |
 | Later | Stage 2 provider interface — trigger: second LLM provider arrives | Medium |
 | Later | Stage 3 DB evidence schema — trigger: frontend needs to display evidence | Medium |
 
