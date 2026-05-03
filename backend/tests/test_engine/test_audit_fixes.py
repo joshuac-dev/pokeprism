@@ -623,3 +623,176 @@ async def test_sv06_080_teleporter_switches_active_and_shuffles():
     assert all(p.instance_id != abra_inst.instance_id for p in state.p1.bench)
     assert any(c.instance_id == abra_inst.instance_id for c in state.p1.deck)
     assert abra_inst.energy_attached == []
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 2026-05-03 Audit Findings
+# ──────────────────────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_guarded_rolling_discards_energy_and_reduces_damage():
+    """sv08-103 Donphan atk1 — Guarded Rolling: discard 2 Energy + take 100 less damage next turn."""
+    donphan_cdef = _make_card(
+        "sv08-103", "Donphan", hp=140,
+        attacks=[
+            AttackDef(name="Knock Flat", damage="40", cost=["Fighting"]),
+            AttackDef(name="Guarded Rolling", damage="120", cost=["Fighting", "Fighting"]),
+        ],
+    )
+    opp_cdef = _make_card("tst-gr-001", "OppMon", hp=200)
+    card_registry.register(donphan_cdef)
+    card_registry.register(opp_cdef)
+
+    donphan_inst = _make_instance(donphan_cdef)
+    donphan_inst.energy_attached.append(_make_energy(EnergyType.FIGHTING, "fighting-energy"))
+    donphan_inst.energy_attached.append(_make_energy(EnergyType.FIGHTING, "fighting-energy2"))
+    donphan_inst.energy_attached.append(_make_energy(EnergyType.FIGHTING, "fighting-energy3"))
+    opp_active = _make_instance(opp_cdef, hp=200)
+    state = _make_state(p1_active=donphan_inst, p2_active=opp_active)
+
+    action = _make_action(attack_index=1)
+
+    from app.engine.effects.attacks import _guarded_rolling
+    # _guarded_rolling is not a generator (no yield), call directly
+    result = _guarded_rolling(state, action)
+    if hasattr(result, '__next__'):
+        try:
+            next(result)
+        except StopIteration:
+            pass
+
+    # Should discard 2 energy
+    assert len(donphan_inst.energy_attached) == 1
+    # Should set damage reduction
+    assert donphan_inst.incoming_damage_reduction == 100
+
+
+@pytest.mark.asyncio
+async def test_crimson_blaster_discards_fire_energy():
+    """sv08-034 Armarouge atk1 — Crimson Blaster: discard all Fire Energy from self."""
+    armarouge_cdef = _make_card(
+        "sv08-034", "Armarouge", hp=120,
+        attacks=[
+            AttackDef(name="Crimson Blaster", damage="0", cost=["Fire", "Fire", "Fire"]),
+        ],
+    )
+    opp_cdef = _make_card("tst-cb-001", "OppMon", hp=200)
+    bench_cdef = _make_card("tst-cb-002", "BenchMon", hp=130)
+    card_registry.register(armarouge_cdef)
+    card_registry.register(opp_cdef)
+    card_registry.register(bench_cdef)
+
+    armarouge_inst = _make_instance(armarouge_cdef)
+    armarouge_inst.energy_attached.append(_make_energy(EnergyType.FIRE, "fire-energy"))
+    armarouge_inst.energy_attached.append(_make_energy(EnergyType.FIRE, "fire-energy2"))
+    bench_inst = _make_instance(bench_cdef, zone=Zone.BENCH, hp=130)
+    opp_active = _make_instance(opp_cdef, hp=200)
+    state = _make_state(p1_active=armarouge_inst, p2_active=opp_active, p2_bench=[bench_inst])
+
+    action = _make_action(attack_index=0)
+
+    from app.engine.effects.attacks import _crimson_blaster
+    gen = _crimson_blaster(state, action)
+    # Respond to bench choice request
+    try:
+        req = next(gen)
+        resp = Action(
+            player_id="p1",
+            action_type=ActionType.ATTACK,
+            target_instance_id=bench_inst.instance_id,
+        )
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    # All Fire energy should be discarded
+    assert armarouge_inst.energy_attached == []
+
+
+@pytest.mark.asyncio
+async def test_cursed_edge_discards_special_energy():
+    """sv08-035 Ceruledge atk0 — Cursed Edge: discard all Special Energy from all opp's Pokémon."""
+    ceruledge_cdef = _make_card(
+        "sv08-035", "Ceruledge", hp=120,
+        attacks=[
+            AttackDef(name="Cursed Edge", damage="0", cost=["Fire"]),
+        ],
+    )
+    opp_cdef = _make_card("tst-ce-001", "OppMon", hp=200)
+    card_registry.register(ceruledge_cdef)
+    card_registry.register(opp_cdef)
+
+    ceruledge_inst = _make_instance(ceruledge_cdef)
+    opp_active = _make_instance(opp_cdef, hp=200)
+    # Add both basic and special energy to opponent's active
+    basic_att = _make_energy(EnergyType.FIRE, "fire-energy-basic")
+    # Simulate a special energy with a non-basic def_id
+    special_att = EnergyAttachment(
+        energy_type=EnergyType.COLORLESS,
+        source_card_id="src-special",
+        card_def_id="sv05-161",  # known special energy ID
+    )
+    opp_active.energy_attached.append(basic_att)
+    opp_active.energy_attached.append(special_att)
+    state = _make_state(p1_active=ceruledge_inst, p2_active=opp_active)
+
+    action = _make_action(attack_index=0)
+
+    from app.engine.effects.attacks import _cursed_edge
+    result = _cursed_edge(state, action)
+    if hasattr(result, '__next__'):
+        try:
+            next(result)
+        except StopIteration:
+            pass
+
+    # Special energy (sv05-161) should be discarded
+    remaining = opp_active.energy_attached
+    assert all(e.card_def_id != "sv05-161" for e in remaining)
+
+
+@pytest.mark.asyncio
+async def test_time_manipulation_puts_cards_on_top():
+    """sv08-135 Dialga atk0 — Time Manipulation: search deck for 2 cards, put on top."""
+    from app.engine.state import CardInstance as CI
+    dialga_cdef = _make_card(
+        "sv08-135", "Dialga", hp=140,
+        attacks=[AttackDef(name="Time Manipulation", damage="0", cost=["Metal"])],
+    )
+    card1_cdef = _make_card("tst-tm-001", "Card1", hp=100)
+    card2_cdef = _make_card("tst-tm-002", "Card2", hp=100)
+    card3_cdef = _make_card("tst-tm-003", "Card3", hp=100)
+    card_registry.register(dialga_cdef)
+    card_registry.register(card1_cdef)
+    card_registry.register(card2_cdef)
+    card_registry.register(card3_cdef)
+
+    dialga_inst = _make_instance(dialga_cdef)
+    c1 = _make_instance(card1_cdef, zone=Zone.DECK)
+    c2 = _make_instance(card2_cdef, zone=Zone.DECK)
+    c3 = _make_instance(card3_cdef, zone=Zone.DECK)
+    opp_cdef = _make_card("tst-tm-opp", "OppMon", hp=120)
+    card_registry.register(opp_cdef)
+    opp_active = _make_instance(opp_cdef, hp=120)
+    state = _make_state(p1_active=dialga_inst, p2_active=opp_active)
+    state.p1.deck = [c1, c2, c3]
+
+    action = _make_action(attack_index=0)
+
+    from app.engine.effects.attacks import _time_manipulation
+    gen = _time_manipulation(state, action)
+    try:
+        req = next(gen)
+        # Choose c1 and c2 to put on top
+        resp = Action(
+            player_id="p1",
+            action_type=ActionType.ATTACK,
+            selected_cards=[c1.instance_id, c2.instance_id],
+        )
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    # c1 and c2 should be on top of deck (first 2)
+    assert state.p1.deck[0].instance_id in (c1.instance_id, c2.instance_id)
+    assert state.p1.deck[1].instance_id in (c1.instance_id, c2.instance_id)
