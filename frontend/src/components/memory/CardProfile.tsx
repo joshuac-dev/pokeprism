@@ -29,7 +29,7 @@ export default function CardProfile({ profile }: Props) {
   }, [lightboxOpen]);
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-5">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-5" data-testid="card-profile">
       {/* Card header */}
       <div className="flex items-start gap-4 mb-4">
         {profile.image_url && (

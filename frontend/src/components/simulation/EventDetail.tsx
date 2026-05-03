@@ -11,6 +11,32 @@ interface Props {
 
 const SKIP_KEYS = new Set(['event_type', 'active_player', 'phase']);
 
+// Map engine event_type strings (lowercase) to Decision action_type enum names (UPPERCASE).
+// Engine events that don't correspond to AI decisions are left unmapped (return undefined).
+const EVENT_TO_ACTION: Record<string, string> = {
+  attack: 'ATTACK',
+  attack_declared: 'ATTACK',
+  attack_damage: 'ATTACK',
+  attack_no_damage: 'ATTACK',
+  energy_attached: 'ATTACH_ENERGY',
+  attach_energy: 'ATTACH_ENERGY',
+  play_item: 'PLAY_ITEM',
+  play_supporter: 'PLAY_SUPPORTER',
+  play_basic: 'PLAY_BASIC',
+  play_stadium: 'PLAY_STADIUM',
+  evolve: 'EVOLVE',
+  pass: 'PASS',
+  end_turn: 'END_TURN',
+  retreat: 'RETREAT',
+  switch_active: 'SWITCH_ACTIVE',
+  use_ability: 'USE_ABILITY',
+};
+
+function toActionType(eventType: string | undefined): string | undefined {
+  if (!eventType) return undefined;
+  return EVENT_TO_ACTION[eventType.toLowerCase()] ?? eventType.toUpperCase();
+}
+
 function DataRow({ k, v }: { k: string; v: unknown }) {
   if (v == null || v === '') return null;
   return (
@@ -33,10 +59,8 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
     const matchId = event.match_id;
     const turn = event.turn as number;
     const player = event.player ?? undefined;
-    // Map the event type to a decision action_type for precise matching.
-    // Engine events and AI decision action_types share the same names (e.g.
-    // "attack", "play_trainer", "attach_energy") so pass it through directly.
-    const actionType = event.eventType || undefined;
+    // Map the engine event_type (lowercase) to the Decision action_type (UPPERCASE enum name).
+    const actionType = toActionType(event.eventType);
 
     let cancelled = false;
     setLoading(true);
@@ -45,7 +69,7 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
       turn_number: turn,
       player_id: player,
       action_type: actionType,
-      limit: 5,
+      limit: 3,
     })
       .then((r) => { if (!cancelled) setDecisions(r.decisions); })
       .catch(() => {})
@@ -84,6 +108,7 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
         ref={panelRef}
         className="relative z-10 w-full max-w-md bg-slate-900 border border-slate-700 rounded-xl
                    shadow-2xl flex flex-col max-h-[80vh] overflow-hidden"
+        data-testid="event-detail-overlay"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
@@ -118,7 +143,7 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
 
           {/* AI Reasoning */}
           {isAiMode && (
-            <section>
+            <section data-testid="event-detail-ai-reasoning">
               <h3 className="text-xs text-slate-500 uppercase tracking-wider mb-1">AI Reasoning</h3>
               {loading && (
                 <p className="text-xs text-slate-600 italic">Loading…</p>
@@ -129,7 +154,7 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
                 </p>
               )}
               {decisions.map((d) => (
-                <div key={d.id} className="bg-slate-800/60 rounded-lg p-3 mb-2 space-y-2">
+                <div key={d.id} className="bg-slate-800/60 rounded-lg p-3 mb-2 space-y-2" data-testid="event-detail-reasoning-block">
                   <div className="flex gap-2 flex-wrap">
                     <span className="text-xs text-orange-400 font-semibold">{d.action_type}</span>
                     {d.card_played && (

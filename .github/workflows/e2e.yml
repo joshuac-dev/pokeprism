@@ -1,0 +1,97 @@
+name: Playwright E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # .env is gitignored but required by docker-compose env_file directive.
+      # Values here are CI-only; no production secrets are stored.
+      - name: Create CI environment file
+        run: |
+          cat > .env <<'EOF'
+          POSTGRES_USER=pokeprism
+          POSTGRES_PASSWORD=ci_e2e_postgres
+          NEO4J_USER=neo4j
+          NEO4J_PASSWORD=ci_e2e_neo4j
+          OLLAMA_PLAYER_MODEL=qwen3.5:9b-q4_K_M
+          OLLAMA_COACH_MODEL=gemma4-E4B-it-Q6_K:latest
+          OLLAMA_EMBED_MODEL=nomic-embed-text
+          CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:4173,http://127.0.0.1:4173
+          EOF
+
+      # Start postgres, neo4j, redis and block until their healthchecks pass.
+      # Ollama is intentionally excluded — H/H simulations do not call Ollama,
+      # and the GPU reservation in docker-compose.yml cannot run on CI runners.
+      - name: Start data services
+        run: docker compose up -d --wait postgres neo4j redis
+
+      # --no-deps skips the declared dependency on the Ollama service so the
+      # backend starts without waiting for (or requiring) a GPU.
+      # Data services are already healthy from the previous step.
+      - name: Build and start application services
+        run: docker compose up -d --no-deps --build backend celery-worker
+
+      # Run Alembic migrations once the backend container is running.
+      # We poll until `exec` succeeds (container may still be starting).
+      - name: Run database migrations
+        run: |
+          timeout 60 bash -c \
+            'until docker compose exec -T backend echo ready 2>/dev/null; do sleep 2; done'
+          docker compose exec -T backend alembic upgrade head
+
+      # Ollama shows "error" in CI (no service running) so we check postgres
+      # status specifically rather than the aggregate "status" field.
+      - name: Wait for backend HTTP server
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/health \
+                | jq -e '.postgres == "ok"' >/dev/null 2>&1; then
+              echo "Backend ready (postgres: ok)"
+              exit 0
+            fi
+            echo "Waiting $i/30..."
+            sleep 5
+          done
+          echo "Backend health check timed out"
+          docker compose logs backend
+          exit 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        working-directory: frontend
+        env:
+          POKEPRISM_E2E_FULL_STACK: '1'
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7

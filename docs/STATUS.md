@@ -2,24 +2,480 @@
 
 > This file is updated at the end of every development session.
 > Read this BEFORE reading PROJECT.md to understand current state.
+> Historical session entries below are retained as written; date-relative or future-looking notes in those entries may reflect the environment used when that session was recorded. The Current Phase section is authoritative as of 2026-05-02.
 
 ## Current Phase
-**Card Pool Expansion — Complete** ✅
-_Last updated: 2026-04-30_
+**Production Readiness Follow-Up — In Progress**
+_Last updated: 2026-05-03 (Session 5 of follow-up phase)_
 
-All 20 card expansion batches complete. 103-card audit complete (93 missing cards inserted). All flagged cards implemented across 8 engine batches. **0 missing handlers. 2001 real cards in DB.**
+Phase 13 and Phase 12 are complete. Production-readiness follow-up continues with critical bug fixes and edge case hardening.
 
 | Metric | Value |
 |--------|-------|
-| Cards in DB | **2001** |
-| Coverage | **100%** (0 missing handlers) |
+| Cards in DB | **2005** (2003 real + 2 test fixtures) |
+| Coverage | **100%** (0 missing handlers, only test-002 fixture unhandled) |
 | Flat-damage-only cards | 292 |
-| Tests | **215 passing** |
+| Tests | **320 backend + 4 frontend + 13 Playwright E2E** passing (confirmed 2026-05-03) |
 | Flagged entries remaining | **0** |
+| Production-readiness known issues | **All actionable issues FIXED** |
 
 ---
 
-## Last Session — 2026-04-30 (103-Card Audit + Final 5 Handlers)
+## Last Session — 2026-05-03 (Hardening Sweep: Frozensets, Coverage Gaps, Error Handling)
+
+### Current Phase Progress
+
+**Completed this session:**
+
+1. **`_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozenset audit** — Full DB cross-reference revealed 19 wrong/phantom IDs (pointing to Wiglett, Charjabug, Bronzor, etc., or not in DB at all; Miraidon misclassified as Ancient; Gouging Fire ex misclassified as Future). Added 44 missing real Paradox cards across both sets. Result: 33 Ancient IDs, 29 Future IDs — all verified against DB, zero phantom IDs, zero overlap. Commit: `65e0ce7`.
+
+2. **Trainer coverage gaps fixed** — Three cards added to DB since last coverage audit had no effect handlers, causing 422 on simulation submission: `Scoop Up Cyclone` (sv06-162, bench Pokémon → hand with energy returned), `Miracle Headset` (sv08-183, retrieve up to 2 Supporters from discard), `Judge` sv10-167 (registered with existing `_judge` handler). Coverage now clean: only test-002 fixture remains unhandled. Commit: `6d3d390`.
+
+3. **Frontend 422 error handler fix** — Coverage check returns `detail` as a dict `{error, cards, message}`. Frontend fell through to generic "Server error: 422" branch. Added object branch that reads `detail.message` when present. Commit: `69ef653`.
+
+4. **AI/Coach hardening assessment updated** — Both Stage 1 gap items (injection fixture tests + async repair test fix) were already completed in a prior session. Updated `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md` to reflect completed status. Stage 2 and Stage 3 DB work remain intentionally deferred. Commit: `6f818cf`.
+
+**Validation this session:**
+- Backend suite: **320 tests passed** (no regressions)
+- Coverage check: **0 cards with missing handlers** (excluding test-002)
+- Frozensets: **33 Ancient + 29 Future IDs, all in DB, no overlap**
+- Simulation submission: **unblocked** for Scoop Up Cyclone, Miracle Headset, Judge sv10-167
+
+**Status of known issues:**
+- ✅ `_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets: **FIXED** — full DB audit, 44 missing IDs added, 19 wrong IDs removed (commit 65e0ce7)
+- ✅ Simulation submission 422 on coverage check: **FIXED** — three trainer handlers implemented + frontend error display fixed (commits 6d3d390, 69ef653)
+- ✅ AI/Coach Stage 1 gap (injection tests, async repair test): **CONFIRMED DONE** in prior session
+- ⏳ DeckBuilder Phase 3 (sim-backed preference weighting): Deferred — needs sufficient match history
+- ⏳ AI/Coach Stage 2/3: Stage 2 deferred until second LLM provider; Stage 3 DB schema deferred until frontend needs separate evidence display
+
+**Remaining in current production-readiness follow-up:**
+- DeckBuilder Phase 3 — intentionally deferred, no immediate action
+- AI/Coach Stage 2/3 — intentionally deferred, no immediate action
+- **No actionable unblocked items remain in this phase**
+
+---
+
+## Active Files Changed This Session
+
+**Modified:**
+- `backend/app/engine/effects/attacks.py` — `_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets rebuilt from DB ground truth
+- `backend/app/engine/effects/trainers.py` — Added `_scoop_up_cyclone`, `_miracle_headset` handlers; registered `sv10-167` with `_judge`
+- `frontend/src/pages/SimulationSetup.tsx` — 422 error handler: added `detail.message` branch for dict errors
+- `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md` — Updated status: Stage 1 gaps marked complete
+- `docs/STATUS.md` — This file
+
+**Commits:**
+1. `65e0ce7` — Fix _ANCIENT_CARD_IDS and _FUTURE_CARD_IDS frozensets in attacks.py
+2. `6d3d390` — Implement handlers for Scoop Up Cyclone, Miracle Headset, and Judge sv10-167
+3. `69ef653` — Fix simulation 422 error handler to display coverage check message
+4. `6f818cf` — Update AI_COACH_HARDENING_ASSESSMENT: mark Stage 1 gap items complete
+
+---
+
+## Notes for Next Session
+
+**Start here:**
+1. Read this `docs/STATUS.md` first for current state
+2. Current phase: **Production Readiness Follow-Up — winding down**
+
+**What was accomplished this session and should NOT be re-done:**
+- ✅ Frozenset audit complete and committed
+- ✅ All trainer coverage gaps closed; 320 tests pass
+- ✅ Frontend 422 error display fixed
+- ✅ AI/Coach hardening assessment accurate
+
+**What remains (all intentionally deferred):**
+- DeckBuilder Phase 3: needs match history accumulation
+- AI/Coach Stage 2: needs second LLM provider
+- AI/Coach Stage 3 DB schema: needs frontend evidence display requirement
+
+**Test suite baseline (confirmed 2026-05-03):**
+- Backend: `cd backend && python3 -m pytest tests/ -x -q` → **320 passed**
+- Frontend: `cd frontend && npm run build` → **clean**
+- E2E: `POKEPRISM_E2E_FULL_STACK=1 npm run test:e2e` → **13 passed**
+- Coverage: 0 missing handlers (excluding test-002)
+
+**Handoff complete. Session stable. Ready for next agent.**
+
+---
+
+## Previous Session — 2026-05-02 (Timeout Fix + Neo4j Validation + Auto-Fire Cards)
+
+### Current Phase Progress
+
+**Completed this session:**
+
+1. **Simulation creation timeout fix** — Root cause: Frontend axios client had 30-second timeout; backend `_get_deck_name_from_gemma()` cosmetic Ollama call ran synchronously in request handler, blocking the response. Backend already had fix (Gemma timeout 120s → 8s with quick fallback). Frontend fix: axios global timeout increased from 30s → 60s to provide safety net for simulation creation POST + any TCGDex API calls. Commit: `a3f9bf5`.
+
+2. **Neo4j event loop fix validation** — Investigated "Future attached to a different loop" warnings previously observed during E2E-created simulations. Confirmed the fix was already properly implemented: (a) `run_simulation` sync wrapper nils `_driver` module-level singleton before creating fresh asyncio event loop, then nils it again after loop closes; (b) `_run_simulation_async` calls `await close_driver()` in finally block while loop is still alive, ensuring proper connection pool drainage before loop closure; (c) `GraphMemoryWriter.write_match()` calls wrapped in try/except with warning logging for non-fatal failures. Regression test `TestRunSimulationWrapper.test_driver_nilled_before_async_impl_entry` passes. Full-stack E2E test (13 tests) ran with live Celery log monitoring: **zero warnings or errors observed**. Neo4j graph persistence confirmed working correctly.
+
+3. **Auto-fire ability player choice fixes** — Reviewed all 6 auto-fire abilities (Status.md known issue) for player choice support. Verified that 5 of 6 already had proper ChoiceRequest implementations. Fixed the 6th: **Obliging Heal** (sv08-093 Indeedee) was missing a player confirmation prompt. Added ChoiceRequest asking player "Yes" or "No" before healing 30 damage from Active Pokémon and clearing all Special Conditions. Summary: Time to Chow Down (yes/no healing), Wafting Heal (yes/no healing), Obliging Heal (now yes/no healing), Impromptu Carrier (which Tool?), Dig Dig Dig (which F Energy?), Inviting Wink (opponent chooses Basics). All now fully implement player choice as intended. Commit: `ad2fd65`.
+
+**Validation this session:**
+- Axios timeout fix: E2E full-stack suite **13/13 tests passed** with "creates H/H simulation and streams live events" validating end-to-end creation flow
+- Neo4j driver isolation: Regression test **passed**; live Celery logs during E2E **clean** (no loop/driver warnings)
+- Auto-fire abilities: All 6 abilities verified to properly use ChoiceRequest; backend suite **320 tests passed** (no regressions)
+- Frontend build: **clean**, no warnings
+- `npm audit`: **0 vulnerabilities**
+
+**Status of known issues (from prior STATUS.md entries):**
+- ✅ Simulation creation timeout: **FIXED** (axios 30s→60s; commit a3f9bf5)
+- ✅ Neo4j event loop warnings: **VALIDATED — No active warnings, fix confirmed production-ready** (commit 01c8d5f)
+- ✅ Auto-fire ability simplifications: **FIXED — All 6 abilities now have proper player choice prompts** (commit ad2fd65)
+- ⏳ Inviting Wink: Actually already implemented with full player choice (opponent selects Basics via choose_cards); no additional work needed
+- ⏳ `_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets: May be missing promo/alt-art Paradox Pokémon; flagged for future audit but not critical
+- ⏳ DeckBuilder Phase 3 (sim-backed preference weighting): Deferred pending sufficient match history
+- ⏳ AI/coach Stage 2/3 hardening: Deferred per existing proposal
+
+**Remaining in current production-readiness follow-up:**
+- DeckBuilder Phase 3 (matchup-frequency weighting) — requires accumulated match history for meaningful sim-backed weighting
+- AI/Coach Stage 2/3 hardening — deferred per `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md`
+- Optional hardening: `_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` verification (low priority; card pool functionality is not blocked)
+
+---
+
+---
+
+## Known Issues / Gaps
+
+Carried from prior sessions (updated):
+- **Auto-fire simplifications**: ~~Wafting Heal, Obliging Heal, Impromptu Carrier, Dig Dig Dig, Time to Chow Down auto-select targets without player choice~~ → **FIXED this session**. All 6 abilities now properly prompt players for choices.
+- **Inviting Wink**: ~~Places first Basic from opponent's hand (auto-select); actual card may let opponent choose~~ → Already fully implemented with `choose_cards` ChoiceRequest allowing opponent to select any number of Basics (min_count=0, max_count=bench_space).
+- **`_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets**: May be missing promo/alt-art Paradox Pokémon prints. Not a blocking issue; card pool functionality confirmed working. Low-priority audit item.
+- **DeckBuilder Phase 3 (sim-backed preference) deferred**: Phases 1, 2, 4, 5 complete. Phase 3 (matchup-frequency weighting from match history) requires sufficient match data and is intentionally deferred.
+- **card_performance historically sparse**: 1,145 matches produced only 85 card_performance rows because opponent deck_cards were not populated. The fix (added `ensure_deck` for P2) applies going forward; existing data not backfilled. This is acceptable as forward data will be complete.
+
+New this session:
+- None — All identified issues were addressed or confirmed as already-fixed.
+
+---
+
+## Key Decisions Made This Session
+
+1. **Axios timeout increased to 60s (not 120s)** — Chose 60s as a reasonable safety net without being excessive. Covers backend's Gemma timeout fallback (8s) plus any TCGDex API latency.
+
+2. **Obliging Heal requires player confirmation** — Matches the design pattern of similar healing abilities (Time to Chow Down, Wafting Heal). Provides consistency across ability implementations.
+
+3. **Auto-fire abilities verification approach** — Rather than assuming all had issues, verified each of the 6 abilities by code inspection. This revealed that only Obliging Heal was missing the prompt; others were correctly implemented. Prevented unnecessary changes.
+
+4. **Neo4j warnings non-blocking** — Validated that existing fix is production-ready and no warnings occur in practice. Closed the issue without further changes since the implementation is solid.
+
+5. **No changelog entry for this session** — Production Readiness Follow-Up phase is ongoing; no phase completion occurred. Changelog updates only when phases complete.
+
+---
+
+## Notes for Next Session
+
+**Start here:**
+1. Read this `docs/STATUS.md` first for current state
+2. Read `docs/PROJECT.md` section 18 (Phase 13) for context on production-readiness focus
+3. Current phase: **Production Readiness Follow-Up — In Progress**
+
+**What was accomplished this session and should NOT be re-done:**
+- ✅ Simulation creation timeout fixed (axios 30s→60s). All E2E tests pass end-to-end.
+- ✅ Neo4j event loop isolation validated. No active warnings. Fix is production-ready.
+- ✅ All 6 auto-fire abilities verified to have proper ChoiceRequest player prompts. Obliging Heal now asks for confirmation before healing.
+
+**What remains in Production-Readiness Follow-Up:**
+1. **DeckBuilder Phase 3** — Sim-backed preference weighting from match history. **Status:** Intentionally deferred until enough match data accumulates. No action needed until match count is substantial (current baseline after 1,145 matches is ~85 rows in card_performance; needs more iteration).
+
+2. **AI/Coach Stage 2/3 hardening** — Provider interface abstraction and injection testing. **Status:** Per `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md`, Stage 2 deferred until a second LLM provider is needed; Stage 3 testing can be added optionally but is not blocking. No immediate action needed.
+
+3. **Optional: `_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` audit** — Verify Paradox Pokémon frozensets are complete. Low priority; card pool functionality works correctly. Could be done if time permits but not critical.
+
+**Test suite baseline (confirmed 2026-05-02):**
+- Backend: `cd backend && python3 -m pytest tests/ -x -q` → **320 passed**
+- Frontend: `cd frontend && npm run build` → **clean**
+- E2E: `cd frontend && POKEPRISM_E2E_FULL_STACK=1 npm run test:e2e` → **13 passed**
+- Security: `npm audit` → **0 vulnerabilities**
+- Type: `npx tsc --noEmit` → **passed**
+
+**Useful files for next session:**
+- `docs/STATUS.md` — This file; always read first
+- `docs/PROJECT.md` — Phase definitions and architecture
+- `docs/proposals/DECKBUILDER_ROADMAP.md` — If continuing DeckBuilder work
+- `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md` — If continuing AI hardening
+- `backend/app/engine/effects/abilities.py` — Auto-fire ability implementations (now complete)
+- `frontend/src/api/client.ts` — Axios client config (timeout now 60s)
+
+**No re-create needed:**
+- All proposal documents already exist in `docs/proposals/`
+- All E2E test infrastructure in place (`.github/workflows/e2e.yml`, `frontend/playwright.config.ts`, `frontend/e2e/**`)
+- All game engine effects implemented (100% coverage, 0 missing handlers)
+
+**Handoff complete. Session stable. Ready for next agent.**
+
+---
+
+## Previous Session — 2026-05-02 (Production Follow-Up: Playwright Tier 2/3, CI wiring, Neo4j fix)
+
+### Current Phase Progress
+
+**Completed this session:**
+
+1. **Playwright Tier 2/3 expansion** — Added 5 new full-stack browser tests inside the existing serial `'full stack browser smoke'` describe block: (a) event detail overlay opens/closes on console event click and confirms AI reasoning section is absent in H/H mode; (b) partial-deck mode fills a 10-card partial deck and starts a simulation; (c) no-deck mode hides the textarea and starts a simulation from the card pool; (d) Memory page card search returns dropdown results for "Dreepy"; (e) Memory page card profile loads after selecting a search result. Added `PARTIAL_DECK_10` fixture to `e2e/fixtures/decks.ts`. Added stable `data-testid` attributes to `EventDetail.tsx` (overlay panel, AI reasoning section, reasoning blocks), `Memory.tsx` (search input, dropdown, result items), and `CardProfile.tsx` (root container). Added `frontend/e2e/ai.spec.ts` — gated by `POKEPRISM_E2E_AI=1`, tests the AI reasoning overlay for `ai_h` simulations with a 5-minute inference timeout.
+
+2. **GitHub Actions CI wiring for Playwright** — Added `.github/workflows/e2e.yml`. The workflow starts Postgres/Neo4j/Redis with `docker compose up --wait`, builds backend and Celery worker with `--no-deps` (bypasses Ollama GPU dependency), runs Alembic migrations, polls `/health` until `.postgres == "ok"`, installs Playwright Chromium, and runs `POKEPRISM_E2E_FULL_STACK=1 npm run test:e2e`. Playwright report is uploaded as an artifact on failure (7-day retention). Job timeout: 25 minutes.
+
+3. **Neo4j "Future attached to a different loop" fix** — Root cause: module-level `AsyncDriver` singleton in `app/db/graph.py` binds to the first event loop; each Celery task creates a new loop via `asyncio.new_event_loop()`, leaving the singleton pointing to a dead loop. Fix mirrors the pytest conftest pattern (`tests/test_memory/conftest.py`): (a) `run_simulation` sync wrapper nils `_driver` before creating the new loop, and nils it again in the `finally` block after `loop.close()`; (b) `_run_simulation_async` now calls `await close_driver()` in its `finally` block (while the loop is alive) to properly drain the connection pool before the loop closes. Regression test added: `TestRunSimulationWrapper.test_driver_nilled_before_async_impl_entry` — pre-installs a stale driver, calls `run_simulation.run()`, captures `_driver` state inside the stub async impl, asserts it was None at entry and remains None after completion.
+
+**Validation this session:**
+- `python3 -m pytest tests/test_tasks/` — **43 passed**
+- Backend suite — **317 passed** (no regressions)
+
+**Remaining in current production-readiness follow-up:**
+- Phase 3 DeckBuilder sim-backed preference weighting remains intentionally deferred until match history is sufficient
+- Stage 2/3 AI/coach hardening remains deferred per existing proposal
+
+---
+
+## Last Session — 2026-05-02 (Production Follow-Up: DeckBuilder, Vite 6, Playwright E2E)
+
+### Current Phase Progress
+
+**Completed this session:**
+
+1. **DeckBuilder Phase 5 — Dead-card detection** — Added `_find_dead_cards(deck)` detecting two structural dead-card cases: (a) evolution Pokémon whose immediate `evolve_from` name is absent from the deck; (b) energy card with non-empty `energy_provides` where none of the provided types are usable by any Pokémon in the deck (checked via Pokémon type and attack costs). Added `_replace_dead_cards(deck, target_size, protected_names, warnings)`: removes dead cards not in the protected set, temporarily adds their IDs to `self._excluded_ids` during `_fill_any` refill to prevent re-addition, iterates up to 5 passes for cascading chains, appends a warning listing replaced card names. Integrated as a post-`_fill_any` pass in `_fill_deck`. `complete_deck` now passes `frozenset(c.name for c in partial_deck)` as `protected_names` so user-supplied cards are never removed by the dead-card sweep. 11 new tests were added in `TestDeadCardDetection`. Backend suite increased **306 → 317 tests**.
+
+2. **Vite 5 → 6 upgrade** — Patched GHSA-67mh-4wv8-2f99 (esbuild dev-server CORS advisory). Upgraded `vite@5.4.21 → 6.4.2` and `esbuild@0.21.5 → 0.25.12`. Switched JSX transform plugin from `@vitejs/plugin-react@4.7.0` (Babel-based) to `@vitejs/plugin-react-swc@4.3.0` (SWC-based) to remove the prior deprecated-esbuild-API warnings. `npm audit` reports **0 vulnerabilities**. Production builds are clean.
+
+3. **Playwright browser E2E baseline implemented** — After approval of `docs/proposals/PLAYWRIGHT_E2E_PLAN.md`, added Playwright config, npm scripts, Chromium dependency, a hardcoded minimal H/H test deck, and browser tests split under `frontend/e2e/`. The suite covers app load/navigation, simulation form validation, invalid deck errors, H/H simulation round-trip with live events, cancellation from the live view, coverage page data, dashboard chart rendering, and history table rendering.
+
+4. **Stable browser selectors added** — Added focused `data-testid` attributes across simulation setup, deck upload, parameter form, opponent deck list, live console, simulation status, coverage, dashboard, and history views.
+
+5. **Cancel UX fixed for browser correctness** — During Playwright stabilization, the backend successfully marked simulations cancelled but the browser badge could remain `Running` until a later polling/WebSocket update. After a successful `cancelSimulation()` response, `SimulationLive` now updates the local Zustand simulation status to `cancelled` immediately.
+
+6. **Full-stack E2E CORS support** — Added `http://localhost:4173` and `http://127.0.0.1:4173` to backend default CORS origins so the Playwright Vite dev server can connect to the backend and Socket.IO during local full-stack tests.
+
+7. **Playwright proposal status updated** — `docs/proposals/PLAYWRIGHT_E2E_PLAN.md` now records that the plan was approved and the Tier 1 baseline was implemented on 2026-05-02.
+
+**Validation this session:**
+- `POKEPRISM_E2E_FULL_STACK=1 npm run test:e2e` — **8 passed**
+- `npm test` — **4 passed**
+- `npx tsc --noEmit` — **passed**
+- `npm run build` — **passed**
+- Full backend suite after DeckBuilder Phase 5 — **317 passed**
+- `npm audit` after Vite upgrade — **0 vulnerabilities**
+- `git diff --check` — **passed**
+
+**Remaining in current production-readiness follow-up:**
+- Playwright Tier 2/3 expansion: AI reasoning overlay, Memory search/graph, partial-deck mode, no-deck mode, additional error states
+- CI wiring for Playwright once the local browser suite is accepted
+- Phase 3 DeckBuilder sim-backed preference weighting remains intentionally deferred until match history is sufficient
+- Stage 2/3 AI/coach hardening remains deferred per existing proposal
+
+---
+
+## Active Files Changed This Session
+
+- `.gitignore` — added Playwright report/result directories
+- `backend/app/coach/deck_builder.py` — `_find_dead_cards`, `_replace_dead_cards`; updated `_fill_deck` and `complete_deck` to run dead-card replacement while preserving user-supplied cards
+- `backend/app/config.py` — added Playwright Vite dev-server origins to default CORS list
+- `backend/tests/test_coach/test_analyst.py` — existing AI/coach hardening tests carried in current worktree from this production-readiness batch
+- `backend/tests/test_coach/test_deck_builder.py` — added `TestDeadCardDetection` coverage
+- `docs/STATUS.md` — updated session handoff
+- `docs/proposals/PLAYWRIGHT_E2E_PLAN.md` — marked proposal approved and baseline implemented
+- `frontend/package.json` — Vite/SWC/esbuild upgrade, Playwright dependency, `test:e2e` scripts
+- `frontend/package-lock.json` — lockfile updates for Vite/SWC/esbuild and Playwright
+- `frontend/playwright.config.ts` — new Playwright config and Vite dev-server setup
+- `frontend/e2e/fixtures/decks.ts` — new minimal H/H test deck fixture
+- `frontend/e2e/full-stack.spec.ts` — new full-stack browser E2E tests gated by `POKEPRISM_E2E_FULL_STACK=1`
+- `frontend/e2e/smoke.spec.ts` — new browser smoke/error tests
+- `frontend/src/components/simulation/DeckUploader.tsx` — stable E2E selectors for deck mode/input/lock controls
+- `frontend/src/components/simulation/LiveConsole.tsx` — stable E2E selectors for live console and events
+- `frontend/src/components/simulation/OpponentDeckList.tsx` — stable E2E selectors for opponent deck controls
+- `frontend/src/components/simulation/ParamForm.tsx` — stable E2E selectors for simulation parameters
+- `frontend/src/components/simulation/SimulationStatus.tsx` — stable E2E selectors for status badge and cancel button
+- `frontend/src/pages/Coverage.tsx` — stable E2E selectors for coverage summary/table
+- `frontend/src/pages/Dashboard.tsx` — stable E2E selectors for dashboard grid/charts
+- `frontend/src/pages/History.tsx` — stable E2E selectors for history table/rows
+- `frontend/src/pages/SimulationLive.tsx` — optimistic local `cancelled` status after cancel API success
+- `frontend/src/pages/SimulationSetup.tsx` — stable E2E selectors for form/warning/error/start button
+- `frontend/vite.config.ts` — switched to `@vitejs/plugin-react-swc`; excluded `e2e/**` from Vitest
+
+---
+
+## Known Issues / Gaps
+
+Carried from prior sessions:
+- **Auto-fire simplifications**: Wafting Heal, Obliging Heal, Impromptu Carrier, Dig Dig Dig, Time to Chow Down auto-select targets without player choice.
+- **Inviting Wink**: Places first Basic from opponent's hand (auto-select); actual card may let opponent choose.
+- **`_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets**: May be missing promo/alt-art Paradox Pokémon prints.
+- **DeckBuilder Phase 3 (sim-backed preference) deferred**: Phases 1, 2, 4, 5 complete. Phase 3 (matchup-frequency weighting from match history) requires sufficient match data and is intentionally deferred.
+- **card_performance historically sparse**: 1,145 matches produced only 85 card_performance rows because opponent deck_cards were not populated. The fix (added `ensure_deck` for P2) applies going forward; existing data not backfilled.
+- **Neo4j synergy edges from prior direct batch runs only**: The 1,612 existing SYNERGIZES_WITH edges came from `run_hh_batch(persist=True)` runs. All future simulation task runs now also write to Neo4j.
+
+New this session:
+- **Playwright baseline only**: Tier 1 and two Tier 2 browser tests exist. Remaining browser gaps: AI reasoning overlay, Memory search/graph, partial-deck mode, no-deck mode, and broader network/backend error states.
+- **Full-stack E2E requires the Docker stack and env gate**: Run with `POKEPRISM_E2E_FULL_STACK=1 npm run test:e2e`; without the env var the full-stack tests are skipped. The backend, Redis, Postgres, Neo4j, and Celery worker must be running.
+- **Playwright/Vite local port**: Playwright uses Vite on `127.0.0.1:4173` by default. Backend CORS now permits that origin.
+- **Tracked `frontend/node_modules` can become noisy after `npm install`**: Running frontend validation currently updates tracked files under `frontend/node_modules`. After validation, run `git restore frontend/node_modules` to keep the final diff clean. This was done before this handoff.
+- **One non-blocking vitest warning from plugin-react-swc**: `optimizeDeps.esbuildOptions` warning still appears during `npm test`; production builds are clean. This appears upstream in `@vitejs/plugin-react-swc@4.3.0`.
+- **Graph write warnings observed during E2E-created simulations**: Celery logs showed non-fatal Neo4j write warnings like `Future attached to a different loop`. E2E and simulation completion still passed, but this should be investigated separately if graph persistence reliability matters.
+
+---
+
+## Key Decisions Made This Session
+
+1. **Dead-card replacement protects user-supplied cards by name**: `complete_deck` passes `protected_names` based on card names, not IDs, so alternate printings of a user-supplied card are also protected. This matches existing copy-limit behavior.
+2. **Temporary exclusion prevents dead-card re-addition**: `_replace_dead_cards` temporarily adds dead card IDs to `self._excluded_ids` during refill, then restores the original set. This prevents immediate reselection without permanently banning cards.
+3. **Dead-card replacement is capped at 5 passes**: Cascading orphaned evolution chains are handled iteratively with a hard cap to avoid infinite loops.
+4. **Energy cards without `energy_provides` are never considered dead**: Special energies with empty `energy_provides` stay live because their applicability cannot be inferred from typed energy-provision metadata.
+5. **Vite upgraded package-by-package**: Chose explicit Vite/esbuild/SWC versions instead of `npm audit fix --force` to avoid uncontrolled major dependency churn.
+6. **Playwright tests are separate from Vitest**: E2E specs live under `frontend/e2e/`; `vite.config.ts` excludes `e2e/**` from Vitest so `npm test` and `npm run test:e2e` remain separate gates.
+7. **Full-stack tests are opt-in by environment variable**: Real backend/browser tests are guarded by `POKEPRISM_E2E_FULL_STACK=1` so local smoke runs can execute without requiring Docker services.
+8. **Cancel UI updates optimistically after API success**: The backend is authoritative for cancellation, but the browser now reflects successful cancellation immediately in local state instead of waiting for polling/WebSocket.
+9. **Playwright selectors use `data-testid` on stable workflow controls**: Selectors were added only to key workflow surfaces rather than coupling tests to CSS classes or layout.
+10. **No changelog entry added today**: The current phase is still **Production Readiness Follow-Up — In Progress**, not completed. `docs/CHANGELOG.md` was not updated.
+
+---
+
+## Notes for Next Session
+
+- **Start here**: Read this `docs/STATUS.md` first, then `docs/PROJECT.md`. Current phase is **Production Readiness Follow-Up — In Progress**.
+- **Do not redo completed work**: DeckBuilder Phase 5, Vite 6 upgrade, and Playwright E2E baseline are already implemented and validated.
+- **Frontend dependency workflow**: If running frontend tests/build/E2E, run `cd frontend && npm install` first if dependencies are missing or stale. After validation, run `git restore frontend/node_modules` to remove tracked dependency churn.
+- **E2E commands**:
+  - Smoke only / full-stack skipped: `cd frontend && npm run test:e2e`
+  - Full-stack browser suite: `cd frontend && POKEPRISM_E2E_FULL_STACK=1 npm run test:e2e`
+  - The Docker stack must be up for full-stack tests; Playwright starts its own Vite dev server on `127.0.0.1:4173`.
+- **Known passing validation from this handoff**: `317 backend`, `4 frontend`, `8 Playwright E2E`, `npm run build`, `npx tsc --noEmit`, `npm audit`, and `git diff --check` passed.
+- **Next recommended work**:
+  1. Expand Playwright Tier 2/3: AI reasoning overlay, Memory search/graph, partial-deck mode, no-deck mode, broader backend/network error states.
+  2. Add CI wiring for Playwright after the local suite is accepted.
+  3. Investigate non-fatal Neo4j graph write loop warnings seen in Celery logs during simulation runs.
+  4. Leave DeckBuilder Phase 3 deferred until enough match-history data exists for meaningful sim-backed weighting.
+- **Useful files for continuing Playwright work**:
+  - `docs/proposals/PLAYWRIGHT_E2E_PLAN.md`
+  - `frontend/playwright.config.ts`
+  - `frontend/e2e/full-stack.spec.ts`
+  - `frontend/e2e/smoke.spec.ts`
+  - `frontend/e2e/fixtures/decks.ts`
+- **Do not re-create proposal docs**: `VITE_UPGRADE_PLAN.md`, `PLAYWRIGHT_E2E_PLAN.md`, `AI_COACH_HARDENING_ASSESSMENT.md`, and `DECKBUILDER_ROADMAP.md` already exist in `docs/proposals/`.
+
+---
+
+## Previous Session — 2026-05-02 (DeckBuilder Phase 5 + Vite 6 Upgrade)
+
+### Current Phase Progress
+
+**Completed this session:**
+
+1. **DeckBuilder Phase 5 — Dead-card detection** — Added `_find_dead_cards(deck)` detecting two structural dead-card cases: (a) evolution Pokémon whose immediate `evolve_from` name is absent from the deck; (b) energy card with non-empty `energy_provides` where none of the provided types are usable by any Pokémon in the deck (checked via Pokémon type and attack costs). Added `_replace_dead_cards(deck, target_size, protected_names, warnings)`: removes dead cards not in the protected set, temporarily adds their IDs to `self._excluded_ids` during `_fill_any` refill to prevent re-addition, iterates up to 5 passes for cascading chains, appends a warning listing replaced card names. Integrated as a post-`_fill_any` pass in `_fill_deck`. `complete_deck` now passes `frozenset(c.name for c in partial_deck)` as `protected_names` so user-supplied cards are never removed by the dead-card sweep. 11 new tests in `TestDeadCardDetection`. Backend suite: **306 → 317 tests**.
+
+2. **Vite 5 → 6 upgrade** — Patched GHSA-67mh-4wv8-2f99 (esbuild dev-server CORS advisory). Upgraded `vite@5.4.21 → 6.4.2` and `esbuild@0.21.5 → 0.25.12`. Switched JSX transform plugin from `@vitejs/plugin-react@4.7.0` (Babel-based) to `@vitejs/plugin-react-swc@4.3.0` (SWC-based) to eliminate three deprecated-esbuild-API warnings that appeared in vitest output. `vite.config.ts`: one import line change. `npm audit`: **0 vulnerabilities**. All three validation gates passed: `npm test` (4/4), `tsc --noEmit` (0 errors), `npm run build` (2637 modules, clean, identical chunk sizes, 4.55s).
+
+**Remaining in current production-readiness follow-up:**
+- Playwright Tier 2/3 coverage remains for AI overlay behavior, Memory page graph/search, partial-deck mode, no-deck mode, and broader error states
+
+---
+
+## Previous Session — 2026-05-02 (Bug Fixes + Production Proposals)
+
+### Current Phase Progress
+
+**Completed this session:**
+1. **Full test suite confirmed** — `260 backend + 4 frontend` tests pass. Prior session's targeted run (121) is superseded.
+2. **Bug A (fake cards) — investigated and closed** — No fake cards in the current DB. The cards table has 2000 real cards + 2 test fixtures. The current code path (`ensure_deck_cards_in_db`) only inserts TCGDex-fetched cards; DeckBuilder only uses DB-backed cards. No active source for fake cards found or in code.
+3. **Bug B (Memory page / card_performance) — fixed** — Root cause: `_create_deck_record` in `simulations.py` creates Deck rows without `DeckCard` rows. The simulation task called `ensure_deck` only for P1, not P2. `_update_card_performance` queried `DeckCard` by deck_id for both sides and got empty results for P2, writing only P1 card data. Fixed by adding `ensure_deck` call for P2 deck in `simulation.py`. Also: `GraphMemoryWriter.write_match` was never called from the simulation task — Neo4j synergy edges were only written when `run_hh_batch(persist=True)` was used directly. Fixed by importing `GraphMemoryWriter` and calling it after each match's Postgres write with a non-fatal try/except.
+4. **Bug C (AI Reasoning overlay) — fixed** — Root cause: engine event types are lowercase (`attack_declared`, `energy_attached`) but Decision `action_type` is UPPERCASE enum names (`ATTACK`, `ATTACH_ENERGY`). The case mismatch caused the action_type filter to never match, returning ALL decisions for the turn. Fixed by adding `EVENT_TO_ACTION` mapping in `EventDetail.tsx` plus `toActionType()` normalizer. Reduced overlay limit from 5 to 3. Live-during-simulation fetching already works by design (no status gate on the decisions endpoint).
+5. **3A — Vite upgrade plan** — Written to `docs/proposals/VITE_UPGRADE_PLAN.md`. Advisory is dev-server-only, not production. Recommended path: vite 5 → 6 (Option A, low-medium risk). Do NOT run `npm audit fix --force`.
+6. **3B — Playwright E2E plan** — Written to `docs/proposals/PLAYWRIGHT_E2E_PLAN.md`. Covers 9 critical workflows, tier structure (smoke/feature/error), CI integration sketch, and risk assessment. Playwright not installed.
+7. **3C — AI/Coach Stage 2/3 assessment** — Written to `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md`. Stage 2 (provider interface) deferred until a second LLM provider is needed. Stage 3 injection fixture tests can be added now; DB evidence schema change deferred. One Stage 1 gap found: `test_coach_repair_does_not_resend_untrusted_context` uses `await` in a non-async test body and may not actually run.
+8. **3D — DeckBuilder roadmap** — Written to `docs/proposals/DECKBUILDER_ROADMAP.md`. 8-phase incremental roadmap from deterministic baseline to matchup-specific construction. Phases 1/2/4/5 (role tagging, archetype templates, staple balance, dead-card detection) require no sim data and should be done first as a single PR.
+9. **3E — Celery non-root verified** — `docker compose exec celery-worker whoami` → `app`. `docker compose exec celery-beat whoami` → `app`. Both services confirmed non-root.
+
+---
+
+## Previous Session — 2026-05-01 (Simulation Reliability + AI/Coach Stage 1 Hardening)
+
+### Current Phase Progress
+
+**Completed this session:**
+1. **H/H pending simulation investigation** — Found heuristic-vs-heuristic simulations were sitting in `pending` because Celery worker/beat services were not running. Restarted the Docker services and confirmed backend health reports `celery_workers: 1`.
+2. **Simulation engine regressions fixed** — Fixed tool-return handlers that treated `tools_attached` strings as card instances; fixed Telepathic Psychic Energy using nonexistent `Zone.IN_PLAY`; cleared stale `error_message` when simulations transition back to `running` or `complete`.
+3. **AI/coach hardening proposal created** — Added a reviewable proposal covering actual prompt-injection/provider risks, staged hardening, Playwright/browser E2E explanation, and remaining-risk remediation plan.
+4. **AI/coach Stage 1 hardening implemented** — Separated trusted system instructions from untrusted deck/log/card/simulation data; wrapped untrusted data blocks; required strict JSON-only model output; added bounded repair without resending untrusted context; required evidence on swap recommendations; capped reasoning/output size.
+5. **AI player prompt hardening** — Marked board state/card names/action descriptions as data, not instructions; capped parsed reasoning.
+6. **Celery non-root runtime** — Updated backend image to run as non-root `app`; updated Celery Beat to use `/tmp/celerybeat-schedule` so Beat can run non-root without permission errors.
+7. **Validation** — Targeted backend tests passed: `121 passed in 0.72s`. Syntax check passed. Docker backend, worker, and beat are up; backend health is OK.
+
+**Remaining in current production-readiness follow-up:**
+- Run a clean full backend test pass. A full `backend/tests` run was started but the Codex runner session stopped producing output and did not return a trustworthy result; targeted suites passed.
+- Vite/esbuild advisory still needs a controlled upgrade plan and approval before dependency changes.
+- Browser E2E is still not implemented; Playwright plan exists but needs approval before adding dependencies/config.
+- DeckBuilder remains deterministic baseline behavior, not a competitive/meta-aware optimizer.
+- AI/coach hardening is Stage 1 only. Provider abstraction and deeper provenance model remain staged follow-ups.
+- Full browser verification of charts, Socket.IO live rendering, and backend failure UX remains open.
+
+---
+
+## Active Files Changed This Session
+
+- `backend/Dockerfile`
+- `backend/app/coach/analyst.py`
+- `backend/app/coach/prompts.py`
+- `backend/app/engine/effects/attacks.py`
+- `backend/app/engine/effects/energies.py`
+- `backend/app/players/ai_player.py`
+- `backend/app/tasks/simulation.py`
+- `backend/tests/test_coach/test_analyst.py`
+- `backend/tests/test_engine/test_audit_fixes.py`
+- `backend/tests/test_players/test_ai_player.py`
+- `docker-compose.yml`
+- `docs/proposals/AI_COACH_HARDENING_PROPOSAL.md`
+- `docs/STATUS.md`
+
+---
+
+## Known Issues / Gaps
+
+Carried from prior sessions:
+- **Auto-fire simplifications**: Wafting Heal, Obliging Heal, Impromptu Carrier, Dig Dig Dig, Time to Chow Down auto-select targets without player choice.
+- **Inviting Wink**: Places first Basic from opponent's hand (auto-select); actual card may let opponent choose.
+- **`_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets**: May be missing promo/alt-art Paradox Pokémon prints.
+- **Partial/no-deck simulations**: Restored and runnable. `DeckBuilder.complete_deck` and `DeckBuilder.build_from_scratch` now provide deterministic baseline decks from DB-backed card data and return warnings below the 5,000-match memory-quality threshold.
+- **Verified in hardening sweep (2026-05-01)**: Sand Stream, Wonder Kiss, Majestic Sword, Buzzing Boost, and Hand Trimmer were checked against captured TCGDex fixtures. Sand Stream needed a trigger-location fix and is now covered by regression tests; the other listed implementations matched the captured text.
+
+New this session:
+- **Full backend suite result is not confirmed today**: The targeted suites for today's changes passed, but a full `cd backend && python3 -m pytest tests/ -x -q` run did not return a usable result from the Codex runner session. Re-run next session before stacking larger changes.
+- **Vite/esbuild audit advisory remains**: Current package state observed today: `vite` declared `^5.3.1`, lockfile `5.4.21`; `vitest` `4.1.5`; `@vitejs/plugin-react` lockfile `4.7.0`; `esbuild` `0.21.5`. `npm audit` wants `vite@8.0.10` as a semver-major fix. Do not run `npm audit fix --force` without approval.
+- **Browser E2E still missing**: API/curl smoke verifies services and endpoints, but not rendered charts, route behavior in a real browser, Socket.IO live UI, or visible backend-error UX.
+- **AI/coach hardening is partial**: Stage 1 prompt/schema hardening is implemented. Provider interface cleanup, stronger provenance/citation modeling, and broader prompt-injection redesign remain open.
+- **DeckBuilder quality remains baseline**: It is deterministic and runnable, but not role-tagged, archetype-template-driven, synergy-scored, matchup-aware, or win-rate-evolved.
+
+---
+
+## Key Decisions Made This Session
+
+1. **Prompt hardening scope**: Implemented only targeted Stage 1 hardening. No broad provider rewrite, Vite upgrade, Playwright install, or DeckBuilder optimizer work was done.
+2. **Trusted/untrusted separation**: Coach prompts now use a trusted system message plus a user/data message with explicit `<untrusted_data>` blocks for decklists, battle logs, card text, simulation summaries, and candidate cards.
+3. **Strict coach output parsing**: Coach model output must be pure JSON. The parser no longer extracts JSON from surrounding prose. Invalid JSON enters a bounded repair path.
+4. **Bounded repair behavior**: Repair prompts include the schema/error and previous malformed response only; they do not resend untrusted battle/deck/card context.
+5. **Evidence requirement**: Coach swap recommendations now require evidence entries tied to simulation/card facts where possible. Evidence is packed into mutation reasoning because the DB schema does not yet have a dedicated evidence column.
+6. **Tool attachment model**: `tools_attached` stores card definition IDs/strings, not tracked card instances. Return-to-deck effects should clear `tools_attached` directly rather than trying to move nonexistent tool instances between zones.
+7. **Telepathic Psychic Energy zone fix**: There is no `Zone.IN_PLAY`; when moving Psychic Energy from discard to a benched Psychic Pokémon, the energy card's zone should be `Zone.BENCH`.
+8. **Docker non-root runtime**: Backend-derived containers now run as `USER app`. Celery Beat's persistent scheduler file must live in a writable path (`/tmp/celerybeat-schedule`) under this model.
+
+---
+
+## Notes for Next Session
+
+- **Start by running a clean full backend test pass**: `cd backend && python3 -m pytest tests/ -x -q`. If it hangs again, investigate the test that is blocking before doing new feature work.
+- **Then review current diff**: The worktree contains simulation fixes, AI/coach Stage 1 hardening, Docker non-root changes, and the proposal doc. Do not assume these are committed.
+- **Useful targeted validation already run**: `cd backend && python3 -m pytest tests/test_coach/test_analyst.py tests/test_players/test_ai_player.py tests/test_tasks/test_simulation_task.py tests/test_engine/test_audit_fixes.py -q` passed with `121 passed in 0.72s`.
+- **Docker services are currently healthy**: `docker compose ps backend celery-worker celery-beat` showed all up; `/health` returned OK for Postgres, Neo4j, Redis, Ollama, and Celery worker count.
+- **Next recommended work order**:
+  1. Clean full backend test run and any resulting fix
+  2. Review/commit current hardening batch
+  3. Controlled Vite/esbuild upgrade plan, no `npm audit fix --force`
+  4. Playwright browser E2E implementation only after approving the plan
+  5. DeckBuilder competitive roadmap work after hardening/test infrastructure is stable
+- **Do not redo proposal research**: The AI/coach hardening proposal is in `docs/proposals/AI_COACH_HARDENING_PROPOSAL.md`.
+
+---
+
+## Previous Session — 2026-04-30 (103-Card Audit + Final 5 Handlers)
 
 ### Summary
 
@@ -52,57 +508,6 @@ All 20 card expansion batches complete. 103-card audit complete (93 missing card
 - `backend/app/engine/runner.py` — Added `energy_attach_punish_counters = 0` reset alongside `attack_requires_flip` in between-turns cleanup
 - `backend/app/engine/effects/attacks.py` — Added `_supernatural_shapeshifter`, `_electrified_incisors`; registered me01-020/0, me01-051/0, me01-069/0, mep-023/0
 - `backend/app/engine/effects/abilities.py` — Added `register_passive_ability("me01-028", "Explosiveness")`
-
----
-
-## Active Files Changed This Session
-
-- `backend/app/engine/state.py`
-- `backend/app/engine/transitions.py`
-- `backend/app/engine/runner.py`
-- `backend/app/engine/effects/attacks.py`
-- `backend/app/engine/effects/abilities.py`
-- `docs/POKEMON_MASTER_LIST.md`
-
----
-
-## Known Issues / Gaps
-
-Carried from prior sessions (not yet verified/fixed):
-- **Sand Stream (sv10-096)**: Implemented as 1 counter on ALL opponent Pokémon — actual card may be 2 counters on Basic Pokémon only.
-- **Wonder Kiss (sv08-072)**: Coin flip added — verify against actual card text.
-- **Majestic Sword (sv05-080)**: Bonus implemented as +100 — verify against card text.
-- **Buzzing Boost (sv10-003)**: Attaches energy to own Pokémon — actual text says "put into your hand."
-- **Hand Trimmer (sv05-150)**: Implemented as discard to 5 — actual effect may be "+30 if opponent has ≥8 cards."
-- **Auto-fire simplifications**: Wafting Heal, Obliging Heal, Impromptu Carrier, Dig Dig Dig, Time to Chow Down auto-select targets without player choice.
-- **Inviting Wink**: Places first Basic from opponent's hand (auto-select); actual card may let opponent choose.
-- **`_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets**: May be missing promo/alt-art Paradox Pokémon prints.
-
-New this session:
-- **mep-017 Toxtricity**: Appears in TCGDex set listing for `mep` but individual card endpoint returns 404. Not inserted into DB. If TCGDex ever fixes this data gap, it will need to be fetched and its handler implemented.
-
----
-
-## Key Decisions Made This Session
-
-1. **asyncpg jsonb serialization**: Python lists must be `json.dumps()`-ed before passing to asyncpg for `jsonb` columns (`types`, `attacks`, `abilities`, `weaknesses`, `resistances`, `raw_tcgdex`). asyncpg does NOT auto-serialize Python lists.
-2. **Supernatural Shapeshifter pattern**: To copy a Supporter effect from within an attack handler, look up the handler directly from `EffectRegistry._trainer_effects` dict. If it's a generator function, use `yield from`; if regular function, call directly. Do not go through the async `resolve_trainer()` path.
-3. **Electrified Incisors pattern**: "Punish next attachment" effects use a counter field on `CardInstance` (`energy_attach_punish_counters`) checked in `_attach_energy`. This is the preferred pattern for any future "whenever opponent attaches energy" triggers.
-4. **MEP set structure confirmed**: `mep` set contains cards 001–028 and 037–045 only (37 cards total). Cards 029–036 and 064+ do not exist. Any future MEP expansion should check TCGDex first.
-
----
-
-## Notes for Next Session
-
-- **DB is at 2001 real cards, 0 missing handlers. Coverage is 100%.** Phase 12 (Card Pool Expansion) is complete.
-- **Next phase per PROJECT.md**: No Phase 14 is defined. Logical next steps are:
-  1. Verify the 8 known potentially-incorrect implementations listed in Known Issues above
-  2. Phase 14 — Tuning & Evaluation (baseline win-rate benchmarks, coach quality metrics)
-  3. Or expand card pool further when new Pokémon TCG Pocket sets release
-- **Test baseline**: 215 tests pass. Run `cd backend && python3 -m pytest tests/ -x -q`.
-- **DB connection**: PostgreSQL on port 5433, password `changeme_postgres`. `docker exec pokeprism-postgres psql -U pokeprism -d pokeprism`
-- **MEP Mega Charizard X ex** is now correctly at `mep-023` in both the DB and the master list (was incorrectly listed as MEP 29).
-- **POKEMON_MASTER_LIST.md** now has 1973 entries (all real cards). If it needs to be rebuilt from scratch, the canonical source is TCGDex — use `SET_CODE_MAP` in `backend/app/cards/loader.py` for set abbreviation → TCGDex ID mapping.
 
 ---
 
@@ -1803,4 +2208,3 @@ The asymmetry is deck matchup, not seating. Deck-out dropped 21% → 4% (G/G →
 - Analytics charts: win rate over time, top cards, deck performance comparisons
 - GET /api/history endpoints (list, filter by date/deck/status)
 - Recharts or Chart.js for visualisation
-

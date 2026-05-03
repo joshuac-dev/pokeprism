@@ -3720,16 +3720,26 @@ def _obliging_heal(state: GameState, action):
     if target is None:
         return
 
+    # Check if there's anything to heal or any special conditions to clear
     heal = min(30, target.damage_counters * 10)
+    has_conditions = any(sc.name != "PARALYZED" for sc in target.status_conditions)
+    
+    if heal == 0 and not has_conditions:
+        return
+
+    req = ChoiceRequest(
+        "choose_option", player_id,
+        f"Obliging Heal: Heal 30 damage from {target.card_name} and remove all Special Conditions? ",
+        options=["Yes", "No"],
+    )
+    resp = yield req
+    if resp is None or (resp.selected_option or 0) != 0:
+        return
+
     if heal > 0:
         target.current_hp = min(target.max_hp, target.current_hp + heal)
         target.damage_counters = max(0, target.damage_counters - (heal // 10))
 
-    special_conditions = {sc for sc in target.status_conditions
-                          if sc.name != "PARALYZED"}
-    had_conditions = bool(target.status_conditions - special_conditions
-                          or any(sc.name in ("POISONED", "BURNED", "CONFUSED", "ASLEEP")
-                                 for sc in target.status_conditions))
     target.status_conditions.clear()
 
     state.emit_event("obliging_heal", player=player_id, card=target.card_name,

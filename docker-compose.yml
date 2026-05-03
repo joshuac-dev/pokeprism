@@ -124,7 +124,7 @@ services:
       dockerfile: Dockerfile
     container_name: pokeprism-celery-beat
     restart: unless-stopped
-    command: celery -A app.tasks.celery_app beat --loglevel=info
+    command: celery -A app.tasks.celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule
     env_file: .env
     environment:
       REDIS_URL: redis://redis:6379/0

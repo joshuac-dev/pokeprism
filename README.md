@@ -8,9 +8,9 @@ This project is intended for local/self-hosted experimentation and development, 
 
 PokéPrism has a working full-stack implementation with backend simulation services, a React frontend, Docker Compose infrastructure, database/memory services, and a broad implemented card pool. The current development status is tracked in [`docs/STATUS.md`](docs/STATUS.md).
 
-As of the latest status update (2026-04-30):
+As of the latest status update (2026-05-01):
 - **2001 cards in database** with **100% handler coverage** (0 missing handlers)
-- **215 passing tests** across engine and card implementations
+- **253 passing backend tests** plus **4 frontend tests** across API, task, engine, card, coach, memory, player, parser, and setup UI coverage
 - Card pool expansion phase **complete**
 - All 20 card expansion batches implemented
 - TCGDex-backed card data pipeline operational
@@ -24,13 +24,13 @@ PokéPrism provides:
 - **Pokémon TCG simulation engine** with deterministic state transitions and comprehensive card effect handling
 - **Multiple simulation modes**: heuristic-vs-heuristic (H/H), AI-vs-heuristic (AI/H), and AI-vs-AI modes for different speed/depth tradeoffs
 - **Local LLM integration** through Ollama for AI-driven players and deck analysis
-- **Coach/Analyst system** for deck analysis and evolution across simulation rounds
+- **Coach/Analyst system** for full-deck analysis and evolution across simulation rounds
 - **TCGDex-backed card data pipeline** — all card definitions sourced from the live TCGDex API
 - **PostgreSQL + pgvector** for structured data storage and embedding similarity search
 - **Neo4j graph layer** for card relationships, synergies, and decision history
 - **Redis/Celery** for async simulation orchestration and task scheduling
 - **FastAPI backend** with REST endpoints and Socket.IO streaming for real-time match viewing
-- **React/Vite frontend** for simulation setup, live console viewing, dashboards, match history, and memory exploration
+- **React/Vite frontend** for full-deck simulation setup, live console viewing, dashboards, match history, and memory exploration
 - **Docker Compose stack** for complete local service deployment
 
 ## Architecture
@@ -232,11 +232,31 @@ make test           # Run all backend tests (pytest)
 make test-engine    # Run engine tests with verbose output
 make test-cards     # Run card-specific tests with verbose output
 make lint           # Syntax-check all backend Python files
+cd frontend && npm test       # Run frontend unit/component tests
+cd frontend && npm run build  # Type-check and build the frontend bundle
+docker compose config --quiet # Validate Docker Compose configuration
 ```
 
-All tests use pytest. The test suite is located in `backend/tests/`.
+Backend tests use pytest and live in `backend/tests/`. Frontend tests use Vitest
+and React Testing Library.
 
-**Current test baseline** (as of 2026-04-30): **215 passing tests**
+**Current test baseline** (as of 2026-05-01 hardening/deck-builder sweep): **253 backend tests** and **4 frontend tests**
+
+### Docker smoke checks
+
+For a local end-to-end smoke pass, start or rebuild the services, verify health,
+then submit one small H/H simulation for each deck mode:
+
+```bash
+docker compose up -d --build backend celery-worker frontend
+curl -fsS http://localhost:8000/health
+curl -fsS -I http://localhost:3000
+```
+
+Use `POST /api/simulations` with `deck_mode` set to `full`, `partial`, or
+`none`. Partial mode must include a 1-59 card deck list; no-deck mode must omit
+`deck_text`. The API returns `deck_build` metadata for partial and no-deck
+submissions.
 
 ### Test structure
 
@@ -247,7 +267,7 @@ All tests use pytest. The test suite is located in `backend/tests/`.
 
 Card effect changes should be validated against TCGDex fixtures or live TCGDex data. The project follows a **live-data-first principle**: avoid fabricated card data. Test fixtures are captured from TCGDex, not hand-invented.
 
-Use `make capture-fixtures` (or `cd backend && python -m scripts.capture_fixtures`) to fetch live card data from TCGDex for test fixtures.
+Use `make capture-fixtures` to fetch live card data from TCGDex for test fixtures. The fixture capture script reads `docs/POKEMON_MASTER_LIST.md`.
 
 ## API and service endpoints
 
@@ -317,6 +337,7 @@ PokéPrism is under active development. Known caveats and simplifications includ
 - **LLM performance depends on hardware**: AI/AI simulations are significantly slower than H/H. Local LLM quality depends on GPU, model quantization, and Ollama configuration.
 - **AI modes require GPU**: Heuristic simulations run on CPU, but AI-backed modes require a GPU-enabled Ollama instance.
 - **Active development**: New features, optimizations, and card pool expansions are ongoing.
+- **Deck modes**: Full-deck, partial-deck completion, and no-deck/from-scratch simulations are runnable. Partial/no-deck modes use a conservative deterministic baseline `DeckBuilder` until enough historical match data exists for memory-optimized building.
 
 For the full list of known issues and verification items, see [`docs/STATUS.md`](docs/STATUS.md).
 

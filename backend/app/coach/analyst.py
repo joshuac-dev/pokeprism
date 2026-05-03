@@ -12,7 +12,11 @@ from typing import TYPE_CHECKING
 import httpx
 
 from app.config import settings
-from app.coach.prompts import COACH_EVOLUTION_PROMPT
+from app.coach.prompts import (
+    COACH_EVOLUTION_SYSTEM_PROMPT,
+    COACH_EVOLUTION_USER_PROMPT,
+    COACH_REPAIR_PROMPT,
+)
 from app.db.models import DeckMutation
 from app.memory.embeddings import SimilarSituationFinder
 from app.memory.graph import GraphQueries
@@ -24,6 +28,8 @@ if TYPE_CHECKING:
     from app.cards.models import CardDefinition
 
 logger = logging.getLogger(__name__)
+
+_TCGDEX_ID_RE = re.compile(r"^[a-z][a-z0-9.]*-[0-9]+[a-z]*$")
 
 
 class CoachAnalyst:
@@ -102,7 +108,7 @@ class CoachAnalyst:
         primary_ids = self._identify_primary_line(round_results, current_deck)
         tiers = self._classify_deck_tiers(current_deck, primary_ids)
 
-        prompt = self._build_prompt(
+        prompt_messages = self._build_prompt_messages(
             deck=current_deck,
             excluded_ids=excluded,
             round_results=round_results,
@@ -114,7 +120,7 @@ class CoachAnalyst:
             regression_info=regression_info,
         )
 
-        raw_swaps = await self._get_swap_decisions(prompt)
+        raw_swaps = await self._get_swap_decisions(prompt_messages)
 
         # Enforce tier protection rules (blocks tier1; requires full-line for tier2)
         all_deck_id_set = set(deck_ids)
@@ -124,7 +130,10 @@ class CoachAnalyst:
         for swap in valid_swaps:
             removed = swap.get("remove", "")
             added = swap.get("add", "")
-            reasoning = swap.get("reasoning", "")
+            reasoning = self._format_reasoning_with_evidence(
+                swap.get("reasoning", ""),
+                swap.get("evidence", []),
+            )
             if not removed or not added:
                 continue
             mutation = {
@@ -132,6 +141,7 @@ class CoachAnalyst:
                 "card_removed": removed,
                 "card_added": added,
                 "reasoning": reasoning,
+                "evidence": swap.get("evidence", []),
             }
             mutations.append(mutation)
             await self._graph.record_swap(removed, added, round_number, reasoning)
@@ -145,7 +155,7 @@ class CoachAnalyst:
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _build_prompt(
+    def _build_prompt_messages(
         self,
         deck: list[CardDefinition],
         round_results: list[MatchResult],
@@ -186,7 +196,8 @@ class CoachAnalyst:
         card_tiers_text = self._format_card_tiers(tiers, deck) if tiers else "  (not computed)"
         performance_history_text = self._format_performance_history(regression_info)
 
-        return COACH_EVOLUTION_PROMPT.format(
+        system_prompt = COACH_EVOLUTION_SYSTEM_PROMPT.format(max_swaps=self._max_swaps)
+        user_prompt = COACH_EVOLUTION_USER_PROMPT.format(
             max_swaps=self._max_swaps,
             deck_list=deck_list,
             win_rate=win_rate,
@@ -203,26 +214,51 @@ class CoachAnalyst:
             card_tiers=card_tiers_text,
             performance_history=performance_history_text,
         )
+        return [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
 
-    async def _get_swap_decisions(self, prompt: str, retries: int = 3) -> list[dict]:
+    def _build_prompt(self, *args, **kwargs) -> str:
+        """Compatibility helper for tests/callers that inspect the user prompt."""
+        return self._build_prompt_messages(*args, **kwargs)[1]["content"]
+
+    async def _get_swap_decisions(self, messages: list[dict] | str, retries: int = 2) -> list[dict]:
+        if isinstance(messages, str):
+            messages = [
+                {"role": "system", "content": COACH_EVOLUTION_SYSTEM_PROMPT.format(max_swaps=self._max_swaps)},
+                {"role": "user", "content": messages},
+            ]
         for attempt in range(retries):
-            raw = await self._call_ollama(prompt)
-            parsed = self._parse_response(raw)
-            if parsed is not None:
-                return parsed.get("swaps", [])
-            logger.warning("Coach parse failed (attempt %d/%d)", attempt + 1, retries)
-        logger.error("Coach gave unparseable response after %d retries", retries)
+            raw = await self._call_ollama(messages)
+            parsed, parse_error = self._parse_response(raw)
+            swaps, validation_error = self._validate_swap_response(parsed)
+            if swaps is not None:
+                return swaps
+            error = parse_error or validation_error or "unknown schema failure"
+            logger.warning(
+                "Coach response validation failed (attempt %d/%d): %s",
+                attempt + 1, retries, error,
+            )
+            messages = [
+                messages[0],
+                {
+                    "role": "user",
+                    "content": COACH_REPAIR_PROMPT.format(validation_error=error),
+                },
+            ]
+        logger.error("Coach gave invalid response after %d retries", retries)
         return []
 
-    async def _call_ollama(self, prompt: str) -> str:
+    async def _call_ollama(self, messages: list[dict]) -> str:
         """Call Ollama /api/chat with up to 3 connection retries (exponential backoff)."""
         import asyncio as _asyncio
 
         payload = {
             "model": self._model,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": messages,
             "stream": False,
-            "options": {"temperature": 0.3, "num_predict": -1},
+            "options": {"temperature": 0.2, "num_predict": 768},
         }
         _CONNECT_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout)
         for attempt in range(3):
@@ -244,7 +280,7 @@ class CoachAnalyst:
                 )
                 await _asyncio.sleep(wait)
 
-    def _parse_response(self, raw: str) -> dict | None:
+    def _parse_response(self, raw: str) -> tuple[dict | None, str | None]:
         """Parse Gemma 4 response: strip markdown fences, then JSON parse.
 
         Gemma 4 does NOT produce <think> tags or require prefill.
@@ -255,17 +291,77 @@ class CoachAnalyst:
         cleaned = re.sub(r"\s*```$", "", cleaned)
         cleaned = cleaned.strip()
         try:
-            return json.loads(cleaned)
-        except json.JSONDecodeError:
-            pass
-        # Regex fallback: extract first {...} block
-        match = re.search(r"\{.*\}", cleaned, re.DOTALL)
-        if match:
-            try:
-                return json.loads(match.group())
-            except json.JSONDecodeError:
-                pass
-        return None
+            parsed = json.loads(cleaned)
+        except json.JSONDecodeError as exc:
+            return None, f"invalid_json: {exc}"
+        if not isinstance(parsed, dict):
+            return None, "top-level response must be a JSON object"
+        return parsed, None
+
+    def _validate_swap_response(self, parsed: dict | None) -> tuple[list[dict] | None, str | None]:
+        """Validate model JSON before applying deck-mutation rules."""
+        if not isinstance(parsed, dict):
+            return None, "response is not an object"
+        swaps = parsed.get("swaps", [])
+        if swaps is None:
+            swaps = []
+        if not isinstance(swaps, list):
+            return None, "swaps must be a list"
+        swaps = swaps[:self._max_swaps]
+
+        valid: list[dict] = []
+        for swap in swaps:
+            if not isinstance(swap, dict):
+                return None, "swap entries must be objects"
+            remove = swap.get("remove")
+            add = swap.get("add")
+            reasoning = swap.get("reasoning", "")
+            evidence = swap.get("evidence", [])
+            if not isinstance(remove, str) or not isinstance(add, str):
+                return None, "remove/add must be strings"
+            if not _TCGDEX_ID_RE.match(remove) or not _TCGDEX_ID_RE.match(add):
+                return None, "remove/add must be valid tcgdex IDs"
+            if not isinstance(reasoning, str):
+                return None, "reasoning must be a string"
+            if not isinstance(evidence, list) or not evidence:
+                return None, "each swap must include at least one evidence entry"
+            bounded_evidence: list[dict] = []
+            for item in evidence[:3]:
+                if not isinstance(item, dict):
+                    return None, "evidence entries must be objects"
+                kind = item.get("kind")
+                ref = item.get("ref")
+                value = item.get("value")
+                if kind not in {"card_performance", "synergy", "round_result", "candidate_metric"}:
+                    return None, "invalid evidence kind"
+                if not isinstance(ref, str) or not isinstance(value, str):
+                    return None, "evidence ref/value must be strings"
+                bounded_evidence.append({
+                    "kind": kind,
+                    "ref": ref[:80],
+                    "value": value[:160],
+                })
+            valid.append({
+                "remove": remove,
+                "add": add,
+                "reasoning": reasoning[:500],
+                "evidence": bounded_evidence,
+            })
+        return valid, None
+
+    def _format_reasoning_with_evidence(self, reasoning: str, evidence: list[dict]) -> str:
+        """Persist a compact provenance trail in the existing reasoning field."""
+        reasoning = (reasoning or "").strip()[:500]
+        if not evidence:
+            return reasoning
+        parts = []
+        for item in evidence[:3]:
+            kind = item.get("kind", "?")
+            ref = item.get("ref", "?")
+            value = item.get("value", "?")
+            parts.append(f"{kind}:{ref}={value}")
+        suffix = "; ".join(parts)
+        return f"{reasoning} Evidence: {suffix}"[:1000]
 
     def _summarize_round(
         self, card_stats: dict, round_results: list[MatchResult]

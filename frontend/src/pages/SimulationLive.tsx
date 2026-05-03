@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
 import { useSimulation } from '../hooks/useSimulation';
 import { cancelSimulation } from '../api/simulations';
+import { useSimulationStore } from '../stores/simulationStore';
 import LiveConsole from '../components/simulation/LiveConsole';
 import SimulationStatus from '../components/simulation/SimulationStatus';
 import DeckChangesTile from '../components/simulation/DeckChangesTile';
@@ -39,6 +40,7 @@ export default function SimulationLive() {
     setCancelling(true);
     try {
       await cancelSimulation(id);
+      useSimulationStore.getState().setSimulation({ status: 'cancelled' });
     } catch {
       // status will update via polling
     } finally {

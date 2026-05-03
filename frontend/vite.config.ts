@@ -1,8 +1,15 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react-swc';
 
 export default defineConfig({
   plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.ts',
+    globals: true,
+    exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
+  },
   server: {
     host: '0.0.0.0',
     allowedHosts: ['pokeprism.joshuac.dev'],

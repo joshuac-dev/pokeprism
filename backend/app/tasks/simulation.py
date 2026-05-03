@@ -44,6 +44,17 @@ _PTCGL_LINE_RE = re.compile(
     r"^(\d+)\s+(.+?)\s+([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)?)\s+(\d+)\s*$"
 )
 
+_BASIC_ENERGY_PTCGL_NUMBERS = {
+    "Grass Energy": "1",
+    "Fire Energy": "2",
+    "Water Energy": "3",
+    "Lightning Energy": "4",
+    "Psychic Energy": "5",
+    "Fighting Energy": "6",
+    "Darkness Energy": "7",
+    "Metal Energy": "8",
+}
+
 
 def _parse_ptcgl_deck_text(deck_text: str) -> list[dict]:
     """Parse PTCGL export format into structured entries.
@@ -52,6 +63,7 @@ def _parse_ptcgl_deck_text(deck_text: str) -> list[dict]:
       - "4 Dreepy PRE 71"
       - "2 Boss's Orders MEG 114"
       - "1 Pecharunt PR-SV 149"
+      - "10 Psychic Energy" (PTCGL basic-energy shorthand; maps to SVE)
       - Section headers (Pokémon:, Trainer:, Energy:) — skipped
       - Blank lines and # comments — skipped
 
@@ -65,13 +77,30 @@ def _parse_ptcgl_deck_text(deck_text: str) -> list[dict]:
         if _PTCGL_SECTION_RE.match(line):
             continue
         m = _PTCGL_LINE_RE.match(line)
-        if not m:
+        if m:
+            entries.append({
+                "count": int(m.group(1)),
+                "name": m.group(2).strip(),
+                "set_abbrev": m.group(3),
+                "set_number": m.group(4),
+            })
+            continue
+
+        shorthand = re.match(r"^(\d+)\s+(.+ Energy)\s*$", line, re.IGNORECASE)
+        if not shorthand:
+            continue
+        energy_name = shorthand.group(2).strip()
+        canonical_name = next(
+            (name for name in _BASIC_ENERGY_PTCGL_NUMBERS if name.lower() == energy_name.lower()),
+            None,
+        )
+        if canonical_name is None:
             continue
         entries.append({
-            "count": int(m.group(1)),
-            "name": m.group(2).strip(),
-            "set_abbrev": m.group(3),
-            "set_number": m.group(4),
+            "count": int(shorthand.group(1)),
+            "name": canonical_name,
+            "set_abbrev": "SVE",
+            "set_number": _BASIC_ENERGY_PTCGL_NUMBERS[canonical_name],
         })
     return entries
 
@@ -162,11 +191,21 @@ from app.tasks.celery_app import celery_app  # noqa: E402
 @celery_app.task(bind=True, name="pokeprism.run_simulation")
 def run_simulation(self, simulation_id: str) -> dict:
     """Synchronous Celery entry point — wraps async implementation."""
+    # Each Celery task runs in a fresh asyncio event loop. The Neo4j AsyncDriver
+    # singleton is bound to whichever loop first called get_driver(); reusing it
+    # across loops raises "Future attached to a different loop". Nil it here so
+    # it is recreated inside the new loop below (mirrors reset_neo4j_singleton
+    # in tests/test_memory/conftest.py which fixes the same issue for pytest).
+    from app.db import graph as _graph_module
+    _graph_module._driver = None
+
     loop = asyncio.new_event_loop()
     try:
         return loop.run_until_complete(_run_simulation_async(self, simulation_id))
     finally:
         loop.close()
+        # Belt-and-suspenders: nil again in case close_driver() failed inside the task.
+        _graph_module._driver = None
 
 
 # ---------------------------------------------------------------------------
@@ -177,6 +216,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
     """Full simulation lifecycle."""
     from app.engine.batch import run_hh_batch
     from app.memory.postgres import MatchMemoryWriter
+    from app.memory.graph import GraphMemoryWriter
 
     sim_uuid = uuid.UUID(simulation_id)
     r = redis.Redis.from_url(settings.REDIS_URL)
@@ -198,6 +238,10 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
             sim = row.scalar_one_or_none()
             if sim is None:
                 raise ValueError(f"Simulation {simulation_id} not found")
+            if sim.status == "cancelled":
+                logger.info("Simulation %s was cancelled before worker start", simulation_id)
+                _publish({"type": "simulation_cancelled", "simulation_id": simulation_id})
+                return {"status": "cancelled"}
 
             num_rounds = sim.num_rounds
             matches_per_opponent = sim.matches_per_opponent
@@ -210,6 +254,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
 
             sim.status = "running"
             sim.started_at = datetime.now(timezone.utc)
+            sim.error_message = None
             await db.commit()
 
         # ── 3 & 4. Load user deck and opponent decks ────────────────────────
@@ -247,6 +292,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
             )
         current_deck_text = user_deck_text
         writer = MatchMemoryWriter()
+        graph_writer = GraphMemoryWriter()
         final_win_rate = 0
         total_round_matches = 0
         consecutive_target_hits = 0
@@ -392,6 +438,10 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                     p1_deck_db_id = await writer.ensure_deck(
                         user_deck_name, current_deck_cards, db
                     )
+                    p2_deck_db_id = await writer.ensure_deck(
+                        opp_name, opp_cards, db
+                    )
+                    match_ids: list[uuid.UUID] = []
                     for idx, result_item in enumerate(batch.results):
                         match_id = await writer.write_match(
                             result=result_item,
@@ -399,9 +449,10 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                             round_id=round_id,
                             round_number=round_number,
                             p1_deck_id=p1_deck_db_id,
-                            p2_deck_id=opp_deck_id,
+                            p2_deck_id=p2_deck_db_id,
                             db=db,
                         )
+                        match_ids.append(match_id)
                         game_decisions = (
                             batch.decisions_per_game[idx]
                             if idx < len(batch.decisions_per_game) else []
@@ -414,6 +465,19 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                                 db=db,
                             )
                     await db.commit()
+
+                for idx, result_item in enumerate(batch.results):
+                    try:
+                        await graph_writer.write_match(
+                            result=result_item,
+                            match_id=match_ids[idx],
+                            p1_deck_id=p1_deck_db_id,
+                            p2_deck_id=p2_deck_db_id,
+                            p1_card_defs=current_deck_cards,
+                            p2_card_defs=opp_cards,
+                        )
+                    except Exception as exc:
+                        logger.warning("Graph write failed for match %s: %s", match_ids[idx], exc)
 
                 all_round_results.extend(batch.results)
                 p1_wins_round += batch.p1_wins
@@ -594,6 +658,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                 .values(
                     status="complete",
                     final_win_rate=final_win_rate,
+                    error_message=None,
                     completed_at=datetime.now(timezone.utc),
                 )
             )
@@ -632,6 +697,11 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
 
     finally:
         await engine.dispose()
+        from app.db.graph import close_driver
+        try:
+            await close_driver()
+        except Exception as exc:
+            logger.warning("Neo4j driver close failed: %s", exc)
         try:
             r.close()
         except Exception:

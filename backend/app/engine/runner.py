@@ -438,16 +438,21 @@ class MatchRunner:
         if state.phase == Phase.GAME_OVER:
             return state
 
-        # Sand Stream (sv10-096 TR Tyranitar): during Pokémon Checkup, place 2 damage counters
-        # on each of the opponent's Basic Pokémon. Only fires once even if multiple TR Tyranitar.
-        tr_player_id = state.active_player
-        tr_player = state.get_player(tr_player_id)
-        from app.engine.effects.abilities import _in_play as _abl_in_play_ss
-        if any(p.card_def_id == "sv10-096" for p in _abl_in_play_ss(tr_player)):
+        # Sand Stream (sv10-096 TR Tyranitar): during Pokémon Checkup, if this
+        # Pokémon is Active, place 2 damage counters on each opposing Basic.
+        # Check both players because Pokémon Checkup is not tied to turn player.
+        for tr_player_id in ("p1", "p2"):
+            tr_player = state.get_player(tr_player_id)
+            if not tr_player.active or tr_player.active.card_def_id != "sv10-096":
+                continue
             opp_ss_id = state.opponent_id(tr_player_id)
             opp_ss = state.get_player(opp_ss_id)
-            basic_opp = [p for p in ([opp_ss.active] if opp_ss.active else []) + list(opp_ss.bench)
-                         if p.evolution_stage == 0]
+            basic_opp = [
+                p for p in ([opp_ss.active] if opp_ss.active else []) + list(opp_ss.bench)
+                if p.evolution_stage == 0
+            ]
+            if not basic_opp:
+                continue
             for poke in basic_opp:
                 poke.current_hp -= 20
                 poke.damage_counters += 2

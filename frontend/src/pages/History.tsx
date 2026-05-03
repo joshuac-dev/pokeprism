@@ -275,7 +275,10 @@ export default function History() {
 
         {!loading && !error && (
           <>
-            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+            <div
+              className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700"
+              data-testid="history-table"
+            >
               <table className="w-full text-sm">
                 <thead className="bg-slate-100 dark:bg-slate-800">
                   {table.getHeaderGroups().map(hg => (
@@ -303,7 +306,11 @@ export default function History() {
                     </tr>
                   ) : (
                     table.getRowModel().rows.map(row => (
-                      <tr key={row.id} className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                      <tr
+                        key={row.id}
+                        className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                        data-testid="history-row"
+                      >
                         {row.getVisibleCells().map(cell => (
                           <td key={cell.id} className="px-4 py-3 whitespace-nowrap">
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}

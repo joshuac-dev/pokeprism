@@ -39,14 +39,18 @@ export default function SimulationSetup() {
   const [warning, setWarning] = useState<string | null>(null);
 
   function validateForm(): string | null {
-    if (deckMode === 'none' && deckLocked) {
-      return 'Cannot lock deck when deck mode is "None".';
+    const parsed = parsePTCGDeck(deckText);
+    if (deckMode === 'full' && parsed.totalCards !== 60) {
+      return `Full deck mode requires exactly 60 cards. You have ${parsed.totalCards}.`;
     }
-    if (deckMode === 'full' || deckMode === 'partial') {
-      const parsed = parsePTCGDeck(deckText);
-      if (deckMode === 'full' && parsed.totalCards !== 60) {
-        return `Full deck mode requires exactly 60 cards. You have ${parsed.totalCards}.`;
-      }
+    if (deckMode === 'partial' && (parsed.totalCards <= 0 || parsed.totalCards >= 60)) {
+      return `Partial deck mode requires 1-59 cards. You have ${parsed.totalCards}.`;
+    }
+    if (deckMode === 'none' && deckText.trim()) {
+      return 'No Deck mode starts from the card pool; clear your deck text or choose Partial Deck.';
+    }
+    if (deckMode === 'none' && deckLocked) {
+      return 'Cannot lock deck when deck mode is "No Deck".';
     }
     if (matchesPerOpponent < 1 || matchesPerOpponent > 1000) {
       return 'Matches per opponent must be between 1 and 1000.';
@@ -83,6 +87,7 @@ export default function SimulationSetup() {
         matches_per_opponent: matchesPerOpponent,
         target_win_rate: targetWinRatePct / 100,
         target_consecutive_rounds: targetConsecutiveRounds,
+        target_mode: targetMode,
         game_mode: gameMode,
         deck_mode: deckMode,
         deck_locked: deckLocked,
@@ -101,11 +106,14 @@ export default function SimulationSetup() {
           setError(detail);
         } else if (Array.isArray(detail)) {
           setError(detail.map((d: { msg?: string }) => d.msg ?? String(d)).join('; '));
+        } else if (detail && typeof detail === 'object' && typeof detail.message === 'string') {
+          setError(detail.message);
         } else {
           setError(`Server error: ${err.response.status}`);
         }
       } else {
-        setError('An unexpected error occurred. Please try again.');
+        const msg = err instanceof Error ? err.message : String(err);
+        setError(`Unexpected error: ${msg}`);
       }
     } finally {
       setSubmitting(false);
@@ -114,14 +122,24 @@ export default function SimulationSetup() {
 
   return (
     <PageShell title="Simulation Setup">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-5xl mx-auto">
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-6 max-w-5xl mx-auto"
+        data-testid="simulation-form"
+      >
         {warning && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/40 border border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-300 rounded-md px-4 py-3 text-sm">
+          <div
+            className="bg-yellow-50 dark:bg-yellow-900/40 border border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-300 rounded-md px-4 py-3 text-sm"
+            data-testid="simulation-warning"
+          >
             ⚠ {warning}
           </div>
         )}
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/40 border border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 rounded-md px-4 py-3 text-sm">
+          <div
+            className="bg-red-50 dark:bg-red-900/40 border border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 rounded-md px-4 py-3 text-sm"
+            data-testid="simulation-error"
+          >
             {error}
           </div>
         )}
@@ -172,6 +190,7 @@ export default function SimulationSetup() {
           type="submit"
           disabled={submitting}
           className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-md text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+          data-testid="start-simulation-button"
         >
           {submitting ? 'Starting Simulation…' : 'Start Simulation'}
         </button>

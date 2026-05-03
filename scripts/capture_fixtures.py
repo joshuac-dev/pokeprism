@@ -27,8 +27,9 @@ from app.cards.tcgdex import TCGDexClient
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
-FIXTURE_DIR = Path(__file__).parent.parent / "backend" / "tests" / "fixtures" / "cards"
-CARDLIST_PATH = Path(__file__).parent.parent / "docs" / "CARDLIST.md"
+ROOT_DIR = Path(__file__).parent.parent
+FIXTURE_DIR = ROOT_DIR / "backend" / "tests" / "fixtures" / "cards"
+CARDLIST_PATH = ROOT_DIR / "docs" / "POKEMON_MASTER_LIST.md"
 _KNOWN_EXCLUDED_SETS = {"M4"}
 
 
@@ -39,7 +40,7 @@ async def main() -> None:
         loader = CardListLoader()
         entries = loader.parse_cardlist(CARDLIST_PATH)
 
-        logger.info("Parsed %d card entries from CARDLIST.md", len(entries))
+        logger.info("Parsed %d card entries from %s", len(entries), CARDLIST_PATH)
 
         success = 0
         failed = 0

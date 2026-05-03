@@ -1,16 +1,27 @@
+import { lazy, Suspense } from 'react';
+import type { ReactElement } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
-import SimulationSetup from './pages/SimulationSetup';
-import SimulationLive from './pages/SimulationLive';
-import Dashboard from './pages/Dashboard';
-import History from './pages/History';
-import Memory from './pages/Memory';
-import Coverage from './pages/Coverage';
+
+const SimulationSetup = lazy(() => import('./pages/SimulationSetup'));
+const SimulationLive = lazy(() => import('./pages/SimulationLive'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const History = lazy(() => import('./pages/History'));
+const Memory = lazy(() => import('./pages/Memory'));
+const Coverage = lazy(() => import('./pages/Coverage'));
+
+function Page(element: ReactElement) {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading...</div>}>
+      {element}
+    </Suspense>
+  );
+}
 
 export const router = createBrowserRouter([
-  { path: '/', element: <SimulationSetup /> },
-  { path: '/simulation/:id', element: <SimulationLive /> },
-  { path: '/dashboard/:id', element: <Dashboard /> },
-  { path: '/history', element: <History /> },
-  { path: '/memory', element: <Memory /> },
-  { path: '/coverage', element: <Coverage /> },
+  { path: '/', element: Page(<SimulationSetup />) },
+  { path: '/simulation/:id', element: Page(<SimulationLive />) },
+  { path: '/dashboard/:id', element: Page(<Dashboard />) },
+  { path: '/history', element: Page(<History />) },
+  { path: '/memory', element: Page(<Memory />) },
+  { path: '/coverage', element: Page(<Coverage />) },
 ]);

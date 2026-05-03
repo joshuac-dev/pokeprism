@@ -30,7 +30,7 @@ def create_app() -> socketio.ASGIApp:
 
     fastapi_app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=["*"] if settings.cors_origins_list == "*" else settings.cors_origins_list,
         allow_methods=["*"],
         allow_headers=["*"],
     )

@@ -13,7 +13,7 @@ from app.cards.loader import CardListLoader, SET_CODE_MAP
 from app.cards.models import CardDefinition
 
 FIXTURE_DIR = Path(__file__).parent.parent / "fixtures" / "cards"
-CARDLIST_PATH = Path(__file__).parent.parent.parent.parent / "docs" / "CARDLIST.md"
+CARDLIST_PATH = Path(__file__).parent.parent.parent.parent / "docs" / "POKEMON_MASTER_LIST.md"
 
 
 class TestSetCodeMap:
@@ -72,13 +72,16 @@ class TestCardListLoaderParsing:
             assert "number" in entry
 
     def test_parse_m4_cards_present_but_excluded_in_load(self):
-        """M4 cards must appear in parsed entries but be skipped during load."""
+        """The current master list should only contain supported set codes."""
         if not CARDLIST_PATH.exists():
-            pytest.skip("CARDLIST.md not found")
+            pytest.skip("POKEMON_MASTER_LIST.md not found")
         loader = CardListLoader()
         entries = loader.parse_cardlist(CARDLIST_PATH)
-        m4_entries = [e for e in entries if e["set_abbrev"] == "M4"]
-        assert len(m4_entries) > 0, "CARDLIST.md should contain M4 entries (Froakie/Frogadier)"
+        unsupported = [
+            e for e in entries
+            if e["set_abbrev"] not in SET_CODE_MAP and e["set_abbrev"] not in loader._KNOWN_EXCLUDED_SETS
+        ]
+        assert unsupported == []
 
     def test_parse_dragapult_present(self):
         """Dragapult ex TWM 130 must be parseable."""

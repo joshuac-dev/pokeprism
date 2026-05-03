@@ -183,7 +183,7 @@ async def get_memory_graph(
     nodes += [
         {
             "id": r["id"],
-            "name": r["name"],
+            "name": r["name"] or r["id"],
             "category": r["category"],
             "weight": r["weight"],
             "games_observed": r["games_observed"],

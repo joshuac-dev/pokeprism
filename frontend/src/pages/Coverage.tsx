@@ -150,7 +150,10 @@ export default function Coverage() {
       </div>
 
       {/* Coverage bar */}
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 mb-6 flex items-center gap-4">
+      <div
+        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 mb-6 flex items-center gap-4"
+        data-testid="coverage-summary"
+      >
         <div className="flex-1">
           <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
             <span>Coverage</span>
@@ -199,7 +202,10 @@ export default function Coverage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+      <div
+        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden"
+        data-testid="coverage-table"
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

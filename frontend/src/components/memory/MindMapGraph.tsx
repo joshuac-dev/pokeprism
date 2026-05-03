@@ -9,7 +9,7 @@ interface Props {
 
 interface SimNode extends d3.SimulationNodeDatum {
   id: string;
-  name: string;
+  name: string | null;
   category: string | null;
   weight: number | null;
   games_observed: number | null;
@@ -90,7 +90,7 @@ export default function MindMapGraph({ graph, onNodeClick }: Props) {
     link.append('title').text(d => {
       const src = d.source as SimNode;
       const tgt = d.target as SimNode;
-      return `${src.name} \u2014 ${tgt.name}: ${d.weight.toFixed(3)}`;
+      return `${src.name ?? src.id} \u2014 ${tgt.name ?? tgt.id}: ${d.weight.toFixed(3)}`;
     });
 
     const node = g.append('g')
@@ -123,12 +123,12 @@ export default function MindMapGraph({ graph, onNodeClick }: Props) {
       .attr('dy', d => nodeRadius(d.games_observed) + 12)
       .attr('fill', '#475569')
       .attr('font-size', '10px')
-      .text(d => d.name.length > 14 ? d.name.slice(0, 13) + '\u2026' : d.name);
+      .text(d => { const n = d.name ?? d.id; return n.length > 14 ? n.slice(0, 13) + '\u2026' : n; });
 
     node.append('title').text(d => {
       const wr = d.weight != null ? ` | Weight: ${d.weight.toFixed(3)}` : '';
       const games = d.games_observed != null ? `Games: ${d.games_observed}` : '';
-      return `${d.name}\n${games}${wr}`;
+      return `${d.name ?? d.id}\n${games}${wr}`;
     });
 
     sim.on('tick', () => {

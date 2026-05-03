@@ -15,6 +15,17 @@ export interface ParsedDeck {
 
 type Section = 'pokemon' | 'trainers' | 'energy' | null;
 
+const BASIC_ENERGY_PTCGL_NUMBERS: Record<string, string> = {
+  'grass energy': '1',
+  'fire energy': '2',
+  'water energy': '3',
+  'lightning energy': '4',
+  'psychic energy': '5',
+  'fighting energy': '6',
+  'darkness energy': '7',
+  'metal energy': '8',
+};
+
 export function parsePTCGDeck(text: string): ParsedDeck {
   const result: ParsedDeck = {
     pokemon: [],
@@ -26,7 +37,7 @@ export function parsePTCGDeck(text: string): ParsedDeck {
 
   if (!text.trim()) return result;
 
-  const cardLineRegex = /^(\d+)\s+(.+?)\s+([A-Z0-9]{2,6})\s+(\d+)$/;
+  const cardLineRegex = /^(\d+)\s+(.+?)\s+([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)?)\s+(\d+)$/;
   const fallbackRegex = /^(\d+)\s+(.+)$/;
 
   let currentSection: Section = null;
@@ -61,11 +72,13 @@ export function parsePTCGDeck(text: string): ParsedDeck {
         setNumber: fullMatch[4],
       };
     } else if (fallbackMatch) {
+      const fallbackName = fallbackMatch[2].trim();
+      const energyNumber = BASIC_ENERGY_PTCGL_NUMBERS[fallbackName.toLowerCase()];
       card = {
         quantity: parseInt(fallbackMatch[1], 10),
-        name: fallbackMatch[2].trim(),
+        name: fallbackName,
         setAbbrev: 'SVE',
-        setNumber: '0',
+        setNumber: energyNumber ?? '0',
       };
     }
 

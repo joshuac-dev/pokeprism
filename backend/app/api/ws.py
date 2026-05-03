@@ -1,7 +1,7 @@
 """Celery-backed socket.io WebSocket bridge.
 
 Client lifecycle:
-    1. Client connects via socket.io at /ws
+    1. Client connects via socket.io at /socket.io
     2. Client emits "subscribe_simulation" with {"simulation_id": "<uuid>"}
     3. Server subscribes to Redis channel "simulation:{simulation_id}"
     4. Server forwards every Redis message as "sim_event" to the client
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 sio = socketio.AsyncServer(
     async_mode="asgi",
-    cors_allowed_origins="*",
+    cors_allowed_origins=settings.cors_origins_list,
     logger=False,
     engineio_logger=False,
 )

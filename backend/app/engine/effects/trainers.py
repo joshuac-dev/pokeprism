@@ -5159,6 +5159,89 @@ def _bother_bot(state: GameState, action):
         state.emit_event("bother_bot_no_swap", player=player_id)
 
 
+def _scoop_up_cyclone(state: GameState, action) -> None:
+    """Scoop Up Cyclone (sv06-162) — ACE SPEC Item
+
+    Put 1 of your Pokémon and all attached cards into your hand.
+    Implemented as bench-only; energy returns as new instances, tools are lost.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    if not player.bench:
+        return
+
+    target = player.bench[0]
+    if len(player.bench) > 1:
+        req = ChoiceRequest(
+            "choose_target", player_id,
+            "Scoop Up Cyclone: choose a Benched Pokémon to return to your hand",
+            targets=player.bench,
+        )
+        resp = yield req
+        if resp and resp.target_instance_id:
+            target = next(
+                (p for p in player.bench if p.instance_id == resp.target_instance_id),
+                player.bench[0],
+            )
+
+    # Return attached energies to hand as new CardInstance objects
+    for ea in list(target.energy_attached):
+        cdef = card_registry.get(ea.card_def_id)
+        energy_card = CardInstance(
+            card_def_id=ea.card_def_id,
+            card_name=cdef.name if cdef else "Energy",
+            card_type="Energy",
+            zone=Zone.HAND,
+            energy_provides=list(cdef.energy_provides) if cdef and cdef.energy_provides else [],
+        )
+        player.hand.append(energy_card)
+
+    # Reset Pokémon state before returning to hand
+    target.energy_attached.clear()
+    target.tools_attached.clear()
+    target.status_conditions.clear()
+    target.damage_counters = 0
+    target.current_hp = target.max_hp
+
+    player.bench.remove(target)
+    target.zone = Zone.HAND
+    player.hand.append(target)
+    state.emit_event("scoop_up_cyclone", player=player_id, card=target.card_name)
+
+
+def _miracle_headset(state: GameState, action) -> None:
+    """Miracle Headset (sv08-183) — ACE SPEC Item
+
+    Put up to 2 Supporter cards from your discard pile into your hand.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    supporters = [
+        c for c in player.discard
+        if c.card_type.lower() == "trainer" and c.card_subtype.lower() == "supporter"
+    ]
+    if not supporters:
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Miracle Headset: choose up to 2 Supporter cards from your discard pile",
+        cards=supporters, min_count=0, max_count=2,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [c.instance_id for c in supporters[:2]])
+
+    for iid in chosen_ids[:2]:
+        card = next((c for c in player.discard if c.instance_id == iid), None)
+        if card:
+            player.discard.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+
+
 def register_all(registry: EffectRegistry) -> None:
     """Register all trainer effect handlers."""
 
@@ -5170,6 +5253,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("me03-084", _rosas_encouragement)
     registry.register_trainer("me03-085", _tarragon)
     registry.register_trainer("me03-076", _judge)
+    registry.register_trainer("sv10-167", _judge)      # Judge reprint (Destined Rivals)
     registry.register_trainer("sv05-145", _ciphermaniacs_codebreaking)
     registry.register_trainer("sv05-146", _eri)
     registry.register_trainer("sv05-155", _mortys_conviction)
@@ -5376,6 +5460,8 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv08-181", _meddling_memo_b19)         # Meddling Memo
     registry.register_trainer("sv08-189", _tera_orb_b19)              # Tera Orb
     registry.register_trainer("sv07-138", _kofu_b19)                  # Kofu
+    registry.register_trainer("sv06-162", _scoop_up_cyclone)          # Scoop Up Cyclone (ACE SPEC)
+    registry.register_trainer("sv08-183", _miracle_headset)           # Miracle Headset (ACE SPEC)
 
     # Tools (passive — effects handled elsewhere in engine)
     registry.register_trainer("sv10-162", _noop)   # Cynthia's Power Weight (+70HP for Cynthia's Pokémon)
@@ -5388,6 +5474,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv08-184", _noop)   # Passho Berry (type-damage reduction)
     registry.register_trainer("sv07-137", _noop)   # Gravity Gemstone (retreat cost +{C})
     registry.register_trainer("sv07-140", _noop)   # Occa Berry (type-damage reduction)
+    registry.register_trainer("sv07-142", _noop)   # Sparkling Crystal (attack cost -1 for Tera — passive tool)
     registry.register_trainer("sv06.5-055", _noop) # Binding Mochi (damage boost when Poisoned)
 
     # Stadiums (passive — effects handled elsewhere in engine)

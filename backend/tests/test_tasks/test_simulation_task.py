@@ -138,6 +138,40 @@ class TestGetPlayerClasses:
 class TestRedisEventPublishing:
     """Verify that _run_simulation_async publishes events to the correct channel."""
 
+    async def test_pre_cancelled_simulation_is_not_marked_running(
+        self, simulation_id, mock_redis
+    ):
+        """A task that starts after cancellation must not overwrite status."""
+        with patch("app.tasks.simulation.create_async_engine") as mock_engine, \
+             patch("app.tasks.simulation.async_sessionmaker") as mock_sm:
+
+            mock_sim = MagicMock()
+            mock_sim.status = "cancelled"
+            mock_result = MagicMock()
+            mock_result.scalar_one_or_none.return_value = mock_sim
+
+            mock_session = AsyncMock()
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session.__aexit__ = AsyncMock(return_value=False)
+            mock_session.execute = AsyncMock(return_value=mock_result)
+            mock_session.commit = AsyncMock()
+            mock_sm.return_value.return_value = mock_session
+
+            mock_eng_instance = MagicMock()
+            mock_eng_instance.dispose = AsyncMock()
+            mock_engine.return_value = mock_eng_instance
+
+            from app.tasks.simulation import _run_simulation_async
+
+            result = await _run_simulation_async(None, simulation_id)
+
+        assert result == {"status": "cancelled"}
+        assert mock_sim.status == "cancelled"
+        mock_session.commit.assert_not_awaited()
+        channel, raw_payload = mock_redis.publish.call_args[0]
+        assert channel == f"simulation:{simulation_id}"
+        assert json.loads(raw_payload)["type"] == "simulation_cancelled"
+
     async def test_error_publishes_simulation_error_event(
         self, simulation_id, mock_redis
     ):
@@ -172,7 +206,13 @@ class TestRedisEventPublishing:
     async def test_channel_name_uses_simulation_id(self, simulation_id, mock_redis):
         """The Redis channel must be 'simulation:{simulation_id}'."""
         with patch("app.tasks.simulation.create_async_engine") as mock_engine, \
-             patch("app.tasks.simulation.async_sessionmaker"):
+             patch("app.tasks.simulation.async_sessionmaker") as mock_sm:
+
+            mock_session = AsyncMock()
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session.__aexit__ = AsyncMock(return_value=False)
+            mock_session.execute = AsyncMock(side_effect=RuntimeError("DB down"))
+            mock_sm.return_value.return_value = mock_session
 
             mock_eng_instance = MagicMock()
             mock_eng_instance.dispose = AsyncMock()
@@ -216,6 +256,38 @@ class TestRunSimulationWrapper:
             loop.close()
 
         assert result == expected_result
+
+    def test_driver_nilled_before_async_impl_entry(self):
+        """Stale Neo4j driver singleton is cleared before _run_simulation_async runs.
+
+        Regression: each Celery task creates a new event loop; the module-level
+        AsyncDriver singleton binds to the first loop and raises
+        'Future attached to a different loop' on subsequent tasks unless nilled.
+        """
+        from app.db import graph as graph_module
+        from app.tasks.simulation import run_simulation
+
+        driver_at_entry: list = []
+
+        async def _stub_impl(task_self, sim_id):
+            # Capture _driver state at the moment the async impl starts.
+            driver_at_entry.append(graph_module._driver)
+            return {"status": "cancelled"}
+
+        fake_driver = MagicMock(name="stale_driver")
+        graph_module._driver = fake_driver
+
+        try:
+            with patch("app.tasks.simulation._run_simulation_async", side_effect=_stub_impl):
+                # With bind=True, run_simulation.run() already has self bound to
+                # the Celery task instance — pass only simulation_id.
+                run_simulation.run(str(uuid.uuid4()))
+        finally:
+            graph_module._driver = None
+
+        assert len(driver_at_entry) == 1, "async impl must be called exactly once"
+        assert driver_at_entry[0] is None, "_driver must be nil'd before async impl enters"
+        assert graph_module._driver is None, "_driver must remain nil after task completes"
 
 
 # ---------------------------------------------------------------------------
@@ -268,6 +340,14 @@ class TestParsePtcglDeckText:
         result = _parse_ptcgl_deck_text(text)
         assert result == [
             {"count": 1, "name": "Pecharunt", "set_abbrev": "PR-SV", "set_number": "149"},
+        ]
+
+    def test_basic_energy_shorthand_maps_to_sve(self):
+        text = "Energy: 10\n6 Psychic Energy\n4 Darkness Energy"
+        result = _parse_ptcgl_deck_text(text)
+        assert result == [
+            {"count": 6, "name": "Psychic Energy", "set_abbrev": "SVE", "set_number": "5"},
+            {"count": 4, "name": "Darkness Energy", "set_abbrev": "SVE", "set_number": "7"},
         ]
 
     def test_section_headers_skipped(self):
@@ -415,7 +495,7 @@ class TestEnsureDeckCardsInDb:
         empty_result = MagicMock()
         empty_result.scalars.return_value = empty_scalars
 
-        mock_db = AsyncMock()
+        mock_db = MagicMock()
         mock_db.execute = AsyncMock(return_value=empty_result)
         mock_db.commit = AsyncMock()
 

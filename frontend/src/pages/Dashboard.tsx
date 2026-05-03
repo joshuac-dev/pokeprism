@@ -25,13 +25,18 @@ function DashboardTile({
   title,
   children,
   className = '',
+  testId,
 }: {
   title: string;
   children: React.ReactNode;
   className?: string;
+  testId?: string;
 }) {
   return (
-    <div className={`bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 ${className}`}>
+    <div
+      className={`bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 ${className}`}
+      data-testid={testId}
+    >
       <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-4">{title}</h2>
       {children}
     </div>
@@ -125,7 +130,7 @@ export default function Dashboard() {
       )}
 
       {!loading && !error && detail && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" data-testid="dashboard-grid">
           {/* Row 1: Summary cards — full width */}
           <div className="col-span-1 md:col-span-2 xl:col-span-3">
             <SummaryCards
@@ -138,7 +143,7 @@ export default function Dashboard() {
           </div>
 
           {/* Tile 4: Win Rate Donut */}
-          <DashboardTile title="Overall Win Rate">
+          <DashboardTile title="Overall Win Rate" testId="dashboard-overall-win-rate">
             <WinRateDonut
               winRate={detail.final_win_rate}
               totalMatches={detail.total_matches}
@@ -146,12 +151,12 @@ export default function Dashboard() {
           </DashboardTile>
 
           {/* Tile 6: Win Rate Over Rounds */}
-          <DashboardTile title="Win Rate Progress">
+          <DashboardTile title="Win Rate Progress" testId="dashboard-win-rate-progress">
             <WinRateProgress rounds={rounds} targetWinRate={detail.target_win_rate} />
           </DashboardTile>
 
           {/* Tile 5: Opponent Win Rate Bar */}
-          <DashboardTile title="Win Rate vs Opponents">
+          <DashboardTile title="Win Rate vs Opponents" testId="dashboard-opponent-win-rate">
             <OpponentWinRateBar opponents={opponents} />
           </DashboardTile>
 
@@ -166,7 +171,7 @@ export default function Dashboard() {
           </DashboardTile>
 
           {/* Tile 9: Prize Race */}
-          <DashboardTile title="Prize Race" className="col-span-1 md:col-span-2">
+          <DashboardTile title="Prize Race" className="col-span-1 md:col-span-2" testId="dashboard-prize-race">
             <PrizeRaceGraph prizeRace={prizeRace} />
           </DashboardTile>
 
@@ -191,4 +196,3 @@ export default function Dashboard() {
     </PageShell>
   );
 }
-

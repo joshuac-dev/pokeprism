@@ -30,7 +30,10 @@ export default function OpponentDeckList({
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   return (
-    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 flex flex-col gap-3">
+    <div
+      className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 flex flex-col gap-3"
+      data-testid="opponent-decks"
+    >
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
           Opponent Decks
@@ -42,6 +45,7 @@ export default function OpponentDeckList({
             setExpandedIndex(opponentTexts.length);
           }}
           className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+          data-testid="add-opponent-button"
         >
           <PlusCircle size={14} />
           Add Opponent
@@ -104,6 +108,7 @@ export default function OpponentDeckList({
                     rows={8}
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 rounded-md px-3 py-2 text-sm font-mono resize-y focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     spellCheck={false}
+                    data-testid={`opponent-deck-textarea-${i}`}
                   />
                   {parsed.errors.length > 0 && (
                     <ul className="mt-1 space-y-0.5">
