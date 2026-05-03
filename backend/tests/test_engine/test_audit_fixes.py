@@ -1,4 +1,4 @@
-"""Audit-fix regression tests (findings #1-8).
+"""Audit-fix regression tests (findings #1-14).
 
 Findings:
   #1-4 : Fossil passive ability registrations (sv07-129, sv10.5b-080, sv10.5w-079, sv07-130)
@@ -6,6 +6,12 @@ Findings:
   #6   : _high_voltage_press — subtract attack cost (3) from energy count, not 1
   #7   : _thunderburst_storm — player chooses target; bench hit gets no W/R
   #8   : _bench_manipulation — damage bypasses Weakness/Resistance
+  #9   : _swim_together (sv10-050 Misty's Lapras) — wrong resp attribute chosen_ids → chosen_card_ids
+  #10  : _swim_together — wrong card name "Misty's Dewgong" → "Misty's Lapras"
+  #11  : _bubble_beam docstring — wrong card name "Misty's Poliwrath" → "Misty's Staryu"
+  #12  : sv10-046 comment — fake "ATK1 Submission" removed (Misty's Staryu has only 1 attack)
+  #13  : _running_charge docstring — "atk1" → "atk0" (sv10-107 Mudbray)
+  #14  : _pick_and_stick (sv06-072 Morpeko) — replace no-op flag with real attach-from-discard
 """
 from __future__ import annotations
 
@@ -796,3 +802,210 @@ async def test_time_manipulation_puts_cards_on_top():
     # c1 and c2 should be on top of deck (first 2)
     assert state.p1.deck[0].instance_id in (c1.instance_id, c2.instance_id)
     assert state.p1.deck[1].instance_id in (c1.instance_id, c2.instance_id)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Finding #9/#10: _swim_together (sv10-050 Misty's Lapras)
+# ──────────────────────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_swim_together_moves_mistys_to_hand():
+    """sv10-050 Misty's Lapras atk0 — Swim Together moves chosen Misty's Pokémon to hand."""
+    lapras_cdef = _make_card(
+        "sv10-050", "Misty's Lapras", hp=100,
+        attacks=[AttackDef(name="Swim Together", damage="0", cost=["Water"])],
+    )
+    mistys1_cdef = _make_card("tst-st-001", "Misty's Magikarp", hp=40)
+    mistys2_cdef = _make_card("tst-st-002", "Misty's Gyarados", hp=130)
+    other_cdef = _make_card("tst-st-003", "Pikachu", hp=60)
+    opp_cdef = _make_card("tst-st-opp", "OppMon", hp=100)
+    for c in [lapras_cdef, mistys1_cdef, mistys2_cdef, other_cdef, opp_cdef]:
+        card_registry.register(c)
+
+    lapras_inst = _make_instance(lapras_cdef)
+    m1 = _make_instance(mistys1_cdef, zone=Zone.DECK)
+    m1.card_type = "Pokemon"
+    m2 = _make_instance(mistys2_cdef, zone=Zone.DECK)
+    m2.card_type = "Pokemon"
+    other = _make_instance(other_cdef, zone=Zone.DECK)
+    other.card_type = "Pokemon"
+    opp_active = _make_instance(opp_cdef, hp=100)
+
+    state = _make_state(p1_active=lapras_inst, p2_active=opp_active)
+    state.p1.deck = [m1, m2, other]
+
+    action = _make_action(attack_index=0)
+
+    from app.engine.effects.attacks import _swim_together
+    gen = _swim_together(state, action)
+    try:
+        req = next(gen)
+        # Choose both Misty's Pokémon
+        resp = Action(
+            player_id="p1",
+            action_type=ActionType.ATTACK,
+            selected_cards=[m1.instance_id, m2.instance_id],
+        )
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    # Both Misty's Pokémon should be in hand
+    assert m1 in state.p1.hand
+    assert m2 in state.p1.hand
+    # Non-Misty's stays in deck
+    assert other in state.p1.deck
+
+
+@pytest.mark.asyncio
+async def test_swim_together_empty_deck_no_crash():
+    """_swim_together: empty deck emits no-damage event without error."""
+    lapras_cdef = _make_card(
+        "sv10-050", "Misty's Lapras", hp=100,
+        attacks=[AttackDef(name="Swim Together", damage="0", cost=["Water"])],
+    )
+    opp_cdef = _make_card("tst-st-emp-opp", "OppMon", hp=100)
+    card_registry.register(lapras_cdef)
+    card_registry.register(opp_cdef)
+
+    lapras_inst = _make_instance(lapras_cdef)
+    opp_active = _make_instance(opp_cdef, hp=100)
+    state = _make_state(p1_active=lapras_inst, p2_active=opp_active)
+    state.p1.deck = []
+
+    action = _make_action(attack_index=0)
+
+    from app.engine.effects.attacks import _swim_together
+    result = _swim_together(state, action)
+    if hasattr(result, "__next__"):
+        try:
+            next(result)
+        except StopIteration:
+            pass
+
+    assert any(e["event_type"] == "attack_no_damage" for e in state.events)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Finding #14: _pick_and_stick (sv06-072 Morpeko)
+# ──────────────────────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_pick_and_stick_attaches_energy_from_discard():
+    """sv06-072 Morpeko atk0 — Pick and Stick attaches Basic Energy from discard to chosen Pokémon."""
+    from app.cards.models import CardDefinition
+    morpeko_cdef = _make_card(
+        "sv06-072", "Morpeko", hp=60,
+        attacks=[AttackDef(name="Pick and Stick", damage="0", cost=["Lightning"])],
+    )
+    opp_cdef = _make_card("tst-ps-opp", "OppMon", hp=100)
+    fire_energy_cdef = CardDefinition(
+        tcgdex_id="tst-fire-energy",
+        name="Fire Energy",
+        set_abbrev="TST",
+        set_number="E01",
+        category="energy",
+        stage="",
+        hp=0,
+        attacks=[],
+        abilities=[],
+        card_type="Energy",
+        card_subtype="Basic",
+        energy_provides=["Fire"],
+    )
+    card_registry.register(morpeko_cdef)
+    card_registry.register(opp_cdef)
+    card_registry.register(fire_energy_cdef)
+
+    morpeko_inst = _make_instance(morpeko_cdef)
+    opp_active = _make_instance(opp_cdef, hp=100)
+
+    from app.engine.state import CardInstance as CI
+    fire_card = CI(
+        instance_id="inst-fire-1",
+        card_def_id="tst-fire-energy",
+        card_name="Fire Energy",
+        current_hp=0,
+        max_hp=0,
+        zone=Zone.DISCARD,
+        card_type="Energy",
+        card_subtype="Basic",
+        energy_provides=["Fire"],
+    )
+    state = _make_state(p1_active=morpeko_inst, p2_active=opp_active)
+    state.p1.discard = [fire_card]
+
+    action = _make_action(attack_index=0)
+
+    from app.engine.effects.attacks import _pick_and_stick
+    gen = _pick_and_stick(state, action)
+    try:
+        req = next(gen)
+        # Choose Morpeko as the target
+        resp = Action(
+            player_id="p1",
+            action_type=ActionType.CHOOSE_TARGET,
+            target_instance_id=morpeko_inst.instance_id,
+        )
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    # Fire energy should be attached to Morpeko
+    assert len(morpeko_inst.energy_attached) == 1
+    assert morpeko_inst.energy_attached[0].energy_type == EnergyType.FIRE
+    # Discard should be empty
+    assert fire_card not in state.p1.discard
+
+
+@pytest.mark.asyncio
+async def test_pick_and_stick_no_energy_in_discard_no_crash():
+    """_pick_and_stick: no Basic Energy in discard → emits no-damage event."""
+    morpeko_cdef = _make_card(
+        "sv06-072", "Morpeko", hp=60,
+        attacks=[AttackDef(name="Pick and Stick", damage="0", cost=["Lightning"])],
+    )
+    opp_cdef = _make_card("tst-ps-emp-opp", "OppMon", hp=100)
+    card_registry.register(morpeko_cdef)
+    card_registry.register(opp_cdef)
+
+    morpeko_inst = _make_instance(morpeko_cdef)
+    opp_active = _make_instance(opp_cdef, hp=100)
+    state = _make_state(p1_active=morpeko_inst, p2_active=opp_active)
+    state.p1.discard = []
+
+    action = _make_action(attack_index=0)
+
+    from app.engine.effects.attacks import _pick_and_stick
+    result = _pick_and_stick(state, action)
+    if hasattr(result, "__next__"):
+        try:
+            next(result)
+        except StopIteration:
+            pass
+
+    assert any(e["event_type"] == "attack_no_damage" for e in state.events)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Finding #9 registry check: sv10-050 registered as _swim_together
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_sv10_050_swim_together_registered():
+    """sv10-050 Misty's Lapras is registered with _swim_together."""
+    from app.engine.effects.registry import EffectRegistry
+    reg = EffectRegistry.instance()
+    assert "sv10-050:0" in reg._attack_effects, "Swim Together should be registered"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Finding #14 registry check: sv06-072 registered as _pick_and_stick (not flag)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_sv06_072_pick_and_stick_registered():
+    """sv06-072 Morpeko is registered with _pick_and_stick (real handler, not flag)."""
+    from app.engine.effects.registry import EffectRegistry
+    from app.engine.effects.attacks import _pick_and_stick
+    reg = EffectRegistry.instance()
+    handler = reg._attack_effects.get("sv06-072:0")
+    assert handler is _pick_and_stick, "Pick and Stick should use real handler, not flag"
