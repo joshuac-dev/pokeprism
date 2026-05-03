@@ -15026,7 +15026,7 @@ def _mighty_magnetism(state, action):
                          status="CONFUSED+CANT_RETREAT", attack="Mighty Magnetism")
 
 
-def _zap_cannon_flag(state, action):
+def _zap_cannon(state, action):
     """sv08-060 Magnezone atk1 — Zap Cannon: 180 + can't use this attack next turn."""
     _do_default_damage(state, action)
     if state.phase == Phase.GAME_OVER:
@@ -15374,7 +15374,7 @@ def _sand_tomb(state, action):
         state.emit_event("cant_retreat", card=opp.active.card_name, attack="Sand Tomb")
 
 
-def _barite_jail_flag(state, action):
+def _barite_jail(state, action):
     """sv08-091 Palossand ex atk1 — Barite Jail: place damage counters on each bench Pokémon until 100 HP remain."""
     opp_id = state.opponent_id(action.player_id)
     opp = state.get_player(opp_id)
@@ -15559,11 +15559,23 @@ def _knock_flat(state, action):
     _apply_damage(state, action, 40, bypass_defender_effects=True)
 
 
-def _guarded_rolling_flag(state, action):
-    """sv08-103 Donphan atk1 — Guarded Rolling: 120 + FLAGGED (discard 2 energy + take 100 less)."""
+def _guarded_rolling(state, action):
+    """sv08-103 Donphan atk1 — Guarded Rolling: 120 + discard 2 Energy from self + take 100 less damage next turn."""
+    player = state.get_player(action.player_id)
+    if player.active and player.active.energy_attached:
+        discarded = 0
+        while discarded < 2 and player.active.energy_attached:
+            player.active.energy_attached.pop(0)
+            discarded += 1
+        state.emit_event("energy_discarded", card=player.active.card_name,
+                         reason="Guarded Rolling", count=discarded)
     _do_default_damage(state, action)
-    state.emit_event("flagged_effect", attack="Guarded Rolling",
-                     reason="discard_energy_plus_damage_reduction_not_implemented")
+    if state.phase == Phase.GAME_OVER:
+        return
+    if player.active:
+        player.active.incoming_damage_reduction += 100
+        state.emit_event("damage_reduction_applied", card=player.active.card_name,
+                         amount=100, reason="Guarded Rolling")
 
 
 def _screech_b12(state, action):
@@ -17542,7 +17554,7 @@ def register_all(registry):
     # sv08-058 Magnemite: ATK0 Lightning Ball (flat 20)
     # sv08-059 Magneton: ATK0 Electric Ball (flat 40); ability Overvolt Discharge registered in abilities.py (FLAGGED)
     registry.register_attack("sv08-060", 0, _mighty_magnetism)              # Magnezone — Mighty Magnetism
-    registry.register_attack("sv08-060", 1, _zap_cannon_flag)               # Magnezone — Zap Cannon (FLAGGED)
+    registry.register_attack("sv08-060", 1, _zap_cannon)                    # Magnezone — Zap Cannon
     registry.register_attack("sv08-061", 0, _crushing_pulse_flag)           # Rotom — Crushing Pulse (FLAGGED)
     registry.register_attack("sv08-061", 1, _energy_short)                  # Rotom — Energy Short
     # sv08-062 Blitzle: ATK0 Add On → reuse _collect; ATK1 Static Shock (flat 20)
@@ -17595,7 +17607,7 @@ def register_all(registry):
     registry.register_attack("sv08-089", 1, _dazzle_dance)                  # Oricorio Psychic — Dazzle Dance
     # sv08-090 Sandygast: ATK0 Sand Spray (flat 50)
     registry.register_attack("sv08-091", 0, _sand_tomb)                     # Palossand ex — Sand Tomb
-    registry.register_attack("sv08-091", 1, _barite_jail_flag)              # Palossand ex — Barite Jail (FLAGGED)
+    registry.register_attack("sv08-091", 1, _barite_jail)                   # Palossand ex — Barite Jail
     # sv08-092 Tapu Lele: ATK0 Perplex → reuse _mind_bend (20+confused)
     registry.register_attack("sv08-092", 0, _mind_bend)                     # Tapu Lele — Perplex (reuse mind_bend)
     registry.register_attack("sv08-092", 1, _mental_crush)                  # Tapu Lele — Mental Crush
@@ -17617,7 +17629,7 @@ def register_all(registry):
     registry.register_attack("sv08-101", 1, _blocking_stomp)                # Paldean Tauros — Blocking Stomp
     # sv08-102 Phanpy: ATK0 Headbutt (flat 20)
     registry.register_attack("sv08-103", 0, _knock_flat)                    # Donphan — Knock Flat
-    registry.register_attack("sv08-103", 1, _guarded_rolling_flag)          # Donphan — Guarded Rolling (FLAGGED)
+    registry.register_attack("sv08-103", 1, _guarded_rolling)               # Donphan — Guarded Rolling
     # sv08-104 Trapinch: ATK0 Call for Family → reuse; ATK1 Bite (flat 20)
     registry.register_attack("sv08-104", 0, _call_for_family)               # Trapinch — Call for Family (reuse)
     registry.register_attack("sv08-105", 0, _screech_b12)                   # Vibrava — Screech
@@ -17647,7 +17659,7 @@ def register_all(registry):
     registry.register_attack("sv08-119", 1, _obsidian)                      # Hydreigon ex — Obsidian
     # sv08-120 Deino (flat 30)
     # sv08-121 Grafaiai
-    registry.register_attack("sv08-121", 0, _mischievous_painting_flag)     # Grafaiai — Mischievous Painting (FLAGGED)
+    registry.register_attack("sv08-121", 0, _mischievous_painting)           # Grafaiai — Mischievous Painting
     registry.register_attack("sv08-121", 1, _energized_graffiti)            # Grafaiai — Energized Graffiti
     registry.register_attack("sv08-122", 0, _surprise_attack)               # Alolan Diglett — Surprise Attack (reuse)
     registry.register_attack("sv08-123", 0, _trio_cheehoo)                  # Alolan Dugtrio — Trio-Cheehoo
@@ -17661,13 +17673,13 @@ def register_all(registry):
     registry.register_attack("sv08-129", 1, _duralubeam)                    # Duraludon — Duralubeam
     registry.register_attack("sv08-130", 0, _metal_defender)                # Archaludon ex — Metal Defender
     registry.register_attack("sv08-131", 0, _strike_it_rich)                # Gholdengo — Strike It Rich
-    registry.register_attack("sv08-131", 1, _surf_back_flag)                # Gholdengo — Surf Back (FLAGGED)
+    registry.register_attack("sv08-131", 1, _surf_back)                     # Gholdengo — Surf Back
     registry.register_attack("sv08-132", 0, _deleting_slash)                # Iron Crown — Deleting Slash
     registry.register_attack("sv08-133", 0, _tropical_frenzy)               # Alolan Exeggutor ex — Tropical Frenzy
     registry.register_attack("sv08-133", 1, _swinging_sphene)              # Alolan Exeggutor ex — Swinging Sphene
     registry.register_attack("sv08-134", 0, _humming_charge)               # Altaria — Humming Charge
     registry.register_attack("sv08-134", 1, _cotton_wings)                  # Altaria — Cotton Wings
-    registry.register_attack("sv08-135", 0, _time_manipulation_flag)        # Dialga — Time Manipulation (FLAGGED)
+    registry.register_attack("sv08-135", 0, _time_manipulation)             # Dialga — Time Manipulation
     registry.register_attack("sv08-136", 0, _space_crash)                   # Palkia — Space Crash
     registry.register_attack("sv08-137", 0, _fully_singe)                   # Turtonator — Fully Singe
     registry.register_attack("sv08-138", 0, _nutrients_b12)                 # Applin — Nutrients
@@ -17678,7 +17690,7 @@ def register_all(registry):
     registry.register_attack("sv08-141", 0, _dyna_blast)                    # Eternatus — Dyna-Blast
     registry.register_attack("sv08-141", 1, _world_ender)                    # Eternatus — World Ender
     registry.register_attack("sv08-142", 0, _surprise_pump)                 # Tatsugiri ex — Surprise Pump
-    registry.register_attack("sv08-142", 1, _cinnabar_lure_flag)            # Tatsugiri ex — Cinnabar Lure (FLAGGED)
+    registry.register_attack("sv08-142", 1, _cinnabar_lure)                 # Tatsugiri ex — Cinnabar Lure
     registry.register_attack("sv08-143", 0, _reckless_charge_eevee)         # Eevee — Reckless Charge (reuse)
     registry.register_attack("sv08-144", 0, _collect)                       # Snorlax — Spike Draw (reuse collect)
     registry.register_attack("sv08-145", 0, _take_it_easy)                  # Slakoth — Take It Easy
@@ -17779,7 +17791,7 @@ def register_all(registry):
     registry.register_attack("sv07-061", 0, _everyone_explode_now)          # Drifblim — Everyone Explode Now
     registry.register_attack("sv07-063", 0, _flower_shower)                 # Comfey — Flower Shower
     registry.register_attack("sv07-063", 1, _play_rough_b13)               # Comfey — Play Rough
-    registry.register_attack("sv07-065", 0, _colorful_confection_flag)     # Alcremie — Colorful Confection (FLAGGED)
+    registry.register_attack("sv07-065", 0, _colorful_confection)           # Alcremie — Colorful Confection
     registry.register_attack("sv07-066", 0, _call_for_family_1)             # Fidough — Pleasant Aroma (bench 1 Basic)
     registry.register_attack("sv07-067", 0, _wonder_shine)                  # Dachsbun ex — Wonder Shine
     registry.register_attack("sv07-071", 0, _adjusted_horn)                 # Iron Boulder — Adjusted Horn
@@ -17879,10 +17891,10 @@ def register_all(registry):
     registry.register_attack("sv06.5-036", 0, _poisonous_musculature)        # Okidogi ex — Poisonous Musculature
     registry.register_attack("sv06.5-036", 1, _chain_crazed)                # Okidogi ex — Chain-Crazed
     registry.register_attack("sv06.5-037", 0, _dirty_headbutt)              # Munkidori ex — Dirty Headbutt
-    registry.register_attack("sv06.5-042", 0, _nasal_lariat_flag)           # Copperajah — Nasal Lariat (FLAGGED)
+    registry.register_attack("sv06.5-042", 0, _nasal_lariat)                # Copperajah — Nasal Lariat
     registry.register_attack("sv06.5-043", 0, _rigidify)                    # Varoom — Rigidify
     registry.register_attack("sv06.5-045", 0, _dragon_pulse_discard1)       # Fraxure — Dragon Pulse
-    registry.register_attack("sv06.5-046", 0, _bring_down_the_axe_flag)     # Haxorus — Bring Down the Axe (FLAGGED)
+    registry.register_attack("sv06.5-046", 0, _bring_down_the_axe)           # Haxorus — Bring Down the Axe
     registry.register_attack("sv06.5-046", 1, _dragon_pulse_discard3)       # Haxorus — Dragon Pulse
     registry.register_attack("sv06.5-047", 0, _trifrost)                    # Kyurem — Trifrost
     registry.register_attack("sv06.5-048", 0, _fury_swipes)                 # Meowth — Fury Swipes (reuse)
@@ -17947,7 +17959,7 @@ def register_all(registry):
     registry.register_attack("sv06-048", 0, _snip_snip_flag)                # Crawdaunt — Snip Snip (FLAGGED)
     registry.register_attack("sv06-048", 1, _rampaging_hammer)              # Crawdaunt — Rampaging Hammer
     registry.register_attack("sv06-049", 0, _flail_twm)                     # Feebas — Flail
-    registry.register_attack("sv06-051", 0, _astonish_flag)                 # Snorunt — Astonish (FLAGGED)
+    registry.register_attack("sv06-051", 0, _astonish)                      # Snorunt — Astonish
     registry.register_attack("sv06-052", 0, _damage_beat)                   # Glalie — Damage Beat (reuse)
     registry.register_attack("sv06-052", 1, _scorching_fire)                # Glalie — Crazy Headbutt (reuse scorching_fire)
     registry.register_attack("sv06-054", 0, _permeating_chill_b10)         # Glaceon — Permeating Chill
@@ -18020,10 +18032,91 @@ def _obsidian(state, action):
         _apply_bench_damage(state, opp_id, target, 130)
 
 
-def _mischievous_painting_flag(state, action):
-    """sv08-121 Grafaiai atk0 — Mischievous Painting: FLAGGED (energy redistribution)."""
-    state.emit_event("flagged_effect", attack="Mischievous Painting",
-                     reason="opponent_energy_redistribution_not_supported")
+def _surf_back(state, action):
+    """sv08-131 Gholdengo atk1 — Surf Back: 100 + may shuffle this Pokémon and all attached cards into deck."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    req = ChoiceRequest(
+        "choose_option", action.player_id,
+        "Surf Back: shuffle Gholdengo and all attached cards into your deck?",
+        options=["Yes (shuffle into deck)", "No (stay active)"],
+    )
+    resp = yield req
+    wants_shuffle = (resp.selected_option == 0) if resp and hasattr(resp, "selected_option") else False
+    if wants_shuffle and player.active:
+        gholdengo = player.active
+        player.active = None
+        gholdengo.energy_attached.clear()
+        gholdengo.tools_attached.clear()
+        gholdengo.damage_counters = 0
+        gholdengo.current_hp = gholdengo.max_hp
+        gholdengo.status_conditions.clear()
+        gholdengo.zone = Zone.DECK
+        player.deck.append(gholdengo)
+        _shuffle_deck(player)
+        state.emit_event("surf_back", player=action.player_id, card=gholdengo.card_name)
+
+
+def _mischievous_painting(state, action):
+    """sv08-121 Grafaiai atk0 — Mischievous Painting: attach up to 3 Energy from opp's discard to their Pokémon."""
+    from app.engine.state import EnergyAttachment as _EA_MP
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_player(opp_id)
+    energy_in_discard = [c for c in opp.discard if c.card_type.lower() == "energy"]
+    if not energy_in_discard:
+        state.emit_event("attack_no_damage", attacker="Grafaiai", attack_name="Mischievous Painting",
+                         reason="no_energy_in_opponent_discard")
+        return
+    in_play = ([opp.active] if opp.active else []) + list(opp.bench)
+    if not in_play:
+        return
+    max_count = min(3, len(energy_in_discard))
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        f"Mischievous Painting: choose up to {max_count} Energy from opponent's discard to attach",
+        cards=energy_in_discard, min_count=0, max_count=max_count,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and hasattr(resp, "selected_cards") and resp.selected_cards else []
+    attached = 0
+    for iid in chosen_ids[:max_count]:
+        ec = next((c for c in opp.discard if c.instance_id == iid), None)
+        if not ec:
+            continue
+        in_play_now = ([opp.active] if opp.active else []) + list(opp.bench)
+        if not in_play_now:
+            break
+        if len(in_play_now) == 1:
+            target = in_play_now[0]
+        else:
+            req_t = ChoiceRequest(
+                "choose_target", action.player_id,
+                f"Mischievous Painting: choose opponent's Pokémon to attach {ec.card_name} to",
+                targets=in_play_now,
+            )
+            resp_t = yield req_t
+            target = None
+            if resp_t and hasattr(resp_t, "target_instance_id") and resp_t.target_instance_id:
+                target = next((p for p in in_play_now
+                               if p.instance_id == resp_t.target_instance_id), None)
+            if target is None:
+                target = in_play_now[0]
+        opp.discard.remove(ec)
+        provides_raw = ec.energy_provides or []
+        provides = [EnergyType.from_str(t) for t in provides_raw] or [EnergyType.COLORLESS]
+        target.energy_attached.append(_EA_MP(
+            energy_type=provides[0],
+            source_card_id=ec.instance_id,
+            card_def_id=ec.card_def_id,
+            provides=provides,
+        ))
+        state.emit_event("energy_attached", player=opp_id, to_card=target.card_name,
+                         energy_type=ec.card_name, source="Mischievous Painting")
+        attached += 1
+    state.emit_event("mischievous_painting", attacker=action.player_id,
+                     player=opp_id, attached=attached)
 
 
 def _energized_graffiti(state, action):
@@ -18319,10 +18412,33 @@ def _cotton_wings(state, action):
         state.emit_event("coin_flip_result", attack="Cotton Wings", result="tails")
 
 
-def _time_manipulation_flag(state, action):
-    """sv08-135 Dialga atk0 — Time Manipulation: FLAGGED (search deck for 2 cards)."""
-    state.emit_event("flagged_effect", attack="Time Manipulation",
-                     reason="deck_search_for_2_cards_player_choice_not_supported")
+def _time_manipulation(state, action):
+    """sv08-135 Dialga atk0 — Time Manipulation: search deck for 2 cards, put on top in any order."""
+    player = state.get_player(action.player_id)
+    if not player.deck:
+        state.emit_event("attack_no_damage", attacker="Dialga", attack_name="Time Manipulation",
+                         reason="empty_deck")
+        return
+    count = min(2, len(player.deck))
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        f"Time Manipulation: choose up to {count} cards from your deck to put on top",
+        cards=list(player.deck), min_count=0, max_count=count,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and hasattr(resp, "selected_cards") and resp.selected_cards else []
+    # Remove the chosen cards from deck
+    chosen_cards = []
+    for iid in chosen_ids[:count]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            chosen_cards.append(card)
+    # Shuffle deck, then put chosen cards on top (in the order selected)
+    _shuffle_deck(player)
+    for card in reversed(chosen_cards):
+        player.deck.insert(0, card)
+    state.emit_event("time_manipulation", player=action.player_id, placed=len(chosen_cards))
 
 
 def _space_crash(state, action):
@@ -18430,10 +18546,41 @@ def _surprise_pump(state, action):
     _apply_damage(state, action, 100, bypass_defender_effects=True)
 
 
-def _cinnabar_lure_flag(state, action):
-    """sv08-142 Tatsugiri ex atk1 — Cinnabar Lure: FLAGGED (deck search for Pokémon to bench)."""
-    state.emit_event("flagged_effect", attack="Cinnabar Lure",
-                     reason="deck_search_bench_pokemon_not_supported")
+def _cinnabar_lure(state, action):
+    """sv08-142 Tatsugiri ex atk1 — Cinnabar Lure: look at top 10 cards, put any Pokémon onto Bench."""
+    player = state.get_player(action.player_id)
+    if not player.deck:
+        state.emit_event("attack_no_damage", attacker="Tatsugiri ex", attack_name="Cinnabar Lure",
+                         reason="empty_deck")
+        return
+    top10 = player.deck[:10]
+    pokemon_in_top = [c for c in top10 if c.card_type.lower() in ("pokemon", "pokémon")]
+    available_slots = 5 - len(player.bench)
+    if not pokemon_in_top or available_slots <= 0:
+        _shuffle_deck(player)
+        state.emit_event("cinnabar_lure", player=action.player_id, placed=0)
+        return
+    max_place = min(available_slots, len(pokemon_in_top))
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        f"Cinnabar Lure: choose any Pokémon from top 10 cards of deck to put on Bench (up to {max_place})",
+        cards=pokemon_in_top, min_count=0, max_count=max_place,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and hasattr(resp, "selected_cards") and resp.selected_cards else []
+    placed = 0
+    for iid in chosen_ids[:max_place]:
+        if len(player.bench) >= 5:
+            break
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card and card in player.deck[:10]:
+            player.deck.remove(card)
+            card.zone = Zone.BENCH
+            card.turn_played = state.turn_number
+            player.bench.append(card)
+            placed += 1
+    _shuffle_deck(player)
+    state.emit_event("cinnabar_lure", player=action.player_id, placed=placed)
 
 
 def _take_it_easy(state, action):
@@ -20226,7 +20373,7 @@ def _all_out_attack_flag(state, action):
     _apply_damage(state, action, 30 + bonus)
 
 
-def _colorful_confection_flag(state, action):
+def _colorful_confection(state, action):
     """sv07-065 Alcremie atk0 — Colorful Confection: search deck for up to 5 Pokémon matching attached energy types."""
     player = state.get_player(action.player_id)
     if not player.active:
@@ -20249,8 +20396,7 @@ def _colorful_confection_flag(state, action):
         if cdef and any(t in energy_types for t in (cdef.types or [])):
             type_matched.append(c)
     if not type_matched:
-        import random as _r_cc
-        _r_cc.shuffle(player.deck)
+        _shuffle_deck(player)
         state.emit_event("attack_no_damage", attacker="Alcremie", attack_name="Colorful Confection",
                          reason="no_matching_pokemon_in_deck")
         return
@@ -20267,10 +20413,8 @@ def _colorful_confection_flag(state, action):
             player.deck.remove(card)
             card.zone = Zone.HAND
             player.hand.append(card)
-    import random as _r_cc2
-    _r_cc2.shuffle(player.deck)
+    _shuffle_deck(player)
     state.emit_event("colorful_confection", player=action.player_id, found=len(chosen_ids))
-    state.emit_event("attack_no_damage", attacker="Alcremie", attack_name="Colorful Confection")
 
 
 def _swelling_wish_flag(state, action):
@@ -20409,11 +20553,23 @@ def _poisonous_musculature(state, action):
                          attached=0, poisoned=False)
 
 
-def _nasal_lariat_flag(state, action):
-    """sv06.5-042 Copperajah atk0 — Nasal Lariat: FLAGGED (player choice +100 damage or self attack lock)."""
-    _do_default_damage(state, action)
-    state.emit_event("flagged_effect", attack="Nasal Lariat",
-                     reason="player_choice_extra_damage_with_self_attack_lock_not_supported")
+def _nasal_lariat(state, action):
+    """sv06.5-042 Copperajah atk0 — Nasal Lariat: 130 + may do 100 more; if so, can't use this attack next turn."""
+    req = ChoiceRequest(
+        "choose_option", action.player_id,
+        "Nasal Lariat: do 100 more damage? (Can't use Nasal Lariat next turn if yes)",
+        options=["Yes (+100 damage, lock next turn)", "No (130 damage)"],
+    )
+    resp = yield req
+    extra = (resp.selected_option == 0) if resp and hasattr(resp, "selected_option") else False
+    damage = 230 if extra else 130
+    _apply_damage(state, action, damage)
+    if extra and state.phase != Phase.GAME_OVER:
+        player = state.get_player(action.player_id)
+        if player.active:
+            player.active.locked_attack_index = 0
+            state.emit_event("attack_locked", card=player.active.card_name,
+                             attack_name="Nasal Lariat")
 
 
 def _rigidify(state, action):
@@ -20440,10 +20596,23 @@ def _dragon_pulse_discard1(state, action):
                          card=top.card_name, reason="Dragon Pulse")
 
 
-def _bring_down_the_axe_flag(state, action):
-    """sv06.5-046 Haxorus atk0 — Bring Down the Axe: FLAGGED (conditional OHKO on Special Energy)."""
-    state.emit_event("flagged_effect", attack="Bring Down the Axe",
-                     reason="conditional_ohko_on_special_energy_not_supported")
+def _bring_down_the_axe(state, action):
+    """sv06.5-046 Haxorus atk0 — Bring Down the Axe: if opp Active has Special Energy, it is KO'd."""
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_player(opp_id)
+    if not opp.active:
+        return
+    has_special = any(not _is_basic_energy(att) for att in opp.active.energy_attached)
+    if has_special:
+        opp.active.current_hp = 0
+        opp.active.damage_counters = opp.active.max_hp // 10
+        state.emit_event("bring_down_the_axe", attacker=action.player_id,
+                         target=opp.active.card_name)
+        check_ko(state, opp.active, opp_id)
+    else:
+        state.emit_event("attack_no_effect", attacker=action.player_id,
+                         attack_name="Bring Down the Axe",
+                         reason="no_special_energy_on_opponent")
 
 
 def _dragon_pulse_discard3(state, action):
@@ -21258,11 +21427,21 @@ def _psychic_kadabra(state, action):
     _apply_damage(state, action, 10 + 30 * energy_count)
 
 
-def _astonish_flag(state, action):
-    """sv06-051 Snorunt atk0 — Astonish: 20 + FLAGGED (random card from opp hand shuffled into deck)."""
+def _astonish(state, action):
+    """sv06-051 Snorunt atk0 — Astonish: 20 + randomly shuffle 1 card from opp's hand into deck."""
     _do_default_damage(state, action)
-    state.emit_event("flagged_effect", attack="Astonish",
-                     reason="random_hand_card_shuffle_to_deck_not_supported")
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_player(opp_id)
+    if not opp.hand:
+        return
+    idx = _random.randrange(len(opp.hand))
+    card = opp.hand.pop(idx)
+    card.zone = Zone.DECK
+    opp.deck.append(card)
+    _shuffle_deck(opp)
+    state.emit_event("astonish", attacker=action.player_id, shuffled=card.card_name)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -25946,6 +26125,9 @@ def register_flagged_batch3_attacks(registry):
 
     # ── sv08.5-041 Sylveon ex PRE — Angelite ─────────────────────────────────
     registry.register_attack("sv08.5-041", 1, _angelite_b3)
+
+    # ── sv08-086 Sylveon ex SSP — Angelite ───────────────────────────────────
+    registry.register_attack("sv08-086", 1, _angelite_b3)
 
     # ── svp-188 Scrafty — Nab 'n' Dash ───────────────────────────────────────
     registry.register_attack("svp-188", 0, _nab_n_dash_b3)
