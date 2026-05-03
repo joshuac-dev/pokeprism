@@ -5474,6 +5474,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv08-184", _noop)   # Passho Berry (type-damage reduction)
     registry.register_trainer("sv07-137", _noop)   # Gravity Gemstone (retreat cost +{C})
     registry.register_trainer("sv07-140", _noop)   # Occa Berry (type-damage reduction)
+    registry.register_trainer("sv07-142", _noop)   # Sparkling Crystal (attack cost -1 for Tera — passive tool)
     registry.register_trainer("sv06.5-055", _noop) # Binding Mochi (damage boost when Poisoned)
 
     # Stadiums (passive — effects handled elsewhere in engine)
