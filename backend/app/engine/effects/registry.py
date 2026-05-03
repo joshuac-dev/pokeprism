@@ -365,6 +365,10 @@ async def _drive_effect(
                 if player_obj is not None:
                     legal = _choice_to_legal_actions(request)
                     chosen = await player_obj.choose_action(state, legal)
+                    from app.engine.actions import ActionValidator
+                    valid, _error = ActionValidator.validate(state, chosen)
+                    if not valid:
+                        chosen = None
 
             if chosen is None:
                 chosen = _default_choice(request)

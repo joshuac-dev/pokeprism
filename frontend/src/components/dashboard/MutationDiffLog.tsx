@@ -105,8 +105,26 @@ export default function MutationDiffLog({ mutations }: Props) {
               {expandedId === row.original.id && (
                 <tr key={`${row.id}-expanded`}>
                   <td colSpan={columns.length} className="px-3 pb-3">
-                    <div className="bg-slate-50 dark:bg-slate-900 rounded p-3 text-slate-600 dark:text-slate-300 text-sm italic">
-                      {row.original.reasoning ?? 'No reasoning provided.'}
+                    <div className="bg-slate-50 dark:bg-slate-900 rounded p-3 text-slate-600 dark:text-slate-300 text-sm space-y-3">
+                      <p className="italic">{row.original.reasoning ?? 'No reasoning provided.'}</p>
+                      {row.original.evidence?.length > 0 && (
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">
+                            Evidence
+                          </p>
+                          <ul className="space-y-1">
+                            {row.original.evidence.map((item, i) => (
+                              <li key={`${item.kind}-${item.ref}-${i}`} className="flex flex-wrap gap-x-2 gap-y-1">
+                                <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
+                                  {item.kind}
+                                </span>
+                                <span className="text-slate-700 dark:text-slate-200">{item.ref}</span>
+                                <span className="text-slate-500 dark:text-slate-400">{item.value}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>

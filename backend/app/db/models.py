@@ -251,6 +251,7 @@ class DeckMutation(Base):
     card_removed  = Column(Text, nullable=False)
     card_added    = Column(Text, nullable=False)
     reasoning     = Column(Text)
+    evidence      = Column(JSONB)
     created_at    = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
 

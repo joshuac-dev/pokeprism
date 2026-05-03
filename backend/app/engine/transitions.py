@@ -619,6 +619,19 @@ async def _attack(state: GameState, action: Action, get_player=None) -> GameStat
         attack_index=action.attack_index,
     )
 
+    # Confusion: flip a coin; tails = attack fails + 30 self-damage
+    from app.engine.state import StatusCondition as _SC_t
+    if player.active and _SC_t.CONFUSED in player.active.status_conditions:
+        import random as _rnd_confused
+        if not _rnd_confused.choice([True, False]):  # tails
+            player.active.current_hp -= 30
+            player.active.damage_counters += 3
+            state.emit_event("confusion_damage", player=action.player_id,
+                             attacker=player.active.card_name)
+            from app.engine.effects.base import check_ko
+            check_ko(state, player.active, action.player_id)
+            return state
+
     # Sand Attack: defender must flip coin; tails = this attack fails
     if player.active and player.active.attack_requires_flip:
         import random as _rnd_sand

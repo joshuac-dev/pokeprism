@@ -421,7 +421,15 @@ class TestAnalyzeAndMutate:
         analyst._card_perf.get_card_performance = AsyncMock(return_value={})
         analyst._graph.get_synergies = AsyncMock(return_value={"top": [], "weak": []})
         analyst._similar.find_similar = AsyncMock(return_value=[])
-        analyst._card_perf.get_top_performing_cards = AsyncMock(return_value=[])
+        # Provide all 4 proposed cards as candidates (required since candidate filtering was added)
+        analyst._card_perf.get_top_performing_cards = AsyncMock(return_value=[
+            {"tcgdex_id": f"new-{i:03d}", "name": f"Card {i}", "category": "Trainer",
+             "win_rate": 0.6, "games_included": 10}
+            for i in range(4)
+        ])
+        analyst._db.execute = AsyncMock(
+            return_value=MagicMock(**{"scalars.return_value.all.return_value": []})
+        )
 
         # Propose 4 swaps but max is 2 — all tier3 so count 1:1
         proposed_swaps = [
@@ -446,6 +454,123 @@ class TestAnalyzeAndMutate:
             round_number=1,
         )
         assert len(mutations) == 2
+
+    @pytest.mark.asyncio
+    async def test_non_candidate_add_discarded(self):
+        """Coach output proposing an add not in the candidate pool is discarded."""
+        analyst = _make_analyst()
+        card = _trainer("set-001", "SomeCard")
+
+        analyst._card_perf.get_card_performance = AsyncMock(return_value={})
+        analyst._graph.get_synergies = AsyncMock(return_value={"top": [], "weak": []})
+        analyst._similar.find_similar = AsyncMock(return_value=[])
+        # Candidate pool only contains new-001
+        analyst._card_perf.get_top_performing_cards = AsyncMock(return_value=[
+            {"tcgdex_id": "new-001", "name": "Valid Card", "category": "Trainer",
+             "win_rate": 0.6, "games_included": 10}
+        ])
+        analyst._db.execute = AsyncMock(
+            return_value=MagicMock(**{"scalars.return_value.all.return_value": []})
+        )
+        analyst._graph.record_swap = AsyncMock()
+
+        # Coach proposes adding "outside-001" which is NOT in the candidate pool
+        proposed = [{
+            "remove": "set-001",
+            "add": "outside-001",
+            "reasoning": "should be discarded",
+            "evidence": [{"kind": "round_result", "ref": "round 1", "value": "loss"}],
+        }]
+        analyst._call_ollama = AsyncMock(
+            return_value=json.dumps({"swaps": proposed, "analysis": "swap"})
+        )
+
+        mutations = await analyst.analyze_and_mutate(
+            current_deck=[card],
+            round_results=[_match_result("p2")],
+            simulation_id=uuid.uuid4(),
+            round_number=1,
+        )
+        assert mutations == []
+
+    @pytest.mark.asyncio
+    async def test_excluded_add_discarded(self):
+        """Coach output proposing a card from excluded_ids is discarded even if it appeared
+        in the candidate query result (belt-and-suspenders enforcement)."""
+        analyst = _make_analyst()
+        card = _trainer("set-001", "SomeCard")
+
+        analyst._card_perf.get_card_performance = AsyncMock(return_value={})
+        analyst._graph.get_synergies = AsyncMock(return_value={"top": [], "weak": []})
+        analyst._similar.find_similar = AsyncMock(return_value=[])
+        # excl-001 appears in the candidate result despite being excluded (simulates DB bypass)
+        analyst._card_perf.get_top_performing_cards = AsyncMock(return_value=[
+            {"tcgdex_id": "excl-001", "name": "Excluded Card", "category": "Trainer",
+             "win_rate": 0.7, "games_included": 10}
+        ])
+        analyst._db.execute = AsyncMock(
+            return_value=MagicMock(**{"scalars.return_value.all.return_value": []})
+        )
+        analyst._graph.record_swap = AsyncMock()
+
+        proposed = [{
+            "remove": "set-001",
+            "add": "excl-001",
+            "reasoning": "should be discarded",
+            "evidence": [{"kind": "round_result", "ref": "round 1", "value": "loss"}],
+        }]
+        analyst._call_ollama = AsyncMock(
+            return_value=json.dumps({"swaps": proposed, "analysis": "swap"})
+        )
+
+        mutations = await analyst.analyze_and_mutate(
+            current_deck=[card],
+            round_results=[_match_result("p2")],
+            simulation_id=uuid.uuid4(),
+            round_number=1,
+            excluded_ids=["excl-001"],
+        )
+        assert mutations == []
+
+    @pytest.mark.asyncio
+    async def test_card_added_def_populated_in_mutations(self):
+        """Returned mutations have card_added_def set to a real CardDefinition."""
+        analyst = _make_analyst()
+        card = _trainer("set-001", "OldCard")
+
+        analyst._card_perf.get_card_performance = AsyncMock(return_value={})
+        analyst._graph.get_synergies = AsyncMock(return_value={"top": [], "weak": []})
+        analyst._similar.find_similar = AsyncMock(return_value=[])
+        analyst._card_perf.get_top_performing_cards = AsyncMock(return_value=[
+            {"tcgdex_id": "new-001", "name": "New Card", "category": "Trainer",
+             "subcategory": "Item", "win_rate": 0.7, "games_included": 15}
+        ])
+        analyst._db.execute = AsyncMock(
+            return_value=MagicMock(**{"scalars.return_value.all.return_value": []})
+        )
+        analyst._graph.record_swap = AsyncMock()
+
+        proposed = [{
+            "remove": "set-001",
+            "add": "new-001",
+            "reasoning": "better card",
+            "evidence": [{"kind": "candidate_metric", "ref": "new-001", "value": "win_rate=0.7"}],
+        }]
+        analyst._call_ollama = AsyncMock(
+            return_value=json.dumps({"swaps": proposed, "analysis": "improve deck"})
+        )
+
+        mutations = await analyst.analyze_and_mutate(
+            current_deck=[card],
+            round_results=[_match_result("p2")],
+            simulation_id=uuid.uuid4(),
+            round_number=1,
+        )
+        assert len(mutations) == 1
+        cdef = mutations[0].get("card_added_def")
+        assert cdef is not None
+        assert cdef.tcgdex_id == "new-001"
+        assert cdef.name == "New Card"
 
     def test_prompt_wraps_untrusted_context(self):
         analyst = _make_analyst()

@@ -18,6 +18,7 @@ from app.engine.state import (
     Zone,
 )
 from app.engine.runner import build_deck_instances
+from app.engine.effects.base import ChoiceRequest
 from app.cards import registry as card_registry
 
 
@@ -220,3 +221,66 @@ class TestValidateAction:
         # Depends on implementation — setup is turn 0 so both players act
         # Just check the return type is correct
         assert isinstance(valid, bool)
+
+    def test_validate_rejects_forced_switch_to_non_bench_target(self, dragapult_deck_defs):
+        instances = build_deck_instances(dragapult_deck_defs)
+        state = GameState()
+        state.phase = Phase.MAIN
+        state.turn_number = 2
+
+        state.p1.active = next(i for i in instances if "Dreepy" in i.card_name)
+        state.p1.bench = [next(i for i in instances if "Drakloak" in i.card_name)]
+
+        action = Action(
+            ActionType.SWITCH_ACTIVE,
+            player_id="p1",
+            target_instance_id="not-on-bench",
+        )
+
+        valid, error = ActionValidator.validate(state, action)
+
+        assert valid is False
+        assert "bench" in error
+
+    def test_validate_accepts_forced_switch_to_bench_target(self, dragapult_deck_defs):
+        instances = build_deck_instances(dragapult_deck_defs)
+        state = GameState()
+        state.phase = Phase.MAIN
+        state.turn_number = 2
+
+        state.p1.active = next(i for i in instances if "Dreepy" in i.card_name)
+        bench = next(i for i in instances if "Drakloak" in i.card_name)
+        state.p1.bench = [bench]
+
+        action = Action(
+            ActionType.SWITCH_ACTIVE,
+            player_id="p1",
+            target_instance_id=bench.instance_id,
+        )
+
+        valid, error = ActionValidator.validate(state, action)
+
+        assert valid is True
+        assert error == ""
+
+    def test_validate_rejects_choice_target_outside_context(self, dragapult_deck_defs):
+        instances = build_deck_instances(dragapult_deck_defs)
+        state = GameState()
+        target = next(i for i in instances if "Dreepy" in i.card_name)
+        ctx = ChoiceRequest(
+            "choose_target",
+            "p1",
+            targets=[target],
+        )
+
+        action = Action(
+            ActionType.CHOOSE_TARGET,
+            player_id="p1",
+            target_instance_id="not-a-choice",
+            choice_context=ctx,
+        )
+
+        valid, error = ActionValidator.validate(state, action)
+
+        assert valid is False
+        assert "legal target" in error

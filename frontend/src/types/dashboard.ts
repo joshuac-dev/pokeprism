@@ -51,7 +51,14 @@ export interface MutationRow {
   card_removed: string;
   card_added: string;
   reasoning: string | null;
+  evidence: MutationEvidence[];
   created_at: string | null;
+}
+
+export interface MutationEvidence {
+  kind: 'card_performance' | 'synergy' | 'round_result' | 'candidate_metric';
+  ref: string;
+  value: string;
 }
 
 /** Per-opponent aggregated stats derived client-side from matches */

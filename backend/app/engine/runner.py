@@ -357,6 +357,11 @@ class MatchRunner:
                     for b in player.bench
                 ]
                 action = await player_obj.choose_action(state, legal)
+                is_valid, error = ActionValidator.validate(state, action)
+                if not is_valid:
+                    state.emit_event("invalid_forced_switch", player=pid, error=error)
+                    self._emit(state.events[-1])
+                    action = legal[0]
                 prev_len = len(state.events)
                 state = await StateTransition.apply(state, action, self._get_player)
                 self._emit_since(state, prev_len)
@@ -404,7 +409,7 @@ class MatchRunner:
                                    for p in (([_magma_opp.active] if _magma_opp.active else [])
                                              + list(_magma_opp.bench)))
                 flip = self._rng.choice([True, False])
-                if flip:  # Heads: take 2 damage counters (standard burn)
+                if not flip:  # Tails: take 2 damage counters (standard burn)
                     active.current_hp -= 20
                     active.damage_counters += 2
                     state.emit_event("burn_damage", player=pid, card=active.card_name)
@@ -427,7 +432,8 @@ class MatchRunner:
                     active.status_conditions.remove(StatusCondition.ASLEEP)
                     state.emit_event("woke_up", player=pid, card=active.card_name)
 
-            if StatusCondition.PARALYZED in active.status_conditions:
+            if (StatusCondition.PARALYZED in active.status_conditions
+                    and pid == state.active_player):
                 active.status_conditions.remove(StatusCondition.PARALYZED)
                 state.emit_event("paralysis_removed", player=pid, card=active.card_name)
 

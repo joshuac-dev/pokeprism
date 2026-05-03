@@ -17,7 +17,9 @@ from app.coach.prompts import (
     COACH_EVOLUTION_USER_PROMPT,
     COACH_REPAIR_PROMPT,
 )
-from app.db.models import DeckMutation
+from sqlalchemy import select
+
+from app.db.models import Card, DeckMutation
 from app.memory.embeddings import SimilarSituationFinder
 from app.memory.graph import GraphQueries
 from app.memory.postgres import CardPerformanceQueries
@@ -103,6 +105,7 @@ class CoachAnalyst:
                 for k, v in perf.items()
                 if k not in all_excluded
             ]
+        top_cards = await self._enrich_candidate_cards(top_cards)
 
         # Compute evolution line tiers for this round
         primary_ids = self._identify_primary_line(round_results, current_deck)
@@ -124,7 +127,18 @@ class CoachAnalyst:
 
         # Enforce tier protection rules (blocks tier1; requires full-line for tier2)
         all_deck_id_set = set(deck_ids)
-        valid_swaps = self._validate_and_filter_swaps(raw_swaps, tiers, all_deck_id_set)
+        candidate_by_id = {c.get("tcgdex_id"): c for c in top_cards if c.get("tcgdex_id")}
+        candidate_ids = set(candidate_by_id)
+        candidate_filtered_swaps = [
+            swap for swap in raw_swaps
+            if swap.get("add") in candidate_ids and swap.get("add") not in all_excluded
+        ]
+        skipped = len(raw_swaps) - len(candidate_filtered_swaps)
+        if skipped:
+            logger.warning("Coach proposed %d swaps with non-candidate or excluded additions; skipped.", skipped)
+        valid_swaps = self._validate_and_filter_swaps(
+            candidate_filtered_swaps, tiers, all_deck_id_set
+        )
 
         mutations = []
         for swap in valid_swaps:
@@ -140,6 +154,7 @@ class CoachAnalyst:
                 "round_number": round_number,
                 "card_removed": removed,
                 "card_added": added,
+                "card_added_def": self._candidate_to_card_definition(candidate_by_id.get(added)),
                 "reasoning": reasoning,
                 "evidence": swap.get("evidence", []),
             }
@@ -175,9 +190,7 @@ class CoachAnalyst:
         )
 
         loss_reasons = self._extract_loss_reasons(round_results)
-        deck_list = "\n".join(
-            f"- {c.tcgdex_id} ({c.name})" for c in deck
-        )
+        deck_list = "\n".join(self._format_card_definition(c) for c in deck)
         card_stats_text = self._format_card_stats(card_stats)
         candidate_text = self._format_candidates(top_cards)
         top_syn_text = ", ".join(
@@ -407,9 +420,140 @@ class CoachAnalyst:
             f"  {c['tcgdex_id']} ({c.get('name', '')}): "
             f"win_rate={c.get('win_rate', 0):.1%}, "
             f"games={c.get('games_included', 0)}"
+            f"{self._format_candidate_rules_suffix(c)}"
             for c in top_cards[:10]
         ]
         return "\n".join(lines)
+
+    async def _enrich_candidate_cards(self, cards: list[dict]) -> list[dict]:
+        ids = [c.get("tcgdex_id") for c in cards if c.get("tcgdex_id")]
+        if not ids:
+            return cards
+        rows = (await self._db.execute(
+            select(Card).where(Card.tcgdex_id.in_(ids))
+        )).scalars().all()
+        by_id = {row.tcgdex_id: row for row in rows}
+        enriched: list[dict] = []
+        for card in cards:
+            row = by_id.get(card.get("tcgdex_id"))
+            if row is None:
+                enriched.append(card)
+                continue
+            next_card = dict(card)
+            next_card.update({
+                "name": row.name,
+                "category": row.category,
+                "subcategory": row.subcategory,
+                "set_abbrev": row.set_abbrev,
+                "set_number": row.set_number,
+                "hp": row.hp,
+                "types": row.types or [],
+                "stage": row.stage,
+                "evolve_from": row.evolve_from,
+                "attacks": row.attacks or [],
+                "abilities": row.abilities or [],
+                "retreat_cost": row.retreat_cost,
+                "raw_tcgdex": row.raw_tcgdex or {},
+            })
+            enriched.append(next_card)
+        return enriched
+
+    def _candidate_to_card_definition(self, card: dict | None):
+        if not card:
+            return None
+        if not card.get("category"):
+            return None
+        from app.cards.models import CardDefinition
+        parts = str(card.get("tcgdex_id", "")).rsplit("-", 1)
+        return CardDefinition(
+            tcgdex_id=card.get("tcgdex_id", ""),
+            name=card.get("name") or card.get("tcgdex_id", ""),
+            set_abbrev=card.get("set_abbrev") or (parts[0] if len(parts) == 2 else ""),
+            set_number=card.get("set_number") or (parts[1] if len(parts) == 2 else ""),
+            category=card.get("category") or "",
+            subcategory=card.get("subcategory") or "",
+            hp=card.get("hp"),
+            types=card.get("types") or [],
+            evolve_from=card.get("evolve_from"),
+            stage=card.get("stage") or "",
+            attacks=card.get("attacks") or [],
+            abilities=card.get("abilities") or [],
+            retreat_cost=card.get("retreat_cost") or 0,
+            raw_tcgdex=card.get("raw_tcgdex") or {},
+        )
+
+    def _format_candidate_rules_suffix(self, card: dict) -> str:
+        parts: list[str] = []
+        category = str(card.get("category") or "").strip()
+        subcategory = str(card.get("subcategory") or "").strip()
+        if category:
+            parts.append(f"type={category}{('/' + subcategory) if subcategory else ''}")
+        if card.get("stage"):
+            parts.append(f"stage={card.get('stage')}")
+        if card.get("evolve_from"):
+            parts.append(f"evolves_from={card.get('evolve_from')}")
+        if card.get("hp"):
+            parts.append(f"hp={card.get('hp')}")
+        if card.get("types"):
+            parts.append(f"pokemon_type={', '.join(card.get('types') or [])}")
+        rules = self._format_raw_rules(
+            attacks=card.get("attacks") or [],
+            abilities=card.get("abilities") or [],
+            raw=card.get("raw_tcgdex") or {},
+        )
+        if rules:
+            parts.append(rules)
+        return " | " + " | ".join(parts) if parts else ""
+
+    def _format_card_definition(self, card: CardDefinition) -> str:
+        parts = [
+            f"- {card.tcgdex_id} ({card.name})",
+            f"type={card.category}{('/' + card.subcategory) if card.subcategory else ''}",
+        ]
+        if card.stage:
+            parts.append(f"stage={card.stage}")
+        if card.evolve_from:
+            parts.append(f"evolves_from={card.evolve_from}")
+        if card.hp:
+            parts.append(f"hp={card.hp}")
+        if card.types:
+            parts.append(f"pokemon_type={', '.join(card.types)}")
+        rules = self._format_raw_rules(
+            attacks=[a.model_dump() for a in card.attacks],
+            abilities=[a.model_dump() for a in card.abilities],
+            raw=card.raw_tcgdex or {},
+        )
+        if rules:
+            parts.append(rules)
+        return " | ".join(parts)
+
+    def _format_raw_rules(self, attacks: list, abilities: list, raw: dict) -> str:
+        pieces: list[str] = []
+        if attacks:
+            attack_parts = []
+            for attack in attacks:
+                attack_parts.append(
+                    f"{attack.get('name', '')} "
+                    f"[cost={', '.join(attack.get('cost') or []) or 'none'}; "
+                    f"damage={attack.get('damage') or '0'}; "
+                    f"effect={self._clean_prompt_text(attack.get('effect') or 'none')}]"
+                )
+            pieces.append("attacks=" + " / ".join(attack_parts))
+        if abilities:
+            ability_parts = []
+            for ability in abilities:
+                ability_parts.append(
+                    f"{ability.get('name', '')}: "
+                    f"{self._clean_prompt_text(ability.get('effect') or '')}"
+                )
+            pieces.append("abilities=" + " / ".join(ability_parts))
+        effect = self._clean_prompt_text((raw or {}).get("effect", ""))
+        if effect:
+            pieces.append(f"effect={effect}")
+        return " | ".join(pieces)
+
+    def _clean_prompt_text(self, text: str) -> str:
+        return " ".join(str(text).split())
 
     def _format_similar(self, similar: list[dict]) -> str:
         if not similar:
@@ -797,6 +941,7 @@ class CoachAnalyst:
                 card_removed=m["card_removed"],
                 card_added=m["card_added"],
                 reasoning=m.get("reasoning"),
+                evidence=m.get("evidence"),
             )
             for m in mutations
         )

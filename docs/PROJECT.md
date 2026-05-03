@@ -2949,6 +2949,7 @@ CREATE TABLE deck_mutations (
     card_removed    TEXT NOT NULL,       -- tcgdex_id
     card_added      TEXT NOT NULL,       -- tcgdex_id
     reasoning       TEXT,
+    evidence        JSONB DEFAULT '[]',  -- Structured provenance entries: kind/ref/value
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 

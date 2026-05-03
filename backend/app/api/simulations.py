@@ -758,6 +758,7 @@ async def get_simulation_mutations(
             "card_removed": label(m.card_removed),
             "card_added": label(m.card_added),
             "reasoning": m.reasoning,
+            "evidence": m.evidence or [],
             "created_at": m.created_at.isoformat() if m.created_at else None,
         }
         for m in rows

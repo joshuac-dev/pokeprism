@@ -2,100 +2,236 @@
 
 > This file is updated at the end of every development session.
 > Read this BEFORE reading PROJECT.md to understand current state.
-> Historical session entries below are retained as written; date-relative or future-looking notes in those entries may reflect the environment used when that session was recorded. The Current Phase section is authoritative as of 2026-05-02.
+> Historical session entries below are retained as written; date-relative or future-looking notes in those entries may reflect the environment used when that session was recorded. The Current Phase section is authoritative as of 2026-05-03.
 
 ## Current Phase
-**Production Readiness Follow-Up — In Progress**
-_Last updated: 2026-05-03 (Session 5 of follow-up phase)_
+**Production Readiness Follow-Up / Hardening Sweep — COMPLETE**
+_Last updated: 2026-05-03 (Session 8 of follow-up phase)_
 
-Phase 13 and Phase 12 are complete. Production-readiness follow-up continues with critical bug fixes and edge case hardening.
+Phase 13 and Phase 12 are complete. The comprehensive hardening sweep (Sections 1–8) is now complete. See `docs/HARDENING_SWEEP_REPORT.md` for the full report.
 
 | Metric | Value |
 |--------|-------|
 | Cards in DB | **2005** (2003 real + 2 test fixtures) |
 | Coverage | **100%** (0 missing handlers, only test-002 fixture unhandled) |
 | Flat-damage-only cards | 292 |
-| Tests | **320 backend + 4 frontend + 13 Playwright E2E** passing (confirmed 2026-05-03) |
+| Tests | **374 backend passed, 4 skipped** (52 new tests added this sweep) |
 | Flagged entries remaining | **0** |
-| Production-readiness known issues | **All actionable issues FIXED** |
+| Production-readiness known issues | **None — all hardening sweep issues resolved** |
+| Historical matches in DB | **30,137** |
+| `card_performance` rows | **217** (rebuilt from historical matches 2026-05-03) |
 
 ---
 
-## Last Session — 2026-05-03 (Hardening Sweep: Frozensets, Coverage Gaps, Error Handling)
+## Last Session — 2026-05-03 (Hardening Sweep Complete: Sections 3B–8 + AI Audit)
 
 ### Current Phase Progress
 
 **Completed this session:**
 
-1. **`_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozenset audit** — Full DB cross-reference revealed 19 wrong/phantom IDs (pointing to Wiglett, Charjabug, Bronzor, etc., or not in DB at all; Miraidon misclassified as Ancient; Gouging Fire ex misclassified as Future). Added 44 missing real Paradox cards across both sets. Result: 33 Ancient IDs, 29 Future IDs — all verified against DB, zero phantom IDs, zero overlap. Commit: `65e0ce7`.
+1. **Section 3B Coach mutation legality patch** — Finished the interrupted work from the prior session. `_apply_mutations()` in `backend/app/tasks/simulation.py` now:
+   - Requires non-None `card_added_def` from the mutation dict; skips with warning if absent (no more placeholder `CardDefinition(name=add_id)` objects)
+   - Skips any mutation where the card to remove is not found in the current deck (prevents unbalanced deck sizes)
+   - New helper `_validate_post_mutation_deck()` validates 60-card count and 4-copy limits after all mutations apply
+   - Reverts to original deck if post-mutation legality fails
+   - Added `_BASIC_ENERGY_NAMES` frozenset to exempt basic energies from the 4-copy rule
+   Also confirmed `CoachAnalyst.analyze_and_mutate()` carries `card_added_def` forward from DB lookup and filters additions to the candidate pool. New tests: `TestApplyMutations` (8 tests), `TestValidatePostMutationDeck` (4 tests), `test_non_candidate_add_discarded`, `test_excluded_add_discarded`, `test_card_added_def_populated_in_mutations`.
 
-2. **Trainer coverage gaps fixed** — Three cards added to DB since last coverage audit had no effect handlers, causing 422 on simulation submission: `Scoop Up Cyclone` (sv06-162, bench Pokémon → hand with energy returned), `Miracle Headset` (sv08-183, retrieve up to 2 Supporters from discard), `Judge` sv10-167 (registered with existing `_judge` handler). Coverage now clean: only test-002 fixture remains unhandled. Commit: `6d3d390`.
+2. **Section 2C AI/AI behavioral audit completed** — Qwen3.5-9B confirmed warm (~0.33s per call). Ran 3-game AI/AI batch via `backend/scripts/ai_diagnostic_3games.py`:
+   - Game 1: Dragapult ex vs TR Mewtwo — p1 wins, 17 turns, no_bench condition, 41 decisions
+   - Game 2: Dragapult ex vs Cornerstone Ogerpon — p2 wins, 135 turns, deck_out condition, 295 decisions
+   - Game 3: TR Mewtwo vs Cornerstone Ogerpon — p2 wins, 145 turns, deck_out condition, 325 decisions
+   - **661 total decisions, 0 illegal actions** — validator hard gate confirmed working
+   - 177 "suspicious" decisions found by heuristic; root cause: reasoning→action mismatch (AI reasons correctly but chooses PASS) and Fairy Zone rules misunderstanding. These are AI quality issues, not engine bugs. Proposed (but not implemented): KO-flag enrichment in legal action descriptions + greedy KO override backstop.
 
-3. **Frontend 422 error handler fix** — Coverage check returns `detail` as a dict `{error, cards, message}`. Frontend fell through to generic "Server error: 422" branch. Added object branch that reads `detail.message` when present. Commit: `69ef653`.
+3. **Section 4B — Status condition fixes (6 bugs fixed):**
+   - `backend/app/engine/actions.py`: PARALYZED + ASLEEP now block `_get_attack_actions()`; PARALYZED blocks `_get_retreat_actions()` (these were carried as in-progress from prior session)
+   - `backend/app/engine/runner.py`: PARALYZED timing fixed — now only removed for `state.active_player`'s Pokémon at between-turns, not the opponent's
+   - `backend/app/engine/runner.py`: Burn flip direction reversed — changed `if flip:` → `if not flip:` (tails triggers 20 damage, heads is safe, matching official rules)
+   - `backend/app/engine/transitions.py`: CONFUSED coin flip added before attack resolution — tails = 30 self-damage + attack cancelled; heads = attack resolves normally
+   - New test file: `backend/tests/test_engine/test_status_conditions.py` (10 tests covering all 6 status mechanics)
 
-4. **AI/Coach hardening assessment updated** — Both Stage 1 gap items (injection fixture tests + async repair test fix) were already completed in a prior session. Updated `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md` to reflect completed status. Stage 2 and Stage 3 DB work remain intentionally deferred. Commit: `6f818cf`.
+4. **Section 4A — Damage calculation tests** — New test file `backend/tests/test_engine/test_damage_calc.py` (9 tests): weakness ×2, no-weakness baseline, resistance −30, resistance floor=0, combined weakness+resistance, regular KO = 1 prize, ex KO = 2 prizes, last prize → game_over (prizes), last Pokémon with no bench → game_over (no_bench).
 
-**Validation this session:**
-- Backend suite: **320 tests passed** (no regressions)
-- Coverage check: **0 cards with missing handlers** (excluding test-002)
-- Frozensets: **33 Ancient + 29 Future IDs, all in DB, no overlap**
-- Simulation submission: **unblocked** for Scoop Up Cyclone, Miracle Headset, Judge sv10-167
+5. **Section 4C — Special mechanics audit** — New test file `backend/tests/test_engine/test_special_mechanics.py` (10 tests): CHOOSE_CARDS count/ID validation (4 tests), CHOOSE_TARGET set membership (2 tests), copy-attack exclusion keys present, stadium placement sets `active_stadium` via `_play_stadium` transition, tools stored as strings not objects, special energy `provides` list propagated.
 
-**Status of known issues:**
-- ✅ `_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets: **FIXED** — full DB audit, 44 missing IDs added, 19 wrong IDs removed (commit 65e0ce7)
-- ✅ Simulation submission 422 on coverage check: **FIXED** — three trainer handlers implemented + frontend error display fixed (commits 6d3d390, 69ef653)
-- ✅ AI/Coach Stage 1 gap (injection tests, async repair test): **CONFIRMED DONE** in prior session
-- ⏳ DeckBuilder Phase 3 (sim-backed preference weighting): Deferred — needs sufficient match history
-- ⏳ AI/Coach Stage 2/3: Stage 2 deferred until second LLM provider; Stage 3 DB schema deferred until frontend needs separate evidence display
+6. **Section 5 — Effect handler spot check** — New test file `backend/tests/test_engine/test_effect_coverage_spot_check.py` (2 tests): loads 50 randomly-sampled cards from 1,606 fixture files (deterministic seed 12345), asserts all have registered handlers. Result: 50/50 pass, 0 unregistered effects.
 
-**Remaining in current production-readiness follow-up:**
-- DeckBuilder Phase 3 — intentionally deferred, no immediate action
-- AI/Coach Stage 2/3 — intentionally deferred, no immediate action
-- **No actionable unblocked items remain in this phase**
+7. **Section 6 — API endpoint coverage** — Added 9 new tests to `backend/tests/test_api/test_simulations.py` covering previously-untested routes: `TestGetSimulationRounds` (3 tests: invalid UUID, empty, shape), `TestGetSimulationMutations` (3 tests: invalid UUID, empty, shape), `TestStarSimulation` (3 tests: invalid UUID, 404, toggle from False→True).
+
+8. **Sections 7 & 8 — Audited, no changes required:**
+   - Docker compose: all services have healthchecks; `depends_on: condition: service_healthy`; `restart: unless-stopped` throughout; `celery-beat` correctly env-minimal (REDIS_URL only)
+   - Celery beat: nightly H/H at 02:00 UTC confirmed wired
+   - Error handling: simulation task catches all exceptions, sets `status=failed`, re-raises; graph/Redis writes are non-fatal
+   - Prompt injection: 6 existing tests in `TestPromptInjectionHardening` confirmed passing
+   - Data quality gate: `_check_deck_coverage()` confirmed in place and tested
+
+9. **Created `docs/HARDENING_SWEEP_REPORT.md`** — Full report of all 8 sections with per-section pass/fail table, bug descriptions, and final metrics (374 passed, 52 new tests added).
+
+**Test results this session:**
+- Section 3B: `python3 -m pytest tests/test_tasks/test_simulation_task.py tests/test_coach/test_analyst.py -q` → **all pass**
+- Section 4B: `python3 -m pytest tests/test_engine/test_status_conditions.py -v` → **10/10 pass**
+- Section 4A: `python3 -m pytest tests/test_engine/test_damage_calc.py -v` → **9/9 pass**
+- Section 4C: `python3 -m pytest tests/test_engine/test_special_mechanics.py -v` → **10/10 pass**
+- Section 5: `python3 -m pytest tests/test_engine/test_effect_coverage_spot_check.py -v` → **2/2 pass**
+- Section 6: `python3 -m pytest tests/test_api/test_simulations.py -k "Rounds or Mutations or Star" -v` → **11/11 pass** (9 new + 2 pre-existing selected)
+- **Full suite final:** `python3 -m pytest --tb=short -q` → **374 passed, 4 skipped, 0 failures**
 
 ---
 
 ## Active Files Changed This Session
 
-**Modified:**
-- `backend/app/engine/effects/attacks.py` — `_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets rebuilt from DB ground truth
-- `backend/app/engine/effects/trainers.py` — Added `_scoop_up_cyclone`, `_miracle_headset` handlers; registered `sv10-167` with `_judge`
-- `frontend/src/pages/SimulationSetup.tsx` — 422 error handler: added `detail.message` branch for dict errors
-- `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md` — Updated status: Stage 1 gaps marked complete
-- `docs/STATUS.md` — This file
+**Modified (engine fixes):**
+- `backend/app/engine/runner.py` — Burn flip direction fix (line 412: `if not flip:`); PARALYZED timing fix (line 435: only remove for `state.active_player`)
+- `backend/app/engine/transitions.py` — CONFUSED coin flip added before attack resolution (~line 622)
+- `backend/app/engine/actions.py` — PARALYZED + ASLEEP block attacks (line 705–709); PARALYZED blocks retreat (line 591–594)
+
+**Modified (simulation task):**
+- `backend/app/tasks/simulation.py` — `_apply_mutations()` rewritten to use `card_added_def`, skip missing cards, validate legality; `_validate_post_mutation_deck()` and `_BASIC_ENERGY_NAMES` added
+
+**Modified (tests):**
+- `backend/tests/test_tasks/test_simulation_task.py` — `TestApplyMutations` updated + 8 tests, `TestValidatePostMutationDeck` 4 tests added
+- `backend/tests/test_coach/test_analyst.py` — `test_swaps_clamped_to_max` fixed; `test_non_candidate_add_discarded`, `test_excluded_add_discarded`, `test_card_added_def_populated_in_mutations` added
+- `backend/tests/test_api/test_simulations.py` — `TestGetSimulationRounds`, `TestGetSimulationMutations`, `TestStarSimulation` added (242 lines)
+
+**Modified (docs):**
+- `docs/STATUS.md` — this handoff update
+- `docs/CHANGELOG.md` — Hardening Sweep entry added
+
+**Created (new test files):**
+- `backend/tests/test_engine/test_status_conditions.py` — 10 tests for all status condition mechanics
+- `backend/tests/test_engine/test_damage_calc.py` — 9 tests for weakness/resistance/prizes
+- `backend/tests/test_engine/test_special_mechanics.py` — 10 tests for CHOOSE_CARDS, stadiums, tools, special energy
+- `backend/tests/test_engine/test_effect_coverage_spot_check.py` — 2 tests for 50-card handler spot check
+
+**Created (diagnostic scripts):**
+- `backend/scripts/ai_diagnostic.py` — single-game AI/AI behavioral audit (Section 2C)
+- `backend/scripts/ai_diagnostic_3games.py` — 3-game AI/AI batch audit with suspicious-decision analysis
+
+**Created (docs):**
+- `docs/HARDENING_SWEEP_REPORT.md` — full hardening sweep findings report
+
+**Untracked / unchanged from prior sessions:**
+- `backend/alembic/versions/d6b7f3c91a2e_add_deck_mutation_evidence.py`
+- `backend/app/memory/backfill.py`
+- `scripts/backfill_card_performance.py`
+- `frontend/node_modules/**` — dirty from prior session `npm install`; do not commit
 
 **Commits:**
-1. `65e0ce7` — Fix _ANCIENT_CARD_IDS and _FUTURE_CARD_IDS frozensets in attacks.py
-2. `6d3d390` — Implement handlers for Scoop Up Cyclone, Miracle Headset, and Judge sv10-167
-3. `69ef653` — Fix simulation 422 error handler to display coverage check message
-4. `6f818cf` — Update AI_COACH_HARDENING_ASSESSMENT: mark Stage 1 gap items complete
+- No commits were made this session (all changes are uncommitted on `hardening-sweep-2`).
+
+---
+
+## Known Issues / Gaps
+
+Carried from prior sessions (non-blocking):
+- DeckBuilder Phase 3 (sim-backed preference weighting) remains deferred. Historical `card_performance` is now rebuilt and available.
+- AI/Coach Stage 2 closed by product decision: PokéPrism is Ollama-only.
+- `celery-worker` Docker service has no healthcheck (workers restart automatically via `restart: unless-stopped`).
+- Mystery Garden (sv06-156) and Watchtower stadiums registered as `_noop` — optional stadium effects not yet implemented in engine.
+
+New this session:
+- **AI reasoning → action mismatch** — In 3-game audit, AI occasionally reasons correctly that an attack would KO the opponent but still chooses PASS. Root cause: reasoning computed in scratchpad, action selection is a separate step that doesn't see the conclusion. Proposed fix (not yet implemented): annotate legal action descriptions with expected damage and `→ WOULD KO` flag before sending to LLM.
+- **AI Fairy Zone rules misunderstanding** — AI incorrectly treats Fairy Zone as damage protection. Actual rule: Colorless Pokémon gain Psychic ×2 weakness. Proposed fix (not yet implemented): rules injection in system prompt when Fairy Zone is active.
+- **Greedy KO override not implemented** — After LLM returns PASS/END_TURN, could check if any attack would KO and override. Discussed with user; not implemented yet.
+- **Tracked `frontend/node_modules` dirty** — from prior session `npm install`. Do not commit without an explicit decision.
+
+---
+
+## Key Decisions Made This Session
+
+1. **AI reasoning quality issues are not engine bugs** — The hard gate (ActionValidator) correctly blocks all illegal actions. The 177 suspicious decisions in the AI audit are LLM output quality issues, not engine correctness failures. They are acceptable for the current state of the product.
+
+2. **KO-flag enrichment is the best first fix for AI reasoning** — Pre-computing expected damage per attack and annotating the legal action list with `→ WOULD KO` is ~20-30 lines in `ai_player.py`, requires no second LLM call, and addresses the root cause directly. User chose not to implement it this session.
+
+3. **Greedy KO override as backstop** — Deterministic post-processing override if AI chooses PASS/END_TURN when an attack-KO is available. User acknowledged it but chose not to implement this session.
+
+4. **Hardening sweep is complete as specified** — All 8 sections are done. `docs/HARDENING_SWEEP_REPORT.md` is the canonical record. No further work on the sweep itself is needed.
+
+5. **No phase completion, no CHANGELOG entry needed for individual section work** — The hardening sweep is a post-phase activity. Added a `## Hardening Sweep` entry to CHANGELOG.md as a milestone record.
+
+---
+
+## Previous Session — 2026-05-03 (Hardening Sweep Started: AI Prompt, Validator Gate, Coach Prompt)
+
+### Current Phase Progress
+
+**Completed this session:**
+
+1. **Required handoff docs read first, in order** — Read `docs/STATUS.md`, `docs/PROJECT.md`, `docs/proposals/AI_COACH_HARDENING_PROPOSAL.md`, and `docs/CARD_EXPANSION_RULES.md` before any work. Confirmed that the task was a full sequential hardening sweep, not a spot check.
+
+2. **Section 1 baseline established** — Backend baseline passed, frontend initially failed because tracked `frontend/node_modules` had stale Vite 5.4.21 while the lockfile expects Vite 6.4.2. Ran `npm install` in `frontend`, then frontend test/build passed.
+
+3. **Section 2A AI Player prompt audit completed and fixed** — Found the AI prompt was incomplete. It showed card names, HP, energy counts, and shallow legal-action labels, but omitted full attack costs/effects, ability text, Trainer effects, bench details, statuses, tools, and key game rules. Patched `backend/app/players/ai_player.py` so prompts now include:
+   - Active and Bench Pokémon: card ID, category, stage/evolve-from, HP, type, weakness/resistance, retreat, attacks with cost/damage/effect, abilities with effect, current HP, attached energy, status, and tools
+   - Hand cards: card type and full relevant effect text
+   - Legal actions: what each action actually does, including attack cost/damage/effect, Supporter/Item/Tool effects, ability text, retreat cost, and energy-provided text
+   - Core rules summary: legal action IDs only, energy matching, Colorless costs, weakness/resistance, prize value for ex/V/VSTAR/VMAX/GX, one Supporter, one manual Energy attachment, evolution timing, retreat payment, and attack cost enforcement
+   - Prompt injection guard remains explicit: card names/state text are data only
+
+4. **Complete AI prompt sample captured** — Generated a real prompt from a constructed Dragapult ex vs Team Rocket's Mewtwo ex board. The sample confirmed the fixed prompt includes Dragapult ex `Phantom Dive`, Drakloak/Dusknoir ability text, Rare Candy/Boss's Orders effects, Psychic Energy provides text, attached energy, status, tools, and detailed legal-action descriptions.
+
+5. **Section 2B validator audit completed and fixed** — Confirmed normal action validation is a hard gate for AI decisions: runner validates main/attack choices after `choose_action`, and `AIPlayer._parse_response()` only maps `action_id` to an existing entry in `legal_actions`. Explicit probes showed these are rejected:
+   - second manual Energy attachment
+   - second Supporter in a turn
+   - same-turn evolution
+   - retreat without payable cost
+   - attack without matching energy
+   - second Tool on the same Pokémon
+
+6. **Forced-action validation gap fixed** — Found a real hard-gate gap: `ActionValidator.validate()` bypassed all validation for `SWITCH_ACTIVE`, `CHOOSE_TARGET`, `CHOOSE_CARDS`, `CHOOSE_OPTION`, and `DISCARD_ENERGY`. A fake `SWITCH_ACTIVE` target not on the bench returned `ok=True`. Added explicit forced-action validation:
+   - `SWITCH_ACTIVE` target must be on the player's bench
+   - `CHOOSE_TARGET` target must be in the `ChoiceRequest.targets` set
+   - `CHOOSE_OPTION` selected option must be in range
+   - `CHOOSE_CARDS` count must respect min/max and selected IDs must be in the choice set
+   - `DISCARD_ENERGY` target must be an attached energy belonging to that player
+   Also updated the effect driver to validate player choices and fall back to default choice if invalid, and updated KO promotion logic to validate forced switches and fall back to the first legal promotion.
+
+7. **Section 2C attempted; blocked by local Ollama model latency** — Tried to run 3 live AI/AI games for behavioral decision review. `curl /api/tags` showed Ollama healthy and models available, but a direct `/api/generate` call to `Qwen3.5:9B-Q4_K_M` with only 20 tokens timed out after 30s with 0 bytes received. The AI/AI batch also stalled on repeated Ollama timeouts. Stopped the stuck diagnostic process. This remains an operational/performance blocker for real AI/AI behavioral review.
+
+8. **Section 3A Coach prompt audit started and fixed** — Found the Coach prompt had the same candidate-card knowledge gap: it included current deck IDs/names and candidate IDs/names/win rates/games, but did not include actual replacement-card effect text. Patched `backend/app/coach/analyst.py` so current deck and candidate replacements include attacks, abilities, Trainer effects, Energy effects, stage/evolve-from, HP, and Pokémon type. Captured a complete Coach prompt sample showing the new rules text for current deck cards and candidates such as Team Rocket's Mewtwo ex and Boss's Orders.
+
+9. **Section 3B Coach output validation audit started; partially fixed but incomplete** — Confirmed evidence schema enforcement is present (`_validate_swap_response` requires at least one evidence entry with kind/ref/value). Found a separate legality gap: Coach swaps only required tcgdex-looking IDs; additions were not required to come from supplied candidates, and `_apply_mutations()` created placeholder `CardDefinition` objects by ID/name instead of using real card definitions. Began patching `CoachAnalyst.analyze_and_mutate()` to filter additions to supplied non-excluded candidates and carry `card_added_def` forward. This work was interrupted and must be reviewed before continuing.
+
+**Validation this session:**
+- Backend baseline before hardening fixes: `cd backend && python3 -m pytest tests/ -x -q` → **320 passed in 14.33s**
+- Frontend baseline before dependency refresh:
+  - `cd frontend && npm test` → failed with `ERR_PACKAGE_PATH_NOT_EXPORTED: Package subpath './module-runner'` from stale Vite dependency tree
+  - `cd frontend && npm run build` → same Vite error
+- Frontend after `npm install`:
+  - `npm test` → **2 files passed / 4 tests passed** (Vite deprecation warning from `vite:react-swc`)
+  - `npm run build` → **built successfully in 4.21s**
+- AI prompt targeted tests after fix: `python3 -m pytest tests/test_players/test_ai_player.py -q` → **20 passed**
+- Backend after AI prompt fix: **322 passed in 12.93s**
+- Validator targeted tests after forced-action fix: `python3 -m pytest tests/test_engine/test_actions.py tests/test_players/test_ai_player.py -q` → **31 passed**
+- Backend after forced-action fix: **325 passed in 12.54s**
+- Coach targeted tests after prompt enrichment: `python3 -m pytest tests/test_coach/test_analyst.py -q` → **47 passed**
+- Backend after Coach prompt enrichment: **325 passed in 12.50s**
 
 ---
 
 ## Notes for Next Session
 
-**Start here:**
-1. Read this `docs/STATUS.md` first for current state
-2. Current phase: **Production Readiness Follow-Up — winding down**
+**Hardening sweep is complete.** See `docs/HARDENING_SWEEP_REPORT.md` for all findings and changes.
 
-**What was accomplished this session and should NOT be re-done:**
-- ✅ Frozenset audit complete and committed
-- ✅ All trainer coverage gaps closed; 320 tests pass
-- ✅ Frontend 422 error display fixed
-- ✅ AI/Coach hardening assessment accurate
+**Current branch:** `hardening-sweep-2`
 
-**What remains (all intentionally deferred):**
-- DeckBuilder Phase 3: needs match history accumulation
-- AI/Coach Stage 2: needs second LLM provider
-- AI/Coach Stage 3 DB schema: needs frontend evidence display requirement
+**Test baseline:** 374 backend passed, 4 skipped (all green)
 
-**Test suite baseline (confirmed 2026-05-03):**
-- Backend: `cd backend && python3 -m pytest tests/ -x -q` → **320 passed**
-- Frontend: `cd frontend && npm run build` → **clean**
-- E2E: `POKEPRISM_E2E_FULL_STACK=1 npm run test:e2e` → **13 passed**
-- Coverage: 0 missing handlers (excluding test-002)
+**Next recommended work (choose based on priority):**
+1. Merge `hardening-sweep-2` → main and cut a release tag
+2. Add more AI/AI behavioral audit games (Section 2C scripts: `backend/scripts/ai_diagnostic_3games.py`)
+3. Expand Section 5 spot check to 200+ cards or run full 1606-card coverage audit
+4. Frontend E2E tests for the new simulation rounds/mutations/star endpoints
 
-**Handoff complete. Session stable. Ready for next agent.**
+**Known remaining gaps (non-blocking):**
+- `celery-worker` Docker service has no healthcheck (acceptable; workers restart automatically)
+- Mystery Garden and Watchtower stadiums registered as `_noop` — effects not yet implemented
+- AI damage calculation edge case: occasionally miscalculates HP math for low-HP targets (cosmetic, hard gate prevents illegal moves)
+
+**Do not forget:**
+- `frontend/node_modules` is dirty from `npm install`. Do not commit it.
+- All changes are on `hardening-sweep-2` branch; main is clean.
 
 ---
 
@@ -124,12 +260,12 @@ Phase 13 and Phase 12 are complete. Production-readiness follow-up continues wit
 - ✅ Auto-fire ability simplifications: **FIXED — All 6 abilities now have proper player choice prompts** (commit ad2fd65)
 - ⏳ Inviting Wink: Actually already implemented with full player choice (opponent selects Basics via choose_cards); no additional work needed
 - ⏳ `_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets: May be missing promo/alt-art Paradox Pokémon; flagged for future audit but not critical
-- ⏳ DeckBuilder Phase 3 (sim-backed preference weighting): Deferred pending sufficient match history
-- ⏳ AI/coach Stage 2/3 hardening: Deferred per existing proposal
+- ✅ DeckBuilder Phase 3 data prerequisite: Historical match/card-performance data is now rebuilt; implementation can be revisited
+- ✅ AI/coach Stage 2 hardening: **COMPLETE BY PRODUCT DECISION** — Ollama-only, no provider abstraction planned
+- ✅ AI/coach Stage 3 hardening: **COMPLETE** — structured evidence DB schema and dashboard display implemented
 
 **Remaining in current production-readiness follow-up:**
-- DeckBuilder Phase 3 (matchup-frequency weighting) — requires accumulated match history for meaningful sim-backed weighting
-- AI/Coach Stage 2/3 hardening — deferred per `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md`
+- DeckBuilder Phase 3 (matchup-frequency weighting) — implementation can be revisited with rebuilt historical data
 - Optional hardening: `_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` verification (low priority; card pool functionality is not blocked)
 
 ---
@@ -142,11 +278,12 @@ Carried from prior sessions (updated):
 - **Auto-fire simplifications**: ~~Wafting Heal, Obliging Heal, Impromptu Carrier, Dig Dig Dig, Time to Chow Down auto-select targets without player choice~~ → **FIXED this session**. All 6 abilities now properly prompt players for choices.
 - **Inviting Wink**: ~~Places first Basic from opponent's hand (auto-select); actual card may let opponent choose~~ → Already fully implemented with `choose_cards` ChoiceRequest allowing opponent to select any number of Basics (min_count=0, max_count=bench_space).
 - **`_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` frozensets**: May be missing promo/alt-art Paradox Pokémon prints. Not a blocking issue; card pool functionality confirmed working. Low-priority audit item.
-- **DeckBuilder Phase 3 (sim-backed preference) deferred**: Phases 1, 2, 4, 5 complete. Phase 3 (matchup-frequency weighting from match history) requires sufficient match data and is intentionally deferred.
-- **card_performance historically sparse**: 1,145 matches produced only 85 card_performance rows because opponent deck_cards were not populated. The fix (added `ensure_deck` for P2) applies going forward; existing data not backfilled. This is acceptable as forward data will be complete.
+- **DeckBuilder Phase 3 (sim-backed preference)**: Phases 1, 2, 4, 5 complete. Phase 3 can now be revisited with rebuilt historical match/card-performance data.
+- **card_performance historically sparse**: ~~1,145 matches produced only 85 card_performance rows because opponent deck_cards were not populated. The fix applied going forward only; existing data was not backfilled.~~ → **BACKFILLED 2026-05-03**. Local DB now has 30,137 matches processed into 217 `card_performance` rows, with 709 `deck_cards` rows available.
 
 New this session:
-- None — All identified issues were addressed or confirmed as already-fixed.
+- AI/Coach Stage 3 evidence schema completed.
+- Historical `card_performance` data backfilled.
 
 ---
 
@@ -177,9 +314,9 @@ New this session:
 - ✅ All 6 auto-fire abilities verified to have proper ChoiceRequest player prompts. Obliging Heal now asks for confirmation before healing.
 
 **What remains in Production-Readiness Follow-Up:**
-1. **DeckBuilder Phase 3** — Sim-backed preference weighting from match history. **Status:** Intentionally deferred until enough match data accumulates. No action needed until match count is substantial (current baseline after 1,145 matches is ~85 rows in card_performance; needs more iteration).
+1. **DeckBuilder Phase 3** — Sim-backed preference weighting from match history. **Status:** Match/card-performance data is no longer blocked by the old sparse baseline; current local baseline is 30,137 matches and 217 `card_performance` rows.
 
-2. **AI/Coach Stage 2/3 hardening** — Provider interface abstraction and injection testing. **Status:** Per `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md`, Stage 2 deferred until a second LLM provider is needed; Stage 3 testing can be added optionally but is not blocking. No immediate action needed.
+2. **AI/Coach Stage 2/3 hardening** — **Complete.** Stage 2 is complete by product decision because PokéPrism will stay Ollama-only and no second-provider abstraction will be added. Stage 3 DB evidence schema is implemented and surfaced in the dashboard mutation diff log.
 
 3. **Optional: `_ANCIENT_CARD_IDS` / `_FUTURE_CARD_IDS` audit** — Verify Paradox Pokémon frozensets are complete. Low priority; card pool functionality works correctly. Could be done if time permits but not critical.
 

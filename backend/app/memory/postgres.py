@@ -303,6 +303,7 @@ class MatchMemoryWriter:
                 card_removed=m["card_removed"],
                 card_added=m["card_added"],
                 reasoning=m.get("reasoning"),
+                evidence=m.get("evidence"),
             )
             for m in mutations
         )

@@ -256,24 +256,96 @@ class ActionValidator:
         """Returns (is_valid, error_message).
 
         Quick path: rebuild legal actions and check if this action is in the set.
-        For FORCED actions (SWITCH_ACTIVE, CHOOSE_*, DISCARD_ENERGY) bypass normal
-        phase checks.
+        Forced effect/promotion actions are validated against their constrained
+        choice sets instead of bypassing validation entirely.
         """
-        forced = {
-            ActionType.SWITCH_ACTIVE,
-            ActionType.CHOOSE_TARGET,
-            ActionType.CHOOSE_CARDS,
-            ActionType.CHOOSE_OPTION,
-            ActionType.DISCARD_ENERGY,
-        }
-        if action.action_type in forced:
-            return True, ""
+        forced_result = ActionValidator._validate_forced_action(state, action)
+        if forced_result is not None:
+            return forced_result
 
         legal = ActionValidator.get_legal_actions(state, action.player_id)
         for la in legal:
             if ActionValidator._actions_match(la, action):
                 return True, ""
         return False, f"{action.action_type.name} is not legal in current state"
+
+    @staticmethod
+    def _validate_forced_action(state: GameState, action: Action) -> tuple[bool, str] | None:
+        if action.action_type == ActionType.SWITCH_ACTIVE:
+            player = state.get_player(action.player_id)
+            if action.target_instance_id and any(
+                b.instance_id == action.target_instance_id for b in player.bench
+            ):
+                return True, ""
+            return False, "SWITCH_ACTIVE target is not on the player's bench"
+
+        if action.action_type == ActionType.CHOOSE_TARGET:
+            ctx = action.choice_context
+            if ctx is None:
+                return False, "CHOOSE_TARGET missing choice context"
+            valid_targets = {
+                getattr(t, "instance_id", None)
+                for t in getattr(ctx, "targets", [])
+            }
+            if not valid_targets and action.target_instance_id is None:
+                return True, ""
+            if action.target_instance_id in valid_targets:
+                return True, ""
+            return False, "CHOOSE_TARGET target is not in the legal target set"
+
+        if action.action_type == ActionType.CHOOSE_OPTION:
+            ctx = action.choice_context
+            if ctx is None:
+                return False, "CHOOSE_OPTION missing choice context"
+            options = list(getattr(ctx, "options", []) or [])
+            selected = action.selected_option
+            if isinstance(selected, int) and 0 <= selected < len(options):
+                return True, ""
+            if not options and selected == 0:
+                return True, ""
+            return False, "CHOOSE_OPTION selection is outside the legal option set"
+
+        if action.action_type == ActionType.CHOOSE_CARDS:
+            ctx = action.choice_context
+            if ctx is None:
+                return False, "CHOOSE_CARDS missing choice context"
+            selected = list(action.selected_cards or [])
+            min_count = int(getattr(ctx, "min_count", 0) or 0)
+            max_count = int(getattr(ctx, "max_count", 0) or 0)
+            if not (min_count <= len(selected) <= max_count):
+                return False, "CHOOSE_CARDS selection count is outside the allowed range"
+            available = {
+                ActionValidator._choice_card_id(c)
+                for c in (list(getattr(ctx, "cards", []) or [])
+                          + list(getattr(ctx, "options", []) or []))
+            }
+            if selected and available and not set(selected).issubset(available):
+                return False, "CHOOSE_CARDS includes a card outside the legal choice set"
+            return True, ""
+
+        if action.action_type == ActionType.DISCARD_ENERGY:
+            player = state.get_player(action.player_id)
+            cards = ([player.active] if player.active else []) + player.bench
+            energy_ids = {
+                e.source_card_id
+                for card in cards
+                for e in getattr(card, "energy_attached", [])
+            }
+            if action.card_instance_id in energy_ids:
+                return True, ""
+            return False, "DISCARD_ENERGY target is not attached to that player"
+
+        return None
+
+    @staticmethod
+    def _choice_card_id(card) -> str:
+        if isinstance(card, str):
+            return card
+        if hasattr(card, "instance_id"):
+            return card.instance_id
+        if hasattr(card, "source_card_id"):
+            return card.source_card_id
+        return str(card)
 
     # ── Setup ─────────────────────────────────────────────────────────────────
 
@@ -516,6 +588,10 @@ class ActionValidator:
             return []
         if not player.bench:  # Rule 6
             return []
+        # Paralyzed Pokémon cannot retreat
+        from app.engine.state import StatusCondition as _SC
+        if _SC.PARALYZED in player.active.status_conditions:
+            return []
         # Multi-turn lock (e.g. Dusknoir Shadow Bind, Yveltal)
         if player.active.cant_retreat_next_turn:
             return []
@@ -626,6 +702,11 @@ class ActionValidator:
             if not (player.active
                     and player.active.card_def_id in ("sv10.5b-044", "sv08-001")):
                 return []
+        # Status conditions: Paralyzed and Asleep prevent attacking
+        from app.engine.state import StatusCondition as _SC
+        if (_SC.PARALYZED in player.active.status_conditions
+                or _SC.ASLEEP in player.active.status_conditions):
+            return []
         # Multi-turn lock (e.g. Iron Leaves ex Mach Claw, Bloodmoon Ursaluna ex)
         if player.active.cant_attack_next_turn:
             return []
