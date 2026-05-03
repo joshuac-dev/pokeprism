@@ -379,6 +379,14 @@ def _apply_damage(
         state.emit_event("extra_helpings_bonus", player=action.player_id,
                          attacker=attacker.card_name)
 
+    # Postwick (sv09-154 Stadium): Hop's Pokémon do 30 more damage
+    if ("Hop's" in attacker.card_name
+            and state.active_stadium
+            and state.active_stadium.card_def_id == "sv09-154"):
+        total += 30
+        state.emit_event("postwick_bonus", player=action.player_id,
+                         attacker=attacker.card_name)
+
     # Lose Cool (sv10-092 Annihilape): if 2+ damage counters on attacker, +120 damage
     if attacker.card_def_id == "sv10-092" and attacker.damage_counters >= 2:
         total += 120
@@ -1395,9 +1403,7 @@ def _torrential_pump(state, action):
         options=["Shuffle 3 Energy (take bonus)", "Skip"],
     )
     resp_opt = yield req_opt
-    option_index = 0  # Default: take the bonus
-    if resp_opt and hasattr(resp_opt, "option_index") and resp_opt.option_index is not None:
-        option_index = resp_opt.option_index
+    option_index = resp_opt.selected_option if resp_opt and resp_opt.selected_option is not None else 0  # Default: take the bonus
 
     if option_index == 1:
         return  # Player chose to skip
@@ -3778,9 +3784,7 @@ def _strafe(state, action):
         options=["Switch", "Keep Active"],
     )
     resp = yield req
-    option_index = 0
-    if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-        option_index = resp.option_index
+    option_index = resp.selected_option if resp and resp.selected_option is not None else 0
     if option_index == 1:
         return
     req_target = ChoiceRequest(
@@ -5427,7 +5431,7 @@ def _outlaw_leg(state, action):
         opp.discard.append(discarded)
         state.emit_event("knock_off", player=action.player_id, discarded=discarded.card_name)
     if opp.deck:
-        top = opp.deck.pop()
+        top = opp.deck.pop(0)
         top.zone = Zone.DISCARD
         opp.discard.append(top)
         state.emit_event("deck_discard", player=action.player_id, card=top.card_name)
@@ -5962,7 +5966,7 @@ def _mountain_ramming(state, action):
     opp = state.get_opponent(action.player_id)
     for _ in range(2):
         if opp.deck:
-            c = opp.deck.pop()
+            c = opp.deck.pop(0)
             c.zone = Zone.DISCARD
             opp.discard.append(c)
     state.emit_event("deck_mill", player=action.player_id, count=2)
@@ -5975,7 +5979,7 @@ def _cornerstone_mountain_ramming(state, action):
         return
     opp = state.get_opponent(action.player_id)
     if opp.deck:
-        c = opp.deck.pop()
+        c = opp.deck.pop(0)
         c.zone = Zone.DISCARD
         opp.discard.append(c)
     state.emit_event("deck_mill", player=action.player_id, count=1)
@@ -7189,7 +7193,7 @@ def _hammer_lanche(state, action):
     for _ in range(6):
         if not player.deck:
             break
-        card = player.deck.pop()
+        card = player.deck.pop(0)
         card.zone = Zone.DISCARD
         player.discard.append(card)
         if card.card_type.lower() == "energy" and "water" in card.card_name.lower():
@@ -7579,9 +7583,7 @@ def _miraculous_paint(state, action):
                 options=["Asleep", "Burned", "Confused", "Paralyzed", "Poisoned"],
             )
             resp = yield req
-            option_index = 0
-            if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-                option_index = resp.option_index
+            option_index = resp.selected_option if resp and resp.selected_option is not None else 0
             status_map = {
                 0: StatusCondition.ASLEEP,
                 1: StatusCondition.BURNED,
@@ -7814,9 +7816,7 @@ def _chrono_burst(state, action):
             options=["Yes (shuffle energy for 160)", "No (deal 80)"],
         )
         resp = yield req
-        option_index = 0
-        if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-            option_index = resp.option_index
+        option_index = resp.selected_option if resp and resp.selected_option is not None else 0
         if option_index == 0:
             energy_cards_snapshot = list(player.active.energy_attached)
             player.active.energy_attached.clear()
@@ -8917,7 +8917,7 @@ def _brighten_and_burn(state, action):
         state.emit_event("attack_no_damage", attacker="Litwick",
                          attack_name="Brighten and Burn", reason="empty deck")
         return
-    top_card = player.deck[-1]
+    top_card = player.deck[0]
     state.emit_event("top_card_revealed", player=action.player_id,
                      card=top_card.card_name, attack="Brighten and Burn")
     req = ChoiceRequest(
@@ -8929,7 +8929,7 @@ def _brighten_and_burn(state, action):
     choice = (resp.selected_option if resp and hasattr(resp, "selected_option")
                and resp.selected_option else "No, leave it")
     if "yes" in choice.lower() or "discard" in choice.lower():
-        player.deck.pop()
+        player.deck.pop(0)
         top_card.zone = Zone.DISCARD
         player.discard.append(top_card)
         state.emit_event("card_discarded", player=action.player_id, card=top_card.card_name,
@@ -10242,7 +10242,7 @@ def _searing_flame(state, action):
 
 
 def _bubble_beam(state, action):
-    """sv10-046 Misty's Poliwrath atk0 — Bubble Beam: 20 + flip heads = Paralyze."""
+    """sv10-046 Misty's Staryu atk0 — Bubble Beam: 20 + flip heads = Paralyze."""
     _do_default_damage(state, action)
     if _random.choice([True, False]):
         opp = state.get_opponent(action.player_id)
@@ -10278,11 +10278,11 @@ def _splashing_panic(state, action):
 
 
 def _swim_together(state, action):
-    """sv10-050 Misty's Dewgong atk0 — Swim Together: search for up to 3 Misty's Pokémon from deck to hand."""
+    """sv10-050 Misty's Lapras atk0 — Swim Together: search for up to 3 Misty's Pokémon from deck to hand."""
     player = state.get_player(action.player_id)
     mistys = [c for c in player.deck if "Misty's" in c.card_name and c.card_type == "Pokemon"]
     if not mistys:
-        state.emit_event("attack_no_damage", attacker="Misty's Dewgong", attack_name="Swim Together")
+        state.emit_event("attack_no_damage", attacker="Misty's Lapras", attack_name="Swim Together")
         return
     count = min(3, len(mistys))
     req = ChoiceRequest(
@@ -10294,7 +10294,10 @@ def _swim_together(state, action):
         context={"reason": "swim_together"},
     )
     resp = yield req
-    chosen_ids = resp.chosen_ids if hasattr(resp, "chosen_ids") else []
+    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
+                  and resp.chosen_card_ids else [])
+    if not chosen_ids:
+        chosen_ids = [c.instance_id for c in mistys[:count]]
     chosen = [c for c in mistys if c.instance_id in chosen_ids][:3]
     for c in chosen:
         player.deck.remove(c)
@@ -10302,7 +10305,7 @@ def _swim_together(state, action):
         player.hand.append(c)
     import random as _rnd
     _rnd.shuffle(player.deck)
-    state.emit_event("attack_no_damage", attacker="Misty's Dewgong", attack_name="Swim Together")
+    state.emit_event("attack_no_damage", attacker="Misty's Lapras", attack_name="Swim Together")
 
 
 def _undulate(state, action):
@@ -11148,7 +11151,7 @@ def _super_sandstorm(state, action):
 
 
 def _running_charge(state, action):
-    """sv10-107 Mudbray atk1 — Running Charge: 40× flip until tails."""
+    """sv10-107 Mudbray atk0 — Running Charge: 40× flip until tails."""
     count = 0
     while _random.choice([True, False]):
         count += 1
@@ -13441,9 +13444,7 @@ def _flashing_spear(state, action):
         options=[f"Discard {i}" for i in range(max_count + 1)],
     )
     resp = yield req
-    option_index = 0
-    if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-        option_index = resp.option_index
+    option_index = resp.selected_option if resp and resp.selected_option is not None else 0
     to_discard = min(option_index, max_count)
     if to_discard == 0:
         return
@@ -13605,7 +13606,7 @@ def _land_collapse(state, action):
     opp = state.get_opponent(action.player_id)
     opp_id = state.opponent_id(action.player_id)
     if opp.deck:
-        top = opp.deck.pop()
+        top = opp.deck.pop(0)
         top.zone = Zone.DISCARD
         opp.discard.append(top)
         state.emit_event("deck_discard", player=opp_id, card=top.card_name,
@@ -14117,9 +14118,7 @@ def _jungle_whip(state, action):
         options=["Yes (take bonus)", "No"],
     )
     resp = yield req
-    option_index = 0
-    if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-        option_index = resp.option_index
+    option_index = resp.selected_option if resp and resp.selected_option is not None else 0
     if option_index == 1:
         return
 
@@ -14196,7 +14195,7 @@ def _entangling_whip(state, action):
     for _ in range(3):
         if not player.deck:
             break
-        top = player.deck.pop()
+        top = player.deck.pop(0)
         top.zone = Zone.DISCARD
         player.discard.append(top)
         discarded += 1
@@ -15681,9 +15680,7 @@ def _reversing_storm(state, action):
         options=["Switch", "Keep Active"],
     )
     resp = yield req
-    option_index = 0
-    if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-        option_index = resp.option_index
+    option_index = resp.selected_option if resp and resp.selected_option is not None else 0
     if option_index == 1:
         return
     req_t = ChoiceRequest(
@@ -16973,14 +16970,13 @@ def register_all(registry):
     registry.register_attack("sv10-044", 0, _fire_kagura)                  # Misty's Ninetales — Fire Kagura
     registry.register_attack("sv10-044", 1, _searing_flame)                # Misty's Ninetales — Searing Flame
     # sv10-045 Misty's Vulpix: Flustered Leap FLAGGED; ATK flat
-    registry.register_attack("sv10-046", 0, _bubble_beam)                  # Misty's Poliwrath — Bubble Beam
-    # sv10-046 ATK1 Submission (flat)
+    registry.register_attack("sv10-046", 0, _bubble_beam)                  # Misty's Staryu — Bubble Beam
     registry.register_attack("sv10-047", 0, _abrupt_flash)                 # Misty's Starmie — Abrupt Flash
     # sv10-048 Misty's Magikarp: So Submerged passive; ATK flat
     registry.register_attack("sv10-049", 0, _splashing_panic)              # Misty's Gyarados — Splashing Panic
     # sv10-049 ATK1 Hyper Beam (flat)
-    registry.register_attack("sv10-050", 0, _swim_together)                # Misty's Dewgong — Swim Together
-    # sv10-050 ATK1 Aurora Beam (flat)
+    registry.register_attack("sv10-050", 0, _swim_together)                # Misty's Lapras — Swim Together
+    # sv10-050 ATK1 Surf (flat)
     # sv10-051 TR Articuno: Repelling Veil passive + already registered
     registry.register_attack("sv10-052", 0, _undulate)                     # Lapras — Undulate
     # sv10-052 ATK1 Surf (flat)
@@ -18060,7 +18056,7 @@ def register_all(registry):
     registry.register_attack("sv06-069", 0, _sky_wave)                      # Emolga — Sky Wave
     registry.register_attack("sv06-070", 0, _collect)                       # Helioptile — Collect (reuse)
     registry.register_attack("sv06-071", 0, _wild_charge_twm)               # Heliolisk — Wild Charge
-    registry.register_attack("sv06-072", 0, _pick_and_stick_flag)           # Morpeko — Pick and Stick (FLAGGED)
+    registry.register_attack("sv06-072", 0, _pick_and_stick)               # Morpeko — Pick and Stick
     registry.register_attack("sv06-074", 0, _thunder_shock_dedenne)         # Bellibolt — Thunder Shock (reuse)
     registry.register_attack("sv06-075", 0, _thunder_shock_dedenne)         # Wattrel — Thunder Shock (reuse)
     registry.register_attack("sv06-076", 0, _wind_power_charge_flag)        # Kilowattrel — Wind Power Charge (FLAGGED)
@@ -21473,10 +21469,39 @@ def _wild_charge_twm(state, action):
         check_ko(state, player.active, action.player_id)
 
 
-def _pick_and_stick_flag(state, action):
-    """sv06-072 Morpeko atk0 — Pick and Stick: FLAGGED (attach 2 Basic Energy from discard to own Pokémon)."""
-    state.emit_event("flagged_effect", attack="Pick and Stick",
-                     reason="attach_energy_from_discard_not_supported")
+def _pick_and_stick(state, action):
+    """sv06-072 Morpeko atk0 — Pick and Stick: attach up to 2 Basic Energy from discard to own Pokémon."""
+    from app.engine.effects.trainers import _is_basic_energy_card, _make_energy_attachment
+    player = state.get_player(action.player_id)
+    in_play = ([player.active] if player.active else []) + list(player.bench)
+    if not in_play:
+        state.emit_event("attack_no_damage", attacker="Morpeko", attack_name="Pick and Stick")
+        return
+    for _ in range(2):
+        basic_energy = [c for c in player.discard if _is_basic_energy_card(c)]
+        if not basic_energy:
+            break
+        req_tgt = ChoiceRequest(
+            "choose_target", action.player_id,
+            "Pick and Stick: choose a Pokémon to attach a Basic Energy to",
+            targets=in_play,
+        )
+        resp_tgt = yield req_tgt
+        target = None
+        if resp_tgt and resp_tgt.target_instance_id:
+            target = next((p for p in in_play
+                           if p.instance_id == resp_tgt.target_instance_id), None)
+        if target is None:
+            target = in_play[0]
+        energy = basic_energy[0]
+        player.discard.remove(energy)
+        att = _make_energy_attachment(energy)
+        energy.zone = target.zone
+        target.energy_attached.append(att)
+        state.emit_event("energy_attached_from_discard", player=action.player_id,
+                         target=target.card_name, energy=energy.card_name,
+                         reason="pick_and_stick")
+    state.emit_event("attack_no_damage", attacker="Morpeko", attack_name="Pick and Stick")
 
 
 def _wind_power_charge_flag(state, action):
@@ -23658,7 +23683,7 @@ def _land_collapse_flag(state, action):
     actual = 0
     for _ in range(discards):
         if opp.deck:
-            top = opp.deck.pop()
+            top = opp.deck.pop(0)
             top.zone = Zone.DISCARD
             opp.discard.append(top)
             actual += 1
@@ -24269,9 +24294,7 @@ def _strafe_flag(state, action):
         options=["Switch", "Keep Active"],
     )
     resp = yield req
-    option_index = 0
-    if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-        option_index = resp.option_index
+    option_index = resp.selected_option if resp and resp.selected_option is not None else 0
     if option_index == 1:
         return
     req_target = ChoiceRequest(
@@ -26291,9 +26314,7 @@ def _tricky_steps_b4(state, action):
         options=["Move Energy", "Skip"],
     )
     resp_opt = yield req_opt
-    option_index = 0
-    if resp_opt and hasattr(resp_opt, "option_index") and resp_opt.option_index is not None:
-        option_index = resp_opt.option_index
+    option_index = resp_opt.selected_option if resp_opt and resp_opt.selected_option is not None else 0
     if option_index == 1:
         return
     req = ChoiceRequest(
@@ -26495,9 +26516,7 @@ def _upthrusting_horns_b4(state, action):
         options=["Put in hand", "Skip"],
     )
     resp = yield req
-    option_index = 0
-    if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-        option_index = resp.option_index
+    option_index = resp.selected_option if resp and resp.selected_option is not None else 0
     if option_index == 1:
         return
     returned = 0
@@ -26620,9 +26639,7 @@ def _memory_lock_b4(state, action):
             options=attack_names,
         )
         resp = yield req
-        option_index = 0
-        if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-            option_index = min(resp.option_index, len(attack_names) - 1)
+        option_index = min(resp.selected_option if resp and resp.selected_option is not None else 0, len(attack_names) - 1)
         locked = attack_names[option_index]
     opp.active.torment_blocked_attack_name = locked
     state.emit_event("memory_lock", attacker=action.player_id, player=opp_id,
@@ -26724,9 +26741,7 @@ def _iron_shake_up_b4(state, action):
             options=["Move Energy", "Stop"],
         )
         resp_opt = yield req_opt
-        option_index = 0
-        if resp_opt and hasattr(resp_opt, "option_index") and resp_opt.option_index is not None:
-            option_index = resp_opt.option_index
+        option_index = resp_opt.selected_option if resp_opt and resp_opt.selected_option is not None else 0
         if option_index == 1:
             break
         req_src = ChoiceRequest(
@@ -27062,9 +27077,7 @@ def _opposing_winds_b5(state, action):
         options=["Return Energy", "Skip"],
     )
     resp_opt = yield req_opt
-    option_index = 0
-    if resp_opt and hasattr(resp_opt, "option_index") and resp_opt.option_index is not None:
-        option_index = resp_opt.option_index
+    option_index = resp_opt.selected_option if resp_opt and resp_opt.selected_option is not None else 0
     if option_index == 1:
         return
     count = min(2, len(opp.active.energy_attached))
@@ -27287,9 +27300,7 @@ def _return_charge_b5(state, action):
             options=["Attach", "Stop"],
         )
         resp_e = yield req_e
-        opt = 0
-        if resp_e and hasattr(resp_e, "option_index") and resp_e.option_index is not None:
-            opt = resp_e.option_index
+        opt = resp_e.selected_option if resp_e and resp_e.selected_option is not None else 0
         if opt == 1:
             break
         req_pick = ChoiceRequest(

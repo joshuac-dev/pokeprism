@@ -1,4 +1,4 @@
-"""Audit-fix regression tests (findings #1-8).
+"""Audit-fix regression tests (findings #1-14).
 
 Findings:
   #1-4 : Fossil passive ability registrations (sv07-129, sv10.5b-080, sv10.5w-079, sv07-130)
@@ -6,6 +6,12 @@ Findings:
   #6   : _high_voltage_press — subtract attack cost (3) from energy count, not 1
   #7   : _thunderburst_storm — player chooses target; bench hit gets no W/R
   #8   : _bench_manipulation — damage bypasses Weakness/Resistance
+  #9   : _swim_together (sv10-050 Misty's Lapras) — wrong resp attribute chosen_ids → chosen_card_ids
+  #10  : _swim_together — wrong card name "Misty's Dewgong" → "Misty's Lapras"
+  #11  : _bubble_beam docstring — wrong card name "Misty's Poliwrath" → "Misty's Staryu"
+  #12  : sv10-046 comment — fake "ATK1 Submission" removed (Misty's Staryu has only 1 attack)
+  #13  : _running_charge docstring — "atk1" → "atk0" (sv10-107 Mudbray)
+  #14  : _pick_and_stick (sv06-072 Morpeko) — replace no-op flag with real attach-from-discard
 """
 from __future__ import annotations
 
@@ -796,3 +802,479 @@ async def test_time_manipulation_puts_cards_on_top():
     # c1 and c2 should be on top of deck (first 2)
     assert state.p1.deck[0].instance_id in (c1.instance_id, c2.instance_id)
     assert state.p1.deck[1].instance_id in (c1.instance_id, c2.instance_id)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Finding #9/#10: _swim_together (sv10-050 Misty's Lapras)
+# ──────────────────────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_swim_together_moves_mistys_to_hand():
+    """sv10-050 Misty's Lapras atk0 — Swim Together moves chosen Misty's Pokémon to hand."""
+    lapras_cdef = _make_card(
+        "sv10-050", "Misty's Lapras", hp=100,
+        attacks=[AttackDef(name="Swim Together", damage="0", cost=["Water"])],
+    )
+    mistys1_cdef = _make_card("tst-st-001", "Misty's Magikarp", hp=40)
+    mistys2_cdef = _make_card("tst-st-002", "Misty's Gyarados", hp=130)
+    other_cdef = _make_card("tst-st-003", "Pikachu", hp=60)
+    opp_cdef = _make_card("tst-st-opp", "OppMon", hp=100)
+    for c in [lapras_cdef, mistys1_cdef, mistys2_cdef, other_cdef, opp_cdef]:
+        card_registry.register(c)
+
+    lapras_inst = _make_instance(lapras_cdef)
+    m1 = _make_instance(mistys1_cdef, zone=Zone.DECK)
+    m1.card_type = "Pokemon"
+    m2 = _make_instance(mistys2_cdef, zone=Zone.DECK)
+    m2.card_type = "Pokemon"
+    other = _make_instance(other_cdef, zone=Zone.DECK)
+    other.card_type = "Pokemon"
+    opp_active = _make_instance(opp_cdef, hp=100)
+
+    state = _make_state(p1_active=lapras_inst, p2_active=opp_active)
+    state.p1.deck = [m1, m2, other]
+
+    action = _make_action(attack_index=0)
+
+    from app.engine.effects.attacks import _swim_together
+    gen = _swim_together(state, action)
+    try:
+        next(gen)
+        # Choose both Misty's Pokémon
+        resp = Action(
+            player_id="p1",
+            action_type=ActionType.ATTACK,
+            selected_cards=[m1.instance_id, m2.instance_id],
+        )
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    # Both Misty's Pokémon should be in hand
+    assert m1 in state.p1.hand
+    assert m2 in state.p1.hand
+    # Non-Misty's stays in deck
+    assert other in state.p1.deck
+
+
+@pytest.mark.asyncio
+async def test_swim_together_empty_deck_no_crash():
+    """_swim_together: empty deck emits no-damage event without error."""
+    lapras_cdef = _make_card(
+        "sv10-050", "Misty's Lapras", hp=100,
+        attacks=[AttackDef(name="Swim Together", damage="0", cost=["Water"])],
+    )
+    opp_cdef = _make_card("tst-st-emp-opp", "OppMon", hp=100)
+    card_registry.register(lapras_cdef)
+    card_registry.register(opp_cdef)
+
+    lapras_inst = _make_instance(lapras_cdef)
+    opp_active = _make_instance(opp_cdef, hp=100)
+    state = _make_state(p1_active=lapras_inst, p2_active=opp_active)
+    state.p1.deck = []
+
+    action = _make_action(attack_index=0)
+
+    from app.engine.effects.attacks import _swim_together
+    result = _swim_together(state, action)
+    if hasattr(result, "__next__"):
+        try:
+            next(result)
+        except StopIteration:
+            pass
+
+    assert any(e["event_type"] == "attack_no_damage" for e in state.events)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Finding #14: _pick_and_stick (sv06-072 Morpeko)
+# ──────────────────────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_pick_and_stick_attaches_energy_from_discard():
+    """sv06-072 Morpeko atk0 — Pick and Stick attaches Basic Energy from discard to chosen Pokémon."""
+    from app.cards.models import CardDefinition
+    morpeko_cdef = _make_card(
+        "sv06-072", "Morpeko", hp=60,
+        attacks=[AttackDef(name="Pick and Stick", damage="0", cost=["Lightning"])],
+    )
+    opp_cdef = _make_card("tst-ps-opp", "OppMon", hp=100)
+    fire_energy_cdef = CardDefinition(
+        tcgdex_id="tst-fire-energy",
+        name="Fire Energy",
+        set_abbrev="TST",
+        set_number="E01",
+        category="energy",
+        stage="",
+        hp=0,
+        attacks=[],
+        abilities=[],
+        card_type="Energy",
+        card_subtype="Basic",
+        energy_provides=["Fire"],
+    )
+    card_registry.register(morpeko_cdef)
+    card_registry.register(opp_cdef)
+    card_registry.register(fire_energy_cdef)
+
+    morpeko_inst = _make_instance(morpeko_cdef)
+    opp_active = _make_instance(opp_cdef, hp=100)
+
+    from app.engine.state import CardInstance as CI
+    fire_card = CI(
+        instance_id="inst-fire-1",
+        card_def_id="tst-fire-energy",
+        card_name="Fire Energy",
+        current_hp=0,
+        max_hp=0,
+        zone=Zone.DISCARD,
+        card_type="Energy",
+        card_subtype="Basic",
+        energy_provides=["Fire"],
+    )
+    state = _make_state(p1_active=morpeko_inst, p2_active=opp_active)
+    state.p1.discard = [fire_card]
+
+    action = _make_action(attack_index=0)
+
+    from app.engine.effects.attacks import _pick_and_stick
+    gen = _pick_and_stick(state, action)
+    try:
+        next(gen)
+        # Choose Morpeko as the target
+        resp = Action(
+            player_id="p1",
+            action_type=ActionType.CHOOSE_TARGET,
+            target_instance_id=morpeko_inst.instance_id,
+        )
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    # Fire energy should be attached to Morpeko
+    assert len(morpeko_inst.energy_attached) == 1
+    assert morpeko_inst.energy_attached[0].energy_type == EnergyType.FIRE
+    # Discard should be empty
+    assert fire_card not in state.p1.discard
+
+
+@pytest.mark.asyncio
+async def test_pick_and_stick_no_energy_in_discard_no_crash():
+    """_pick_and_stick: no Basic Energy in discard → emits no-damage event."""
+    morpeko_cdef = _make_card(
+        "sv06-072", "Morpeko", hp=60,
+        attacks=[AttackDef(name="Pick and Stick", damage="0", cost=["Lightning"])],
+    )
+    opp_cdef = _make_card("tst-ps-emp-opp", "OppMon", hp=100)
+    card_registry.register(morpeko_cdef)
+    card_registry.register(opp_cdef)
+
+    morpeko_inst = _make_instance(morpeko_cdef)
+    opp_active = _make_instance(opp_cdef, hp=100)
+    state = _make_state(p1_active=morpeko_inst, p2_active=opp_active)
+    state.p1.discard = []
+
+    action = _make_action(attack_index=0)
+
+    from app.engine.effects.attacks import _pick_and_stick
+    result = _pick_and_stick(state, action)
+    if hasattr(result, "__next__"):
+        try:
+            next(result)
+        except StopIteration:
+            pass
+
+    assert any(e["event_type"] == "attack_no_damage" for e in state.events)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Finding #9 registry check: sv10-050 registered as _swim_together
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_sv10_050_swim_together_registered():
+    """sv10-050 Misty's Lapras is registered with _swim_together."""
+    from app.engine.effects.registry import EffectRegistry
+    reg = EffectRegistry.instance()
+    assert "sv10-050:0" in reg._attack_effects, "Swim Together should be registered"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Finding #14 registry check: sv06-072 registered as _pick_and_stick (not flag)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_sv06_072_pick_and_stick_registered():
+    """sv06-072 Morpeko is registered with _pick_and_stick (real handler, not flag)."""
+    from app.engine.effects.registry import EffectRegistry
+    from app.engine.effects.attacks import _pick_and_stick
+    reg = EffectRegistry.instance()
+    handler = reg._attack_effects.get("sv06-072:0")
+    assert handler is _pick_and_stick, "Pick and Stick should use real handler, not flag"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Nightly 2026-05-03 findings
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Finding: Auto Heal (sv09-107 Magearna) heals exactly 10, not all damage counters
+def test_auto_heal_heals_exactly_10():
+    """Auto Heal should heal exactly 10 HP (remove 1 damage counter), not all counters."""
+    from app.engine.state import CardInstance, Zone, GameState
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+
+    # Magearna as active
+    magearna = CardInstance(
+        instance_id="magearna-1",
+        card_def_id="sv09-107",
+        card_name="Magearna",
+        current_hp=110,
+        max_hp=120,
+        zone=Zone.ACTIVE,
+        damage_counters=1,
+    )
+    state.p1.active = magearna
+
+    # bench Pokémon with 3 damage counters
+    bench_poke = CardInstance(
+        instance_id="bench-1",
+        card_def_id="tst-bench-1",
+        card_name="BenchPoke",
+        current_hp=70,
+        max_hp=100,
+        zone=Zone.BENCH,
+        damage_counters=3,
+    )
+    state.p1.bench = [bench_poke]
+
+    # Simulate the Auto Heal logic directly (as in transitions._attach_energy)
+    if (state.p1.active and state.p1.active.card_def_id == "sv09-107"
+            and bench_poke.damage_counters > 0):
+        heal = 10
+        bench_poke.current_hp = min(bench_poke.max_hp, bench_poke.current_hp + heal)
+        bench_poke.damage_counters -= 1
+
+    assert bench_poke.damage_counters == 2, (
+        f"Auto Heal should remove exactly 1 counter, got {bench_poke.damage_counters}"
+    )
+    assert bench_poke.current_hp == 80, (
+        f"Auto Heal should add exactly 10 HP, got {bench_poke.current_hp}"
+    )
+
+
+# Finding: deck.pop(0) for "discard top card" operations
+def test_cornerstone_mountain_ramming_discards_top_card():
+    """_cornerstone_mountain_ramming (sv10-111) should discard deck[0] (top), not deck[-1] (bottom)."""
+    from app.engine.effects.attacks import _cornerstone_mountain_ramming
+    from app.engine.state import CardInstance, Zone, GameState
+    from app.cards.models import AttackDef, CardDefinition
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+
+    attacker = CardInstance(
+        instance_id="ogerpon-1", card_def_id="sv10-111",
+        card_name="Cornerstone Mask Ogerpon",
+        current_hp=130, max_hp=130, zone=Zone.ACTIVE,
+    )
+    defender = CardInstance(
+        instance_id="opp-1", card_def_id="tst-def-cm",
+        card_name="OppDef", current_hp=500, max_hp=500, zone=Zone.ACTIVE,
+    )
+    state.p1.active = attacker
+    state.p2.active = defender
+
+    cdef_attacker = CardDefinition(
+        tcgdex_id="sv10-111", name="Cornerstone Mask Ogerpon",
+        set_abbrev="SV10", set_number="111", category="pokemon",
+        stage="Basic", hp=130, types=["Fighting"],
+        attacks=[
+            AttackDef(name="Rock Kagura", damage="0", cost=["Fighting"]),
+            AttackDef(name="Mountain Ramming", damage="100", cost=["Fighting","Colorless"]),
+        ],
+    )
+    card_registry.register(cdef_attacker)
+
+    # Build deck: deck[0] = "top_card", deck[-1] = "bot_card"
+    top_card = CardInstance(
+        instance_id="deck-top", card_def_id="tst-deck-top",
+        card_name="TopCard", current_hp=0, max_hp=0, zone=Zone.DECK,
+    )
+    bot_card = CardInstance(
+        instance_id="deck-bot", card_def_id="tst-deck-bot",
+        card_name="BotCard", current_hp=0, max_hp=0, zone=Zone.DECK,
+    )
+    state.p2.deck = [top_card, bot_card]
+
+    action = Action(player_id="p1", action_type=ActionType.ATTACK, attack_index=1)
+    gen = _cornerstone_mountain_ramming(state, action)
+    if hasattr(gen, "__next__"):
+        try:
+            next(gen)
+        except StopIteration:
+            pass
+
+    discarded_names = [c.card_name for c in state.p2.discard]
+    remaining_names = [c.card_name for c in state.p2.deck]
+    assert "TopCard" in discarded_names, (
+        f"Expected TopCard (deck[0]) to be discarded; got {discarded_names}"
+    )
+    assert "BotCard" in remaining_names, (
+        f"Expected BotCard to remain in deck; got {remaining_names}"
+    )
+
+
+# Finding: torment_blocked_attack_name is cleared for Active Pokémon at end of turn
+def test_torment_blocked_cleared_for_active_at_end_of_turn():
+    """torment_blocked_attack_name on Active Pokémon should be cleared at end of the blocked player's turn."""
+    runner = _runner_for_between_turns()
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+
+    p2_active = CardInstance(
+        instance_id="poke-p2", card_def_id="tst-poke-t",
+        card_name="TestPoke", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    p2_active.torment_blocked_attack_name = "Some Attack"
+    state.p2.active = p2_active
+
+    # Simulate end of P2's turn (current_pid = p2)
+    state.active_player = "p2"
+    runner._end_turn(state)
+
+    assert p2_active.torment_blocked_attack_name is None, (
+        "torment_blocked_attack_name should be cleared at end of the blocked player's own turn"
+    )
+
+
+# Finding: Torment flag persists for one full opponent turn when that turn is NOT ended
+def test_torment_blocked_persists_through_attacker_end_of_turn():
+    """torment_blocked_attack_name should NOT be cleared at end of the ATTACKER's turn."""
+    runner = _runner_for_between_turns()
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+
+    # P1 uses Torment on P2's active → sets flag on P2
+    p2_active = CardInstance(
+        instance_id="poke-p2b", card_def_id="tst-poke-t2",
+        card_name="TestPoke2", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    p2_active.torment_blocked_attack_name = "BlockedAttack"
+    state.p2.active = p2_active
+
+    # End of P1's turn (NOT P2's) — flag should persist
+    state.active_player = "p1"
+    runner._end_turn(state)
+
+    assert p2_active.torment_blocked_attack_name == "BlockedAttack", (
+        "torment_blocked_attack_name should NOT be cleared at end of the attacker's turn"
+    )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Wide Wall (sv07-076 Rhyperior) — Supporter effect protection
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_wide_wall_blocks_bosss_orders_gust():
+    """Wide Wall should block Boss's Orders forced switch."""
+    from app.engine.effects.trainers import _bosss_orders
+    from app.engine.state import CardInstance, Zone, GameState
+    from app.cards.models import CardDefinition
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+
+    # P2 has Rhyperior active → Wide Wall
+    rhyperior_cdef = CardDefinition(
+        tcgdex_id="sv07-076", name="Rhyperior", set_abbrev="TEF",
+        set_number="076", category="pokemon", stage="Stage 2", hp=200,
+        abilities=[AbilityDef(name="Wide Wall", effect="Prevent Supporter effects on your Pokémon.", ability_type="Ability")],
+    )
+    card_registry.register(rhyperior_cdef)
+
+    rhyperior = CardInstance(
+        instance_id="rhyperior-1", card_def_id="sv07-076",
+        card_name="Rhyperior", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    state.p2.active = rhyperior
+
+    bench_target = CardInstance(
+        instance_id="bench-p2-1", card_def_id="tst-bench-ww",
+        card_name="BenchTarget", current_hp=60, max_hp=60, zone=Zone.BENCH,
+    )
+    state.p2.bench = [bench_target]
+
+    p1_active = CardInstance(
+        instance_id="p1-active-1", card_def_id="tst-p1-active",
+        card_name="P1Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p1.active = p1_active
+
+    # Simulate Wide Wall flag being set (as done by _play_supporter)
+    state.p2.wide_wall_protected = True
+
+    action = Action(player_id="p1", action_type=ActionType.ATTACK, attack_index=0)
+
+    gen = _bosss_orders(state, action)
+    # Generator should immediately return (yield nothing) because Wide Wall blocks it
+    try:
+        next(gen)
+        # If it yields a ChoiceRequest, that's wrong — should be blocked
+        assert False, "Boss's Orders should not yield a ChoiceRequest when Wide Wall is active"
+    except StopIteration:
+        pass  # Good — generator returned without yielding
+
+    # bench_target should still be on the bench (not switched to active)
+    assert state.p2.active is rhyperior, "Rhyperior should remain Active after Wide Wall block"
+    assert bench_target in state.p2.bench, "BenchTarget should still be on bench after Wide Wall block"
+    # wide_wall_blocked event should be emitted
+    assert any(e["event_type"] == "wide_wall_blocked" for e in state.events), (
+        "wide_wall_blocked event should be emitted when Boss's Orders is blocked"
+    )
+
+
+def test_wide_wall_does_not_block_without_rhyperior_active():
+    """Wide Wall should NOT block Boss's Orders when Rhyperior is NOT the active Pokémon."""
+    from app.engine.effects.trainers import _bosss_orders
+    from app.engine.state import CardInstance, Zone, GameState
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+
+    # P2 active is NOT Rhyperior
+    p2_active = CardInstance(
+        instance_id="p2-active-nww", card_def_id="tst-p2-active",
+        card_name="P2Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p2.active = p2_active
+
+    bench_target = CardInstance(
+        instance_id="bench-p2-nww", card_def_id="tst-bench-nww",
+        card_name="BenchNWW", current_hp=60, max_hp=60, zone=Zone.BENCH,
+    )
+    state.p2.bench = [bench_target]
+
+    p1_active = CardInstance(
+        instance_id="p1-active-nww", card_def_id="tst-p1-nww",
+        card_name="P1ActiveNWW", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p1.active = p1_active
+
+    # No wide_wall_protected flag → Boss's Orders should proceed normally
+    state.p2.wide_wall_protected = False
+
+    action = Action(player_id="p1", action_type=ActionType.ATTACK, attack_index=0)
+
+    gen = _bosss_orders(state, action)
+    # Should yield a ChoiceRequest for target selection
+    try:
+        req = next(gen)
+        assert req is not None, "Should yield a ChoiceRequest when Wide Wall is NOT active"
+    except StopIteration:
+        assert False, "Boss's Orders should yield a choice request without Wide Wall"

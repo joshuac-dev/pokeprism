@@ -1155,7 +1155,37 @@ def _attract_customers(state: GameState, action):
     state.emit_event("attract_customers", player=player_id, card=card.card_name)
 
 
-# Run Errand (mep-025 Mega Kangaskhan ex) ─────────────────────────────────────
+# Snack Seek (sv06-072 Morpeko) ──────────────────────────────────────────────
+
+def _snack_seek(state: GameState, action):
+    """sv06-072 Morpeko — Snack Seek: look at top card of deck; may discard it."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    poke = _find_in_play(player, action.card_instance_id)
+    if not player.deck:
+        if poke:
+            poke.ability_used_this_turn = True
+        state.emit_event("snack_seek_empty_deck", player=player_id)
+        return
+    top_card = player.deck[0]
+    req = ChoiceRequest(
+        "choose_option", player_id,
+        f"Snack Seek: top card is {top_card.card_name}. Discard it?",
+        options=["Discard", "Keep"],
+    )
+    resp = yield req
+    option_index = resp.selected_option if resp and resp.selected_option is not None else 0
+    if option_index == 0:
+        player.deck.pop(0)
+        top_card.zone = Zone.DISCARD
+        player.discard.append(top_card)
+        state.emit_event("snack_seek_discard", player=player_id, card=top_card.card_name)
+    else:
+        state.emit_event("snack_seek_keep", player=player_id, card=top_card.card_name)
+    if poke:
+        poke.ability_used_this_turn = True
+
+
 
 def _run_errand(state: GameState, action):
     """mep-025 Mega Kangaskhan ex — Run Errand: once per turn, draw 2 cards."""
@@ -3147,50 +3177,48 @@ def _confectionary_gift(state: GameState, action):
 
 
 def _mammoth_hauler(state: GameState, action):
-    """sv09-079 Mamoswine ex — Mammoth Hauler: search deck for up to 3 Basic Pokémon, put on bench."""
-    player = state.get_player(action.player_id)
-    caster = player.active
-    if caster is None or caster.ability_used_this_turn:
-        return
-    caster.ability_used_this_turn = True
-    available_slots = 5 - len(player.bench)
-    if available_slots <= 0:
-        state.emit_event("ability_used", player=action.player_id,
+    """sv09-079 Mamoswine ex — Mammoth Hauler: once per turn, search deck for any Pokémon and put in hand."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    caster = _find_in_play(player, action.card_instance_id)
+    if not player.deck:
+        if caster:
+            caster.ability_used_this_turn = True
+        state.emit_event("ability_used", player=player_id,
                          card="Mamoswine ex", ability="Mammoth Hauler",
-                         result="bench_full")
+                         result="deck_empty")
         return
-    basics = [c for c in player.deck
-              if c.card_type.lower() == "pokemon"
-              and c.card_subtype.lower() == "basic"]
-    if not basics:
+    pokemon_in_deck = [c for c in player.deck
+                       if c.card_type.lower() in ("pokemon", "pokémon")]
+    if not pokemon_in_deck:
         from app.engine.effects.attacks import _shuffle_deck
         _shuffle_deck(player)
-        state.emit_event("ability_used", player=action.player_id,
+        if caster:
+            caster.ability_used_this_turn = True
+        state.emit_event("ability_used", player=player_id,
                          card="Mamoswine ex", ability="Mammoth Hauler",
-                         result="no_basics")
+                         result="no_pokemon")
         return
-    max_count = min(3, available_slots, len(basics))
     req = ChoiceRequest(
-        "choose_cards", action.player_id,
-        "Mammoth Hauler: choose up to 3 Basic Pokémon from deck to put on bench",
-        cards=basics, min_count=0, max_count=max_count,
+        "choose_cards", player_id,
+        "Mammoth Hauler: choose a Pokémon from your deck to put into your hand",
+        cards=pokemon_in_deck, min_count=0, max_count=1,
     )
     resp = yield req
-    chosen_ids = (resp.selected_cards if resp else []) or []
+    chosen_ids = (resp.selected_cards if resp else []) or [pokemon_in_deck[0].instance_id]
     placed = 0
-    for iid in chosen_ids[:max_count]:
-        if len(player.bench) >= 5:
-            break
+    for iid in chosen_ids[:1]:
         card = next((c for c in player.deck if c.instance_id == iid), None)
         if card:
             player.deck.remove(card)
-            card.zone = Zone.BENCH
-            card.turn_played = state.turn_number
-            player.bench.append(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
             placed += 1
     from app.engine.effects.attacks import _shuffle_deck
     _shuffle_deck(player)
-    state.emit_event("ability_used", player=action.player_id,
+    if caster:
+        caster.ability_used_this_turn = True
+    state.emit_event("ability_used", player=player_id,
                      card="Mamoswine ex", ability="Mammoth Hauler", placed=placed)
 
 
@@ -3703,7 +3731,7 @@ def _sudden_shearing(state: GameState, action):
     if not opp.deck:
         return
 
-    top = opp.deck.pop()
+    top = opp.deck.pop(0)
     top.zone = Zone.DISCARD
     opp.discard.append(top)
     state.emit_event("sudden_shearing", player=player_id, discarded=top.card_name)
@@ -4919,7 +4947,7 @@ def register_all(registry):
 
     # FLAGGED passives (complex trigger not implemented; stubs registered for coverage)
     registry.register_ability("sv07-067", "Time to Chow Down", _time_to_chow_down)  # Dachsbun ex (on-evolve)
-    registry.register_passive_ability("sv07-076", "Wide Wall")              # Rhyperior (damage reduction while Active: noop)
+    registry.register_passive_ability("sv07-076", "Wide Wall")              # Rhyperior: enforced in _play_supporter (opp.wide_wall_protected)
     registry.register_passive_ability("sv06.5-002", "Compound Eyes")        # Galvantula (+50 to all own attacks vs Active: implemented in _apply_damage)
     registry.register_ability("sv06.5-019", "Cursed Blast", _cursed_blast_dusclops_sfa)
     registry.register_ability("sv06.5-020", "Cursed Blast", _cursed_blast_dusknoir_sfa)
@@ -4968,7 +4996,7 @@ def register_all(registry):
     registry.register_passive_ability("sv06-050", "Mentally Calm")          # Milotic (placement protection: noop)
     registry.register_passive_ability("sv06-060", "Zero to Hero")           # Palafin (on-retreat placement: noop)
     registry.register_passive_ability("sv06-061", "Hero's Spirit")          # Palafin ex (placement restriction: noop)
-    registry.register_passive_ability("sv06-072", "Snack Seek")             # Morpeko (top deck look: noop)
+    registry.register_ability("sv06-072", "Snack Seek", _snack_seek)          # Morpeko (top deck look: choose to discard)
     registry.register_passive_ability("sv06-077", "Initialization")         # Iron Thorns ex (attack-lock active: noop)
     def _cond_teleporter(state, player_id, poke):
         p = state.get_player(player_id)

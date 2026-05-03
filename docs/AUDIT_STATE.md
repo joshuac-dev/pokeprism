@@ -5,14 +5,14 @@ This file stores the rotating cursor for the DB-backed card effect audit workflo
 It does not define card text. It does not define the audit candidate set. The database defines audit scope, and TCGDex defines card behavior.
 
 ```text
-next_start_cursor: Mimikyu ex | JTG | 69 | sv09-069
+next_start_cursor: Wondrous Patch | PFL | 94 | me02-094
 last_run_status: TARGET_REACHED
 last_run_date_utc: 2026-05-03
 last_pr:
 last_issue: Nightly DB-backed card effect implementation audit - 2026-05-03
-last_first_card_audited: Accelgor | JTG | 13 | sv09-013
-last_card_fully_audited: Miltank | PRE | 81 | sv08.5-081
-notes: Audited 25+ cards from start cursor. TARGET_REACHED with 25 implemented fixes/renames: Gnaw Through timing, Power Charger, Ready to Ram, Parabolic Charge, Familial March, Prism Charge, Infernal Slash, Nasal Lariat, Astonish, Bring Down the Axe, Angelite (sv08-086), Colorful Confection, Guarded Rolling, Surf Back, Mischievous Painting, Cinnabar Lure, Time Manipulation, Barite Jail rename, Zap Cannon rename, Aqua Wash bug fix, Crimson Blaster, Cursed Edge, Upthrusting Horns, Onyx rename, Moomoo Rolling rename.
+last_first_card_audited: Mimikyu ex | JTG | 69 | sv09-069
+last_card_fully_audited: Wo-Chien | PAR | 15 | sv08-015
+notes: TARGET_REACHED with 31 findings. Start sv09-069, end sv08-015. Key fixes: deck.pop(0) for top-card discard in 9 handlers (Sudden Shearing, Outlaw Leg, Mountain Ramming x2, Brighten and Burn, Land Collapse x2, Hammer-lanche, Entangling Whip, Sandy Flapping); torment_blocked_attack_name not cleared for Active (runner.py); Hop's Choice Band unimplemented tool (damage bonus + cost reduction); Auto Heal wrong amount (90->10); Mammoth Hauler wrong behavior; Postwick damage bonus; Snack Seek passivization; 14 option_index->selected_option fixes. Engine gap: Wide Wall (sv07-076).
 ```
 
 ## Cursor rules
