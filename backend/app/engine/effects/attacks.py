@@ -1614,7 +1614,7 @@ def _oil_salvo(state, action):
             target = all_opp[0]
 
         if target is opp.active:
-            _apply_damage(state, action, 20, bypass_wr=True)
+            _apply_damage(state, action, 20)
         else:
             _place_bench_counters(state, opp_id, target, 2)
 
@@ -3427,43 +3427,6 @@ def _explosion_y(state, action):
         _apply_bench_damage(state, opp_id, target, 280)
 
 
-def _lava_burst(state, action):
-    """me02.5-024 Ethan's Magcargo atk0 — Lava Burst: discard up to 5 {R} energy, 70 per discarded."""
-    player = state.get_player(action.player_id)
-    if not player.active:
-        return
-    fire_energy = [att for att in player.active.energy_attached
-                   if att.energy_type == EnergyType.FIRE]
-    if not fire_energy:
-        state.emit_event("attack_no_damage", attacker="Ethan's Magcargo",
-                         attack_name="Lava Burst", reason="no Fire energy")
-        return
-    max_count = min(5, len(fire_energy))
-    req = ChoiceRequest(
-        "choose_cards", action.player_id,
-        "Lava Burst: discard up to 5 {R} Energy (+70 damage each)",
-        cards=fire_energy, min_count=0, max_count=max_count,
-    )
-    resp = yield req
-    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
-                  and resp.chosen_card_ids else [])
-    if not chosen_ids:
-        chosen_ids = [a.source_card_id for a in fire_energy[:max_count]]
-    discarded = 0
-    for src_id in chosen_ids:
-        att = next((a for a in player.active.energy_attached
-                    if a.source_card_id == src_id), None)
-        if att:
-            player.active.energy_attached.remove(att)
-            discarded += 1
-    base_damage = 70 * discarded
-    if base_damage <= 0:
-        state.emit_event("attack_no_damage", attacker="Ethan's Magcargo",
-                         attack_name="Lava Burst")
-        return
-    _apply_damage(state, action, base_damage)
-
-
 def _power_stomp(state, action):
     """me02.5-028 Camerupt atk1 — Power Stomp: 170 + discard 2 Energy from self."""
     _do_default_damage(state, action)
@@ -5076,15 +5039,15 @@ def _aura_jab(state, action):
 
 
 def _mega_brave(state, action):
-    """me02.5-113 Mega Lucario ex atk1 — Mega Brave: 270 + can't attack next turn."""
+    """me02.5-113 Mega Lucario ex atk1 — Mega Brave: 270 + can't use Mega Brave next turn."""
     _do_default_damage(state, action)
     if state.phase == Phase.GAME_OVER:
         return
     player = state.get_player(action.player_id)
     if player.active:
-        player.active.cant_attack_next_turn = True
-        state.emit_event("multi_turn_lock", card=player.active.card_name,
-                         attack="Mega Brave")
+        player.active.locked_attack_index = action.attack_index
+        state.emit_event("attack_locked", card=player.active.card_name,
+                         attack="Mega Brave", index=action.attack_index)
 
 
 def _big_bite(state, action):
@@ -7449,11 +7412,7 @@ def _pow_pow_punching(state, action):
     while _random.choice([True, False]):
         heads += 1
     state.emit_event("coin_flip_result", attack="Pow-Pow Punching", heads=heads)
-    if heads > 0:
-        _apply_damage(state, action, heads * 30)
-    else:
-        state.emit_event("attack_no_damage", attacker="Tyrogue",
-                         attack_name="Pow-Pow Punching")
+    _apply_damage(state, action, 10 + heads * 30)
 
 
 def _wild_press(state, action):
@@ -9925,7 +9884,7 @@ def _energy_loop_steenee(state, action):
 
 
 def _hydra_breath(state, action):
-    """sv10-018 Tsareena ex atk0 — Hydra Breath: discard 6 Basic G from hand; KO opp Active."""
+    """sv10-018 Hydrapple atk0 — Hydra Breath: discard 6 Basic G from hand; KO opp Active."""
     player = state.get_player(action.player_id)
     opp = state.get_opponent(action.player_id)
     opp_id = state.opponent_id(action.player_id)
@@ -9951,6 +9910,8 @@ def _hydra_breath(state, action):
 def _jet_cyclone(state, action):
     """sv10-003 Yanmega ex atk0 — Jet Cyclone: 210 + move 3 Energy from this Pokémon to 1 Benched."""
     _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
     player = state.get_player(action.player_id)
     if not player.active or not player.active.energy_attached or not player.bench:
         return
@@ -9959,16 +9920,17 @@ def _jet_cyclone(state, action):
     if not to_move:
         return
     req = ChoiceRequest(
-        "choose_cards",
+        "choose_target",
         player_id=action.player_id,
-        options=[b.instance_id for b in player.bench],
-        min_count=1,
-        max_count=1,
-        context={"reason": "jet_cyclone_move_energy"},
+        context="jet_cyclone_move_energy",
+        targets=list(player.bench),
     )
     resp = yield req
-    chosen_ids = resp.chosen_ids if hasattr(resp, "chosen_ids") else []
-    target = next((b for b in player.bench if b.instance_id in chosen_ids), player.bench[0])
+    target = None
+    if resp and hasattr(resp, "target_instance_id") and resp.target_instance_id:
+        target = next((b for b in player.bench if b.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = player.bench[0]
     for att in to_move:
         player.active.energy_attached.remove(att)
         target.energy_attached.append(att)
@@ -10029,13 +9991,15 @@ def _grass_kagura(state, action):
 
 
 def _ogres_hammer(state, action):
-    """sv10-026 Tsareena atk1 — Ogre's Hammer: 120 + can't use Ogre's Hammer next turn."""
+    """sv10-026 Teal Mask Ogerpon atk1 — Ogre's Hammer: 120 + can't use Ogre's Hammer next turn."""
     _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
     player = state.get_player(action.player_id)
     if player.active:
-        player.active.cant_attack_next_turn = True
-        state.emit_event("cant_attack_next_turn", player=action.player_id,
-                         card=player.active.card_name, attack="Ogre's Hammer")
+        player.active.locked_attack_index = action.attack_index
+        state.emit_event("attack_locked", card=player.active.card_name,
+                         attack="Ogre's Hammer", index=action.attack_index)
 
 
 def _punishing_fang(state, action):
@@ -10084,7 +10048,7 @@ def _buddy_blast(state, action):
 
 
 def _lava_burst(state, action):
-    """sv10-036 Ethan's Magcargo atk0 — Lava Burst: discard up to 5 R Energy; 70× discarded."""
+    """me02.5-024 / sv10-036 Ethan's Magcargo atk0 — Lava Burst: discard up to 5 R Energy; 70× discarded."""
     player = state.get_player(action.player_id)
     r_energy_attached = [att for att in (player.active.energy_attached if player.active else [])
                          if att.energy_type == EnergyType.FIRE]
@@ -10229,16 +10193,6 @@ def _fire_kagura(state, action):
     state.emit_event("energy_attached", player=action.player_id,
                      target=target.card_name, energy=chosen_energy.card_name)
     state.emit_event("attack_no_damage", attacker="Misty's Ninetales", attack_name="Fire Kagura")
-
-
-def _searing_flame(state, action):
-    """sv10-044 Misty's Ninetales atk1 — Searing Flame: 80 + apply Burned."""
-    _do_default_damage(state, action)
-    opp = state.get_opponent(action.player_id)
-    if opp.active:
-        opp.active.status_conditions.add(StatusCondition.BURNED)
-        state.emit_event("status_applied", player=state.opponent_id(action.player_id),
-                         card=opp.active.card_name, status="burned")
 
 
 def _bubble_beam(state, action):
@@ -10415,7 +10369,7 @@ def _manual_wash(state, action):
 
 
 def _reckless_charge(state, action):
-    """sv10-062 Starmie ex atk0 — Reckless Charge: 30 + 10 recoil to self."""
+    """sv10-062 Arrokuda atk0 — Reckless Charge: 30 + 10 recoil to self."""
     _do_default_damage(state, action)
     player = state.get_player(action.player_id)
     if player.active:
@@ -10437,7 +10391,7 @@ def _dive_60(state, action):
 
 
 def _crushing_press(state, action):
-    """sv10-065 Avalugg / sv10-065 Cetitan ex atk0 — Crushing Press: 140 + optionally discard Stadium for +140 more."""
+    """sv10-065 Cetitan ex atk0 — Crushing Press: 140 + optionally discard Stadium for +140 more."""
     if not state.active_stadium:
         _apply_damage(state, action, 140)
         return
@@ -16995,12 +16949,12 @@ def register_all(registry):
     # sv10-060 ATK0 Icy Wind (flat)
     registry.register_attack("sv10-061", 0, _manual_wash)                  # Wash Rotom — Manual Wash
     registry.register_attack("sv10-061", 1, _gadget_show)                  # Wash Rotom — Gadget Show (reuse)
-    registry.register_attack("sv10-062", 0, _reckless_charge)              # Starmie ex — Reckless Charge
+    registry.register_attack("sv10-062", 0, _reckless_charge)              # Arrokuda — Reckless Charge
     # sv10-062 ATK1 Star Freeze (flat)
     registry.register_attack("sv10-063", 1, _dive_60)                      # Misty's Tentacruel — Dive
     # sv10-063 ATK0 Tentacle Jab (flat)
     # sv10-064 Misty's Tentacool: ATK flat; ATK flat
-    registry.register_attack("sv10-065", 0, _crushing_press)               # Avalugg — Crushing Press
+    registry.register_attack("sv10-065", 0, _crushing_press)               # Cetitan ex — Crushing Press
     # sv10-065 ABL Snow Camouflage FLAGGED
     registry.register_attack("sv10-066", 0, _avenging_billow)              # Wishiwashi — Avenging Billow
     registry.register_attack("sv10-066", 1, _dynamic_dive)                 # Wishiwashi — Dynamic Dive
@@ -17990,7 +17944,7 @@ def register_all(registry):
     registry.register_attack("sv06-009", 0, _quick_sign_flag)               # Volbeat — Quick Sign (FLAGGED)
     registry.register_attack("sv06-009", 1, _coordinated_strike)            # Volbeat — Coordinated Strike
     registry.register_attack("sv06-010", 0, _slowing_perfume_flag)          # Illumise — Slowing Perfume (FLAGGED)
-    registry.register_attack("sv06-011", 0, _leaflet_blessings_flag)        # Leafeon — Leaflet Blessings (FLAGGED)
+    registry.register_attack("sv06-011", 0, _leaflet_blessings)             # Leafeon — Leaflet Blessings
     registry.register_attack("sv06-012", 0, _leech_seed_phantump)           # Phantump — Leech Seed
     registry.register_attack("sv06-013", 0, _giga_drain_twm)                # Trevenant — Giga Drain
     registry.register_attack("sv06-016", 0, _drum_beating_flag)             # Rillaboom — Drum Beating (FLAGGED)
@@ -18061,7 +18015,7 @@ def register_all(registry):
     registry.register_attack("sv06-075", 0, _thunder_shock_dedenne)         # Wattrel — Thunder Shock (reuse)
     registry.register_attack("sv06-076", 0, _wind_power_charge_flag)        # Kilowattrel — Wind Power Charge (FLAGGED)
     registry.register_attack("sv06-076", 1, _scorching_fire)                # Kilowattrel — Strong Volt (reuse)
-    registry.register_attack("sv06-077", 0, _volt_cyclone_flag)             # Iron Thorns ex — Volt Cyclone (FLAGGED)
+    registry.register_attack("sv06-077", 0, _volt_cyclone)                  # Iron Thorns ex — Volt Cyclone
     registry.register_attack("sv06-079", 0, _metronome_flag)                # Clefable — Metronome (FLAGGED)
     registry.register_attack("sv06-081", 0, _psychic_kadabra)               # Kadabra — Psychic
 
@@ -21802,7 +21756,7 @@ def _proud_fangs(state, action):
 
 
 def _searing_flame(state, action):
-    """sv06-100 Hisuian Arcanine atk1 — Searing Flame: 90 + Burned."""
+    """sv10-044 / sv06-100 atk1 — Searing Flame: apply _do_default_damage + Burned."""
     _do_default_damage(state, action)
     if state.phase == Phase.GAME_OVER:
         return
@@ -24569,7 +24523,6 @@ def register_batch16_attacks(registry):
     registry.register_attack("sv05-138", 1, _raging_cannon_b16)            # Raging Cannon
 
     # ── mep-002 Inteleon ─────────────────────────────────────────────────────
-    registry.register_attack("mep-002", 0, _bring_down_flag)               # Bring Down (FLAGGED)
     registry.register_attack("mep-002", 1, _water_shot)                    # Water Shot (discard 1 energy)
 
     # ── mep-003 Alakazam ─────────────────────────────────────────────────────
@@ -24851,10 +24804,10 @@ def _crackling_charge_flag_b17(state, action):
                      reason="coin_flip_energy_attach_from_deck_not_supported")
 
 
-# ── svp-162 Gengar ──────────────────────────────────────────────────────────
+# ── svp-162 Houndstone ex ──────────────────────────────────────────────────
 
 def _horrifying_fang_b17(state, action):
-    """svp-162 Gengar atk0 — Horrifying Fang: 100 + 20 per heads (flip until tails)."""
+    """svp-162 Houndstone ex atk0 — Horrifying Fang: 100 + 20 per heads (flip until tails)."""
     heads_count = 0
     while _random.choice([True, False]):
         heads_count += 1
@@ -25020,7 +24973,7 @@ def _kick_shot_b17(state, action):
         state.emit_event("attack_no_damage", attacker="Scraggy", attack_name="Kick Shot")
 
 
-# ── svp-187 Emolga ──────────────────────────────────────────────────────────
+# ── svp-187 Yanmega ─────────────────────────────────────────────────────────
 
 def _gyro_shockwave_flag_b17(state, action):
     """svp-187 Yanmega atk0 — Gyro Shockwave: 110 + switch self with a Benched Pokémon."""
@@ -25304,7 +25257,7 @@ def register_batch17_attacks(registry):
     registry.register_attack("svp-092", 0, _peak_acceleration_flag)        # Peak Acceleration (FLAGGED)
 
     # ── svp-097 Flutter Mane ─────────────────────────────────────────────────
-    registry.register_attack("svp-097", 0, _hex_hurl_flag)                 # Hex Hurl (FLAGGED)
+    registry.register_attack("svp-097", 0, _hex_hurl)                      # Hex Hurl
 
     # ── svp-098 Iron Thorns ──────────────────────────────────────────────────
     registry.register_attack("svp-098", 0, _destructo_press_flag)          # Destructo-Press (FLAGGED)
@@ -25378,11 +25331,11 @@ def register_batch17_attacks(registry):
     # ── svp-158 Vikavolt ─────────────────────────────────────────────────────
     registry.register_attack("svp-158", 0, _crackling_charge_flag_b17)     # Crackling Charge (FLAGGED)
 
-    # ── svp-162 Gengar ───────────────────────────────────────────────────────
+    # ── svp-162 Houndstone ex ───────────────────────────────────────────────
     registry.register_attack("svp-162", 0, _horrifying_fang_b17)           # Horrifying Fang
 
     # ── svp-170 Leafeon ──────────────────────────────────────────────────────
-    registry.register_attack("svp-170", 0, _leaflet_blessings_flag)        # Leaflet Blessings (FLAGGED)
+    registry.register_attack("svp-170", 0, _leaflet_blessings)             # Leaflet Blessings
 
     # ── svp-171 Glaceon ──────────────────────────────────────────────────────
     registry.register_attack("svp-171", 0, _permeating_chill_b10)         # Permeating Chill
@@ -25413,12 +25366,12 @@ def register_batch17_attacks(registry):
     registry.register_attack("svp-184", 0, _dynamic_press_b17)             # Dynamic Press
 
     # ── svp-185 Yanma ────────────────────────────────────────────────────────
-    registry.register_attack("svp-185", 0, _silent_wing_noop_b17)          # Silent Wing
+    registry.register_attack("svp-185", 0, _silent_wing_b16)               # Silent Wing
 
     # ── svp-186 Scraggy ──────────────────────────────────────────────────────
     registry.register_attack("svp-186", 0, _kick_shot_b17)                 # Kick Shot
 
-    # ── svp-187 Emolga ───────────────────────────────────────────────────────
+    # ── svp-187 Yanmega ──────────────────────────────────────────────────────
     registry.register_attack("svp-187", 0, _gyro_shockwave_flag_b17)       # Gyro Shockwave (FLAGGED)
 
     # ── svp-188 Meowth ───────────────────────────────────────────────────────
@@ -25577,7 +25530,7 @@ def register_batch18_attacks(registry):
     """Register all Batch 18 Pokémon attack handlers."""
 
     # ── svp-216 TR Mewtwo ex (alt print of svp-205) ───────────────────────────
-    registry.register_attack("svp-216", 0, _erasure_ball_flag_b17)         # Erasure Ball (FLAGGED)
+    registry.register_attack("svp-216", 0, _erasure_ball_b3)               # Erasure Ball
 
     # ── svp-217 TR Nidoking ex ────────────────────────────────────────────────
     registry.register_attack("svp-217", 0, _tainted_horn)                  # Tainted Horn
