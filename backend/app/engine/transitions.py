@@ -186,7 +186,22 @@ async def _play_supporter(state: GameState, action: Action, get_player=None) -> 
         player=action.player_id,
         card=card.card_name,
     )
-    return await EffectRegistry.instance().resolve_trainer(card.card_def_id, state, action, get_player)
+
+    # Wide Wall (sv07-076 Rhyperior): prevent all effects of Supporter cards done to opponent's Pokémon
+    opp = state.get_opponent(action.player_id)
+    wide_wall_active = (opp.active is not None and opp.active.card_def_id == "sv07-076")
+    if wide_wall_active:
+        opp.wide_wall_protected = True
+        state.emit_event("wide_wall_active", player=state.opponent_id(action.player_id),
+                         card=card.card_name)
+
+    try:
+        result = await EffectRegistry.instance().resolve_trainer(card.card_def_id, state, action, get_player)
+    finally:
+        if wide_wall_active:
+            opp.wide_wall_protected = False
+
+    return result
 
 
 async def _play_item(state: GameState, action: Action, get_player=None) -> GameState:

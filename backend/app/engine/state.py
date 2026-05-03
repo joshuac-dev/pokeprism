@@ -184,6 +184,7 @@ class PlayerState:
     amarys_pending: bool = False                      # Amarys: discard hand at end of turn if 5+ cards
     festival_lead_pending: bool = False               # Festival Lead: second attack if Festival Grounds active
     face_up_prize_indices: list = field(default_factory=list)  # Bother-Bot: indices of face-up prizes
+    wide_wall_protected: bool = False  # sv07-076 Rhyperior Wide Wall: prevents Supporter effects on this player's Pokémon
 
 
 @dataclass

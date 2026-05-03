@@ -4947,7 +4947,7 @@ def register_all(registry):
 
     # FLAGGED passives (complex trigger not implemented; stubs registered for coverage)
     registry.register_ability("sv07-067", "Time to Chow Down", _time_to_chow_down)  # Dachsbun ex (on-evolve)
-    registry.register_passive_ability("sv07-076", "Wide Wall")              # Rhyperior (damage reduction while Active: noop)
+    registry.register_passive_ability("sv07-076", "Wide Wall")              # Rhyperior: enforced in _play_supporter (opp.wide_wall_protected)
     registry.register_passive_ability("sv06.5-002", "Compound Eyes")        # Galvantula (+50 to all own attacks vs Active: implemented in _apply_damage)
     registry.register_ability("sv06.5-019", "Cursed Blast", _cursed_blast_dusclops_sfa)
     registry.register_ability("sv06.5-020", "Cursed Blast", _cursed_blast_dusknoir_sfa)

@@ -75,6 +75,21 @@ def _has_snow_camouflage(pokemon) -> bool:
     return bool(cdef and any(ab.name == "Snow Camouflage" for ab in (cdef.abilities or [])))
 
 
+def _wide_wall_blocks(state, player_id: str) -> bool:
+    """Return True if Wide Wall (sv07-076 Rhyperior) is protecting the opponent's Pokémon.
+
+    Call this inside a Supporter handler before applying any effect to the opponent's Pokémon.
+    Emits a 'wide_wall_blocked' event and returns True when the effect is blocked.
+    """
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    if opp.wide_wall_protected:
+        state.emit_event("wide_wall_blocked", player=opp_id,
+                         blocked_player=player_id)
+        return True
+    return False
+
+
 def _is_basic_energy_cdef(cdef) -> bool:
     """True if a CardDefinition represents a basic energy card."""
     if cdef is None:
@@ -302,6 +317,8 @@ def _bosss_orders(state: GameState, action):
     opp_id = state.opponent_id(player_id)
     opp = state.get_player(opp_id)
     if not opp.bench:
+        return
+    if _wide_wall_blocks(state, player_id):
         return
     req = ChoiceRequest(
         "choose_target", player_id,
@@ -1269,7 +1286,7 @@ def _tr_giovanni(state: GameState, action):
                                  new_active=bench_poke.card_name)
 
     # Mandatory opponent bench switch
-    if opp.bench:
+    if opp.bench and not _wide_wall_blocks(state, player_id):
         req3 = ChoiceRequest(
             "choose_target", player_id,
             "Giovanni: choose one of your opponent's Benched Pokémon to bring Active",
@@ -1952,7 +1969,7 @@ def _prime_catcher(state: GameState, action):
     opp = state.get_player(opp_id)
 
     # Force opponent bench switch
-    if opp.bench:
+    if opp.bench and not _wide_wall_blocks(state, player_id):
         req = ChoiceRequest(
             "choose_target", player_id,
             "Prime Catcher: choose an opponent's Benched Pokémon to bring Active",
@@ -3158,6 +3175,9 @@ def _repel_b18(state: GameState, action):
     if not opp.bench:
         return
 
+    if _wide_wall_blocks(state, player_id):
+        return
+
     req = ChoiceRequest(
         "choose_target", opp_id,
         "Repel: choose a Benched Pokémon to switch in as your Active",
@@ -3501,6 +3521,8 @@ def _tr_venture_bomb_b19(state: GameState, action):
     state.emit_event("coin_flip_result", card="Team Rocket's Venture Bomb",
                      heads=int(heads))
     if heads:
+        if _wide_wall_blocks(state, player_id):
+            return
         opp_targets = _find_in_play(opp)
         if not opp_targets:
             return
@@ -4152,6 +4174,8 @@ def _lisias_appeal_b19(state: GameState, action):
     opp = state.get_player(opp_id)
     basic_bench = [p for p in opp.bench if p.evolution_stage == 0]
     if not basic_bench:
+        return
+    if _wide_wall_blocks(state, player_id):
         return
     req = ChoiceRequest(
         "choose_target", player_id,

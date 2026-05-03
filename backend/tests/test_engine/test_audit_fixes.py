@@ -1173,3 +1173,108 @@ def test_torment_blocked_persists_through_attacker_end_of_turn():
     assert p2_active.torment_blocked_attack_name == "BlockedAttack", (
         "torment_blocked_attack_name should NOT be cleared at end of the attacker's turn"
     )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Wide Wall (sv07-076 Rhyperior) — Supporter effect protection
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_wide_wall_blocks_bosss_orders_gust():
+    """Wide Wall should block Boss's Orders forced switch."""
+    from app.engine.effects.trainers import _bosss_orders
+    from app.engine.state import CardInstance, Zone, GameState
+    from app.cards.models import CardDefinition
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+
+    # P2 has Rhyperior active → Wide Wall
+    rhyperior_cdef = CardDefinition(
+        tcgdex_id="sv07-076", name="Rhyperior", set_abbrev="TEF",
+        set_number="076", category="pokemon", stage="Stage 2", hp=200,
+        abilities=[AbilityDef(name="Wide Wall", effect="Prevent Supporter effects on your Pokémon.", ability_type="Ability")],
+    )
+    card_registry.register(rhyperior_cdef)
+
+    rhyperior = CardInstance(
+        instance_id="rhyperior-1", card_def_id="sv07-076",
+        card_name="Rhyperior", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    state.p2.active = rhyperior
+
+    bench_target = CardInstance(
+        instance_id="bench-p2-1", card_def_id="tst-bench-ww",
+        card_name="BenchTarget", current_hp=60, max_hp=60, zone=Zone.BENCH,
+    )
+    state.p2.bench = [bench_target]
+
+    p1_active = CardInstance(
+        instance_id="p1-active-1", card_def_id="tst-p1-active",
+        card_name="P1Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p1.active = p1_active
+
+    # Simulate Wide Wall flag being set (as done by _play_supporter)
+    state.p2.wide_wall_protected = True
+
+    action = Action(player_id="p1", action_type=ActionType.ATTACK, attack_index=0)
+
+    gen = _bosss_orders(state, action)
+    # Generator should immediately return (yield nothing) because Wide Wall blocks it
+    try:
+        next(gen)
+        # If it yields a ChoiceRequest, that's wrong — should be blocked
+        assert False, "Boss's Orders should not yield a ChoiceRequest when Wide Wall is active"
+    except StopIteration:
+        pass  # Good — generator returned without yielding
+
+    # bench_target should still be on the bench (not switched to active)
+    assert state.p2.active is rhyperior, "Rhyperior should remain Active after Wide Wall block"
+    assert bench_target in state.p2.bench, "BenchTarget should still be on bench after Wide Wall block"
+    # wide_wall_blocked event should be emitted
+    assert any(e["event_type"] == "wide_wall_blocked" for e in state.events), (
+        "wide_wall_blocked event should be emitted when Boss's Orders is blocked"
+    )
+
+
+def test_wide_wall_does_not_block_without_rhyperior_active():
+    """Wide Wall should NOT block Boss's Orders when Rhyperior is NOT the active Pokémon."""
+    from app.engine.effects.trainers import _bosss_orders
+    from app.engine.state import CardInstance, Zone, GameState
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+
+    # P2 active is NOT Rhyperior
+    p2_active = CardInstance(
+        instance_id="p2-active-nww", card_def_id="tst-p2-active",
+        card_name="P2Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p2.active = p2_active
+
+    bench_target = CardInstance(
+        instance_id="bench-p2-nww", card_def_id="tst-bench-nww",
+        card_name="BenchNWW", current_hp=60, max_hp=60, zone=Zone.BENCH,
+    )
+    state.p2.bench = [bench_target]
+
+    p1_active = CardInstance(
+        instance_id="p1-active-nww", card_def_id="tst-p1-nww",
+        card_name="P1ActiveNWW", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p1.active = p1_active
+
+    # No wide_wall_protected flag → Boss's Orders should proceed normally
+    state.p2.wide_wall_protected = False
+
+    action = Action(player_id="p1", action_type=ActionType.ATTACK, attack_index=0)
+
+    gen = _bosss_orders(state, action)
+    # Should yield a ChoiceRequest for target selection
+    try:
+        req = next(gen)
+        assert req is not None, "Should yield a ChoiceRequest when Wide Wall is NOT active"
+    except StopIteration:
+        assert False, "Boss's Orders should yield a choice request without Wide Wall"
