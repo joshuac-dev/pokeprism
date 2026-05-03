@@ -106,6 +106,8 @@ export default function SimulationSetup() {
           setError(detail);
         } else if (Array.isArray(detail)) {
           setError(detail.map((d: { msg?: string }) => d.msg ?? String(d)).join('; '));
+        } else if (detail && typeof detail === 'object' && typeof detail.message === 'string') {
+          setError(detail.message);
         } else {
           setError(`Server error: ${err.response.status}`);
         }
