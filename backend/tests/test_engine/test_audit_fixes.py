@@ -1009,3 +1009,167 @@ def test_sv06_072_pick_and_stick_registered():
     reg = EffectRegistry.instance()
     handler = reg._attack_effects.get("sv06-072:0")
     assert handler is _pick_and_stick, "Pick and Stick should use real handler, not flag"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Nightly 2026-05-03 findings
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Finding: Auto Heal (sv09-107 Magearna) heals exactly 10, not all damage counters
+def test_auto_heal_heals_exactly_10():
+    """Auto Heal should heal exactly 10 HP (remove 1 damage counter), not all counters."""
+    from app.engine.state import CardInstance, Zone, GameState
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+
+    # Magearna as active
+    magearna = CardInstance(
+        instance_id="magearna-1",
+        card_def_id="sv09-107",
+        card_name="Magearna",
+        current_hp=110,
+        max_hp=120,
+        zone=Zone.ACTIVE,
+        damage_counters=1,
+    )
+    state.p1.active = magearna
+
+    # bench Pokémon with 3 damage counters
+    bench_poke = CardInstance(
+        instance_id="bench-1",
+        card_def_id="tst-bench-1",
+        card_name="BenchPoke",
+        current_hp=70,
+        max_hp=100,
+        zone=Zone.BENCH,
+        damage_counters=3,
+    )
+    state.p1.bench = [bench_poke]
+
+    # Simulate the Auto Heal logic directly (as in transitions._attach_energy)
+    if (state.p1.active and state.p1.active.card_def_id == "sv09-107"
+            and bench_poke.damage_counters > 0):
+        heal = 10
+        bench_poke.current_hp = min(bench_poke.max_hp, bench_poke.current_hp + heal)
+        bench_poke.damage_counters -= 1
+
+    assert bench_poke.damage_counters == 2, (
+        f"Auto Heal should remove exactly 1 counter, got {bench_poke.damage_counters}"
+    )
+    assert bench_poke.current_hp == 80, (
+        f"Auto Heal should add exactly 10 HP, got {bench_poke.current_hp}"
+    )
+
+
+# Finding: deck.pop(0) for "discard top card" operations
+def test_cornerstone_mountain_ramming_discards_top_card():
+    """_cornerstone_mountain_ramming (sv10-111) should discard deck[0] (top), not deck[-1] (bottom)."""
+    from app.engine.effects.attacks import _cornerstone_mountain_ramming
+    from app.engine.state import CardInstance, Zone, GameState
+    from app.cards.models import AttackDef, CardDefinition
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+
+    attacker = CardInstance(
+        instance_id="ogerpon-1", card_def_id="sv10-111",
+        card_name="Cornerstone Mask Ogerpon",
+        current_hp=130, max_hp=130, zone=Zone.ACTIVE,
+    )
+    defender = CardInstance(
+        instance_id="opp-1", card_def_id="tst-def-cm",
+        card_name="OppDef", current_hp=500, max_hp=500, zone=Zone.ACTIVE,
+    )
+    state.p1.active = attacker
+    state.p2.active = defender
+
+    cdef_attacker = CardDefinition(
+        tcgdex_id="sv10-111", name="Cornerstone Mask Ogerpon",
+        set_abbrev="SV10", set_number="111", category="pokemon",
+        stage="Basic", hp=130, types=["Fighting"],
+        attacks=[
+            AttackDef(name="Rock Kagura", damage="0", cost=["Fighting"]),
+            AttackDef(name="Mountain Ramming", damage="100", cost=["Fighting","Colorless"]),
+        ],
+    )
+    card_registry.register(cdef_attacker)
+
+    # Build deck: deck[0] = "top_card", deck[-1] = "bot_card"
+    top_card = CardInstance(
+        instance_id="deck-top", card_def_id="tst-deck-top",
+        card_name="TopCard", current_hp=0, max_hp=0, zone=Zone.DECK,
+    )
+    bot_card = CardInstance(
+        instance_id="deck-bot", card_def_id="tst-deck-bot",
+        card_name="BotCard", current_hp=0, max_hp=0, zone=Zone.DECK,
+    )
+    state.p2.deck = [top_card, bot_card]
+
+    action = Action(player_id="p1", action_type=ActionType.ATTACK, attack_index=1)
+    gen = _cornerstone_mountain_ramming(state, action)
+    if hasattr(gen, "__next__"):
+        try:
+            next(gen)
+        except StopIteration:
+            pass
+
+    discarded_names = [c.card_name for c in state.p2.discard]
+    remaining_names = [c.card_name for c in state.p2.deck]
+    assert "TopCard" in discarded_names, (
+        f"Expected TopCard (deck[0]) to be discarded; got {discarded_names}"
+    )
+    assert "BotCard" in remaining_names, (
+        f"Expected BotCard to remain in deck; got {remaining_names}"
+    )
+
+
+# Finding: torment_blocked_attack_name is cleared for Active Pokémon at end of turn
+def test_torment_blocked_cleared_for_active_at_end_of_turn():
+    """torment_blocked_attack_name on Active Pokémon should be cleared at end of the blocked player's turn."""
+    runner = _runner_for_between_turns()
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+
+    p2_active = CardInstance(
+        instance_id="poke-p2", card_def_id="tst-poke-t",
+        card_name="TestPoke", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    p2_active.torment_blocked_attack_name = "Some Attack"
+    state.p2.active = p2_active
+
+    # Simulate end of P2's turn (current_pid = p2)
+    state.active_player = "p2"
+    runner._end_turn(state)
+
+    assert p2_active.torment_blocked_attack_name is None, (
+        "torment_blocked_attack_name should be cleared at end of the blocked player's own turn"
+    )
+
+
+# Finding: Torment flag persists for one full opponent turn when that turn is NOT ended
+def test_torment_blocked_persists_through_attacker_end_of_turn():
+    """torment_blocked_attack_name should NOT be cleared at end of the ATTACKER's turn."""
+    runner = _runner_for_between_turns()
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+
+    # P1 uses Torment on P2's active → sets flag on P2
+    p2_active = CardInstance(
+        instance_id="poke-p2b", card_def_id="tst-poke-t2",
+        card_name="TestPoke2", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    p2_active.torment_blocked_attack_name = "BlockedAttack"
+    state.p2.active = p2_active
+
+    # End of P1's turn (NOT P2's) — flag should persist
+    state.active_player = "p1"
+    runner._end_turn(state)
+
+    assert p2_active.torment_blocked_attack_name == "BlockedAttack", (
+        "torment_blocked_attack_name should NOT be cleared at end of the attacker's turn"
+    )

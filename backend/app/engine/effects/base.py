@@ -375,7 +375,7 @@ def check_ko(
         if target.card_def_id == "me02-053" and _is_attacking_active:
             for _ in range(2):
                 if attacker_player.deck:
-                    top = attacker_player.deck.pop()
+                    top = attacker_player.deck.pop(0)
                     top.zone = Zone.DISCARD
                     attacker_player.discard.append(top)
             state.emit_event("sandy_flapping_ko_triggered", player=target_player_id,
@@ -776,6 +776,10 @@ def get_tool_damage_bonus(
     if has_tool(attacker, "sv08.5-095"):
         if StatusCondition.POISONED in attacker.status_conditions:
             bonus += 40
+
+    # Hop's Choice Band (sv09-148): Hop's Pokémon do +30 damage to opponent's Active
+    if has_tool(attacker, "sv09-148") and "Hop's" in attacker.card_name:
+        bonus += 30
 
     # Payapa Berry (sv07-141): -60 from Psychic attacks
     if has_tool(defender, "sv07-141"):

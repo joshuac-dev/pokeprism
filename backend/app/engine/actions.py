@@ -761,6 +761,11 @@ class ActionValidator:
             if cdef.tcgdex_id == "sv06-105" and i == 1:  # Gutsy Swing is atk1
                 if player.active.status_conditions:
                     effective_cost = []
+            # Hop's Choice Band (sv09-148): Hop's Pokémon attacks cost {C} less
+            if (player.active and "sv09-148" in player.active.tools_attached
+                    and "Hop's" in (player.active.card_name or "")):
+                if "Colorless" in effective_cost:
+                    effective_cost.remove("Colorless")
             if _can_pay_energy_cost(player.active, effective_cost, state, player_id):
                 actions.append(
                     Action(ActionType.ATTACK, player_id, attack_index=i)

@@ -526,6 +526,7 @@ class MatchRunner:
                 if pid == current_pid:
                     player.active.cant_retreat_next_turn = False
                     player.active.attack_damage_reduction = 0
+                    player.active.torment_blocked_attack_name = None
                 player.active.cant_attack_next_turn = False
                 player.active.incoming_damage_reduction = 0
                 player.active.prevent_damage_one_turn = False

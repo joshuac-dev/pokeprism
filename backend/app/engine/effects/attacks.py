@@ -379,6 +379,14 @@ def _apply_damage(
         state.emit_event("extra_helpings_bonus", player=action.player_id,
                          attacker=attacker.card_name)
 
+    # Postwick (sv09-154 Stadium): Hop's Pokémon do 30 more damage
+    if ("Hop's" in attacker.card_name
+            and state.active_stadium
+            and state.active_stadium.card_def_id == "sv09-154"):
+        total += 30
+        state.emit_event("postwick_bonus", player=action.player_id,
+                         attacker=attacker.card_name)
+
     # Lose Cool (sv10-092 Annihilape): if 2+ damage counters on attacker, +120 damage
     if attacker.card_def_id == "sv10-092" and attacker.damage_counters >= 2:
         total += 120
@@ -1395,9 +1403,7 @@ def _torrential_pump(state, action):
         options=["Shuffle 3 Energy (take bonus)", "Skip"],
     )
     resp_opt = yield req_opt
-    option_index = 0  # Default: take the bonus
-    if resp_opt and hasattr(resp_opt, "option_index") and resp_opt.option_index is not None:
-        option_index = resp_opt.option_index
+    option_index = resp_opt.selected_option if resp_opt and resp_opt.selected_option is not None else 0  # Default: take the bonus
 
     if option_index == 1:
         return  # Player chose to skip
@@ -3778,9 +3784,7 @@ def _strafe(state, action):
         options=["Switch", "Keep Active"],
     )
     resp = yield req
-    option_index = 0
-    if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-        option_index = resp.option_index
+    option_index = resp.selected_option if resp and resp.selected_option is not None else 0
     if option_index == 1:
         return
     req_target = ChoiceRequest(
@@ -5427,7 +5431,7 @@ def _outlaw_leg(state, action):
         opp.discard.append(discarded)
         state.emit_event("knock_off", player=action.player_id, discarded=discarded.card_name)
     if opp.deck:
-        top = opp.deck.pop()
+        top = opp.deck.pop(0)
         top.zone = Zone.DISCARD
         opp.discard.append(top)
         state.emit_event("deck_discard", player=action.player_id, card=top.card_name)
@@ -5962,7 +5966,7 @@ def _mountain_ramming(state, action):
     opp = state.get_opponent(action.player_id)
     for _ in range(2):
         if opp.deck:
-            c = opp.deck.pop()
+            c = opp.deck.pop(0)
             c.zone = Zone.DISCARD
             opp.discard.append(c)
     state.emit_event("deck_mill", player=action.player_id, count=2)
@@ -5975,7 +5979,7 @@ def _cornerstone_mountain_ramming(state, action):
         return
     opp = state.get_opponent(action.player_id)
     if opp.deck:
-        c = opp.deck.pop()
+        c = opp.deck.pop(0)
         c.zone = Zone.DISCARD
         opp.discard.append(c)
     state.emit_event("deck_mill", player=action.player_id, count=1)
@@ -7189,7 +7193,7 @@ def _hammer_lanche(state, action):
     for _ in range(6):
         if not player.deck:
             break
-        card = player.deck.pop()
+        card = player.deck.pop(0)
         card.zone = Zone.DISCARD
         player.discard.append(card)
         if card.card_type.lower() == "energy" and "water" in card.card_name.lower():
@@ -7579,9 +7583,7 @@ def _miraculous_paint(state, action):
                 options=["Asleep", "Burned", "Confused", "Paralyzed", "Poisoned"],
             )
             resp = yield req
-            option_index = 0
-            if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-                option_index = resp.option_index
+            option_index = resp.selected_option if resp and resp.selected_option is not None else 0
             status_map = {
                 0: StatusCondition.ASLEEP,
                 1: StatusCondition.BURNED,
@@ -7814,9 +7816,7 @@ def _chrono_burst(state, action):
             options=["Yes (shuffle energy for 160)", "No (deal 80)"],
         )
         resp = yield req
-        option_index = 0
-        if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-            option_index = resp.option_index
+        option_index = resp.selected_option if resp and resp.selected_option is not None else 0
         if option_index == 0:
             energy_cards_snapshot = list(player.active.energy_attached)
             player.active.energy_attached.clear()
@@ -8917,7 +8917,7 @@ def _brighten_and_burn(state, action):
         state.emit_event("attack_no_damage", attacker="Litwick",
                          attack_name="Brighten and Burn", reason="empty deck")
         return
-    top_card = player.deck[-1]
+    top_card = player.deck[0]
     state.emit_event("top_card_revealed", player=action.player_id,
                      card=top_card.card_name, attack="Brighten and Burn")
     req = ChoiceRequest(
@@ -8929,7 +8929,7 @@ def _brighten_and_burn(state, action):
     choice = (resp.selected_option if resp and hasattr(resp, "selected_option")
                and resp.selected_option else "No, leave it")
     if "yes" in choice.lower() or "discard" in choice.lower():
-        player.deck.pop()
+        player.deck.pop(0)
         top_card.zone = Zone.DISCARD
         player.discard.append(top_card)
         state.emit_event("card_discarded", player=action.player_id, card=top_card.card_name,
@@ -13444,9 +13444,7 @@ def _flashing_spear(state, action):
         options=[f"Discard {i}" for i in range(max_count + 1)],
     )
     resp = yield req
-    option_index = 0
-    if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-        option_index = resp.option_index
+    option_index = resp.selected_option if resp and resp.selected_option is not None else 0
     to_discard = min(option_index, max_count)
     if to_discard == 0:
         return
@@ -13608,7 +13606,7 @@ def _land_collapse(state, action):
     opp = state.get_opponent(action.player_id)
     opp_id = state.opponent_id(action.player_id)
     if opp.deck:
-        top = opp.deck.pop()
+        top = opp.deck.pop(0)
         top.zone = Zone.DISCARD
         opp.discard.append(top)
         state.emit_event("deck_discard", player=opp_id, card=top.card_name,
@@ -14120,9 +14118,7 @@ def _jungle_whip(state, action):
         options=["Yes (take bonus)", "No"],
     )
     resp = yield req
-    option_index = 0
-    if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-        option_index = resp.option_index
+    option_index = resp.selected_option if resp and resp.selected_option is not None else 0
     if option_index == 1:
         return
 
@@ -14199,7 +14195,7 @@ def _entangling_whip(state, action):
     for _ in range(3):
         if not player.deck:
             break
-        top = player.deck.pop()
+        top = player.deck.pop(0)
         top.zone = Zone.DISCARD
         player.discard.append(top)
         discarded += 1
@@ -15684,9 +15680,7 @@ def _reversing_storm(state, action):
         options=["Switch", "Keep Active"],
     )
     resp = yield req
-    option_index = 0
-    if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-        option_index = resp.option_index
+    option_index = resp.selected_option if resp and resp.selected_option is not None else 0
     if option_index == 1:
         return
     req_t = ChoiceRequest(
@@ -23689,7 +23683,7 @@ def _land_collapse_flag(state, action):
     actual = 0
     for _ in range(discards):
         if opp.deck:
-            top = opp.deck.pop()
+            top = opp.deck.pop(0)
             top.zone = Zone.DISCARD
             opp.discard.append(top)
             actual += 1
@@ -24300,9 +24294,7 @@ def _strafe_flag(state, action):
         options=["Switch", "Keep Active"],
     )
     resp = yield req
-    option_index = 0
-    if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-        option_index = resp.option_index
+    option_index = resp.selected_option if resp and resp.selected_option is not None else 0
     if option_index == 1:
         return
     req_target = ChoiceRequest(
@@ -26322,9 +26314,7 @@ def _tricky_steps_b4(state, action):
         options=["Move Energy", "Skip"],
     )
     resp_opt = yield req_opt
-    option_index = 0
-    if resp_opt and hasattr(resp_opt, "option_index") and resp_opt.option_index is not None:
-        option_index = resp_opt.option_index
+    option_index = resp_opt.selected_option if resp_opt and resp_opt.selected_option is not None else 0
     if option_index == 1:
         return
     req = ChoiceRequest(
@@ -26526,9 +26516,7 @@ def _upthrusting_horns_b4(state, action):
         options=["Put in hand", "Skip"],
     )
     resp = yield req
-    option_index = 0
-    if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-        option_index = resp.option_index
+    option_index = resp.selected_option if resp and resp.selected_option is not None else 0
     if option_index == 1:
         return
     returned = 0
@@ -26651,9 +26639,7 @@ def _memory_lock_b4(state, action):
             options=attack_names,
         )
         resp = yield req
-        option_index = 0
-        if resp and hasattr(resp, "option_index") and resp.option_index is not None:
-            option_index = min(resp.option_index, len(attack_names) - 1)
+        option_index = min(resp.selected_option if resp and resp.selected_option is not None else 0, len(attack_names) - 1)
         locked = attack_names[option_index]
     opp.active.torment_blocked_attack_name = locked
     state.emit_event("memory_lock", attacker=action.player_id, player=opp_id,
@@ -26755,9 +26741,7 @@ def _iron_shake_up_b4(state, action):
             options=["Move Energy", "Stop"],
         )
         resp_opt = yield req_opt
-        option_index = 0
-        if resp_opt and hasattr(resp_opt, "option_index") and resp_opt.option_index is not None:
-            option_index = resp_opt.option_index
+        option_index = resp_opt.selected_option if resp_opt and resp_opt.selected_option is not None else 0
         if option_index == 1:
             break
         req_src = ChoiceRequest(
@@ -27093,9 +27077,7 @@ def _opposing_winds_b5(state, action):
         options=["Return Energy", "Skip"],
     )
     resp_opt = yield req_opt
-    option_index = 0
-    if resp_opt and hasattr(resp_opt, "option_index") and resp_opt.option_index is not None:
-        option_index = resp_opt.option_index
+    option_index = resp_opt.selected_option if resp_opt and resp_opt.selected_option is not None else 0
     if option_index == 1:
         return
     count = min(2, len(opp.active.energy_attached))
@@ -27318,9 +27300,7 @@ def _return_charge_b5(state, action):
             options=["Attach", "Stop"],
         )
         resp_e = yield req_e
-        opt = 0
-        if resp_e and hasattr(resp_e, "option_index") and resp_e.option_index is not None:
-            opt = resp_e.option_index
+        opt = resp_e.selected_option if resp_e and resp_e.selected_option is not None else 0
         if opt == 1:
             break
         req_pick = ChoiceRequest(

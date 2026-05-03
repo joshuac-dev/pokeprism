@@ -312,13 +312,13 @@ async def _attach_energy(state: GameState, action: Action, get_player=None) -> G
         energy_card.card_def_id, state, action, get_player
     )
 
-    # Auto Heal (sv09-107 Magearna): while Active, whenever energy is attached to any Pokémon, heal 90
+    # Auto Heal (sv09-107 Magearna): while Active, whenever energy is attached to any Pokémon, heal 10 damage from that Pokémon
     from app.engine.effects.abilities import _in_play as _abl_in_play_ae2
     if (player.active and player.active.card_def_id == "sv09-107"
             and target.damage_counters > 0):
-        heal = min(target.damage_counters * 10, 90)
+        heal = 10
         target.current_hp = min(target.max_hp, target.current_hp + heal)
-        target.damage_counters -= heal // 10
+        target.damage_counters -= 1
         state.emit_event("auto_heal_triggered", player=action.player_id,
                          card=target.card_name, healed=heal)
 
