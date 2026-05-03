@@ -2,8 +2,6 @@ name: Nightly Copilot Card Effect Fixes
 
 "on":
   schedule:
-    # GitHub Actions cron is UTC.
-    # 08:07 UTC = 3:07 AM EST / 4:07 AM EDT.
     - cron: "7 8 * * *"
 
   workflow_dispatch:
@@ -22,7 +20,7 @@ name: Nightly Copilot Card Effect Fixes
         type: boolean
         default: false
       copilot_model:
-        description: "Optional Copilot coding agent model"
+        description: "Optional Copilot coding agent model. Leave blank for Copilot Auto."
         required: false
         default: ""
 
@@ -49,7 +47,7 @@ jobs:
           TARGET_FINDINGS: ${{ github.event_name == 'workflow_dispatch' && inputs.target_findings || '25' }}
           START_CURSOR_OVERRIDE: ${{ github.event_name == 'workflow_dispatch' && inputs.start_cursor_override || '' }}
           FORCE_NEW_ISSUE: ${{ github.event_name == 'workflow_dispatch' && inputs.force_new_issue || false }}
-          COPILOT_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.copilot_model || 'gpt-5.3-codex' }}
+          COPILOT_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.copilot_model || '' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: |
@@ -77,7 +75,11 @@ jobs:
 
           echo "Audit start cursor: $START_CURSOR"
           echo "Audit start cursor source: $START_CURSOR_SOURCE"
-          echo "Copilot model: $COPILOT_MODEL"
+          if [ -n "$COPILOT_MODEL" ]; then
+            echo "Copilot model override: $COPILOT_MODEL"
+          else
+            echo "Copilot model override: <blank; Copilot Auto>"
+          fi
 
           if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && { [ "$FORCE_NEW_ISSUE" = "true" ] || [ "$FORCE_NEW_ISSUE" = "True" ] || [ -n "$START_CURSOR_OVERRIDE" ]; }; then
             TITLE="${TITLE_BASE} - manual run ${GITHUB_RUN_NUMBER}"
@@ -86,12 +88,7 @@ jobs:
           fi
 
           if [ "$FORCE_NEW_ISSUE" != "true" ] && [ "$FORCE_NEW_ISSUE" != "True" ]; then
-            EXISTING="$(gh issue list \
-              --state open \
-              --search "${TITLE_BASE} in:title" \
-              --json number \
-              --jq '.[0].number // empty')"
-
+            EXISTING="$(gh issue list --state open --search "${TITLE_BASE} in:title" --json number --jq '.[0].number // empty')"
             if [ -n "$EXISTING" ]; then
               echo "Issue already exists for ${DATE_UTC}: #${EXISTING}"
               echo "Use workflow_dispatch with force_new_issue=true to create another run."
@@ -99,21 +96,10 @@ jobs:
             fi
           fi
 
-          gh label create card-effect-audit \
-            --description "Automated card effect implementation audit" \
-            --color 7057ff || true
-
-          gh label create card-effect-fix \
-            --description "Automated card effect implementation fix" \
-            --color 2da44e || true
-
-          gh label create copilot-agent-task \
-            --description "Task intended for GitHub Copilot coding agent" \
-            --color 0969da || true
-
-          gh label create automated \
-            --description "Created by automated workflow" \
-            --color cfd3d7 || true
+          gh label create card-effect-audit --description "Automated card effect implementation audit" --color 7057ff || true
+          gh label create card-effect-fix --description "Automated card effect implementation fix" --color 2da44e || true
+          gh label create copilot-agent-task --description "Task intended for GitHub Copilot coding agent" --color 0969da || true
+          gh label create automated --description "Created by automated workflow" --color cfd3d7 || true
 
           BODY_FILE="$(mktemp)"
 
@@ -237,49 +223,43 @@ jobs:
           Nightly DB-backed card effect implementation fixes - ${DATE_UTC}
           EOF
 
+          JQ_FILTER='
+            {
+              title: $title,
+              body: $body,
+              labels: ["card-effect-audit", "card-effect-fix", "copilot-agent-task", "automated"],
+              assignees: ["copilot-swe-agent[bot]"],
+              agent_assignment: {
+                target_repo: $repo,
+                base_branch: "main",
+                custom_instructions: (
+                  "Read docs/AUDIT_RULES.md and docs/AUDIT_STATE.md first. The Copilot setup workflow should provision Postgres on localhost:5433, run migrations, and seed cards via backend/scripts/seed_cards.py. " +
+                  "This is a DB-backed rotating implementation audit, not a card-list expansion task. " +
+                  "Use the database to determine cards in scope. Use TCGDex as the only source of truth for card text. " +
+                  "Start at this DB cursor: " + $cursor + ". Traverse the DB card list circularly: after the end, wrap to the beginning until target, full-cycle exhaustion, TCGDex block, DB block, or time budget. " +
+                  "Do not use CARD_EXPANSION_RULES.md, CARDLIST.md, or POKEMON_MASTER_LIST.md as audit candidate sources. " +
+                  "Do not run a discovery-only pass; fix and test issues card-by-card. " +
+                  "Target " + $target + " implemented fixes/documented engine gaps. " +
+                  "Update docs/AUDIT_STATE.md with the next DB cursor in the PR. " +
+                  "If TCGDex is unavailable, stop gracefully with BLOCKED_TCGDEX and do not use local fallback card data. " +
+                  "If DB access fails, inspect copilot-setup-steps.yml and repository DB config before reporting BLOCKED_DB_ACCESS. " +
+                  "If time budget warnings appear, stop auditing new cards, finish the current safe fix, test, PR, and include the next DB resume cursor."
+                ),
+                custom_agent: ""
+              }
+            }
+            | if ($model | length) > 0
+              then .agent_assignment.model = $model
+              else .
+              end
+          '
+
           ISSUE_JSON="$(
-            jq -n \
-              --arg title "$TITLE" \
-              --rawfile body "$BODY_FILE" \
-              --arg repo "$GH_REPO" \
-              --arg model "$COPILOT_MODEL" \
-              --arg target "$TARGET_FINDINGS" \
-              --arg cursor "$START_CURSOR" \
-              '{
-                title: $title,
-                body: $body,
-                labels: ["card-effect-audit", "card-effect-fix", "copilot-agent-task", "automated"],
-                assignees: ["copilot-swe-agent[bot]"],
-                agent_assignment: {
-                  target_repo: $repo,
-                  base_branch: "main",
-                  custom_instructions: (
-                    "Read docs/AUDIT_RULES.md and docs/AUDIT_STATE.md first. The Copilot setup workflow should provision Postgres on localhost:5433, run migrations, and seed cards via backend/scripts/seed_cards.py. " +
-                    "This is a DB-backed rotating implementation audit, not a card-list expansion task. " +
-                    "Use the database to determine cards in scope. Use TCGDex as the only source of truth for card text. " +
-                    "Start at this DB cursor: " + $cursor + ". Traverse the DB card list circularly: after the end, wrap to the beginning until target, full-cycle exhaustion, TCGDex block, DB block, or time budget. " +
-                    "Do not use CARD_EXPANSION_RULES.md, CARDLIST.md, or POKEMON_MASTER_LIST.md as audit candidate sources. " +
-                    "Do not run a discovery-only pass; fix and test issues card-by-card. " +
-                    "Target " + $target + " implemented fixes/documented engine gaps. " +
-                    "Update docs/AUDIT_STATE.md with the next DB cursor in the PR. " +
-                    "If TCGDex is unavailable, stop gracefully with BLOCKED_TCGDEX and do not use local fallback card data. " +
-                    "If DB access fails, inspect copilot-setup-steps.yml and repository DB config before reporting BLOCKED_DB_ACCESS. " +
-                    "If time budget warnings appear, stop auditing new cards, finish the current safe fix, test, PR, and include the next DB resume cursor."
-                  ),
-                  custom_agent: "",
-                  model: $model
-                }
-              }'
+            jq -n               --arg title "$TITLE"               --rawfile body "$BODY_FILE"               --arg repo "$GH_REPO"               --arg model "$COPILOT_MODEL"               --arg target "$TARGET_FINDINGS"               --arg cursor "$START_CURSOR"               "$JQ_FILTER"
           )"
 
           ISSUE_URL="$(
-            gh api \
-              --method POST \
-              -H "Accept: application/vnd.github+json" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              /repos/${GH_REPO}/issues \
-              --input - <<< "$ISSUE_JSON" \
-              --jq '.html_url'
+            gh api               --method POST               -H "Accept: application/vnd.github+json"               -H "X-GitHub-Api-Version: 2022-11-28"               /repos/${GH_REPO}/issues               --input - <<< "$ISSUE_JSON"               --jq '.html_url'
           )"
 
           echo "Created and assigned Copilot task: $ISSUE_URL"
