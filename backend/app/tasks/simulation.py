@@ -604,6 +604,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                                 "remove": m.get("card_removed"),
                                 "add": m.get("card_added"),
                                 "reasoning": m.get("reasoning"),
+                                "evidence": m.get("evidence", []),
                             }
                             for m in mutations
                         ]
@@ -615,6 +616,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                                 "remove": mut["remove"],
                                 "add": mut["add"],
                                 "reasoning": mut["reasoning"],
+                                "evidence": mut["evidence"],
                             })
                     except Exception as exc:
                         logger.warning(
@@ -959,43 +961,88 @@ async def _deck_text_to_card_defs(
 
 _TCGDEX_ID_RE = re.compile(r"^[a-z][a-z0-9.]*-[0-9]+[a-z]*$")
 
+_BASIC_ENERGY_NAMES: frozenset[str] = frozenset({
+    "Grass Energy", "Fire Energy", "Water Energy", "Lightning Energy",
+    "Psychic Energy", "Fighting Energy", "Darkness Energy", "Metal Energy",
+    "Dragon Energy", "Fairy Energy", "Colorless Energy",
+})
+
+
+def _validate_post_mutation_deck(deck: list) -> list[str]:
+    """Return legality errors for a post-mutation deck. Empty list means valid."""
+    errors: list[str] = []
+    if len(deck) != 60:
+        errors.append(f"Deck must be exactly 60 cards, got {len(deck)}")
+    name_counts: dict[str, int] = {}
+    for card in deck:
+        name_counts[card.name] = name_counts.get(card.name, 0) + 1
+    for name, count in name_counts.items():
+        if name not in _BASIC_ENERGY_NAMES and count > 4:
+            errors.append(f"Too many copies of '{name}': {count} (max 4)")
+    return errors
+
 
 def _apply_mutations(
     current_deck: list,
     current_deck_text: str,
     mutations: list[dict],
 ) -> tuple[list, str]:
-    """Apply analyst mutations to the in-memory deck and return updated (deck, deck_text)."""
-    import logging as _logging
-    from app.cards.models import CardDefinition
+    """Apply analyst mutations to the in-memory deck and return updated (deck, deck_text).
 
+    Each mutation must carry a ``card_added_def`` (a real CardDefinition from the
+    candidate pool).  Mutations with a missing or None def are skipped so that
+    placeholder cards never enter the live deck.  When the original deck is
+    exactly 60 cards the result is also validated for 60-card count and copy
+    limits; if validation fails the original deck is returned unchanged.
+    """
+    import logging as _logging
     _log = _logging.getLogger(__name__)
 
+    original_size = len(current_deck)
     new_deck = list(current_deck)
     for mutation in mutations:
         remove_id = mutation.get("card_removed")
         add_id = mutation.get("card_added")
         if not remove_id or not add_id:
             continue
-        # Reject any add_id that isn't a valid tcgdex_id pattern to prevent
-        # coach-generated placeholder strings from entering the database.
+        # Reject any add_id that isn't a valid tcgdex_id pattern
         if not _TCGDEX_ID_RE.match(add_id):
             _log.warning(
                 "Coach proposed invalid card_added '%s' — skipping mutation", add_id
             )
             continue
+        # Require a real card definition from the candidate pool; never create placeholders
+        new_card = mutation.get("card_added_def")
+        if new_card is None:
+            _log.warning(
+                "Coach proposed adding '%s' but no card definition is available "
+                "(not in candidate pool or DB) — skipping mutation",
+                add_id,
+            )
+            continue
+        removed = False
         for i, card in enumerate(new_deck):
             if card.tcgdex_id == remove_id:
                 new_deck.pop(i)
+                removed = True
                 break
-        parts = add_id.rsplit("-", 1)
-        new_card = CardDefinition(
-            tcgdex_id=add_id,
-            name=add_id,
-            set_abbrev=parts[0] if len(parts) == 2 else "",
-            set_number=parts[1] if len(parts) == 2 else "",
-        )
+        if not removed:
+            _log.warning(
+                "Coach proposed removing '%s' but card not found in deck — skipping mutation",
+                remove_id,
+            )
+            continue
         new_deck.append(new_card)
+
+    # Validate legality when the original was a full 60-card deck
+    if original_size == 60:
+        errors = _validate_post_mutation_deck(new_deck)
+        if errors:
+            _log.warning(
+                "Post-mutation deck failed legality (%s) — reverting to original deck.",
+                "; ".join(errors[:3]),
+            )
+            return current_deck, current_deck_text
 
     counts: dict[str, tuple[str, int]] = {}
     for card in new_deck:

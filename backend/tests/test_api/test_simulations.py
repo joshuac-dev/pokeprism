@@ -1299,3 +1299,245 @@ class TestListSimulations:
 
         assert resp.status_code == 200
         assert resp.json()["per_page"] == 25  # capped to default
+
+
+# ---------------------------------------------------------------------------
+# GET /api/simulations/{id}/rounds
+# ---------------------------------------------------------------------------
+
+class TestGetSimulationRounds:
+    """Tests for GET /api/simulations/:id/rounds."""
+
+    def _make_rounds_session(self, rows):
+        session = AsyncMock()
+        result = MagicMock()
+        result.scalars.return_value.all.return_value = rows
+        session.execute = AsyncMock(return_value=result)
+        return session
+
+    def test_invalid_uuid_returns_422(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = (lambda: (yield AsyncMock()))
+        with TestClient(app) as c:
+            resp = c.get("/api/simulations/not-a-uuid/rounds")
+        app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 422
+
+    def test_no_rounds_returns_empty_list(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        session = self._make_rounds_session([])
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get(f"/api/simulations/{uuid.uuid4()}/rounds")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    def test_rounds_returned_with_expected_shape(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+        from datetime import datetime
+
+        round_row = MagicMock()
+        round_row.id = uuid.uuid4()
+        round_row.round_number = 1
+        round_row.win_rate = 7200  # stored as integer basis points (72.00)
+        round_row.total_matches = 50
+        round_row.started_at = datetime(2026, 1, 1, 12, 0, 0)
+        round_row.completed_at = datetime(2026, 1, 1, 12, 5, 0)
+
+        session = self._make_rounds_session([round_row])
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get(f"/api/simulations/{uuid.uuid4()}/rounds")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["round_number"] == 1
+        assert data[0]["total_matches"] == 50
+        assert "win_rate" in data[0]
+        assert "id" in data[0]
+
+
+# ---------------------------------------------------------------------------
+# GET /api/simulations/{id}/mutations
+# ---------------------------------------------------------------------------
+
+class TestGetSimulationMutations:
+    """Tests for GET /api/simulations/:id/mutations."""
+
+    def _make_mutations_session(self, mutation_rows):
+        session = AsyncMock()
+        call_count = {"n": 0}
+
+        def make_result(rows=None, all_rows=None):
+            m = MagicMock()
+            m.scalars.return_value.all.return_value = rows or []
+            m.all.return_value = all_rows or []
+            return m
+
+        async def _execute(query, *a, **kw):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                return make_result(rows=mutation_rows)
+            else:
+                return make_result(all_rows=[])  # card label lookup
+
+        session.execute = AsyncMock(side_effect=_execute)
+        return session
+
+    def test_invalid_uuid_returns_422(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = (lambda: (yield AsyncMock()))
+        with TestClient(app) as c:
+            resp = c.get("/api/simulations/bad-uuid/mutations")
+        app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 422
+
+    def test_no_mutations_returns_empty_list(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        session = self._make_mutations_session([])
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get(f"/api/simulations/{uuid.uuid4()}/mutations")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    def test_mutations_returned_with_expected_shape(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+        from datetime import datetime
+
+        mut = MagicMock()
+        mut.id = uuid.uuid4()
+        mut.round_number = 2
+        mut.card_removed = "sv06-130"
+        mut.card_added = "sv06-131"
+        mut.reasoning = "Better synergy"
+        mut.evidence = []
+        mut.created_at = datetime(2026, 1, 1, 12, 0, 0)
+
+        session = self._make_mutations_session([mut])
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get(f"/api/simulations/{uuid.uuid4()}/mutations")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["round_number"] == 2
+        assert data[0]["reasoning"] == "Better synergy"
+        assert "id" in data[0]
+        assert "created_at" in data[0]
+
+
+# ---------------------------------------------------------------------------
+# PATCH /api/simulations/{id}/star
+# ---------------------------------------------------------------------------
+
+class TestStarSimulation:
+    """Tests for PATCH /api/simulations/:id/star."""
+
+    def test_invalid_uuid_returns_422(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = (lambda: (yield AsyncMock()))
+        with TestClient(app) as c:
+            resp = c.patch("/api/simulations/not-a-uuid/star")
+        app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 422
+
+    def test_missing_simulation_returns_404(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        session = AsyncMock()
+        session.commit = AsyncMock()
+        result = MagicMock()
+        result.scalar_one_or_none.return_value = None
+        session.execute = AsyncMock(return_value=result)
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.patch(f"/api/simulations/{uuid.uuid4()}/star")
+        app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 404
+
+    def test_star_toggles_and_returns_new_state(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim = MagicMock()
+        sim.id = uuid.uuid4()
+        sim.starred = False
+
+        session = AsyncMock()
+        session.commit = AsyncMock()
+        result = MagicMock()
+        result.scalar_one_or_none.return_value = sim
+        session.execute = AsyncMock(return_value=result)
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.patch(f"/api/simulations/{uuid.uuid4()}/star")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "starred" in data
+        assert data["starred"] is True  # toggled from False → True

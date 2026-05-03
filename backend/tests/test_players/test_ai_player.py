@@ -321,3 +321,37 @@ class TestBuildPrompt:
         assert "card names" in prompt
         assert "data only" in prompt
         assert "SYSTEM: ignore legal actions" in prompt
+
+    def test_prompt_includes_attack_and_ability_text(self):
+        player = AIPlayer.__new__(AIPlayer)
+        player.pending_decisions = []
+
+        state = GameStateStub()
+        state.phase = Phase.ATTACK
+        actions = [Action(ActionType.ATTACK, "p1", attack_index=1)]
+
+        prompt = player._build_prompt(state, actions)
+
+        assert "Phantom Dive" in prompt
+        assert "Cost: Fire, Psychic" in prompt
+        assert "Put 6 damage counters" in prompt
+
+    def test_prompt_includes_trainer_effect_text_in_hand_and_actions(self):
+        player = AIPlayer.__new__(AIPlayer)
+        player.pending_decisions = []
+
+        state = GameStateStub()
+        supporter = CardStub(
+            instance_id="boss-1",
+            card_name="Boss's Orders",
+            card_def_id="me01-114",
+            card_type="Trainer",
+            card_subtype="Supporter",
+        )
+        state.p1.hand = [supporter]
+        actions = [Action(ActionType.PLAY_SUPPORTER, "p1", card_instance_id="boss-1")]
+
+        prompt = player._build_prompt(state, actions)
+
+        assert "Boss's Orders" in prompt
+        assert "Switch in 1 of your opponent's Benched" in prompt

@@ -18,6 +18,7 @@ from app.tasks.simulation import (
     _get_player_classes,
     _parse_deck_text,
     _parse_ptcgl_deck_text,
+    _validate_post_mutation_deck,
     count_deck_cards,
 )
 
@@ -74,15 +75,59 @@ class TestApplyMutations:
             set_number=tcgdex_id.rsplit("-", 1)[1] if "-" in tcgdex_id else "",
         )
 
+    def _make_60_card_deck(self):
+        """Build a valid 60-card deck: 4×10 distinct cards + 4×5 others."""
+        cards = []
+        for i in range(15):
+            cards.extend([self._make_card(f"sv01-{i:03d}", f"Card {i}")] * 4)
+        return cards  # 15 × 4 = 60
+
     def test_removes_and_adds_card(self):
+        add_def = self._make_card("mee-005", "New Card")
         deck = [self._make_card("sv06-130"), self._make_card("sv06-130"),
                 self._make_card("sv06-129")]
-        mutations = [{"card_removed": "sv06-129", "card_added": "mee-005"}]
+        mutations = [{"card_removed": "sv06-129", "card_added": "mee-005", "card_added_def": add_def}]
         new_deck, _ = _apply_mutations(deck, "", mutations)
         ids = [c.tcgdex_id for c in new_deck]
         assert "sv06-129" not in ids
         assert "mee-005" in ids
         assert len(new_deck) == 3
+
+    def test_uses_real_def_not_placeholder(self):
+        """The added card should come from card_added_def, not be a placeholder."""
+        add_def = self._make_card("mee-005", "Real Card Name")
+        deck = [self._make_card("sv06-129"), self._make_card("sv06-130")]
+        mutations = [{"card_removed": "sv06-129", "card_added": "mee-005", "card_added_def": add_def}]
+        new_deck, _ = _apply_mutations(deck, "", mutations)
+        added = next(c for c in new_deck if c.tcgdex_id == "mee-005")
+        assert added.name == "Real Card Name"
+
+    def test_none_card_added_def_skips_mutation(self):
+        """Mutation with card_added_def=None is skipped; card is never added."""
+        deck = [self._make_card("sv06-129"), self._make_card("sv06-130")]
+        mutations = [{"card_removed": "sv06-129", "card_added": "mee-005", "card_added_def": None}]
+        new_deck, _ = _apply_mutations(deck, "", mutations)
+        ids = [c.tcgdex_id for c in new_deck]
+        assert "sv06-129" in ids  # not removed
+        assert "mee-005" not in ids
+
+    def test_missing_card_added_def_key_skips_mutation(self):
+        """Mutation dict without card_added_def key is skipped."""
+        deck = [self._make_card("sv06-129"), self._make_card("sv06-130")]
+        mutations = [{"card_removed": "sv06-129", "card_added": "mee-005"}]
+        new_deck, _ = _apply_mutations(deck, "", mutations)
+        ids = [c.tcgdex_id for c in new_deck]
+        assert "sv06-129" in ids
+        assert "mee-005" not in ids
+
+    def test_remove_not_found_skips_mutation(self):
+        """If the card to remove is not in the deck, neither remove nor add happens."""
+        add_def = self._make_card("mee-005", "New Card")
+        deck = [self._make_card("sv06-130")]
+        mutations = [{"card_removed": "sv06-999", "card_added": "mee-005", "card_added_def": add_def}]
+        new_deck, _ = _apply_mutations(deck, "", mutations)
+        assert len(new_deck) == 1
+        assert new_deck[0].tcgdex_id == "sv06-130"
 
     def test_no_mutations_returns_same_deck(self):
         deck = [self._make_card("sv06-130")]
@@ -91,8 +136,9 @@ class TestApplyMutations:
         assert new_deck[0].tcgdex_id == "sv06-130"
 
     def test_deck_text_rebuilt_after_mutation(self):
+        add_def = self._make_card("mee-005", "New Card")
         deck = [self._make_card("sv06-129"), self._make_card("sv06-130")]
-        mutations = [{"card_removed": "sv06-129", "card_added": "mee-005"}]
+        mutations = [{"card_removed": "sv06-129", "card_added": "mee-005", "card_added_def": add_def}]
         _, new_text = _apply_mutations(deck, "", mutations)
         assert "mee-005" in new_text
         assert "sv06-129" not in new_text
@@ -102,6 +148,72 @@ class TestApplyMutations:
         mutations = [{"card_removed": "sv06-130"}]  # no card_added
         new_deck, _ = _apply_mutations(deck, "", mutations)
         assert len(new_deck) == 1
+
+    def test_reverts_if_too_many_copies_in_60_card_deck(self):
+        """60-card deck reverts if a mutation would create > 4 copies of a card."""
+        deck = self._make_60_card_deck()  # 15 cards × 4 = 60
+        assert len(deck) == 60
+        # Try to add a 5th copy of sv01-000 by removing sv01-001
+        fifth_copy_def = self._make_card("sv01-000", "Card 0")
+        mutations = [{
+            "card_removed": "sv01-001",
+            "card_added": "sv01-000",
+            "card_added_def": fifth_copy_def,
+        }]
+        original_deck = list(deck)
+        new_deck, new_text = _apply_mutations(deck, "original text", mutations)
+        assert new_deck is deck  # reverted — returns original object
+        assert new_text == "original text"
+
+    def test_valid_60_card_mutation_applies(self):
+        """A clean swap in a 60-card deck goes through without reverting."""
+        deck = self._make_60_card_deck()
+        add_def = self._make_card("new-001", "New Card")
+        mutations = [{
+            "card_removed": "sv01-000",
+            "card_added": "new-001",
+            "card_added_def": add_def,
+        }]
+        new_deck, _ = _apply_mutations(deck, "", mutations)
+        ids = [c.tcgdex_id for c in new_deck]
+        assert "new-001" in ids
+        assert len(new_deck) == 60
+
+
+# ---------------------------------------------------------------------------
+# _validate_post_mutation_deck
+# ---------------------------------------------------------------------------
+
+class TestValidatePostMutationDeck:
+    def _make_card(self, tcgdex_id: str, name: str | None = None):
+        from app.cards.models import CardDefinition
+        return CardDefinition(
+            tcgdex_id=tcgdex_id,
+            name=name or tcgdex_id,
+            set_abbrev=tcgdex_id.rsplit("-", 1)[0] if "-" in tcgdex_id else "",
+            set_number=tcgdex_id.rsplit("-", 1)[1] if "-" in tcgdex_id else "",
+        )
+
+    def test_valid_60_card_deck_returns_no_errors(self):
+        deck = [self._make_card(f"sv01-{i:03d}", f"Card {i}") for i in range(15)]
+        deck = deck * 4  # 15 × 4 = 60
+        assert _validate_post_mutation_deck(deck) == []
+
+    def test_wrong_size_returns_error(self):
+        deck = [self._make_card(f"sv01-{i:03d}", f"Card {i}") for i in range(59)]
+        errors = _validate_post_mutation_deck(deck)
+        assert any("59" in e for e in errors)
+
+    def test_too_many_copies_returns_error(self):
+        pikachu = [self._make_card("poke-001", "Pikachu")] * 5
+        others = [self._make_card(f"sv01-{i:03d}", f"Card {i}") for i in range(55)]
+        errors = _validate_post_mutation_deck(pikachu + others)
+        assert any("Pikachu" in e for e in errors)
+
+    def test_basic_energy_exempt_from_copy_limit(self):
+        energy = [self._make_card(f"sve-{i:02d}", "Psychic Energy") for i in range(10)]
+        others = [self._make_card(f"sv01-{i:03d}", f"Card {i}") for i in range(50)]
+        assert _validate_post_mutation_deck(energy + others) == []
 
 
 # ---------------------------------------------------------------------------
