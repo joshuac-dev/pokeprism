@@ -34,7 +34,7 @@ Re-check them before making claims in user-facing docs.
 | Local matches table | 6,900 rows from the same DB snapshot |
 | Local `card_performance` table | 270 rows from the same DB snapshot |
 | Running simulations | 0 from the same DB snapshot |
-| Backend test baseline | Latest full documented run after Cresselia Swelling Light engine fix: **454 passed** on 2026-05-04. Run with `cd backend && python3 -m pytest tests/ -x -q`. Historical prior baseline: 453 passed after checkpoint deck-ID fix. |
+| Backend test baseline | Latest full documented run after TR Venture Bomb fix: **456 passed** on 2026-05-04. Run with `cd backend && python3 -m pytest tests/ -x -q`. Historical prior baseline: 454 passed after Swelling Light fix. |
 | Frontend unit tests | 4 passed on 2026-05-04 with `cd frontend && npm test -- --run --reporter=dot` |
 | Playwright E2E inventory | 14 tests listed on 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed on 2026-05-04 with `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
@@ -177,7 +177,7 @@ Validation:
 - `python3 -m pytest backend/tests/test_tasks -q` — 63 passed.
 - `python3 -m pytest backend/tests/test_memory -q` — 20 passed.
 - `python3 -m pytest backend/tests/test_api -q` — 79 passed.
-- `cd backend && python3 -m pytest tests/ -x -q` — 454 passed (after Swelling Light fix).
+- `cd backend && python3 -m pytest tests/ -x -q` — 456 passed (after Venture Bomb fix).
 - `cd backend && alembic heads` — `5b7e9c2d4a11 (head)`.
 - Live Docker/Celery replay validation passed after the deck-ID fix: a
   completed disposable H/H simulation was re-enqueued, checkpoint rows skipped,
@@ -190,6 +190,23 @@ Validation:
   Checkpointing was not the cause. After worker rebuild/deploy, re-enqueueing
   `2bc45a4e` is safe: completed opponent checkpoints will skip, the in-progress
   Mega Heracross ex Deck checkpoint (0 matches persisted) will rerun from scratch.
+- Live simulation `005109f8-496f-4193-8df3-faee2cdcc981` diagnosed and fixed:
+  failed with `'str' object has no attribute 'current_hp'` in the TR Venture Bomb
+  sv10-179 handler (`_tr_venture_bomb_b19`). Both `check_ko` calls had transposed
+  `(state, player_id_string, card_instance)` arguments; correct order is
+  `(state, card_instance, player_id_string)`. Checkpointing was not the cause.
+  7 completed opponent checkpoints are clean; Amoonguss ex Deck checkpoint is
+  running/0-persisted. After worker rebuild/deploy, re-enqueueing `005109f8` is
+  safe: completed opponents skip, Amoonguss reruns from scratch, N's Zoroark and
+  Veluza ex Decks run normally.
+- Live simulation `40612eb1-38b4-4e62-b0d9-58b7cf4b031e` failed with a DIFFERENT
+  bug: `'EnergyType' object has no attribute 'strip'` in `transitions.py`
+  `_attach_energy`. `energy_card.energy_provides` contained `EnergyType` enum
+  objects instead of strings, causing `EnergyType.from_str()` to fail. Root cause
+  is a separate card handler that populates `energy_provides` with enum values.
+  This simulation is NOT safe to re-enqueue until that bug is diagnosed and fixed.
+  Checkpoint state: Greninja, Iron Crown, Torterra complete (100 each); Lickilicky
+  running/0-persisted.
 
 ## Current Known Issues / Gaps
 

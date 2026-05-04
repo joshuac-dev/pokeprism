@@ -126,6 +126,15 @@ evidence-based history, not the live status file.
     unexpected keyword argument 'energy_type'`. Fixed to call
     `EnergyAttachment(...)`. Regression test added to `test_audit_fixes.py`
     (#L1). Full backend suite: 454 passed.
+  - Follow-up fix 3: `_tr_venture_bomb_b19` (sv10-179 TR Venture Bomb) called
+    `check_ko` with transposed arguments `(state, player_id_string, card_instance)`
+    in both coin branches; correct signature is `(state, card_instance,
+    player_id_string)`. Caused live simulation `005109f8` to fail with
+    `'str' object has no attribute 'current_hp'`. Two regression tests added to
+    `test_audit_fixes.py` (#L2, both heads and tails branches). Full backend suite:
+    456 passed. Live simulation `40612eb1` failed with a separate unrelated bug
+    (`'EnergyType' object has no attribute 'strip'` in `_attach_energy`) —
+    pending separate diagnosis and fix.
   - Confidence: High.
 
 ### Added / Fixed (2026-05-04 Session 2 — Card Handlers + Simulation Queue)

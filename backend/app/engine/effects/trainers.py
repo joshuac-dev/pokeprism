@@ -3594,12 +3594,12 @@ def _tr_venture_bomb_b19(state: GameState, action):
         if target:
             target.current_hp = max(0, target.current_hp - 20)
             target.damage_counters += 2
-            check_ko(state, opp_id, target)
+            check_ko(state, target, opp_id)
     else:
         if player.active:
             player.active.current_hp = max(0, player.active.current_hp - 20)
             player.active.damage_counters += 2
-            check_ko(state, player_id, player.active)
+            check_ko(state, player.active, player_id)
 
 
 def _tm_machine_b19(state: GameState, action):

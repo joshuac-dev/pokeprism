@@ -28,6 +28,7 @@ Session 2 fixes (Batch A):
   #A9  : _avenging_edge_flag → _avenging_edge (100 + 60 if ko_taken_last_turn)
 Live simulation fix:
   #L1  : _ET_ATTACH (me02-039 Cresselia Swelling Light) — called EnergyType enum instead of EnergyAttachment
+  #L2  : _tr_venture_bomb_b19 (sv10-179 TR Venture Bomb) — check_ko called with transposed (player_id, target) args
 """
 from __future__ import annotations
 
@@ -2327,3 +2328,72 @@ def test_et_attach_returns_energy_attachment_not_enum():
     assert result.energy_type == EnergyType.COLORLESS
     assert result.source_card_id == "test-swelling-light-energy"
     assert result.card_def_id == "basic-colorless-energy"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Live fix #L2: _tr_venture_bomb_b19 — TR Venture Bomb check_ko arg order
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_venture_bomb_tails_does_not_raise(monkeypatch):
+    """Regression #L2 tails: Venture Bomb tails must call check_ko(state, target, player_id).
+
+    Simulation 005109f8 failed with 'str' object has no attribute 'current_hp'
+    because check_ko was called as check_ko(state, player_id, player.active),
+    passing the string player_id as the target CardInstance argument.
+    """
+    import random as _random
+    from app.engine.effects.trainers import _tr_venture_bomb_b19
+
+    monkeypatch.setattr(_random, "choice", lambda _seq: False)  # always tails
+
+    p1_cdef = _make_card("tst-vb-p1", "VB Player Active", hp=100)
+    p2_cdef = _make_card("tst-vb-p2", "VB Opp Active", hp=100)
+    card_registry.register(p1_cdef)
+    card_registry.register(p2_cdef)
+
+    p1_active = _make_instance(p1_cdef, hp=100)
+    p2_active = _make_instance(p2_cdef, hp=100)
+    state = _make_state(p1_active=p1_active, p2_active=p2_active)
+
+    action = _make_action(player_id="p1")
+    gen = _tr_venture_bomb_b19(state, action)
+    try:
+        next(gen)
+    except StopIteration:
+        pass
+
+    assert p1_active.current_hp == 80
+    assert p1_active.damage_counters == 2
+
+
+def test_venture_bomb_heads_does_not_raise(monkeypatch):
+    """Regression #L2 heads: Venture Bomb heads must call check_ko(state, target, opp_id).
+
+    The heads branch had the same argument-order bug: check_ko(state, opp_id, target).
+    """
+    import random as _random
+    from app.engine.effects.trainers import _tr_venture_bomb_b19
+
+    monkeypatch.setattr(_random, "choice", lambda _seq: True)  # always heads
+
+    p1_cdef = _make_card("tst-vb-h-p1", "VB Heads Player", hp=100)
+    p2_cdef = _make_card("tst-vb-h-p2", "VB Heads Opp", hp=100)
+    card_registry.register(p1_cdef)
+    card_registry.register(p2_cdef)
+
+    p1_active = _make_instance(p1_cdef, hp=100)
+    p2_active = _make_instance(p2_cdef, hp=100)
+    state = _make_state(p1_active=p1_active, p2_active=p2_active)
+
+    action = _make_action(player_id="p1")
+    gen = _tr_venture_bomb_b19(state, action)
+    # First next() yields the ChoiceRequest; send None to default to opp.active
+    req = next(gen)
+    assert req is not None
+    try:
+        gen.send(None)
+    except StopIteration:
+        pass
+
+    assert p2_active.current_hp == 80
+    assert p2_active.damage_counters == 2
