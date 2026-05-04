@@ -1,313 +1,864 @@
 # PokéPrism Changelog
 
-## Phase 12 — Card Pool Expansion: Final Completion (2026-04-30)
+This changelog reconstructs the repository's development history from project
+documentation, Git history, current implementation, tests, workflows, and
+available GitHub PR/issue metadata. It is intended to explain what changed, why
+it changed, what evidence supports the reconstruction, and where the historical
+record remains uncertain.
+
+## Methodology
+
+Repository history has no release tags, so entries are grouped by documented
+project phase, date range, and coherent clusters of commits/PRs. Existing
+changelog entries were preserved by folding their useful details into the
+phase-based history below, then adding missing motivation, evidence, confidence
+labels, current-state notes, and uncertainty tracking.
+
+Confidence labels mean:
+
+- High: directly supported by code, tests, migrations, project/status docs, PRs,
+  issues, or explicit commit history.
+- Medium: supported by implementation and surrounding context, but motivation,
+  impact, or exact scope is partly inferred.
+- Low: material historical detail exists but evidence is incomplete,
+  contradictory, or unavailable. Low-confidence items are generally listed in
+  the uncertainty log rather than as completed history.
+
+Plans and roadmaps are treated as evidence of intent only. A planned item is
+listed as completed only when current code, tests, migrations, workflows, or
+merged PR history support that it actually landed.
+
+## Current / Unreleased
 
 ### Summary
-Completed the 103-card audit: identified 103 cards missing from the DB across MEG (me01), PFL (me02), MEP (mep), and DRI (sv10) sets. Fetched from TCGDex and inserted 93 cards successfully. Removed 10 non-existent MEP cards from the master list (MEP 17, 29–31, 64–70). Implemented the final 5 missing engine handlers, bringing coverage to **100% (0 missing handlers, 2001 real cards)**. Added new `energy_attach_punish_counters` flag to `CardInstance` for Pachirisu's Electrified Incisors mechanic.
 
-### Key Files Modified
-- `backend/app/engine/state.py` — `energy_attach_punish_counters: int = 0` added to `CardInstance`
-- `backend/app/engine/transitions.py` — Electrified Incisors hook in `_attach_energy`
-- `backend/app/engine/runner.py` — `energy_attach_punish_counters` reset in between-turns cleanup
-- `backend/app/engine/effects/attacks.py` — `_supernatural_shapeshifter`, `_electrified_incisors`; 4 new registrations
-- `backend/app/engine/effects/abilities.py` — `register_passive_ability("me01-028", "Explosiveness")`
-- `docs/POKEMON_MASTER_LIST.md` — 10 non-existent MEP entries removed; MEP 29 → MEP 23 corrected
+As of `docs/STATUS.md` last updated on 2026-05-04, the project is in
+**DB-Backed Card Audit - Ongoing Handler Implementation**. Phase 13 and the
+earlier hardening sweep are documented as complete, but current work continues
+to close card-specific implementation gaps found by database-backed audits and
+runtime simulation checks.
 
-### Test Results
-- **215 tests pass**
-- Coverage: **2001 cards, 0 missing handlers, 100%**
+### Added
 
----
+- Added the latest handler batch for DB-backed card audit work, including Neo
+  Upper Energy and the documented Batch 1/Batch 2 handlers such as Arven,
+  Bravery Charm, Earthen Vessel, Iron Hands ex, Mew ex, Miraidon ex, Nest Ball,
+  Super Rod, Armarouge, Chi-Yu, Defiance Band, Electric Generator, Iono, Iron
+  Bundle, Jet Energy, Pal Pad, Professor's Research, and Squawkabilly ex.
+  - Why: The current audit phase is closing DB-populated cards whose live
+    TCGDex text requires explicit handlers before reliable simulation and
+    deckbuilding workflows can depend on them.
+  - Evidence: `docs/STATUS.md`; commit `6ba3bba`; current files under
+    `backend/app/engine/effects/`; TCGDex fixtures under
+    `backend/app/data/tcgdex_cache/cards/`.
+  - Confidence: High.
 
+- Added runtime notes for card implementation deployment, especially the need
+  to rebuild the `celery-worker` image after effect handler changes.
+  - Why: During the 2026-05-04 session, runtime testing showed the worker did
+    not mount source code live, so simulations could keep using stale handlers
+    unless the image was rebuilt.
+  - Evidence: `docs/STATUS.md`; Docker service structure in
+    `docker-compose.yml`.
+  - Confidence: High.
 
+### Fixed
 
-### Summary
-Full production hardening and polish across coach intelligence, the simulation engine, and the live console UI. The Coach was destroying decks by removing primary attacker lines (e.g., stripping all Dreepy/Drakloak from a Dragapult ex deck, causing continuous win rate decline). Three coach intelligence fixes were implemented: tiered evolution line protection, win rate regression detection with automatic deck rollback, and full performance history in the Coach prompt. Six UI/console fixes brought the console from showing generic event type names to rich formatted lines with card names, damage, and win conditions. Earlier in the phase (Groups A–G), backend hardening, copy-attack engine, Decision Map, Docker Compose, light mode polish, and Makefile infrastructure were all implemented.
+- Fixed the Neo Upper Energy runtime field mismatch by using
+  `EnergyAttachment.source_card_id` rather than a nonexistent `card_id` field.
+  - Why: The handler crashed during live validation before the field mismatch
+    was corrected.
+  - Evidence: `docs/STATUS.md`; `backend/app/engine/state.py`; current effect
+    handler code.
+  - Confidence: High.
 
-### Coach Intelligence Fixes (1A/1B/1C)
+### Known Issues
 
-**Fix 1A — Evolution Line Tiered Protection**
-- `identify_primary_line()` queries `match_events` for the top damage-dealing/prize-taking/active-turns Pokémon
-- PRIMARY line: hard-protected — Coach cannot remove any card in the attacker's evolution chain
-- SUPPORT lines: swappable only as complete lines (no orphaned pre-evolutions)
-- Tier list injected into Coach prompt each round: `PRIMARY (protected): Dreepy → Drakloak → Dragapult ex`
+- DeckBuilder Phase 3 simulation-backed preference weighting remains deferred.
+  Current deck construction is deterministic and conservative rather than
+  memory-optimized.
+  - Evidence: `docs/STATUS.md`; `backend/app/coach/deck_builder.py`.
+  - Confidence: High.
 
-**Fix 1B — Win Rate Regression Detection**
-- Consecutive regression counter: warn on 1st regression → auto-revert deck on 2nd → skip Coach entirely on 3rd
-- `best_deck_snapshot` JSONB column added to `simulations` table (Alembic migration `c3e91f7a5b22`)
-- `deck_reverted` and `coach_skipped` lifecycle events published to WebSocket and displayed in console
+- The AI stack remains intentionally Ollama-only after the hardening proposal's
+  provider abstraction stage was rejected by product decision.
+  - Evidence: `docs/STATUS.md`;
+    `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md`.
+  - Confidence: High.
 
-**Fix 1C — Coach Prompt Improvement**
-- Full win rate history across all previous rounds in each prompt
-- Regression warning with explicit stability instruction ("prioritize stability, make fewer changes")
-- Tiered card list (PRIMARY / SUPPORT / UNPROTECTED) in every prompt
+- Celery workers still have no dedicated healthcheck, and handler edits require
+  rebuild/restart discipline.
+  - Evidence: `docs/STATUS.md`; `docker-compose.yml`.
+  - Confidence: High.
 
-### UI/Console Fixes (2A–3B)
+- Mystery Garden and Watchtower are documented as `_noop` pending specific
+  bench/stadium support; AI decision quality gaps remain for reasoning-to-action
+  mismatch, Fairy Zone misunderstanding, and greedy KO override behavior.
+  - Evidence: `docs/STATUS.md`.
+  - Confidence: High.
 
-**Fix 2A — Rounds to Confirm**: Field existed in code; stale Docker container rebuilt and redeployed  
-**Fix 2B — Console card names**: All event types now show card names:
-- `T9 [p2] ⚔ Phantom Dive (Dragapult ex) → 120 dmg` (attack_damage)
-- `T13 [p2] ★ KO — Dwebble (by Dragapult ex)` (ko)
-- `T12 [p1] ↑ Dreepy → Drakloak` (evolve)
-- `T4 [p1] ▷ Iono` (play_supporter)
-- `T4 [p1] ↔ Retreat Dreepy → Dragapult ex` (retreat)
-- New handlers: attack_no_damage, play_stadium, play_tool, switch_active, deck_reverted, coach_skipped
-- attack_declared suppressed (redundant with attack_damage); noise events skipped
+## Historical Changelog
 
-**Fix 2C — Win condition**: `═══ Match 3 complete — P2 wins (prizes) ═══`  
-**Fix 2D — Clickable events**: EventDetail overlay on click; shows event data key/values + AI reasoning for ai_h/ai_ai modes  
-**Fix 2E — Deck naming**: Gemma4 needs ~60s for generation; timeout raised 30s → 120s  
-**Fix 3A/3B — Match separator and retreat display**: Incorporated in 2C and 2B changes respectively  
-
-### Backend Changes (Groups A–G, earlier in phase)
-- **Group A**: DB pool pre-ping/recycle, Ollama retry (3× exponential backoff), `/health` endpoint (7 service checks), WebSocket auto-reconnect, Celery Beat nightly schedule
-- **Group B**: Copy-attack engine — `_night_joker` (N's Zoroark ex) and `_gemstone_mimicry` (TR Mimikyu) with depth-limit-1 cycle guard
-- **Group C**: `/api/simulations/{id}/decision-graph` endpoint; DecisionMap.tsx D3 two-line labels with action-type colors
-- **Group D**: `pgvector>=0.3` in pyproject.toml; production-safe Dockerfile CMD; nginx lazy upstream resolution
-- **Group E**: Light mode polish across all pages and dashboard tiles
-- **Group F**: Makefile targets; `.dockerignore` files
-- **Group G (secondary issues A–E)**: PTCGL deck text parsing (3 format variants), energy type mapping, deck_locked enforcement, target_consecutive_rounds early-stop, PTCGL test coverage
-
-### Key Files Created
-- `backend/alembic/versions/c3e91f7a5b22_add_best_deck_snapshot.py`
-- `frontend/src/components/simulation/EventDetail.tsx`
-
-### Key Files Modified
-- `backend/app/coach/analyst.py` — tiered protection, regression detection, performance history
-- `backend/app/coach/prompts.py` — `{performance_history}` variable, tier enforcement instructions
-- `backend/app/tasks/simulation.py` — regression state machine, deck_reverted/coach_skipped events
-- `backend/app/db/models.py` — `best_deck_snapshot` JSONB column on Simulation
-- `backend/app/api/simulations.py` — Gemma timeout 120s, decisions endpoint query filters
-- `frontend/src/components/simulation/LiveConsole.tsx` — full rewrite of fmt() with all event handlers
-- `frontend/src/pages/SimulationLive.tsx` — EventDetail wiring
-- `backend/tests/test_coach/test_analyst.py` — full rewrite with 1A/1B/1C coverage
-- `backend/tests/test_tasks/test_simulation_task.py` — TestCheckRegression class
-
-### Test Results
-- **215 tests pass** (was 184 entering Phase 13; +31 new tests for coach intelligence)
-- `npm run build`: 0 TypeScript errors
-
----
-
-## Phase 10 — Frontend: Reporting Dashboard (2026-04-28)
+## DB-Backed Audit and Hardening Sweep - 2026-05-01 to 2026-05-03
 
 ### Summary
-Built the full post-simulation reporting dashboard at `/dashboard/:id`. 12 tiles covering
-summary stats, win rate visualisations, per-opponent breakdowns, prize race curves, AI
-decision graph, card swap heatmap, and mutation diff log. Added two backend endpoints to
-serve match-level data (prize_progression column is always NULL — prize data derived from
-match_events instead). QA found and fixed three bugs: prize race flat lines (deck-out sims
-have no KO events), Decision Map gating on unreliable game_mode field, and raw tcgdex IDs
-in mutation/swap tiles.
 
-### Key Files Created
-- `frontend/src/types/dashboard.ts`
-- `frontend/src/pages/Dashboard.tsx`
-- `frontend/src/components/dashboard/SummaryCards.tsx`
-- `frontend/src/components/dashboard/WinRateDonut.tsx`
-- `frontend/src/components/dashboard/WinRateProgress.tsx`
-- `frontend/src/components/dashboard/OpponentWinRateBar.tsx`
-- `frontend/src/components/dashboard/MatchupMatrix.tsx`
-- `frontend/src/components/dashboard/WinRateDistribution.tsx`
-- `frontend/src/components/dashboard/PrizeRaceGraph.tsx`
-- `frontend/src/components/dashboard/DecisionMap.tsx` (D3 force graph)
-- `frontend/src/components/dashboard/CardSwapHeatMap.tsx`
-- `frontend/src/components/dashboard/MutationDiffLog.tsx` (TanStack Table)
+This period shifted card validation from expansion-list tracking to a
+database-backed audit loop, completed the AI/deckbuilder hardening sweep, and
+fixed many card implementation defects discovered by comparing DB cards against
+live TCGDex text.
 
-### Key Files Modified
-- `backend/app/api/simulations.py` — GET /{id}/matches, GET /{id}/prize-race, card name resolution in mutations endpoint
-- `backend/tests/test_api/test_simulations.py` — +10 tests
-- `frontend/src/api/simulations.ts` — 4 new API functions
-- `frontend/src/pages/SimulationLive.tsx` — "View Report" button
-- `frontend/package.json` — recharts, d3, @types/d3, @tanstack/react-table
+### Added
 
-### Test Results
-- **153 tests pass** (was 145; +8 backend: TestGetSimulationMatches×4, TestGetSimulationPrizeRace×4)
-- `npm run build`: 0 TypeScript errors
+- Added the DB-backed card audit process, replacing the earlier expansion-list
+  audit scope with a rotating cursor over cards already present in the
+  database.
+  - Why: `docs/AUDIT_RULES.md` explicitly says the DB is the audit scope and
+    TCGDex is the source of truth for card text; older project lists are not
+    authoritative for this audit.
+  - Evidence: `docs/AUDIT_RULES.md`; `docs/AUDIT_STATE.md`;
+    `.github/workflows/nightly-card-effect-audit.yml`; issues #18, #29, #31,
+    #33; PRs #19, #30, #32, #34; commits `c798f18`, `6f4ab0e`.
+  - Confidence: High.
 
----
+- Added GitHub/Copilot setup support for DB-backed audit runs, including service
+  setup, migrations, card seeding, and database count verification.
+  - Why: Scheduled audit issues needed a reproducible environment with
+    PostgreSQL, Redis, and seeded card data before an agent could compare DB
+    entries to TCGDex and code handlers.
+  - Evidence: `.github/workflows/copilot-setup-steps.yml`;
+    `.github/workflows/nightly-card-effect-audit.yml`; issues #29, #31, #33.
+  - Confidence: High.
 
-## Phase 9 — Frontend: Live Console & Match Viewer (2026-04-29)
+- Added hardening around AI prompts, coach evidence, mutation validation, and
+  forced action handling.
+  - Why: The AI coach hardening proposal identified prompt injection,
+    ungrounded output, mutation legality, and structured-output fragility as
+    production-readiness risks.
+  - Evidence: `docs/HARDENING_SWEEP_REPORT.md`;
+    `docs/proposals/AI_COACH_HARDENING_PROPOSAL.md`;
+    `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md`; PR #28; commit
+    `5921ac0`; tests under `backend/tests/test_coach/` and
+    `backend/tests/test_players/`.
+  - Confidence: High.
 
-### Summary
-Built the full SimulationLive page with xterm.js console for event streaming and replay.
-Added three backend endpoints (buffered event history, AI decision log, cancel). Implemented
-event normalisation to bridge the WS (`event` field) vs REST (`event_type` field) shape
-mismatch. H/H simulations (which complete before the browser subscribes) now load their full
-event history on page mount via GET /events. Console supports "Load earlier events" for
-large runs (>500 events). Cancel sets DB status; the Celery task polls and stops at the
-next round boundary.
+- Added deck mutation evidence persistence.
+  - Why: Coach recommendations needed provenance so added/removed card
+    suggestions could be tied to match evidence instead of unsupported model
+    assertions.
+  - Evidence: migration
+    `backend/alembic/versions/d6b7f3c91a2e_add_deck_mutation_evidence.py`;
+    `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md`.
+  - Confidence: High.
 
-### Key Files Created
-- `backend/` — GET /api/simulations/:id/events, GET /decisions, POST /cancel (in simulations.py)
-- `frontend/src/types/simulation.ts` — shared TS types + `normaliseEvent()`
-- `frontend/src/components/simulation/LiveConsole.tsx` — xterm.js terminal with color-coded events
-- `frontend/src/components/simulation/SimulationStatus.tsx` — status + round progress + cancel button
-- `frontend/src/components/simulation/DeckChangesTile.tsx` — deck swap history with win-rate deltas
-- `frontend/src/components/simulation/DecisionDetail.tsx` — AI decisions slide-over panel
+### Changed
 
-### Key Files Modified
-- `backend/app/api/simulations.py` — added 3 endpoints, redis/Decision/MatchEvent imports
-- `backend/app/tasks/simulation.py` — cancellation check at start of each round
-- `frontend/src/api/simulations.ts` — getSimulationEvents, getSimulationDecisions, cancelSimulation
-- `frontend/src/stores/simulationStore.ts` — Phase 9 state (prependEvents, mutations, etc.)
-- `frontend/src/hooks/useSimulation.ts` — init fetch + loadEarlierEvents + WS mutation tracking
-- `frontend/src/pages/SimulationLive.tsx` — full page (replaces Phase 8 stub)
+- Changed AI provider scope to remain Ollama-only instead of adding a generic
+  provider abstraction.
+  - Why: The hardening assessment records Stage 2 as intentionally rejected by
+    product decision because the project is self-hosted and local-model first.
+  - Evidence: `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md`;
+    `docs/STATUS.md`.
+  - Confidence: High.
 
-### Test Results
-- **145 tests pass** (was 135; +10: TestGetSimulationEvents×4, TestGetSimulationDecisions×2, TestCancelSimulation×4)
-- `npm run build`: 0 TypeScript errors, 1627 modules
+- Reframed audit documentation around TCGDex preflight, cursor discipline,
+  handler requirements, atomic per-card fixes, and engine-gap documentation.
+  - Why: Earlier card-expansion rules were too broad for ongoing DB-backed
+    correctness audits; the new audit loop needed to prevent stale-list drift
+    and unverified handler claims.
+  - Evidence: `docs/AUDIT_RULES.md`; `docs/AUDIT_STATE.md`;
+    `docs/CARD_EXPANSION_RULES.md`.
+  - Confidence: High.
 
----
+### Fixed
 
-## Phase 8 — Frontend: Core Layout & Simulation Setup (2026-04-27/29)
+- Fixed broad card implementation bugs found by DB-backed audits, including
+  duplicate function shadowing, wrong effect targets, optional effects treated
+  as mandatory, top-of-deck ordering bugs, stale active Pokemon references,
+  malformed selected-option access, and missing special handlers.
+  - Why: Audit PRs compared live TCGDex card text against registered handlers
+    and current code behavior, surfacing defects that could silently corrupt
+    simulation outcomes.
+  - Evidence: PRs #5, #7, #9, #11, #13, #15, #19, #30, #32;
+    `backend/tests/test_engine/test_audit_fixes.py`; current effect handlers
+    under `backend/app/engine/effects/`.
+  - Confidence: High.
 
-### Summary
-Built the complete React/Vite/TypeScript frontend from scratch. Dark-mode-first design
-(slate-950 palette, electric blue accent). Full routing, layout components, and Simulation
-Setup page with deck paste/parse, opponent deck management, excluded-cards chip UI, and
-POST /api/simulations submit flow. Backend cards API replaced 501 stub with real pg_trgm
-search. Three bugs found and fixed during visual QA: excluded-cards dropdown wiring,
-500 on form submit (deck parser format mismatch), and dark/light toggle not applying to `<html>`.
+- Fixed or implemented specific audited effects such as Abra Teleporter,
+  Cinnabar Lure, Crimson Blaster, Cursed Edge, Guarded Rolling, Mischievous
+  Painting, Surf Back, Time Manipulation, Upthrusting Horns, Auto Heal, Mammoth
+  Hauler, Hop's Choice Band, Postwick, Snack Seek, and Wide Wall.
+  - Why: These cards were called out in DB-backed audit PRs as missing,
+    partially implemented, or behaviorally incorrect relative to TCGDex text.
+  - Evidence: PRs #19, #30, #32; current effect handlers and regression tests.
+  - Confidence: High.
 
-### Key Files Created
-- `frontend/` — all 36 source files (config, components, pages, stores, hooks, utils)
-- `backend/app/api/cards.py` — pg_trgm search, paginated list, detail endpoints
-- `backend/tests/test_api/test_cards.py` — 9 tests
+### Testing
 
-### Test Results
-- **135 tests pass** entering Phase 9 (was 126 after Phase 7)
-- `npm run build`: 0 TypeScript errors, 1627 modules (post-Phase-9 xterm install)
-- Visual QA: all 7 checklist items pass (2026-04-29)
+- Added hardening coverage for damage calculation, status conditions, special
+  mechanics, effect spot checks, API endpoints, coach mutation legality, and
+  prompt-injection fixtures.
+  - Why: The hardening sweep targeted defect classes that could make simulation
+    results, coach advice, or exposed API behavior unreliable before production
+    testing.
+  - Evidence: `docs/HARDENING_SWEEP_REPORT.md`;
+    `backend/tests/test_engine/test_damage_calc.py`;
+    `backend/tests/test_engine/test_status_conditions.py`;
+    `backend/tests/test_engine/test_special_mechanics.py`;
+    `backend/tests/test_engine/test_effect_coverage_spot_check.py`;
+    `backend/tests/test_api/test_simulations.py`;
+    `backend/tests/test_coach/`.
+  - Confidence: High.
 
----
+- Raised the documented backend test baseline to 374 passed / 4 skipped at the
+  end of the hardening sweep.
+  - Why: The project needed a regression baseline after prompt, coach, engine,
+    and API hardening.
+  - Evidence: `docs/HARDENING_SWEEP_REPORT.md`; `docs/STATUS.md`.
+  - Confidence: High.
 
-## Phase 5 — AI Player (2026-04-27)
+### Documentation
 
-### Summary
-Implemented `AIPlayer(BasePlayer)` backed by Qwen3.5:9B-Q4_K_M via Ollama for in-game
-decisions. Discovered and fixed a critical parse bug: the Qwen 3.5 Modelfile prefills
-with `{"` (two chars), not `{` — causing a ~100% silent fallback rate to HeuristicPlayer.
-Added regex fallback for responses truncated by `num_predict` and increased `num_predict`
-to 200. Wired AI decision persistence through `batch.py` into the `decisions` Postgres table.
+- Rewrote the README to describe the full-stack architecture, setup path,
+  runtime services, known limitations, and current project status.
+  - Why: The repository had grown from an engine prototype into a full-stack
+    simulator/deck-evolution system and needed maintainable onboarding docs.
+  - Evidence: PR #16; `README.md`.
+  - Confidence: High.
 
-### Key Files Created
-- `backend/app/players/ai_player.py` — Full AIPlayer implementation (~240 lines)
-- `backend/tests/test_players/test_ai_player.py` — 17 unit tests
-
-### Key Files Modified
-- `backend/app/memory/postgres.py` — Added `write_decisions()` method
-- `backend/app/engine/batch.py` — AI decision drain + persist wiring
-- `backend/scripts/run_hh.py` — Added `--ai` flag
-
-### Test Results
-- **71 tests pass** (was 66; +5 net after updating 2 old prefill tests)
-- AI/H benchmark (5 games): 80% P1 win rate | 35.4 avg turns | 0 crashes | ~6 min/game
-- LLM fallback rate after fix: ~0%
-
-### Bugs Fixed
-- `_parse_response`: prepend `{"` not `{` (Qwen 3.5 Modelfile strips two chars, not one)
-- `_parse_response`: regex fallback for mid-string truncation when `num_predict` is hit
-- `num_predict`: increased 100 → 200 to reduce truncation frequency
-
----
-
-## Phase 4 — Database Layer & Memory Stack (2026-04-26)
-
-### Summary
-Built the full Postgres + pgvector + Neo4j memory pipeline. Ran 500 H/H games end-to-end
-through the pipeline and verified all 5 exit criteria. `MatchMemoryWriter` persists match
-records, events (chunked insert), card/deck references, and round metadata. `GraphMemoryWriter`
-maintains SYNERGIZES_WITH (co-occurrence weighted) and BEATS (win-rate) edges in Neo4j.
-`EmbeddingService` stores 768-dim game-state vectors via nomic-embed-text.
-
-### Key Files Created
-- `backend/app/db/models.py` — SQLAlchemy ORM (12 tables, `Vector(768)`)
-- `backend/app/db/session.py` — Async engine + `AsyncSessionLocal`
-- `backend/app/db/graph.py` — Neo4j driver singleton + `ensure_constraints()`
-- `backend/app/memory/postgres.py` — `MatchMemoryWriter`
-- `backend/app/memory/graph.py` — `GraphMemoryWriter`
-- `backend/app/memory/embeddings.py` — `EmbeddingService`
-- `backend/alembic/` — Alembic async migration setup + initial migration
-- `backend/tests/test_memory/` — 5 integration tests
-
-### Key Files Modified
-- `backend/app/engine/batch.py` — `simulation_id`, `persist` params + memory pipeline wiring
-- `backend/scripts/run_hh.py` — `--persist` flag
-- `backend/app/config.py` — `env_file = [".env", "../.env"]`
-
-### Test Results
-- **54 tests pass** (49 engine/player + 5 memory integration)
-- 500-game pipeline: 506 matches, ~278 events/match, BEATS edge 0.750, embedding 768 ✓
-
----
-
-## Phase 3 — Heuristic Player & H/H Simulation Loop (2026-04-26)
+## Complex Card Mechanics and Final Expansion Closure - 2026-04-30
 
 ### Summary
-Built `HeuristicPlayer(BasePlayer)` implementing the 8-step priority chain from Appendix I.
-Extracted `BasePlayer` with shared helpers (`_find_action`, `_choose_target`, `_best_energy_target`,
-`_discard_priority`, etc.) so all player types share common logic. Added `run_hh_batch()` batch
-runner and `run_hh.py` CLI script with `--swap` flag for matchup asymmetry analysis.
 
-### Key Files Created
-- `backend/app/players/heuristic.py` — `HeuristicPlayer(BasePlayer)`
-- `backend/app/engine/batch.py` — `run_hh_batch()` + `BatchResult`
-- `backend/scripts/run_hh.py` — CLI benchmark runner
-- `backend/tests/test_players/test_heuristic.py` — 7 HeuristicPlayer tests
+After broad card ingestion, the project implemented many previously flagged
+complex mechanics and closed the documented Phase 12 expansion push.
 
-### Key Files Modified
-- `backend/app/players/base.py` — Extracted `BasePlayer`; GreedyPlayer becomes thin subclass
+### Added
 
-### Test Results
-- **49 tests pass**
-- H/H (100 games): 82% P1 win rate | 42.0 avg turns | 4% deck-out
-- H/H swapped: TR Mewtwo P1 wins 23% — Dragapult asymmetry confirmed, not first-player advantage
+- Added explicit handlers for the final documented flagged-card set from the
+  expansion work, including Abomasnow, Barbaracle, Cook, Crabominable, and
+  Clefairy.
+  - Why: The card pool expansion rules prohibited leaving non-flat effect cards
+    as unsupported stubs, so remaining flagged cards needed explicit handling
+    before Phase 12 could be marked complete.
+  - Evidence: Existing changelog history; `docs/STATUS.md`;
+    `docs/CARD_EXPANSION_RULES.md`; commits `e97b4ae`, `c246f2b`;
+    `backend/app/engine/effects/`.
+  - Confidence: Medium; the completion claim is documented, but exact counts
+    differ across later docs.
 
----
+- Added broad engine support for complex mechanics required by expanded card
+  coverage, including dynamic HP, conditional attack costs, first-turn attack
+  exceptions, attack copying, deck attack selection, devolve behavior, temporary
+  attack attachment, draw triggers, knockout/self-damage triggers, energy-move
+  prompts, and special-energy behavior.
+  - Why: Expansion batches increasingly exposed cards that could not be modeled
+    as flat damage or simple attach/draw effects.
+  - Evidence: commits `83ada8d`, `61c2b60`, `2b80dfc`, `9570ca7`, `519efd7`,
+    `d4ddf92`, `4aad18e`, `5b49e01`, `0fc9095`; `docs/STATUS.md`;
+    `backend/app/engine/`; `backend/app/engine/effects/`;
+    `backend/tests/test_engine/`.
+  - Confidence: High for the landed mechanics; Medium for exact per-card
+    behavioral completeness.
 
-## Phase 1 — Game Engine Core (2026-04-26)
+- Added a TM attack subsystem and supporting code for cards that grant attacks
+  from attached Trainer cards.
+  - Why: Technical Machine effects required attacks to be exposed dynamically
+    rather than only through the printed attacks on a Pokemon card definition.
+  - Evidence: `docs/STATUS.md`; commits `83ada8d`, `61c2b60`;
+    engine/effect files under `backend/app/engine/`.
+  - Confidence: High.
 
-### What Was Built
-- Pure-Python state machine covering the full Pokémon TCG turn structure:
-  DRAW → MAIN (attach, evolve, play trainers, abilities) → ATTACK → KO aftermath
-- `GameState` dataclass with `PlayerState`, `CardInstance`, `Phase` enum
-- `ActionValidator`: 14 rules enforced, including first-turn attack ban, supporter 
-  limit, energy-attachment limit, same-turn evolution ban, ex prize award
-- `MatchRunner`: drives games to completion, handles forced bench promotion after KO, 
-  deck-out and no-bench detection, prize-taking
-- `EffectRegistry`: `_default_damage()` handles fixed-damage attacks; `×`-multiplier 
-  attacks correctly yield 0 base damage (Phase 2 effect handlers will supply real values)
-- `CardListLoader` + `CardRegistry`: loads 157 cards from live TCGDex fixtures; 
-  SET_CODE_MAP with 13 corrected IDs and 6 ME-era sets
-- `RandomPlayer` and `GreedyPlayer` as game-simulation baselines
-- 157 live TCGDex fixture files captured under `backend/tests/fixtures/cards/`
-- 42 unit tests all passing
+### Changed
 
-### Key Files Created
-- `backend/app/engine/state.py`
-- `backend/app/engine/actions.py`
-- `backend/app/engine/transitions.py`
-- `backend/app/engine/runner.py`
-- `backend/app/engine/rules.py`
-- `backend/app/engine/effects/registry.py`
-- `backend/app/engine/effects/base.py`
-- `backend/app/cards/loader.py`
-- `backend/app/cards/models.py`
-- `backend/app/cards/registry.py`
-- `backend/app/cards/tcgdex.py`
-- `backend/app/players/base.py`
-- `backend/tests/` (42 tests across 6 test files)
-- `backend/tests/fixtures/cards/*.json` (157 live fixtures)
+- Changed expansion closure criteria from "card exists in fixtures" toward
+  "card has an appropriate handler, intentional noop, or documented engine gap."
+  - Why: Expanded card data alone was insufficient for simulation correctness;
+    active card text needed to map to executable behavior or a documented
+    limitation.
+  - Evidence: `docs/CARD_EXPANSION_RULES.md`; `docs/STATUS.md`;
+    `backend/app/engine/effects/registry.py`.
+  - Confidence: High.
 
-### Phase 1 Baseline Metrics
-- **Greedy vs Greedy (100 games):** avg 53.9 turns, prizes=74% / no_bench=14% / 
-  deck_out=12%, 26.2 attacks/game, 4.5 KOs/game, 0 crashes
-- **Random vs Random (100 games):** avg 94.6 turns, deck_out=100%, 0 crashes
+### Testing
 
-### Bugs Fixed During Verification
-- `loader.py`: Prism Energy wrongly classified as "Basic" — fixed subcategory logic
-- `players/base.py`: GreedyPlayer RETREAT priority was #7 (before PASS #8), 
-  causing energy to be burned on retreat every turn before attacking — fixed to #9
-- SET_CODE_MAP: 13 blueprint entries used wrong format/numbering (sv1 vs sv01, 
-  wrong numbers for SSP/PRE/JTG/DRI) — all corrected to match actual TCGDex IDs
+- Expanded engine regression coverage around complex effect behavior.
+  - Why: New engine primitives such as copy attacks, dynamic HP, and
+    trigger-based effects are high-risk rules areas.
+  - Evidence: `backend/tests/test_engine/test_copy_attacks.py`;
+    `backend/tests/test_engine/test_special_mechanics.py`;
+    `backend/tests/test_engine/test_audit_fixes.py`; commits listed above.
+  - Confidence: Medium; test files confirm coverage exists, but exact original
+    introduction per assertion was reconstructed from commit clusters.
+
+## Full Card Pool Expansion - 2026-04-29 to 2026-04-30
+
+### Summary
+
+Phase 12 expanded the simulator's card data from a small curated set to a broad
+Standard-format pool driven by live TCGDex data and the project master card
+list.
+
+### Added
+
+- Expanded populated card coverage through a series of documented batches from
+  the original small pool toward the full Standard-format scope.
+  - Why: The project needed enough real cards to support meaningful deck
+    simulation, deck evolution, benchmark matchups, and AI coach evaluation.
+  - Evidence: `docs/CARD_EXPANSION_RULES.md`;
+    `docs/POKEMON_MASTER_LIST.md`; `docs/CARDLIST.md`; commits `201a498`,
+    `d2d7b71`, `da42c26`, `b1f81a5`, `7601961`, `768da74`, `61748c6`,
+    `a0d4085`, `d1c39f0`, `7517c1f`, `26c4647`, `b80499f`, `660110e`,
+    `cb12521`, `f767cb1`, `5fd2250`, `cc9a996`, `d70bb78`, `df59240`,
+    `d9a74f5`; TCGDex cache under `backend/app/data/tcgdex_cache/cards/`.
+  - Confidence: High for the expansion work; Medium for exact historical
+    totals because later documents disagree on whether the relevant count is
+    1,927, 2,001, or 2,005.
+
+- Added support for new set code conventions such as `MEP`, `PR-SV`, and `SVE`
+  while ingesting expansion cards.
+  - Why: The master list included special/promo/energy products outside the
+    earliest set-code assumptions.
+  - Evidence: `docs/CARD_EXPANSION_RULES.md`;
+    `docs/POKEMON_MASTER_LIST.md`; fixtures under
+    `backend/app/data/tcgdex_cache/cards/`.
+  - Confidence: High.
+
+- Added multiple batches of Trainer, Stadium, Tool, Special Energy, Pokemon ex,
+  Baby Pokemon, and archetype-support handlers.
+  - Why: The expansion process identified many non-flat cards whose text affects
+    game state, deck search, energy movement, switching, damage modification,
+    or evolution.
+  - Evidence: `docs/STATUS.md`; commits from `201a498` through `c246f2b`;
+    `backend/app/engine/effects/`.
+  - Confidence: Medium; handler presence is clear, but later audits found bugs
+    in some earlier implementations.
+
+### Changed
+
+- Retired `docs/CARDLIST.md` as the active card-population source in favor of
+  `docs/POKEMON_MASTER_LIST.md`.
+  - Why: The expansion scope moved beyond a short current/deferred list into a
+    full master list.
+  - Evidence: `docs/CARDLIST.md`; `docs/POKEMON_MASTER_LIST.md`;
+    `docs/CARD_EXPANSION_RULES.md`.
+  - Confidence: High.
+
+### Removed
+
+- Removed ten nonexistent Mega Evolution Promo (`MEP`) entries during the final
+  expansion audit.
+  - Why: Live TCGDex verification showed those master-list entries did not map
+    to real cards, so retaining them would create false coverage gaps.
+  - Evidence: Existing changelog history; `docs/STATUS.md`;
+    `docs/CARD_EXPANSION_RULES.md`; expansion commits around `e97b4ae` and
+    `c246f2b`.
+  - Confidence: Medium; the removal is documented, but exact deleted entries
+    were not independently reconstructed from a release boundary.
+
+### Testing
+
+- Preserved the existing expansion-era documented backend baseline of 215
+  passing tests after Phase 12 closure.
+  - Why: Expansion completion needed a regression check after adding many card
+    definitions and handlers.
+  - Evidence: Existing changelog history; `docs/STATUS.md`; backend tests under
+    `backend/tests/`.
+  - Confidence: Medium; later hardening raised the baseline to 374 passed / 4
+    skipped.
+
+## Production Hardening, Coach Intelligence, and Phase 13 - 2026-04-28 to 2026-04-29
+
+### Summary
+
+Phase 13 focused on production readiness: orchestration reliability, API and
+console polish, Docker/Makefile workflow, card coverage enforcement, coach
+quality, and frontend usability.
+
+### Added
+
+- Added API health checks, Celery Beat scheduling, simulation retry behavior,
+  and orchestration hardening.
+  - Why: Long-running simulation jobs needed observable service health,
+    recoverability, and scheduled execution.
+  - Evidence: Existing changelog history; commits `b0462df`, `0931ea5`,
+    `933e77f`; `backend/app/tasks/`; `backend/app/api/`; `docker-compose.yml`.
+  - Confidence: High.
+
+- Added card coverage gating and on-demand TCGDex fetching before simulations.
+  - Why: Simulations should fail early or populate missing card definitions
+    instead of running with incomplete or unsupported card data.
+  - Evidence: `backend/app/api/simulations.py`; existing changelog history;
+    commits `933e77f`, `ab0a258`, `b74610d`; `backend/tests/test_api/`.
+  - Confidence: High.
+
+- Added a copy-attack engine and related tests.
+  - Why: Expanded card coverage required attacks that can copy or reuse attacks
+    from other cards instead of only executing a card's own printed attacks.
+  - Evidence: Existing changelog history; commit `1cfc1c2`;
+    `backend/tests/test_engine/test_copy_attacks.py`.
+  - Confidence: High.
+
+- Added Decision Map support, best deck snapshots, and richer coach history
+  tracking.
+  - Why: Maintainers needed to understand how decks changed over generations
+    and why coach decisions were accepted or rolled back.
+  - Evidence: Existing changelog history; migration
+    `backend/alembic/versions/c3e91f7a5b22_add_best_deck_snapshot.py`;
+    frontend history/dashboard components; commits `196dab3`, `3b57787`,
+    `ecdc34b`.
+  - Confidence: High.
+
+- Added coach intelligence guards for evolution-line protection, regression
+  detection, rollback behavior, and performance-history-aware recommendations.
+  - Why: The coach was capable of making legal but strategically harmful deck
+    mutations, including breaking evolution lines or repeatedly accepting
+    performance regressions.
+  - Evidence: Existing changelog history; `docs/STATUS.md`;
+    `backend/app/coach/`; `backend/tests/test_coach/`; commits `ce796b3`,
+    `22921ad`.
+  - Confidence: High.
+
+- Added Docker/Makefile workflow improvements, including compose-based commands,
+  log helpers, rebuild/restart helpers, and reset paths.
+  - Why: The stack had grown into multiple services and needed repeatable local
+    operations for simulation, worker, database, and frontend workflows.
+  - Evidence: Existing changelog history; `Makefile`; `docker-compose.yml`;
+    commits `3ef7a26`, `ecdc34b`.
+  - Confidence: High.
+
+### Changed
+
+- Changed the frontend visual system toward a light-mode dashboard and improved
+  console readability.
+  - Why: Phase 13 included usability polish for the live console, history, and
+    dashboard surfaces.
+  - Evidence: Existing changelog history; frontend files under `frontend/src/`;
+    commits `3ef7a26`, `ecdc34b`.
+  - Confidence: Medium; current frontend confirms implementation, but exact
+    theme-history details are partly reconstructed from commits and docs.
+
+- Changed PTCGL deck parsing and SimulationSetup integration to support pasted
+  decklists, validation errors, and legal-submit handling.
+  - Why: Users needed a practical path from decklist text to simulation without
+    manually constructing card IDs.
+  - Evidence: Existing changelog history; `frontend/src/utils/deckParser.ts`;
+    `frontend/src/components/setup/DeckUploader.tsx`;
+    `frontend/src/pages/SimulationSetup.tsx`; frontend tests.
+  - Confidence: High.
+
+### Fixed
+
+- Fixed live console event detail rendering, empty event output, KO/winner prize
+  handling, and history payload gaps.
+  - Why: The frontend console and history views needed coherent event streams
+    and correct match-end state for live monitoring.
+  - Evidence: Existing changelog history; commits `22921ad`, `3b57787`,
+    `ecdc34b`; files under `frontend/src/components/simulation/`,
+    `frontend/src/pages/SimulationLive.tsx`, and backend simulation APIs.
+  - Confidence: High.
+
+- Fixed timeout behavior around Gemma-based deck naming.
+  - Why: Slow local model calls could block or degrade deck naming workflows.
+  - Evidence: Existing changelog history; `backend/app/coach/`;
+    `docs/STATUS.md`.
+  - Confidence: Medium.
+
+### Testing
+
+- Added or extended backend, frontend, and Playwright-style validation around
+  deck parsing, simulation setup, dashboard flows, copy attacks, and production
+  hardening.
+  - Why: Phase 13 changes touched cross-service workflows that needed regression
+    coverage beyond isolated engine tests.
+  - Evidence: Existing changelog history; `frontend/src/**/*.test.*`;
+    `backend/tests/`; `.github/workflows/e2e.yml`.
+  - Confidence: Medium; exact test introduction dates are reconstructed from
+    current files and commit clusters.
+
+## Phase 12 Initial Card Pool Expansion - 2026-04-28
+
+### Added
+
+- Expanded the initial populated card pool from the early 55-card set to roughly
+  160 implemented cards.
+  - Why: The first engine and AI phases had enough cards for smoke tests but not
+    enough variety for broader deck simulation and evolution.
+  - Evidence: Existing changelog history; commit `31ca990`;
+    `docs/STATUS.md`; `backend/app/data/tcgdex_cache/cards/`.
+  - Confidence: High.
+
+## Phase 10 Dashboard and Analytics - 2026-04-27 to 2026-04-28
+
+### Added
+
+- Added the dashboard analytics surface with metrics tiles, charts, history
+  summaries, prize-race visualization, deck drift, mutation timeline, type
+  balance, synergy graph, and AI decision summary components.
+  - Why: Simulation and coach runs needed an inspectable UI for long-running
+    deck evolution rather than only CLI/log output.
+  - Evidence: Existing changelog history; commits `f447d08`, `507449c`,
+    `4251866`, `9ee661c`; frontend files under
+    `frontend/src/components/dashboard/`; backend APIs under
+    `backend/app/api/history.py`.
+  - Confidence: High.
+
+- Added backend aggregation endpoints for matches, prize race, deck composition,
+  timeline, and decision graph data.
+  - Why: Dashboard charts needed structured API data instead of ad hoc frontend
+    derivation.
+  - Evidence: Existing changelog history; `backend/app/api/history.py`;
+    `backend/app/services/`; tests under `backend/tests/test_api/`.
+  - Confidence: High.
+
+### Fixed
+
+- Fixed dashboard QA issues such as incorrect API base URL usage, chart
+  overflow, deck-drift normalization, AI-decision axis rendering, loading/error
+  states, and TypeScript build errors.
+  - Why: Initial dashboard implementation needed to be usable across screens and
+    pass production frontend builds.
+  - Evidence: Existing changelog history; commits `507449c`, `4251866`,
+    `9ee661c`; frontend components and tests.
+  - Confidence: High.
+
+### Testing
+
+- Added or updated frontend tests for dashboard and history rendering.
+  - Why: The dashboard had multiple data states and visual components where
+    regression risk was high.
+  - Evidence: Existing changelog history; frontend tests under
+    `frontend/src/`.
+  - Confidence: Medium.
+
+## Phase 9 Live Console and Simulation Monitoring - 2026-04-27
+
+### Added
+
+- Added the live simulation console with xterm rendering, Socket.IO streaming,
+  event history, simulation controls, cancel support, and detail panels.
+  - Why: Long-running simulation jobs needed interactive observation and
+    control from the frontend.
+  - Evidence: Existing changelog history; commits `6092766`, `185b173`,
+    `3811803`; `frontend/src/pages/SimulationLive.tsx`;
+    `frontend/src/components/simulation/`; `backend/app/api/ws.py`.
+  - Confidence: High.
+
+- Added normalized event models and replay/history support for simulation
+  streams.
+  - Why: Live and historical views needed the same event semantics, including
+    deck changes and decision detail.
+  - Evidence: Existing changelog history; backend API and frontend simulation
+    state files; commits `6092766`, `185b173`.
+  - Confidence: High.
+
+### Fixed
+
+- Fixed QA issues in live-console state handling, including store field
+  mismatches and missing deck-change display behavior.
+  - Why: The first console iteration exposed frontend/backend contract drift.
+  - Evidence: Existing changelog history; commit `185b173`; frontend simulation
+    store and component files.
+  - Confidence: High.
+
+## Phase 8 Frontend Core - 2026-04-27
+
+### Added
+
+- Added the React/Vite frontend application with routing, shared layout,
+  navigation, API client, cards view, simulation setup flow, and deck upload
+  utilities.
+  - Why: Earlier phases were backend/CLI-first; the project blueprint required
+    a frontend for simulation setup, live monitoring, history, memory, and
+    analytics.
+  - Evidence: Existing changelog history; commits `470ab5c`, `eafdcbb`;
+    `frontend/package.json`; `frontend/src/App.tsx`;
+    `frontend/src/pages/`; `frontend/src/services/api.ts`.
+  - Confidence: High.
+
+- Added frontend testing with Vitest and React Testing Library.
+  - Why: Deck parsing and UI flows needed regression coverage as the frontend
+    became a first-class surface.
+  - Evidence: `frontend/package.json`; frontend tests under `frontend/src/`;
+    existing changelog history.
+  - Confidence: High.
+
+### Fixed
+
+- Fixed visual QA issues in the initial frontend, including overflow, sizing,
+  missing active navigation state, invalid card-image placeholders, progress
+  rendering, mobile layout, and empty/error states.
+  - Why: The initial frontend needed to be usable on desktop/mobile and robust
+    against empty API responses.
+  - Evidence: Existing changelog history; commit `eafdcbb`; frontend source.
+  - Confidence: High.
+
+## Phase 7 Task Orchestration and Live Simulation Infrastructure - 2026-04-27
+
+### Added
+
+- Added Celery/Redis-backed simulation orchestration, WebSocket/pubsub event
+  delivery, simulation lifecycle tracking, and round validation.
+  - Why: The project needed asynchronous, observable, repeatable simulation
+    runs rather than one-off CLI execution.
+  - Evidence: commits `ddd25bc`, `f7b8478`, `d9ac8af`, `361e4f6`;
+    `backend/app/tasks/`; `backend/app/api/simulations.py`;
+    `backend/app/api/ws.py`; `backend/tests/test_tasks/`.
+  - Confidence: High.
+
+- Added validation and isolation around coach/memory writes in task execution.
+  - Why: Multi-run orchestration risked leaking state or persisting malformed
+    coach outputs without stronger boundaries.
+  - Evidence: commits `d9ac8af`, `361e4f6`; `backend/app/tasks/`;
+    `backend/tests/test_tasks/test_simulation_task.py`.
+  - Confidence: Medium.
+
+## Phase 6 Coach, Analyst, and Deck Mutation Loop - 2026-04-27
+
+### Added
+
+- Added Coach and Analyst agents for report-card style analysis, deck mutation
+  recommendations, memory queries, and end-to-end loop execution.
+  - Why: The project blueprint calls for a self-improving deck loop where match
+    results feed analysis and legal deck changes.
+  - Evidence: commits `65a58c2`, `992a0ed`; `backend/app/coach/`;
+    `backend/tests/test_coach/`; `docs/PROJECT.md`.
+  - Confidence: High.
+
+### Fixed
+
+- Fixed early coach/deck mutation issues including legality enforcement and
+  cross-deck swap behavior.
+  - Why: The coach needed to produce valid 60-card decks and avoid illegal or
+    incoherent mutations.
+  - Evidence: Existing changelog history; commits `65a58c2`, `992a0ed`;
+    `backend/tests/test_coach/test_deck_builder.py`.
+  - Confidence: Medium.
+
+## Phase 5 AI Player Integration - 2026-04-27
+
+### Added
+
+- Added `AIPlayer` support backed by local Ollama/Qwen model calls, including
+  prompt construction, legal-action presentation, response parsing, regex
+  fallback, and heuristic fallback behavior.
+  - Why: The project needed to compare heuristic play against local LLM-driven
+    decisions while preserving legal action execution.
+  - Evidence: Existing changelog history; commits `b4fe6fe`, `d1cfb0d`;
+    `backend/app/players/ai.py`; `backend/tests/test_players/test_ai_player.py`;
+    `docs/PROJECT.md`.
+  - Confidence: High.
+
+- Added decision persistence linking simulated actions to card context.
+  - Why: Later coach and dashboard features needed to inspect model decisions
+    and associate decisions with card definitions.
+  - Evidence: migration
+    `backend/alembic/versions/8ac02d648b4f_add_card_def_id_to_decisions.py`;
+    backend models and tests.
+  - Confidence: High.
+
+### Fixed
+
+- Fixed malformed model output handling and prefill-related JSON parsing issues.
+  - Why: Local model outputs were not always strict JSON, so the engine needed
+    robust parsing and fallback to keep simulations legal.
+  - Evidence: Existing changelog history; `backend/app/players/ai.py`;
+    `backend/tests/test_players/test_ai_player.py`.
+  - Confidence: High.
+
+## Phase 4 Persistence and Memory Layer - 2026-04-26
+
+### Added
+
+- Added PostgreSQL persistence, pgvector embeddings, Neo4j relationship storage,
+  SQLAlchemy models, Alembic migrations, and memory writers for match and
+  decision data.
+  - Why: Simulation, AI analysis, and deck evolution required persistent match
+    history and queryable memory rather than transient in-process state.
+  - Evidence: commit `898871f`; migrations under
+    `backend/alembic/versions/`; `backend/app/models/`;
+    `backend/app/memory/`; `backend/tests/test_memory.py`.
+  - Confidence: High.
+
+- Added a 500-game persistence benchmark path.
+  - Why: The memory layer needed to prove it could handle multi-match simulation
+    volume.
+  - Evidence: Existing changelog history; commit `898871f`;
+    `backend/app/cli.py`; `docs/STATUS.md`.
+  - Confidence: Medium.
+
+## Phase 3 Heuristic Player and Batch Simulation - 2026-04-26
+
+### Added
+
+- Added `BasePlayer` and `HeuristicPlayer` abstractions, legal-action scoring,
+  batch simulation CLI support, and heuristic-vs-heuristic benchmarks.
+  - Why: The project needed a deterministic non-LLM baseline before comparing
+    AI-player decisions or coach-driven deck evolution.
+  - Evidence: commits `ae25341`, `9f78ee8`; `backend/app/players/`;
+    `backend/app/cli.py`; `backend/tests/test_players/test_heuristic.py`;
+    `docs/STATUS.md`.
+  - Confidence: High.
+
+### Fixed
+
+- Fixed early batch simulation issues involving deck-out behavior, deck
+  isolation, RNG reuse, role assignment, and attack-choice logging.
+  - Why: Heuristic benchmarks are meaningful only if each simulated game starts
+    cleanly and ends according to engine rules.
+  - Evidence: Existing changelog history; commits `b3b671f`, `f1fe237`,
+    `9f78ee8`; engine/player tests.
+  - Confidence: High.
+
+## Phase 2 Trainer, Ability, and Effect Handler Expansion - 2026-04-26
+
+### Added
+
+- Added early Trainer/Ability effect handlers and effect-engine support beyond
+  flat damage attacks.
+  - Why: The first card set included search, draw, attach, heal, switch,
+    discard, and passive effects that required explicit game-state mutation.
+  - Evidence: commits `9cd88e9`, `f1fe237`, `b3b671f`;
+    `backend/app/engine/effects/`; `backend/tests/test_engine/`;
+    `docs/PROJECT.md`.
+  - Confidence: High.
+
+### Fixed
+
+- Fixed early effect-resolution bugs involving support for more complex trainer
+  effects and heuristic interactions.
+  - Why: Phase 2 exposed that hard-coded attack handling was insufficient for
+    realistic Pokemon TCG card behavior.
+  - Evidence: commits `9cd88e9`, `f1fe237`, `b3b671f`; backend tests.
+  - Confidence: Medium.
+
+## Phase 1 Engine Core and Initial Project Setup - 2026-04-25 to 2026-04-26
+
+### Added
+
+- Added the initial FastAPI/Python backend project, Docker service definitions,
+  engine modules, TCGDex card cache, starter deck files, tests, and project
+  documentation.
+  - Why: This established the self-hosted simulator foundation described in the
+    project blueprint.
+  - Evidence: commit `bf6caee`; `README.md`; `docs/PROJECT.md`;
+    `docker-compose.yml`; `backend/pyproject.toml`; `backend/app/`.
+  - Confidence: High.
+
+- Added the initial core rules engine for setup, mulligans, actions, attacks,
+  prizes, knockouts, win/loss detection, random simulation, and deterministic
+  smoke tests.
+  - Why: All later AI, coach, dashboard, and card-expansion work depended on a
+    working game-state model and legal-action runner.
+  - Evidence: Existing changelog history; commit `90ebdae`;
+    `backend/app/engine/`; `backend/tests/test_engine/`; `docs/STATUS.md`.
+  - Confidence: High.
+
+### Fixed
+
+- Fixed Phase 1 setup and runner bugs, including bench capacity, mulligan
+  reshuffle behavior, forced active replacement, prize winner assignment, and
+  structured event emission.
+  - Why: The first engine implementation needed to obey basic game-flow
+    invariants before higher-level simulations could be trusted.
+  - Evidence: Existing changelog history; commit `90ebdae`;
+    `backend/tests/test_engine/test_runner.py`;
+    `backend/tests/test_engine/test_state.py`.
+  - Confidence: High.
+
+## Historical Uncertainty Log
+
+- Uncertainty: There are no Git tags or release boundaries.
+  - Evidence found: `git tag --sort=creatordate` returned no tags; GitHub
+    repository metadata did not expose releases through the inspected sources.
+  - Missing evidence: Formal release notes or deployment records.
+  - Suggested follow-up: Add tags or release notes for future milestones.
+
+- Uncertainty: Exact card-count milestones differ across documents.
+  - Evidence found: `docs/STATUS.md` currently says 2,005 cards in DB
+    including two test fixtures; `README.md` says 2,001 cards as of 2026-05-01;
+    expansion-era changelog/status notes mention 1,927 and 2,001 totals.
+  - Missing evidence: A single timestamped database export or release snapshot
+    tying each count to an exact commit.
+  - Suggested follow-up: Record card-count snapshots with commit SHA, DB query,
+    and fixture count whenever audit state changes.
+
+- Uncertainty: Historical `docs/STATUS.md` sections contain retained notes with
+  dates and counts that conflict with the current top section.
+  - Evidence found: The current top of `docs/STATUS.md` is dated 2026-05-04 and
+    is treated as authoritative; older retained notes include different metrics
+    and future-looking headings.
+  - Missing evidence: A normalized status archive or dated session log per
+    entry.
+  - Suggested follow-up: Split live status from archived session notes.
+
+- Uncertainty: Card handler entries in this changelog mean "implemented or
+  registered according to available evidence," not guaranteed official-perfect
+  behavior.
+  - Evidence found: DB-backed audit PRs after the expansion found many bugs in
+    already-implemented handlers.
+  - Missing evidence: Exhaustive per-card conformance tests against official
+    rulings.
+  - Suggested follow-up: Continue DB-backed audits and add regression tests for
+    every fixed card behavior.
+
+- Uncertainty: DeckBuilder roadmap history could not be compared to the
+  requested roadmap document because `DECKBUILDER_ROADMAP.md` was not present.
+  - Evidence found: Current deterministic deckbuilder implementation in
+    `backend/app/coach/deck_builder.py`; deferred Phase 3 weighting note in
+    `docs/STATUS.md`.
+  - Missing evidence: The roadmap file requested by the reconstruction
+    instructions.
+  - Suggested follow-up: Restore or recreate the roadmap, then classify each
+    roadmap item as implemented, partial, deferred, or superseded.
+
+- Uncertainty: Playwright and Vite plan completion could not be checked against
+  the requested plan files because `PLAYWRIGHT_E2E_PLAN.md` and
+  `VITE_UPGRADE_PLAN.md` were not present.
+  - Evidence found: Current Playwright workflow in `.github/workflows/e2e.yml`;
+    frontend Vite/Vitest dependencies in `frontend/package.json`.
+  - Missing evidence: The original plan documents and acceptance criteria.
+  - Suggested follow-up: Add plan docs or link them from the relevant PRs.
+
+- Uncertainty: Deployment history was not reconstructed.
+  - Evidence found: Docker Compose and CI workflow configuration exist.
+  - Missing evidence: Vercel/Netlify/Render/Railway deployment records, GitHub
+    Environment history, image tags, or production release logs.
+  - Suggested follow-up: Add deployment metadata or release records if the stack
+    is deployed outside local compose.
+
+## Evidence Sources Reviewed
+
+- [x] Existing `docs/CHANGELOG.md`
+- [x] `docs/PROJECT.md`
+- [x] `docs/STATUS.md`
+- [x] `docs/HARDENING_SWEEP_REPORT.md`
+- [x] `docs/CARD_EXPANSION_RULES.md`
+- [x] `docs/AUDIT_RULES.md`
+- [x] `docs/AUDIT_STATE.md`
+- [x] `docs/CARDLIST.md`
+- [x] `docs/POKEMON_MASTER_LIST.md`
+- [x] `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md`
+- [x] `docs/proposals/AI_COACH_HARDENING_PROPOSAL.md`
+- [ ] `DECKBUILDER_ROADMAP.md` unavailable in repository
+- [ ] `PLAYWRIGHT_E2E_PLAN.md` unavailable in repository
+- [ ] `VITE_UPGRADE_PLAN.md` unavailable in repository
+- [x] `README.md`
+- [x] Git commit history across `main` and `origin/main`
+- [x] Git branches and remotes
+- [x] Git tags checked; no tags found
+- [x] Current file inventory
+- [x] File rename/delete-oriented history inspected through commit history
+- [x] Tests and fixtures
+- [x] Database migrations
+- [x] Dependency manifests and lockfiles (`backend/pyproject.toml`,
+  `frontend/package.json`, lockfiles present in repo)
+- [x] Build and CI configuration (`.github/workflows/`, `docker-compose.yml`,
+  `Makefile`)
+- [x] GitHub PR metadata available through connector, including PRs #1, #3, #5,
+  #7, #9, #11, #13, #15, #19, #24, #26, #28, #30, #32, #34
+- [x] GitHub issue metadata available through connector, including scheduled
+  audit issues #2, #4, #6, #8, #14, #18, #29, #31, #33
+- [ ] GitHub release metadata unavailable / no releases or tags found in
+  inspected evidence
+- [ ] Deployment metadata unavailable / not found
