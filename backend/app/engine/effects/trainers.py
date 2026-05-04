@@ -3143,11 +3143,10 @@ def _grimsleys_move_b18(state: GameState, action):
         random.shuffle(player.deck)
         return
 
-    max_choose = min(len(candidates), bench_space)
     req = ChoiceRequest(
         "choose_cards", player_id,
-        "Grimsley's Move: choose Darkness-type Pokémon from top 7 to Bench (optional)",
-        cards=candidates, min_count=0, max_count=max_choose,
+        "Grimsley's Move: choose 1 Darkness-type Pokémon from top 7 to put onto Bench (optional)",
+        cards=candidates, min_count=0, max_count=1,
     )
     resp = yield req
     chosen_ids = resp.selected_cards if (resp and resp.selected_cards) else []
@@ -4465,14 +4464,17 @@ def _handheld_fan(state: GameState, action):
 def _jasmine_gaze(state: GameState, action):
     """Jasmine's Gaze (sv08-178) — Supporter
 
-    During your opponent's next turn, your Active Pokémon takes 30 less damage.
+    During your opponent's next turn, all of your Pokémon take 30 less damage
+    from attacks (after Weakness/Resistance). Includes new Pokémon that come
+    into play.
     """
     player_id = action.player_id
     player = state.get_player(player_id)
-    if player.active:
-        player.active.incoming_damage_reduction += 30
-        state.emit_event("jasmine_gaze", player=player_id,
-                         card=player.active.card_name, reduction=30)
+    targets = ([player.active] if player.active else []) + list(player.bench)
+    for poke in targets:
+        poke.incoming_damage_reduction += 30
+    state.emit_event("jasmine_gaze", player=player_id,
+                     targets=[p.card_name for p in targets], reduction=30)
 
 
 def _accompanying_flute_b20(state: GameState, action):

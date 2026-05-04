@@ -2308,66 +2308,6 @@ def _cond_fall_back_to_reload(state, player_id):
     return bool(p.discard and any(c.card_type.lower() == "energy" for c in p.discard))
 
 
-# Sinister Surge (me02-068 Toxtricity) ────────────────────────────────────────
-
-def _sinister_surge(state: GameState, action):
-    """me02-068 Toxtricity — Sinister Surge: search deck for Basic {D} Energy, attach to any Pokémon."""
-    player_id = action.player_id
-    player = state.get_player(player_id)
-    d_energy = [c for c in player.deck
-                if c.card_type.lower() == "energy"
-                and c.card_subtype.lower() == "basic"
-                and "Darkness" in (c.energy_provides or [])]
-    if not d_energy:
-        import random
-        random.shuffle(player.deck)
-        return
-    req_e = ChoiceRequest(
-        "choose_cards", player_id,
-        "Sinister Surge: choose a Basic {D} Energy from deck to attach.",
-        cards=d_energy, min_count=0, max_count=1,
-    )
-    resp_e = yield req_e
-    chosen_e = (resp_e.selected_cards if resp_e and resp_e.selected_cards else []) or [d_energy[0].instance_id]
-    energy_card = next((c for c in player.deck if c.instance_id in chosen_e), None)
-    if energy_card is None:
-        import random
-        random.shuffle(player.deck)
-        return
-    all_pokes = _in_play(player)
-    if not all_pokes:
-        import random
-        random.shuffle(player.deck)
-        return
-    req_t = ChoiceRequest(
-        "choose_target", player_id,
-        "Sinister Surge: choose a Pokémon to attach {D} Energy to.",
-        targets=all_pokes,
-    )
-    resp_t = yield req_t
-    target = None
-    if resp_t and resp_t.target_instance_id:
-        target = next((p for p in all_pokes if p.instance_id == resp_t.target_instance_id), None)
-    if target is None:
-        target = all_pokes[0]
-    player.deck.remove(energy_card)
-    import random
-    random.shuffle(player.deck)
-    _attach_from_hand_or_discard(player, target, energy_card)
-    state.emit_event("sinister_surge", player=player_id, target=target.card_name)
-
-
-def _cond_sinister_surge(state, player_id):
-    p = state.get_player(player_id)
-    has_d_in_deck = any(
-        c.card_type.lower() == "energy"
-        and c.card_subtype.lower() == "basic"
-        and "Darkness" in (c.energy_provides or [])
-        for c in p.deck
-    )
-    return has_d_in_deck and bool(_in_play(p))
-
-
 # ── Batch 5: MEG + BLK ability handlers ──────────────────────────────────────
 
 def _heave_ho_catcher(state: GameState, action):

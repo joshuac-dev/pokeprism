@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-04 (session 5)
+Last updated: 2026-05-04 (session 6)
 
 ## Current Workstream
 
@@ -34,7 +34,7 @@ Re-check them before making claims in user-facing docs.
 | Local matches table | 6,900 rows from the same DB snapshot |
 | Local `card_performance` table | 270 rows from the same DB snapshot |
 | Running simulations | 0 from the same DB snapshot |
-| Backend test baseline | Latest full documented run after energy_provides enum fix: **460 passed** on 2026-05-04. Run with `cd backend && python3 -m pytest tests/ -x -q`. Historical prior baseline: 456 passed after Venture Bomb fix. |
+| Backend test baseline | Latest full documented run after hardening sweep fixes: **463 passed** on 2026-05-04. Run with `cd backend && python3 -m pytest tests/ -x -q`. Historical prior baseline: 460 passed after energy_provides enum fix. |
 | Frontend unit tests | 4 passed on 2026-05-04 with `cd frontend && npm test -- --run --reporter=dot` |
 | Playwright E2E inventory | 14 tests listed on 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed on 2026-05-04 with `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
@@ -209,6 +209,44 @@ Validation:
   three to use `[et.value for et in att.provides]`. Regression tests added (#L3).
   After worker rebuild/deploy, re-enqueueing `40612eb1` is safe: Greninja, Iron
   Crown, Torterra checkpoints skip; Lickilicky (running/0-persisted) reruns.
+
+## Session 6 Work (2026-05-04)
+
+Full hardening sweep reverification against all 8 sections of the prior report.
+Findings and fixes:
+
+1. **`_sinister_surge` duplicate removed (me02-068 Toxtricity)** — A second
+   (incorrect) definition at lines 2313–2368 of `abilities.py` shadowed the
+   correct implementation at line 676. The incorrect version attached energy to
+   ANY in-play Pokémon and placed no damage counters. Correct behavior: attach
+   to a benched Darkness-type Pokémon only, place 2 damage counters on it. The
+   duplicate and its module-level `_cond_sinister_surge` were deleted.
+
+2. **`_jasmine_gaze` bench coverage (sv08-178)** — Handler was applying
+   `incoming_damage_reduction += 30` only to `player.active`. TCGDex text
+   confirmed: "all of your Pokémon take 30 less damage." Fixed to apply to all
+   in-play Pokémon (active + bench). The "includes new Pokémon that come into
+   play" clause and systemic `incoming_damage_reduction` reset-timing issue are
+   documented engine gaps (not fixed).
+
+3. **`_grimsleys_move_b18` max count (me02-090)** — Handler was using
+   `max_count=max_choose` allowing multiple Pokémon. Card text says "put a (1)
+   Darkness-type Pokémon." Fixed to `max_count=1`.
+
+3 regression tests added (`test_audit_fixes.py`). Backend test baseline: **463 passed**.
+
+Engine gaps documented (not fixed): svp-089 Feraligatr Torrential Heart (noop),
+svp-134 Crabominable Food Prep (noop), systemic `incoming_damage_reduction`
+reset-before-opponent-attacks timing issue.
+
+Section 2C AI behavioral run was blocked by Qwen3.5-9B cold-start exceeding time
+budget. Hard gate (Section 2B) and AI prompt (Section 2A) verified by code review.
+
+Files changed:
+- `backend/app/engine/effects/abilities.py` — incorrect `_sinister_surge` duplicate deleted
+- `backend/app/engine/effects/trainers.py` — `_jasmine_gaze` bench fix, `_grimsleys_move_b18` max_count=1
+- `backend/tests/test_engine/test_audit_fixes.py` — 3 new regression tests
+- `docs/HARDENING_SWEEP_REPORT.md` — replaced prior report with full reverification
 
 ## Current Known Issues / Gaps
 

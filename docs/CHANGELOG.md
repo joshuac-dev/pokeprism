@@ -41,6 +41,52 @@ gates, and runtime simulation checks.
 The current operational handoff is `docs/STATUS.md`. This changelog remains the
 evidence-based history, not the live status file.
 
+### Fixed (2026-05-04 Session 6 — Hardening Sweep Section 5 Handler Fixes)
+
+- **`_sinister_surge` duplicate deleted (me02-068 Toxtricity)** — A second
+  definition of `_sinister_surge` existed at lines 2313–2368 of `abilities.py`,
+  shadowing the correct implementation at line 676 due to Python module-level
+  name resolution. The incorrect duplicate attached energy to any in-play Pokémon
+  and placed no damage counters. The correct implementation at line 676 restricts
+  to benched Darkness-type Pokémon and places 2 damage counters on the target.
+  - Root cause: developer authored the duplicate handler with "attach to any
+    Pokémon" semantics and never removed it; correct handler was overwritten at
+    registration time.
+  - Fix: deleted incorrect duplicate and module-level `_cond_sinister_surge`
+    (lines 2311–2368); registration at line 4295 now uses the correct handler.
+  - Evidence: TCGDex me02-068 card text; `abilities.py` lines 676–719;
+    `test_sinister_surge_targets_darkness_bench_and_places_counters` regression test.
+  - Confidence: High.
+
+- **`_jasmine_gaze` bench coverage (sv08-178)** — Handler was applying
+  `incoming_damage_reduction += 30` to only `player.active`. TCGDex text (verified
+  live): "all of your Pokémon take 30 less damage from attacks ... (This includes
+  new Pokémon that come into play.)" Fixed to apply to active + all bench Pokémon.
+  - Engine gap documented (not fixed): "includes new Pokémon that come into play"
+    requires a player-level flag and bench-entry hook. Additionally,
+    `incoming_damage_reduction` is reset unconditionally for all Pokémon in
+    `_end_turn()` (runner.py:532,555), meaning protection effects set during the
+    current player's turn are cleared before the opponent attacks — a systemic
+    timing bug affecting Gaia Wave and similar "opponent's next turn" effects.
+  - Evidence: TCGDex sv08-178 card text (fetched live); `trainers.py`; state.py:122;
+    runner.py:532,555; `test_jasmine_gaze_applies_to_active_and_bench`.
+  - Confidence: High.
+
+- **`_grimsleys_move_b18` max_count (me02-090 Grimsley's Move)** — Handler used
+  `max_count=max_choose` allowing multiple Darkness Pokémon to be benched. TCGDex
+  text: "You may put a Darkness-type Pokémon you find there onto your Bench" —
+  "a" meaning 1. Fixed to `max_count=1`.
+  - Evidence: TCGDex me02-090 card text; `trainers.py`; `test_grimsleys_move_max_one_pokemon`.
+  - Confidence: High.
+
+- **3 regression tests added** — all in `backend/tests/test_engine/test_audit_fixes.py`.
+  Backend test count: **463 passed** (up from 460).
+
+Engine gaps documented (not fixed in this sweep):
+- svp-089 Feraligatr Torrential Heart: noop — requires energy-attach trigger callback
+- svp-134 Crabominable Food Prep: noop — requires multi-source bench-energy redistribution
+- Systemic `incoming_damage_reduction` timing: reset before opponent attacks in `_end_turn()`
+
 ### Fixed (2026-05-04 Session 3 — Missing Alt-Print Registrations + StatusBadge)
 
 - **6 missing handler registrations** — all alt prints of already-implemented cards:

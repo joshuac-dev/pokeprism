@@ -2457,3 +2457,185 @@ def test_energy_provides_conversion_covers_multiple_types(provides, expected_str
     assert converted == expected_str
     resolved = [EnergyType.from_str(s) for s in converted]
     assert resolved == expected_enum
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hardening sweep Section 5 regressions (2026-05-04)
+# ──────────────────────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_sinister_surge_targets_darkness_bench_and_places_counters():
+    """me02-068 Toxtricity Sinister Surge: attaches {D} Energy to a Darkness-bench Pokémon
+    and places 2 damage counters on it. Non-Darkness bench must NOT be targeted."""
+    from app.cards.models import CardDefinition
+
+    toxtricity_cdef = CardDefinition(
+        tcgdex_id="me02-068", name="Toxtricity", set_abbrev="ME02", set_number="068",
+        category="pokemon", stage="Basic", hp=130,
+        abilities=[AbilityDef(name="Sinister Surge", effect="")],
+    )
+    dark_bench_cdef = CardDefinition(
+        tcgdex_id="tst-ss-d01", name="DarkMon", set_abbrev="TST", set_number="001",
+        category="pokemon", stage="Basic", hp=100, types=["Darkness"],
+    )
+    non_dark_bench_cdef = CardDefinition(
+        tcgdex_id="tst-ss-n01", name="NormalMon", set_abbrev="TST", set_number="002",
+        category="pokemon", stage="Basic", hp=100, types=["Colorless"],
+    )
+    dark_energy_cdef = CardDefinition(
+        tcgdex_id="basic-darkness-energy", name="Darkness Energy",
+        set_abbrev="TST", set_number="003",
+        category="energy", stage="", hp=0, energy_provides=["Darkness"],
+    )
+    opp_cdef = _make_card("tst-ss-opp", "OppMon", hp=100)
+    for c in [toxtricity_cdef, dark_bench_cdef, non_dark_bench_cdef, dark_energy_cdef, opp_cdef]:
+        card_registry.register(c)
+
+    toxtricity_inst = CardInstance(
+        instance_id="tox-inst", card_def_id="me02-068", card_name="Toxtricity",
+        current_hp=130, max_hp=130, zone=Zone.ACTIVE,
+    )
+    dark_bench = CardInstance(
+        instance_id="dark-bench-inst", card_def_id="tst-ss-d01", card_name="DarkMon",
+        card_type="Pokemon", card_subtype="Basic",
+        current_hp=100, max_hp=100, zone=Zone.BENCH,
+    )
+    non_dark_bench = CardInstance(
+        instance_id="non-dark-bench-inst", card_def_id="tst-ss-n01", card_name="NormalMon",
+        card_type="Pokemon", card_subtype="Basic",
+        current_hp=100, max_hp=100, zone=Zone.BENCH,
+    )
+    d_energy = CardInstance(
+        instance_id="dark-energy-inst", card_def_id="basic-darkness-energy",
+        card_name="Darkness Energy", card_type="Energy", card_subtype="Basic",
+        max_hp=0, current_hp=0, energy_provides=["Darkness"], zone=Zone.DECK,
+    )
+    opp_active = _make_instance(opp_cdef, hp=100)
+
+    state = _make_state(
+        p1_active=toxtricity_inst,
+        p1_bench=[dark_bench, non_dark_bench],
+        p2_active=opp_active,
+    )
+    state.p1.deck = [d_energy]
+
+    action = Action(
+        player_id="p1",
+        action_type=ActionType.USE_ABILITY,
+        card_instance_id=toxtricity_inst.instance_id,
+    )
+
+    await EffectRegistry.instance().resolve_ability("me02-068", "Sinister Surge", state, action)
+
+    # Energy must be removed from deck and attached to the Darkness bench Pokémon
+    assert d_energy not in state.p1.deck, "Energy should be removed from deck"
+    assert len(dark_bench.energy_attached) == 1, "Energy must attach to Darkness bench Pokémon"
+    assert len(non_dark_bench.energy_attached) == 0, "Non-Darkness bench must NOT receive energy"
+    # 2 damage counters (= 20 HP loss) must be placed on the target
+    assert dark_bench.damage_counters == 2, (
+        f"Expected 2 damage counters, got {dark_bench.damage_counters}"
+    )
+    assert dark_bench.current_hp == 80, (
+        f"Expected 80 HP after 20 damage, got {dark_bench.current_hp}"
+    )
+
+
+def test_jasmine_gaze_applies_to_active_and_bench():
+    """sv08-178 Jasmine's Gaze: incoming_damage_reduction must be set on ALL
+    in-play Pokémon (active + bench), not only the Active Pokémon."""
+    from app.engine.effects.trainers import _jasmine_gaze
+
+    p1_active = CardInstance(
+        instance_id="jg-active", card_def_id="tst-jg-001", card_name="ActiveMon",
+        current_hp=120, max_hp=120, zone=Zone.ACTIVE,
+    )
+    p1_bench1 = CardInstance(
+        instance_id="jg-bench1", card_def_id="tst-jg-002", card_name="BenchMon1",
+        current_hp=100, max_hp=100, zone=Zone.BENCH,
+    )
+    p1_bench2 = CardInstance(
+        instance_id="jg-bench2", card_def_id="tst-jg-003", card_name="BenchMon2",
+        current_hp=80, max_hp=80, zone=Zone.BENCH,
+    )
+    opp_active = CardInstance(
+        instance_id="jg-opp", card_def_id="tst-jg-004", card_name="OppMon",
+        current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+
+    state = _make_state(
+        p1_active=p1_active,
+        p1_bench=[p1_bench1, p1_bench2],
+        p2_active=opp_active,
+    )
+    action = Action(player_id="p1", action_type=ActionType.PLAY_SUPPORTER,
+                    card_instance_id="jg-active")
+
+    _jasmine_gaze(state, action)
+
+    assert p1_active.incoming_damage_reduction == 30, "Active must receive 30 reduction"
+    assert p1_bench1.incoming_damage_reduction == 30, "Bench Pokémon 1 must receive 30 reduction"
+    assert p1_bench2.incoming_damage_reduction == 30, "Bench Pokémon 2 must receive 30 reduction"
+    assert opp_active.incoming_damage_reduction == 0, "Opponent's Pokémon must be unaffected"
+
+
+@pytest.mark.asyncio
+async def test_grimsleys_move_max_one_pokemon():
+    """me02-090 Grimsley's Move: only 1 Darkness Pokémon may be Benched (not multiple).
+    The ChoiceRequest max_count must be 1; with two candidates only the chosen one is benched."""
+    from app.cards.models import CardDefinition
+    from app.engine.effects.trainers import _grimsleys_move_b18
+
+    dark1_cdef = CardDefinition(
+        tcgdex_id="tst-gm-001", name="DarkMon1", set_abbrev="TST", set_number="001",
+        category="pokemon", stage="Basic", hp=80, types=["Darkness"],
+    )
+    dark2_cdef = CardDefinition(
+        tcgdex_id="tst-gm-002", name="DarkMon2", set_abbrev="TST", set_number="002",
+        category="pokemon", stage="Basic", hp=90, types=["Darkness"],
+    )
+    for c in [dark1_cdef, dark2_cdef]:
+        card_registry.register(c)
+
+    dark1 = CardInstance(
+        instance_id="gm-d1", card_def_id="tst-gm-001", card_name="DarkMon1",
+        card_type="Pokemon", card_subtype="Basic",
+        current_hp=80, max_hp=80, zone=Zone.DECK,
+    )
+    dark2 = CardInstance(
+        instance_id="gm-d2", card_def_id="tst-gm-002", card_name="DarkMon2",
+        card_type="Pokemon", card_subtype="Basic",
+        current_hp=90, max_hp=90, zone=Zone.DECK,
+    )
+    p1_active = CardInstance(
+        instance_id="gm-active", card_def_id="tst-gm-003", card_name="ActiveMon",
+        current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="gm-opp", card_def_id="tst-gm-004", card_name="OppMon",
+        current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+
+    state = _make_state(p1_active=p1_active, p2_active=opp_active)
+    state.p1.deck = [dark1, dark2]
+
+    action = Action(player_id="p1", action_type=ActionType.PLAY_ITEM,
+                    card_instance_id="gm-active")
+
+    gen = _grimsleys_move_b18(state, action)
+    req = next(gen)
+    assert req.max_count == 1, (
+        f"Grimsley's Move must only allow 1 Pokémon (max_count=1), got {req.max_count}"
+    )
+    resp = Action(
+        action_type=ActionType.CHOOSE_CARDS,
+        player_id="p1",
+        selected_cards=[dark1.instance_id],
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    benched_ids = {p.instance_id for p in state.p1.bench}
+    assert dark1.instance_id in benched_ids, "Chosen Darkness Pokémon must be benched"
+    assert dark2.instance_id not in benched_ids, "Second Darkness Pokémon must NOT be benched"
