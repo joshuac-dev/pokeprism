@@ -34,7 +34,7 @@ Re-check them before making claims in user-facing docs.
 | Local matches table | 6,900 rows from the same DB snapshot |
 | Local `card_performance` table | 270 rows from the same DB snapshot |
 | Running simulations | 0 from the same DB snapshot |
-| Backend test baseline | Latest full documented run after opponent-batch checkpointing: **449 passed** on 2026-05-04. Run with `cd backend && python3 -m pytest tests/ -x -q`. Historical prior baseline: 439 passed after the Neo4j graph optimization workstream. |
+| Backend test baseline | Latest full documented run after opponent-batch checkpoint deck-ID fix: **453 passed** on 2026-05-04. Run with `cd backend && python3 -m pytest tests/ -x -q`. Historical prior baseline: 449 passed after initial opponent-batch checkpointing. |
 | Frontend unit tests | 4 passed on 2026-05-04 with `cd frontend && npm test -- --run --reporter=dot` |
 | Playwright E2E inventory | 14 tests listed on 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed on 2026-05-04 with `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
@@ -164,6 +164,11 @@ Opponent-batch checkpointing implemented for simulation replay safety:
   silently drop completed opponent data. If a retry reaches an unlocked round
   whose coach mutations were already persisted, the task fails safely rather
   than duplicating mutation decisions.
+- Follow-up live validation found and fixed a deck-identity mismatch: match
+  persistence now preserves scheduled `Simulation.user_deck_id` and
+  `SimulationOpponent.deck_id` values instead of replacing them with name-based
+  deck IDs. Completed-checkpoint replay now verifies against the same deck IDs
+  used by persisted `matches.opponent_deck_id` rows.
 
 Validation:
 
@@ -172,8 +177,12 @@ Validation:
 - `python3 -m pytest backend/tests/test_tasks -q` — 63 passed.
 - `python3 -m pytest backend/tests/test_memory -q` — 20 passed.
 - `python3 -m pytest backend/tests/test_api -q` — 79 passed.
-- `cd backend && python3 -m pytest tests/ -x -q` — 449 passed.
+- `cd backend && python3 -m pytest tests/ -x -q` — 453 passed.
 - `cd backend && alembic heads` — `5b7e9c2d4a11 (head)`.
+- Live Docker/Celery replay validation passed after the deck-ID fix: a
+  completed disposable H/H simulation was re-enqueued, checkpoint rows skipped,
+  match/event/card-performance counts stayed unchanged, and duplicate detection
+  returned zero rows.
 
 ## Current Known Issues / Gaps
 

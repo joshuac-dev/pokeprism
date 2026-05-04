@@ -135,6 +135,69 @@ class MatchMemoryWriter:
 
         return deck.id
 
+    async def ensure_deck_cards_for_id(
+        self,
+        deck_id: uuid.UUID,
+        deck_name: str,
+        card_defs: list[CardDefinition],
+        db: AsyncSession,
+    ) -> uuid.UUID:
+        """Ensure a known deck ID exists and has matching DeckCard rows.
+
+        Scheduled simulations already have stable deck IDs. Use this helper
+        instead of name-based deck lookup so retry checkpoints and match rows
+        keep the same deck identity.
+        """
+        counts: dict[str, int] = {}
+        for c in card_defs:
+            counts[c.tcgdex_id] = counts.get(c.tcgdex_id, 0) + 1
+
+        result = await db.execute(select(Deck).where(Deck.id == deck_id))
+        deck = result.scalar_one_or_none()
+        if deck is None:
+            deck_text = "\n".join(
+                f"{qty} {tid}" for tid, qty in sorted(counts.items())
+            )
+            deck = Deck(
+                id=deck_id,
+                name=deck_name,
+                archetype=deck_name,
+                deck_text=deck_text,
+                card_count=len(card_defs),
+                source="simulation",
+            )
+            db.add(deck)
+            await db.flush()
+        else:
+            if not deck.name and deck_name:
+                deck.name = deck_name
+            if not deck.archetype and deck_name:
+                deck.archetype = deck_name
+
+        existing_rows = (await db.execute(
+            select(DeckCard).where(DeckCard.deck_id == deck_id)
+        )).scalars().all()
+        existing_counts = {
+            row.card_tcgdex_id: row.quantity
+            for row in existing_rows
+        }
+
+        if not existing_counts:
+            db.add_all(
+                DeckCard(deck_id=deck_id, card_tcgdex_id=tid, quantity=qty)
+                for tid, qty in counts.items()
+            )
+            await db.flush()
+            return deck_id
+
+        if existing_counts != counts:
+            raise ValueError(
+                f"Deck {deck_id} already has DeckCard rows that do not match "
+                "the scheduled simulation deck contents."
+            )
+
+        return deck_id
+
     async def ensure_simulation(
         self,
         simulation_id: uuid.UUID,

@@ -12,7 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from app.cards.models import CardDefinition
 from app.db.models import (
     CardPerformance,
+    Deck,
+    DeckCard,
     DeckMutation,
+    Match,
     Round,
     Simulation,
     SimulationOpponentResult,
@@ -140,6 +143,212 @@ async def _write_match(db, writer, sim_id, round_id, p1_deck_id, p2_deck_id, res
 
 
 @pytest.mark.asyncio
+async def test_ensure_deck_cards_for_id_creates_requested_deck_id(db_session):
+    writer = MatchMemoryWriter()
+    suffix = uuid.uuid4().hex[:8]
+    cards = [_card(f"known-{suffix}-001", "Known A")]
+    await writer.ensure_cards(cards, db_session)
+    deck_id = uuid.uuid4()
+
+    returned = await writer.ensure_deck_cards_for_id(
+        deck_id, "Known Deck", cards * 60, db_session
+    )
+    await db_session.commit()
+
+    assert returned == deck_id
+    deck = (await db_session.execute(
+        select(Deck).where(Deck.id == deck_id)
+    )).scalar_one()
+    deck_cards = (await db_session.execute(
+        select(DeckCard).where(DeckCard.deck_id == deck_id)
+    )).scalars().all()
+    assert deck.name == "Known Deck"
+    assert [(row.card_tcgdex_id, row.quantity) for row in deck_cards] == [
+        (cards[0].tcgdex_id, 60)
+    ]
+
+
+@pytest.mark.asyncio
+async def test_ensure_deck_cards_for_id_populates_existing_deck(db_session):
+    writer = MatchMemoryWriter()
+    suffix = uuid.uuid4().hex[:8]
+    cards = [_card(f"existing-{suffix}-001", "Existing A")]
+    await writer.ensure_cards(cards, db_session)
+    deck_id = uuid.uuid4()
+    db_session.add(
+        Deck(
+            id=deck_id,
+            name="Existing Known Deck",
+            archetype="Existing Known Deck",
+            deck_text="",
+            card_count=60,
+            source="user",
+        )
+    )
+    await db_session.commit()
+
+    returned = await writer.ensure_deck_cards_for_id(
+        deck_id, "Existing Known Deck", cards * 60, db_session
+    )
+    await db_session.commit()
+
+    assert returned == deck_id
+    quantity = (await db_session.execute(
+        select(DeckCard.quantity).where(
+            DeckCard.deck_id == deck_id,
+            DeckCard.card_tcgdex_id == cards[0].tcgdex_id,
+        )
+    )).scalar_one()
+    assert quantity == 60
+
+
+@pytest.mark.asyncio
+async def test_known_deck_ids_are_preserved_when_same_name_decks_exist(db_session):
+    writer = MatchMemoryWriter()
+    suffix = uuid.uuid4().hex[:8]
+    p1_cards = [_card(f"same-name-{suffix}-p1", "Same Name P1")]
+    p2_cards = [_card(f"same-name-{suffix}-p2", "Same Name P2")]
+    await writer.ensure_cards(p1_cards + p2_cards, db_session)
+
+    older_p1_id = await writer.ensure_deck("Same Name User", p1_cards * 60, db_session)
+    older_p2_id = await writer.ensure_deck("Same Name Opponent", p2_cards * 60, db_session)
+    scheduled_p1_id = uuid.uuid4()
+    scheduled_p2_id = uuid.uuid4()
+    db_session.add_all([
+        Deck(
+            id=scheduled_p1_id,
+            name="Same Name User",
+            archetype="Same Name User",
+            deck_text="",
+            card_count=60,
+            source="user",
+        ),
+        Deck(
+            id=scheduled_p2_id,
+            name="Same Name Opponent",
+            archetype="Same Name Opponent",
+            deck_text="",
+            card_count=60,
+            source="opponent",
+        ),
+    ])
+    await db_session.commit()
+
+    p1_id = await writer.ensure_deck_cards_for_id(
+        scheduled_p1_id, "Same Name User", p1_cards * 60, db_session
+    )
+    p2_id = await writer.ensure_deck_cards_for_id(
+        scheduled_p2_id, "Same Name Opponent", p2_cards * 60, db_session
+    )
+    await db_session.commit()
+
+    assert p1_id == scheduled_p1_id
+    assert p2_id == scheduled_p2_id
+    assert p1_id != older_p1_id
+    assert p2_id != older_p2_id
+
+
+@pytest.mark.asyncio
+async def test_same_name_opponent_checkpoint_replay_uses_scheduled_deck_id(db_session):
+    writer = MatchMemoryWriter()
+    suffix = uuid.uuid4().hex[:8]
+    p1_cards = [_card(f"replay-{suffix}-p1", "Replay P1")]
+    p2_cards = [_card(f"replay-{suffix}-p2", "Replay P2")]
+    await writer.ensure_cards(p1_cards + p2_cards, db_session)
+
+    old_opponent_id = await writer.ensure_deck(
+        "Replay Same Name Opponent", p2_cards * 60, db_session
+    )
+    scheduled_p1_id = await writer.ensure_deck(
+        f"Replay P1 {suffix}", p1_cards * 60, db_session
+    )
+    scheduled_p2_id = uuid.uuid4()
+    db_session.add(
+        Deck(
+            id=scheduled_p2_id,
+            name="Replay Same Name Opponent",
+            archetype="Replay Same Name Opponent",
+            deck_text="",
+            card_count=60,
+            source="opponent",
+        )
+    )
+    sim = Simulation(
+        status="running",
+        game_mode="hh",
+        deck_mode="full",
+        deck_locked=True,
+        user_deck_id=scheduled_p1_id,
+        matches_per_opponent=1,
+        num_rounds=1,
+        target_win_rate=60,
+    )
+    db_session.add(sim)
+    await db_session.flush()
+    round_row = Round(
+        simulation_id=sim.id,
+        round_number=1,
+        deck_snapshot={
+            "cards": [
+                {"tcgdex_id": c.tcgdex_id, "name": c.name}
+                for c in p1_cards * 60
+            ]
+        },
+        total_matches=0,
+    )
+    db_session.add(round_row)
+    await db_session.flush()
+    await db_session.commit()
+
+    assert await _prepare_opponent_checkpoint(
+        db_session,
+        sim.id,
+        round_row.id,
+        1,
+        scheduled_p2_id,
+        "Replay Same Name Opponent",
+        1,
+    ) == "run"
+    await writer.ensure_deck_cards_for_id(
+        scheduled_p2_id, "Replay Same Name Opponent", p2_cards * 60, db_session
+    )
+    await _write_match(
+        db_session,
+        writer,
+        sim.id,
+        round_row.id,
+        scheduled_p1_id,
+        scheduled_p2_id,
+        _result("p1"),
+    )
+    await _complete_opponent_checkpoint(
+        db_session, sim.id, 1, scheduled_p2_id, [_result("p1")], "complete"
+    )
+    await db_session.commit()
+
+    assert old_opponent_id != scheduled_p2_id
+    match = (await db_session.execute(
+        select(Match).where(Match.simulation_id == sim.id)
+    )).scalar_one()
+    assert match.opponent_deck_id == scheduled_p2_id
+
+    assert await _prepare_opponent_checkpoint(
+        db_session,
+        sim.id,
+        round_row.id,
+        1,
+        scheduled_p2_id,
+        "Replay Same Name Opponent",
+        1,
+    ) == "skip"
+    await db_session.commit()
+
+    assert (await db_session.execute(
+        select(text("count(*)")).select_from(Match).where(Match.simulation_id == sim.id)
+    )).scalar_one() == 1
+
+
+@pytest.mark.asyncio
 async def test_fresh_checkpoint_runs_and_completes(db_session):
     _writer, sim_id, round_id, _p1_deck_id, p2_deck_id, _cards = await _seed_simulation(db_session)
 
@@ -153,7 +362,11 @@ async def test_fresh_checkpoint_runs_and_completes(db_session):
     )
     await db_session.commit()
 
-    checkpoint = (await db_session.execute(select(SimulationOpponentResult))).scalar_one()
+    checkpoint = (await db_session.execute(
+        select(SimulationOpponentResult).where(
+            SimulationOpponentResult.simulation_id == sim_id
+        )
+    )).scalar_one()
     assert checkpoint.status == "complete"
     assert checkpoint.matches_completed == 2
     assert checkpoint.p1_wins == 1
@@ -296,7 +509,11 @@ async def test_pending_checkpoint_with_existing_target_matches_finalizes(db_sess
     )
     await db_session.commit()
 
-    checkpoint = (await db_session.execute(select(SimulationOpponentResult))).scalar_one()
+    checkpoint = (await db_session.execute(
+        select(SimulationOpponentResult).where(
+            SimulationOpponentResult.simulation_id == sim_id
+        )
+    )).scalar_one()
     assert action == "skip"
     assert checkpoint.status == "complete"
     assert checkpoint.matches_completed == 1

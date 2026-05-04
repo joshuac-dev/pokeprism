@@ -116,6 +116,10 @@ evidence-based history, not the live status file.
     Alembic revision `5b7e9c2d4a11`;
     `backend/tests/test_tasks/test_simulation_checkpointing.py`; full backend
     test suite (449 passed).
+  - Follow-up fix: match persistence now preserves scheduled deck IDs for
+    `Simulation.user_deck_id` and `SimulationOpponent.deck_id` instead of
+    replacing them through name-based deck lookup. Live Docker/Celery replay
+    validation passed after the fix; full backend suite: 453 passed.
   - Confidence: High.
 
 ### Added / Fixed (2026-05-04 Session 2 — Card Handlers + Simulation Queue)

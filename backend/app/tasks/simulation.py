@@ -854,11 +854,16 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                         {c.tcgdex_id: c for c in current_deck_cards + opp_cards}.values()
                     )
                     await writer.ensure_cards(all_card_defs, db)
-                    p1_deck_db_id = await writer.ensure_deck(
-                        user_deck_name, current_deck_cards, db
-                    )
-                    p2_deck_db_id = await writer.ensure_deck(
-                        opp_name, opp_cards, db
+                    if user_deck_id:
+                        p1_deck_db_id = await writer.ensure_deck_cards_for_id(
+                            user_deck_id, user_deck_name, current_deck_cards, db
+                        )
+                    else:
+                        p1_deck_db_id = await writer.ensure_deck(
+                            user_deck_name, current_deck_cards, db
+                        )
+                    p2_deck_db_id = await writer.ensure_deck_cards_for_id(
+                        opp_deck_id, opp_name, opp_cards, db
                     )
                     match_ids: list[uuid.UUID] = []
                     for idx, result_item in enumerate(batch.results):
