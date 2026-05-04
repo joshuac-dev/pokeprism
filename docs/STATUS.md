@@ -130,12 +130,19 @@ deck setup caching/batching: total 12.29s, simulation+Redis 1.39s, Postgres
 setup cache entries. Absolute times include contention from an older
 redelivered Celery simulation that remained active.
 
-Neo4j optimization is intentionally paused after these safe batching/caching
-improvements. Batch-level or deferred graph persistence remains a possible
-future optimization, but it is deferred rather than rejected. The current
-per-match graph persistence semantics are preferred for now to preserve data
-quality, immediate graph visibility, and AI/coach memory fidelity. Shift next
-work away from Neo4j batching unless runtime becomes unacceptable again.
+Decision: Neo4j graph optimization is paused after the safe batching/caching
+improvements in commit `b92f4e1`. H/H slowdown was investigated and confirmed
+not to involve Ollama, `nomic-embed-text`, or AI inference. The completed
+optimizations batch `SYNERGIZES_WITH` updates with `UNWIND $pairs AS pair` and
+cache/batch Deck/Card/BELONGS_TO setup per `GraphMemoryWriter` instance, with
+strong backend validation (`439 passed`).
+
+Batch-level or deferred graph persistence remains a possible future
+optimization, but it is deferred rather than rejected. Current performance is
+acceptable relative to the higher priority of preserving memory fidelity,
+immediate graph visibility, and AI/coach data quality. Revisit deeper graph
+batching only if runtime becomes unacceptable again, and only with strict
+reference-equivalence tests against the current per-match graph writer.
 
 ## Current Known Issues / Gaps
 
@@ -169,7 +176,8 @@ work away from Neo4j batching unless runtime becomes unacceptable again.
 - Neo4j graph writes remain per-match for MatchResult and BEATS relationships.
   Deck/Card/BELONGS_TO setup and synergy pair updates are batched/cached.
   Match-result aggregation and batch-level/deferred graph persistence are
-  deferred future opportunities, not active next work.
+  deferred future opportunities, not active next work; if revisited, they need
+  reference-equivalence tests against current per-match persistence.
 
 ## Operational Caveats
 
@@ -217,16 +225,19 @@ docker compose config --quiet
 
 ## Immediate Next Steps
 
-1. Continue the DB-backed audit from `docs/AUDIT_STATE.md` using the rules in
+1. Prioritize simulation reliability before more Neo4j batching, especially
+   checkpointing completed opponent batches so Celery redelivery/retry cannot
+   replay already-persisted opponent blocks.
+2. Continue the DB-backed audit from `docs/AUDIT_STATE.md` using the rules in
    `docs/AUDIT_RULES.md`. Do not advance `next_start_cursor` unless an actual
    card audit is performed.
-2. Implement the next safe card-handler batch discovered by audit or simulation
+3. Implement the next safe card-handler batch discovered by audit or simulation
    coverage gates, with focused tests and a worker rebuild.
-3. Run at least one simulation containing newly implemented cards to verify the
+4. Run at least one simulation containing newly implemented cards to verify the
    coverage gate and runtime worker path use the new handlers.
-4. Re-run the full backend suite when handler or engine changes are complete and
+5. Re-run the full backend suite when handler or engine changes are complete and
    update this file with the exact command and result.
-5. Keep `docs/CHANGELOG.md` as the historical record for completed work and
+6. Keep `docs/CHANGELOG.md` as the historical record for completed work and
    resolved uncertainty.
 
 ## Read This First
