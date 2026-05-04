@@ -130,6 +130,13 @@ deck setup caching/batching: total 12.29s, simulation+Redis 1.39s, Postgres
 setup cache entries. Absolute times include contention from an older
 redelivered Celery simulation that remained active.
 
+Neo4j optimization is intentionally paused after these safe batching/caching
+improvements. Batch-level or deferred graph persistence remains a possible
+future optimization, but it is deferred rather than rejected. The current
+per-match graph persistence semantics are preferred for now to preserve data
+quality, immediate graph visibility, and AI/coach memory fidelity. Shift next
+work away from Neo4j batching unless runtime becomes unacceptable again.
+
 ## Current Known Issues / Gaps
 
 - DeckBuilder Phase 3, simulation-backed preference weighting from historical
@@ -160,9 +167,9 @@ redelivered Celery simulation that remained active.
   There is no push notification to the frontend when a queued sim transitions to
   running; the frontend must poll for status changes.
 - Neo4j graph writes remain per-match for MatchResult and BEATS relationships.
-  Deck/Card/BELONGS_TO setup and synergy pair updates are batched/cached, but
-  match-result aggregation or deferred graph persistence remains a future
-  performance opportunity.
+  Deck/Card/BELONGS_TO setup and synergy pair updates are batched/cached.
+  Match-result aggregation and batch-level/deferred graph persistence are
+  deferred future opportunities, not active next work.
 
 ## Operational Caveats
 
