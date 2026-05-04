@@ -100,6 +100,7 @@ jobs:
           gh label create card-effect-fix --description "Automated card effect implementation fix" --color 2da44e || true
           gh label create copilot-agent-task --description "Task intended for GitHub Copilot coding agent" --color 0969da || true
           gh label create automated --description "Created by automated workflow" --color cfd3d7 || true
+          gh label create docs-sync --description "Documentation must be kept in sync with implementation state" --color f9d0c4 || true
 
           BODY_FILE="$(mktemp)"
 
@@ -108,9 +109,67 @@ jobs:
 
           This is a scheduled task for GitHub Copilot coding agent.
 
-          Read docs/AUDIT_RULES.md first and follow it as the authoritative instruction set for this task.
+          ## Required reading order
 
-          Also read docs/AUDIT_STATE.md to understand the persisted audit cursor.
+          Before doing any audit or code changes, read these files in this order:
+
+          1. docs/STATUS.md
+          2. docs/CHANGELOG.md
+          3. docs/AUDIT_RULES.md
+          4. docs/AUDIT_STATE.md
+          5. README.md
+          6. docs/PROJECT.md
+          7. Relevant docs/proposals/*.md files only if touched by the task
+
+          ## Documentation hierarchy
+
+          The project documentation hierarchy has changed.
+
+          - docs/STATUS.md is the current-state operational handoff. Its top/current section is authoritative.
+          - docs/CHANGELOG.md is the evidence-based historical record of what changed, why, and with what confidence.
+          - docs/AUDIT_RULES.md and docs/AUDIT_STATE.md define the active DB-backed card-effect audit workflow.
+          - docs/PROJECT.md is historical architecture context and original blueprint material. It is no longer the active "gospel" for current implementation state.
+          - README.md is onboarding/public overview. If it conflicts with docs/STATUS.md, docs/STATUS.md wins.
+          - docs/CARD_EXPANSION_RULES.md, docs/CARDLIST.md, and docs/POKEMON_MASTER_LIST.md are historical/supporting expansion-era documents. Do not use them as active audit authority.
+
+          ## Required documentation maintenance
+
+          This workflow must keep the cleaned-up documentation synchronized.
+
+          At the end of the run, update docs/STATUS.md with a concise current-state handoff that includes:
+
+          - current workstream;
+          - date of this run;
+          - completion status;
+          - target findings;
+          - implemented fixes;
+          - documented engine gaps;
+          - database cards audited;
+          - first card audited;
+          - last card fully audited;
+          - next resume cursor;
+          - AUDIT_STATE.md update status;
+          - focused tests run;
+          - full tests run, if any;
+          - known issues or follow-ups;
+          - operational notes, especially whether effects files changed and whether celery-worker rebuild is required locally.
+
+          Update docs/CHANGELOG.md if this run produced meaningful completed work, including any of:
+
+          - implementation fixes;
+          - new or corrected card handlers;
+          - documented true engine gaps;
+          - audit workflow changes;
+          - test baseline changes;
+          - important operational findings.
+
+          The CHANGELOG entry should be evidence-based and include why the change was made, relevant files/PR/issue references where available, and confidence.
+
+          Do not update docs/PROJECT.md unless this run changes documentation governance or architecture context. PROJECT.md is historical context.
+
+          Do not advance docs/AUDIT_STATE.md unless an actual DB-backed audit was performed and at least one database card was audited.
+
+          ## Copilot environment
 
           The Copilot coding-agent environment should be prepared by .github/workflows/copilot-setup-steps.yml before you start work. That setup provisions PostgreSQL on localhost:5433, runs migrations, and seeds the cards table using the repository's backend/scripts/seed_cards.py script.
 
@@ -118,9 +177,38 @@ jobs:
 
           postgresql+asyncpg://pokeprism:changeme_postgres@localhost:5433/pokeprism
 
-          If DB access fails, inspect .github/workflows/copilot-setup-steps.yml, backend/app/config.py, backend/alembic.ini, docker-compose.yml, backend/scripts/seed_cards.py, and backend/app/db/models.py before reporting BLOCKED_DB_ACCESS.
+          If DB access fails, inspect:
 
-          Do not use docs/CARD_EXPANSION_RULES.md, docs/CARDLIST.md, or docs/POKEMON_MASTER_LIST.md to choose audit candidates. Those files are not audit sources.
+          - .github/workflows/copilot-setup-steps.yml
+          - backend/app/config.py
+          - backend/alembic.ini
+          - docker-compose.yml
+          - backend/scripts/seed_cards.py
+          - backend/app/db/models.py
+
+          before reporting BLOCKED_DB_ACCESS.
+
+          ## Hard prohibitions
+
+          Do not use docs/CARD_EXPANSION_RULES.md, docs/CARDLIST.md, or docs/POKEMON_MASTER_LIST.md to choose audit candidates.
+
+          Do not use markdown card lists as active audit scope.
+
+          Do not use local cached card data, database card text, generated fixtures, or old markdown docs as card-text authority.
+
+          Do not guess card text.
+
+          Do not create placeholder handlers.
+
+          Do not create broad unrelated refactors.
+
+          Do not run a discovery-only pass.
+
+          Do not commit frontend/node_modules.
+
+          Do not run destructive database reset commands.
+
+          Do not advance docs/AUDIT_STATE.md unless an actual database card audit occurred.
 
           ## Core intent
 
@@ -137,6 +225,7 @@ jobs:
           Target implemented findings for this run: ${TARGET_FINDINGS}
 
           Count only:
+
           - implementation bugs fixed in code;
           - missing handlers implemented and registered;
           - wrong registrations fixed;
@@ -170,9 +259,8 @@ jobs:
 
           ## Required execution behavior
 
-          Do not do a long discovery-only pass.
-
           Work card-by-card:
+
           1. Query the next card from the database.
           2. Fetch that exact card from TCGDex.
           3. Compare TCGDex behavior to the implementation.
@@ -183,7 +271,7 @@ jobs:
 
           If TCGDex is unavailable, blocked, or down, stop and report BLOCKED_TCGDEX. Do not guess. Do not fall back to local card lists.
 
-          If Copilot warns that the time budget is nearly exhausted, stop auditing new cards, finish the current safe fix if practical, run focused tests, update docs/AUDIT_STATE.md with the next database cursor, open the PR, and include the next resume cursor.
+          If Copilot warns that the time budget is nearly exhausted, stop auditing new cards, finish the current safe fix if practical, run focused tests, update docs/AUDIT_STATE.md with the next database cursor if at least one database card was audited, open the PR, and include the next resume cursor.
 
           ## Required state update
 
@@ -193,11 +281,26 @@ jobs:
 
           On BLOCKED_TCGDEX before any card is audited, do not advance next_start_cursor.
 
+          On BLOCKED_DB_ACCESS, do not advance next_start_cursor.
+
           On DB_EXHAUSTED, keep or reset next_start_cursor according to docs/AUDIT_RULES.md.
+
+          ## Required validation
+
+          Run focused tests for every implemented fix where practical.
+
+          If files under backend/app/engine/effects/ changed, explicitly state in the PR that local operators must rebuild the celery worker:
+
+          docker compose build celery-worker && docker compose up -d celery-worker
+
+          If the Copilot environment can safely run the rebuild, do so. If not, document it as a required local operational step.
+
+          Run broader backend tests if practical. If full tests cannot be run because of time budget, state exactly which focused tests were run and which broader tests should be run next.
 
           ## Required PR report
 
           Include:
+
           - Completion status
           - TCGDEX_PREFLIGHT
           - DB_CARD_SOURCE
@@ -214,8 +317,12 @@ jobs:
           - Last card fully audited
           - Next resume cursor
           - AUDIT_STATE.md updated: yes/no
+          - STATUS.md updated: yes/no
+          - CHANGELOG.md updated: yes/no, with reason
           - Focused tests run
           - Full tests run, if any
+          - Effects files changed: yes/no
+          - Celery-worker rebuild required: yes/no
           - Per-card audit ledger
 
           Suggested PR title:
@@ -227,23 +334,28 @@ jobs:
             {
               title: $title,
               body: $body,
-              labels: ["card-effect-audit", "card-effect-fix", "copilot-agent-task", "automated"],
+              labels: ["card-effect-audit", "card-effect-fix", "copilot-agent-task", "automated", "docs-sync"],
               assignees: ["copilot-swe-agent[bot]"],
               agent_assignment: {
                 target_repo: $repo,
                 base_branch: "main",
                 custom_instructions: (
-                  "Read docs/AUDIT_RULES.md and docs/AUDIT_STATE.md first. The Copilot setup workflow should provision Postgres on localhost:5433, run migrations, and seed cards via backend/scripts/seed_cards.py. " +
+                  "Read docs/STATUS.md, docs/CHANGELOG.md, docs/AUDIT_RULES.md, docs/AUDIT_STATE.md, README.md, and then docs/PROJECT.md before doing any work. " +
+                  "Documentation hierarchy: STATUS.md is current operational truth; CHANGELOG.md is evidence-based history; AUDIT_RULES.md/AUDIT_STATE.md define the active DB-backed audit workflow; PROJECT.md is historical architecture context, not current gospel. " +
+                  "The Copilot setup workflow should provision Postgres on localhost:5433, run migrations, and seed cards via backend/scripts/seed_cards.py. " +
                   "This is a DB-backed rotating implementation audit, not a card-list expansion task. " +
                   "Use the database to determine cards in scope. Use TCGDex as the only source of truth for card text. " +
                   "Start at this DB cursor: " + $cursor + ". Traverse the DB card list circularly: after the end, wrap to the beginning until target, full-cycle exhaustion, TCGDex block, DB block, or time budget. " +
                   "Do not use CARD_EXPANSION_RULES.md, CARDLIST.md, or POKEMON_MASTER_LIST.md as audit candidate sources. " +
                   "Do not run a discovery-only pass; fix and test issues card-by-card. " +
                   "Target " + $target + " implemented fixes/documented engine gaps. " +
-                  "Update docs/AUDIT_STATE.md with the next DB cursor in the PR. " +
+                  "Update docs/STATUS.md with a concise current-state handoff. Update docs/CHANGELOG.md if meaningful completed work occurred. " +
+                  "Update docs/AUDIT_STATE.md with the next DB cursor only if an actual database-card audit occurred. " +
                   "If TCGDex is unavailable, stop gracefully with BLOCKED_TCGDEX and do not use local fallback card data. " +
                   "If DB access fails, inspect copilot-setup-steps.yml and repository DB config before reporting BLOCKED_DB_ACCESS. " +
-                  "If time budget warnings appear, stop auditing new cards, finish the current safe fix, test, PR, and include the next DB resume cursor."
+                  "If time budget warnings appear, stop auditing new cards, finish the current safe fix, test, PR, and include the next DB resume cursor. " +
+                  "If backend/app/engine/effects/ changed, note that celery-worker must be rebuilt with: docker compose build celery-worker && docker compose up -d celery-worker. " +
+                  "Do not commit frontend/node_modules."
                 ),
                 custom_agent: ""
               }
@@ -255,11 +367,24 @@ jobs:
           '
 
           ISSUE_JSON="$(
-            jq -n               --arg title "$TITLE"               --rawfile body "$BODY_FILE"               --arg repo "$GH_REPO"               --arg model "$COPILOT_MODEL"               --arg target "$TARGET_FINDINGS"               --arg cursor "$START_CURSOR"               "$JQ_FILTER"
+            jq -n \
+              --arg title "$TITLE" \
+              --rawfile body "$BODY_FILE" \
+              --arg repo "$GH_REPO" \
+              --arg model "$COPILOT_MODEL" \
+              --arg target "$TARGET_FINDINGS" \
+              --arg cursor "$START_CURSOR" \
+              "$JQ_FILTER"
           )"
 
           ISSUE_URL="$(
-            gh api               --method POST               -H "Accept: application/vnd.github+json"               -H "X-GitHub-Api-Version: 2022-11-28"               /repos/${GH_REPO}/issues               --input - <<< "$ISSUE_JSON"               --jq '.html_url'
+            gh api \
+              --method POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              /repos/${GH_REPO}/issues \
+              --input - <<< "$ISSUE_JSON" \
+              --jq '.html_url'
           )"
 
           echo "Created and assigned Copilot task: $ISSUE_URL"
