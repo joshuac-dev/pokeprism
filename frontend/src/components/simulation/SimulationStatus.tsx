@@ -13,6 +13,7 @@ interface Props {
 
 const STATUS_COLOR: Record<string, string> = {
   pending:   'text-slate-400',
+  queued:    'text-slate-400',
   running:   'text-blue-400',
   complete:  'text-green-400',
   failed:    'text-red-400',
@@ -21,6 +22,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 const STATUS_LABEL: Record<string, string> = {
   pending:   'Pending',
+  queued:    'Queued',
   running:   'Running',
   complete:  'Complete',
   failed:    'Failed',
