@@ -17889,7 +17889,7 @@ def register_all(registry):
     registry.register_attack("sv07-054", 0, _electrifying_chance)           # Togedemaru — Electrifying Chance
     registry.register_attack("sv07-055", 0, _combat_thunder)                # Zeraora — Combat Thunder
     registry.register_attack("sv07-056", 0, _targeted_spark)                # Pawmi — Targeted Spark
-    registry.register_attack("sv07-057", 0, _dangle_tail_flag)              # Slowpoke — Dangle Tail (FLAGGED)
+    registry.register_attack("sv07-057", 0, _dangle_tail)                   # Slowpoke — Dangle Tail
     registry.register_attack("sv07-058", 0, _seek_inspiration_flag)         # Slowking — Seek Inspiration (FLAGGED)
     # sv07-059 Mewtwo: ATK0 Super Psy Bolt (flat 100)
 
@@ -18031,8 +18031,8 @@ def register_all(registry):
     registry.register_attack("sv06-016", 1, _wood_hammer_50recoil)          # Rillaboom — Wood Hammer
     registry.register_attack("sv06-017", 0, _tumbling_attack)               # Applin — Tumbling Attack
     registry.register_attack("sv06-018", 0, _do_the_wave_twm)               # Dipplin — Do the Wave
-    registry.register_attack("sv06-019", 0, _recovery_net_flag)             # Iron Leaves — Recovery Net (FLAGGED)
-    registry.register_attack("sv06-019", 1, _avenging_edge_flag)            # Iron Leaves — Avenging Edge (FLAGGED)
+    registry.register_attack("sv06-019", 0, _recovery_net)                  # Iron Leaves — Recovery Net
+    registry.register_attack("sv06-019", 1, _avenging_edge)                 # Iron Leaves — Avenging Edge
     registry.register_attack("sv06-021", 0, _tea_server_flag)               # Poltchageist — Tea Server (FLAGGED)
     registry.register_attack("sv06-021", 1, _surprise_attack_30)            # Poltchageist — Surprise Attack (reuse)
     registry.register_attack("sv06-022", 0, _cursed_drop_flag)              # Sinistcha — Cursed Drop (FLAGGED)
@@ -19327,10 +19327,26 @@ def _targeted_spark(state, action):
     _apply_damage(state, action, 20)
 
 
-def _dangle_tail_flag(state, action):
-    """sv07-057 Slowpoke atk0 — Dangle Tail: FLAGGED (put Pokémon from discard to hand)."""
-    state.emit_event("flagged_effect", attack="Dangle Tail",
-                     reason="retrieve_pokemon_from_discard_to_hand_not_supported")
+def _dangle_tail(state, action):
+    """sv07-057 Slowpoke atk0 — Dangle Tail: put 1 Pokémon from discard pile into hand."""
+    player = state.get_player(action.player_id)
+    candidates = [c for c in player.discard if c.card_type.lower() == "pokemon"]
+    if not candidates:
+        return
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        "Dangle Tail: choose a Pokémon from your discard pile",
+        cards=candidates, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [candidates[0].instance_id])
+    for iid in chosen_ids[:1]:
+        card = next((c for c in player.discard if c.instance_id == iid), None)
+        if card:
+            player.discard.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
 
 
 
@@ -20987,17 +21003,32 @@ def _do_the_wave_twm(state, action):
                          reason="no_bench")
 
 
-def _recovery_net_flag(state, action):
-    """sv06-019 Iron Leaves atk0 — Recovery Net: FLAGGED (put 2 Pokémon from discard to hand)."""
-    state.emit_event("flagged_effect", attack="Recovery Net",
-                     reason="put_pokemon_from_discard_to_hand_not_supported")
+def _recovery_net(state, action):
+    """sv06-019 Iron Leaves atk0 — Recovery Net: put up to 2 Pokémon from discard pile into hand."""
+    player = state.get_player(action.player_id)
+    candidates = [c for c in player.discard if c.card_type.lower() == "pokemon"]
+    if not candidates:
+        return
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        "Recovery Net: choose up to 2 Pokémon from your discard pile",
+        cards=candidates, min_count=0, max_count=2,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards else [])
+    for iid in chosen_ids[:2]:
+        card = next((c for c in player.discard if c.instance_id == iid), None)
+        if card:
+            player.discard.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
 
 
-def _avenging_edge_flag(state, action):
-    """sv06-019 Iron Leaves atk1 — Avenging Edge: FLAGGED (inter-turn KO tracking)."""
-    _do_default_damage(state, action)
-    state.emit_event("flagged_effect", attack="Avenging Edge",
-                     reason="inter_turn_ko_tracking_not_supported")
+def _avenging_edge(state, action):
+    """sv06-019 Iron Leaves atk1 — Avenging Edge: 100 + 60 more if a Pokémon was KO'd last turn."""
+    player = state.get_player(action.player_id)
+    bonus = 60 if player.ko_taken_last_turn else 0
+    _apply_damage(state, action, 100 + bonus)
 
 
 def _tea_server_flag(state, action):
@@ -21283,12 +21314,6 @@ def _permeating_chill_flag(state, action):
     """sv06-054 Glaceon atk0 — Permeating Chill: FLAGGED (deferred damage at end of opp's next turn)."""
     state.emit_event("flagged_effect", attack="Permeating Chill",
                      reason="deferred_damage_end_of_opponent_next_turn_not_supported")
-
-
-def _beckon_flag(state, action):
-    """sv06-055 Phione atk0 — Beckon: FLAGGED (put Supporter from discard to hand)."""
-    state.emit_event("flagged_effect", attack="Beckon",
-                     reason="put_supporter_from_discard_to_hand_not_supported")
 
 
 def _energy_press(state, action):
@@ -25691,18 +25716,6 @@ def _twister_spewing_b2(state, action):
                 opp.discard.append(top)
                 state.emit_event("deck_discarded", player=opp_id, card=top.card_name,
                                  reason="Twister Spewing")
-
-
-def _strong_bash_b2(state, action):
-    """sv10-146 Zamazenta atk0 — Strong Bash: 70 + if damaged by attack, deal equal counters to attacker."""
-    _do_default_damage(state, action)
-    if state.phase == Phase.GAME_OVER:
-        return
-    player = state.get_player(action.player_id)
-    if player.active:
-        player.active.retaliation_on_damage = True
-        state.emit_event("strong_bash", player=action.player_id,
-                         card=player.active.card_name)
 
 
 def _strong_bash_b2(state, action):
