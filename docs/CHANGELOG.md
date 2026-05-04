@@ -120,6 +120,12 @@ evidence-based history, not the live status file.
     `Simulation.user_deck_id` and `SimulationOpponent.deck_id` instead of
     replacing them through name-based deck lookup. Live Docker/Celery replay
     validation passed after the fix; full backend suite: 453 passed.
+  - Follow-up fix 2: `_ET_ATTACH` helper (used by Cresselia me02-039 Swelling
+    Light) was calling the `EnergyType` enum instead of `EnergyAttachment`,
+    causing live simulation `2bc45a4e` to fail with `EnumType.__call__() got an
+    unexpected keyword argument 'energy_type'`. Fixed to call
+    `EnergyAttachment(...)`. Regression test added to `test_audit_fixes.py`
+    (#L1). Full backend suite: 454 passed.
   - Confidence: High.
 
 ### Added / Fixed (2026-05-04 Session 2 — Card Handlers + Simulation Queue)

@@ -26,6 +26,8 @@ Session 2 fixes (Batch A):
   #A7  : _dangle_tail_flag → _dangle_tail (put 1 Pokémon from discard to hand)
   #A8  : _recovery_net_flag → _recovery_net (put up to 2 Pokémon from discard to hand)
   #A9  : _avenging_edge_flag → _avenging_edge (100 + 60 if ko_taken_last_turn)
+Live simulation fix:
+  #L1  : _ET_ATTACH (me02-039 Cresselia Swelling Light) — called EnergyType enum instead of EnergyAttachment
 """
 from __future__ import annotations
 
@@ -2293,3 +2295,35 @@ def test_neutralization_zone_non_ex_attacker_still_damages():
     action = _make_action(player_id="p1")
     result = _apply_damage(state, action, 80)
     assert result == 80, f"Expected 80 damage (basic vs basic), got {result}"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Live fix #L1: _ET_ATTACH — Cresselia me02-039 Swelling Light
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_et_attach_returns_energy_attachment_not_enum():
+    """Regression #L1: _ET_ATTACH must return EnergyAttachment, not call the EnergyType enum.
+
+    Simulation 2bc45a4e failed with EnumType.__call__() got an unexpected
+    keyword argument 'energy_type' because _ET_ATTACH called _ET(...) where
+    _ET is EnergyType (an Enum). Fix: call EnergyAttachment(...) instead.
+    """
+    from app.engine.effects.attacks import _ET_ATTACH
+    from app.engine.state import CardInstance, EnergyAttachment, EnergyType, Zone
+
+    energy_card = CardInstance(
+        instance_id="test-swelling-light-energy",
+        card_def_id="basic-colorless-energy",
+        card_name="Colorless Energy",
+        current_hp=0,
+        max_hp=0,
+        zone=Zone.ACTIVE,
+    )
+    result = _ET_ATTACH(energy_card)
+
+    assert isinstance(result, EnergyAttachment), (
+        f"_ET_ATTACH must return EnergyAttachment, got {type(result).__name__}"
+    )
+    assert result.energy_type == EnergyType.COLORLESS
+    assert result.source_card_id == "test-swelling-light-energy"
+    assert result.card_def_id == "basic-colorless-energy"

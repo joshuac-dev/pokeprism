@@ -34,7 +34,7 @@ Re-check them before making claims in user-facing docs.
 | Local matches table | 6,900 rows from the same DB snapshot |
 | Local `card_performance` table | 270 rows from the same DB snapshot |
 | Running simulations | 0 from the same DB snapshot |
-| Backend test baseline | Latest full documented run after opponent-batch checkpoint deck-ID fix: **453 passed** on 2026-05-04. Run with `cd backend && python3 -m pytest tests/ -x -q`. Historical prior baseline: 449 passed after initial opponent-batch checkpointing. |
+| Backend test baseline | Latest full documented run after Cresselia Swelling Light engine fix: **454 passed** on 2026-05-04. Run with `cd backend && python3 -m pytest tests/ -x -q`. Historical prior baseline: 453 passed after checkpoint deck-ID fix. |
 | Frontend unit tests | 4 passed on 2026-05-04 with `cd frontend && npm test -- --run --reporter=dot` |
 | Playwright E2E inventory | 14 tests listed on 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed on 2026-05-04 with `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
@@ -177,12 +177,19 @@ Validation:
 - `python3 -m pytest backend/tests/test_tasks -q` — 63 passed.
 - `python3 -m pytest backend/tests/test_memory -q` — 20 passed.
 - `python3 -m pytest backend/tests/test_api -q` — 79 passed.
-- `cd backend && python3 -m pytest tests/ -x -q` — 453 passed.
+- `cd backend && python3 -m pytest tests/ -x -q` — 454 passed (after Swelling Light fix).
 - `cd backend && alembic heads` — `5b7e9c2d4a11 (head)`.
 - Live Docker/Celery replay validation passed after the deck-ID fix: a
   completed disposable H/H simulation was re-enqueued, checkpoint rows skipped,
   match/event/card-performance counts stayed unchanged, and duplicate detection
   returned zero rows.
+- Live simulation `2bc45a4e-35af-473c-9e4f-aded9800095d` diagnosed and fixed:
+  failed with `EnumType.__call__() got an unexpected keyword argument 'energy_type'`
+  in the Cresselia me02-039 Swelling Light handler (`_ET_ATTACH`). Root cause was
+  `_ET_ATTACH` calling the `EnergyType` enum instead of `EnergyAttachment`.
+  Checkpointing was not the cause. After worker rebuild/deploy, re-enqueueing
+  `2bc45a4e` is safe: completed opponent checkpoints will skip, the in-progress
+  Mega Heracross ex Deck checkpoint (0 matches persisted) will rerun from scratch.
 
 ## Current Known Issues / Gaps
 

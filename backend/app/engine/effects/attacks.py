@@ -6461,8 +6461,8 @@ def _slam_dewgong(state, action):
 def _ET_ATTACH(card):
     """Helper to create an EnergyAttachment from an energy card."""
     from app.engine.state import EnergyAttachment, EnergyType as _ET
-    return _ET(energy_type=_ET.COLORLESS, source_card_id=card.instance_id,
-               card_def_id=card.card_def_id)
+    return EnergyAttachment(energy_type=_ET.COLORLESS, source_card_id=card.instance_id,
+                            card_def_id=card.card_def_id)
 
 
 # ── Batch 4 Attack Handlers ───────────────────────────────────────────────────
