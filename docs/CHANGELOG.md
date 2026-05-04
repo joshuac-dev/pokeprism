@@ -599,6 +599,44 @@ quality, and frontend usability.
     store and component files.
   - Confidence: High.
 
+## Phase 9 Engine Gap Resolution - 2026-05-04
+
+### Fixed
+
+- Fixed Spiky Energy (sv09-159) retaliation detection. The `_apply_damage`
+  pipeline was searching for the energy card by instance ID in discard/hand/deck,
+  but attached energy cards are consumed from zones on attachment. The check now
+  reads `att.card_def_id == "sv09-159"` directly from the `EnergyAttachment`
+  list on the defender, consistent with how Boomerang Energy and all other
+  special energies are identified.
+  - Evidence: `backend/app/engine/effects/attacks.py` (Spiky Energy block);
+    test `test_spiky_energy_triggers_on_direct_card_def_id`.
+  - Confidence: High.
+
+- Fixed Team Rocket's Watchtower alt-print (me02.5-210) missing from ability
+  suppression check. The action validator was checking only `sv10-180`; the
+  alt-print `me02.5-210` is now included in the same set so Colorless Pokémon
+  abilities are suppressed under either print.
+  - Evidence: `backend/app/engine/actions.py` (Watchtower block);
+    test `test_watchtower_alt_print_suppresses_colorless_ability`.
+  - Confidence: High.
+
+- Implemented Mystery Garden (me02.5-194 / me01-122) as a live USE_STADIUM
+  engine action. A new `ActionType.USE_STADIUM` was added; the action validator
+  offers it during MAIN phase whenever Mystery Garden is the active stadium, the
+  player has at least one Energy card in hand, and the once-per-turn
+  `mystery_garden_used_this_turn` flag is clear. The transition layer drives the
+  handler via `EffectRegistry.resolve_trainer`. The handler prompts the player to
+  choose an Energy to discard, then draws until hand size equals the number of
+  Psychic Pokémon in play. The per-turn flag is reset in `runner._end_turn`.
+  - Evidence: `backend/app/engine/actions.py` (`USE_STADIUM`, `_get_stadium_actions`);
+    `backend/app/engine/state.py` (`mystery_garden_used_this_turn`);
+    `backend/app/engine/transitions.py` (`_use_stadium`);
+    `backend/app/engine/effects/trainers.py` (`_mystery_garden`);
+    `backend/app/engine/runner.py` (flag reset);
+    tests `test_mystery_garden_*`.
+  - Confidence: High.
+
 ## Phase 8 Frontend Core - 2026-04-27
 
 ### Added

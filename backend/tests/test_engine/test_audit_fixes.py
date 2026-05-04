@@ -12,6 +12,10 @@ Findings:
   #12  : sv10-046 comment — fake "ATK1 Submission" removed (Misty's Staryu has only 1 attack)
   #13  : _running_charge docstring — "atk1" → "atk0" (sv10-107 Mudbray)
   #14  : _pick_and_stick (sv06-072 Morpeko) — replace no-op flag with real attach-from-discard
+Engine gap fixes:
+  #EG1 : Spiky Energy (sv09-159) — broken source_card_id detection fixed to att.card_def_id
+  #EG2 : Watchtower alt print (me02.5-210) — ability suppression now covers both prints
+  #EG3 : Mystery Garden (me02.5-194 / me01-122) — USE_STADIUM action fully implemented
 """
 from __future__ import annotations
 
@@ -1278,3 +1282,376 @@ def test_wide_wall_does_not_block_without_rhyperior_active():
         assert req is not None, "Should yield a ChoiceRequest when Wide Wall is NOT active"
     except StopIteration:
         assert False, "Boss's Orders should yield a choice request without Wide Wall"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Engine gap #EG1: Spiky Energy (sv09-159) detection fix
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_spiky_energy_triggers_on_direct_card_def_id():
+    """Spiky Energy on defender's Active must put 2 damage counters on attacker.
+
+    Previously the check searched discard/hand/deck by source_card_id which
+    always returned False.  Now it simply reads att.card_def_id == 'sv09-159'.
+    """
+    from app.engine.effects.attacks import _apply_damage
+    from app.engine.state import Phase
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.phase = Phase.MAIN
+
+    attacker = CardInstance(
+        instance_id="atk-1", card_def_id="tst-atk",
+        card_name="Attacker", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    defender = CardInstance(
+        instance_id="def-1", card_def_id="tst-def",
+        card_name="Defender", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    # Attach Spiky Energy directly via card_def_id
+    defender.energy_attached.append(EnergyAttachment(
+        energy_type=EnergyType.COLORLESS,
+        source_card_id="spiky-src-1",
+        card_def_id="sv09-159",
+        provides=[EnergyType.COLORLESS],
+    ))
+
+    state.p1.active = attacker
+    state.p2.active = defender
+
+    # _apply_damage(state, action, base_damage) uses player.active/opp.active internally
+    action = Action(player_id="p1", action_type=ActionType.ATTACK, attack_index=0)
+    _apply_damage(state, action, 30)
+
+    # 2 damage counters = 20 HP loss on attacker
+    assert attacker.damage_counters == 2, (
+        f"Expected 2 damage counters on attacker, got {attacker.damage_counters}"
+    )
+    assert attacker.current_hp == 80, (
+        f"Expected attacker HP 80, got {attacker.current_hp}"
+    )
+    assert any(e["event_type"] == "spiky_energy_triggered" for e in state.events), (
+        "spiky_energy_triggered event should be emitted"
+    )
+
+
+def test_spiky_energy_does_not_trigger_when_active_has_no_spiky():
+    """Spiky Energy does not trigger when the active defender has no Spiky Energy attached."""
+    from app.engine.effects.attacks import _apply_damage
+    from app.engine.state import Phase
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.phase = Phase.MAIN
+
+    attacker = CardInstance(
+        instance_id="atk-2", card_def_id="tst-atk2",
+        card_name="Attacker2", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    # Active defender has no Spiky Energy (Spiky Energy is only on bench)
+    p2_active = CardInstance(
+        instance_id="p2-active-ns", card_def_id="tst-p2-active-ns",
+        card_name="P2ActiveNoSpiky", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    bench_poke = CardInstance(
+        instance_id="bench-1", card_def_id="tst-bench-ns",
+        card_name="BenchPoke", current_hp=80, max_hp=80, zone=Zone.BENCH,
+    )
+    bench_poke.energy_attached.append(EnergyAttachment(
+        energy_type=EnergyType.COLORLESS,
+        source_card_id="spiky-src-2",
+        card_def_id="sv09-159",
+        provides=[EnergyType.COLORLESS],
+    ))
+
+    state.p1.active = attacker
+    state.p2.active = p2_active
+    state.p2.bench = [bench_poke]
+
+    action = Action(player_id="p1", action_type=ActionType.ATTACK, attack_index=0)
+    _apply_damage(state, action, 30)
+
+    # No Spiky Energy retaliation — active defender has no Spiky Energy
+    assert attacker.damage_counters == 0, (
+        f"Spiky Energy should not trigger when active has no Spiky, got {attacker.damage_counters}"
+    )
+    assert not any(e["event_type"] == "spiky_energy_triggered" for e in state.events)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Engine gap #EG2: Watchtower alt print (me02.5-210) ability suppression
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_watchtower_alt_print_suppresses_colorless_ability():
+    """me02.5-210 Watchtower must suppress USE_ABILITY for Colorless Pokémon."""
+    from app.engine.actions import ActionValidator
+    from app.engine.state import Phase
+
+    registry = EffectRegistry.instance()
+
+    colorless_cdef = CardDefinition(
+        tcgdex_id="tst-colorless-wt", name="ColorlessPoke", set_abbrev="TST",
+        set_number="001", category="pokemon", stage="Basic", hp=120,
+        types=["Colorless"],
+        abilities=[AbilityDef(name="TestAbility", effect="Do something.", ability_type="Ability")],
+    )
+    card_registry.register(colorless_cdef)
+
+    def _dummy_ability(state, action):
+        pass
+
+    registry.register_ability("tst-colorless-wt", "TestAbility", _dummy_ability)
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.phase = Phase.MAIN
+    state.active_player = "p1"
+
+    colorless_poke = CardInstance(
+        instance_id="colorless-poke-1", card_def_id="tst-colorless-wt",
+        card_name="ColorlessPoke", current_hp=120, max_hp=120, zone=Zone.ACTIVE,
+    )
+    state.p1.active = colorless_poke
+
+    # Place the alt-print Watchtower as active stadium
+    watchtower_alt = CardInstance(
+        instance_id="wt-alt-1", card_def_id="me02.5-210",
+        card_name="Team Rocket's Watchtower", current_hp=0, max_hp=0, zone=Zone.STADIUM,
+    )
+    state.active_stadium = watchtower_alt
+
+    p2_active = CardInstance(
+        instance_id="p2-active-wt", card_def_id="tst-p2-wt",
+        card_name="P2Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p2.active = p2_active
+
+    legal = ActionValidator.get_legal_actions(state, "p1")
+    ability_actions = [a for a in legal if a.action_type == ActionType.USE_ABILITY]
+    assert len(ability_actions) == 0, (
+        "Watchtower alt print (me02.5-210) should suppress Colorless Pokémon abilities"
+    )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Engine gap #EG3: Mystery Garden USE_STADIUM action
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_mystery_garden_use_stadium_offered_when_applicable():
+    """USE_STADIUM should be offered when Mystery Garden is active and player has Energy in hand."""
+    from app.engine.actions import ActionValidator
+    from app.engine.state import Phase
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.phase = Phase.MAIN
+    state.active_player = "p1"
+
+    p1_active = CardInstance(
+        instance_id="p1-active-mg", card_def_id="tst-p1-mg",
+        card_name="P1Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p1.active = p1_active
+
+    p2_active = CardInstance(
+        instance_id="p2-active-mg", card_def_id="tst-p2-mg",
+        card_name="P2Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p2.active = p2_active
+
+    # Place Mystery Garden as active stadium
+    mystery_garden = CardInstance(
+        instance_id="mg-1", card_def_id="me02.5-194",
+        card_name="Mystery Garden", current_hp=0, max_hp=0,
+    )
+    state.active_stadium = mystery_garden
+
+    # Put an Energy card in p1's hand
+    energy_card = CardInstance(
+        instance_id="energy-1", card_def_id="basic-fire",
+        card_name="Fire Energy", card_type="Energy", zone=Zone.HAND,
+    )
+    state.p1.hand = [energy_card]
+
+    legal = ActionValidator.get_legal_actions(state, "p1")
+    stadium_actions = [a for a in legal if a.action_type == ActionType.USE_STADIUM]
+    assert len(stadium_actions) == 1, (
+        "USE_STADIUM should be offered when Mystery Garden is active and Energy is in hand"
+    )
+
+
+def test_mystery_garden_not_offered_without_energy_in_hand():
+    """USE_STADIUM should NOT be offered if player has no Energy in hand."""
+    from app.engine.actions import ActionValidator
+    from app.engine.state import Phase
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.phase = Phase.MAIN
+    state.active_player = "p1"
+
+    p1_active = CardInstance(
+        instance_id="p1-active-mg2", card_def_id="tst-p1-mg2",
+        card_name="P1Active2", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p1.active = p1_active
+
+    mystery_garden = CardInstance(
+        instance_id="mg-2", card_def_id="me02.5-194",
+        card_name="Mystery Garden", current_hp=0, max_hp=0,
+    )
+    state.active_stadium = mystery_garden
+    state.p1.hand = []  # No energy
+
+    legal = ActionValidator.get_legal_actions(state, "p1")
+    stadium_actions = [a for a in legal if a.action_type == ActionType.USE_STADIUM]
+    assert len(stadium_actions) == 0, (
+        "USE_STADIUM should not be offered when no Energy card in hand"
+    )
+
+
+def test_mystery_garden_not_offered_after_use():
+    """USE_STADIUM should not be offered again once mystery_garden_used_this_turn is set."""
+    from app.engine.actions import ActionValidator
+    from app.engine.state import Phase
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.phase = Phase.MAIN
+    state.active_player = "p1"
+
+    p1_active = CardInstance(
+        instance_id="p1-active-mg3", card_def_id="tst-p1-mg3",
+        card_name="P1Active3", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p1.active = p1_active
+
+    mystery_garden = CardInstance(
+        instance_id="mg-3", card_def_id="me02.5-194",
+        card_name="Mystery Garden", current_hp=0, max_hp=0,
+    )
+    state.active_stadium = mystery_garden
+
+    energy_card = CardInstance(
+        instance_id="energy-2", card_def_id="basic-water",
+        card_name="Water Energy", card_type="Energy", zone=Zone.HAND,
+    )
+    state.p1.hand = [energy_card]
+    state.p1.mystery_garden_used_this_turn = True
+
+    legal = ActionValidator.get_legal_actions(state, "p1")
+    stadium_actions = [a for a in legal if a.action_type == ActionType.USE_STADIUM]
+    assert len(stadium_actions) == 0, (
+        "USE_STADIUM should not be offered again this turn"
+    )
+
+
+def test_mystery_garden_handler_discards_energy_and_draws():
+    """Mystery Garden handler: discard Energy, draw to hand_size == Psychic count."""
+    from app.engine.effects.trainers import _mystery_garden
+
+    # Register a Psychic Pokémon for the in-play type check
+    psychic_cdef = CardDefinition(
+        tcgdex_id="tst-psychic-mg", name="PsychicPoke", set_abbrev="TST",
+        set_number="010", category="pokemon", stage="Basic", hp=80,
+        types=["Psychic"],
+    )
+    card_registry.register(psychic_cdef)
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+
+    # 1 Psychic Pokémon active → draw until hand == 1
+    psychic_poke = CardInstance(
+        instance_id="psychic-1", card_def_id="tst-psychic-mg",
+        card_name="PsychicPoke", current_hp=80, max_hp=80, zone=Zone.ACTIVE,
+    )
+    state.p1.active = psychic_poke
+
+    energy_card = CardInstance(
+        instance_id="energy-3", card_def_id="basic-psychic",
+        card_name="Psychic Energy", card_type="Energy", zone=Zone.HAND,
+    )
+    state.p1.hand = [energy_card]
+
+    # Populate deck with cards to draw from
+    for i in range(5):
+        state.p1.deck.append(CardInstance(
+            instance_id=f"deck-{i}", card_def_id="tst-deck",
+            card_name="DeckCard", zone=Zone.DECK,
+        ))
+
+    action = Action(player_id="p1", action_type=ActionType.USE_STADIUM)
+
+    gen = _mystery_garden(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_cards"
+
+    # Respond with the energy card chosen
+    resp = Action(player_id="p1", action_type=ActionType.CHOOSE_CARDS,
+                  selected_cards=[energy_card.instance_id])
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    # Energy should be in discard
+    assert energy_card in state.p1.discard, "Discarded energy should be in discard pile"
+    assert energy_card not in state.p1.hand, "Discarded energy should not be in hand"
+
+    # Hand should have exactly 1 card (matching Psychic count = 1)
+    assert len(state.p1.hand) == 1, (
+        f"Hand should have 1 card (= # Psychic Pokémon), got {len(state.p1.hand)}"
+    )
+
+    # mystery_garden_used_this_turn should be set
+    assert state.p1.mystery_garden_used_this_turn is True
+
+    # Events should include discard and draw
+    assert any(e["event_type"] == "mystery_garden_discard" for e in state.events)
+    assert any(e["event_type"] == "mystery_garden_draw" for e in state.events)
+
+
+def test_mystery_garden_alt_print_also_offered():
+    """me01-122 (alt print) should also trigger USE_STADIUM offer."""
+    from app.engine.actions import ActionValidator
+    from app.engine.state import Phase
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.phase = Phase.MAIN
+    state.active_player = "p1"
+
+    p1_active = CardInstance(
+        instance_id="p1-active-mg4", card_def_id="tst-p1-mg4",
+        card_name="P1Active4", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p1.active = p1_active
+
+    # Alt print
+    mystery_garden_alt = CardInstance(
+        instance_id="mg-alt-1", card_def_id="me01-122",
+        card_name="Mystery Garden", current_hp=0, max_hp=0,
+    )
+    state.active_stadium = mystery_garden_alt
+
+    energy_card = CardInstance(
+        instance_id="energy-4", card_def_id="basic-grass",
+        card_name="Grass Energy", card_type="Energy", zone=Zone.HAND,
+    )
+    state.p1.hand = [energy_card]
+
+    legal = ActionValidator.get_legal_actions(state, "p1")
+    stadium_actions = [a for a in legal if a.action_type == ActionType.USE_STADIUM]
+    assert len(stadium_actions) == 1, (
+        "USE_STADIUM should be offered for me01-122 (Mystery Garden alt print)"
+    )

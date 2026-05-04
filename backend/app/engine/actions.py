@@ -45,6 +45,7 @@ class ActionType(Enum):
     EVOLVE = auto()
     RETREAT = auto()
     USE_ABILITY = auto()
+    USE_STADIUM = auto()    # Activate an optional once-per-turn stadium effect
     PLAY_BASIC = auto()    # Play a Basic Pokémon to bench during main phase
 
     # Attack phase
@@ -240,6 +241,7 @@ class ActionValidator:
             actions.extend(ActionValidator._get_evolve_actions(state, player, player_id))
             actions.extend(ActionValidator._get_retreat_actions(state, player, player_id))
             actions.extend(ActionValidator._get_ability_actions(state, player, player_id))
+            actions.extend(ActionValidator._get_stadium_actions(state, player, player_id))
             actions.append(Action(ActionType.PASS, player_id))
             actions.append(Action(ActionType.END_TURN, player_id))
 
@@ -635,9 +637,9 @@ class ActionValidator:
             if not registry.ability_can_activate(cdef.tcgdex_id, ability_name,
                                                  state, player_id, poke):
                 continue
-            # Watchtower (sv10-180): Colorless Pokémon cannot use abilities
+            # Watchtower (sv10-180 / me02.5-210): Colorless Pokémon cannot use abilities
             if (state.active_stadium
-                    and state.active_stadium.card_def_id == "sv10-180"
+                    and state.active_stadium.card_def_id in ("sv10-180", "me02.5-210")
                     and "Colorless" in (cdef.types or [])):
                 continue
             # Initialization (sv08.5-032 Iron Thorns ex): rule-box Pokémon can't use abilities
@@ -685,6 +687,30 @@ class ActionValidator:
                     actions.append(Action(ActionType.USE_ABILITY, player_id,
                                           card_instance_id=c.instance_id))
         return actions
+
+    @staticmethod
+    def _get_stadium_actions(
+        state: GameState, player: PlayerState, player_id: str
+    ) -> list[Action]:
+        """Offer USE_STADIUM when an optional once-per-turn stadium effect is available.
+
+        Currently covers Mystery Garden (me02.5-194, me01-122):
+          once during each player's turn, that player may discard an Energy card
+          from their hand to draw cards up to the number of {P} Pokémon in play.
+        """
+        _MYSTERY_GARDEN_IDS = {"me02.5-194", "me01-122"}
+        if not state.active_stadium:
+            return []
+        sid = state.active_stadium.card_def_id
+        if sid not in _MYSTERY_GARDEN_IDS:
+            return []
+        if player.mystery_garden_used_this_turn:
+            return []
+        # Require at least one Energy card in hand to discard
+        energy_in_hand = any(c.card_type == "Energy" for c in player.hand)
+        if not energy_in_hand:
+            return []
+        return [Action(ActionType.USE_STADIUM, player_id)]
 
     # ── Attack phase ──────────────────────────────────────────────────────────
 

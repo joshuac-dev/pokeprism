@@ -786,6 +786,17 @@ async def _switch_active(state: GameState, action: Action, get_player=None) -> G
     return state
 
 
+async def _use_stadium(state: GameState, action: Action, get_player=None) -> GameState:
+    """Activate an optional once-per-turn stadium effect (e.g. Mystery Garden)."""
+    if state.active_stadium is None:
+        return state
+    state.emit_event("use_stadium", player=action.player_id,
+                     stadium=state.active_stadium.card_name)
+    return await EffectRegistry.instance().resolve_trainer(
+        state.active_stadium.card_def_id, state, action, get_player
+    )
+
+
 def _pass(state: GameState, action: Action, get_player=None) -> GameState:
     state.emit_event("pass", player=action.player_id)
     state.phase = Phase.ATTACK
@@ -814,6 +825,7 @@ TRANSITION_MAP: dict[ActionType, Callable[[GameState, Action], GameState]] = {
     ActionType.EVOLVE:          _evolve,
     ActionType.RETREAT:         _retreat,
     ActionType.USE_ABILITY:     _use_ability,
+    ActionType.USE_STADIUM:     _use_stadium,
     ActionType.ATTACK:          _attack,
     ActionType.SWITCH_ACTIVE:   _switch_active,
     ActionType.PASS:            _pass,

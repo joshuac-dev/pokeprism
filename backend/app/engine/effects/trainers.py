@@ -2377,6 +2377,58 @@ def _tr_transceiver(state: GameState, action):
 # Stadiums
 # ──────────────────────────────────────────────────────────────────────────────
 
+def _mystery_garden(state: GameState, action):
+    """Mystery Garden (me02.5-194 / me01-122) — once-per-turn USE_STADIUM effect.
+
+    Once during each player's turn, that player may discard an Energy card from
+    their hand in order to draw cards until they have as many cards in their hand
+    as they have {P} Pokémon in play.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    energy_in_hand = [c for c in player.hand if c.card_type == "Energy"]
+    if not energy_in_hand:
+        return
+
+    # Ask the player which Energy to discard
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Mystery Garden: discard an Energy card from your hand",
+        cards=energy_in_hand, min_count=1, max_count=1,
+    )
+    resp = yield req
+
+    if resp and resp.selected_cards:
+        chosen_id = resp.selected_cards[0]
+        chosen = next((c for c in energy_in_hand if c.instance_id == chosen_id), None)
+    else:
+        chosen = energy_in_hand[0]
+
+    if chosen is None:
+        return
+
+    player.hand.remove(chosen)
+    chosen.zone = Zone.DISCARD
+    player.discard.append(chosen)
+    state.emit_event("mystery_garden_discard", player=player_id,
+                     card=chosen.card_name)
+
+    # Count {P} Psychic Pokémon in play for this player
+    psychic_in_play = sum(
+        1 for poke in _find_in_play(player)
+        if _pokemon_has_type(poke, "Psychic")
+    )
+
+    to_draw = max(0, psychic_in_play - len(player.hand))
+    if to_draw > 0:
+        draw_cards(state, player_id, to_draw)
+        state.emit_event("mystery_garden_draw", player=player_id,
+                         drawn=to_draw, hand_target=psychic_in_play)
+
+    player.mystery_garden_used_this_turn = True
+
+
 def _gravity_mountain(state: GameState, action) -> None:
     """Gravity Mountain (sv08-177)
 
@@ -5690,9 +5742,9 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv09-152", _noop)   # N's Royal Blades
     registry.register_trainer("sv10-169", _noop)   # Spikemuth Gym
     registry.register_trainer("sv10-173", _tr_factory_on_play)
-    registry.register_trainer("sv10-180", _noop)   # Watchtower (passive / future)
-    registry.register_trainer("me02.5-210", _noop) # Team Rocket's Watchtower alt print
-    registry.register_trainer("me02.5-194", _noop) # Mystery Garden (USE_STADIUM — future)
+    registry.register_trainer("sv10-180", _noop)   # Watchtower (passive — handled in actions.py)
+    registry.register_trainer("me02.5-210", _noop) # Team Rocket's Watchtower alt (passive — handled in actions.py)
+    registry.register_trainer("me02.5-194", _mystery_garden) # Mystery Garden (USE_STADIUM)
 
     # ── Tools (passive — effects handled in base.py / registry.py) ──────────
     registry.register_trainer("me02.5-181", _noop)   # Air Balloon
@@ -5748,7 +5800,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("me02.5-205", _tr_great_ball_b18)       # TR Great Ball
     registry.register_trainer("me01-118", _iron_defender_b18)         # Iron Defender (noop)
     registry.register_trainer("me01-120", _lt_surges_bargain)  # Lt. Surge's Bargain
-    registry.register_trainer("me01-122", _noop)   # Mystery Garden alt (passive stadium)
+    registry.register_trainer("me01-122", _mystery_garden)  # Mystery Garden alt (USE_STADIUM)
     registry.register_trainer("me01-124", _premium_power_pro_b18)     # Premium Power Pro
     registry.register_trainer("me01-128", _noop)   # Strange Timepiece (devolve — not supported)
     registry.register_trainer("me01-129", _noop)   # Surfing Beach (passive stadium)

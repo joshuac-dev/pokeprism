@@ -463,13 +463,7 @@ def _apply_damage(
         _def_player_se = state.get_player(opp_id)
         _has_spiky = (
             defender is _def_player_se.active
-            and any(
-                att.source_card_id and any(
-                    c.instance_id == att.source_card_id and c.card_def_id == "sv09-159"
-                    for c in _def_player_se.discard + _def_player_se.hand + list(_def_player_se.deck)
-                )
-                for att in defender.energy_attached
-            )
+            and any(att.card_def_id == "sv09-159" for att in defender.energy_attached)
         )
         if _has_spiky:
             attacker.current_hp -= 20
