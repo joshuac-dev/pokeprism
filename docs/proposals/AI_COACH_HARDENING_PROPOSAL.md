@@ -1,6 +1,10 @@
 # AI/Coach Prompt-Injection Hardening Proposal
 
-Status: proposal only. Do not apply without approval.
+Status: historical proposal. Stage 1 and Stage 3 hardening were implemented;
+Stage 2's generic provider abstraction was rejected by product decision.
+PokePrism remains Ollama-only. See
+`docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md` for the accepted/rejected
+outcome.
 
 ## Current Code Risks
 

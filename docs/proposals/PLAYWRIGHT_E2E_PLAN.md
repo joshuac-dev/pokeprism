@@ -1,13 +1,13 @@
 # Playwright E2E Test Plan
 
-**Status:** approved; Tier 1 baseline + Tier 2/3 expansion implemented 2026-05-02; CI wired (.github/workflows/e2e.yml)
+**Status:** approved; Tier 1 baseline + Tier 2/3 expansion implemented 2026-05-02; CI wired (`.github/workflows/e2e.yml`). Historical test counts below describe the planning baseline, not current live counts; check `docs/STATUS.md` for current validation snapshots.
 **Date:** 2026-05-02  
 
 ---
 
 ## What Current Tests Cover
 
-### Backend (pytest, 260 tests)
+### Backend (pytest, planning baseline was 260 tests)
 - Engine correctness: card handlers, transitions, state machine
 - API contract: HTTP status codes, request validation, response shapes
 - Coach/Analyst: prompt construction, response parsing, validation

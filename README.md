@@ -8,14 +8,9 @@ This project is intended for local/self-hosted experimentation and development, 
 
 PokéPrism has a working full-stack implementation with backend simulation services, a React frontend, Docker Compose infrastructure, database/memory services, and a broad implemented card pool. The current development status is tracked in [`docs/STATUS.md`](docs/STATUS.md).
 
-As of the latest status update (2026-05-01):
-- **2001 cards in database** with **100% handler coverage** (0 missing handlers)
-- **253 passing backend tests** plus **4 frontend tests** across API, task, engine, card, coach, memory, player, parser, and setup UI coverage
-- Card pool expansion phase **complete**
-- All 20 card expansion batches implemented
-- TCGDex-backed card data pipeline operational
+The original phase buildout, Phase 13, and the 2026-05-03 hardening sweep are complete. Current work is ongoing post-phase development: DB-backed audits, card-effect correctness, handler implementation, simulation validation, AI/coach hardening, and operational refinement.
 
-While handler coverage is comprehensive, some card effects may use simplified implementations or auto-choice mechanisms where the actual card text allows player choice. See [`docs/STATUS.md`](docs/STATUS.md) for details on known simplifications and items flagged for verification.
+Do not rely on README card/test counts as live metrics. Use [`docs/STATUS.md`](docs/STATUS.md) for dated current-state snapshots and commands to re-check fast-changing values.
 
 ## What it does
 
@@ -92,10 +87,13 @@ Services:
 │   │   └── stores/       # Zustand state management
 │   ├── package.json      # Node.js dependencies
 │   └── Dockerfile
-├── docs/                 # Project blueprint, status, card lists, supporting docs
+├── docs/                 # Status, audit rules, historical blueprint, proposals
 │   ├── STATUS.md         # Current implementation status (read this first!)
-│   ├── PROJECT.md        # Authoritative technical blueprint
-│   ├── POKEMON_MASTER_LIST.md  # Complete card database reference
+│   ├── CHANGELOG.md      # Evidence-based historical record
+│   ├── AUDIT_RULES.md    # Active DB-backed card audit procedure
+│   ├── AUDIT_STATE.md    # Active rotating audit cursor
+│   ├── PROJECT.md        # Historical architecture blueprint/context
+│   ├── POKEMON_MASTER_LIST.md  # Historical/supporting expansion-era list
 │   └── ...
 ├── scripts/              # Utility scripts (card seeding, fixture capture)
 ├── docker-compose.yml    # Full local service stack
@@ -174,7 +172,7 @@ Do not commit real passwords. The `.env` file is gitignored.
    ```bash
    make seed
    ```
-   This fetches 2001 cards from TCGDex and populates the PostgreSQL database. It may take a few minutes.
+   This populates PostgreSQL from the repository's current seed pipeline. The exact card count changes as card data and audit work evolve; see `docs/STATUS.md` for the latest dated snapshot and DB query.
 
 6. **Access the application:**
    - **Frontend (production)**: http://localhost:3000
@@ -240,7 +238,7 @@ docker compose config --quiet # Validate Docker Compose configuration
 Backend tests use pytest and live in `backend/tests/`. Frontend tests use Vitest
 and React Testing Library.
 
-**Current test baseline** (as of 2026-05-01 hardening/deck-builder sweep): **253 backend tests** and **4 frontend tests**
+For current test baselines, see [`docs/STATUS.md`](docs/STATUS.md). The latest hardening report documents a full backend baseline of 374 passed / 4 skipped on 2026-05-03, but re-run the suite before publishing updated counts.
 
 ### Docker smoke checks
 
@@ -267,7 +265,7 @@ submissions.
 
 Card effect changes should be validated against TCGDex fixtures or live TCGDex data. The project follows a **live-data-first principle**: avoid fabricated card data. Test fixtures are captured from TCGDex, not hand-invented.
 
-Use `make capture-fixtures` to fetch live card data from TCGDex for test fixtures. The fixture capture script reads `docs/POKEMON_MASTER_LIST.md`.
+Use `make capture-fixtures` to fetch live card data from TCGDex for test fixtures. `docs/POKEMON_MASTER_LIST.md` is retained as historical/supporting expansion-era input; it is not the active DB-backed audit authority.
 
 ## API and service endpoints
 
@@ -320,13 +318,14 @@ This memory grows with every simulation and is queried by AI players and the Coa
 
 Detailed technical documentation is available in the `docs/` directory:
 
-- [`docs/STATUS.md`](docs/STATUS.md) — **Current development status** (read this first for up-to-date implementation state)
-- [`docs/PROJECT.md`](docs/PROJECT.md) — **Authoritative technical blueprint** (architecture, phases, schemas, design rationale)
-- [`docs/POKEMON_MASTER_LIST.md`](docs/POKEMON_MASTER_LIST.md) — Complete list of all 2001 cards in the database
-- [`docs/CARD_EXPANSION_RULES.md`](docs/CARD_EXPANSION_RULES.md) — Guidelines for adding new cards
-- [`docs/AUDIT_RULES.md`](docs/AUDIT_RULES.md) — Card implementation audit procedures
+- [`docs/STATUS.md`](docs/STATUS.md) — **Current state and operational handoff** (read this first)
+- [`docs/CHANGELOG.md`](docs/CHANGELOG.md) — **Evidence-based historical record** of what changed and why
+- [`docs/AUDIT_RULES.md`](docs/AUDIT_RULES.md) and [`docs/AUDIT_STATE.md`](docs/AUDIT_STATE.md) — **Active DB-backed card audit workflow**
+- [`docs/PROJECT.md`](docs/PROJECT.md) — Historical project blueprint and architecture rationale
+- [`docs/proposals/`](docs/proposals/) — Supporting proposals, assessments, accepted/rejected design notes
+- [`docs/CARD_EXPANSION_RULES.md`](docs/CARD_EXPANSION_RULES.md), [`docs/CARDLIST.md`](docs/CARDLIST.md), and [`docs/POKEMON_MASTER_LIST.md`](docs/POKEMON_MASTER_LIST.md) — Historical or supporting expansion-era docs, not active audit authority
 
-For deep architectural detail, implementation phases, database schemas, and engine specifications, see `docs/PROJECT.md`.
+For deep architectural detail, implementation phases, database schemas, and engine specifications, see `docs/PROJECT.md`. For current implementation state, prefer `docs/STATUS.md`.
 
 ## Known limitations
 
@@ -336,33 +335,33 @@ PokéPrism is under active development. Known caveats and simplifications includ
 - **Some effects are flagged for verification**: A small number of card implementations may not perfectly match the official card text and are marked for future verification against TCGDex.
 - **LLM performance depends on hardware**: AI/AI simulations are significantly slower than H/H. Local LLM quality depends on GPU, model quantization, and Ollama configuration.
 - **AI modes require GPU**: Heuristic simulations run on CPU, but AI-backed modes require a GPU-enabled Ollama instance.
-- **Active development**: New features, optimizations, and card pool expansions are ongoing.
+- **Active development**: Post-phase audit, handler refinement, simulation validation, and operational hardening are ongoing.
 - **Deck modes**: Full-deck, partial-deck completion, and no-deck/from-scratch simulations are runnable. Partial/no-deck modes use a conservative deterministic baseline `DeckBuilder` until enough historical match data exists for memory-optimized building.
 
 For the full list of known issues and verification items, see [`docs/STATUS.md`](docs/STATUS.md).
 
 ## Roadmap
 
-Planned next steps (subject to change based on project priorities):
+Current next steps are tracked in [`docs/STATUS.md`](docs/STATUS.md). Broad ongoing priorities are:
 
-1. **Verify known potentially incorrect card implementations** — Cross-check flagged cards against official TCGDex data
+1. **Continue DB-backed card audits** — Cross-check database cards against live TCGDex data and current handlers
 2. **Tuning & Evaluation** — Baseline win-rate benchmarks, coach quality metrics, simulation performance analysis
-3. **Card pool expansion** — Add new Pokémon TCG Pocket sets as they become available
+3. **Card-handler refinement** — Implement or correct handlers found by audits and coverage gates
 4. **UI/analytics improvements** — Enhanced dashboards, better memory visualization, detailed match replays
 5. **Production deployment hardening** — If public/hosted deployment is a goal
 
-See [`docs/STATUS.md`](docs/STATUS.md) for session-by-session development progress and [`docs/PROJECT.md`](docs/PROJECT.md) for full phase definitions.
+See [`docs/STATUS.md`](docs/STATUS.md) for the current handoff and [`docs/CHANGELOG.md`](docs/CHANGELOG.md) for completed historical work.
 
 ## Contributing and AI-agent workflow
 
 Guidelines for contributors and AI coding assistants:
 
-1. **Always read [`docs/STATUS.md`](docs/STATUS.md) before [`docs/PROJECT.md`](docs/PROJECT.md)** — `STATUS.md` reflects current implementation state; `PROJECT.md` is the blueprint.
+1. **Always read [`docs/STATUS.md`](docs/STATUS.md) before [`docs/PROJECT.md`](docs/PROJECT.md)** — `STATUS.md` reflects current implementation state; `PROJECT.md` is historical blueprint/context.
 2. **Keep this README factual and in sync with implementation** — Do not document unimplemented features as if they exist.
 3. **Validate card behavior against TCGDex** — Use live TCGDex data or captured fixtures. Do not invent card effects.
 4. **Run tests after engine/card changes** — Use `make test`, `make test-engine`, or `make test-cards` to validate changes.
 5. **Avoid mock card data** — Unless a test fixture was captured from live data, do not create fabricated card definitions.
-6. **Update [`docs/STATUS.md`](docs/STATUS.md) at the end of development sessions** — Document what was implemented, what changed, and what remains.
+6. **Update docs in the right place** — `STATUS.md` gets current operational state; `CHANGELOG.md` gets completed historical changes and evidence; audit cursor changes belong in `AUDIT_STATE.md` only after actual audits.
 
 ## Legal note
 

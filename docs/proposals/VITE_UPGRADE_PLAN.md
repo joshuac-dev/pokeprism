@@ -1,6 +1,6 @@
 # Vite Upgrade Plan
 
-**Status:** proposal only — do not run `npm audit fix --force`  
+**Status:** accepted and implemented 2026-05-02 with the conservative Vite 6 path; retained as historical rationale. Do not run `npm audit fix --force` from this old plan.
 **Date:** 2026-05-02  
 
 ---

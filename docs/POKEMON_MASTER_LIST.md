@@ -1,3 +1,8 @@
+> Historical/supporting expansion-era card list. This file is not active
+> DB-backed audit authority. Current card-effect audit scope comes from the
+> database; current card behavior comes from TCGDex; workflow and cursor rules
+> live in `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md`.
+
 Spinarak POR 1
 Ariados POR 2
 Shaymin POR 3

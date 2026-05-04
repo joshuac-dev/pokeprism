@@ -1,3 +1,12 @@
+# Historical Card Expansion Rules
+
+> Historical/supporting document. These rules were written for the expansion-era
+> batch card-pool buildout. They are not the active DB-backed audit authority.
+> Current implementation audits must use `docs/AUDIT_RULES.md` and
+> `docs/AUDIT_STATE.md`; audit scope comes from the database and current card
+> behavior comes from TCGDex. Do not use this file, `docs/CARDLIST.md`, or
+> `docs/POKEMON_MASTER_LIST.md` to choose current audit candidates.
+
 NEW PROJECT: Batch Card Pool Expansion to Full Standard Format
 
 Read docs/PROJECT.md, docs/STATUS.md, and docs/POKEMON_MASTER_LIST.md 

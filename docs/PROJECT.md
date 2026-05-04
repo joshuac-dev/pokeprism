@@ -1,8 +1,28 @@
-# PokéPrism — Project Blueprint
+# PokePrism - Historical Project Blueprint
 
-> **Purpose of this document:** This is the authoritative technical blueprint for PokéPrism. Any AI coding assistant (GitHub Copilot, Claude, etc.) should read this file **in full** before writing any code. It defines architecture, data contracts, schemas, implementation order, and decision rationale. When in doubt, this document is the source of truth.
+> **Historical status:** This document is the original project blueprint and
+> architecture context for PokePrism. It preserves design rationale, data
+> contracts, implementation order, and historical phase planning. It is no
+> longer the current source of truth for active development status. The original
+> phase plan, including Phase 13 and the hardening sweep that followed it, has
+> been completed and superseded by ongoing post-phase audit, handler refinement,
+> simulation validation, and operational hardening.
 
 > **Live-Data-First Principle:** This project is built against live data from day one. There are no mock data factories, no placeholder card definitions, no fake match generators. Every layer is wired to real TCGDex API responses, real Ollama inference, and real PostgreSQL/Neo4j storage from the moment it’s implemented. Test suites use fixtures captured from live sources, not invented schemas. This prevents the “works on mocks, breaks on real data” failure mode.
+
+## Current Documentation Authority
+
+- Current state and operational handoff: `docs/STATUS.md`
+- Historical changes and evidence: `docs/CHANGELOG.md`
+- Active DB-backed card audit workflow: `docs/AUDIT_RULES.md` and
+  `docs/AUDIT_STATE.md`
+- Historical architecture background and original phase rationale:
+  `docs/PROJECT.md`
+- Public setup and onboarding: `README.md`
+
+When this blueprint conflicts with current code, tests, workflows, or
+`docs/STATUS.md`, treat the newer evidence as authoritative and update the
+appropriate current document.
 
 -----
 
@@ -166,10 +186,14 @@ pokeprism/
 ├── Makefile                            # Common commands (make up, make migrate, etc.)
 │
 ├── docs/
-│   ├── PROJECT.md                      # THIS FILE
-│   ├── POKEMON_MASTER_LIST.md          # Current master list of all cards in scope
+│   ├── STATUS.md                       # Current operational handoff
+│   ├── CHANGELOG.md                    # Evidence-based historical record
+│   ├── PROJECT.md                      # Historical blueprint / architecture context
+│   ├── AUDIT_RULES.md                  # Active DB-backed audit rules
+│   ├── AUDIT_STATE.md                  # Active audit cursor state
+│   ├── POKEMON_MASTER_LIST.md          # Historical/supporting expansion-era list
 │   ├── CARDLIST.md                     # Retired compatibility note
-│   └── CHANGELOG.md
+│   └── proposals/                      # Supporting proposals and assessments
 │
 ├── backend/
 │   ├── Dockerfile
@@ -2581,8 +2605,10 @@ The **Mind Map Graph** is the centerpiece. It’s a D3 force-directed graph wher
 
 ## 17. Phase 12 — Card Pool Expansion
 
-> **⚠️ THIS PHASE MUST NOT BE SKIPPED OR DEFERRED INDEFINITELY.**
-> The initial 157-card pool is sufficient to validate the engine and pipeline, but the system’s value comes from covering the full Standard-legal card pool. Plan to begin this phase once Phases 1-11 are stable.
+> Historical note: Phase 12 expansion work is complete and superseded by the
+> DB-backed audit workflow in `docs/AUDIT_RULES.md`. This section remains useful
+> as expansion-era design context, but it is not the active audit authority.
+> Current audit scope comes from the database, not from markdown card lists.
 
 **Goal:** Expand the card pool to include all Standard-legal cards beyond the initial 157. This includes two categories:
 
@@ -2634,6 +2660,10 @@ After expansion, run 10,000 H/H games across all initial + new deck matchups. Co
 -----
 
 ## 18. Phase 13 — Polish, Hardening & Scheduling
+
+> Historical note: Phase 13 and the subsequent hardening sweep are complete.
+> Current production-readiness work is tracked through `docs/STATUS.md` and
+> historical outcomes through `docs/CHANGELOG.md`.
 
 **Goal:** Production-readiness. Error handling, retry logic, graceful shutdown, monitoring, and the scheduled H/H cron system.
 
@@ -3890,27 +3920,33 @@ def get_prize_value(card: CardInstance) -> int:
 
 ## Development Checklist Summary
 
+Historical phase checklist. The phase plan below is retained as blueprint
+context; it is not the current active roadmap.
+
 |Phase |Description                     |Estimated Duration|Dependencies|Status    |
 |------|--------------------------------|------------------|------------|----------|
 |1     |Game Engine Core                |2-3 weeks         |None        |✅ Complete|
-|2     |Card Effect Registry (157 cards)|2-3 weeks         |Phase 1     |          |
-|3     |Heuristic Player & H/H Loop     |1-2 weeks         |Phases 1, 2 |          |
-|4     |Database Layer & Memory Stack   |2 weeks           |Phase 3     |          |
-|5     |AI Player Integration           |1-2 weeks         |Phases 3, 4 |          |
-|6     |Coach/Analyst System            |2 weeks           |Phases 4, 5 |          |
-|7     |Task Queue & Orchestration      |1-2 weeks         |Phase 6     |          |
-|8     |Frontend: Setup Page            |1-2 weeks         |Phase 7     |          |
-|9     |Frontend: Live Console          |1-2 weeks         |Phase 8     |          |
-|10    |Frontend: Dashboard             |2-3 weeks         |Phase 8     |          |
-|11    |Frontend: History & Memory      |2 weeks           |Phases 8, 10|          |
-|**12**|**Card Pool Expansion**         |**Ongoing**       |**Phase 11**|          |
-|13    |Polish & Hardening              |1-2 weeks         |All above   |          |
+|2     |Card Effect Registry (157 cards)|2-3 weeks         |Phase 1     |Complete / superseded by expanded handlers|
+|3     |Heuristic Player & H/H Loop     |1-2 weeks         |Phases 1, 2 |Complete|
+|4     |Database Layer & Memory Stack   |2 weeks           |Phase 3     |Complete|
+|5     |AI Player Integration           |1-2 weeks         |Phases 3, 4 |Complete|
+|6     |Coach/Analyst System            |2 weeks           |Phases 4, 5 |Complete|
+|7     |Task Queue & Orchestration      |1-2 weeks         |Phase 6     |Complete|
+|8     |Frontend: Setup Page            |1-2 weeks         |Phase 7     |Complete|
+|9     |Frontend: Live Console          |1-2 weeks         |Phase 8     |Complete|
+|10    |Frontend: Dashboard             |2-3 weeks         |Phase 8     |Complete|
+|11    |Frontend: History & Memory      |2 weeks           |Phases 8, 10|Complete|
+|**12**|**Card Pool Expansion**         |**Ongoing**       |**Phase 11**|Complete / superseded by DB-backed audit|
+|13    |Polish & Hardening              |1-2 weeks         |All above   |Complete|
 
 **Total estimated timeline: 20-30 weeks** (working part-time, 10-15 hrs/week)
 
 -----
 
-*This document is the authoritative blueprint for PokéPrism. All implementation decisions should reference this document. If a conflict arises between this document and ad-hoc decisions made during development, update this document to reflect the resolved decision so it remains the single source of truth.*
+*This document is historical blueprint and architecture context. For current
+development status, read `docs/STATUS.md`; for historical changes and evidence,
+read `docs/CHANGELOG.md`; for active card audit rules, read
+`docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md`.*
 
 ### Revision Log
 

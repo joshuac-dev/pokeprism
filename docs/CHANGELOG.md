@@ -33,10 +33,13 @@ merged PR history support that it actually landed.
 ### Summary
 
 As of `docs/STATUS.md` last updated on 2026-05-04, the project is in
-**DB-Backed Card Audit - Ongoing Handler Implementation**. Phase 13 and the
-earlier hardening sweep are documented as complete, but current work continues
-to close card-specific implementation gaps found by database-backed audits and
-runtime simulation checks.
+**post-phase DB-backed audit and handler refinement**. Phase 13 and the earlier
+hardening sweep are documented as complete. Current work continues to close
+card-specific implementation gaps found by database-backed audits, coverage
+gates, and runtime simulation checks.
+
+The current operational handoff is `docs/STATUS.md`. This changelog remains the
+evidence-based history, not the live status file.
 
 ### Added
 
@@ -60,6 +63,18 @@ runtime simulation checks.
     unless the image was rebuilt.
   - Evidence: `docs/STATUS.md`; Docker service structure in
     `docker-compose.yml`.
+  - Confidence: High.
+
+- Established the current documentation hierarchy:
+  `docs/STATUS.md` for current-state handoff, `docs/CHANGELOG.md` for evidence
+  history, `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` for active DB-backed
+  audit workflow, `docs/PROJECT.md` for historical architecture context, and
+  `README.md` for public onboarding.
+  - Why: The original phase blueprint and expansion-era card lists were still
+    phrased as active authority after the phase buildout and hardening sweep
+    had completed.
+  - Evidence: Documentation cleanup on 2026-05-04; `docs/STATUS.md`;
+    `docs/PROJECT.md`; `README.md`.
   - Confidence: High.
 
 ### Fixed
@@ -96,6 +111,29 @@ runtime simulation checks.
   mismatch, Fairy Zone misunderstanding, and greedy KO override behavior.
   - Evidence: `docs/STATUS.md`.
   - Confidence: High.
+
+### Current Metrics Snapshot
+
+- Local database on 2026-05-04: 2,027 cards, 6,900 matches, 270
+  `card_performance` rows, and 0 running simulations. Coverage reported 2,026
+  auditable cards, 1,734 implemented, 292 flat-only, 0 missing, and 100.0%
+  coverage.
+  - Evidence: `docker compose exec postgres psql -U pokeprism -d pokeprism -c
+    "SELECT (SELECT count(*) FROM cards) AS cards, (SELECT count(*) FROM
+    matches) AS matches, (SELECT count(*) FROM card_performance) AS
+    card_performance, (SELECT count(*) FROM simulations WHERE status='running')
+    AS running_simulations;"`; direct `backend` container call to
+    `app.api.coverage.get_coverage()`.
+  - Confidence: High for the local environment snapshot; not a release
+    baseline.
+
+- Latest documented full backend suite baseline remains 374 passed / 4 skipped
+  from the 2026-05-03 hardening report. Current backend count should be checked
+  with `cd backend && python3 -m pytest tests/ -x -q` before updating public
+  claims.
+  - Evidence: `docs/HARDENING_SWEEP_REPORT.md`; `docs/STATUS.md`.
+  - Confidence: High for the documented baseline; current count must be
+    re-verified before reuse.
 
 ## Historical Changelog
 
@@ -802,23 +840,17 @@ quality, and frontend usability.
   - Suggested follow-up: Continue DB-backed audits and add regression tests for
     every fixed card behavior.
 
-- Uncertainty: DeckBuilder roadmap history could not be compared to the
-  requested roadmap document because `DECKBUILDER_ROADMAP.md` was not present.
-  - Evidence found: Current deterministic deckbuilder implementation in
-    `backend/app/coach/deck_builder.py`; deferred Phase 3 weighting note in
-    `docs/STATUS.md`.
-  - Missing evidence: The roadmap file requested by the reconstruction
-    instructions.
-  - Suggested follow-up: Restore or recreate the roadmap, then classify each
-    roadmap item as implemented, partial, deferred, or superseded.
-
-- Uncertainty: Playwright and Vite plan completion could not be checked against
-  the requested plan files because `PLAYWRIGHT_E2E_PLAN.md` and
-  `VITE_UPGRADE_PLAN.md` were not present.
-  - Evidence found: Current Playwright workflow in `.github/workflows/e2e.yml`;
-    frontend Vite/Vitest dependencies in `frontend/package.json`.
-  - Missing evidence: The original plan documents and acceptance criteria.
-  - Suggested follow-up: Add plan docs or link them from the relevant PRs.
+- Uncertainty: Some proposal docs were created or restored after the original
+  changelog reconstruction, so early reconstruction notes about unavailable
+  proposal files are superseded.
+  - Evidence found: `docs/proposals/DECKBUILDER_ROADMAP.md`,
+    `docs/proposals/PLAYWRIGHT_E2E_PLAN.md`, and
+    `docs/proposals/VITE_UPGRADE_PLAN.md` are present as of 2026-05-04.
+  - Remaining uncertainty: Exact approval/implementation boundaries still come
+    from current code, tests, workflows, and git history, not from proposal text
+    alone.
+  - Suggested follow-up: Keep proposal headers marked as proposal, accepted,
+    implemented, rejected, or superseded when decisions change.
 
 - Uncertainty: Deployment history was not reconstructed.
   - Evidence found: Docker Compose and CI workflow configuration exist.
@@ -840,9 +872,9 @@ quality, and frontend usability.
 - [x] `docs/POKEMON_MASTER_LIST.md`
 - [x] `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md`
 - [x] `docs/proposals/AI_COACH_HARDENING_PROPOSAL.md`
-- [ ] `DECKBUILDER_ROADMAP.md` unavailable in repository
-- [ ] `PLAYWRIGHT_E2E_PLAN.md` unavailable in repository
-- [ ] `VITE_UPGRADE_PLAN.md` unavailable in repository
+- [x] `docs/proposals/DECKBUILDER_ROADMAP.md`
+- [x] `docs/proposals/PLAYWRIGHT_E2E_PLAN.md`
+- [x] `docs/proposals/VITE_UPGRADE_PLAN.md`
 - [x] `README.md`
 - [x] Git commit history across `main` and `origin/main`
 - [x] Git branches and remotes

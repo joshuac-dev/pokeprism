@@ -1,8 +1,8 @@
 # DeckBuilder Competitive Roadmap
 
-**Status:** proposal only  
+**Status:** roadmap / partially implemented. Deterministic phases 1, 2, 4, and 5 have landed; Phase 3+ simulation-backed weighting remains deferred pending sufficient and reliable performance data.
 **Date:** 2026-05-02  
-**Current state:** Deterministic baseline — scores cards by HP/damage/category, fills 18P/32T/10E, obeys 4-copy limit. No memory, no synergy, no archetype awareness.
+**Current state:** Conservative deterministic builder with role/energy/staple/dead-card improvements. No generic memory/synergy weighting is active; simulation-backed preference work remains deferred.
 
 ---
 
