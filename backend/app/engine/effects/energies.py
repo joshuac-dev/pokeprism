@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────────────────────────────────────
 
 def _noop_energy(state: GameState, action) -> None:
-    """No-op energy handler for flagged/passive-only special energies."""
+    """No-op on-attach handler for special energies whose effects are handled elsewhere in the engine."""
 
 
 def _get_attachment(target, source_card_id: str):
@@ -363,6 +363,8 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_energy("me02.5-217", _team_rockets_energy)   # Team Rocket's Energy (alt art)
     registry.register_energy("sv10.5b-086", _prism_energy)         # Prism Energy (alt art)
     registry.register_energy("sv02-190",   _jet_energy)            # Jet Energy
-    # Flagged special energies — complex effects not yet modelled
-    registry.register_energy("sv06-166", _noop_energy)  # Boomerang Energy (complex reuse — flagged)
-    registry.register_energy("sv09-159", _noop_energy)  # Spiky Energy (damage on attach — flagged)
+    # Special energies whose main effect is handled in the engine layer, not on-attach:
+    # - Boomerang Energy (sv06-166): post-attack reattach is handled in transitions._attack
+    # - Spiky Energy (sv09-159): damage-retaliation counter is handled in attacks._apply_damage
+    registry.register_energy("sv06-166", _noop_energy)  # Boomerang Energy (effect in transitions.py)
+    registry.register_energy("sv09-159", _noop_energy)  # Spiky Energy (effect in attacks.py)

@@ -5,14 +5,14 @@ This file stores the rotating cursor for the DB-backed card effect audit workflo
 It does not define card text. It does not define the audit candidate set. The database defines audit scope, and TCGDex defines card behavior.
 
 ```text
-next_start_cursor: Wondrous Patch | PFL | 94 | me02-094
+next_start_cursor: Staraptor | ASC | 170 | me02.5-170
 last_run_status: PARTIAL_TIME_BUDGET
-last_run_date_utc: 2026-05-03
+last_run_date_utc: 2026-05-04
 last_pr:
-last_issue: Nightly DB-backed card effect implementation audit - 2026-05-03
+last_issue: Nightly DB-backed card effect implementation audit - 2026-05-04
 last_first_card_audited: Wondrous Patch | PFL | 94 | me02-094
-last_card_fully_audited:
-notes: PARTIAL_TIME_BUDGET. DB verified (1606 cards). TCGDEX_PREFLIGHT=ok (Wondrous Patch and Xerosic's Machinations fetched successfully). Start cursor located at DB index 1565. Registration grep completed for all 41 tail-of-alphabet cards. Time budget exhausted before card-by-card TCGDex comparison and fixes could be completed. Next run should restart at same cursor.
+last_card_fully_audited: Larry's Staraptor | ASC | 170 | me02.5-170
+notes: 10 bugs fixed this session (Bugs #1-#10 spanning multiple sessions). Session ended due to time budget. Bugs: #9 _assassins_magic wrong effect (extra damage instead of 6 counters on bench), #10 _feathery_strike random bench target instead of attacker choice. Earlier session bugs: #1-#8 all committed.
 ```
 
 ## Cursor rules

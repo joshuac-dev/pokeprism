@@ -49,10 +49,16 @@ Re-check them before making claims in user-facing docs.
 - AI decision quality still has documented follow-up areas: reasoning-to-action
   mismatch, Fairy Zone rules misunderstanding, and no greedy-KO override
   backstop.
-- Mystery Garden and Team Rocket's Watchtower stadiums are registered as
-  `_noop`; optional stadium behavior remains an engine/card-effect gap.
-- Boomerang Energy and Spiky Energy have been documented as remaining special
-  energy gaps in recent handler work.
+- Team Rocket's Watchtower (sv10-180 / me02.5-210): Colorless Pokémon ability
+  suppression is fully implemented in the action validator. Passive ability
+  interactions (e.g. Damp) remain a future gap if a Colorless Pokémon with a
+  passive ability becomes relevant.
+- Mystery Garden (me02.5-194 / me01-122): fully implemented via `USE_STADIUM`
+  ActionType; once-per-turn Energy-discard draw effect is live.
+- Spiky Energy (sv09-159): damage-retaliation effect fully implemented in
+  `_apply_damage`; detection fixed to use `att.card_def_id` directly.
+- Boomerang Energy (sv06-166): reattach-after-discard effect fully implemented
+  in `transitions.py`.
 - `celery-worker` has no dedicated healthcheck. It restarts via
   `restart: unless-stopped`.
 

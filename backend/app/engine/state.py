@@ -185,6 +185,7 @@ class PlayerState:
     festival_lead_pending: bool = False               # Festival Lead: second attack if Festival Grounds active
     face_up_prize_indices: list = field(default_factory=list)  # Bother-Bot: indices of face-up prizes
     wide_wall_protected: bool = False  # sv07-076 Rhyperior Wide Wall: prevents Supporter effects on this player's Pokémon
+    mystery_garden_used_this_turn: bool = False  # Mystery Garden (me02.5-194 / me01-122): once-per-turn draw effect used
 
 
 @dataclass

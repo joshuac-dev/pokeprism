@@ -507,6 +507,7 @@ class MatchRunner:
             player.future_supporter_played_this_turn = False
             player.xerosics_machinations_played_this_turn = False
             player.daydream_active = False
+            player.mystery_garden_used_this_turn = False
             # items_locked_this_turn is set by the opponent on this player for the upcoming
             # turn. Only clear it at the end of THIS player's own turn so the effect persists
             # through the opponent's (next) turn as intended.

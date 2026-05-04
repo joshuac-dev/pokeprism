@@ -5026,7 +5026,6 @@ def register_all(registry):
     registry.register_passive_ability("sv08.5-010", "Festival Lead")    # Dipplin (second-attack: noop)
     registry.register_passive_ability("sv08.5-020", "Festival Lead")    # Goldeen (second-attack: noop)
     registry.register_passive_ability("sv08.5-021", "Festival Lead")    # Seaking (second-attack: noop)
-    registry.register_passive_ability("sv08.5-051", "Adrena-Power")     # Lucario ex (FLAGGED: dynamic HP was for Okidogi)
     registry.register_passive_ability("sv08.5-057", "Adrena-Power")     # Okidogi (FLAGGED)
     registry.register_passive_ability("sv08.5-070", "Metal Bridge")     # Archaludon ex (retreat cost: noop)
     registry.register_passive_ability("sv08.5-074", "Boosted Evolution") # Eevee (first-turn evolution: noop)

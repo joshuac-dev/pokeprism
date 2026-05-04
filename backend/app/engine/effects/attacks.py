@@ -463,13 +463,7 @@ def _apply_damage(
         _def_player_se = state.get_player(opp_id)
         _has_spiky = (
             defender is _def_player_se.active
-            and any(
-                att.source_card_id and any(
-                    c.instance_id == att.source_card_id and c.card_def_id == "sv09-159"
-                    for c in _def_player_se.discard + _def_player_se.hand + list(_def_player_se.deck)
-                )
-                for att in defender.energy_attached
-            )
+            and any(att.card_def_id == "sv09-159" for att in defender.energy_attached)
         )
         if _has_spiky:
             attacker.current_hp -= 20
@@ -691,11 +685,18 @@ def _apply_bench_damage(
                 state.emit_event("bench_damage_blocked", reason="tundra_wall",
                                  card=target.card_name)
                 return
-    # Curly Wall (sv07-119 / svp-136 Bouffalant): reduce bench damage by 20
+    # Curly Wall (sv07-119 / svp-136 Bouffalant): Basic {C} bench Pokémon take 60 less damage
     _target_player_cw = state.get_player(target_player_id)
     _BOUFFALANT_IDS = frozenset({"sv07-119", "svp-136"})
-    if any(p.card_def_id in _BOUFFALANT_IDS for p in _target_player_cw.bench):
-        damage = max(0, damage - 20)
+    _is_basic_colorless = (
+        cdef and cdef.stage and cdef.stage.lower() == "basic"
+        and "Colorless" in (cdef.types or [])
+    )
+    if _is_basic_colorless and any(
+        p.card_def_id in _BOUFFALANT_IDS and p is not target
+        for p in _target_player_cw.bench
+    ):
+        damage = max(0, damage - 60)
         if damage <= 0:
             state.emit_event("curly_wall_blocked", player=target_player_id,
                              card=target.card_name)
@@ -4724,12 +4725,32 @@ def _ascension_misdreavus(state, action):
 
 
 def _assassins_magic(state, action):
-    """me02.5-086 Mismagius atk0 — Assassin's Magic: 60 + 60 more if opp active has Special Condition."""
+    """me02.5-086 Mismagius atk0 — Assassin's Magic: 60 + if opp active has Special Condition, 6 counters on 1 opp Bench."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
     opp = state.get_opponent(action.player_id)
-    bonus = 0
-    if opp.active and opp.active.status_conditions:
-        bonus = 60
-    _apply_damage(state, action, 60 + bonus)
+    opp_id = state.opponent_id(action.player_id)
+    if opp.active and opp.active.status_conditions and opp.bench:
+        if len(opp.bench) == 1:
+            target = opp.bench[0]
+        else:
+            req = ChoiceRequest(
+                "choose_target", action.player_id,
+                "Assassin's Magic: choose 1 of your opponent's Benched Pokémon to place 6 damage counters on",
+                targets=list(opp.bench),
+            )
+            resp = yield req
+            target = None
+            if resp and resp.target_instance_id:
+                target = next((p for p in opp.bench if p.instance_id == resp.target_instance_id), None)
+            if target is None:
+                target = opp.bench[0]
+        target.damage_counters += 6
+        target.current_hp -= 60
+        state.emit_event("damage_counters_placed", player=opp_id,
+                         card=target.card_name, counters=6, reason="Assassin's Magic")
+        check_ko(state, target, opp_id)
 
 
 def _cursed_words(state, action):
@@ -5773,7 +5794,20 @@ def _feathery_strike(state, action):
     opp = state.get_opponent(action.player_id)
     opp_id = state.opponent_id(action.player_id)
     if opp.bench:
-        target = _random.choice(opp.bench)
+        if len(opp.bench) == 1:
+            target = opp.bench[0]
+        else:
+            req = ChoiceRequest(
+                "choose_target", action.player_id,
+                "Feathery Strike: choose 1 of your opponent's Benched Pokémon for 50 damage",
+                targets=list(opp.bench),
+            )
+            resp = yield req
+            target = None
+            if resp and resp.target_instance_id:
+                target = next((p for p in opp.bench if p.instance_id == resp.target_instance_id), None)
+            if target is None:
+                target = opp.bench[0]
         _apply_bench_damage(state, opp_id, target, 50)
 
 
@@ -13911,17 +13945,10 @@ def _rising_tackle(state, action):
 
 
 def _unified_beatdown_b10(state, action):
-    """sv08.5-092 Terapagos ex atk0 — Unified Beatdown: 30 × own Pokémon with Energy attached."""
+    """sv08.5-092 Terapagos ex atk0 — Unified Beatdown: 30 × Benched Pokémon count."""
     player = state.get_player(action.player_id)
-    count = sum(
-        1 for p in ([player.active] if player.active else []) + list(player.bench)
-        if p.energy_attached
-    )
-    if count == 0:
-        state.emit_event("attack_no_damage", attacker="Terapagos ex",
-                         attack_name="Unified Beatdown", reason="no Pokémon with energy")
-        return
-    _apply_damage(state, action, 30 * count)
+    bench_count = len(player.bench)
+    _apply_damage(state, action, 30 * bench_count)
 
 
 def _precocious_evolution_flag(state, action):
@@ -15902,9 +15929,7 @@ def register_all(registry):
     registry.register_attack("sv06-095", 0, _mind_bend)
     registry.register_attack("me02.5-099", 0, _mind_bend)     # Munkidori alt print
     registry.register_attack("sv06-118", 0, _poison_spray)
-    registry.register_attack("svp-149", 0, _poison_chain_pecharunt)
-
-    # Category 4: Draw and search effects
+    registry.register_attack("svp-149", 0, _poison_chain_b17)
     registry.register_attack("me03-042", 0, _double_draw)
     registry.register_attack("sv06-039", 0, _allure)
     registry.register_attack("sv10-040", 0, _collect)
@@ -15974,7 +15999,7 @@ def register_all(registry):
 
     # Category 8b: Item-lock attacks
     registry.register_attack("me02.5-016", 0, _itchy_pollen)
-    registry.register_attack("svp-149",    0, _poison_chain_pecharunt)
+    registry.register_attack("svp-149",    0, _poison_chain_b17)
     registry.register_attack("sv05-023",   0, _slight_intrusion)  # Rellor — Slight Intrusion
 
     # Category 9: Copy-attack stubs
@@ -21639,11 +21664,10 @@ def _dual_headbutt(state, action):
 # ── sv06-084 Farigiraf ───────────────────────────────────────────────────────
 
 def _one_derful_rumble(state, action):
-    """sv06-084 Farigiraf atk0 — One-derful Rumble: 40× per Stage 1 Pokémon in play (both sides)."""
-    stage1_count = 0
+    """sv06-084 Farigiraf atk0 — One-derful Rumble: 40× per own Stage 1 Pokémon in play."""
     player = state.get_player(action.player_id)
-    opp = state.get_opponent(action.player_id)
-    for poke in _in_play(player) + _in_play(opp):
+    stage1_count = 0
+    for poke in _in_play(player):
         cdef = card_registry.get(poke.card_def_id)
         if cdef and (getattr(cdef, "stage", None) or "").lower() == "stage 1":
             stage1_count += 1
@@ -21741,10 +21765,15 @@ def _sneaky_placement(state, action):
 # ── sv06-090 Slurpuff ────────────────────────────────────────────────────────
 
 def _slurp_slurp(state, action):
-    """sv06-090 Slurpuff atk0 — Slurp Slurp: flip 2 coins; 90 per heads (minimum 90)."""
+    """sv06-090 Slurpuff atk0 — Slurp Slurp: flip 2 coins; 90 per heads. Both tails = Confused."""
     heads = sum(1 for _ in range(2) if _random.choice([True, False]))
-    damage = max(90, 90 * heads)
-    _apply_damage(state, action, damage)
+    if heads == 0:
+        opp = state.get_opponent(action.player_id)
+        if opp.active:
+            opp.active.status_conditions.add(StatusCondition.CONFUSED)
+            state.emit_event("status_applied", status="CONFUSED", card=opp.active.card_name)
+    else:
+        _apply_damage(state, action, 90 * heads)
 
 
 # ── sv06-091/092 Sandygast / Palossand ───────────────────────────────────────
@@ -21803,9 +21832,9 @@ def _blazing_destruction(state, action):
 # ── sv06-100 Hisuian Arcanine ────────────────────────────────────────────────
 
 def _proud_fangs(state, action):
-    """sv06-100 Hisuian Arcanine atk0 — Proud Fangs: 30 + 90 more if any opp Benched Pokémon has damage counters."""
-    opp = state.get_opponent(action.player_id)
-    has_damaged_bench = any(p.damage_counters > 0 for p in opp.bench)
+    """sv06-100 Hisuian Arcanine atk0 — Proud Fangs: 30 + 90 more if any own Benched Pokémon has damage counters."""
+    player = state.get_player(action.player_id)
+    has_damaged_bench = any(p.damage_counters > 0 for p in player.bench)
     bonus = 90 if has_damaged_bench else 0
     _apply_damage(state, action, 30 + bonus)
 

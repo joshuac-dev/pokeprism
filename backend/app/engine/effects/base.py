@@ -787,6 +787,12 @@ def get_tool_damage_bonus(
         if attacker_def and "Psychic" in (attacker_def.types or []):
             bonus -= 60
 
+    # Occa Berry (sv07-140): -60 from Fire attacks
+    if has_tool(defender, "sv07-140"):
+        attacker_def = card_registry.get(attacker.card_def_id)
+        if attacker_def and "Fire" in (attacker_def.types or []):
+            bonus -= 60
+
     # Defiance Band (sv01-169): +30 when attacker's player has more prizes remaining than opponent
     if has_tool(attacker, "sv01-169"):
         atk_player = state.get_player(attacker_player_id)
