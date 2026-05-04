@@ -1,0 +1,32 @@
+{
+  "category": "Energy",
+  "id": "sv05-162",
+  "image": "https://assets.tcgdex.net/en/sv/sv05/162",
+  "localId": "162",
+  "name": "Neo Upper Energy",
+  "rarity": "ACE SPEC Rare",
+  "set": {
+    "cardCount": {
+      "official": 162,
+      "total": 218
+    },
+    "id": "sv05",
+    "name": "Temporal Forces",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv05/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": true,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "effect": "As long as this card is attached to a Pokémon, it provides {C} Energy.\n\nIf this card is attached to a Stage 2 Pokémon, this card provides every type of Energy but provides only 2 Energy at a time.",
+  "energyType": "Special",
+  "regulationMark": "H",
+  "legal": {
+    "standard": true,
+    "expanded": true
+  },
+  "updated": "2025-12-23T18:32:01+01:00"
+}

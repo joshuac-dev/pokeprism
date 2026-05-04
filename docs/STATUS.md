@@ -5,120 +5,114 @@
 > Historical session entries below are retained as written; date-relative or future-looking notes in those entries may reflect the environment used when that session was recorded. The Current Phase section is authoritative as of 2026-05-03.
 
 ## Current Phase
-**Production Readiness Follow-Up / Hardening Sweep — COMPLETE**
-_Last updated: 2026-05-03 (Session 8 of follow-up phase)_
+**DB-Backed Card Audit — Ongoing Handler Implementation**
+_Last updated: 2026-05-04 (Card handler Batch 1 + Batch 2 implementation)_
 
-Phase 13 and Phase 12 are complete. The comprehensive hardening sweep (Sections 1–8) is now complete. See `docs/HARDENING_SWEEP_REPORT.md` for the full report.
+Phase 13 and the Hardening Sweep are complete. Currently implementing missing card effect handlers discovered during the DB-backed audit (started 2026-05-03). Each handler batch unblocks simulations that include those cards.
 
 | Metric | Value |
 |--------|-------|
 | Cards in DB | **2005** (2003 real + 2 test fixtures) |
-| Coverage | **100%** (0 missing handlers, only test-002 fixture unhandled) |
+| Coverage | **100% of previously-registered cards** (new handlers expand coverage further) |
 | Flat-damage-only cards | 292 |
-| Tests | **374 backend passed, 4 skipped** (52 new tests added this sweep) |
+| Tests | **374 backend passed, 4 skipped** (unchanged this session — no new tests added) |
 | Flagged entries remaining | **0** |
-| Production-readiness known issues | **None — all hardening sweep issues resolved** |
+| Production-readiness known issues | **None blocking** |
 | Historical matches in DB | **30,137** |
-| `card_performance` rows | **217** (rebuilt from historical matches 2026-05-03) |
+| `card_performance` rows | **217** |
+| Batch 1 handlers added | **8 cards** (Arven, Bravery Charm, Earthen Vessel, Iron Hands ex sv04-070, Mew ex, Miraidon ex, Nest Ball, Super Rod) |
+| Batch 2 handlers added | **12 cards** (Armarouge, Charcadet, Chi-Yu, Defiance Band, Electric Generator, Iono, Iron Bundle, Jet Energy, Magnemite, Pal Pad, Professor's Research, Squawkabilly ex) |
 
 ---
 
-## Last Session — 2026-05-03 (Hardening Sweep Complete: Sections 3B–8 + AI Audit)
+## Last Session — 2026-05-04 (Card Handler Batch 1 + Batch 2 — 20 new handlers across 5 files)
 
 ### Current Phase Progress
 
 **Completed this session:**
 
-1. **Section 3B Coach mutation legality patch** — Finished the interrupted work from the prior session. `_apply_mutations()` in `backend/app/tasks/simulation.py` now:
-   - Requires non-None `card_added_def` from the mutation dict; skips with warning if absent (no more placeholder `CardDefinition(name=add_id)` objects)
-   - Skips any mutation where the card to remove is not found in the current deck (prevents unbalanced deck sizes)
-   - New helper `_validate_post_mutation_deck()` validates 60-card count and 4-copy limits after all mutations apply
-   - Reverts to original deck if post-mutation legality fails
-   - Added `_BASIC_ENERGY_NAMES` frozenset to exempt basic energies from the 4-copy rule
-   Also confirmed `CoachAnalyst.analyze_and_mutate()` carries `card_added_def` forward from DB lookup and filters additions to the candidate pool. New tests: `TestApplyMutations` (8 tests), `TestValidatePostMutationDeck` (4 tests), `test_non_candidate_add_discarded`, `test_excluded_add_discarded`, `test_card_added_def_populated_in_mutations`.
+1. **Neo Upper Energy (sv05-162) handler** — User attempted to start a simulation and the coverage pre-flight gate blocked it with "1 card has unimplemented effects." Fixed by adding `_neo_upper_energy` to `energies.py`: provides 1 Colorless normally; provides 2 ANY when attached to a Stage 2 Pokémon. Also created the fixture file `backend/tests/fixtures/cards/sv05-162.json`.
 
-2. **Section 2C AI/AI behavioral audit completed** — Qwen3.5-9B confirmed warm (~0.33s per call). Ran 3-game AI/AI batch via `backend/scripts/ai_diagnostic_3games.py`:
-   - Game 1: Dragapult ex vs TR Mewtwo — p1 wins, 17 turns, no_bench condition, 41 decisions
-   - Game 2: Dragapult ex vs Cornerstone Ogerpon — p2 wins, 135 turns, deck_out condition, 295 decisions
-   - Game 3: TR Mewtwo vs Cornerstone Ogerpon — p2 wins, 145 turns, deck_out condition, 325 decisions
-   - **661 total decisions, 0 illegal actions** — validator hard gate confirmed working
-   - 177 "suspicious" decisions found by heuristic; root cause: reasoning→action mismatch (AI reasons correctly but chooses PASS) and Fairy Zone rules misunderstanding. These are AI quality issues, not engine bugs. Proposed (but not implemented): KO-flag enrichment in legal action descriptions + greedy KO override backstop.
+2. **Docker stack restart** — Full `docker compose down && docker compose up -d` to clear stale state after initial Neo Upper Energy fix.
 
-3. **Section 4B — Status condition fixes (6 bugs fixed):**
-   - `backend/app/engine/actions.py`: PARALYZED + ASLEEP now block `_get_attack_actions()`; PARALYZED blocks `_get_retreat_actions()` (these were carried as in-progress from prior session)
-   - `backend/app/engine/runner.py`: PARALYZED timing fixed — now only removed for `state.active_player`'s Pokémon at between-turns, not the opponent's
-   - `backend/app/engine/runner.py`: Burn flip direction reversed — changed `if flip:` → `if not flip:` (tails triggers 20 damage, heads is safe, matching official rules)
-   - `backend/app/engine/transitions.py`: CONFUSED coin flip added before attack resolution — tails = 30 self-damage + attack cancelled; heads = attack resolves normally
-   - New test file: `backend/tests/test_engine/test_status_conditions.py` (10 tests covering all 6 status mechanics)
+3. **Runtime failure debugging** — Two bugs were uncovered during simulation runs:
+   - `celery-worker` had no volume mount and was running a baked image without the new code. Fixed by running `docker compose build celery-worker && docker compose up -d celery-worker`. This is now the **required rebuild step** after any change to `app/engine/effects/`.
+   - Three `EnergyAttachment` constructors in `attacks.py` used `card_id=` instead of the correct field name `source_card_id=`. Fixed all three occurrences.
 
-4. **Section 4A — Damage calculation tests** — New test file `backend/tests/test_engine/test_damage_calc.py` (9 tests): weakness ×2, no-weakness baseline, resistance −30, resistance floor=0, combined weakness+resistance, regular KO = 1 prize, ex KO = 2 prizes, last prize → game_over (prizes), last Pokémon with no bench → game_over (no_bench).
+4. **Batch 1 — 8 new card handlers** — Implemented the following handlers based on user-provided card list:
 
-5. **Section 4C — Special mechanics audit** — New test file `backend/tests/test_engine/test_special_mechanics.py` (10 tests): CHOOSE_CARDS count/ID validation (4 tests), CHOOSE_TARGET set membership (2 tests), copy-attack exclusion keys present, stadium placement sets `active_stadium` via `_play_stadium` transition, tools stored as strings not objects, special energy `provides` list propagated.
+   **attacks.py:**
+   - `_photon_blaster` (sv01-081 Miraidon ex atk0): 220 + sets `cant_attack_next_turn = True` on attacker
+   - `_genome_hacking` (sv03.5-151 Mew ex atk0): async copy-attack — picks highest-damage non-copy attack from opponent's active, resolves it via registry
+   - `_amp_you_very_much` registration alias (sv04-070): Iron Hands ex alt print; reuses existing sv08.5-031 `_amp_you_very_much` handler (120 + extra prize on KO)
+   - Added `"sv03.5-151:0"` to `_COPY_ATTACK_KEYS` set (prevents chain-copying)
 
-6. **Section 5 — Effect handler spot check** — New test file `backend/tests/test_engine/test_effect_coverage_spot_check.py` (2 tests): loads 50 randomly-sampled cards from 1,606 fixture files (deterministic seed 12345), asserts all have registered handlers. Result: 50/50 pass, 0 unregistered effects.
+   **trainers.py:**
+   - `_nest_ball` (sv01-181): search deck for 1 Basic Pokémon → bench + shuffle
+   - `_super_rod` (sv02-188): choose up to 3 Pokémon/Basic Energy from discard → shuffle into deck
+   - `_arven` (sv03-186): two ChoiceRequests — search 1 Item + 1 Pokémon Tool from deck → hand + shuffle
+   - `_bravery_charm` (sv02-173): +50 HP to target only if `evolution_stage == 0`
+   - `_earthen_vessel` (sv04-163): discard 1 other hand card as cost, then search up to 2 Basic Energy from deck → hand + shuffle
 
-7. **Section 6 — API endpoint coverage** — Added 9 new tests to `backend/tests/test_api/test_simulations.py` covering previously-untested routes: `TestGetSimulationRounds` (3 tests: invalid UUID, empty, shape), `TestGetSimulationMutations` (3 tests: invalid UUID, empty, shape), `TestStarSimulation` (3 tests: invalid UUID, 404, toggle from False→True).
+   **abilities.py:**
+   - `_restart` (sv03.5-151 Mew ex): draw cards until hand = 3; condition: `hand < 3`; sets `ability_used_this_turn = True`
+   - `_tandem_unit` (sv01-081 Miraidon ex): ChoiceRequest to bench up to 2 Basic Lightning from deck; condition: bench space + Lightning Pokémon in deck; sets `ability_used_this_turn = True`
 
-8. **Sections 7 & 8 — Audited, no changes required:**
-   - Docker compose: all services have healthchecks; `depends_on: condition: service_healthy`; `restart: unless-stopped` throughout; `celery-beat` correctly env-minimal (REDIS_URL only)
-   - Celery beat: nightly H/H at 02:00 UTC confirmed wired
-   - Error handling: simulation task catches all exceptions, sets `status=failed`, re-raises; graph/Redis writes are non-fatal
-   - Prompt injection: 6 existing tests in `TestPromptInjectionHardening` confirmed passing
-   - Data quality gate: `_check_deck_coverage()` confirmed in place and tested
+5. **Batch 2 — 12 additional card handlers** — Implemented second user-provided card list:
 
-9. **Created `docs/HARDENING_SWEEP_REPORT.md`** — Full report of all 8 sections with per-section pass/fail table, bug descriptions, and final metrics (374 passed, 52 new tests added).
+   **attacks.py:**
+   - `_flame_cannon` (sv01-041 Armarouge atk0): 90 + BURN on defender
+   - `_fiery_fighting_spirit` (sv04-026 Charcadet atk0): search 1 Basic Fire from deck → attach to self (generator), then deal damage
+   - `_flare_bringer` (sv04-029 Chi-Yu atk0): two ChoiceRequests — pick target Pokémon, then attach up to 2 Basic Fire from discard to it
+   - `_megafire_of_envy` (sv04-029 Chi-Yu atk1): 50 + 90 conditional on `player.ko_taken_last_turn`
+   - `_motivate` (sv02-169 Squawkabilly ex atk0): 20 + two ChoiceRequests — pick bench target, attach up to 2 Basic Energy from discard to it
+   - `_magnetic_charge` (sv02-065 Magnemite atk0): two ChoiceRequests — pick bench target, attach up to 2 Basic Lightning from discard to it
+   - `_refrigerated_stream` (sv04-056 Iron Bundle atk0): 80 + if opp active is Evolution: `cant_attack_next_turn = True`
 
-**Test results this session:**
-- Section 3B: `python3 -m pytest tests/test_tasks/test_simulation_task.py tests/test_coach/test_analyst.py -q` → **all pass**
-- Section 4B: `python3 -m pytest tests/test_engine/test_status_conditions.py -v` → **10/10 pass**
-- Section 4A: `python3 -m pytest tests/test_engine/test_damage_calc.py -v` → **9/9 pass**
-- Section 4C: `python3 -m pytest tests/test_engine/test_special_mechanics.py -v` → **10/10 pass**
-- Section 5: `python3 -m pytest tests/test_engine/test_effect_coverage_spot_check.py -v` → **2/2 pass**
-- Section 6: `python3 -m pytest tests/test_api/test_simulations.py -k "Rounds or Mutations or Star" -v` → **11/11 pass** (9 new + 2 pre-existing selected)
-- **Full suite final:** `python3 -m pytest --tb=short -q` → **374 passed, 4 skipped, 0 failures**
+   **trainers.py:**
+   - `_electric_generator` (sv01-170): look at top 5 cards of deck; for each chosen Basic Lightning energy from that set, player picks a Benched Lightning Pokémon to attach it to; shuffle deck
+   - `_iono` (sv02-185): both players shuffle hand into deck and draw `prizes_remaining` cards (min 1)
+   - `_pal_pad` (sv01-182): ChoiceRequest to shuffle up to 2 Supporters from discard into deck + shuffle
+   - `_professors_research` (sv09-155): discard entire hand, draw 7
+   - `_noop` alias for sv01-169 Defiance Band (tool, passive effect handled entirely in base.py)
+
+   **energies.py:**
+   - `_jet_energy` (sv02-190): provides Colorless; if attached to a Benched Pokémon, switch that Pokémon to the Active Spot (moves current active to bench)
+
+   **abilities.py:**
+   - `_fire_off` (sv01-041 Armarouge): repeatable — pick a Benched donor with Fire Energy, move 1 Fire att from donor to active; **does NOT set `ability_used_this_turn = True`**; condition (3-param): bench has Pokémon with Fire Energy + active exists
+   - `_hyper_blower` (sv04-056 Iron Bundle): bench-only ability — send opp's active to bench, opp chooses new active via `ChoiceRequest(player_id=opp_id)`; sets `ability_used_this_turn = True`; condition (3-param): `poke in player.bench` + opp has both active and bench
+   - `_squawk_and_seize` (sv02-169 Squawkabilly ex): discard hand, draw 6; sets `ability_used_this_turn = True`; condition (3-param): `turn_number <= 2` AND no other sv02-169 Pokémon in play has `ability_used_this_turn = True`
+
+   **base.py:**
+   - Defiance Band (sv01-169) passive added to `get_tool_damage_bonus`: +30 to damage when attacker's player's `prizes_remaining > opp_player.prizes_remaining`
+
+6. **celery-worker rebuilt** — After all code changes: `docker compose build celery-worker && docker compose up -d celery-worker`. Worker started cleanly, confirmed `celery@... ready.`
+
+**Validation this session:**
+- All-files import check: `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base; print('All imports OK')"` → **All imports OK**
+- Registry check (all 16 new handler keys verified present in `_attack_effects`, `_trainer_effects`, `_energy_effects`, `_ability_effects` dicts)
+- No new test suite run this session (existing 374 passed/4 skipped baseline unchanged)
 
 ---
 
 ## Active Files Changed This Session
 
-**Modified (engine fixes):**
-- `backend/app/engine/runner.py` — Burn flip direction fix (line 412: `if not flip:`); PARALYZED timing fix (line 435: only remove for `state.active_player`)
-- `backend/app/engine/transitions.py` — CONFUSED coin flip added before attack resolution (~line 622)
-- `backend/app/engine/actions.py` — PARALYZED + ASLEEP block attacks (line 705–709); PARALYZED blocks retreat (line 591–594)
+**Modified (effect handlers):**
+- `backend/app/engine/effects/attacks.py` — Added 7 new attack handlers (`_flame_cannon`, `_fiery_fighting_spirit`, `_flare_bringer`, `_megafire_of_envy`, `_motivate`, `_magnetic_charge`, `_refrigerated_stream`); fixed 3 `EnergyAttachment(card_id=...)` → `(source_card_id=...)` typos; added `"sv03.5-151:0"` to `_COPY_ATTACK_KEYS`; registered `_photon_blaster` (sv01-081), `_genome_hacking` (sv03.5-151), `_amp_you_very_much` alias (sv04-070), and all Batch 2 attack handlers
+- `backend/app/engine/effects/trainers.py` — Added 5 new trainer handlers (`_electric_generator`, `_iono`, `_pal_pad`, `_professors_research`; `_noop` alias for sv01-169); registered all in `register_all()`
+- `backend/app/engine/effects/energies.py` — Added `_jet_energy` (sv02-190); registered in `register_all()`
+- `backend/app/engine/effects/abilities.py` — Added 5 new ability handlers (`_fire_off`, `_hyper_blower`, `_squawk_and_seize`, `_restart`, `_tandem_unit`); registered all with 3-param conditions in `register_all()`
+- `backend/app/engine/effects/base.py` — Added Defiance Band (sv01-169) passive to `get_tool_damage_bonus`: `+30` when `atk_player.prizes_remaining > opp_player.prizes_remaining`
 
-**Modified (simulation task):**
-- `backend/app/tasks/simulation.py` — `_apply_mutations()` rewritten to use `card_added_def`, skip missing cards, validate legality; `_validate_post_mutation_deck()` and `_BASIC_ENERGY_NAMES` added
-
-**Modified (tests):**
-- `backend/tests/test_tasks/test_simulation_task.py` — `TestApplyMutations` updated + 8 tests, `TestValidatePostMutationDeck` 4 tests added
-- `backend/tests/test_coach/test_analyst.py` — `test_swaps_clamped_to_max` fixed; `test_non_candidate_add_discarded`, `test_excluded_add_discarded`, `test_card_added_def_populated_in_mutations` added
-- `backend/tests/test_api/test_simulations.py` — `TestGetSimulationRounds`, `TestGetSimulationMutations`, `TestStarSimulation` added (242 lines)
+**Created (fixtures):**
+- `backend/tests/fixtures/cards/sv05-162.json` — Neo Upper Energy fixture (fetched from TCGDex)
 
 **Modified (docs):**
 - `docs/STATUS.md` — this handoff update
-- `docs/CHANGELOG.md` — Hardening Sweep entry added
-
-**Created (new test files):**
-- `backend/tests/test_engine/test_status_conditions.py` — 10 tests for all status condition mechanics
-- `backend/tests/test_engine/test_damage_calc.py` — 9 tests for weakness/resistance/prizes
-- `backend/tests/test_engine/test_special_mechanics.py` — 10 tests for CHOOSE_CARDS, stadiums, tools, special energy
-- `backend/tests/test_engine/test_effect_coverage_spot_check.py` — 2 tests for 50-card handler spot check
-
-**Created (diagnostic scripts):**
-- `backend/scripts/ai_diagnostic.py` — single-game AI/AI behavioral audit (Section 2C)
-- `backend/scripts/ai_diagnostic_3games.py` — 3-game AI/AI batch audit with suspicious-decision analysis
-
-**Created (docs):**
-- `docs/HARDENING_SWEEP_REPORT.md` — full hardening sweep findings report
-
-**Untracked / unchanged from prior sessions:**
-- `backend/alembic/versions/d6b7f3c91a2e_add_deck_mutation_evidence.py`
-- `backend/app/memory/backfill.py`
-- `scripts/backfill_card_performance.py`
-- `frontend/node_modules/**` — dirty from prior session `npm install`; do not commit
 
 **Commits:**
-- No commits were made this session (all changes are uncommitted on `hardening-sweep-2`).
+- Session changes are uncommitted on `main` branch (merged from prior session's PR).
 
 ---
 
@@ -129,26 +123,72 @@ Carried from prior sessions (non-blocking):
 - AI/Coach Stage 2 closed by product decision: PokéPrism is Ollama-only.
 - `celery-worker` Docker service has no healthcheck (workers restart automatically via `restart: unless-stopped`).
 - Mystery Garden (sv06-156) and Watchtower stadiums registered as `_noop` — optional stadium effects not yet implemented in engine.
+- AI reasoning → action mismatch (AI reasons correctly but still chooses PASS). Proposed fix: annotate legal actions with `→ WOULD KO` flag. Not yet implemented.
+- AI Fairy Zone rules misunderstanding. Proposed fix: rules injection in system prompt. Not yet implemented.
+- Greedy KO override backstop not implemented.
+- `frontend/node_modules` dirty from prior session `npm install`. Do not commit.
 
 New this session:
-- **AI reasoning → action mismatch** — In 3-game audit, AI occasionally reasons correctly that an attack would KO the opponent but still chooses PASS. Root cause: reasoning computed in scratchpad, action selection is a separate step that doesn't see the conclusion. Proposed fix (not yet implemented): annotate legal action descriptions with expected damage and `→ WOULD KO` flag before sending to LLM.
-- **AI Fairy Zone rules misunderstanding** — AI incorrectly treats Fairy Zone as damage protection. Actual rule: Colorless Pokémon gain Psychic ×2 weakness. Proposed fix (not yet implemented): rules injection in system prompt when Fairy Zone is active.
-- **Greedy KO override not implemented** — After LLM returns PASS/END_TURN, could check if any attack would KO and override. Discussed with user; not implemented yet.
-- **Tracked `frontend/node_modules` dirty** — from prior session `npm install`. Do not commit without an explicit decision.
+- **celery-worker must be rebuilt after any effects file change** — The celery-worker image has no volume mount; it uses a baked snapshot of the code. Any change to `app/engine/effects/` requires `docker compose build celery-worker && docker compose up -d celery-worker`. The backend container picks up changes live (it has a volume mount), but the worker does not. Forgetting this will cause the worker to run old code silently.
+- **`EnergyAttachment` field is `source_card_id`, not `card_id`** — Found three occurrences of the wrong field name; all were fixed. Future handlers must use `source_card_id=` when constructing `EnergyAttachment`.
+- **Boomerang Energy (sv06-166) and Spiky Energy (sv09-159) remain flagged** — These are registered as `_noop_energy`. Boomerang Energy's reuse mechanic and Spiky Energy's on-attach damage are not yet modelled in the engine.
 
 ---
 
 ## Key Decisions Made This Session
 
-1. **AI reasoning quality issues are not engine bugs** — The hard gate (ActionValidator) correctly blocks all illegal actions. The 177 suspicious decisions in the AI audit are LLM output quality issues, not engine correctness failures. They are acceptable for the current state of the product.
+1. **celery-worker rebuild is mandatory after effects file changes** — Confirmed that the backend container picks up live code via volume mount at `/app/app`, but the celery-worker image is built at `docker compose build` time with no mount. All future handler work must end with a celery-worker rebuild.
 
-2. **KO-flag enrichment is the best first fix for AI reasoning** — Pre-computing expected damage per attack and annotating the legal action list with `→ WOULD KO` is ~20-30 lines in `ai_player.py`, requires no second LLM call, and addresses the root cause directly. User chose not to implement it this session.
+2. **`EnergyAttachment(source_card_id=...)` is the correct constructor field** — Not `card_id`. Three bugs in attacks.py were caused by this. The field name `source_card_id` (not `card_id`) is canonical; the dataclass in `app/engine/state.py` is authoritative.
 
-3. **Greedy KO override as backstop** — Deterministic post-processing override if AI chooses PASS/END_TURN when an attack-KO is available. User acknowledged it but chose not to implement this session.
+3. **Fire Off (Armarouge) is a repeatable ability — do NOT set `ability_used_this_turn`** — The engine's `ability_used_this_turn` flag blocks an ability from appearing in the legal-actions list again. Fire Off must not set this flag; the condition function gates it each time based on whether bench Pokémon still have Fire Energy.
 
-4. **Hardening sweep is complete as specified** — All 8 sections are done. `docs/HARDENING_SWEEP_REPORT.md` is the canonical record. No further work on the sweep itself is needed.
+4. **Hyper Blower ChoiceRequest uses `player_id=opp_id`** — The opponent (not the user) must pick their new active. This is done by passing `opp_id` as the player_id in the ChoiceRequest, which routes the prompt to the correct player's decision loop.
 
-5. **No phase completion, no CHANGELOG entry needed for individual section work** — The hardening sweep is a post-phase activity. Added a `## Hardening Sweep` entry to CHANGELOG.md as a milestone record.
+5. **Squawk and Seize condition uses 3-param `(state, player_id, poke)` form** — Needed to check that no *other* sv02-169 Pokémon in play has already used the ability this turn. The condition also checks `state.turn_number <= 2` (covers both players' first turns: P1 acts on turn 1, P2 acts on turn 2).
+
+6. **Defiance Band passive lives in `base.py:get_tool_damage_bonus`** — Not in a separate handler. The trainer registration for sv01-169 is `_noop`. Any future tool with a passive damage modifier should follow the same pattern.
+
+7. **`_COPY_ATTACK_KEYS` must include Mew ex** — `"sv03.5-151:0"` was added to prevent chain-copying (e.g., Mew ex Genome Hacking shouldn't be able to copy another copy-attack card).
+
+---
+
+## Notes for Next Session
+
+**Current branch:** `main` (all handler work committed and merged before this session)
+
+**Test baseline:** 374 backend passed, 4 skipped (no new tests added this session)
+
+**What was just completed:** 20 new card handlers across Batch 1 (8 cards) and Batch 2 (12 cards). The celery-worker has been rebuilt and is running the new code. All imports verified clean.
+
+**Immediate next step:** Run a simulation with one of the newly-implemented cards in the deck to verify it no longer fails at the coverage gate and runs to completion. If more cards show up as missing handlers, a Batch 3 will follow the same pattern.
+
+**How to continue handler implementation (Batch 3 and beyond):**
+1. Look at the coverage page or run a sim to find cards with `unimplemented effects`
+2. Fetch the card text from TCGDex (the fixture file at `backend/tests/fixtures/cards/{card_id}.json` or the live API)
+3. Implement the handler in the correct file:
+   - Attacks: `backend/app/engine/effects/attacks.py` — append handler before the relevant `register_*` function, then register
+   - Trainers: `backend/app/engine/effects/trainers.py` — append handler before `register_all()`, then add `registry.register_trainer(card_id, fn)` in the `register_all()` body
+   - Energies: `backend/app/engine/effects/energies.py` — append handler before `register_all()`, then register
+   - Abilities: `backend/app/engine/effects/abilities.py` — append handler before `register_all()`, then register with condition
+   - Passive tools: `backend/app/engine/effects/base.py` — add to `get_tool_damage_bonus()`; register trainer as `_noop`
+4. Verify with `docker compose exec backend python -c "import app.engine.effects.attacks; ..."`
+5. **Rebuild celery-worker:** `docker compose build celery-worker && docker compose up -d celery-worker`
+
+**Critical patterns to remember:**
+- `EnergyAttachment` constructor: `source_card_id=ec.instance_id` (NOT `card_id=`)
+- Repeatable abilities (like Fire Off): do NOT set `ability_used_this_turn = True`
+- Ability conditions are 2-param `(state, player_id)` OR 3-param `(state, player_id, poke)` — use 3-param when you need to check the specific Pokémon instance
+- Hyper Blower-style: opponent makes the choice — `ChoiceRequest(player_id=opp_id, ...)`
+- `state.turn_number <= 2` covers both players' first turns (P1=turn1, P2=turn2)
+- Generator attack handlers (`yield ChoiceRequest`) handle player choices; sync handlers don't
+- Energy-from-discard pattern: `EnergyAttachment(energy_type=EnergyType.X, source_card_id=ec.instance_id, card_def_id=ec.card_def_id, provides=[EnergyType.X])`
+- Copy-attack exclusion: add `"card_id:atk_idx"` to `_COPY_ATTACK_KEYS` set in attacks.py when registering copy-attack handlers
+- `deck.pop(0)` = draw from front of deck list
+
+**Do not forget:**
+- `frontend/node_modules` is dirty. Do not commit it.
+- celery-worker must be rebuilt after any effects file change (volume mount only exists for backend, not worker)
 
 ---
 
@@ -207,31 +247,6 @@ New this session:
 - Backend after forced-action fix: **325 passed in 12.54s**
 - Coach targeted tests after prompt enrichment: `python3 -m pytest tests/test_coach/test_analyst.py -q` → **47 passed**
 - Backend after Coach prompt enrichment: **325 passed in 12.50s**
-
----
-
-## Notes for Next Session
-
-**Hardening sweep is complete.** See `docs/HARDENING_SWEEP_REPORT.md` for all findings and changes.
-
-**Current branch:** `hardening-sweep-2`
-
-**Test baseline:** 374 backend passed, 4 skipped (all green)
-
-**Next recommended work (choose based on priority):**
-1. Merge `hardening-sweep-2` → main and cut a release tag
-2. Add more AI/AI behavioral audit games (Section 2C scripts: `backend/scripts/ai_diagnostic_3games.py`)
-3. Expand Section 5 spot check to 200+ cards or run full 1606-card coverage audit
-4. Frontend E2E tests for the new simulation rounds/mutations/star endpoints
-
-**Known remaining gaps (non-blocking):**
-- `celery-worker` Docker service has no healthcheck (acceptable; workers restart automatically)
-- Mystery Garden and Watchtower stadiums registered as `_noop` — effects not yet implemented
-- AI damage calculation edge case: occasionally miscalculates HP math for low-HP targets (cosmetic, hard gate prevents illegal moves)
-
-**Do not forget:**
-- `frontend/node_modules` is dirty from `npm install`. Do not commit it.
-- All changes are on `hardening-sweep-2` branch; main is clean.
 
 ---
 

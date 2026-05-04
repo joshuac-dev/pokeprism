@@ -4144,6 +4144,169 @@ def _lustrous_assist(state: GameState, action):
                      from_card=src.card_name, to_card=player.active.card_name)
 
 
+# Fire Off (sv01-041 Armarouge) ──────────────────────────────────────────────
+
+def _fire_off(state: GameState, action):
+    """sv01-041 Armarouge — Fire Off: move 1 Basic Fire Energy from Benched to Active. Repeatable."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    user = _find_in_play(player, action.card_instance_id)
+
+    # Find bench Pokémon with Basic Fire Energy
+    fire_donors = [b for b in player.bench
+                   if any(att.energy_type == EnergyType.FIRE for att in b.energy_attached)]
+    if not fire_donors or not player.active:
+        return
+
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Fire Off: choose 1 Benched Pokémon to move a Basic Fire Energy from to your Active Pokémon",
+        targets=fire_donors,
+    )
+    resp = yield req
+    donor = None
+    if resp and hasattr(resp, "target_instance_id") and resp.target_instance_id:
+        donor = next((p for p in fire_donors if p.instance_id == resp.target_instance_id), None)
+    if donor is None:
+        donor = fire_donors[0]
+
+    fire_atts = [att for att in donor.energy_attached if att.energy_type == EnergyType.FIRE]
+    if fire_atts:
+        att = fire_atts[0]
+        donor.energy_attached.remove(att)
+        player.active.energy_attached.append(att)
+        state.emit_event("fire_off", player=player_id,
+                         from_card=donor.card_name, to_card=player.active.card_name)
+
+    # Repeatable: do NOT set ability_used_this_turn = True
+
+
+# Hyper Blower (sv04-056 Iron Bundle) ─────────────────────────────────────────
+
+def _hyper_blower(state: GameState, action):
+    """sv04-056 Iron Bundle — Hyper Blower: switch opp's Active to Bench; opp chooses new Active."""
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    user = _find_in_play(state.get_player(player_id), action.card_instance_id)
+
+    if not opp.bench or not opp.active:
+        if user:
+            user.ability_used_this_turn = True
+        return
+
+    # Move opp's active to bench
+    old_active = opp.active
+    old_active.zone = Zone.BENCH
+    opp.bench.append(old_active)
+    opp.active = None
+
+    # Opponent chooses new active from their bench
+    req = ChoiceRequest(
+        "choose_target", opp_id,
+        "Hyper Blower: choose 1 of your Benched Pokémon to switch to the Active Spot",
+        targets=list(opp.bench),
+    )
+    resp = yield req
+    new_active = None
+    if resp and hasattr(resp, "target_instance_id") and resp.target_instance_id:
+        new_active = next((p for p in opp.bench if p.instance_id == resp.target_instance_id), None)
+    if new_active is None:
+        new_active = opp.bench[0]
+
+    opp.bench.remove(new_active)
+    new_active.zone = Zone.ACTIVE
+    opp.active = new_active
+    state.emit_event("hyper_blower", player=player_id,
+                     new_opp_active=opp.active.card_name if opp.active else "unknown")
+
+    if user:
+        user.ability_used_this_turn = True
+
+
+# Squawk and Seize (sv02-169 Squawkabilly ex) ──────────────────────────────────
+
+def _squawk_and_seize(state: GameState, action):
+    """sv02-169 Squawkabilly ex — Squawk and Seize: discard hand, draw 6. First turn only, once."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    user = _find_in_play(player, action.card_instance_id)
+
+    for c in list(player.hand):
+        c.zone = Zone.DISCARD
+        player.discard.append(c)
+    player.hand.clear()
+
+    draw_cards(state, player_id, 6)
+    state.emit_event("squawk_and_seize", player=player_id)
+
+    if user:
+        user.ability_used_this_turn = True
+
+
+# Restart (sv03.5-151 Mew ex) ─────────────────────────────────────────────────
+
+def _restart(state: GameState, action):
+    """sv03.5-151 Mew ex — Restart: draw cards until you have 3 in your hand."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    user = _find_in_play(player, action.card_instance_id)
+
+    to_draw = max(0, 3 - len(player.hand))
+    if to_draw > 0:
+        drawn = draw_cards(state, player_id, to_draw)
+        state.emit_event("restart", player=player_id, drawn=drawn)
+
+    if user:
+        user.ability_used_this_turn = True
+    state.emit_event("ability_used", player=player_id, card="Mew ex", ability="Restart")
+
+
+# Tandem Unit (sv01-081 Miraidon ex) ──────────────────────────────────────────
+
+def _tandem_unit(state: GameState, action):
+    """sv01-081 Miraidon ex — Tandem Unit: search deck for up to 2 Basic Lightning Pokémon → bench."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    user = _find_in_play(player, action.card_instance_id)
+
+    bench_space = 5 - len(player.bench)
+    candidates = [c for c in player.deck
+                  if c.card_type.lower() == "pokemon"
+                  and c.evolution_stage == 0
+                  and _pokemon_has_type(c, "Lightning")]
+
+    if bench_space > 0 and candidates:
+        max_choose = min(2, bench_space, len(candidates))
+        req = ChoiceRequest(
+            "choose_cards", player_id,
+            "Tandem Unit: choose up to 2 Basic Lightning Pokémon from deck to put on your Bench",
+            cards=candidates, min_count=0, max_count=max_choose,
+        )
+        resp = yield req
+        chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                      else [c.instance_id for c in candidates[:max_choose]])
+
+        for iid in chosen_ids[:max_choose]:
+            if len(player.bench) >= 5:
+                break
+            card = next((c for c in player.deck if c.instance_id == iid), None)
+            if card:
+                player.deck.remove(card)
+                card.zone = Zone.BENCH
+                card.turn_played = state.turn_number
+                player.bench.append(card)
+                state.emit_event("bench", player=player_id, card=card.card_name,
+                                 reason="tandem_unit")
+
+        random.shuffle(player.deck)
+        state.emit_event("shuffle_deck", player=player_id, reason="tandem_unit")
+
+    if user:
+        user.ability_used_this_turn = True
+    state.emit_event("ability_used", player=player_id, card="Miraidon ex", ability="Tandem Unit")
+
+
 def register_all(registry):
     """Register all ability effect handlers with the registry."""
 
@@ -5162,3 +5325,66 @@ def register_all(registry):
 
     registry.register_ability("me01-101", "Lustrous Assist", _lustrous_assist,
                                condition=_cond_lustrous_assist)  # Latios
+
+    # ── New handlers ─────────────────────────────────────────────────────────
+
+    # Restart (Mew ex): only useful when hand < 3
+    def _cond_restart(state, player_id):
+        return len(state.get_player(player_id).hand) < 3
+
+    registry.register_ability("sv03.5-151", "Restart", _restart,
+                               condition=_cond_restart)  # Mew ex
+
+    # Tandem Unit (Miraidon ex): needs bench space + Basic Lightning in deck
+    def _cond_tandem_unit(state, player_id):
+        p = state.get_player(player_id)
+        if len(p.bench) >= 5:
+            return False
+        return any(
+            c.card_type.lower() == "pokemon"
+            and c.evolution_stage == 0
+            and _pokemon_has_type(c, "Lightning")
+            for c in p.deck
+        )
+
+    registry.register_ability("sv01-081", "Tandem Unit", _tandem_unit,
+                               condition=_cond_tandem_unit)  # Miraidon ex
+
+    # Fire Off (Armarouge sv01-041): repeatable; bench must have Pokémon with Fire Energy + active exists
+    def _cond_fire_off(state, player_id, poke):
+        p = state.get_player(player_id)
+        if not p.active:
+            return False
+        return any(
+            any(att.energy_type == EnergyType.FIRE for att in b.energy_attached)
+            for b in p.bench
+        )
+
+    registry.register_ability("sv01-041", "Fire Off", _fire_off,
+                               condition=_cond_fire_off)  # Armarouge
+
+    # Hyper Blower (Iron Bundle sv04-056): bench-only; opp must have active + bench
+    def _cond_hyper_blower(state, player_id, poke):
+        p = state.get_player(player_id)
+        if poke not in p.bench:
+            return False
+        opp = state.get_opponent(player_id)
+        return bool(opp.active and opp.bench)
+
+    registry.register_ability("sv04-056", "Hyper Blower", _hyper_blower,
+                               condition=_cond_hyper_blower)  # Iron Bundle
+
+    # Squawk and Seize (Squawkabilly ex sv02-169): first turn only, once per game
+    def _cond_squawk_and_seize(state, player_id, poke):
+        if state.turn_number > 2:
+            return False
+        p = state.get_player(player_id)
+        all_pokes = ([p.active] if p.active else []) + list(p.bench)
+        for pk in all_pokes:
+            if pk.instance_id != poke.instance_id and pk.card_def_id == "sv02-169":
+                if getattr(pk, "ability_used_this_turn", False):
+                    return False
+        return True
+
+    registry.register_ability("sv02-169", "Squawk and Seize", _squawk_and_seize,
+                               condition=_cond_squawk_and_seize)  # Squawkabilly ex

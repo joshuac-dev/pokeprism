@@ -157,6 +157,27 @@ def _telepathic_psychic_energy(state: GameState, action):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Neo Upper Energy (sv05-162) — ACE SPEC
+# Provides 1 Colorless normally; provides 2 Any when attached to a Stage 2.
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _neo_upper_energy(state: GameState, action) -> None:
+    player = state.get_player(action.player_id)
+    target = next(
+        (c for c in ([player.active] if player.active else []) + player.bench
+         if c.instance_id == action.target_instance_id), None
+    )
+    if target is None:
+        return
+    if target.evolution_stage == 2:
+        att = _get_attachment(target, action.card_instance_id)
+        if att:
+            att.provides = [EnergyType.ANY, EnergyType.ANY]
+            att.energy_type = EnergyType.ANY
+    # else: default attachment already provides 1 COLORLESS
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Mist Energy (sv05-161)
 # Provides Colorless. Passive: prevents opponent attack EFFECTS on this Pokémon.
 # (Damage is not blocked — only additional effects like status, discard, etc.)
@@ -296,6 +317,34 @@ def _rocky_fighting_energy(state: GameState, action) -> None:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Jet Energy (sv02-190)
+# Provides Colorless. On-attach to a Benched Pokémon: switch that Pokémon to
+# the Active Spot.
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _jet_energy(state: GameState, action) -> None:
+    player = state.get_player(action.player_id)
+    target = next(
+        (c for c in ([player.active] if player.active else []) + player.bench
+         if c.instance_id == action.target_instance_id), None
+    )
+    if target is None:
+        return
+    # Default attachment already provides 1 COLORLESS; only switch if on bench
+    if target in player.bench:
+        from app.engine.state import Zone
+        old_active = player.active
+        target.zone = Zone.ACTIVE
+        player.active = target
+        player.bench.remove(target)
+        if old_active is not None:
+            old_active.zone = Zone.BENCH
+            player.bench.append(old_active)
+        state.emit_event("jet_energy_switch", player=action.player_id,
+                         new_active=target.card_name)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Registration
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -304,6 +353,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_energy("me02.5-216", _prism_energy)
     registry.register_energy("me03-086",   _growing_grass_energy)
     registry.register_energy("me03-088",   _telepathic_psychic_energy)
+    registry.register_energy("sv05-162",   _neo_upper_energy)
     registry.register_energy("sv05-161",   _mist_energy)
     registry.register_energy("sv06-167",   _legacy_energy)
     registry.register_energy("sv08-191",   _enriching_energy)
@@ -312,6 +362,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_energy("me03-087",   _rocky_fighting_energy)
     registry.register_energy("me02.5-217", _team_rockets_energy)   # Team Rocket's Energy (alt art)
     registry.register_energy("sv10.5b-086", _prism_energy)         # Prism Energy (alt art)
+    registry.register_energy("sv02-190",   _jet_energy)            # Jet Energy
     # Flagged special energies — complex effects not yet modelled
     registry.register_energy("sv06-166", _noop_energy)  # Boomerang Energy (complex reuse — flagged)
     registry.register_energy("sv09-159", _noop_energy)  # Spiky Energy (damage on attach — flagged)

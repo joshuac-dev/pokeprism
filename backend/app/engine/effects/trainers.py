@@ -5266,6 +5266,349 @@ def _miracle_headset(state: GameState, action) -> None:
             player.hand.append(card)
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Electric Generator (sv01-170)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _electric_generator(state: GameState, action):
+    """Electric Generator (sv01-170) — look at top 5 cards; attach up to 2 Basic Lightning to Benched Lightning."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    if not player.deck:
+        return
+
+    top5 = player.deck[:5]
+    lightning_energy = [c for c in top5
+                        if c.card_type.lower() == "energy"
+                        and c.card_subtype.lower() == "basic"
+                        and "Lightning" in (c.energy_provides or [])]
+    lightning_bench = [b for b in player.bench if _pokemon_has_type(b, "Lightning")]
+
+    # Put non-chosen top-5 cards back and shuffle the rest in later
+    if not lightning_energy or not lightning_bench:
+        # Still reveal top 5 event; just shuffle them back
+        state.emit_event("electric_generator_reveal", player=player_id,
+                         count=len(top5), lightning_found=len(lightning_energy))
+        return
+
+    max_energy = min(2, len(lightning_energy))
+    max_targets = len(lightning_bench)
+
+    # Choose which energy cards to attach
+    energy_req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Electric Generator: choose up to 2 Basic Lightning Energy from the top 5 cards to attach",
+        cards=lightning_energy, min_count=0, max_count=max_energy,
+    )
+    resp_e = yield energy_req
+    chosen_energy_ids = (resp_e.selected_cards if resp_e and resp_e.selected_cards
+                         else [c.instance_id for c in lightning_energy[:max_energy]])
+
+    # Choose target(s) — one per energy card
+    chosen_cards = [c for c in lightning_energy if c.instance_id in chosen_energy_ids[:max_energy]]
+    attached = 0
+    for ec in chosen_cards:
+        if len(lightning_bench) == 1:
+            target = lightning_bench[0]
+        else:
+            tgt_req = ChoiceRequest(
+                "choose_target", player_id,
+                f"Electric Generator: choose a Benched Lightning Pokémon to attach {ec.card_name} to",
+                targets=lightning_bench,
+            )
+            resp_t = yield tgt_req
+            target = None
+            if resp_t and hasattr(resp_t, "target_instance_id") and resp_t.target_instance_id:
+                target = next((p for p in lightning_bench
+                               if p.instance_id == resp_t.target_instance_id), None)
+            if target is None:
+                target = lightning_bench[0]
+
+        player.deck.remove(ec)
+        ec.zone = target.zone
+        target.energy_attached.append(EnergyAttachment(
+            energy_type=EnergyType.LIGHTNING,
+            source_card_id=ec.instance_id,
+            card_def_id=ec.card_def_id,
+            provides=[EnergyType.LIGHTNING],
+        ))
+        state.emit_event("energy_attached", player=player_id,
+                         card=ec.card_name, target=target.card_name,
+                         reason="electric_generator")
+        attached += 1
+
+    # Remaining top-5 cards stay in deck; shuffle the whole deck
+    random.shuffle(player.deck)
+    state.emit_event("electric_generator_done", player=player_id, attached=attached)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Iono (sv02-185)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _iono(state: GameState, action) -> None:
+    """Iono (sv02-185) — both players shuffle their hands into their decks and draw prizes_remaining cards."""
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    for pid in (player_id, opp_id):
+        p = state.get_player(pid)
+        for c in list(p.hand):
+            c.zone = Zone.DECK
+            p.deck.append(c)
+        p.hand.clear()
+        random.shuffle(p.deck)
+        draw_n = max(1, p.prizes_remaining)
+        draw_cards(state, pid, draw_n)
+    state.emit_event("iono", player=player_id)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Pal Pad (sv01-182)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _pal_pad(state: GameState, action):
+    """Pal Pad (sv01-182) — shuffle up to 2 Supporter cards from discard pile into deck."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    supporters = [c for c in player.discard
+                  if c.card_type.lower() == "trainer" and c.card_subtype.lower() == "supporter"]
+    if not supporters:
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Pal Pad: choose up to 2 Supporter cards from your discard pile to shuffle into your deck",
+        cards=supporters, min_count=0, max_count=2,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [c.instance_id for c in supporters[:2]])
+
+    for iid in chosen_ids[:2]:
+        card = next((c for c in player.discard if c.instance_id == iid), None)
+        if card:
+            player.discard.remove(card)
+            card.zone = Zone.DECK
+            player.deck.append(card)
+
+    random.shuffle(player.deck)
+    state.emit_event("pal_pad", player=player_id, shuffled=len(chosen_ids[:2]))
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Professor's Research (sv09-155)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _professors_research(state: GameState, action) -> None:
+    """Professor's Research (sv09-155) — discard your hand, then draw 7 cards."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    for c in list(player.hand):
+        c.zone = Zone.DISCARD
+        player.discard.append(c)
+    player.hand.clear()
+    draw_cards(state, player_id, 7)
+    state.emit_event("professors_research", player=player_id)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Nest Ball (sv01-181)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _nest_ball(state: GameState, action):
+    """Nest Ball (sv01-181) — search deck for 1 Basic Pokémon → bench."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    bench_space = 5 - len(player.bench)
+    if bench_space <= 0:
+        random.shuffle(player.deck)
+        return
+
+    candidates = [c for c in player.deck
+                  if c.card_type.lower() == "pokemon" and c.evolution_stage == 0]
+    if not candidates:
+        random.shuffle(player.deck)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Nest Ball: choose a Basic Pokémon from your deck to put on your Bench",
+        cards=candidates, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [candidates[0].instance_id])
+
+    for iid in chosen_ids[:1]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            _bench_pokemon(state, player_id, card)
+
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="nest_ball")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Super Rod (sv02-188)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _super_rod(state: GameState, action):
+    """Super Rod (sv02-188) — shuffle up to 3 Pokémon/Basic Energy from discard into deck."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    candidates = [c for c in player.discard
+                  if c.card_type.lower() == "pokemon"
+                  or (c.card_type.lower() == "energy" and c.card_subtype.lower() == "basic")]
+    if not candidates:
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Super Rod: choose up to 3 Pokémon and/or Basic Energy from discard to shuffle into deck",
+        cards=candidates, min_count=0, max_count=3,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [c.instance_id for c in candidates[:3]])
+
+    for iid in chosen_ids[:3]:
+        card = next((c for c in player.discard if c.instance_id == iid), None)
+        if card:
+            player.discard.remove(card)
+            card.zone = Zone.DECK
+            player.deck.append(card)
+
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="super_rod")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Arven (sv03-186)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _arven(state: GameState, action):
+    """Arven (sv03-186) — search deck for 1 Item and 1 Pokémon Tool → hand."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    items = [c for c in player.deck
+             if c.card_type.lower() == "trainer" and c.card_subtype.lower() == "item"]
+    if items:
+        req = ChoiceRequest(
+            "choose_cards", player_id,
+            "Arven: choose 1 Item card from your deck",
+            cards=items, min_count=0, max_count=1,
+        )
+        resp = yield req
+        chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                      else [items[0].instance_id])
+        for iid in chosen_ids[:1]:
+            card = next((c for c in player.deck if c.instance_id == iid), None)
+            if card:
+                player.deck.remove(card)
+                card.zone = Zone.HAND
+                player.hand.append(card)
+
+    tools = [c for c in player.deck
+             if c.card_type.lower() == "trainer"
+             and c.card_subtype.lower() in ("tool", "pokémon tool", "pokemon tool")]
+    if tools:
+        req2 = ChoiceRequest(
+            "choose_cards", player_id,
+            "Arven: choose 1 Pokémon Tool card from your deck",
+            cards=tools, min_count=0, max_count=1,
+        )
+        resp2 = yield req2
+        chosen_ids2 = (resp2.selected_cards if resp2 and resp2.selected_cards
+                       else [tools[0].instance_id])
+        for iid in chosen_ids2[:1]:
+            card = next((c for c in player.deck if c.instance_id == iid), None)
+            if card:
+                player.deck.remove(card)
+                card.zone = Zone.HAND
+                player.hand.append(card)
+
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="arven")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Bravery Charm (sv02-173)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _bravery_charm(state: GameState, action) -> None:
+    """Bravery Charm (sv02-173) — the Basic Pokémon this is attached to gets +50 HP."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    poke = _find_pokemon_in_play(player, action.target_instance_id)
+    if poke is None or poke.evolution_stage != 0:
+        return
+    poke.max_hp += 50
+    poke.current_hp += 50
+    state.emit_event("bravery_charm_attached", player=player_id,
+                     card=poke.card_name, hp_bonus=50)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Earthen Vessel (sv04-163)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _earthen_vessel(state: GameState, action):
+    """Earthen Vessel (sv04-163) — discard 1 other card from hand; search deck for up to 2 Basic Energy."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    other_hand = [c for c in player.hand if c.instance_id != action.card_instance_id]
+    if not other_hand:
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Earthen Vessel: discard 1 card from your hand (cost)",
+        cards=other_hand, min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [other_hand[0].instance_id])
+
+    for iid in chosen_ids[:1]:
+        card = next((c for c in player.hand if c.instance_id == iid), None)
+        if card:
+            player.hand.remove(card)
+            card.zone = Zone.DISCARD
+            player.discard.append(card)
+
+    basic_energy = [c for c in player.deck if _is_basic_energy_card(c)]
+    if not basic_energy:
+        random.shuffle(player.deck)
+        return
+
+    max_choose = min(2, len(basic_energy))
+    req2 = ChoiceRequest(
+        "choose_cards", player_id,
+        "Earthen Vessel: choose up to 2 Basic Energy cards from your deck",
+        cards=basic_energy, min_count=0, max_count=max_choose,
+    )
+    resp2 = yield req2
+    chosen_ids2 = (resp2.selected_cards if resp2 and resp2.selected_cards
+                   else [c.instance_id for c in basic_energy[:max_choose]])
+
+    for iid in chosen_ids2[:max_choose]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="earthen_vessel")
+
+
 def register_all(registry: EffectRegistry) -> None:
     """Register all trainer effect handlers."""
 
@@ -5434,6 +5777,20 @@ def register_all(registry: EffectRegistry) -> None:
     # Stadiums (passive — handled elsewhere)
     registry.register_trainer("me03-077", _noop)   # Lumiose City (bench Basic per turn)
     registry.register_trainer("me02.5-197", _noop) # Nighttime Mine (Tera cost +{C})
+
+    # ── New handlers ─────────────────────────────────────────────────────────
+    registry.register_trainer("sv03-186", _arven)           # Arven (Supporter)
+    registry.register_trainer("sv01-181", _nest_ball)       # Nest Ball (Item)
+    registry.register_trainer("sv02-188", _super_rod)       # Super Rod (Item)
+    registry.register_trainer("sv04-163", _earthen_vessel)  # Earthen Vessel (Item)
+    registry.register_trainer("sv02-173", _bravery_charm)   # Bravery Charm (Tool)
+
+    # ── Batch 2 ───────────────────────────────────────────────────────────────
+    registry.register_trainer("sv01-170", _electric_generator)   # Electric Generator (Item)
+    registry.register_trainer("sv02-185", _iono)                 # Iono (Supporter)
+    registry.register_trainer("sv01-182", _pal_pad)              # Pal Pad (Item)
+    registry.register_trainer("sv09-155", _professors_research)  # Professor's Research (Supporter)
+    registry.register_trainer("sv01-169", _noop)                 # Defiance Band (Tool — passive in base.py)
 
     # ── Batch 19 registrations ───────────────────────────────────────────────
 

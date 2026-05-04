@@ -773,6 +773,16 @@ def _blood_moon(state, action):
                          attack="Blood Moon")
 
 
+def _photon_blaster(state, action):
+    """sv01-081 Miraidon ex atk0 — Photon Blaster: 220 + can't attack next turn."""
+    _do_default_damage(state, action)
+    player = state.get_player(action.player_id)
+    if player.active:
+        player.active.cant_attack_next_turn = True
+        state.emit_event("multi_turn_lock", card=player.active.card_name,
+                         attack="Photon Blaster")
+
+
 def _eon_blade(state, action):
     """sv08-076 Latias ex atk0 — Eon Blade: 200 + can't attack next turn."""
     _do_default_damage(state, action)
@@ -2272,7 +2282,7 @@ def _poison_chain(state, action):
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Card IDs for copy-attack handlers — excluded from copy candidates to prevent chains.
-_COPY_ATTACK_KEYS = {"sv09-098:0", "sv10-087:0", "sv10.5w-062:1", "sv10-093:1"}
+_COPY_ATTACK_KEYS = {"sv09-098:0", "sv10-087:0", "sv10.5w-062:1", "sv10-093:1", "sv03.5-151:0"}
 
 
 async def _night_joker(state, action):
@@ -2389,6 +2399,51 @@ async def _gemstone_mimicry(state, action):
         source_card=opp.active.card_name,
         copied_attack=atk_name,
     )
+    await EffectRegistry.instance().resolve_attack(
+        opp.active.card_def_id, best_atk_idx, state, action
+    )
+
+
+async def _genome_hacking(state, action):
+    """sv03.5-151 Mew ex atk0 — Genome Hacking.
+
+    Choose 1 of your opponent's Active Pokémon's attacks and use it as this attack.
+    Depth limit: 1 (no chain copying).
+    """
+    from app.cards import registry as card_registry
+    from app.engine.effects.registry import EffectRegistry
+
+    opp = state.get_opponent(action.player_id)
+    if opp.active is None:
+        state.emit_event("copy_attack_no_target", card="Mew ex", attack="Genome Hacking",
+                         reason="Opponent has no Active Pokémon")
+        return
+
+    opp_cdef = card_registry.get(opp.active.card_def_id)
+    if opp_cdef is None:
+        state.emit_event("copy_attack_no_target", card="Mew ex", attack="Genome Hacking",
+                         reason="No card definition for opponent's Active Pokémon")
+        return
+
+    best_atk_idx = None
+    best_damage = -1
+    for atk_idx, atk in enumerate(opp_cdef.attacks):
+        key = f"{opp_cdef.tcgdex_id}:{atk_idx}"
+        if key in _COPY_ATTACK_KEYS:
+            continue
+        dmg = parse_damage(atk.damage)
+        if dmg > best_damage:
+            best_damage = dmg
+            best_atk_idx = atk_idx
+
+    if best_atk_idx is None:
+        state.emit_event("copy_attack_no_target", card="Mew ex", attack="Genome Hacking",
+                         reason=f"{opp.active.card_name} has no copyable attacks")
+        return
+
+    atk_name = opp_cdef.attacks[best_atk_idx].name
+    state.emit_event("copy_attack", card="Mew ex", attack="Genome Hacking",
+                     source_card=opp.active.card_name, copied_attack=atk_name)
     await EffectRegistry.instance().resolve_attack(
         opp.active.card_def_id, best_atk_idx, state, action
     )
@@ -14602,7 +14657,7 @@ def _energy_assist_b12(state, action):
             except KeyError:
                 pass
         target.energy_attached.append(_EA(
-            card_id=card.instance_id,
+            source_card_id=card.instance_id,
             card_def_id=card.card_def_id,
             energy_type=etype,
         ))
@@ -15215,7 +15270,7 @@ def _delightful_kiss(state, action):
             continue
         player.deck.remove(card)
         target.energy_attached.append(_EA2(
-            card_id=card.instance_id,
+            source_card_id=card.instance_id,
             card_def_id=card.card_def_id,
             energy_type=EnergyType.PSYCHIC,
         ))
@@ -15748,7 +15803,7 @@ def _fist_of_focus(state, action):
             pass
     from app.engine.state import EnergyAttachment as _EA4
     player.active.energy_attached.append(_EA4(
-        card_id=card.instance_id,
+        source_card_id=card.instance_id,
         card_def_id=card.card_def_id,
         energy_type=etype,
     ))
@@ -27644,6 +27699,249 @@ def register_tm_attacks(registry):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Batch 2 new handlers
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _flame_cannon(state, action):
+    """sv01-041 Armarouge atk0 — Flame Cannon: 90 + Burn the Defending Pokémon."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp = state.get_opponent(action.player_id)
+    if opp.active:
+        opp.active.status_conditions.add(StatusCondition.BURNED)
+        state.emit_event("status_applied", card=opp.active.card_name,
+                         status="BURNED", attack="Flame Cannon")
+
+
+def _fiery_fighting_spirit(state, action):
+    """sv04-026 Charcadet atk0 — Fiery Fighting Spirit: search deck for 1 Basic Fire → attach to self."""
+    from app.engine.state import EnergyAttachment
+    player = state.get_player(action.player_id)
+    fire_in_deck = [c for c in player.deck
+                    if c.card_type.lower() == "energy"
+                    and c.card_subtype.lower() == "basic"
+                    and "Fire" in (c.energy_provides or [])]
+    if not fire_in_deck or not player.active:
+        _do_default_damage(state, action)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        "Fiery Fighting Spirit: search your deck for a Basic Fire Energy to attach to this Pokémon",
+        cards=fire_in_deck, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [fire_in_deck[0].instance_id])
+
+    for iid in chosen_ids[:1]:
+        ec = next((c for c in player.deck if c.instance_id == iid), None)
+        if ec and player.active:
+            player.deck.remove(ec)
+            ec.zone = player.active.zone
+            player.active.energy_attached.append(EnergyAttachment(
+                energy_type=EnergyType.FIRE,
+                source_card_id=ec.instance_id,
+                card_def_id=ec.card_def_id,
+                provides=[EnergyType.FIRE],
+            ))
+            state.emit_event("energy_attached", player=action.player_id,
+                             card=ec.card_name, target=player.active.card_name,
+                             reason="fiery_fighting_spirit")
+
+    import random as _rand
+    _rand.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=action.player_id, reason="fiery_fighting_spirit")
+    _do_default_damage(state, action)
+
+
+def _flare_bringer(state, action):
+    """sv04-029 Chi-Yu atk0 — Flare Bringer: attach up to 2 Basic Fire Energy from discard to 1 Pokémon."""
+    from app.engine.state import EnergyAttachment
+    player = state.get_player(action.player_id)
+    fire_in_discard = [c for c in player.discard
+                       if c.card_type.lower() == "energy"
+                       and c.card_subtype.lower() == "basic"
+                       and "Fire" in (c.energy_provides or [])]
+    all_in_play = ([player.active] if player.active else []) + list(player.bench)
+    if not fire_in_discard or not all_in_play:
+        return
+
+    target_req = ChoiceRequest(
+        "choose_target", action.player_id,
+        "Flare Bringer: choose 1 of your Pokémon to attach up to 2 Basic Fire Energy from your discard",
+        targets=all_in_play,
+    )
+    resp_target = yield target_req
+    target = None
+    if resp_target and hasattr(resp_target, "target_instance_id") and resp_target.target_instance_id:
+        target = next((p for p in all_in_play if p.instance_id == resp_target.target_instance_id), None)
+    if target is None:
+        target = player.active or all_in_play[0]
+
+    max_count = min(2, len(fire_in_discard))
+    energy_req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        f"Flare Bringer: choose up to 2 Basic Fire Energy from discard to attach to {target.card_name}",
+        cards=fire_in_discard, min_count=0, max_count=max_count,
+    )
+    resp_energy = yield energy_req
+    chosen_ids = (resp_energy.selected_cards if resp_energy and resp_energy.selected_cards
+                  else [c.instance_id for c in fire_in_discard[:max_count]])
+
+    for iid in chosen_ids[:max_count]:
+        ec = next((c for c in player.discard if c.instance_id == iid), None)
+        if ec:
+            player.discard.remove(ec)
+            ec.zone = target.zone
+            target.energy_attached.append(EnergyAttachment(
+                energy_type=EnergyType.FIRE,
+                source_card_id=ec.instance_id,
+                card_def_id=ec.card_def_id,
+                provides=[EnergyType.FIRE],
+            ))
+            state.emit_event("energy_attached", player=action.player_id,
+                             card=ec.card_name, target=target.card_name,
+                             reason="flare_bringer")
+
+
+def _megafire_of_envy(state, action):
+    """sv04-029 Chi-Yu atk1 — Megafire of Envy: 50 + 90 more if opponent KO'd one of your Pokémon last turn."""
+    player = state.get_player(action.player_id)
+    bonus = 90 if getattr(player, "ko_taken_last_turn", False) else 0
+    _apply_damage(state, action, 50 + bonus)
+
+
+def _motivate(state, action):
+    """sv02-169 Squawkabilly ex atk0 — Motivate: 20 + attach up to 2 Basic Energy from discard to 1 bench."""
+    from app.engine.state import EnergyAttachment
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if not player.bench:
+        return
+
+    basic_energy = [c for c in player.discard
+                    if c.card_type.lower() == "energy"
+                    and c.card_subtype.lower() == "basic"]
+    if not basic_energy:
+        return
+
+    bench_req = ChoiceRequest(
+        "choose_target", action.player_id,
+        "Motivate: choose 1 Benched Pokémon to attach up to 2 Basic Energy from your discard",
+        targets=list(player.bench),
+    )
+    resp_bench = yield bench_req
+    target = None
+    if resp_bench and hasattr(resp_bench, "target_instance_id") and resp_bench.target_instance_id:
+        target = next((p for p in player.bench if p.instance_id == resp_bench.target_instance_id), None)
+    if target is None:
+        target = player.bench[0]
+
+    max_count = min(2, len(basic_energy))
+    energy_req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        f"Motivate: choose up to 2 Basic Energy from discard to attach to {target.card_name}",
+        cards=basic_energy, min_count=0, max_count=max_count,
+    )
+    resp_energy = yield energy_req
+    chosen_ids = (resp_energy.selected_cards if resp_energy and resp_energy.selected_cards
+                  else [c.instance_id for c in basic_energy[:max_count]])
+
+    for iid in chosen_ids[:max_count]:
+        ec = next((c for c in player.discard if c.instance_id == iid), None)
+        if ec:
+            etype = EnergyType.COLORLESS
+            if ec.energy_provides:
+                type_map = {
+                    "Fire": EnergyType.FIRE, "Water": EnergyType.WATER,
+                    "Grass": EnergyType.GRASS, "Lightning": EnergyType.LIGHTNING,
+                    "Psychic": EnergyType.PSYCHIC, "Fighting": EnergyType.FIGHTING,
+                    "Darkness": EnergyType.DARKNESS, "Metal": EnergyType.METAL,
+                    "Colorless": EnergyType.COLORLESS,
+                }
+                etype = type_map.get(ec.energy_provides[0], EnergyType.COLORLESS)
+            player.discard.remove(ec)
+            ec.zone = target.zone
+            target.energy_attached.append(EnergyAttachment(
+                energy_type=etype,
+                source_card_id=ec.instance_id,
+                card_def_id=ec.card_def_id,
+                provides=[etype],
+            ))
+            state.emit_event("energy_attached", player=action.player_id,
+                             card=ec.card_name, target=target.card_name,
+                             reason="motivate")
+
+
+def _magnetic_charge(state, action):
+    """sv02-065 Magnemite atk0 — Magnetic Charge: attach up to 2 Basic Lightning from discard to 1 Benched."""
+    from app.engine.state import EnergyAttachment
+    player = state.get_player(action.player_id)
+    if not player.bench:
+        return
+
+    lightning_discard = [c for c in player.discard
+                         if c.card_type.lower() == "energy"
+                         and c.card_subtype.lower() == "basic"
+                         and "Lightning" in (c.energy_provides or [])]
+    if not lightning_discard:
+        return
+
+    bench_req = ChoiceRequest(
+        "choose_target", action.player_id,
+        "Magnetic Charge: choose 1 Benched Pokémon to attach up to 2 Basic Lightning Energy from discard",
+        targets=list(player.bench),
+    )
+    resp_bench = yield bench_req
+    target = None
+    if resp_bench and hasattr(resp_bench, "target_instance_id") and resp_bench.target_instance_id:
+        target = next((p for p in player.bench if p.instance_id == resp_bench.target_instance_id), None)
+    if target is None:
+        target = player.bench[0]
+
+    max_count = min(2, len(lightning_discard))
+    energy_req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        f"Magnetic Charge: choose up to 2 Basic Lightning Energy from discard to attach to {target.card_name}",
+        cards=lightning_discard, min_count=0, max_count=max_count,
+    )
+    resp_energy = yield energy_req
+    chosen_ids = (resp_energy.selected_cards if resp_energy and resp_energy.selected_cards
+                  else [c.instance_id for c in lightning_discard[:max_count]])
+
+    for iid in chosen_ids[:max_count]:
+        ec = next((c for c in player.discard if c.instance_id == iid), None)
+        if ec:
+            player.discard.remove(ec)
+            ec.zone = target.zone
+            target.energy_attached.append(EnergyAttachment(
+                energy_type=EnergyType.LIGHTNING,
+                source_card_id=ec.instance_id,
+                card_def_id=ec.card_def_id,
+                provides=[EnergyType.LIGHTNING],
+            ))
+            state.emit_event("energy_attached", player=action.player_id,
+                             card=ec.card_name, target=target.card_name,
+                             reason="magnetic_charge")
+
+
+def _refrigerated_stream(state, action):
+    """sv04-056 Iron Bundle atk0 — Refrigerated Stream: 80 + if opp's active is an Evolution, it can't attack."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp = state.get_opponent(action.player_id)
+    if opp.active and opp.active.evolution_stage > 0:
+        opp.active.cant_attack_next_turn = True
+        state.emit_event("cant_attack_next_turn", card=opp.active.card_name,
+                         attack="Refrigerated Stream")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Flagged Batch 6 — new handlers for previously-flagged cards
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -27663,3 +27961,21 @@ def register_flagged_batch6_attacks(registry):
 
     # ── sv05-139 Iron Jugulis ─────────────────────────────────────────────────
     registry.register_attack("sv05-139", 0, _do_default_damage)      # Blasting Wind (110, no effect)
+
+    # ── sv04-070 Iron Hands ex (alt print of sv08.5-031) ──────────────────────
+    registry.register_attack("sv04-070", 1, _amp_you_very_much)      # Amp You Very Much
+
+    # ── sv01-081 Miraidon ex ──────────────────────────────────────────────────
+    registry.register_attack("sv01-081", 0, _photon_blaster)         # Photon Blaster
+
+    # ── sv03.5-151 Mew ex ────────────────────────────────────────────────────
+    registry.register_attack("sv03.5-151", 0, _genome_hacking)       # Genome Hacking
+
+    # ── Batch 2 new handlers ─────────────────────────────────────────────────
+    registry.register_attack("sv01-041", 0, _flame_cannon)           # Armarouge — Flame Cannon
+    registry.register_attack("sv04-026", 0, _fiery_fighting_spirit)  # Charcadet — Fiery Fighting Spirit
+    registry.register_attack("sv04-029", 0, _flare_bringer)          # Chi-Yu — Flare Bringer
+    registry.register_attack("sv04-029", 1, _megafire_of_envy)       # Chi-Yu — Megafire of Envy
+    registry.register_attack("sv02-169", 0, _motivate)               # Squawkabilly ex — Motivate
+    registry.register_attack("sv02-065", 0, _magnetic_charge)        # Magnemite — Magnetic Charge
+    registry.register_attack("sv04-056", 0, _refrigerated_stream)    # Iron Bundle — Refrigerated Stream

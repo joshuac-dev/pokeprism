@@ -787,6 +787,13 @@ def get_tool_damage_bonus(
         if attacker_def and "Psychic" in (attacker_def.types or []):
             bonus -= 60
 
+    # Defiance Band (sv01-169): +30 when attacker's player has more prizes remaining than opponent
+    if has_tool(attacker, "sv01-169"):
+        atk_player = state.get_player(attacker_player_id)
+        opp_player = state.get_opponent(attacker_player_id)
+        if atk_player.prizes_remaining > opp_player.prizes_remaining:
+            bonus += 30
+
     return bonus
 
 
