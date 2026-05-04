@@ -66,6 +66,16 @@ def small_deck():
     ] * 20   # 60-card deck from 3 unique cards
 
 
+def _unique_deck(prefix: str, count: int = 3):
+    from app.cards.models import CardDefinition
+    return [
+        CardDefinition(tcgdex_id=f"{prefix}-{i:03d}", name=f"{prefix} Card {i}",
+                       set_abbrev="GT", set_number=f"{i:03d}",
+                       hp=100, category="Pokemon")
+        for i in range(count)
+    ]
+
+
 @pytest.mark.asyncio
 async def test_write_match_creates_deck_nodes(sample_result, small_deck):
     """write_match() creates Deck nodes in Neo4j."""
@@ -129,6 +139,91 @@ async def test_synergizes_with_edges_created(sample_result, small_deck):
 
     assert record is not None, "SYNERGIZES_WITH edge should exist"
     assert record["weight"] > 0, "Weight should be positive for winning deck"
+
+
+@pytest.mark.asyncio
+async def test_winning_synergy_write_creates_exact_relationship_values(sample_result):
+    """A winning 3-unique-card deck creates 3 pair edges at +1.0."""
+    from app.db.graph import graph_session
+    from app.memory.graph import GraphMemoryWriter
+
+    writer = GraphMemoryWriter()
+    deck = _unique_deck(f"gt-win-{uuid.uuid4().hex[:8]}")
+
+    async with graph_session() as session:
+        await writer._update_synergies(session, deck, won=True)
+        result = await session.run(
+            """
+            MATCH (a:Card)-[r:SYNERGIZES_WITH]-(b:Card)
+            WHERE a.tcgdex_id IN $ids AND b.tcgdex_id IN $ids
+              AND a.tcgdex_id < b.tcgdex_id
+            RETURN count(r) AS edge_count,
+                   collect(r.weight) AS weights,
+                   collect(r.games_observed) AS games
+            """,
+            ids=[c.tcgdex_id for c in deck],
+        )
+        record = await result.single()
+
+    assert record["edge_count"] == 3
+    assert sorted(record["weights"]) == [1.0, 1.0, 1.0]
+    assert sorted(record["games"]) == [1, 1, 1]
+
+
+@pytest.mark.asyncio
+async def test_losing_synergy_write_creates_exact_relationship_values():
+    """A losing 3-unique-card deck creates 3 pair edges at -0.5."""
+    from app.db.graph import graph_session
+    from app.memory.graph import GraphMemoryWriter
+
+    writer = GraphMemoryWriter()
+    deck = _unique_deck(f"gt-loss-{uuid.uuid4().hex[:8]}")
+
+    async with graph_session() as session:
+        await writer._update_synergies(session, deck, won=False)
+        result = await session.run(
+            """
+            MATCH (a:Card)-[r:SYNERGIZES_WITH]-(b:Card)
+            WHERE a.tcgdex_id IN $ids AND b.tcgdex_id IN $ids
+              AND a.tcgdex_id < b.tcgdex_id
+            RETURN count(r) AS edge_count,
+                   collect(r.weight) AS weights,
+                   collect(r.games_observed) AS games
+            """,
+            ids=[c.tcgdex_id for c in deck],
+        )
+        record = await result.single()
+
+    assert record["edge_count"] == 3
+    assert sorted(record["weights"]) == [-0.5, -0.5, -0.5]
+    assert sorted(record["games"]) == [1, 1, 1]
+
+
+@pytest.mark.asyncio
+async def test_repeated_win_and_loss_accumulates_same_pair_values():
+    """Repeated win + loss on the same deck gives weight 0.5, games 2."""
+    from app.db.graph import graph_session
+    from app.memory.graph import GraphMemoryWriter
+
+    writer = GraphMemoryWriter()
+    deck = _unique_deck(f"gt-mix-{uuid.uuid4().hex[:8]}", count=2)
+
+    async with graph_session() as session:
+        await writer._update_synergies(session, deck, won=True)
+        await writer._update_synergies(session, deck, won=False)
+        result = await session.run(
+            """
+            MATCH (a:Card {tcgdex_id: $id_a})-[r:SYNERGIZES_WITH]-(b:Card {tcgdex_id: $id_b})
+            RETURN r.weight AS weight, r.games_observed AS games
+            """,
+            id_a=deck[0].tcgdex_id,
+            id_b=deck[1].tcgdex_id,
+        )
+        record = await result.single()
+
+    assert record is not None
+    assert record["weight"] == 0.5
+    assert record["games"] == 2
 
 
 @pytest.mark.asyncio

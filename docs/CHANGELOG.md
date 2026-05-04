@@ -62,6 +62,38 @@ evidence-based history, not the live status file.
     `frontend/src/components/history/FilterBar.tsx`; `npm run build` (clean).
   - Confidence: High.
 
+### Changed (2026-05-04 Session 4 — Batched Neo4j Synergy Writes)
+
+- **Neo4j synergy updates batched** — `GraphMemoryWriter._update_synergies()` now
+  builds deterministic unique-card pairs and submits them via chunked
+  `UNWIND $pairs AS pair` Cypher instead of one Neo4j round trip per card pair.
+  Semantics are unchanged: duplicate card copies are ignored, win/loss deltas
+  remain +1.0/-0.5, and `weight` / `games_observed` final values match the
+  previous per-pair implementation.
+  - Why: H/H simulations with singleton-heavy decks can create thousands of
+    synergy pair updates per match; batching removes the largest obvious Neo4j
+    round-trip multiplier without changing coach data.
+  - Evidence: `backend/app/memory/graph.py`;
+    `backend/tests/test_memory/test_graph_synergy_batch.py`;
+    `backend/tests/test_memory/test_graph.py`; focused test runs.
+  - Confidence: High.
+
+- **Neo4j deck setup writes cached and batched** — `GraphMemoryWriter` now ensures
+  Deck/Card/BELONGS_TO setup once per writer instance per deck
+  ID/name/card-quantity fingerprint, and `_ensure_deck_nodes()` batches Card
+  node and BELONGS_TO edge MERGEs with `UNWIND $cards AS card`. MatchResult and
+  BEATS relationships still write per match.
+  - Why: After synergy batching, persisted H/H benchmarks still spent most
+    wall-clock time in Neo4j. Repeated matches against the same decks were
+    redundantly re-running idempotent Deck/Card/BELONGS_TO setup for every
+    match.
+  - Evidence: `backend/app/memory/graph.py`;
+    `backend/tests/test_memory/test_graph_synergy_batch.py`;
+    `backend/tests/test_memory/test_graph.py`; focused test runs; 25-match
+    persisted H/H benchmark improved from 13.38s total / 10.21s Neo4j to
+    12.29s total / 9.21s Neo4j under concurrent Neo4j load.
+  - Confidence: High.
+
 ### Added / Fixed (2026-05-04 Session 2 — Card Handlers + Simulation Queue)
 
 - **Precious Trolley (sv08-185)** — ACE SPEC trainer handler implemented.

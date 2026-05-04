@@ -12,6 +12,46 @@ if TYPE_CHECKING:
     from app.cards.models import CardDefinition
 
 
+_SYNERGY_PAIR_CHUNK_SIZE = 1000
+
+
+def _build_deck_card_rows(card_defs: list[CardDefinition]) -> list[dict]:
+    """Return deterministic unique-card rows with quantities for a deck."""
+    by_id: dict[str, dict] = {}
+    for card in card_defs:
+        tcgdex_id = card.tcgdex_id
+        if tcgdex_id not in by_id:
+            by_id[tcgdex_id] = {
+                "tcgdex_id": tcgdex_id,
+                "name": getattr(card, "name", tcgdex_id),
+                "category": getattr(card, "category", "unknown"),
+                "quantity": 0,
+            }
+        by_id[tcgdex_id]["quantity"] += 1
+    return [by_id[tcgdex_id] for tcgdex_id in sorted(by_id)]
+
+
+def _deck_setup_cache_key(
+    deck_id: uuid.UUID,
+    deck_name: str,
+    card_defs: list[CardDefinition],
+) -> tuple[str, str, tuple[tuple[str, int], ...]]:
+    """Return a safe cache key for idempotent deck graph setup."""
+    rows = _build_deck_card_rows(card_defs)
+    quantities = tuple((row["tcgdex_id"], row["quantity"]) for row in rows)
+    return (str(deck_id), deck_name, quantities)
+
+
+def _build_synergy_pairs(card_defs: list[CardDefinition]) -> list[dict[str, str]]:
+    """Return canonical unordered unique-card pairs for synergy updates."""
+    unique_ids = sorted({c.tcgdex_id for c in card_defs})
+    return [
+        {"id_a": unique_ids[i], "id_b": unique_ids[j]}
+        for i in range(len(unique_ids))
+        for j in range(i + 1, len(unique_ids))
+    ]
+
+
 class GraphMemoryWriter:
     """Updates Neo4j graph after each match.
 
@@ -26,6 +66,11 @@ class GraphMemoryWriter:
         - (Card)-[:BELONGS_TO]->(Deck)      — deck membership (idempotent)
     """
 
+    def __init__(self) -> None:
+        self._ensured_decks: set[
+            tuple[str, str, tuple[tuple[str, int], ...]]
+        ] = set()
+
     async def write_match(
         self,
         result: MatchResult,
@@ -36,10 +81,10 @@ class GraphMemoryWriter:
         p2_card_defs: list[CardDefinition],
     ) -> None:
         async with graph_session() as session:
-            await self._ensure_deck_nodes(session, p1_deck_id, result.p1_deck_name,
-                                          p1_card_defs)
-            await self._ensure_deck_nodes(session, p2_deck_id, result.p2_deck_name,
-                                          p2_card_defs)
+            await self._ensure_deck_nodes_once(session, p1_deck_id, result.p1_deck_name,
+                                               p1_card_defs)
+            await self._ensure_deck_nodes_once(session, p2_deck_id, result.p2_deck_name,
+                                               p2_card_defs)
             await self._write_match_result(session, match_id, result,
                                            p1_deck_id, p2_deck_id)
             winning_deck_id = p1_deck_id if result.winner == "p1" else p2_deck_id
@@ -52,6 +97,21 @@ class GraphMemoryWriter:
 
     # ── private helpers ────────────────────────────────────────────────────────
 
+    async def _ensure_deck_nodes_once(
+        self,
+        session,
+        deck_id: uuid.UUID,
+        deck_name: str,
+        card_defs: list[CardDefinition],
+    ) -> None:
+        """Merge deck/card membership once per writer for unchanged deck content."""
+        cache_key = _deck_setup_cache_key(deck_id, deck_name, card_defs)
+        if cache_key in self._ensured_decks:
+            return
+
+        await self._ensure_deck_nodes(session, deck_id, deck_name, card_defs)
+        self._ensured_decks.add(cache_key)
+
     async def _ensure_deck_nodes(
         self,
         session,
@@ -60,6 +120,7 @@ class GraphMemoryWriter:
         card_defs: list[CardDefinition],
     ) -> None:
         """Merge Deck + Card nodes and BELONGS_TO edges."""
+        card_rows = _build_deck_card_rows(card_defs)
         await session.run(
             """
             MERGE (d:Deck {deck_id: $deck_id})
@@ -68,30 +129,29 @@ class GraphMemoryWriter:
             """,
             deck_id=str(deck_id), name=deck_name,
         )
-        unique_ids = {c.tcgdex_id for c in card_defs}
-        for tcgdex_id in unique_ids:
-            card = next(c for c in card_defs if c.tcgdex_id == tcgdex_id)
-            qty = sum(1 for c in card_defs if c.tcgdex_id == tcgdex_id)
-            await session.run(
-                """
-                MERGE (c:Card {tcgdex_id: $tid})
-                ON CREATE SET c.name = $name, c.category = $category
-                """,
-                tid=tcgdex_id,
-                name=getattr(card, "name", tcgdex_id),
-                category=getattr(card, "category", "unknown"),
-            )
-            await session.run(
-                """
-                MATCH (c:Card {tcgdex_id: $tid})
-                MATCH (d:Deck {deck_id: $deck_id})
-                MERGE (c)-[r:BELONGS_TO]->(d)
-                ON CREATE SET r.quantity = $qty
-                """,
-                tid=tcgdex_id,
-                deck_id=str(deck_id),
-                qty=qty,
-            )
+        if not card_rows:
+            return
+
+        await session.run(
+            """
+            UNWIND $cards AS card
+            MERGE (c:Card {tcgdex_id: card.tcgdex_id})
+            ON CREATE SET c.name = card.name,
+                          c.category = card.category
+            """,
+            cards=card_rows,
+        )
+        await session.run(
+            """
+            UNWIND $cards AS card
+            MATCH (c:Card {tcgdex_id: card.tcgdex_id})
+            MATCH (d:Deck {deck_id: $deck_id})
+            MERGE (c)-[r:BELONGS_TO]->(d)
+            ON CREATE SET r.quantity = card.quantity
+            """,
+            cards=card_rows,
+            deck_id=str(deck_id),
+        )
 
     async def _write_match_result(
         self,
@@ -132,23 +192,27 @@ class GraphMemoryWriter:
         won: bool,
     ) -> None:
         """Update SYNERGIZES_WITH weight for all pairs in this deck."""
-        unique_ids = list({c.tcgdex_id for c in card_defs})
+        pairs = _build_synergy_pairs(card_defs)
+        if not pairs:
+            return
+
         delta = 1.0 if won else -0.5
-        for i in range(len(unique_ids)):
-            for j in range(i + 1, len(unique_ids)):
-                await session.run(
-                    """
-                    MERGE (a:Card {tcgdex_id: $id_a})
-                    MERGE (b:Card {tcgdex_id: $id_b})
-                    MERGE (a)-[r:SYNERGIZES_WITH]-(b)
-                    ON CREATE SET r.weight = $delta, r.games_observed = 1
-                    ON MATCH SET r.weight = r.weight + $delta,
-                                 r.games_observed = r.games_observed + 1
-                    """,
-                    id_a=unique_ids[i],
-                    id_b=unique_ids[j],
-                    delta=delta,
-                )
+        for chunk_start in range(0, len(pairs), _SYNERGY_PAIR_CHUNK_SIZE):
+            chunk = pairs[chunk_start: chunk_start + _SYNERGY_PAIR_CHUNK_SIZE]
+            await session.run(
+                """
+                UNWIND $pairs AS pair
+                MERGE (a:Card {tcgdex_id: pair.id_a})
+                MERGE (b:Card {tcgdex_id: pair.id_b})
+                MERGE (a)-[r:SYNERGIZES_WITH]-(b)
+                ON CREATE SET r.weight = $delta,
+                              r.games_observed = 1
+                ON MATCH SET r.weight = r.weight + $delta,
+                             r.games_observed = r.games_observed + 1
+                """,
+                pairs=chunk,
+                delta=delta,
+            )
 
     async def _update_matchup(
         self,

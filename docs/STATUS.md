@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-04 (session 3)
+Last updated: 2026-05-04 (session 4)
 
 ## Current Workstream
 
@@ -34,7 +34,7 @@ Re-check them before making claims in user-facing docs.
 | Local matches table | 6,900 rows from the same DB snapshot |
 | Local `card_performance` table | 270 rows from the same DB snapshot |
 | Running simulations | 0 from the same DB snapshot |
-| Backend test baseline | Last full documented run: **424 passed** on 2026-05-04 (simulation queue feature complete). Run with `cd backend && python3 -m pytest tests/ -x -q`. |
+| Backend test baseline | Latest full documented run for the Neo4j graph optimization workstream: **439 passed** on 2026-05-04. Run with `cd backend && python3 -m pytest tests/ -x -q`. Historical prior baseline: 424 passed after the simulation queue work. |
 | Frontend unit tests | 4 passed on 2026-05-04 with `cd frontend && npm test -- --run --reporter=dot` |
 | Playwright E2E inventory | 14 tests listed on 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed on 2026-05-04 with `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
@@ -97,6 +97,39 @@ Frontend: "Queued" StatusBadge entry added with a distinct muted-slate style
 (previously fell through to raw string display). "Queued" option added to
 History page FilterBar status dropdown.
 
+## Session 4 Work (2026-05-04)
+
+Neo4j graph persistence optimized:
+
+- `GraphMemoryWriter._update_synergies()` now builds deterministic unique-card
+  pairs and writes them with chunked `UNWIND $pairs AS pair` Cypher instead of
+  one `session.run()` per card pair. Semantics are unchanged: duplicate card
+  copies are ignored, win/loss deltas remain +1.0/-0.5, and `weight` /
+  `games_observed` updates match the prior behavior.
+- `GraphMemoryWriter` now caches Deck/Card/BELONGS_TO setup per writer instance
+  using a deck ID/name/card-quantity fingerprint and batches Card and BELONGS_TO
+  MERGEs with `UNWIND $cards AS card`. MatchResult and BEATS writes still happen
+  per match.
+
+Focused tests added for pair generation, chunking, deltas, exact Neo4j
+relationship values, deterministic deck card rows, and once-per-writer deck
+setup caching.
+
+Validation after these graph optimizations:
+
+- `python3 -m pytest backend/tests/test_memory/test_graph_synergy_batch.py -q`
+  — 12 passed.
+- `python3 -m pytest backend/tests/test_memory/test_graph.py -q` — 6 passed.
+- `cd backend && python3 -m pytest tests/ -x -q` — 439 passed.
+
+Benchmark handoff: 25 persisted H/H matches, 1 opponent, Iron Crown ex Deck vs
+Torterra ex Deck, both decks with 60 unique cards. After synergy batching:
+total 13.38s, simulation+Redis 1.40s, Postgres 1.60s, Neo4j 10.21s. After
+deck setup caching/batching: total 12.29s, simulation+Redis 1.39s, Postgres
+1.53s, Neo4j 9.21s, 10,037 match events, 100 expected synergy chunks, 2 deck
+setup cache entries. Absolute times include contention from an older
+redelivered Celery simulation that remained active.
+
 ## Current Known Issues / Gaps
 
 - DeckBuilder Phase 3, simulation-backed preference weighting from historical
@@ -126,6 +159,10 @@ History page FilterBar status dropdown.
 - Simulation queue relies on Beat task as crash-recovery fallback (every 60s).
   There is no push notification to the frontend when a queued sim transitions to
   running; the frontend must poll for status changes.
+- Neo4j graph writes remain per-match for MatchResult and BEATS relationships.
+  Deck/Card/BELONGS_TO setup and synergy pair updates are batched/cached, but
+  match-result aggregation or deferred graph persistence remains a future
+  performance opportunity.
 
 ## Operational Caveats
 
