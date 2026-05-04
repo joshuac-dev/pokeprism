@@ -364,6 +364,17 @@ def _apply_damage(
                 state.emit_event("full_metal_lab_reduction", player=opp_id,
                                  card=defender.card_name)
 
+        # Neutralization Zone (sv06.5-060): prevent all damage to non-rule-box Pokémon
+        # from the opponent's Pokémon ex and V (i.e. rule-box attackers).
+        if (state.active_stadium
+                and state.active_stadium.card_def_id == "sv06.5-060"
+                and cdef and cdef.has_rule_box):
+            _def_cdef_nz = card_registry.get(defender.card_def_id)
+            if _def_cdef_nz and not _def_cdef_nz.has_rule_box:
+                state.emit_event("damage_prevented", card=defender.card_name,
+                                 reason="neutralization_zone")
+                return 0
+
     # Supreme Overlord (me02.5-148 Kingambit): +30 per prize opponent has taken
     if attacker.card_def_id == "me02.5-148":
         prizes_taken = 6 - state.get_player(action.player_id).prizes_remaining
@@ -28021,3 +28032,12 @@ def register_flagged_batch6_attacks(registry):
     registry.register_attack("sv02-169", 0, _motivate)               # Squawkabilly ex — Motivate
     registry.register_attack("sv02-065", 0, _magnetic_charge)        # Magnemite — Magnetic Charge
     registry.register_attack("sv04-056", 0, _refrigerated_stream)    # Iron Bundle — Refrigerated Stream
+
+    # ── svp-173 Eevee — Reckless Charge ──────────────────────────────────────
+    registry.register_attack("svp-173", 0, _reckless_charge_eevee)  # Reckless Charge (alt print)
+
+    # ── svp-200 Eevee — Call for Family ──────────────────────────────────────
+    registry.register_attack("svp-200", 0, _call_for_family)        # Call for Family (alt print)
+
+    # ── svp-208 Victini — V-Force ─────────────────────────────────────────────
+    registry.register_attack("svp-208", 0, _v_force)                # V-Force (alt print)

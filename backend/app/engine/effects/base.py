@@ -25,6 +25,22 @@ from app.cards import registry as card_registry
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Cards that cannot be recovered from the discard pile to hand or deck.
+# Any handler that searches the discard pile for Trainers must filter these out.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# TCGDex text: "This card can't be put into your hand or deck from the discard pile."
+IRRECOVERABLE_FROM_DISCARD: frozenset[str] = frozenset({
+    "sv06.5-060",  # Neutralization Zone (ACE SPEC Stadium)
+})
+
+
+def is_recoverable_from_discard(card: "CardInstance") -> bool:
+    """Return False for cards whose text forbids recovery from discard."""
+    return card.card_def_id not in IRRECOVERABLE_FROM_DISCARD
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Choice request (yielded by generator-based effect handlers)
 # ──────────────────────────────────────────────────────────────────────────────
 

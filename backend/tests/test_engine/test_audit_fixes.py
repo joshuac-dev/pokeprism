@@ -1,4 +1,4 @@
-"""Audit-fix regression tests (findings #1-14).
+"""Audit-fix regression tests (findings #1-14, and Precious Trolley handler).
 
 Findings:
   #1-4 : Fossil passive ability registrations (sv07-129, sv10.5b-080, sv10.5w-079, sv07-130)
@@ -2008,3 +2008,288 @@ def test_avenging_edge_no_bonus_without_ko():
     _avenging_edge(state, action)
 
     assert defender.current_hp == 300 - 100, f"Expected 200 HP remaining, got {defender.current_hp}"
+
+
+# Precious Trolley (sv08-185) ──────────────────────────────────────────────────
+
+def test_precious_trolley_benches_chosen_basics():
+    """sv08-185 Precious Trolley: chosen Basic Pokémon move from deck to bench."""
+    from app.engine.effects.trainers import _precious_trolley
+
+    active = CardInstance(
+        instance_id="pt-active", card_def_id="tst-pt-active",
+        card_name="Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    basic1 = CardInstance(
+        instance_id="pt-basic-1", card_def_id="tst-pt-b1",
+        card_name="Basic1", current_hp=70, max_hp=70, zone=Zone.DECK,
+        card_type="pokemon", evolution_stage=0,
+    )
+    basic2 = CardInstance(
+        instance_id="pt-basic-2", card_def_id="tst-pt-b2",
+        card_name="Basic2", current_hp=70, max_hp=70, zone=Zone.DECK,
+        card_type="pokemon", evolution_stage=0,
+    )
+    state = _make_state(p1_active=active, p2_active=active)
+    state.p2.active = CardInstance(
+        instance_id="pt-opp", card_def_id="tst-pt-opp",
+        card_name="Opp", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p1.deck = [basic1, basic2]
+
+    action = Action(player_id="p1", action_type=ActionType.PLAY_ITEM)
+    gen = _precious_trolley(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_cards"
+    assert req.max_count == 2
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[basic1.instance_id, basic2.instance_id],
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert basic1 not in state.p1.deck
+    assert basic2 not in state.p1.deck
+    assert basic1 in state.p1.bench
+    assert basic2 in state.p1.bench
+    assert basic1.zone == Zone.BENCH
+    assert basic2.zone == Zone.BENCH
+
+
+def test_precious_trolley_respects_bench_space():
+    """sv08-185 Precious Trolley: max_count capped by available bench space."""
+    from app.engine.effects.trainers import _precious_trolley
+
+    active = CardInstance(
+        instance_id="pt2-active", card_def_id="tst-pt2-active",
+        card_name="Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    # 4 bench Pokémon already → only 1 space left
+    bench_fillers = [
+        CardInstance(
+            instance_id=f"pt2-bench-{i}", card_def_id=f"tst-pt2-bench-{i}",
+            card_name=f"Bench{i}", current_hp=70, max_hp=70, zone=Zone.BENCH,
+        )
+        for i in range(4)
+    ]
+    basic_in_deck = CardInstance(
+        instance_id="pt2-deck-b", card_def_id="tst-pt2-b",
+        card_name="DeckBasic", current_hp=70, max_hp=70, zone=Zone.DECK,
+        card_type="pokemon", evolution_stage=0,
+    )
+    extra_basic = CardInstance(
+        instance_id="pt2-deck-b2", card_def_id="tst-pt2-b2",
+        card_name="DeckBasic2", current_hp=70, max_hp=70, zone=Zone.DECK,
+        card_type="pokemon", evolution_stage=0,
+    )
+    state = _make_state(p1_active=active, p1_bench=bench_fillers)
+    state.p2.active = CardInstance(
+        instance_id="pt2-opp", card_def_id="tst-pt2-opp",
+        card_name="Opp", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p1.deck = [basic_in_deck, extra_basic]
+
+    action = Action(player_id="p1", action_type=ActionType.PLAY_ITEM)
+    gen = _precious_trolley(state, action)
+    req = next(gen)
+    # Only 1 bench space → max_count should be 1
+    assert req.max_count == 1
+
+
+def test_precious_trolley_no_basics_in_deck_just_shuffles():
+    """sv08-185 Precious Trolley: no Basics in deck — returns without error."""
+    from app.engine.effects.trainers import _precious_trolley
+
+    active = CardInstance(
+        instance_id="pt3-active", card_def_id="tst-pt3-active",
+        card_name="Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    trainer_card = CardInstance(
+        instance_id="pt3-trainer", card_def_id="tst-pt3-trainer",
+        card_name="SomeTrainer", current_hp=0, max_hp=0, zone=Zone.DECK,
+        card_type="trainer",
+    )
+    state = _make_state(p1_active=active)
+    state.p2.active = CardInstance(
+        instance_id="pt3-opp", card_def_id="tst-pt3-opp",
+        card_name="Opp", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p1.deck = [trainer_card]
+
+    action = Action(player_id="p1", action_type=ActionType.PLAY_ITEM)
+    gen = _precious_trolley(state, action)
+    # No Basics → generator should complete without yielding a choice
+    try:
+        next(gen)
+        assert False, "Expected StopIteration — no choice should be yielded with empty Basic pool"
+    except StopIteration:
+        pass
+
+    assert len(state.p1.bench) == 0
+    assert trainer_card in state.p1.deck
+
+
+# Neutralization Zone — irrecoverable-from-discard enforcement ────────────────
+
+def _make_nz_in_discard(instance_id: str = "nz-disc") -> CardInstance:
+    return CardInstance(
+        instance_id=instance_id, card_def_id="sv06.5-060",
+        card_name="Neutralization Zone", current_hp=0, max_hp=0,
+        zone=Zone.DISCARD, card_type="trainer", card_subtype="stadium",
+    )
+
+
+def test_is_recoverable_from_discard_blocks_neutralization_zone():
+    """IRRECOVERABLE_FROM_DISCARD: sv06.5-060 returns False from helper."""
+    from app.engine.effects.base import is_recoverable_from_discard
+    nz = _make_nz_in_discard()
+    assert not is_recoverable_from_discard(nz)
+
+
+def test_is_recoverable_from_discard_allows_normal_cards():
+    """IRRECOVERABLE_FROM_DISCARD: ordinary cards are recoverable."""
+    from app.engine.effects.base import is_recoverable_from_discard
+    supporter = CardInstance(
+        instance_id="supp-inst", card_def_id="sv01-170",
+        card_name="Some Supporter", current_hp=0, max_hp=0,
+        zone=Zone.DISCARD, card_type="trainer", card_subtype="supporter",
+    )
+    assert is_recoverable_from_discard(supporter)
+
+
+def test_pal_pad_excludes_irrecoverable_from_discard():
+    """Pal Pad candidate list never includes sv06.5-060."""
+    from app.engine.effects.trainers import _pal_pad
+
+    active = CardInstance(
+        instance_id="pp-active", card_def_id="tst-pp-active",
+        card_name="Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    supporter = CardInstance(
+        instance_id="pp-supp", card_def_id="sv02-185",
+        card_name="Iono", current_hp=0, max_hp=0,
+        zone=Zone.DISCARD, card_type="trainer", card_subtype="supporter",
+    )
+    nz = _make_nz_in_discard("pp-nz")
+
+    state = _make_state(p1_active=active)
+    state.p2.active = CardInstance(
+        instance_id="pp-opp", card_def_id="tst-pp-opp",
+        card_name="Opp", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p1.discard = [supporter, nz]
+
+    action = Action(player_id="p1", action_type=ActionType.PLAY_ITEM)
+    gen = _pal_pad(state, action)
+    req = next(gen)
+    # Only the Supporter should appear — NZ must be excluded
+    assert all(c.card_def_id != "sv06.5-060" for c in req.cards)
+    assert any(c.card_def_id == "sv02-185" for c in req.cards)
+
+
+def test_miracle_headset_excludes_irrecoverable_from_discard():
+    """Miracle Headset candidate list never includes sv06.5-060."""
+    from app.engine.effects.trainers import _miracle_headset
+
+    active = CardInstance(
+        instance_id="mh-active", card_def_id="tst-mh-active",
+        card_name="Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    supporter = CardInstance(
+        instance_id="mh-supp", card_def_id="sv02-185",
+        card_name="Iono", current_hp=0, max_hp=0,
+        zone=Zone.DISCARD, card_type="trainer", card_subtype="supporter",
+    )
+    nz = _make_nz_in_discard("mh-nz")
+
+    state = _make_state(p1_active=active)
+    state.p2.active = CardInstance(
+        instance_id="mh-opp", card_def_id="tst-mh-opp",
+        card_name="Opp", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.p1.discard = [supporter, nz]
+
+    action = Action(player_id="p1", action_type=ActionType.PLAY_ITEM)
+    gen = _miracle_headset(state, action)
+    req = next(gen)
+    assert all(c.card_def_id != "sv06.5-060" for c in req.cards)
+    assert any(c.card_def_id == "sv02-185" for c in req.cards)
+
+
+# Neutralization Zone (sv06.5-060) ────────────────────────────────────────────
+
+def test_neutralization_zone_prevents_ex_damage_to_non_rule_box():
+    """sv06.5-060: ex attacker deals 0 damage to a non-rule-box defender."""
+    from app.engine.effects.attacks import _apply_damage
+
+    ex_cdef = _make_card("tst-nz-ex", "Test ex", hp=200, stage="ex")
+    basic_cdef = _make_card("tst-nz-basic", "Basic Target", hp=100, stage="Basic")
+    card_registry.register(ex_cdef)
+    card_registry.register(basic_cdef)
+
+    attacker = _make_instance(ex_cdef, hp=200)
+    defender = _make_instance(basic_cdef, hp=100)
+    state = _make_state(p1_active=attacker, p2_active=defender)
+
+    stadium = CardInstance(
+        instance_id="nz-stadium", card_def_id="sv06.5-060",
+        card_name="Neutralization Zone", current_hp=0, max_hp=0, zone=Zone.ACTIVE,
+    )
+    state.active_stadium = stadium
+
+    action = _make_action(player_id="p1")
+    result = _apply_damage(state, action, 100)
+    assert result == 0, f"Expected 0 damage (prevented), got {result}"
+
+
+def test_neutralization_zone_allows_ex_damage_to_ex():
+    """sv06.5-060: ex attacker can still damage a rule-box (ex) defender."""
+    from app.engine.effects.attacks import _apply_damage
+
+    ex_cdef = _make_card("tst-nz2-ex", "Attacker ex", hp=200, stage="ex")
+    ex_defender_cdef = _make_card("tst-nz2-def-ex", "Defender ex", hp=200, stage="ex")
+    card_registry.register(ex_cdef)
+    card_registry.register(ex_defender_cdef)
+
+    attacker = _make_instance(ex_cdef, hp=200)
+    defender = _make_instance(ex_defender_cdef, hp=200)
+    state = _make_state(p1_active=attacker, p2_active=defender)
+
+    stadium = CardInstance(
+        instance_id="nz2-stadium", card_def_id="sv06.5-060",
+        card_name="Neutralization Zone", current_hp=0, max_hp=0, zone=Zone.ACTIVE,
+    )
+    state.active_stadium = stadium
+
+    action = _make_action(player_id="p1")
+    result = _apply_damage(state, action, 100)
+    assert result > 0, f"Expected non-zero damage (ex vs ex), got {result}"
+
+
+def test_neutralization_zone_non_ex_attacker_still_damages():
+    """sv06.5-060: a non-rule-box attacker can still damage a non-rule-box defender."""
+    from app.engine.effects.attacks import _apply_damage
+
+    basic_atk_cdef = _make_card("tst-nz3-atk", "Basic Attacker", hp=100, stage="Basic")
+    basic_def_cdef = _make_card("tst-nz3-def", "Basic Defender", hp=100, stage="Basic")
+    card_registry.register(basic_atk_cdef)
+    card_registry.register(basic_def_cdef)
+
+    attacker = _make_instance(basic_atk_cdef, hp=100)
+    defender = _make_instance(basic_def_cdef, hp=100)
+    state = _make_state(p1_active=attacker, p2_active=defender)
+
+    stadium = CardInstance(
+        instance_id="nz3-stadium", card_def_id="sv06.5-060",
+        card_name="Neutralization Zone", current_hp=0, max_hp=0, zone=Zone.ACTIVE,
+    )
+    state.active_stadium = stadium
+
+    action = _make_action(player_id="p1")
+    result = _apply_damage(state, action, 80)
+    assert result == 80, f"Expected 80 damage (basic vs basic), got {result}"

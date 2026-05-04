@@ -87,7 +87,7 @@ export interface DecisionRow {
 
 export interface SimulationDetail {
   id: string;
-  status: 'pending' | 'running' | 'complete' | 'failed' | 'cancelled';
+  status: 'pending' | 'running' | 'complete' | 'failed' | 'cancelled' | 'queued';
   user_deck_name: string | null;
   game_mode: string;
   deck_mode: string;

@@ -27,6 +27,7 @@ from app.tasks.simulation import (
     count_deck_cards,
     ensure_deck_cards_in_db,
     run_simulation,
+    _dispatch_next_queued,
     _card_def_from_row,
     _parse_deck_text,
     _parse_ptcgl_deck_text,
@@ -480,10 +481,17 @@ async def create_simulation(
             db=db,
         )
 
+    # ── determine initial status ─────────────────────────────────────────────
+    active_count = (await db.execute(
+        select(func.count(Simulation.id))
+        .where(Simulation.status.in_(["pending", "running"]))
+    )).scalar() or 0
+    initial_status = "queued" if active_count > 0 else "pending"
+
     # ── create simulation record ─────────────────────────────────────────────
     target_win_rate_int = int(round(body.target_win_rate * 100))
     sim = Simulation(
-        status="pending",
+        status=initial_status,
         game_mode=body.game_mode,
         deck_mode=body.deck_mode,
         deck_locked=body.deck_locked,
@@ -531,10 +539,11 @@ async def create_simulation(
         db.add(user_deck)
         await db.commit()
 
-    # ── enqueue Celery task ──────────────────────────────────────────────────
-    run_simulation.delay(str(sim.id))
+    # ── enqueue Celery task (queued sims wait for an active sim to finish) ───
+    if sim.status == "pending":
+        run_simulation.delay(str(sim.id))
 
-    response: dict = {"simulation_id": str(sim.id), "status": "pending"}
+    response: dict = {"simulation_id": str(sim.id), "status": sim.status}
     if warning:
         response["warning"] = warning
     if deck_build_metadata:
@@ -1145,26 +1154,37 @@ async def cancel_simulation(
     if row is None:
         raise HTTPException(status_code=404, detail="Simulation not found")
 
-    if row.status not in ("pending", "running"):
+    if row.status not in ("pending", "running", "queued"):
         raise HTTPException(
             status_code=409,
             detail=f"Cannot cancel simulation with status '{row.status}'"
         )
 
+    was_queued = row.status == "queued"
     row.status = "cancelled"
     await db.commit()
 
-    # Publish cancellation to Redis so the WebSocket client sees it immediately
-    try:
-        r = redis_module.Redis.from_url(settings.REDIS_URL)
-        channel = f"simulation:{simulation_id}"
-        r.publish(channel, json.dumps({
-            "type": "simulation_cancelled",
-            "simulation_id": simulation_id,
-        }))
-        r.close()
-    except Exception as exc:
-        logger.warning("Redis publish failed during cancel: %s", exc)
+    # Publish cancellation to Redis so the WebSocket client sees it immediately.
+    # Queued sims have no running Celery task, so no Redis signal is needed.
+    if not was_queued:
+        try:
+            r = redis_module.Redis.from_url(settings.REDIS_URL)
+            channel = f"simulation:{simulation_id}"
+            r.publish(channel, json.dumps({
+                "type": "simulation_cancelled",
+                "simulation_id": simulation_id,
+            }))
+            r.close()
+        except Exception as exc:
+            logger.warning("Redis publish failed during cancel: %s", exc)
+
+    # A queued sim was never dispatched to Celery, so the task-completion
+    # handler will never fire. Advance the queue here instead.
+    if was_queued:
+        try:
+            await _dispatch_next_queued()
+        except Exception as exc:
+            logger.warning("Queue: dispatch-next after queued cancel failed: %s", exc)
 
     return {"cancelled": True, "id": simulation_id}
 

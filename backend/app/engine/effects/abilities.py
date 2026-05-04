@@ -5264,6 +5264,7 @@ def register_all(registry):
     registry.register_passive_ability("svp-117", "Freezing Shroud")         # Froslass (on-KO bench freeze: noop)
     registry.register_passive_ability("svp-129", "Toxic Subjugation")       # Pecharunt (svp-149 same ability, alt print)
     registry.register_ability("svp-152", "Snow Sink", _snow_sink)            # Chien-Pao alt (on-bench-play)
+    registry.register_passive_ability("svp-173", "Boosted Evolution")       # Eevee (first-turn evolution rule: noop, alt print)
     registry.register_passive_ability("svp-177", "Seasoned Skill")          # Bloodmoon Ursaluna ex (no damage limit vs ex: noop)
     def _cond_flashing_draw_svp182(state, player_id):
         p = state.get_player(player_id)

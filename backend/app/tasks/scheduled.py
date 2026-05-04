@@ -44,6 +44,25 @@ TR_MEWTWO_DECK_LIST: list[tuple[str, str, int]] = [
 ]
 
 
+@celery_app.task(name="pokeprism.advance_simulation_queue")
+def advance_simulation_queue() -> dict:
+    """Safety-net Beat task: dispatch the next queued simulation if the worker is idle.
+
+    Runs every 60 seconds. Handles the edge case where the worker restarted or
+    crashed before the task-completion dispatch could fire.
+    """
+    from app.tasks.simulation import _dispatch_next_queued
+
+    loop = asyncio.new_event_loop()
+    try:
+        loop.run_until_complete(_dispatch_next_queued())
+    except Exception as exc:
+        logger.warning("advance_simulation_queue: dispatch failed: %s", exc)
+    finally:
+        loop.close()
+    return {"status": "ok"}
+
+
 @celery_app.task(name="pokeprism.run_scheduled_hh")
 def run_scheduled_hh(num_games: int = 200) -> dict:
     """Run the nightly H/H benchmark and persist results to the DB.

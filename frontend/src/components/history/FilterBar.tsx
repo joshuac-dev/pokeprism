@@ -18,9 +18,9 @@ interface Props {
   onReset: () => void;
 }
 
-const STATUSES = ['', 'pending', 'running', 'complete', 'failed', 'cancelled'];
+const STATUSES = ['', 'pending', 'queued', 'running', 'complete', 'failed', 'cancelled'];
 const STATUS_LABEL: Record<string, string> = {
-  '': 'All statuses', pending: 'Pending', running: 'Running',
+  '': 'All statuses', pending: 'Pending', queued: 'Queued', running: 'Running',
   complete: 'Complete', failed: 'Failed', cancelled: 'Cancelled',
 };
 

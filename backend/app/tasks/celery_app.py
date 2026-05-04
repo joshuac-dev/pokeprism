@@ -27,6 +27,10 @@ celery_app.conf.beat_schedule = {
         "task": "pokeprism.run_scheduled_hh",
         "schedule": crontab(hour=2, minute=0),
     },
+    "advance-simulation-queue": {
+        "task": "pokeprism.advance_simulation_queue",
+        "schedule": 60.0,  # every 60 seconds
+    },
 }
 
 # Explicitly import task modules so Celery registers all tasks

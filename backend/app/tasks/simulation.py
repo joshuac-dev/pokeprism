@@ -16,7 +16,7 @@ from typing import Any
 
 import redis  # module-level import so tests can patch `app.tasks.simulation.redis`
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import settings
@@ -188,6 +188,47 @@ def _check_regression(
 from app.tasks.celery_app import celery_app  # noqa: E402
 
 
+async def _dispatch_next_queued() -> None:
+    """Promote the oldest queued simulation to pending and dispatch it.
+
+    No-ops if any simulation is already pending or running.
+    Uses SELECT FOR UPDATE SKIP LOCKED so concurrent callers never
+    double-dispatch the same simulation.
+    """
+    engine = create_async_engine(settings.DATABASE_URL, echo=False)
+    SessionFactory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    next_id: str | None = None
+    try:
+        async with SessionFactory() as db:
+            active = (await db.execute(
+                select(func.count(Simulation.id))
+                .where(Simulation.status.in_(["pending", "running"]))
+            )).scalar() or 0
+            if active > 0:
+                return
+
+            row = (await db.execute(
+                select(Simulation)
+                .where(Simulation.status == "queued")
+                .order_by(Simulation.created_at.asc())
+                .limit(1)
+                .with_for_update(skip_locked=True)
+            )).scalar_one_or_none()
+
+            if row is None:
+                return
+
+            row.status = "pending"
+            next_id = str(row.id)
+            await db.commit()
+    finally:
+        await engine.dispose()
+
+    if next_id:
+        run_simulation.delay(next_id)
+        logger.info("Queue: dispatched simulation %s", next_id)
+
+
 @celery_app.task(bind=True, name="pokeprism.run_simulation")
 def run_simulation(self, simulation_id: str) -> dict:
     """Synchronous Celery entry point — wraps async implementation."""
@@ -200,12 +241,25 @@ def run_simulation(self, simulation_id: str) -> dict:
     _graph_module._driver = None
 
     loop = asyncio.new_event_loop()
+    exc_to_raise: BaseException | None = None
+    result: dict | None = None
     try:
-        return loop.run_until_complete(_run_simulation_async(self, simulation_id))
+        result = loop.run_until_complete(_run_simulation_async(self, simulation_id))
+    except Exception as exc:
+        exc_to_raise = exc
     finally:
+        # Advance the queue regardless of success, failure, or cancellation.
+        try:
+            loop.run_until_complete(_dispatch_next_queued())
+        except Exception as exc:
+            logger.warning("Queue: dispatch-next failed after %s: %s", simulation_id, exc)
         loop.close()
         # Belt-and-suspenders: nil again in case close_driver() failed inside the task.
         _graph_module._driver = None
+
+    if exc_to_raise is not None:
+        raise exc_to_raise
+    return result  # type: ignore[return-value]
 
 
 # ---------------------------------------------------------------------------

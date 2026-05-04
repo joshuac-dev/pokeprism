@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-04
+Last updated: 2026-05-04 (session 3)
 
 ## Current Workstream
 
@@ -34,10 +34,68 @@ Re-check them before making claims in user-facing docs.
 | Local matches table | 6,900 rows from the same DB snapshot |
 | Local `card_performance` table | 270 rows from the same DB snapshot |
 | Running simulations | 0 from the same DB snapshot |
-| Backend test baseline | Last full documented run: **411 passed, 3 skipped** on 2026-05-05 (DB-backed audit session Batch A). Run with `cd backend && python3 -m pytest tests/ -x -q`. |
+| Backend test baseline | Last full documented run: **424 passed** on 2026-05-04 (simulation queue feature complete). Run with `cd backend && python3 -m pytest tests/ -x -q`. |
 | Frontend unit tests | 4 passed on 2026-05-04 with `cd frontend && npm test -- --run --reporter=dot` |
 | Playwright E2E inventory | 14 tests listed on 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed on 2026-05-04 with `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 2 Work (2026-05-04)
+
+Three features completed:
+
+1. **Precious Trolley handler (sv08-185)** — ACE SPEC trainer that benches up to
+   all available bench spaces worth of Basic Pokémon from deck. Generator-based
+   handler with ChoiceRequest. Registered as `sv08-185` in the Ace Spec block of
+   `trainers.py`. 3 tests added.
+
+2. **Neutralization Zone handler (sv06.5-060)** — Stadium registered as `_noop`
+   (passive). Passive damage prevention added to `_apply_damage` in `attacks.py`:
+   if the attacker has `has_rule_box` and the defender does not, damage is zeroed.
+   `IRRECOVERABLE_FROM_DISCARD` frozenset added to `base.py` (contains
+   `sv06.5-060`); `is_recoverable_from_discard()` helper applied to Pal Pad and
+   Miracle Headset candidate filtering as forward-defense. 7 tests added (3
+   damage-prevention, 4 irrecoverable-from-discard).
+
+3. **Simulation queue (one-at-a-time)** — Only one simulation runs at a time.
+   New sims check `active_count` (pending + running); if >0 they are created as
+   `queued` and not dispatched. `_dispatch_next_queued()` uses `SELECT FOR UPDATE
+   SKIP LOCKED` to atomically claim the oldest queued sim on every task
+   completion. A Beat safety-net task (`advance_simulation_queue`) runs every
+   60 seconds to recover from worker crashes. Celery worker concurrency reduced
+   from 2 → 1 in `docker-compose.yml`. `'queued'` added to status unions in
+   `frontend/src/types/history.ts` and `frontend/src/types/simulation.ts`.
+   `cancel_simulation` also handles queued sims and triggers dispatch.
+
+Files changed (sessions 2–3):
+- `backend/app/engine/effects/trainers.py` — Precious Trolley handler + NZ noop registration + sv08.5-097/098/099 alt registrations
+- `backend/app/engine/effects/attacks.py` — Neutralization Zone passive damage check + svp-173/200/208 alt registrations
+- `backend/app/engine/effects/abilities.py` — svp-173 Boosted Evolution passive registration
+- `backend/app/engine/effects/base.py` — IRRECOVERABLE_FROM_DISCARD + is_recoverable_from_discard()
+- `backend/app/api/simulations.py` — queue-aware create/cancel
+- `backend/app/tasks/simulation.py` — _dispatch_next_queued(), run_simulation modified
+- `backend/app/tasks/scheduled.py` — advance_simulation_queue Beat task
+- `backend/app/tasks/celery_app.py` — Beat schedule entry
+- `backend/tests/test_engine/test_audit_fixes.py` — 10 new tests (411→424 total)
+- `docker-compose.yml` — --concurrency=2 → --concurrency=1
+- `frontend/src/types/history.ts` — 'queued' added to status union
+- `frontend/src/types/simulation.ts` — 'queued' added to status union
+- `frontend/src/components/history/StatusBadge.tsx` — 'queued' entry with distinct style/label
+- `frontend/src/components/history/FilterBar.tsx` — 'Queued' option added to status filter
+
+## Session 3 Work (2026-05-04)
+
+Six missing handler registrations fixed (all alt prints — no new handler logic):
+
+- **sv08.5-097, sv08.5-098, sv08.5-099** (Black Belt's Training alts) — registered
+  to existing `_black_belt_training` in `trainers.py`.
+- **svp-173** (Eevee alt) — attack registered to `_reckless_charge_eevee` in
+  `attacks.py`; Boosted Evolution passive registered as noop in `abilities.py`.
+- **svp-200** (Eevee alt) — attack registered to `_call_for_family` in `attacks.py`.
+- **svp-208** (Victini alt) — attack registered to `_v_force` in `attacks.py`.
+
+Frontend: "Queued" StatusBadge entry added with a distinct muted-slate style
+(previously fell through to raw string display). "Queued" option added to
+History page FilterBar status dropdown.
 
 ## Current Known Issues / Gaps
 
@@ -59,8 +117,15 @@ Re-check them before making claims in user-facing docs.
   `_apply_damage`; detection fixed to use `att.card_def_id` directly.
 - Boomerang Energy (sv06-166): reattach-after-discard effect fully implemented
   in `transitions.py`.
+- Neutralization Zone (sv06.5-060): passive damage prevention is implemented.
+  The "cannot be retrieved from discard" restriction is enforced in Pal Pad and
+  Miracle Headset. Other future retrieval handlers (if added) must apply
+  `is_recoverable_from_discard()` filtering.
 - `celery-worker` has no dedicated healthcheck. It restarts via
   `restart: unless-stopped`.
+- Simulation queue relies on Beat task as crash-recovery fallback (every 60s).
+  There is no push notification to the frontend when a queued sim transitions to
+  running; the frontend must poll for status changes.
 
 ## Operational Caveats
 

@@ -23,7 +23,9 @@ from app.engine.state import (
     StatusCondition,
     Zone,
 )
-from app.engine.effects.base import ChoiceRequest, check_ko, draw_cards
+from app.engine.effects.base import (
+    ChoiceRequest, check_ko, draw_cards, is_recoverable_from_discard,
+)
 from app.engine.effects.registry import EffectRegistry
 from app.cards import registry as card_registry
 
@@ -5273,7 +5275,9 @@ def _miracle_headset(state: GameState, action) -> None:
 
     supporters = [
         c for c in player.discard
-        if c.card_type.lower() == "trainer" and c.card_subtype.lower() == "supporter"
+        if c.card_type.lower() == "trainer"
+        and c.card_subtype.lower() == "supporter"
+        and is_recoverable_from_discard(c)
     ]
     if not supporters:
         return
@@ -5293,6 +5297,49 @@ def _miracle_headset(state: GameState, action) -> None:
             player.discard.remove(card)
             card.zone = Zone.HAND
             player.hand.append(card)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Precious Trolley (sv08-185)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _precious_trolley(state: GameState, action):
+    """Precious Trolley (sv08-185) — ACE SPEC Item.
+
+    Search your deck for any number of Basic Pokémon and put them onto your
+    Bench. Then, shuffle your deck.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    bench_space = 5 - len(player.bench)
+    if bench_space <= 0:
+        random.shuffle(player.deck)
+        return
+
+    candidates = [c for c in player.deck
+                  if c.card_type.lower() == "pokemon" and c.evolution_stage == 0]
+    if not candidates:
+        random.shuffle(player.deck)
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Precious Trolley: choose any number of Basic Pokémon from your deck to put on your Bench",
+        cards=candidates, min_count=0, max_count=min(bench_space, len(candidates)),
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [c.instance_id for c in candidates[:bench_space]])
+
+    for iid in chosen_ids[:bench_space]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            _bench_pokemon(state, player_id, card)
+
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="precious_trolley")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -5402,7 +5449,9 @@ def _pal_pad(state: GameState, action):
     player = state.get_player(player_id)
 
     supporters = [c for c in player.discard
-                  if c.card_type.lower() == "trainer" and c.card_subtype.lower() == "supporter"]
+                  if c.card_type.lower() == "trainer"
+                  and c.card_subtype.lower() == "supporter"
+                  and is_recoverable_from_discard(c)]
     if not supporters:
         return
 
@@ -5830,6 +5879,9 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv09-145", _black_belt_training)       # Black Belt's Training alt
     registry.register_trainer("sv09-149", _iris_b18)                  # Iris's Fighting Spirit alt
     registry.register_trainer("sv08.5-096", _black_belt_training)     # Black Belt's Training alt
+    registry.register_trainer("sv08.5-097", _black_belt_training)     # Black Belt's Training alt
+    registry.register_trainer("sv08.5-098", _black_belt_training)     # Black Belt's Training alt
+    registry.register_trainer("sv08.5-099", _black_belt_training)     # Black Belt's Training alt
     registry.register_trainer("sv08.5-100", _briar)                   # Briar alt
     registry.register_trainer("sv08.5-101", _buddy_buddy_poffin)      # Buddy-Buddy Poffin alt
     registry.register_trainer("sv08.5-109", _draw_3_b18)              # Friends in Paldea alt
@@ -5872,6 +5924,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv07-138", _kofu_b19)                  # Kofu
     registry.register_trainer("sv06-162", _scoop_up_cyclone)          # Scoop Up Cyclone (ACE SPEC)
     registry.register_trainer("sv08-183", _miracle_headset)           # Miracle Headset (ACE SPEC)
+    registry.register_trainer("sv08-185", _precious_trolley)          # Precious Trolley (ACE SPEC Item)
 
     # Tools (passive — effects handled elsewhere in engine)
     registry.register_trainer("sv10-162", _noop)   # Cynthia's Power Weight (+70HP for Cynthia's Pokémon)
@@ -5893,6 +5946,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv08.5-094", _noop) # Area Zero Underdepths (Tera bench expansion)
     registry.register_trainer("sv08.5-108", _noop) # Festival Grounds (Special Condition immunity)
     registry.register_trainer("sv06.5-054", _noop) # Academy at Night (per-turn optional topdeck)
+    registry.register_trainer("sv06.5-060", _noop) # Neutralization Zone (passive — damage prevention handled in _apply_damage)
 
     # Fossil Items (fossil mechanic not yet supported)
     registry.register_trainer("sv07-129", _noop)   # Antique Cover Fossil

@@ -2,6 +2,7 @@
 
 const STATUS_STYLES: Record<string, string> = {
   pending:   'bg-slate-700 text-slate-300',
+  queued:    'bg-slate-600 text-slate-400',
   running:   'bg-blue-900 text-blue-300',
   complete:  'bg-green-900 text-green-300',
   failed:    'bg-red-900 text-red-300',
@@ -10,6 +11,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 const STATUS_LABEL: Record<string, string> = {
   pending:   'Pending',
+  queued:    'Queued',
   running:   'Running',
   complete:  'Complete',
   failed:    'Failed',

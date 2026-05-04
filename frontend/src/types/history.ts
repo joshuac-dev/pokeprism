@@ -2,7 +2,7 @@
 
 export interface SimulationRow {
   id: string;
-  status: 'pending' | 'running' | 'complete' | 'failed' | 'cancelled';
+  status: 'pending' | 'running' | 'complete' | 'failed' | 'cancelled' | 'queued';
   game_mode: string;
   deck_mode: string;
   num_rounds: number;

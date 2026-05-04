@@ -41,6 +41,62 @@ gates, and runtime simulation checks.
 The current operational handoff is `docs/STATUS.md`. This changelog remains the
 evidence-based history, not the live status file.
 
+### Fixed (2026-05-04 Session 3 — Missing Alt-Print Registrations + StatusBadge)
+
+- **6 missing handler registrations** — all alt prints of already-implemented cards:
+  - sv08.5-097, sv08.5-098, sv08.5-099 (Black Belt's Training alts) → `_black_belt_training`
+  - svp-173 (Eevee alt) → `_reckless_charge_eevee` attack + Boosted Evolution passive noop
+  - svp-200 (Eevee alt) → `_call_for_family`
+  - svp-208 (Victini alt) → `_v_force`
+  - Root cause: the cards were in the DB and deck builder could select them, but their
+    tcgdex IDs had never been registered in the effects registry.
+  - Evidence: runtime "missing handler" error on simulation submit; `attacks.py`,
+    `trainers.py`, `abilities.py` registration blocks; test run (424 passed).
+  - Confidence: High.
+
+- **"Queued" StatusBadge and FilterBar** — `queued` sims previously displayed the raw
+  string "queued" because `StatusBadge` had no entry for it. Added distinct muted-slate
+  style and "Queued" label. Added "Queued" option to History page FilterBar status
+  dropdown. Frontend build clean.
+  - Evidence: `frontend/src/components/history/StatusBadge.tsx`;
+    `frontend/src/components/history/FilterBar.tsx`; `npm run build` (clean).
+  - Confidence: High.
+
+### Added / Fixed (2026-05-04 Session 2 — Card Handlers + Simulation Queue)
+
+- **Precious Trolley (sv08-185)** — ACE SPEC trainer handler implemented.
+  Benches any number of Basic Pokémon chosen from deck (capped by available bench
+  space); shuffles deck after. Generator-based with `ChoiceRequest`. 3 tests
+  added in `test_audit_fixes.py`.
+  - Evidence: TCGDex sv08-185 card text; `backend/app/engine/effects/trainers.py`;
+    test run (424 passed).
+  - Confidence: High.
+
+- **Neutralization Zone (sv06.5-060)** — Stadium registered as `_noop` (passive).
+  Damage prevention added to `_apply_damage` in `attacks.py`: if attacker has
+  `has_rule_box` and defender does not, the attack deals 0 damage. Forward-defense
+  `IRRECOVERABLE_FROM_DISCARD` frozenset + `is_recoverable_from_discard()` helper
+  added to `base.py`; Pal Pad and Miracle Headset candidate lists now filter with
+  this helper. 7 tests added (3 damage-prevention, 4 irrecoverable-from-discard).
+  - Evidence: TCGDex sv06.5-060 card text; `backend/app/engine/effects/attacks.py`;
+    `backend/app/engine/effects/base.py`; test run (424 passed).
+  - Confidence: High.
+
+- **Simulation queue (one-at-a-time FIFO)** — Only one simulation runs at a time.
+  `create_simulation` checks for any active sim; if one exists the new sim is
+  created as `queued` and not dispatched to Celery. `_dispatch_next_queued()` in
+  `tasks/simulation.py` uses `SELECT FOR UPDATE SKIP LOCKED` to atomically claim
+  and dispatch the oldest queued sim on every task completion (success or
+  failure). `advance_simulation_queue` Beat task fires every 60 seconds as a
+  crash-recovery fallback. Worker concurrency reduced to 1. `cancel_simulation`
+  also handles queued sims. `'queued'` added to frontend status type unions.
+  - Evidence: `backend/app/tasks/simulation.py`; `backend/app/tasks/scheduled.py`;
+    `backend/app/tasks/celery_app.py`; `backend/app/api/simulations.py`;
+    `docker-compose.yml`; `frontend/src/types/history.ts`;
+    `frontend/src/types/simulation.ts`; docker compose config --quiet (clean);
+    frontend build (clean); test run (424 passed).
+  - Confidence: High.
+
 ### Fixed (2026-05-05 Audit Session — Batch A)
 
 - **DB-backed audit session 2026-05-05** — 9 card-handler bugs fixed (Bugs #A1–#A9):
