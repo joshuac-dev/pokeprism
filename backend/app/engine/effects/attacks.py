@@ -26600,7 +26600,7 @@ def _upthrusting_horns_b4(state, action):
                     card_type="Energy",
                     card_subtype=getattr(cdef, "subcategory", "Basic"),
                     max_hp=0, current_hp=0,
-                    energy_provides=list(att.provides if att.provides else []),
+                    energy_provides=[et.value for et in att.provides] if att.provides else [],
                     zone=Zone.HAND,
                 )
         if energy_card:
@@ -27166,7 +27166,7 @@ def _opposing_winds_b5(state, action):
                     card_subtype=getattr(cdef, "subcategory", "Basic"),
                     max_hp=0,
                     current_hp=0,
-                    energy_provides=list(att.provides if att.provides else []),
+                    energy_provides=[et.value for et in att.provides] if att.provides else [],
                     zone=Zone.HAND,
                 )
         if energy_card:
@@ -27271,7 +27271,7 @@ def _balloon_return_b5(state, action):
                     card_type="Energy",
                     card_subtype=getattr(cdef, "subcategory", "Basic"),
                     max_hp=0, current_hp=0,
-                    energy_provides=list(att.provides if att.provides else []),
+                    energy_provides=[et.value for et in att.provides] if att.provides else [],
                     zone=Zone.HAND,
                 )
         if energy_card:

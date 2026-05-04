@@ -132,9 +132,18 @@ evidence-based history, not the live status file.
     player_id_string)`. Caused live simulation `005109f8` to fail with
     `'str' object has no attribute 'current_hp'`. Two regression tests added to
     `test_audit_fixes.py` (#L2, both heads and tails branches). Full backend suite:
-    456 passed. Live simulation `40612eb1` failed with a separate unrelated bug
-    (`'EnergyType' object has no attribute 'strip'` in `_attach_energy`) —
-    pending separate diagnosis and fix.
+    456 passed.
+  - Follow-up fix 4: three energy-return attack handlers
+    (`_upthrusting_horns_b4` sv08-039 Paldean Tauros, `_opposing_winds_b5`
+    sv05-135 Unfezant, `_balloon_return_b5` mep-006 Drifblim) reconstructed energy
+    `CardInstance` objects from `EnergyAttachment.provides` (a `list[EnergyType]`)
+    using `list(att.provides)`, which stored enum objects in `energy_provides`
+    (typed `list[str]`). When the player subsequently attached that energy,
+    `_attach_energy` called `EnergyType.from_str(EnergyType.X)` which calls
+    `.strip()` on the enum and raised `AttributeError`. Fixed all three to use
+    `[et.value for et in att.provides]`. Caused live simulation `40612eb1` to fail.
+    Regression tests added to `test_audit_fixes.py` (#L3). Full backend suite:
+    460 passed.
   - Confidence: High.
 
 ### Added / Fixed (2026-05-04 Session 2 — Card Handlers + Simulation Queue)

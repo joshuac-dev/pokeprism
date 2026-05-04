@@ -29,6 +29,7 @@ Session 2 fixes (Batch A):
 Live simulation fix:
   #L1  : _ET_ATTACH (me02-039 Cresselia Swelling Light) — called EnergyType enum instead of EnergyAttachment
   #L2  : _tr_venture_bomb_b19 (sv10-179 TR Venture Bomb) — check_ko called with transposed (player_id, target) args
+  #L3  : _upthrusting_horns_b4 / _opposing_winds_b5 / _balloon_return_b5 — energy_provides populated with EnergyType enums instead of strings
 """
 from __future__ import annotations
 
@@ -2397,3 +2398,62 @@ def test_venture_bomb_heads_does_not_raise(monkeypatch):
 
     assert p2_active.current_hp == 80
     assert p2_active.damage_counters == 2
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Live fix #L3: energy_provides must contain strings, not EnergyType enums
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_energy_card_reconstructed_from_attachment_has_string_provides():
+    """Regression #L3: CardInstances reconstructed from EnergyAttachment.provides
+    must store energy_provides as strings (e.g. "Fire"), not EnergyType enum objects.
+
+    Simulation 40612eb1 failed with 'EnergyType' object has no attribute 'strip'
+    because _upthrusting_horns_b4 / _opposing_winds_b5 / _balloon_return_b5 set
+    energy_provides=list(att.provides), copying EnergyType enum values rather than
+    their .value strings. EnergyType.from_str() in _attach_energy then called
+    .strip() on the enum and raised AttributeError.
+    """
+    from app.engine.state import EnergyAttachment, EnergyType, CardInstance, Zone
+
+    att = EnergyAttachment(
+        energy_type=EnergyType.FIRE,
+        source_card_id="src-fire-energy",
+        card_def_id="basic-fire-energy",
+        provides=[EnergyType.FIRE],
+    )
+
+    # Bug: list(att.provides) = [EnergyType.FIRE] — enum object, not string
+    # Fix: [et.value for et in att.provides] = ["Fire"] — string
+    energy_card = CardInstance(
+        instance_id="test-reconstruct-fire",
+        card_def_id=att.card_def_id,
+        card_name="Fire Energy",
+        card_type="Energy",
+        card_subtype="Basic",
+        max_hp=0, current_hp=0,
+        energy_provides=[et.value for et in att.provides] if att.provides else [],
+        zone=Zone.HAND,
+    )
+
+    assert energy_card.energy_provides == ["Fire"], (
+        "energy_provides must contain string values, not EnergyType enum objects"
+    )
+    assert all(isinstance(ep, str) for ep in energy_card.energy_provides)
+    # EnergyType.from_str must succeed on each value (this is what _attach_energy calls)
+    resolved = [EnergyType.from_str(ep) for ep in energy_card.energy_provides]
+    assert resolved == [EnergyType.FIRE]
+
+
+@pytest.mark.parametrize("provides,expected_str,expected_enum", [
+    ([EnergyType.COLORLESS], ["Colorless"], [EnergyType.COLORLESS]),
+    ([EnergyType.WATER],     ["Water"],     [EnergyType.WATER]),
+    ([EnergyType.LIGHTNING], ["Lightning"], [EnergyType.LIGHTNING]),
+])
+def test_energy_provides_conversion_covers_multiple_types(provides, expected_str, expected_enum):
+    """Regression #L3: .value conversion works for any EnergyType, not just Fire."""
+    from app.engine.state import EnergyType
+    converted = [et.value for et in provides]
+    assert converted == expected_str
+    resolved = [EnergyType.from_str(s) for s in converted]
+    assert resolved == expected_enum
