@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-04 (session 4)
+Last updated: 2026-05-04 (session 5)
 
 ## Current Workstream
 
@@ -34,7 +34,7 @@ Re-check them before making claims in user-facing docs.
 | Local matches table | 6,900 rows from the same DB snapshot |
 | Local `card_performance` table | 270 rows from the same DB snapshot |
 | Running simulations | 0 from the same DB snapshot |
-| Backend test baseline | Latest full documented run for the Neo4j graph optimization workstream: **439 passed** on 2026-05-04. Run with `cd backend && python3 -m pytest tests/ -x -q`. Historical prior baseline: 424 passed after the simulation queue work. |
+| Backend test baseline | Latest full documented run after opponent-batch checkpointing: **449 passed** on 2026-05-04. Run with `cd backend && python3 -m pytest tests/ -x -q`. Historical prior baseline: 439 passed after the Neo4j graph optimization workstream. |
 | Frontend unit tests | 4 passed on 2026-05-04 with `cd frontend && npm test -- --run --reporter=dot` |
 | Playwright E2E inventory | 14 tests listed on 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed on 2026-05-04 with `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
@@ -144,6 +144,37 @@ immediate graph visibility, and AI/coach data quality. Revisit deeper graph
 batching only if runtime becomes unacceptable again, and only with strict
 reference-equivalence tests against the current per-match graph writer.
 
+## Session 5 Work (2026-05-04)
+
+Opponent-batch checkpointing implemented for simulation replay safety:
+
+- New `simulation_opponent_results` table and `SimulationOpponentResult` ORM
+  model checkpoint each `(simulation_id, round_number, opponent_deck_id)` batch.
+- Completed opponent checkpoints are verified against persisted match counts and
+  skipped on retry/redelivery, preventing duplicate Match, MatchEvent, Decision,
+  card_performance, and Neo4j graph updates for already-persisted batches.
+- Stale `running` checkpoints with zero persisted matches are reset and rerun.
+  Stale `running` checkpoints with the full target match count are finalized
+  from persisted Match/MatchEvent rows and skipped. Partial nonzero batches are
+  marked `failed` and fail safely without destructive cleanup.
+- Graph failures remain non-fatal, matching existing behavior. Checkpoints track
+  `graph_status` as `complete` or `failed`.
+- Skipped completed batches reconstruct `MatchResult` objects, including events,
+  from persisted Postgres rows so round aggregation and coach evidence do not
+  silently drop completed opponent data. If a retry reaches an unlocked round
+  whose coach mutations were already persisted, the task fails safely rather
+  than duplicating mutation decisions.
+
+Validation:
+
+- `python3 -m pytest backend/tests/test_tasks/test_simulation_checkpointing.py -q`
+  — 10 passed.
+- `python3 -m pytest backend/tests/test_tasks -q` — 63 passed.
+- `python3 -m pytest backend/tests/test_memory -q` — 20 passed.
+- `python3 -m pytest backend/tests/test_api -q` — 79 passed.
+- `cd backend && python3 -m pytest tests/ -x -q` — 449 passed.
+- `cd backend && alembic heads` — `5b7e9c2d4a11 (head)`.
+
 ## Current Known Issues / Gaps
 
 - DeckBuilder Phase 3, simulation-backed preference weighting from historical
@@ -173,6 +204,10 @@ reference-equivalence tests against the current per-match graph writer.
 - Simulation queue relies on Beat task as crash-recovery fallback (every 60s).
   There is no push notification to the frontend when a queued sim transitions to
   running; the frontend must poll for status changes.
+- Opponent-batch checkpointing prevents future retry/redelivery replay
+  duplication, but it does not clean any duplicate historical data that may
+  already exist. Partial persisted opponent batches are intentionally not
+  deleted automatically; they are marked failed for manual repair.
 - Neo4j graph writes remain per-match for MatchResult and BEATS relationships.
   Deck/Card/BELONGS_TO setup and synergy pair updates are batched/cached.
   Match-result aggregation and batch-level/deferred graph persistence are
@@ -225,9 +260,9 @@ docker compose config --quiet
 
 ## Immediate Next Steps
 
-1. Prioritize simulation reliability before more Neo4j batching, especially
-   checkpointing completed opponent batches so Celery redelivery/retry cannot
-   replay already-persisted opponent blocks.
+1. Monitor opponent-batch checkpointing under real Celery retry/restart
+   conditions and add non-destructive duplicate-reporting tooling if historical
+   duplicate cleanup becomes necessary.
 2. Continue the DB-backed audit from `docs/AUDIT_STATE.md` using the rules in
    `docs/AUDIT_RULES.md`. Do not advance `next_start_cursor` unless an actual
    card audit is performed.

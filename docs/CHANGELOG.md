@@ -94,6 +94,30 @@ evidence-based history, not the live status file.
     12.29s total / 9.21s Neo4j under concurrent Neo4j load.
   - Confidence: High.
 
+### Fixed (2026-05-04 Session 5 — Opponent-Batch Checkpointing)
+
+- **Celery retry/redelivery replay safety** — added a
+  `simulation_opponent_results` checkpoint table and `SimulationOpponentResult`
+  ORM model keyed by `(simulation_id, round_number, opponent_deck_id)`.
+  Completed opponent batches are verified and skipped on retry, preventing
+  duplicate Match, MatchEvent, Decision, card_performance, and Neo4j updates for
+  already-persisted opponent blocks.
+  - Stale `running` checkpoints with zero persisted matches are rerun.
+  - Stale `running` checkpoints with the full target match count are finalized
+    from persisted rows and skipped.
+  - Partial nonzero persisted batches are marked failed and require manual
+    repair; no destructive cleanup is attempted.
+  - Graph failures remain non-fatal and are tracked separately with
+    `graph_status`.
+  - Skipped batches reconstruct `MatchResult` objects, including events, from
+    Postgres so round aggregation and coach evidence do not silently lose
+    completed opponent data.
+  - Evidence: `backend/app/tasks/simulation.py`; `backend/app/db/models.py`;
+    Alembic revision `5b7e9c2d4a11`;
+    `backend/tests/test_tasks/test_simulation_checkpointing.py`; full backend
+    test suite (449 passed).
+  - Confidence: High.
+
 ### Added / Fixed (2026-05-04 Session 2 — Card Handlers + Simulation Queue)
 
 - **Precious Trolley (sv08-185)** — ACE SPEC trainer handler implemented.

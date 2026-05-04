@@ -6,7 +6,7 @@ import uuid
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
-    BigInteger, Boolean, Column, ForeignKey, Integer, Text,
+    BigInteger, Boolean, Column, ForeignKey, Index, Integer, Text,
     UniqueConstraint, func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID
@@ -139,6 +139,52 @@ class SimulationOpponent(Base):
     deck_id       = Column(UUID(as_uuid=True), ForeignKey("decks.id"),
                            primary_key=True)
     deck_name     = Column(Text)
+
+
+class SimulationOpponentResult(Base):
+    __tablename__ = "simulation_opponent_results"
+    __table_args__ = (
+        UniqueConstraint("simulation_id", "round_number", "opponent_deck_id"),
+        Index(
+            "idx_sim_opp_results_round_status",
+            "simulation_id",
+            "round_number",
+            "status",
+        ),
+        Index("idx_sim_opp_results_sim_status", "simulation_id", "status"),
+    )
+
+    id                 = Column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    simulation_id      = Column(
+        UUID(as_uuid=True),
+        ForeignKey("simulations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    round_id           = Column(
+        UUID(as_uuid=True),
+        ForeignKey("rounds.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    round_number       = Column(Integer, nullable=False)
+    opponent_deck_id   = Column(UUID(as_uuid=True), ForeignKey("decks.id"), nullable=False)
+    opponent_deck_name = Column(Text)
+    status             = Column(Text, nullable=False, default="pending")
+    matches_target     = Column(Integer, nullable=False)
+    matches_completed  = Column(Integer, nullable=False, default=0)
+    p1_wins            = Column(Integer, nullable=False, default=0)
+    p2_wins            = Column(Integer, nullable=False, default=0)
+    total_turns        = Column(Integer, nullable=False, default=0)
+    win_rate           = Column(Integer)
+    graph_status       = Column(Text, nullable=False, default="pending")
+    started_at         = Column(TIMESTAMP(timezone=True))
+    completed_at       = Column(TIMESTAMP(timezone=True))
+    error_message      = Column(Text)
+    created_at         = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at         = Column(
+        TIMESTAMP(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
 
 
 # ── Rounds ─────────────────────────────────────────────────────────────────────

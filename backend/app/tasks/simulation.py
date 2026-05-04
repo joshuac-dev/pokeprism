@@ -20,7 +20,17 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import settings
-from app.db.models import Deck, Round, Simulation, SimulationOpponent
+from app.db.models import (
+    Card,
+    Deck,
+    DeckMutation,
+    Match,
+    MatchEvent,
+    Round,
+    Simulation,
+    SimulationOpponent,
+    SimulationOpponentResult,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -183,6 +193,316 @@ def _check_regression(
     if win_rate_pct < prev_win_rate:
         return consecutive_regressions + 1
     return 0
+
+
+def _win_rate_pct(p1_wins: int, total: int) -> int:
+    return int(round(p1_wins / total * 100)) if total > 0 else 0
+
+
+def _deck_text_from_cards(cards: list) -> str:
+    counts: dict[str, tuple[str, int]] = {}
+    for card in cards:
+        if card.tcgdex_id in counts:
+            name, cnt = counts[card.tcgdex_id]
+            counts[card.tcgdex_id] = (name, cnt + 1)
+        else:
+            counts[card.tcgdex_id] = (card.name, 1)
+    return "\n".join(
+        f"{cnt} {name} {tid}" for tid, (name, cnt) in sorted(counts.items())
+    )
+
+
+async def _card_defs_from_snapshot(
+    snapshot_cards: list[dict],
+    SessionFactory: async_sessionmaker,
+) -> list:
+    """Rebuild CardDefinition copies from a persisted round deck snapshot."""
+    ids = [item.get("tcgdex_id") for item in snapshot_cards if item.get("tcgdex_id")]
+    if not ids:
+        return []
+    async with SessionFactory() as db:
+        rows = (await db.execute(select(Card).where(Card.tcgdex_id.in_(set(ids))))).scalars().all()
+        by_id = {row.tcgdex_id: _card_def_from_row(row) for row in rows}
+    missing = sorted({tid for tid in ids if tid not in by_id})
+    if missing:
+        raise ValueError(
+            "Round deck snapshot references cards missing from DB: "
+            + ", ".join(missing)
+        )
+    return [by_id[tid] for tid in ids]
+
+
+async def _persisted_match_count(
+    db: AsyncSession,
+    simulation_id: uuid.UUID,
+    round_number: int,
+    opponent_deck_id: uuid.UUID,
+) -> int:
+    return (await db.execute(
+        select(func.count(Match.id)).where(
+            Match.simulation_id == simulation_id,
+            Match.round_number == round_number,
+            Match.opponent_deck_id == opponent_deck_id,
+        )
+    )).scalar() or 0
+
+
+async def _load_opponent_match_results(
+    db: AsyncSession,
+    simulation_id: uuid.UUID,
+    round_number: int,
+    opponent_deck_id: uuid.UUID,
+) -> list["MatchResult"]:
+    """Reconstruct MatchResult objects, including events, from persisted rows."""
+    from app.engine.runner import MatchResult
+
+    matches = (await db.execute(
+        select(Match)
+        .where(
+            Match.simulation_id == simulation_id,
+            Match.round_number == round_number,
+            Match.opponent_deck_id == opponent_deck_id,
+        )
+        .order_by(Match.created_at.asc(), Match.id.asc())
+    )).scalars().all()
+    if not matches:
+        return []
+
+    match_ids = [m.id for m in matches]
+    event_rows = (await db.execute(
+        select(MatchEvent)
+        .where(MatchEvent.match_id.in_(match_ids))
+        .order_by(MatchEvent.match_id.asc(), MatchEvent.sequence.asc())
+    )).scalars().all()
+    events_by_match: dict[uuid.UUID, list[dict]] = {}
+    for event in event_rows:
+        events_by_match.setdefault(event.match_id, []).append(event.data or {})
+
+    return [
+        MatchResult(
+            game_id=str(match.id),
+            winner=match.winner,
+            win_condition=match.win_condition,
+            total_turns=match.total_turns,
+            p1_prizes_taken=match.p1_prizes_taken,
+            p2_prizes_taken=match.p2_prizes_taken,
+            events=events_by_match.get(match.id, []),
+            p1_deck_name=match.p1_deck_name or "",
+            p2_deck_name=match.p2_deck_name or "",
+        )
+        for match in matches
+    ]
+
+
+async def _finalize_checkpoint_from_matches(
+    db: AsyncSession,
+    checkpoint: SimulationOpponentResult,
+    graph_status: str,
+    error_message: str | None = None,
+) -> None:
+    results = await _load_opponent_match_results(
+        db,
+        checkpoint.simulation_id,
+        checkpoint.round_number,
+        checkpoint.opponent_deck_id,
+    )
+    total = len(results)
+    p1_wins = sum(1 for result in results if result.winner == "p1")
+    checkpoint.status = "complete"
+    checkpoint.matches_completed = total
+    checkpoint.p1_wins = p1_wins
+    checkpoint.p2_wins = total - p1_wins
+    checkpoint.total_turns = sum(result.total_turns for result in results)
+    checkpoint.win_rate = _win_rate_pct(p1_wins, total)
+    checkpoint.graph_status = graph_status
+    checkpoint.completed_at = datetime.now(timezone.utc)
+    checkpoint.error_message = error_message
+
+
+async def _ensure_opponent_checkpoint(
+    db: AsyncSession,
+    simulation_id: uuid.UUID,
+    round_id: uuid.UUID,
+    round_number: int,
+    opponent_deck_id: uuid.UUID,
+    opponent_deck_name: str,
+    matches_target: int,
+) -> SimulationOpponentResult:
+    checkpoint = (await db.execute(
+        select(SimulationOpponentResult)
+        .where(
+            SimulationOpponentResult.simulation_id == simulation_id,
+            SimulationOpponentResult.round_number == round_number,
+            SimulationOpponentResult.opponent_deck_id == opponent_deck_id,
+        )
+        .with_for_update()
+    )).scalar_one_or_none()
+    if checkpoint is None:
+        checkpoint = SimulationOpponentResult(
+            simulation_id=simulation_id,
+            round_id=round_id,
+            round_number=round_number,
+            opponent_deck_id=opponent_deck_id,
+            opponent_deck_name=opponent_deck_name,
+            matches_target=matches_target,
+        )
+        db.add(checkpoint)
+        await db.flush()
+    else:
+        checkpoint.round_id = round_id
+        checkpoint.opponent_deck_name = opponent_deck_name
+        checkpoint.matches_target = matches_target
+    return checkpoint
+
+
+async def _prepare_opponent_checkpoint(
+    db: AsyncSession,
+    simulation_id: uuid.UUID,
+    round_id: uuid.UUID,
+    round_number: int,
+    opponent_deck_id: uuid.UUID,
+    opponent_deck_name: str,
+    matches_target: int,
+) -> str:
+    """Return 'run' or 'skip' after applying retry-safe checkpoint rules."""
+    checkpoint = await _ensure_opponent_checkpoint(
+        db,
+        simulation_id,
+        round_id,
+        round_number,
+        opponent_deck_id,
+        opponent_deck_name,
+        matches_target,
+    )
+    persisted_count = await _persisted_match_count(
+        db, simulation_id, round_number, opponent_deck_id
+    )
+
+    if checkpoint.status == "complete":
+        if (
+            persisted_count != checkpoint.matches_completed
+            or checkpoint.matches_completed != checkpoint.matches_target
+        ):
+            checkpoint.status = "failed"
+            checkpoint.error_message = (
+                "Completed opponent checkpoint does not match persisted match count "
+                f"(persisted={persisted_count}, checkpoint={checkpoint.matches_completed}, "
+                f"target={checkpoint.matches_target})"
+            )
+            raise ValueError(checkpoint.error_message)
+        return "skip"
+
+    if checkpoint.status == "running":
+        if persisted_count == 0:
+            checkpoint.status = "pending"
+            checkpoint.matches_completed = 0
+            checkpoint.p1_wins = 0
+            checkpoint.p2_wins = 0
+            checkpoint.total_turns = 0
+            checkpoint.win_rate = None
+            checkpoint.graph_status = "pending"
+            checkpoint.error_message = None
+        elif persisted_count == checkpoint.matches_target:
+            await _finalize_checkpoint_from_matches(
+                db,
+                checkpoint,
+                graph_status=(
+                    checkpoint.graph_status
+                    if checkpoint.graph_status in {"complete", "failed"}
+                    else "failed"
+                ),
+                error_message=(
+                    "Finalized from persisted matches after retry; graph status "
+                    "may be incomplete."
+                ),
+            )
+            return "skip"
+        else:
+            checkpoint.status = "failed"
+            checkpoint.matches_completed = persisted_count
+            checkpoint.error_message = (
+                "Partial persisted opponent batch detected on retry "
+                f"(persisted={persisted_count}, target={checkpoint.matches_target}); "
+                "manual repair required."
+            )
+            raise ValueError(checkpoint.error_message)
+
+    if checkpoint.status == "failed":
+        raise ValueError(
+            checkpoint.error_message
+            or "Opponent batch checkpoint is failed; manual repair required."
+        )
+
+    if persisted_count > 0:
+        if persisted_count == checkpoint.matches_target:
+            await _finalize_checkpoint_from_matches(
+                db,
+                checkpoint,
+                graph_status="failed",
+                error_message=(
+                    "Finalized from persisted matches before rerun; graph status "
+                    "may be incomplete."
+                ),
+            )
+            return "skip"
+        checkpoint.status = "failed"
+        checkpoint.matches_completed = persisted_count
+        checkpoint.error_message = (
+            "Persisted opponent matches exist before checkpoint run "
+            f"(persisted={persisted_count}, target={checkpoint.matches_target}); "
+            "manual repair required."
+        )
+        raise ValueError(checkpoint.error_message)
+
+    checkpoint.status = "running"
+    checkpoint.graph_status = "pending"
+    checkpoint.started_at = datetime.now(timezone.utc)
+    checkpoint.completed_at = None
+    checkpoint.error_message = None
+    return "run"
+
+
+async def _complete_opponent_checkpoint(
+    db: AsyncSession,
+    simulation_id: uuid.UUID,
+    round_number: int,
+    opponent_deck_id: uuid.UUID,
+    results: list["MatchResult"],
+    graph_status: str,
+) -> None:
+    checkpoint = (await db.execute(
+        select(SimulationOpponentResult)
+        .where(
+            SimulationOpponentResult.simulation_id == simulation_id,
+            SimulationOpponentResult.round_number == round_number,
+            SimulationOpponentResult.opponent_deck_id == opponent_deck_id,
+        )
+        .with_for_update()
+    )).scalar_one()
+    p1_wins = sum(1 for result in results if result.winner == "p1")
+    checkpoint.status = "complete"
+    checkpoint.matches_completed = len(results)
+    checkpoint.p1_wins = p1_wins
+    checkpoint.p2_wins = len(results) - p1_wins
+    checkpoint.total_turns = sum(result.total_turns for result in results)
+    checkpoint.win_rate = _win_rate_pct(p1_wins, len(results))
+    checkpoint.graph_status = graph_status
+    checkpoint.completed_at = datetime.now(timezone.utc)
+    checkpoint.error_message = None
+
+
+async def _round_has_persisted_mutations(
+    db: AsyncSession,
+    simulation_id: uuid.UUID,
+    round_number: int,
+) -> bool:
+    count = (await db.execute(
+        select(func.count(DeckMutation.id)).where(
+            DeckMutation.simulation_id == simulation_id,
+            DeckMutation.round_number == round_number,
+        )
+    )).scalar() or 0
+    return count > 0
 
 
 from app.tasks.celery_app import celery_app  # noqa: E402
@@ -395,14 +715,20 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
             round_id = uuid.uuid4()
             async with SessionFactory() as db:
                 existing = await db.execute(
-                    select(Round.id).where(
+                    select(Round).where(
                         Round.simulation_id == sim_uuid,
                         Round.round_number == round_number,
                     )
                 )
                 existing_row = existing.scalar_one_or_none()
                 if existing_row is not None:
-                    round_id = existing_row
+                    round_id = existing_row.id
+                    snapshot_cards = (existing_row.deck_snapshot or {}).get("cards", [])
+                    if snapshot_cards:
+                        current_deck_cards = await _card_defs_from_snapshot(
+                            snapshot_cards, SessionFactory
+                        )
+                        current_deck_text = _deck_text_from_cards(current_deck_cards)
                     logger.info(
                         "Simulation %s round %d already exists (retry) — reusing id %s",
                         simulation_id, round_number, round_id,
@@ -423,10 +749,49 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
             all_round_results = []
             p1_wins_round = 0
             p1_total_round = 0
+            skipped_checkpoint = False
 
             for opp_deck_id, opp_name, opp_deck_text in opponent_decks:
                 opp_cards = await _deck_text_to_card_defs(opp_deck_text, SessionFactory)
                 if not opp_cards:
+                    continue
+
+                async with SessionFactory() as db:
+                    try:
+                        checkpoint_action = await _prepare_opponent_checkpoint(
+                            db,
+                            sim_uuid,
+                            round_id,
+                            round_number,
+                            opp_deck_id,
+                            opp_name,
+                            matches_per_opponent,
+                        )
+                    except Exception:
+                        # _prepare_opponent_checkpoint marks partial/corrupt
+                        # checkpoint states as failed. Commit that marker before
+                        # the task-level failure path updates Simulation.status.
+                        await db.commit()
+                        raise
+                    await db.commit()
+
+                if checkpoint_action == "skip":
+                    skipped_checkpoint = True
+                    async with SessionFactory() as db:
+                        skipped_results = await _load_opponent_match_results(
+                            db, sim_uuid, round_number, opp_deck_id
+                        )
+                    all_round_results.extend(skipped_results)
+                    p1_wins_round += sum(1 for result in skipped_results if result.winner == "p1")
+                    p1_total_round += len(skipped_results)
+                    _publish({
+                        "type": "opponent_batch_skipped",
+                        "simulation_id": simulation_id,
+                        "round_number": round_number,
+                        "opponent_deck_id": str(opp_deck_id),
+                        "opponent_deck_name": opp_name,
+                        "matches": len(skipped_results),
+                    })
                     continue
 
                 match_counter = {"n": 0}
@@ -520,6 +885,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                             )
                     await db.commit()
 
+                graph_failed = False
                 for idx, result_item in enumerate(batch.results):
                     try:
                         await graph_writer.write_match(
@@ -531,7 +897,19 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                             p2_card_defs=opp_cards,
                         )
                     except Exception as exc:
+                        graph_failed = True
                         logger.warning("Graph write failed for match %s: %s", match_ids[idx], exc)
+
+                async with SessionFactory() as db:
+                    await _complete_opponent_checkpoint(
+                        db,
+                        sim_uuid,
+                        round_number,
+                        opp_deck_id,
+                        batch.results,
+                        graph_status="failed" if graph_failed else "complete",
+                    )
+                    await db.commit()
 
                 all_round_results.extend(batch.results)
                 p1_wins_round += batch.p1_wins
@@ -595,6 +973,14 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
             # Run coach before target check so mutations are always applied on
             # non-final rounds when the deck is unlocked, even if target is met.
             if not deck_locked and round_number < num_rounds and current_deck_cards:
+                if skipped_checkpoint:
+                    async with SessionFactory() as db:
+                        if await _round_has_persisted_mutations(db, sim_uuid, round_number):
+                            raise ValueError(
+                                "Retry reached a round whose coach mutations were already "
+                                "persisted; automatic replay is blocked to avoid duplicate "
+                                "mutation decisions."
+                            )
                 if consecutive_regressions >= 3:
                     # Third+ consecutive regression — skip Coach entirely
                     logger.info(
