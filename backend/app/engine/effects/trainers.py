@@ -2401,12 +2401,10 @@ def _mystery_garden(state: GameState, action):
 
     if resp and resp.selected_cards:
         chosen_id = resp.selected_cards[0]
-        chosen = next((c for c in energy_in_hand if c.instance_id == chosen_id), None)
+        chosen = next((c for c in energy_in_hand if c.instance_id == chosen_id),
+                      energy_in_hand[0])
     else:
         chosen = energy_in_hand[0]
-
-    if chosen is None:
-        return
 
     player.hand.remove(chosen)
     chosen.zone = Zone.DISCARD
