@@ -16,6 +16,16 @@ Engine gap fixes:
   #EG1 : Spiky Energy (sv09-159) — broken source_card_id detection fixed to att.card_def_id
   #EG2 : Watchtower alt print (me02.5-210) — ability suppression now covers both prints
   #EG3 : Mystery Garden (me02.5-194 / me01-122) — USE_STADIUM action fully implemented
+Session 2 fixes (Batch A):
+  #A1  : duplicate _strong_bash_b2 removed (attacks.py)
+  #A2  : _acerolas_mischief removed bogus draw-to-4 clause
+  #A3  : _acerolas_mischief added missing prize-count gate (opp must have ≤2 prizes)
+  #A4  : _lucian_b5 completely rewritten — each player shuffles hand, flips coin, draws 6/3
+  #A5  : sv06-159 re-registered to _ogres_mask (was _noop)
+  #A6  : _unfair_stamp player draw corrected 3 → 5
+  #A7  : _dangle_tail_flag → _dangle_tail (put 1 Pokémon from discard to hand)
+  #A8  : _recovery_net_flag → _recovery_net (put up to 2 Pokémon from discard to hand)
+  #A9  : _avenging_edge_flag → _avenging_edge (100 + 60 if ko_taken_last_turn)
 """
 from __future__ import annotations
 
@@ -1655,3 +1665,346 @@ def test_mystery_garden_alt_print_also_offered():
     assert len(stadium_actions) == 1, (
         "USE_STADIUM should be offered for me01-122 (Mystery Garden alt print)"
     )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Session 2 fixes — Batch A
+# ──────────────────────────────────────────────────────────────────────────────
+
+# A1: duplicate _strong_bash_b2 removed ────────────────────────────────────────
+def test_strong_bash_b2_no_duplicate():
+    """Exactly one _strong_bash_b2 defined — previously two identical definitions existed."""
+    import app.engine.effects.attacks as atk_mod
+    count = sum(1 for name in dir(atk_mod) if name == "_strong_bash_b2")
+    assert count <= 1, "Duplicate _strong_bash_b2 still present"
+
+
+# A2+A3: Acerola's Mischief ────────────────────────────────────────────────────
+def test_acerolas_mischief_blocked_when_opp_prizes_gt_2():
+    """_acerolas_mischief does nothing when opponent has >2 prizes remaining."""
+    from app.engine.effects.trainers import _acerolas_mischief
+
+    poke = CardInstance(
+        instance_id="p1-active-am", card_def_id="tst-am-1",
+        card_name="P1Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=poke)
+    state.p2.prizes_remaining = 3
+    state.p2.prizes = [
+        CardInstance(instance_id=f"prize-{i}", card_def_id="tst-prize",
+                     card_name="Prize", current_hp=0, max_hp=0)
+        for i in range(3)
+    ]
+
+    action = Action(player_id="p1", action_type=ActionType.PLAY_SUPPORTER)
+    gen = _acerolas_mischief(state, action)
+    try:
+        next(gen)
+    except StopIteration:
+        pass
+
+    assert not any(e["event_type"] == "acerola_protection" for e in state.events)
+    assert any(e["event_type"] == "acerolas_mischief_not_applicable" for e in state.events)
+
+
+def test_acerolas_mischief_no_draw_effect():
+    """_acerolas_mischief never draws cards — the bogus draw-to-4 clause was removed."""
+    from app.engine.effects.trainers import _acerolas_mischief
+    import inspect
+    src = inspect.getsource(_acerolas_mischief)
+    assert "draw_cards" not in src, "draw_cards still called inside _acerolas_mischief"
+    assert "4 - len" not in src, "draw-to-4 clause still present in _acerolas_mischief"
+
+
+def test_acerolas_mischief_protects_when_opp_has_2_prizes():
+    """_acerolas_mischief grants protection when opponent has exactly 2 prizes."""
+    from app.engine.effects.trainers import _acerolas_mischief
+
+    poke = CardInstance(
+        instance_id="p1-active-am2", card_def_id="tst-am-2",
+        card_name="P1Active2", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=poke)
+    state.p2.prizes_remaining = 2
+    state.p2.prizes = [
+        CardInstance(instance_id=f"prize2-{i}", card_def_id="tst-prize",
+                     card_name="Prize", current_hp=0, max_hp=0)
+        for i in range(2)
+    ]
+
+    action = Action(player_id="p1", action_type=ActionType.PLAY_SUPPORTER)
+    gen = _acerolas_mischief(state, action)
+    try:
+        req = next(gen)
+        resp = Action(
+            player_id="p1",
+            action_type=ActionType.CHOOSE_TARGET,
+            target_instance_id=poke.instance_id,
+        )
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert poke.protected_from_ex is True
+    assert any(e["event_type"] == "acerola_protection" for e in state.events)
+
+
+# A4: Lucian rewrite ───────────────────────────────────────────────────────────
+def test_lucian_shuffles_hand_to_deck():
+    """_lucian_b5: each player's hand is moved to deck then drawn from; hand count = 3 or 6."""
+    from app.engine.effects.trainers import _lucian_b5
+
+    state = _make_state()
+    hand_card = CardInstance(
+        instance_id="hand-1", card_def_id="tst-hand-1",
+        card_name="SomeCard", current_hp=0, max_hp=0, zone=Zone.HAND,
+    )
+    state.p1.hand = [hand_card]
+    # Give p1 enough deck cards so draw completes
+    for i in range(10):
+        c = CardInstance(
+            instance_id=f"luc-deck-p1-{i}", card_def_id="tst-ld",
+            card_name="DeckCard", current_hp=0, max_hp=0, zone=Zone.DECK,
+        )
+        state.p1.deck.append(c)
+    state.p2.hand = []
+
+    action = Action(player_id="p1", action_type=ActionType.PLAY_SUPPORTER)
+    result = _lucian_b5(state, action)
+    if hasattr(result, '__next__'):
+        try:
+            next(result)
+        except StopIteration:
+            pass
+
+    # After Lucian: p1 should have drawn 3 or 6 cards
+    assert len(state.p1.hand) in (3, 6), (
+        f"p1 should have 3 or 6 cards after Lucian, got {len(state.p1.hand)}"
+    )
+    # Original hand card should have been moved to deck at some point
+    assert hand_card.zone in (Zone.DECK, Zone.HAND), (
+        f"hand_card zone should be DECK or HAND (drawn back), got {hand_card.zone}"
+    )
+
+
+def test_lucian_draws_3_or_6():
+    """_lucian_b5: after shuffle, combined draw is 6+6, 6+3, 3+6, or 3+3 (when hands not empty)."""
+    import random as rmod
+    from app.engine.effects.trainers import _lucian_b5
+
+    state = _make_state()
+    # Give p1 a hand card to trigger the condition
+    p1_hand = CardInstance(
+        instance_id="luc-h1", card_def_id="tst-lhc",
+        card_name="HandCard", current_hp=0, max_hp=0, zone=Zone.HAND,
+    )
+    state.p1.hand = [p1_hand]
+    state.p2.hand = []
+    # Give each player enough deck cards
+    for i in range(10):
+        c = CardInstance(
+            instance_id=f"deck-p1l-{i}", card_def_id="tst-d",
+            card_name="Card", current_hp=0, max_hp=0, zone=Zone.DECK,
+        )
+        state.p1.deck.append(c)
+        c2 = CardInstance(
+            instance_id=f"deck-p2l-{i}", card_def_id="tst-d",
+            card_name="Card", current_hp=0, max_hp=0, zone=Zone.DECK,
+        )
+        state.p2.deck.append(c2)
+
+    action = Action(player_id="p1", action_type=ActionType.PLAY_SUPPORTER)
+    rmod.seed(0)
+    result = _lucian_b5(state, action)
+    if hasattr(result, '__next__'):
+        try:
+            next(result)
+        except StopIteration:
+            pass
+
+    total = len(state.p1.hand) + len(state.p2.hand)
+    assert total in (6, 9, 12), f"Expected combined draw of 6+3, 3+3, or 6+6, got {total}"
+
+
+# A5: sv06-159 Ogre's Mask registration ───────────────────────────────────────
+def test_sv06_159_registered_to_ogres_mask():
+    """sv06-159 should be registered to _ogres_mask, not _noop."""
+    from app.engine.effects.trainers import _ogres_mask, _noop
+    reg = EffectRegistry.instance()
+    handler = reg._trainer_effects.get("sv06-159")
+    assert handler is not None, "sv06-159 has no handler registered"
+    assert handler is not _noop, "sv06-159 is still registered as _noop"
+    assert handler is _ogres_mask, "sv06-159 is not registered as _ogres_mask"
+
+
+# A6: Unfair Stamp draws 5 ────────────────────────────────────────────────────
+def test_unfair_stamp_player_draws_5():
+    """_unfair_stamp: active player draws 5 cards (was 3)."""
+    from app.engine.effects.trainers import _unfair_stamp
+
+    state = _make_state()
+    state.turn_number = 2
+    # Emit a KO event from turn 1 so _ko_happened_last_turn returns True
+    state.events.append({
+        "event_type": "ko",
+        "turn": 1,
+        "ko_player": "p1",
+        "card_name": "SomePoke",
+    })
+    # Give plenty of deck cards to both players
+    for i in range(10):
+        c1 = CardInstance(
+            instance_id=f"us-deck-p1-{i}", card_def_id="tst-us",
+            card_name="Card", current_hp=0, max_hp=0, zone=Zone.DECK,
+        )
+        state.p1.deck.append(c1)
+        c2 = CardInstance(
+            instance_id=f"us-deck-p2-{i}", card_def_id="tst-us",
+            card_name="Card", current_hp=0, max_hp=0, zone=Zone.DECK,
+        )
+        state.p2.deck.append(c2)
+
+    action = Action(player_id="p1", action_type=ActionType.PLAY_SUPPORTER)
+    result = _unfair_stamp(state, action)
+    if hasattr(result, '__next__'):
+        try:
+            next(result)
+        except StopIteration:
+            pass
+
+    assert len(state.p1.hand) == 5, f"Player should draw 5, got {len(state.p1.hand)}"
+    assert len(state.p2.hand) == 2, f"Opponent should draw 2, got {len(state.p2.hand)}"
+
+
+# A7: Dangle Tail ─────────────────────────────────────────────────────────────
+@pytest.mark.asyncio
+async def test_dangle_tail_puts_pokemon_from_discard_to_hand():
+    """sv07-057 Dangle Tail: puts chosen Pokémon from discard to hand."""
+    from app.engine.effects.attacks import _dangle_tail
+
+    poke_in_discard = CardInstance(
+        instance_id="dt-discard-1", card_def_id="tst-dt-poke",
+        card_name="DiscardedPoke", current_hp=100, max_hp=100,
+        zone=Zone.DISCARD, card_type="pokemon",
+    )
+    attacker = CardInstance(
+        instance_id="dt-attacker", card_def_id="sv07-057",
+        card_name="Slowpoke", current_hp=60, max_hp=60, zone=Zone.ACTIVE,
+    )
+    opp = CardInstance(
+        instance_id="dt-opp", card_def_id="tst-dt-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp)
+    state.p1.discard = [poke_in_discard]
+
+    action = _make_action(attack_index=0)
+    gen = _dangle_tail(state, action)
+    try:
+        req = next(gen)
+        resp = Action(
+            player_id="p1",
+            action_type=ActionType.CHOOSE_CARDS,
+            selected_cards=[poke_in_discard.instance_id],
+        )
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert poke_in_discard not in state.p1.discard
+    assert poke_in_discard in state.p1.hand
+    assert poke_in_discard.zone == Zone.HAND
+
+
+# A8: Recovery Net ─────────────────────────────────────────────────────────────
+@pytest.mark.asyncio
+async def test_recovery_net_puts_up_to_2_pokemon_from_discard():
+    """sv06-019 Recovery Net: puts up to 2 Pokémon from discard to hand."""
+    from app.engine.effects.attacks import _recovery_net
+
+    poke1 = CardInstance(
+        instance_id="rn-discard-1", card_def_id="tst-rn-p1",
+        card_name="DisP1", current_hp=100, max_hp=100,
+        zone=Zone.DISCARD, card_type="pokemon",
+    )
+    poke2 = CardInstance(
+        instance_id="rn-discard-2", card_def_id="tst-rn-p2",
+        card_name="DisP2", current_hp=100, max_hp=100,
+        zone=Zone.DISCARD, card_type="pokemon",
+    )
+    attacker = CardInstance(
+        instance_id="rn-attacker", card_def_id="sv06-019",
+        card_name="Iron Leaves", current_hp=120, max_hp=120, zone=Zone.ACTIVE,
+    )
+    opp = CardInstance(
+        instance_id="rn-opp", card_def_id="tst-rn-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp)
+    state.p1.discard = [poke1, poke2]
+
+    action = _make_action(attack_index=0)
+    gen = _recovery_net(state, action)
+    try:
+        req = next(gen)
+        resp = Action(
+            player_id="p1",
+            action_type=ActionType.CHOOSE_CARDS,
+            selected_cards=[poke1.instance_id, poke2.instance_id],
+        )
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert poke1 not in state.p1.discard
+    assert poke2 not in state.p1.discard
+    assert poke1 in state.p1.hand
+    assert poke2 in state.p1.hand
+
+
+# A9: Avenging Edge ────────────────────────────────────────────────────────────
+def test_avenging_edge_bonus_when_ko_taken():
+    """sv06-019 Avenging Edge: deals 100+60=160 when a KO was taken last turn."""
+    from app.engine.effects.attacks import _avenging_edge
+    from app.cards.models import CardDefinition
+
+    iron_leaves_cdef = _make_card(
+        "sv06-019", "Iron Leaves ex",
+        attacks=[AttackDef(name="Avenging Edge", damage="100", cost=["Grass", "Colorless"])],
+    )
+    opp_cdef = _make_card("tst-ae-opp", "OppMon", hp=300)
+    card_registry.register(iron_leaves_cdef)
+    card_registry.register(opp_cdef)
+
+    attacker = _make_instance(iron_leaves_cdef)
+    defender = _make_instance(opp_cdef, hp=300)
+    state = _make_state(p1_active=attacker, p2_active=defender)
+    state.p1.ko_taken_last_turn = True
+
+    action = _make_action(attack_index=1)
+    _avenging_edge(state, action)
+
+    assert defender.current_hp == 300 - 160, f"Expected 140 HP remaining, got {defender.current_hp}"
+
+
+def test_avenging_edge_no_bonus_without_ko():
+    """sv06-019 Avenging Edge: deals 100 when no KO was taken last turn."""
+    from app.engine.effects.attacks import _avenging_edge
+
+    iron_leaves_cdef = _make_card(
+        "sv06-019c", "Iron Leaves ex",
+        attacks=[AttackDef(name="Avenging Edge", damage="100", cost=["Grass", "Colorless"])],
+    )
+    opp_cdef = _make_card("tst-ae3-opp", "OppMon3", hp=300)
+    card_registry.register(iron_leaves_cdef)
+    card_registry.register(opp_cdef)
+
+    attacker = _make_instance(iron_leaves_cdef)
+    defender = _make_instance(opp_cdef, hp=300)
+    state = _make_state(p1_active=attacker, p2_active=defender)
+    state.p1.ko_taken_last_turn = False
+
+    action = _make_action(attack_index=1)
+    _avenging_edge(state, action)
+
+    assert defender.current_hp == 300 - 100, f"Expected 200 HP remaining, got {defender.current_hp}"

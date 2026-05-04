@@ -41,9 +41,32 @@ gates, and runtime simulation checks.
 The current operational handoff is `docs/STATUS.md`. This changelog remains the
 evidence-based history, not the live status file.
 
-### Added
+### Fixed (2026-05-05 Audit Session — Batch A)
 
-- Added the latest handler batch for DB-backed card audit work, including Neo
+- **DB-backed audit session 2026-05-05** — 9 card-handler bugs fixed (Bugs #A1–#A9):
+  - #A1: Removed duplicate `_strong_bash_b2` definition from `attacks.py`.
+  - #A2+#A3: `_acerolas_mischief` — removed bogus draw-to-4 clause and added missing
+    prize-count gate (opponent must have ≤2 prizes remaining per TCGDex text).
+  - #A4: `_lucian_b5` completely rewritten — each player shuffles hand to deck, flips
+    coin; heads=draw 6, tails=draw 3 (previous implementation drew 3 + attached energy).
+  - #A5: `sv06-159` (Ogre's Mask) re-registered to `_ogres_mask` (was incorrectly `_noop`
+    with a wrong "Penny" comment).
+  - #A6: `_unfair_stamp` player draw count corrected from 3 to 5 (TCGDex: you draw 5,
+    opponent draws 2).
+  - #A7: `_dangle_tail_flag` replaced with `_dangle_tail` — puts 1 Pokémon from discard
+    to hand (was a no-op flag).
+  - #A8: `_recovery_net_flag` replaced with `_recovery_net` — puts up to 2 Pokémon from
+    discard to hand (was a no-op flag).
+  - #A9: `_avenging_edge_flag` replaced with `_avenging_edge` — deals 100 + 60 bonus if
+    `ko_taken_last_turn` is set (was a no-op flag with partial default damage).
+  - 12 new regression tests added to `backend/tests/test_engine/test_audit_fixes.py`.
+  - Full backend test suite: **411 passed / 3 skipped**.
+  - Evidence: TCGDex card text for sv06-159, sv06-165, sv06-019, sv06-157, sv07-057,
+    me01-113; `backend/app/engine/effects/attacks.py`;
+    `backend/app/engine/effects/trainers.py`; test run output.
+  - Confidence: High.
+
+### Added, including Neo
   Upper Energy and the documented Batch 1/Batch 2 handlers such as Arven,
   Bravery Charm, Earthen Vessel, Iron Hands ex, Mew ex, Miraidon ex, Nest Ball,
   Super Rod, Armarouge, Chi-Yu, Defiance Band, Electric Generator, Iono, Iron

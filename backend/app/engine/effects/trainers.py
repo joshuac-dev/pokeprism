@@ -280,12 +280,18 @@ def _amarys(state: GameState, action) -> None:
 def _acerolas_mischief(state: GameState, action):
     """Acerola's Mischief (me01-113)
 
-    Choose 1 of your Pokémon. During your opponent's next turn, prevent all
-    damage from and effects of attacks done to that Pokémon by your opponent's
-    Pokémon ex. Then, draw cards until you have 4 cards in your hand.
+    You can use this card only if your opponent has 2 or fewer Prize cards
+    remaining. Choose 1 of your Pokémon in play. During your opponent's next
+    turn, prevent all damage from and effects of attacks done to that Pokémon
+    by your opponent's Pokémon ex.
     """
     player_id = action.player_id
     player = state.get_player(player_id)
+    opp = state.get_player(state.opponent_id(player_id))
+    if opp.prizes_remaining > 2:
+        state.emit_event("acerolas_mischief_not_applicable", player=player_id,
+                         reason="opponent_prizes_more_than_2")
+        return
     in_play = _find_in_play(player)
     if in_play:
         req = ChoiceRequest(
@@ -302,9 +308,6 @@ def _acerolas_mischief(state: GameState, action):
             poke.protected_from_ex = True
             state.emit_event("acerola_protection", player=player_id,
                              card=poke.card_name)
-            to_draw = max(0, 4 - len(player.hand))
-            if to_draw > 0:
-                draw_cards(state, player_id, to_draw)
 
 
 def _bosss_orders(state: GameState, action):
@@ -2155,7 +2158,7 @@ def _unfair_stamp(state: GameState, action):
 
     You can use this card only if your opponent KO'd 1 of your Pokémon during
     their last turn. Both players shuffle their hands into their decks. You
-    draw 3 cards; your opponent draws 2 cards.
+    draw 5 cards; your opponent draws 2 cards.
     """
     player_id = action.player_id
     if not _ko_happened_last_turn(state, player_id):
@@ -2164,7 +2167,7 @@ def _unfair_stamp(state: GameState, action):
         return
 
     opp_id = state.opponent_id(player_id)
-    for pid, draw_n in ((player_id, 3), (opp_id, 2)):
+    for pid, draw_n in ((player_id, 5), (opp_id, 2)):
         p = state.get_player(pid)
         for c in p.hand:
             c.zone = Zone.DECK
@@ -4875,62 +4878,38 @@ def _picnicker_b20(state: GameState, action):
 def _lucian_b5(state: GameState, action):
     """Lucian (sv06-157)
 
-    Draw 3 cards. Attach a Basic Energy card from your hand to any of your
-    Pokémon in play.
+    Each player shuffles their hand and puts it on the bottom of their deck.
+    If either player put any cards on the bottom of their deck in this way,
+    each player flips a coin. If heads, that player draws 6 cards. If tails,
+    they draw 3 cards.
     """
     player_id = action.player_id
-    player = state.get_player(player_id)
+    opp_id = state.opponent_id(player_id)
 
-    # Draw 3 cards
-    draw_cards(state, player_id, 3)
+    player_had_cards = False
+    opp_had_cards = False
 
-    # Find Basic Energy in hand
-    basic_energy = [c for c in player.hand
-                    if _is_basic_energy_card(c)]
-    if not basic_energy:
-        return
+    for pid, flag_attr in ((player_id, "player"), (opp_id, "opp")):
+        p = state.get_player(pid)
+        if p.hand:
+            if pid == player_id:
+                player_had_cards = True
+            else:
+                opp_had_cards = True
+            cards = list(p.hand)
+            p.hand.clear()
+            random.shuffle(cards)
+            for c in cards:
+                c.zone = Zone.DECK
+                p.deck.insert(0, c)
 
-    # Choose a Basic Energy to attach
-    req = ChoiceRequest(
-        "choose_cards", player_id,
-        "Lucian: choose 1 Basic Energy from your hand to attach to a Pokémon",
-        cards=basic_energy, min_count=0, max_count=1,
-    )
-    resp = yield req
-    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
-                  else [basic_energy[0].instance_id])
-    if not chosen_ids:
-        return
-    energy_card = next((c for c in player.hand if c.instance_id == chosen_ids[0]), None)
-    if energy_card is None:
-        return
-
-    # Choose target Pokémon
-    in_play = ([player.active] if player.active else []) + list(player.bench)
-    if not in_play:
-        return
-    if len(in_play) == 1:
-        poke = in_play[0]
-    else:
-        req2 = ChoiceRequest(
-            "choose_target", player_id,
-            "Lucian: choose a Pokémon to attach the Energy to",
-            targets=in_play,
-        )
-        resp2 = yield req2
-        poke = None
-        if resp2 and resp2.target_instance_id:
-            poke = _find_pokemon_in_play(player, resp2.target_instance_id)
-        if poke is None:
-            poke = in_play[0]
-
-    player.hand.remove(energy_card)
-    att = _make_energy_attachment(energy_card)
-    energy_card.zone = poke.zone
-    poke.energy_attached.append(att)
-    state.emit_event("energy_attached", player=player_id,
-                     energy=energy_card.card_name,
-                     target=poke.card_name, source="lucian")
+    if player_had_cards or opp_had_cards:
+        for pid in (player_id, opp_id):
+            heads = random.random() < 0.5
+            draw_n = 6 if heads else 3
+            state.emit_event("coin_flip", player=pid, card="Lucian",
+                             result="heads" if heads else "tails", draw=draw_n)
+            draw_cards(state, pid, draw_n)
 
 
 def _hand_trimmer(state: GameState, action) -> None:
@@ -5946,7 +5925,7 @@ def register_all(registry: EffectRegistry) -> None:
     # Reuse
     registry.register_trainer("sv06-145", _carmine_b19)             # Carmine (SPA alt art)
     registry.register_trainer("sv06-149", _noop)                    # Galactic Card (basic energy search — noop)
-    registry.register_trainer("sv06-159", _noop)                    # Penny (switch bench-out — noop)
+    registry.register_trainer("sv06-159", _ogres_mask)                   # Ogre's Mask alt print
     registry.register_trainer("sv05-147", _explorers_guidance_b19)  # Explorer's Guidance (TEF alt art)
     registry.register_trainer("sv05-159", _noop)                    # Rescue Board (no-retreat tool — noop)
 
