@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from logging.config import fileConfig
 
 from alembic import context
@@ -14,6 +15,13 @@ from app.db.models import Base
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+# When DATABASE_URL is set (e.g. inside Docker containers), override the
+# hardcoded URL in alembic.ini so migrations use the correct host/port.
+# Falls back to alembic.ini sqlalchemy.url for local development.
+_database_url = os.environ.get("DATABASE_URL")
+if _database_url:
+    config.set_main_option("sqlalchemy.url", _database_url)
 
 target_metadata = Base.metadata
 

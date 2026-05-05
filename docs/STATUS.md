@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 10 — DB-backed audit: 15 handler fixes + 10 engine gaps; stale-running simulation recovery)
+Last updated: 2026-05-06 (session 11 — E2E CI workflow fix: Alembic DATABASE_URL override, DB readiness check, card seeding, diagnostics)
 
 ## Current Workstream
 
@@ -37,6 +37,79 @@ Re-check them before making claims in user-facing docs.
 | Frontend unit tests | **17 passed (4 files)** — 2026-05-05. `cd frontend && npm test -- --run --reporter=dot`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 11 Work (2026-05-06)
+
+### Goal
+
+Fix the GitHub Actions Playwright E2E workflow. The `Run database migrations` step was
+failing because `backend/alembic/env.py` read `sqlalchemy.url` from `backend/alembic.ini`
+(hardcoded `localhost:5433`) instead of using the `DATABASE_URL` env var already set in
+the container environment. This caused Alembic to attempt a connection to `localhost:5433`
+from inside the Docker container, which fails.
+
+### Completed
+
+1. **`backend/alembic/env.py` — honor `DATABASE_URL` env var:**
+   - Added `os.environ.get("DATABASE_URL")` override after `config = context.config`.
+   - When `DATABASE_URL` is set (e.g. inside Docker containers), it overrides
+     `alembic.ini`'s hardcoded `localhost:5433` URL.
+   - Local development fallback through `alembic.ini` is preserved when
+     `DATABASE_URL` is not set.
+
+2. **`.github/workflows/e2e.yml` — explicit container-network URLs in `.env`:**
+   - Added `DATABASE_URL`, `REDIS_URL`, `NEO4J_URI`, `OLLAMA_BASE_URL` to the
+     `cat > .env` heredoc. Makes CI intent explicit and belt-and-suspenders.
+
+3. **`.github/workflows/e2e.yml` — strengthened migration step:**
+   - Env sanity check: asserts `DATABASE_URL` does not contain `localhost` and
+     does contain `postgres:5432` before running Alembic.
+   - Postgres reachability check: writes a small asyncpg script to the runner,
+     `docker cp`s it into the backend container, and retries (up to 60s) until
+     `SELECT 1` succeeds. Confirms Postgres is reachable from inside the container
+     before `alembic upgrade head`.
+
+4. **`.github/workflows/e2e.yml` — added "Seed card pool" step:**
+   - Runs `docker compose exec -T backend python /app/scripts/seed_cards.py`
+     after migrations. Required for the coverage-page E2E test and deck-builder
+     full-stack tests to have real card data.
+
+5. **`.github/workflows/e2e.yml` — added Docker diagnostics on failure:**
+   - `if: failure()` step dumps `docker compose ps` + 200-line tail of postgres,
+     backend, celery-worker, and frontend logs before the Playwright artifact upload.
+
+### Frontend startup note
+
+`frontend/playwright.config.ts` uses a `webServer` directive that automatically
+starts the Vite dev server (`npm run dev -- --host 127.0.0.1 --port 4173`) when
+Playwright runs. The Vite dev server proxies `/api` and `/socket.io` to
+`http://localhost:8000` (the mapped Docker backend port). The Docker `frontend`
+container does not need to be started in CI — Playwright handles it.
+
+### Validation (session 11)
+
+| Command | Result |
+|---|---|
+| `docker compose exec -T backend alembic upgrade head` | Exit 0, migrations applied via `postgres:5432` |
+| asyncpg Postgres check from inside container | `Postgres reachable from backend container` |
+| `cd backend && python3 -m pytest tests/ -x -q` | **522 passed, 1 skipped** (with full stack running; DB-integration tests from test_scheduled.py execute because Postgres is reachable) |
+| `cd frontend && npm test -- --run --reporter=dot` | **17 passed (4 files)** |
+| `cd frontend && npm run build` | Build succeeded |
+| `git diff --check` | Clean |
+
+### Files Changed (session 11)
+
+| File | Change |
+|---|---|
+| `backend/alembic/env.py` | Added `DATABASE_URL` env override; added `import os` |
+| `.github/workflows/e2e.yml` | Added container-network URLs to `.env`; strengthened migration step; added seed step; added Docker diagnostics |
+| `docs/STATUS.md` | This file |
+| `docs/CHANGELOG.md` | Session 11 entry added |
+
+### Audit discipline
+
+This was **not** an audit session. `docs/AUDIT_STATE.md` was not advanced.
+No DB-backed audit was performed. Cursor is unchanged.
 
 ## Session 10 Work (2026-05-05)
 

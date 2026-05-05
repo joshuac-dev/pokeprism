@@ -17,6 +17,8 @@ jobs:
 
       # .env is gitignored but required by docker-compose env_file directive.
       # Values here are CI-only; no production secrets are stored.
+      # Container-network service URLs are set explicitly so they are available
+      # both as env_file values and as a clear record of CI topology intent.
       - name: Create CI environment file
         run: |
           cat > .env <<'EOF'
@@ -28,6 +30,10 @@ jobs:
           OLLAMA_COACH_MODEL=gemma4-E4B-it-Q6_K:latest
           OLLAMA_EMBED_MODEL=nomic-embed-text
           CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:4173,http://127.0.0.1:4173
+          DATABASE_URL=postgresql+asyncpg://pokeprism:ci_e2e_postgres@postgres:5432/pokeprism
+          REDIS_URL=redis://redis:6379/0
+          NEO4J_URI=bolt://neo4j:7687
+          OLLAMA_BASE_URL=http://ollama:11434
           EOF
 
       # Start postgres, neo4j, redis and block until their healthchecks pass.
@@ -44,11 +50,38 @@ jobs:
 
       # Run Alembic migrations once the backend container is running.
       # We poll until `exec` succeeds (container may still be starting).
+      # alembic/env.py reads DATABASE_URL from the environment, overriding
+      # the localhost URL hardcoded in alembic.ini.
       - name: Run database migrations
         run: |
           timeout 60 bash -c \
             'until docker compose exec -T backend echo ready 2>/dev/null; do sleep 2; done'
+
+          # Sanity check: DATABASE_URL must be the container-network address.
+          docker compose exec -T backend python3 -c "
+import os; url = os.environ.get('DATABASE_URL', ''); print('DATABASE_URL:', url); \
+assert 'localhost' not in url and 'postgres:5432' in url, f'Bad DATABASE_URL: {url!r}'"
+
+          # Verify Postgres is reachable from inside the backend container.
+          cat > /tmp/pg_check.py <<'PY'
+import asyncio, os, asyncpg
+async def main():
+    url = os.environ["DATABASE_URL"].replace("postgresql+asyncpg://", "postgresql://")
+    c = await asyncpg.connect(url, timeout=3)
+    await c.fetchval("SELECT 1")
+    await c.close()
+    print("Postgres reachable from backend container")
+asyncio.run(main())
+PY
+          docker cp /tmp/pg_check.py pokeprism-backend:/tmp/pg_check.py
+          timeout 60 bash -c \
+            'until docker exec pokeprism-backend python /tmp/pg_check.py; do echo "Waiting for Postgres..."; sleep 2; done'
+
           docker compose exec -T backend alembic upgrade head
+
+      # Seed card fixtures so the coverage page and deck-builder have real card data.
+      - name: Seed card pool
+        run: docker compose exec -T backend python /app/scripts/seed_cards.py
 
       # Ollama shows "error" in CI (no service running) so we check postgres
       # status specifically rather than the aggregate "status" field.
@@ -87,6 +120,15 @@ jobs:
         env:
           POKEPRISM_E2E_FULL_STACK: '1'
         run: npm run test:e2e
+
+      - name: Dump Docker diagnostics
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --tail=200 postgres
+          docker compose logs --tail=200 backend
+          docker compose logs --tail=200 celery-worker
+          docker compose logs --tail=200 frontend || true
 
       - name: Upload Playwright report
         if: failure()

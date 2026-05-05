@@ -38,6 +38,33 @@ hardening sweep are documented as complete. Current work continues to close
 card-specific implementation gaps found by database-backed audits, coverage
 gates, and runtime simulation checks.
 
+### 2026-05-06 — Session 11: E2E CI workflow fix (Alembic DATABASE_URL override)
+
+Fixed the GitHub Actions Playwright E2E workflow failure where `alembic upgrade head`
+ran inside the backend container but used the hardcoded `localhost:5433` URL from
+`backend/alembic.ini` instead of the container-network `postgres:5432` address.
+
+- **Root cause:** `backend/alembic/env.py` read `sqlalchemy.url` from `alembic.ini`
+  without checking `DATABASE_URL`. `docker compose exec backend alembic` inherits the
+  container environment (which has `DATABASE_URL=postgresql+asyncpg://...@postgres:5432/...`),
+  but `alembic.ini` was read unconditionally, overriding the correct URL.
+- **Fix:** `backend/alembic/env.py` now calls
+  `config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])` when
+  `DATABASE_URL` is set. Falls back to `alembic.ini` for local dev without the var.
+- **Workflow improvements (`.github/workflows/e2e.yml`):**
+  - Added `DATABASE_URL`, `REDIS_URL`, `NEO4J_URI`, `OLLAMA_BASE_URL` to the CI `.env`
+    for explicit intent and belt-and-suspenders.
+  - Added env sanity check (asserts `postgres:5432` in URL, `localhost` not present)
+    and asyncpg Postgres reachability retry before `alembic upgrade head`.
+  - Added "Seed card pool" step (`python /app/scripts/seed_cards.py`) after migrations
+    — required for the coverage-page and deck-builder full-stack E2E tests.
+  - Added `if: failure()` Docker diagnostics step (compose ps + 200-line log tails)
+    before Playwright artifact upload, so pre-Playwright failures are visible.
+- **Frontend startup:** Playwright `webServer` in `playwright.config.ts` auto-starts
+  the Vite dev server; Docker `frontend` container is not needed in CI. Vite proxies
+  to `http://localhost:8000` (mapped Docker backend port).
+- Confidence: High.
+
 ### 2026-05-06 — Session 10: DB-backed audit, 25 findings (TARGET_REACHED)
 
 **15 handler fixes** (attacks.py / abilities.py):
