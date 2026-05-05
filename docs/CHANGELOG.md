@@ -41,6 +41,58 @@ gates, and runtime simulation checks.
 The current operational handoff is `docs/STATUS.md`. This changelog remains the
 evidence-based history, not the live status file.
 
+### Fixed (2026-05-05 Session 10 — Stale-Running Simulation Recovery)
+
+Fixed the operational reliability gap found during Session 8 fault injection: a worker crash
+could leave a simulation in `status='running'` indefinitely, blocking the one-at-a-time queue
+for up to 1 hour (Redis/Celery default visibility timeout with `task_acks_late=True`).
+
+- **Root cause:** `task_acks_late=True` means the Celery task message stays unacknowledged in
+  Redis until the task returns. A SIGKILL moves the message to Redis's internal `unacked` set,
+  where it stays until the visibility timeout (default 3600s) expires. During that window,
+  `_dispatch_next_queued()` saw the stuck `running` sim as active and returned immediately.
+
+- **Fix: application-level stale detection** (`backend/app/tasks/simulation.py`):
+  - `SIMULATION_STALE_RUNNING_MINUTES = 45` (default), overridable via env var.
+  - `_classify_stale_simulation(db, sim, cutoff)` classifies stale sims as `'skip'`/`'requeue'`/`'fail'` based on checkpoint progress. Uses `SimulationOpponentResult.updated_at` as the liveness signal — if any checkpoint was updated after the cutoff, the worker may still be alive (`'skip'`). Partial-nonzero running checkpoints are marked `'fail'` (unsafe to replay); all others are `'requeue'`.
+  - `_recover_stale_running_simulations(SessionFactory)` — called in Phase 0 of `_dispatch_next_queued()` before the active-count check. Uses `SELECT FOR UPDATE SKIP LOCKED` for concurrent Beat safety.
+  - Concurrent delivery guard: `_run_simulation_async()` now uses `SELECT ... FOR UPDATE` at task start and bails immediately if `sim.status == 'running'` (prevents two workers from executing the same sim if stale recovery re-dispatches at T+45m AND Redis redelivers the original unacked message at T+60m).
+
+- **12 new tests** in `backend/tests/test_tasks/test_scheduled.py` — DB integration + mock-based.
+
+- **Live validation:** Injected fake stale sim (90 min old, no checkpoints). Recovery triggered
+  within one Beat cycle (< 60s). Worker log: `Stale-running recovery: requeuing simulation...`.
+  Sim completed successfully after requeue. No duplicate rows. Queue unblocked.
+
+- Backend test baseline: **490 passed, 1 skipped** (was 478).
+- `docs/HARDENING_SWEEP_REPORT.md` Section 7B updated with implementation and validation evidence.
+- Confidence: High.
+
+### Added (2026-05-05 Session 9 — Handler Regression Tests + Bug Fixes)
+
+Added 14 focused regression tests for five handler bugs fixed in Session 8. Fixed 2 additional
+latent bugs discovered while authoring the regression tests.
+
+- **2 latent handler bugs fixed** (`backend/app/engine/effects/abilities.py`):
+  - `_fall_back_to_reload` / `_cond_fall_back_to_reload`: called `_energy_provides_type` which
+    was never imported in `abilities.py` (defined in `trainers.py`). Any game involving Clawitzer
+    and Water Energy in hand would fire `NameError` at runtime.
+    Fix: inlined as `"Water" in (c.energy_provides or [])`. Confidence: High.
+  - `_energized_steps`: `state.emit_event(...)` referenced `action.card_def_id` (does not exist
+    on `Action`). Every Grumpig Energized Steps resolution would fire `AttributeError`.
+    Fix: replaced with `action.card_instance_id or ""`. Confidence: High.
+
+- **14 regression tests added** (`backend/tests/test_engine/test_audit_fixes.py`):
+  - Ninjask Cast-Off Shell (me01-017): 2 tests
+  - Clawitzer Fall Back to Reload (me01-038): 3 tests
+  - Grumpig Energized Steps (me01-063): 1 test
+  - Fighting Gong (me01-116): 1 test
+  - Risky Ruins (me01-127): 5 tests (two placement paths × Darkness/non-Darkness)
+  - Total regression test count: 88 passed in `test_audit_fixes.py`.
+
+- Backend test baseline: **478 passed, 1 skipped** (was 466).
+- Confidence: High.
+
 ### Added (2026-05-05 Session 7 — Hardening Sweep Reverification)
 
 Full reverification of all 8 sections of the hardening sweep report. No handler

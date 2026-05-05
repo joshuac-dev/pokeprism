@@ -9,9 +9,10 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import redis  # module-level import so tests can patch `app.tasks.simulation.redis`
@@ -33,6 +34,17 @@ from app.db.models import (
 )
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Stale-running simulation recovery
+# ---------------------------------------------------------------------------
+
+#: How long a simulation can remain status='running' with no checkpoint progress
+#: before the safety-net considers it stale and recovers it.  Can be overridden
+#: via environment variable (minutes, integer).
+SIMULATION_STALE_RUNNING_MINUTES: int = int(
+    os.environ.get("SIMULATION_STALE_RUNNING_MINUTES", "45")
+)
 
 
 # ---------------------------------------------------------------------------
@@ -508,17 +520,147 @@ async def _round_has_persisted_mutations(
 from app.tasks.celery_app import celery_app  # noqa: E402
 
 
+async def _classify_stale_simulation(
+    db: AsyncSession,
+    sim: "Simulation",
+    cutoff: datetime,
+) -> str:
+    """Return recovery action for a potentially stale running simulation.
+
+    Returns:
+        'skip'    — simulation has recent checkpoint activity; may still be alive
+        'requeue' — safe to reset to 'queued' and re-dispatch
+        'fail'    — partial nonzero checkpoint detected; mark failed, advance queue
+
+    A simulation is considered stale only when ALL of:
+      1. sim.status == 'running'
+      2. sim.started_at < cutoff (running for longer than the grace period)
+      3. No checkpoint has been updated at or after cutoff (no active worker)
+
+    Among stale simulations, 'fail' is chosen only when a running checkpoint
+    has partially persisted matches (> 0, < target) — re-running would duplicate
+    rows.  All other stale cases are safe to requeue because _prepare_opponent_checkpoint
+    handles replay idempotently.
+    """
+    # Not stale if started recently
+    if sim.started_at is None or sim.started_at >= cutoff:
+        return "skip"
+
+    # Check for any recent checkpoint activity — if found, worker may be alive
+    latest_updated = (await db.execute(
+        select(func.max(SimulationOpponentResult.updated_at))
+        .where(SimulationOpponentResult.simulation_id == sim.id)
+    )).scalar()
+
+    if latest_updated is not None:
+        # Ensure timezone-aware comparison
+        if latest_updated.tzinfo is None:
+            latest_updated = latest_updated.replace(tzinfo=timezone.utc)
+        if latest_updated >= cutoff:
+            return "skip"
+
+    # No recent checkpoint activity — simulation is stale.  Now check for
+    # partial nonzero running checkpoints which are unsafe to replay.
+    running_checkpoints = (await db.execute(
+        select(SimulationOpponentResult)
+        .where(
+            SimulationOpponentResult.simulation_id == sim.id,
+            SimulationOpponentResult.status == "running",
+        )
+    )).scalars().all()
+
+    for cp in running_checkpoints:
+        # Partial data (some matches written but not complete) is unsafe to replay
+        if cp.matches_completed > 0 and cp.matches_completed < cp.matches_target:
+            return "fail"
+
+    return "requeue"
+
+
+async def _recover_stale_running_simulations(
+    SessionFactory: "async_sessionmaker[AsyncSession]",
+    stale_minutes: int | None = None,
+) -> list[str]:
+    """Detect and recover stale running simulations.
+
+    Called by _dispatch_next_queued() before the active-count check.  Uses
+    SELECT FOR UPDATE SKIP LOCKED so concurrent Beat task invocations cannot
+    process the same stale simulation twice.
+
+    Returns a list of simulation IDs that were recovered (requeued or failed).
+    """
+    minutes = stale_minutes if stale_minutes is not None else SIMULATION_STALE_RUNNING_MINUTES
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=minutes)
+    recovered: list[str] = []
+
+    async with SessionFactory() as db:
+        stale_rows = (await db.execute(
+            select(Simulation)
+            .where(
+                Simulation.status == "running",
+                Simulation.started_at < cutoff,
+            )
+            .with_for_update(skip_locked=True)
+        )).scalars().all()
+
+        for sim in stale_rows:
+            action = await _classify_stale_simulation(db, sim, cutoff)
+            sim_id = str(sim.id)
+            if action == "skip":
+                continue
+            elif action == "requeue":
+                logger.warning(
+                    "Stale-running recovery: requeuing simulation %s "
+                    "(started_at=%s, threshold=%d min)",
+                    sim_id, sim.started_at, minutes,
+                )
+                sim.status = "queued"
+                sim.error_message = (
+                    f"Stale worker recovery: simulation was running for >{minutes}m "
+                    "with no checkpoint activity; automatically requeued."
+                )
+                recovered.append(sim_id)
+            elif action == "fail":
+                logger.error(
+                    "Stale-running recovery: failing simulation %s "
+                    "(partial nonzero checkpoint detected; manual repair required)",
+                    sim_id,
+                )
+                sim.status = "failed"
+                sim.error_message = (
+                    f"Stale worker recovery: simulation was running for >{minutes}m "
+                    "with a partially-persisted opponent batch; manual repair required."
+                )
+                recovered.append(sim_id)
+
+        if recovered:
+            await db.commit()
+
+    return recovered
+
+
 async def _dispatch_next_queued() -> None:
     """Promote the oldest queued simulation to pending and dispatch it.
 
     No-ops if any simulation is already pending or running.
     Uses SELECT FOR UPDATE SKIP LOCKED so concurrent callers never
     double-dispatch the same simulation.
+
+    Phase 0: recover any stale running simulations before checking the
+    active count, so a crashed worker does not block the queue indefinitely.
     """
     engine = create_async_engine(settings.DATABASE_URL, echo=False)
     SessionFactory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     next_id: str | None = None
     try:
+        # Phase 0: stale-running recovery (errors must not block normal dispatch)
+        try:
+            recovered = await _recover_stale_running_simulations(SessionFactory)
+            if recovered:
+                logger.info("Queue: stale-running recovery affected %d simulation(s): %s", len(recovered), recovered)
+        except Exception as exc:
+            logger.warning("Queue: stale-running recovery failed (non-fatal): %s", exc)
+
         async with SessionFactory() as db:
             active = (await db.execute(
                 select(func.count(Simulation.id))
@@ -608,7 +750,9 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
     try:
         # ── 1 & 2. Load simulation and set status = running ─────────────────
         async with SessionFactory() as db:
-            row = await db.execute(select(Simulation).where(Simulation.id == sim_uuid))
+            row = await db.execute(
+                select(Simulation).where(Simulation.id == sim_uuid).with_for_update()
+            )
             sim = row.scalar_one_or_none()
             if sim is None:
                 raise ValueError(f"Simulation {simulation_id} not found")
@@ -616,6 +760,15 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                 logger.info("Simulation %s was cancelled before worker start", simulation_id)
                 _publish({"type": "simulation_cancelled", "simulation_id": simulation_id})
                 return {"status": "cancelled"}
+            if sim.status == "running":
+                # Duplicate delivery: another worker (or Redis redelivery after stale
+                # recovery) started this task while the original was already running.
+                # Bail immediately to prevent two concurrent workers on the same sim.
+                logger.warning(
+                    "Simulation %s is already running — skipping duplicate delivery",
+                    simulation_id,
+                )
+                return {"status": "skipped_duplicate_delivery"}
 
             num_rounds = sim.num_rounds
             matches_per_opponent = sim.matches_per_opponent
