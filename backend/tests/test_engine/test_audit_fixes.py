@@ -2639,3 +2639,636 @@ async def test_grimsleys_move_max_one_pokemon():
     benched_ids = {p.instance_id for p in state.p1.bench}
     assert dark1.instance_id in benched_ids, "Chosen Darkness Pokémon must be benched"
     assert dark2.instance_id not in benched_ids, "Second Darkness Pokémon must NOT be benched"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Session 8 regression tests — five handler fixes (commit b7af4b7)
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Fix 1: Ninjask Cast-Off Shell (me01-017) must search Shedinja (me01-061), not
+#         Nincada (me01-016).
+
+def test_cast_off_shell_benches_shedinja_not_nincada():
+    """Cast-Off Shell benches Shedinja (me01-061); Nincada (me01-016) stays in deck."""
+    from app.engine.effects.abilities import _cast_off_shell
+
+    ninjask = CardInstance(
+        instance_id="cos-ninjask", card_def_id="me01-017",
+        card_name="Ninjask", current_hp=80, max_hp=80, zone=Zone.ACTIVE,
+    )
+    nincada = CardInstance(
+        instance_id="cos-nincada", card_def_id="me01-016",
+        card_name="Nincada", current_hp=60, max_hp=60, zone=Zone.DECK,
+    )
+    shedinja = CardInstance(
+        instance_id="cos-shedinja", card_def_id="me01-061",
+        card_name="Shedinja", current_hp=30, max_hp=30, zone=Zone.DECK,
+    )
+    opp = CardInstance(
+        instance_id="cos-opp", card_def_id="tst-cos-opp",
+        card_name="Opp", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.p1.active = ninjask
+    state.p2.active = opp
+    state.p1.deck = [nincada, shedinja]
+
+    action = Action(player_id="p1", action_type=ActionType.USE_ABILITY,
+                    card_instance_id=ninjask.instance_id)
+    _cast_off_shell(state, action)
+
+    benched_ids = {p.instance_id for p in state.p1.bench}
+    assert shedinja.instance_id in benched_ids, "Shedinja must be benched"
+    assert nincada.instance_id not in benched_ids, "Nincada must NOT be benched"
+    assert shedinja.zone == Zone.BENCH
+    assert nincada in state.p1.deck, "Nincada must remain in deck"
+
+
+def test_cast_off_shell_no_shedinja_does_nothing():
+    """Cast-Off Shell leaves bench empty when no Shedinja is in deck."""
+    from app.engine.effects.abilities import _cast_off_shell
+
+    ninjask = CardInstance(
+        instance_id="cos2-ninjask", card_def_id="me01-017",
+        card_name="Ninjask", current_hp=80, max_hp=80, zone=Zone.ACTIVE,
+    )
+    nincada = CardInstance(
+        instance_id="cos2-nincada", card_def_id="me01-016",
+        card_name="Nincada", current_hp=60, max_hp=60, zone=Zone.DECK,
+    )
+    opp = CardInstance(
+        instance_id="cos2-opp", card_def_id="tst-cos2-opp",
+        card_name="Opp", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.p1.active = ninjask
+    state.p2.active = opp
+    state.p1.deck = [nincada]
+
+    action = Action(player_id="p1", action_type=ActionType.USE_ABILITY,
+                    card_instance_id=ninjask.instance_id)
+    _cast_off_shell(state, action)
+
+    assert state.p1.bench == [], "Bench must remain empty when no Shedinja in deck"
+    assert nincada in state.p1.deck, "Nincada must remain in deck"
+
+
+# Fix 2: Clawitzer Fall Back to Reload (me01-038) must select from hand (not
+#         discard), accept only Basic Water Energy, and attach up to 2 to itself.
+
+def test_fall_back_to_reload_uses_hand_water_energy_max2():
+    """Fall Back to Reload: offers only Basic Water Energy from hand; max 2; attaches to Clawitzer."""
+    from app.engine.effects.abilities import _fall_back_to_reload
+
+    water_cdef = CardDefinition(
+        tcgdex_id="tst-fbr-water", name="Water Energy",
+        set_abbrev="TST", set_number="W01",
+        category="energy", subcategory="basic", stage="",
+        hp=0, attacks=[], abilities=[],
+        energy_provides=["Water"],
+    )
+    card_registry.register(water_cdef)
+
+    clawitzer = CardInstance(
+        instance_id="fbr-clawitzer", card_def_id="me01-038",
+        card_name="Clawitzer", current_hp=130, max_hp=130, zone=Zone.BENCH,
+    )
+    w1 = CardInstance(
+        instance_id="fbr-w1", card_def_id="tst-fbr-water",
+        card_name="Water Energy", current_hp=0, max_hp=0, zone=Zone.HAND,
+        card_type="Energy", card_subtype="Basic", energy_provides=["Water"],
+    )
+    w2 = CardInstance(
+        instance_id="fbr-w2", card_def_id="tst-fbr-water",
+        card_name="Water Energy", current_hp=0, max_hp=0, zone=Zone.HAND,
+        card_type="Energy", card_subtype="Basic", energy_provides=["Water"],
+    )
+    fire = CardInstance(
+        instance_id="fbr-fire", card_def_id="tst-fbr-fire",
+        card_name="Fire Energy", current_hp=0, max_hp=0, zone=Zone.HAND,
+        card_type="Energy", card_subtype="Basic", energy_provides=["Fire"],
+    )
+    discard_w = CardInstance(
+        instance_id="fbr-discard-w", card_def_id="tst-fbr-water",
+        card_name="Water Energy", current_hp=0, max_hp=0, zone=Zone.DISCARD,
+        card_type="Energy", card_subtype="Basic", energy_provides=["Water"],
+    )
+    p1_active = CardInstance(
+        instance_id="fbr-active", card_def_id="tst-fbr-active",
+        card_name="Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    opp = CardInstance(
+        instance_id="fbr-opp", card_def_id="tst-fbr-opp",
+        card_name="Opp", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.p1.active = p1_active
+    state.p2.active = opp
+    state.p1.bench = [clawitzer]
+    state.p1.hand = [w1, w2, fire]
+    state.p1.discard = [discard_w]
+
+    action = Action(player_id="p1", action_type=ActionType.USE_ABILITY,
+                    card_instance_id=clawitzer.instance_id)
+    gen = _fall_back_to_reload(state, action)
+    req = next(gen)
+
+    offered_ids = {c.instance_id for c in req.cards}
+    assert w1.instance_id in offered_ids, "w1 (hand Water) must be offered"
+    assert w2.instance_id in offered_ids, "w2 (hand Water) must be offered"
+    assert fire.instance_id not in offered_ids, "Fire energy must NOT be offered"
+    assert discard_w.instance_id not in offered_ids, "Discard energy must NOT be offered"
+    assert req.max_count == 2, f"max_count must be 2, got {req.max_count}"
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[w1.instance_id, w2.instance_id],
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    attached_ids = {att.source_card_id for att in clawitzer.energy_attached}
+    assert w1.instance_id in attached_ids, "w1 must be attached to Clawitzer"
+    assert w2.instance_id in attached_ids, "w2 must be attached to Clawitzer"
+    assert fire in state.p1.hand, "Fire energy must remain in hand"
+    assert discard_w in state.p1.discard, "Discard energy must remain in discard"
+
+
+def test_cond_fall_back_to_reload_true_with_water_in_hand():
+    """_cond_fall_back_to_reload returns True when Clawitzer is in play and hand has Basic Water."""
+    from app.engine.effects.abilities import _cond_fall_back_to_reload
+
+    clawitzer = CardInstance(
+        instance_id="cfbr-clawitzer", card_def_id="me01-038",
+        card_name="Clawitzer", current_hp=130, max_hp=130, zone=Zone.BENCH,
+    )
+    water = CardInstance(
+        instance_id="cfbr-water", card_def_id="tst-cfbr-water",
+        card_name="Water Energy", current_hp=0, max_hp=0, zone=Zone.HAND,
+        card_type="Energy", card_subtype="Basic", energy_provides=["Water"],
+    )
+    active = CardInstance(
+        instance_id="cfbr-active", card_def_id="tst-cfbr-active",
+        card_name="Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    opp = CardInstance(
+        instance_id="cfbr-opp", card_def_id="tst-cfbr-opp",
+        card_name="Opp", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.p1.active = active
+    state.p2.active = opp
+    state.p1.bench = [clawitzer]
+    state.p1.hand = [water]
+
+    assert _cond_fall_back_to_reload(state, "p1") is True
+
+
+def test_cond_fall_back_to_reload_false_without_water_in_hand():
+    """_cond_fall_back_to_reload returns False when no Basic Water Energy in hand."""
+    from app.engine.effects.abilities import _cond_fall_back_to_reload
+
+    clawitzer = CardInstance(
+        instance_id="cfbr2-clawitzer", card_def_id="me01-038",
+        card_name="Clawitzer", current_hp=130, max_hp=130, zone=Zone.BENCH,
+    )
+    fire = CardInstance(
+        instance_id="cfbr2-fire", card_def_id="tst-cfbr2-fire",
+        card_name="Fire Energy", current_hp=0, max_hp=0, zone=Zone.HAND,
+        card_type="Energy", card_subtype="Basic", energy_provides=["Fire"],
+    )
+    active = CardInstance(
+        instance_id="cfbr2-active", card_def_id="tst-cfbr2-active",
+        card_name="Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    opp = CardInstance(
+        instance_id="cfbr2-opp", card_def_id="tst-cfbr2-opp",
+        card_name="Opp", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.p1.active = active
+    state.p2.active = opp
+    state.p1.bench = [clawitzer]
+    state.p1.hand = [fire]
+
+    assert _cond_fall_back_to_reload(state, "p1") is False
+
+
+# Fix 3: Grumpig Energized Steps (me01-063) must look at only the top 4 cards,
+#         offer any Basic Energy (not just Psychic), allow any number, allow any
+#         of your own Pokémon as target (including Active).
+
+def test_energized_steps_top4_only_any_basic_any_target():
+    """Energized Steps: top-4 only; any Basic Energy; any number; Active target allowed."""
+    from app.engine.effects.abilities import _energized_steps
+
+    water_cdef = CardDefinition(
+        tcgdex_id="tst-es-water", name="Water Energy",
+        set_abbrev="TST", set_number="EW1",
+        category="energy", subcategory="basic", stage="",
+        hp=0, attacks=[], abilities=[],
+        energy_provides=["Water"],
+    )
+    lightning_cdef = CardDefinition(
+        tcgdex_id="tst-es-lightning", name="Lightning Energy",
+        set_abbrev="TST", set_number="EL1",
+        category="energy", subcategory="basic", stage="",
+        hp=0, attacks=[], abilities=[],
+        energy_provides=["Lightning"],
+    )
+    card_registry.register(water_cdef)
+    card_registry.register(lightning_cdef)
+
+    grumpig = CardInstance(
+        instance_id="es-grumpig", card_def_id="me01-063",
+        card_name="Grumpig", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    bench_poke = CardInstance(
+        instance_id="es-bench", card_def_id="tst-es-benched",
+        card_name="BenchMon", current_hp=80, max_hp=80, zone=Zone.BENCH,
+    )
+    opp = CardInstance(
+        instance_id="es-opp", card_def_id="tst-es-opp",
+        card_name="Opp", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    # Top-4 deck: water_e (pos 0), lightning_e (pos 1), non_energy (pos 2), extra_w (pos 3)
+    # Pos 5: beyond_e — must not be offered
+    water_e = CardInstance(
+        instance_id="es-water1", card_def_id="tst-es-water",
+        card_name="Water Energy", current_hp=0, max_hp=0, zone=Zone.DECK,
+        card_type="energy", card_subtype="basic", energy_provides=["Water"],
+    )
+    lightning_e = CardInstance(
+        instance_id="es-lightning1", card_def_id="tst-es-lightning",
+        card_name="Lightning Energy", current_hp=0, max_hp=0, zone=Zone.DECK,
+        card_type="energy", card_subtype="basic", energy_provides=["Lightning"],
+    )
+    non_energy = CardInstance(
+        instance_id="es-noenergy", card_def_id="tst-es-other",
+        card_name="OtherPoke", current_hp=60, max_hp=60, zone=Zone.DECK,
+        card_type="pokemon",
+    )
+    extra_w = CardInstance(
+        instance_id="es-extra-w", card_def_id="tst-es-water",
+        card_name="Water Energy 2", current_hp=0, max_hp=0, zone=Zone.DECK,
+        card_type="energy", card_subtype="basic", energy_provides=["Water"],
+    )
+    beyond_e = CardInstance(
+        instance_id="es-beyond", card_def_id="tst-es-water",
+        card_name="Beyond Energy", current_hp=0, max_hp=0, zone=Zone.DECK,
+        card_type="energy", card_subtype="basic", energy_provides=["Water"],
+    )
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.p1.active = grumpig
+    state.p1.bench = [bench_poke]
+    state.p2.active = opp
+    # deck[:4] = [water_e, lightning_e, non_energy, extra_w]; deck[4] = beyond_e
+    state.p1.deck = [water_e, lightning_e, non_energy, extra_w, beyond_e]
+
+    action = Action(player_id="p1", action_type=ActionType.USE_ABILITY,
+                    card_instance_id=grumpig.instance_id)
+    gen = _energized_steps(state, action)
+    req_e = next(gen)
+
+    offered_ids = {c.instance_id for c in req_e.cards}
+    assert water_e.instance_id in offered_ids, "water_e (top-4) must be offered"
+    assert lightning_e.instance_id in offered_ids, "lightning_e (top-4) must be offered"
+    assert extra_w.instance_id in offered_ids, "extra_w (top-4) must be offered"
+    assert non_energy.instance_id not in offered_ids, "non-energy top-4 card must NOT be offered"
+    assert beyond_e.instance_id not in offered_ids, "beyond_e (pos 5) must NOT be offered"
+    assert req_e.max_count == 3, f"max_count must equal 3 (basic energy in top 4), got {req_e.max_count}"
+
+    # Select water_e → attach to Active; lightning_e → attach to Bench
+    resp_e = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[water_e.instance_id, lightning_e.instance_id],
+    )
+    req_t1 = gen.send(resp_e)
+    # Active must be a valid target
+    target_ids_t1 = {t.instance_id for t in req_t1.targets}
+    assert grumpig.instance_id in target_ids_t1, "Active (Grumpig) must be a valid target"
+    assert bench_poke.instance_id in target_ids_t1, "Bench must also be a valid target"
+
+    resp_t1 = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_TARGET,
+        target_instance_id=grumpig.instance_id,
+    )
+    req_t2 = gen.send(resp_t1)
+
+    resp_t2 = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_TARGET,
+        target_instance_id=bench_poke.instance_id,
+    )
+    try:
+        gen.send(resp_t2)
+    except StopIteration:
+        pass
+
+    active_attached_srcs = {att.source_card_id for att in grumpig.energy_attached}
+    assert water_e.instance_id in active_attached_srcs, "water_e must be attached to Active"
+    bench_attached_srcs = {att.source_card_id for att in bench_poke.energy_attached}
+    assert lightning_e.instance_id in bench_attached_srcs, "lightning_e must be attached to Bench"
+    assert beyond_e in state.p1.deck, "beyond_e (pos 5) must remain in deck"
+    assert water_e not in state.p1.deck, "water_e must be removed from deck"
+    assert lightning_e not in state.p1.deck, "lightning_e must be removed from deck"
+
+
+# Fix 4: Fighting Gong (me01-116) must exclude Stage 1 and Stage 2 Fighting
+#         Pokémon; only Basic Fighting Pokémon and Basic Fighting Energy qualify.
+
+def test_fighting_gong_excludes_evolved_fighting_pokemon():
+    """Fighting Gong candidates: Basic Fighting Energy ✓, Basic Fighting Pokémon ✓,
+    Stage 1/2 Fighting Pokémon ✗, non-Fighting Pokémon ✗."""
+    from app.engine.effects.trainers import _fighting_gong
+
+    basic_fighter_cdef = _make_card("tst-fg-basic", "Basic Fighter", hp=100)
+    basic_fighter_cdef.types = ["Fighting"]
+    stage1_cdef = _make_card("tst-fg-s1", "Stage 1 Fighter", hp=120, stage="Stage 1")
+    stage1_cdef.types = ["Fighting"]
+    stage2_cdef = _make_card("tst-fg-s2", "Stage 2 Fighter", hp=150, stage="Stage 2")
+    stage2_cdef.types = ["Fighting"]
+    non_fighting_cdef = _make_card("tst-fg-nf", "Non Fighter", hp=80)
+    non_fighting_cdef.types = ["Fire"]
+    for cdef in [basic_fighter_cdef, stage1_cdef, stage2_cdef, non_fighting_cdef]:
+        card_registry.register(cdef)
+
+    fighting_energy = CardInstance(
+        instance_id="fg-energy", card_def_id="tst-fg-energy",
+        card_name="Fighting Energy", current_hp=0, max_hp=0, zone=Zone.DECK,
+        card_type="energy", card_subtype="basic", energy_provides=["Fighting"],
+    )
+    basic_fighter = CardInstance(
+        instance_id="fg-basic", card_def_id="tst-fg-basic",
+        card_name="Basic Fighter", current_hp=100, max_hp=100, zone=Zone.DECK,
+        card_type="pokemon", evolution_stage=0,
+    )
+    stage1_fighter = CardInstance(
+        instance_id="fg-s1", card_def_id="tst-fg-s1",
+        card_name="Stage 1 Fighter", current_hp=120, max_hp=120, zone=Zone.DECK,
+        card_type="pokemon", evolution_stage=1,
+    )
+    stage2_fighter = CardInstance(
+        instance_id="fg-s2", card_def_id="tst-fg-s2",
+        card_name="Stage 2 Fighter", current_hp=150, max_hp=150, zone=Zone.DECK,
+        card_type="pokemon", evolution_stage=2,
+    )
+    non_fighting = CardInstance(
+        instance_id="fg-nf", card_def_id="tst-fg-nf",
+        card_name="Non Fighter", current_hp=80, max_hp=80, zone=Zone.DECK,
+        card_type="pokemon", evolution_stage=0,
+    )
+
+    p1_active = CardInstance(
+        instance_id="fg-active", card_def_id="tst-fg-p1active",
+        card_name="ActiveMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    opp = CardInstance(
+        instance_id="fg-opp", card_def_id="tst-fg-opp",
+        card_name="Opp", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.p1.active = p1_active
+    state.p2.active = opp
+    state.p1.deck = [fighting_energy, basic_fighter, stage1_fighter, stage2_fighter, non_fighting]
+
+    action = Action(player_id="p1", action_type=ActionType.PLAY_ITEM)
+    gen = _fighting_gong(state, action)
+    req = next(gen)
+
+    candidate_ids = {c.instance_id for c in req.cards}
+    assert fighting_energy.instance_id in candidate_ids, "Basic Fighting Energy must be included"
+    assert basic_fighter.instance_id in candidate_ids, "Basic Fighting Pokémon must be included"
+    assert stage1_fighter.instance_id not in candidate_ids, "Stage 1 Fighting must be EXCLUDED"
+    assert stage2_fighter.instance_id not in candidate_ids, "Stage 2 Fighting must be EXCLUDED"
+    assert non_fighting.instance_id not in candidate_ids, "Non-Fighting Pokémon must be EXCLUDED"
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[basic_fighter.instance_id],
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert basic_fighter in state.p1.hand, "Chosen Basic Fighter must be in hand"
+    assert basic_fighter not in state.p1.deck
+
+
+# Fix 5: Risky Ruins (me01-127) must only damage Basic non-Darkness Pokémon
+#         placed on Bench; evolved Pokémon and Darkness Pokémon are exempt.
+#         Both placement paths (_place_bench and _play_basic) are covered.
+
+def _risky_ruins_stadium() -> CardInstance:
+    return CardInstance(
+        instance_id="stadium-rr",
+        card_def_id="me01-127",
+        card_name="Risky Ruins",
+        current_hp=0, max_hp=0, zone=Zone.BENCH,
+        card_type="trainer", card_subtype="stadium",
+    )
+
+
+def test_risky_ruins_place_bench_damages_basic_non_darkness():
+    """_place_bench: Basic non-Darkness Pokémon takes 20 damage under Risky Ruins."""
+    from app.engine.transitions import _place_bench
+
+    fire_cdef = CardDefinition(
+        tcgdex_id="tst-rr-fire", name="Fire Basic",
+        set_abbrev="TST", set_number="RR1",
+        category="pokemon", stage="Basic",
+        hp=80, attacks=[], abilities=[],
+        types=["Fire"],
+    )
+    card_registry.register(fire_cdef)
+
+    placed = CardInstance(
+        instance_id="rr1-inst", card_def_id="tst-rr-fire",
+        card_name="Fire Basic", current_hp=80, max_hp=80, zone=Zone.HAND,
+    )
+    state = _make_state(
+        p1_active=CardInstance(instance_id="rr1-a", card_def_id="tst-rr1-a",
+                               card_name="A", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+        p2_active=CardInstance(instance_id="rr1-o", card_def_id="tst-rr1-o",
+                               card_name="O", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    state.p1.hand = [placed]
+    state.active_stadium = _risky_ruins_stadium()
+
+    action = Action(player_id="p1", action_type=ActionType.PLACE_BENCH,
+                    card_instance_id=placed.instance_id)
+    _place_bench(state, action)
+
+    assert placed in state.p1.bench
+    assert placed.damage_counters == 2, f"Expected 2 damage counters, got {placed.damage_counters}"
+    assert placed.current_hp == 60, f"Expected 60 HP, got {placed.current_hp}"
+
+
+def test_risky_ruins_place_bench_no_damage_basic_darkness():
+    """_place_bench: Basic Darkness Pokémon takes NO damage under Risky Ruins."""
+    from app.engine.transitions import _place_bench
+
+    dark_cdef = CardDefinition(
+        tcgdex_id="tst-rr-dark", name="Dark Basic",
+        set_abbrev="TST", set_number="RR2",
+        category="pokemon", stage="Basic",
+        hp=80, attacks=[], abilities=[],
+        types=["Darkness"],
+    )
+    card_registry.register(dark_cdef)
+
+    placed = CardInstance(
+        instance_id="rr2-inst", card_def_id="tst-rr-dark",
+        card_name="Dark Basic", current_hp=80, max_hp=80, zone=Zone.HAND,
+    )
+    state = _make_state(
+        p1_active=CardInstance(instance_id="rr2-a", card_def_id="tst-rr2-a",
+                               card_name="A", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+        p2_active=CardInstance(instance_id="rr2-o", card_def_id="tst-rr2-o",
+                               card_name="O", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    state.p1.hand = [placed]
+    state.active_stadium = _risky_ruins_stadium()
+
+    action = Action(player_id="p1", action_type=ActionType.PLACE_BENCH,
+                    card_instance_id=placed.instance_id)
+    _place_bench(state, action)
+
+    assert placed in state.p1.bench
+    assert placed.damage_counters == 0, "Darkness Pokémon must NOT take Risky Ruins damage"
+    assert placed.current_hp == 80
+
+
+def test_risky_ruins_place_bench_no_damage_evolved():
+    """_place_bench: evolved (Stage 1) non-Darkness Pokémon takes NO damage under Risky Ruins."""
+    from app.engine.transitions import _place_bench
+
+    evolved_cdef = CardDefinition(
+        tcgdex_id="tst-rr-s1", name="Stage 1 Fire",
+        set_abbrev="TST", set_number="RR3",
+        category="pokemon", stage="Stage 1",
+        hp=120, attacks=[], abilities=[],
+        types=["Fire"],
+    )
+    card_registry.register(evolved_cdef)
+
+    placed = CardInstance(
+        instance_id="rr3-inst", card_def_id="tst-rr-s1",
+        card_name="Stage 1 Fire", current_hp=120, max_hp=120, zone=Zone.HAND,
+    )
+    state = _make_state(
+        p1_active=CardInstance(instance_id="rr3-a", card_def_id="tst-rr3-a",
+                               card_name="A", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+        p2_active=CardInstance(instance_id="rr3-o", card_def_id="tst-rr3-o",
+                               card_name="O", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    state.p1.hand = [placed]
+    state.active_stadium = _risky_ruins_stadium()
+
+    action = Action(player_id="p1", action_type=ActionType.PLACE_BENCH,
+                    card_instance_id=placed.instance_id)
+    _place_bench(state, action)
+
+    assert placed in state.p1.bench
+    assert placed.damage_counters == 0, "Evolved Pokémon must NOT take Risky Ruins damage"
+    assert placed.current_hp == 120
+
+
+@pytest.mark.asyncio
+async def test_risky_ruins_play_basic_damages_basic_non_darkness():
+    """_play_basic: Basic non-Darkness Pokémon takes 20 damage under Risky Ruins."""
+    from app.engine.transitions import _play_basic
+
+    water_cdef = CardDefinition(
+        tcgdex_id="tst-rr-wp", name="Water Basic",
+        set_abbrev="TST", set_number="RR4",
+        category="pokemon", stage="Basic",
+        hp=70, attacks=[], abilities=[],
+        types=["Water"],
+    )
+    card_registry.register(water_cdef)
+
+    placed = CardInstance(
+        instance_id="rr4-inst", card_def_id="tst-rr-wp",
+        card_name="Water Basic", current_hp=70, max_hp=70, zone=Zone.HAND,
+    )
+    state = _make_state(
+        p1_active=CardInstance(instance_id="rr4-a", card_def_id="tst-rr4-a",
+                               card_name="A", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+        p2_active=CardInstance(instance_id="rr4-o", card_def_id="tst-rr4-o",
+                               card_name="O", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    state.p1.hand = [placed]
+    state.active_stadium = _risky_ruins_stadium()
+
+    action = Action(player_id="p1", action_type=ActionType.PLAY_BASIC,
+                    card_instance_id=placed.instance_id)
+    await _play_basic(state, action)
+
+    assert placed in state.p1.bench
+    assert placed.damage_counters == 2, f"Expected 2 damage counters, got {placed.damage_counters}"
+    assert placed.current_hp == 50, f"Expected 50 HP, got {placed.current_hp}"
+
+
+@pytest.mark.asyncio
+async def test_risky_ruins_play_basic_no_damage_basic_darkness():
+    """_play_basic: Basic Darkness Pokémon takes NO damage under Risky Ruins."""
+    from app.engine.transitions import _play_basic
+
+    dark_cdef = CardDefinition(
+        tcgdex_id="tst-rr-dp", name="Dark Basic 2",
+        set_abbrev="TST", set_number="RR5",
+        category="pokemon", stage="Basic",
+        hp=90, attacks=[], abilities=[],
+        types=["Darkness"],
+    )
+    card_registry.register(dark_cdef)
+
+    placed = CardInstance(
+        instance_id="rr5-inst", card_def_id="tst-rr-dp",
+        card_name="Dark Basic 2", current_hp=90, max_hp=90, zone=Zone.HAND,
+    )
+    state = _make_state(
+        p1_active=CardInstance(instance_id="rr5-a", card_def_id="tst-rr5-a",
+                               card_name="A", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+        p2_active=CardInstance(instance_id="rr5-o", card_def_id="tst-rr5-o",
+                               card_name="O", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    state.p1.hand = [placed]
+    state.active_stadium = _risky_ruins_stadium()
+
+    action = Action(player_id="p1", action_type=ActionType.PLAY_BASIC,
+                    card_instance_id=placed.instance_id)
+    await _play_basic(state, action)
+
+    assert placed in state.p1.bench
+    assert placed.damage_counters == 0, "Darkness Pokémon must NOT take Risky Ruins damage"
+    assert placed.current_hp == 90

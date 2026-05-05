@@ -143,6 +143,35 @@ games), Section 5 (full 50-card live TCGDex comparison), and Section 7B (fault i
 
 - Confidence: High.
 
+### Fixed + Test (2026-05-05 Session 9 — Regression Tests for Session 8 Fixes)
+
+Added 14 focused regression tests for all five Session 8 handler fixes. Two latent
+bugs found and corrected during test authoring:
+
+- **`_fall_back_to_reload` / `_cond_fall_back_to_reload` NameError (me01-038 Clawitzer,
+  abilities.py)** — Both functions called `_energy_provides_type(c, "Water")` but this
+  helper was never imported into `abilities.py` (defined in `trainers.py`). Any player
+  with Clawitzer and Water Energy in hand would cause a `NameError` at runtime.
+  Fix: inlined the check as `"Water" in (c.energy_provides or [])` in both call sites.
+  Confidence: High.
+
+- **`_energized_steps` AttributeError (me01-063 Grumpig, abilities.py)** — Session 8
+  emit_event call referenced `action.card_def_id`, a field that does not exist on the
+  `Action` dataclass (which has `card_instance_id`). Would fire AttributeError on the
+  emit line every time Energized Steps resolved.
+  Fix: replaced with `action.card_instance_id or ""`. Confidence: High.
+
+- **14 regression tests added** to `backend/tests/test_engine/test_audit_fixes.py`:
+  - Ninjask Cast-Off Shell: 2 tests (Shedinja benched; no-Shedinja no-op)
+  - Clawitzer Fall Back to Reload: 3 tests (hand-only, Water-only, max 2; condition true/false)
+  - Grumpig Energized Steps: 1 test (top-4, any Basic Energy, active+bench, any number)
+  - Fighting Gong: 1 test (Basic included; Stage 1/2 excluded)
+  - Risky Ruins: 5 tests (Basic non-Darkness damaged; Darkness no damage; evolved no damage; `_play_basic` both cases; `_place_bench` evolved)
+
+- **New baseline: 478 passed, 1 skipped** (up from 466).
+
+- Confidence: High.
+
 ### Added (2026-05-05 Session 7 — Hardening Sweep Reverification)
 
 - **`_sinister_surge` duplicate deleted (me02-068 Toxtricity)** — A second

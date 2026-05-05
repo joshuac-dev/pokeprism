@@ -34,7 +34,7 @@ Re-check them before making claims in user-facing docs.
 | Local matches table | 12,266 rows from 2026-05-05 DB snapshot |
 | Local `card_performance` table | **1,947** rows from 2026-05-05 DB snapshot |
 | Running simulations | 0 from 2026-05-05 DB snapshot |
-| Backend test baseline | Latest full documented run: **466 passed, 1 skipped** on 2026-05-05. Run with `cd backend && python3 -m pytest tests/ -x -q`. Prior: 463 passed on 2026-05-04. |
+| Backend test baseline | Latest full documented run: **478 passed, 1 skipped** on 2026-05-05. Run with `cd backend && python3 -m pytest tests/ -x -q`. Prior: 466 passed (Session 8 handler fixes); 463 passed (2026-05-04). |
 | Frontend unit tests | **17 passed (4 files)** on 2026-05-05 with `cd frontend && npm test -- --run --reporter=dot`. Prior report of "4 passed" referred to 4 test *files*, not individual tests. |
 | Playwright E2E inventory | 14 tests listed on 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed on 2026-05-05 with `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |

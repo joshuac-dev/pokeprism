@@ -1,10 +1,11 @@
 # PokéPrism Hardening Sweep Report
 
-**Date:** 2026-05-05 (Session 7 reverification; Session 8 gap closeout)
+**Date:** 2026-05-05 (Session 7 reverification; Session 8 gap closeout; Session 9 regression tests)
 **Branch:** main
 **Prior sweep baseline:** 463 passed (2026-05-04, Session 6)
 **Session 7 baseline:** 466 passed (4 new rejection tests added)
 **Session 8 baseline:** 466 passed → **466 passed after 5 handler fixes**
+**Session 9 baseline:** 466 passed → **478 passed after 12 additional tests + 2 handler bug fixes**
 
 This report replaces the 2026-05-04 sweep report. Each section records the
 evidence inspected, verdict, and any work performed this session.
@@ -22,6 +23,7 @@ Evidence gathered:
 |---|---|
 | Backend test suite on entry | 463 passed, 0 failed (`python3 -m pytest tests/ -x -q`) |
 | Backend test suite on entry (Session 8) | **466 passed, 1 skipped** (stable; 5 handler fixes maintain this count) |
+| Backend test suite (Session 9) | **478 passed, 1 skipped** (14 regression tests + 2 handler bug fixes) |
 | Frontend unit tests **[NEW: individual count]** | **17 passed (4 files)** (`npm test -- --run --reporter=dot`) |
 | Frontend build **[NEW]** | Clean — `npm run build` exits 0 in 6.1s, no TypeScript errors |
 | DB card count **[UPDATED]** | **2,036** rows in `cards` table (STATUS.md said 2,027 — stale) |
@@ -690,6 +692,27 @@ skipped with a log warning before any card lookup (no placeholder creation).
 | me01-127 Risky Ruins | `_place_bench` + `_play_basic` (transitions.py) | Applied 20 damage to evolved Pokémon; card says Basic only | Added `cdef_rr.is_basic_pokemon` check in both bench locations |
 
 **Post-session-8 test count: 466 passed, 1 skipped** (all fixes maintain existing passing tests).
+
+### Session 9 Regression Tests (Session 8 handler fixes)
+
+Focused regression tests added for all five Session 8 handler fixes. Two additional
+bugs found and fixed during test authoring:
+
+- `_energy_provides_type` was referenced in `_fall_back_to_reload` and
+  `_cond_fall_back_to_reload` (abilities.py) but was never defined or imported there
+  (NameError would fire whenever Clawitzer was in play with Water Energy in hand).
+- `action.card_def_id` was referenced in `_energized_steps` emit_event call but
+  `Action` has no `card_def_id` attribute; fixed to `action.card_instance_id`.
+
+| Fix | Tests added | Coverage |
+|---|---|---|
+| Ninjask Cast-Off Shell (me01-017) | 2 | Shedinja benched; Nincada not; no-Shedinja no-op |
+| Clawitzer Fall Back to Reload (me01-038) | 3 | Hand-only Water; max_count=2; condition true/false |
+| Grumpig Energized Steps (me01-063) | 1 | Top-4 only; any Basic Energy; any Pokémon; any number |
+| Fighting Gong (me01-116) | 1 | Basic included; Stage 1/2 excluded |
+| Risky Ruins (me01-127) | 5 | Basic non-Darkness damaged; Darkness no damage; evolved no damage; `_play_basic` path both cases |
+
+**Post-session-9 test count: 478 passed, 1 skipped** (+12 from handler fixes and new tests).
 
 ## Session 6 Fixes (still in effect)
 

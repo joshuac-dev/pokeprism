@@ -2270,7 +2270,7 @@ def _energized_steps(state: GameState, action):
         _attach_from_hand_or_discard(player, target, energy_card)
     import random
     random.shuffle(player.deck)
-    state.emit_event("energized_steps", player=player_id, card=action.card_def_id)
+    state.emit_event("energized_steps", player=player_id, card=action.card_instance_id or "")
 
 
 # Fall Back to Reload (me01-038 Clawitzer) ────────────────────────────────────
@@ -2288,7 +2288,7 @@ def _fall_back_to_reload(state: GameState, action):
         c for c in player.hand
         if c.card_type.lower() == "energy"
         and c.card_subtype.lower() == "basic"
-        and _energy_provides_type(c, "Water")
+        and "Water" in (c.energy_provides or [])
     ]
     if not water_energy_in_hand:
         return
@@ -2318,7 +2318,7 @@ def _cond_fall_back_to_reload(state, player_id):
         and any(
             c.card_type.lower() == "energy"
             and c.card_subtype.lower() == "basic"
-            and _energy_provides_type(c, "Water")
+            and "Water" in (c.energy_provides or [])
             for c in p.hand
         )
     )
