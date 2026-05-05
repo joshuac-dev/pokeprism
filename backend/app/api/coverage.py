@@ -86,6 +86,7 @@ async def get_coverage(db: AsyncSession = Depends(get_db)) -> dict:
             "subcategory": row.subcategory,
             "status": status,
             "missing_effects": missing_effects,
+            "image_url": row.image_url,
         })
 
     coverage_pct = round(100.0 * (implemented + flat_only) / max(total, 1), 1)

@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-08 (session 16 — verbose match transcript: setup events, opening hands, coin flip, active/bench placement, prize setup, turn separators, turn draw with card names, all attached to live console)
+Last updated: 2026-05-05 (session 17 — Coverage page card image preview/lightbox)
 
 ## Current Workstream
 
@@ -33,12 +33,66 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **579 passed, 1 skipped** — 2026-05-08 session 16. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 565/1 (session 15), 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
-| Frontend unit tests | **51 passed (6 files)** — 2026-05-08 session 16. `cd frontend && npm test -- --run`. `LiveConsole.test.tsx` (18 tests); `EventDetail.test.tsx` (16 tests). |
+| Backend test baseline | **584 passed, 1 skipped** — 2026-05-05 session 17. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 579/1 (session 16), 565/1 (session 15), 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
+| Frontend unit tests | **75 passed (8 files)** — 2026-05-05 session 17. `cd frontend && npm test -- --run`. `Coverage.test.tsx` (12); `CardImageLightbox.test.tsx` (12); `LiveConsole.test.tsx` (18); `EventDetail.test.tsx` (16). |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
 
-## Session 16 Work (2026-05-08)
+## Session 17 Work (2026-05-05)
+
+### Goal
+
+Add clickable card image preview/lightbox to the Coverage page. Clicking a card name opens a modal with the card image, metadata, and missing-effects info.
+
+### Completed
+
+1. **Coverage API `image_url`** (`backend/app/api/coverage.py`):
+   - Added `"image_url": row.image_url` to each card object in the `/api/coverage` response.
+   - `Card.image_url` column already existed; no migration needed.
+   - Backward-compatible (only adds a field).
+
+2. **`CardImageLightbox` component** (`frontend/src/components/cards/CardImageLightbox.tsx`, new):
+   - Reusable modal/lightbox with `card: CardImageLightboxCard` and `onClose` props.
+   - Shows card image (`max-h-[60vh] max-w-[80vw]`, rounded corners, shadow) or "No card image available." fallback.
+   - Shows card name, set label, `tcgdex_id`, category, status badge, and missing effects.
+   - Closes on: Escape key, backdrop click, close button (`aria-label="Close card preview"`).
+   - `role="dialog"`, `aria-modal="true"`, inner panel stops click propagation.
+
+3. **Coverage page updates** (`frontend/src/pages/Coverage.tsx`):
+   - `CardCoverage` type gains `image_url?: string | null`.
+   - `selectedCard: CardCoverage | null` state added.
+   - Card name cell replaced with a `<button>` with hover-underline, accent color, `aria-label`, `data-testid`.
+   - `<CardImageLightbox>` rendered when `selectedCard` is set; backdrop/Escape/close button dismiss it.
+   - Sort, filter, and search behavior unchanged.
+
+4. **Backend tests** (`backend/tests/test_api/test_coverage.py`, new — 5 tests):
+   - Summary fields present; `image_url` in each card; null `image_url` returns null; missing-handler status; `test-002` excluded.
+
+5. **Frontend tests** — 24 new tests across 2 new files:
+   - `frontend/src/components/cards/CardImageLightbox.test.tsx` (12 tests).
+   - `frontend/src/pages/Coverage.test.tsx` (12 tests).
+
+### Validation (session 17)
+
+| Command | Result |
+|---|---|
+| `cd backend && python3 -m pytest tests/test_api/test_coverage.py -v -q` | **5 passed** |
+| `cd backend && python3 -m pytest tests/ -x -q` | **584 passed, 1 skipped** |
+| `cd frontend && npm test -- --run` | **75 passed (8 files)** |
+| `cd frontend && npm run build` | **✓ built in 4.28s** |
+
+### Files Changed (session 17)
+
+| File | Change |
+|---|---|
+| `backend/app/api/coverage.py` | Added `"image_url": row.image_url` to each card in response |
+| `backend/tests/test_api/test_coverage.py` | New: 5 coverage API tests |
+| `frontend/src/components/cards/CardImageLightbox.tsx` | New: reusable card image lightbox component |
+| `frontend/src/components/cards/CardImageLightbox.test.tsx` | New: 12 lightbox component tests |
+| `frontend/src/pages/Coverage.tsx` | `image_url` in type; `selectedCard` state; card name → button; lightbox rendered |
+| `frontend/src/pages/Coverage.test.tsx` | New: 12 Coverage page tests |
+| `docs/STATUS.md` | This file |
+| `docs/CHANGELOG.md` | Session 17 entry added |
 
 ### Goal
 

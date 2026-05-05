@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import PageShell from '../components/layout/PageShell';
 import { CheckCircle, Zap, AlertCircle, ArrowUpDown } from 'lucide-react';
+import CardImageLightbox from '../components/cards/CardImageLightbox';
 
 interface CardCoverage {
   tcgdex_id: string;
@@ -11,6 +12,7 @@ interface CardCoverage {
   subcategory: string | null;
   status: 'implemented' | 'flat_only' | 'missing';
   missing_effects: string[];
+  image_url?: string | null;
 }
 
 interface CoverageData {
@@ -52,6 +54,7 @@ export default function Coverage() {
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [search, setSearch] = useState('');
+  const [selectedCard, setSelectedCard] = useState<CardCoverage | null>(null);
 
   useEffect(() => {
     fetch('/api/coverage')
@@ -237,7 +240,14 @@ export default function Coverage() {
               ) : rows.map(card => (
                 <tr key={card.tcgdex_id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
                   <td className="px-4 py-2.5 font-medium text-slate-800 dark:text-slate-200">
-                    {card.name}
+                    <button
+                      onClick={() => setSelectedCard(card)}
+                      aria-label={`View ${card.name} card image`}
+                      className="text-left hover:underline hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors"
+                      data-testid="coverage-card-name-btn"
+                    >
+                      {card.name}
+                    </button>
                     <span className="ml-1.5 text-xs text-slate-400 font-mono">{card.tcgdex_id}</span>
                   </td>
                   <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400 font-mono text-xs whitespace-nowrap">
@@ -272,6 +282,9 @@ export default function Coverage() {
           </div>
         )}
       </div>
+      {selectedCard && (
+        <CardImageLightbox card={selectedCard} onClose={() => setSelectedCard(null)} />
+      )}
     </PageShell>
   );
 }

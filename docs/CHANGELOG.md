@@ -32,11 +32,25 @@ merged PR history support that it actually landed.
 
 ### Summary
 
-As of `docs/STATUS.md` last updated on 2026-05-07, the project is in
+As of `docs/STATUS.md` last updated on 2026-05-05, the project is in
 **post-phase DB-backed audit and handler refinement**. Phase 13 and the earlier
 hardening sweep are documented as complete. Current work continues to close
 card-specific implementation gaps found by database-backed audits, coverage
 gates, and runtime simulation checks.
+
+### 2026-05-05 — Session 17: Coverage page card image preview/lightbox
+
+Added a clickable card image preview to the Coverage page.
+
+- **Coverage API `image_url`** (`backend/app/api/coverage.py`): Added `"image_url": row.image_url` to each card entry in the `/api/coverage` response. `Card.image_url` column already existed; no migration needed. Backward-compatible.
+
+- **`CardImageLightbox` component** (`frontend/src/components/cards/CardImageLightbox.tsx`, new): Reusable modal/lightbox component. Shows card image (`max-h-[60vh] max-w-[80vw]`) or "No card image available." fallback. Metadata: name, set label, `tcgdex_id`, category, status badge, missing effects. Closes on Escape, backdrop click, or close button. Accessible: `role="dialog"`, `aria-modal`, `aria-label`, `aria-label="Close card preview"`.
+
+- **Coverage page** (`frontend/src/pages/Coverage.tsx`): `CardCoverage` type gains `image_url?: string | null`. Card name rendered as `<button>` (hover-underline, accent color, `aria-label="View <name> card image"`). `<CardImageLightbox>` rendered when a card is selected. Sort/filter/search behavior unchanged.
+
+- **Tests**: 584 backend (+5 in `test_coverage.py`), 75 frontend (+24 across `CardImageLightbox.test.tsx` and `Coverage.test.tsx`). Build clean.
+
+**Confidence:** High — all tests pass, build clean.
 
 ### 2026-05-08 — Session 16: Verbose match transcript — setup events, draw, turn separators
 
