@@ -9,6 +9,8 @@ interface DeckUploaderProps {
   onDeckModeChange: (mode: DeckMode) => void;
   deckLocked: boolean;
   onDeckLockedChange: (locked: boolean) => void;
+  deckName: string;
+  onDeckNameChange: (value: string) => void;
 }
 
 export default function DeckUploader({
@@ -18,6 +20,8 @@ export default function DeckUploader({
   onDeckModeChange,
   deckLocked,
   onDeckLockedChange,
+  deckName,
+  onDeckNameChange,
 }: DeckUploaderProps) {
   const parsed = deckMode !== 'none' ? parsePTCGDeck(deckText) : null;
   const cardCount = parsed?.totalCards ?? 0;
@@ -53,6 +57,24 @@ export default function DeckUploader({
           spellCheck={false}
           data-testid="deck-textarea"
         />
+      )}
+
+      {deckMode !== 'none' && (
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-400">
+            Deck Archetype Name{' '}
+            <span className="font-normal text-slate-500">(optional)</span>
+          </label>
+          <input
+            type="text"
+            value={deckName}
+            onChange={(e) => onDeckNameChange(e.target.value)}
+            placeholder="Leave blank to auto-infer"
+            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            data-testid="deck-name-input"
+          />
+          <p className="text-xs text-slate-500">Leave blank to let PokéPrism infer a name automatically.</p>
+        </div>
       )}
 
       {parsed && parsed.errors.length > 0 && (

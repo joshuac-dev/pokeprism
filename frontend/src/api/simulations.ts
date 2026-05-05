@@ -16,6 +16,8 @@ export interface SimulationCreateRequest {
   deck_mode: 'full' | 'partial' | 'none';
   deck_locked: boolean;
   excluded_card_ids?: string[];
+  user_deck_name?: string | null;
+  opponent_deck_names?: (string | null)[];
 }
 
 export interface SimulationCreateResponse {

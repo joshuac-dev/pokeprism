@@ -190,6 +190,8 @@ class SimulationCreate(BaseModel):
     target_mode: str = "aggregate"
     opponent_deck_texts: list[str] = Field(default_factory=list)
     excluded_card_ids: list[str] = Field(default_factory=list)
+    user_deck_name: str | None = None
+    opponent_deck_names: list[str | None] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_modes(self) -> "SimulationCreate":
@@ -206,6 +208,33 @@ class SimulationCreate(BaseModel):
         if self.target_mode not in _VALID_TARGET_MODES:
             raise ValueError(
                 f"target_mode must be one of {sorted(_VALID_TARGET_MODES)}, got {self.target_mode!r}"
+            )
+        # Normalise manual deck names
+        if self.user_deck_name is not None:
+            trimmed = self.user_deck_name.strip()
+            if not trimmed:
+                self.user_deck_name = None
+            elif len(trimmed) > 120:
+                raise ValueError("user_deck_name must be 120 characters or fewer")
+            else:
+                self.user_deck_name = trimmed
+        normalised_opp: list[str | None] = []
+        for name in self.opponent_deck_names:
+            if name is None:
+                normalised_opp.append(None)
+            else:
+                t = name.strip()
+                if not t:
+                    normalised_opp.append(None)
+                elif len(t) > 120:
+                    raise ValueError("Each opponent deck name must be 120 characters or fewer")
+                else:
+                    normalised_opp.append(t)
+        self.opponent_deck_names = normalised_opp
+        if len(self.opponent_deck_names) > len(self.opponent_deck_texts):
+            raise ValueError(
+                f"opponent_deck_names ({len(self.opponent_deck_names)} entries) "
+                f"must not exceed opponent_deck_texts ({len(self.opponent_deck_texts)} entries)"
             )
         return self
 
@@ -463,12 +492,15 @@ async def create_simulation(
                 f"deck_mode='{body.deck_mode}' to produce reliable results."
             )
 
-    # ── attempt Gemma deck naming ────────────────────────────────────────────
+    # ── determine deck name (manual override or Gemma/fallback) ────────────────
     deck_name = None
     if body.deck_text.strip():
-        deck_name = await _get_deck_name_from_gemma(body.deck_text)
-        if not deck_name:
-            deck_name = _fallback_deck_name(body.deck_text)
+        if body.user_deck_name:
+            deck_name = body.user_deck_name
+        else:
+            deck_name = await _get_deck_name_from_gemma(body.deck_text)
+            if not deck_name:
+                deck_name = _fallback_deck_name(body.deck_text)
 
     # ── create user deck record ─────────────────────────────────────────────
     user_deck = None
@@ -515,7 +547,12 @@ async def create_simulation(
                 status_code=422,
                 detail=f"Opponent deck {idx + 1} must contain exactly 60 cards (got {opp_count})",
             )
-        opp_name = _fallback_deck_name(opp_text)
+        manual_opp_name = (
+            body.opponent_deck_names[idx]
+            if idx < len(body.opponent_deck_names)
+            else None
+        )
+        opp_name = manual_opp_name or _fallback_deck_name(opp_text)
         opp_deck = await _create_deck_record(
             deck_text=opp_text,
             name=opp_name,

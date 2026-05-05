@@ -28,6 +28,11 @@ Plans and roadmaps are treated as evidence of intent only. A planned item is
 listed as completed only when current code, tests, migrations, workflows, or
 merged PR history support that it actually landed.
 
+## [Unreleased]
+
+### Added
+- **Simulation Setup: optional manual deck name overrides** — new `user_deck_name` and `opponent_deck_names` fields in `SimulationCreate`. If provided (non-blank), manual names are used directly for `Deck.name`, `Deck.archetype`, `Simulation.user_deck_name`, and `SimulationOpponent.deck_name`, bypassing Gemma naming for the user deck. Blank/absent fields preserve the existing automatic naming behavior. Max 120 characters enforced backend and frontend; `opponent_deck_names` count must not exceed `opponent_deck_texts` count. Frontend UI adds "Deck Archetype Name" input in DeckUploader and "Opponent Archetype Name" input in each opponent's expanded section.
+
 ## Current / Unreleased
 
 ### Summary

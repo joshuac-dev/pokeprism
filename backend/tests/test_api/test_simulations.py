@@ -1541,3 +1541,100 @@ class TestStarSimulation:
         data = resp.json()
         assert "starred" in data
         assert data["starred"] is True  # toggled from False → True
+
+
+# ---------------------------------------------------------------------------
+# SimulationCreate — manual deck name validation
+# ---------------------------------------------------------------------------
+
+class TestSimulationCreateDeckNames:
+    def _valid(self, **kw) -> dict:
+        return {
+            "deck_text": "",
+            "deck_mode": "none",
+            "game_mode": "hh",
+            "deck_locked": False,
+            "num_rounds": 2,
+            "matches_per_opponent": 5,
+            "target_win_rate": 0.60,
+            "opponent_deck_texts": [],
+            **kw,
+        }
+
+    def test_default_no_names(self):
+        obj = SimulationCreate(**self._valid())
+        assert obj.user_deck_name is None
+        assert obj.opponent_deck_names == []
+
+    def test_user_deck_name_accepted(self):
+        obj = SimulationCreate(**self._valid(user_deck_name="My Deck"))
+        assert obj.user_deck_name == "My Deck"
+
+    def test_user_deck_name_trimmed(self):
+        obj = SimulationCreate(**self._valid(user_deck_name="  My Deck  "))
+        assert obj.user_deck_name == "My Deck"
+
+    def test_user_deck_name_blank_normalised_to_none(self):
+        obj = SimulationCreate(**self._valid(user_deck_name="   "))
+        assert obj.user_deck_name is None
+
+    def test_user_deck_name_none_accepted(self):
+        obj = SimulationCreate(**self._valid(user_deck_name=None))
+        assert obj.user_deck_name is None
+
+    def test_user_deck_name_max_length_accepted(self):
+        obj = SimulationCreate(**self._valid(user_deck_name="x" * 120))
+        assert len(obj.user_deck_name) == 120
+
+    def test_user_deck_name_too_long_raises(self):
+        with pytest.raises(Exception):
+            SimulationCreate(**self._valid(user_deck_name="x" * 121))
+
+    def test_opponent_deck_names_accepted(self):
+        obj = SimulationCreate(**self._valid(
+            opponent_deck_texts=["4 Dreepy sv06-128"],
+            opponent_deck_names=["Opponent One"],
+        ))
+        assert obj.opponent_deck_names == ["Opponent One"]
+
+    def test_opponent_deck_names_trimmed(self):
+        obj = SimulationCreate(**self._valid(
+            opponent_deck_texts=["4 Dreepy sv06-128"],
+            opponent_deck_names=["  Opponent One  "],
+        ))
+        assert obj.opponent_deck_names == ["Opponent One"]
+
+    def test_opponent_deck_names_blank_normalised_to_none(self):
+        obj = SimulationCreate(**self._valid(
+            opponent_deck_texts=["4 Dreepy sv06-128"],
+            opponent_deck_names=["   "],
+        ))
+        assert obj.opponent_deck_names == [None]
+
+    def test_opponent_deck_names_too_long_raises(self):
+        with pytest.raises(Exception):
+            SimulationCreate(**self._valid(
+                opponent_deck_texts=["4 Dreepy sv06-128"],
+                opponent_deck_names=["x" * 121],
+            ))
+
+    def test_opponent_deck_names_more_than_texts_raises(self):
+        with pytest.raises(Exception):
+            SimulationCreate(**self._valid(
+                opponent_deck_texts=["4 Dreepy sv06-128"],
+                opponent_deck_names=["Opp A", "Opp B"],
+            ))
+
+    def test_opponent_deck_names_fewer_than_texts_accepted(self):
+        obj = SimulationCreate(**self._valid(
+            opponent_deck_texts=["4 Dreepy sv06-128", "4 Dreepy sv06-128"],
+            opponent_deck_names=["Only First"],
+        ))
+        assert obj.opponent_deck_names == ["Only First"]
+
+    def test_mixed_opponent_names_none_entries(self):
+        obj = SimulationCreate(**self._valid(
+            opponent_deck_texts=["4 Dreepy sv06-128", "4 Dreepy sv06-128"],
+            opponent_deck_names=["Named", None],
+        ))
+        assert obj.opponent_deck_names == ["Named", None]

@@ -2,15 +2,20 @@ import { useState } from 'react';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import { parsePTCGDeck } from '../../utils/deckParser';
 
+export interface OpponentDeckInput {
+  deckText: string;
+  deckName: string;
+}
+
 interface OpponentDeckListProps {
-  opponentTexts: string[];
+  opponents: OpponentDeckInput[];
   onAdd: () => void;
   onRemove: (index: number) => void;
-  onUpdate: (index: number, text: string) => void;
+  onUpdateText: (index: number, text: string) => void;
+  onUpdateName: (index: number, name: string) => void;
 }
 
 function inferDeckName(text: string, fallbackIndex: number): string {
-  // Try to find the first ex or V Pokémon name from the parsed deck
   const parsed = parsePTCGDeck(text);
   for (const card of parsed.pokemon) {
     if (/ ex\b/i.test(card.name) || /\bV\b/.test(card.name) || /\bVMAX\b/.test(card.name)) {
@@ -22,10 +27,11 @@ function inferDeckName(text: string, fallbackIndex: number): string {
 }
 
 export default function OpponentDeckList({
-  opponentTexts,
+  opponents,
   onAdd,
   onRemove,
-  onUpdate,
+  onUpdateText,
+  onUpdateName,
 }: OpponentDeckListProps) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
@@ -42,7 +48,7 @@ export default function OpponentDeckList({
           type="button"
           onClick={() => {
             onAdd();
-            setExpandedIndex(opponentTexts.length);
+            setExpandedIndex(opponents.length);
           }}
           className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors"
           data-testid="add-opponent-button"
@@ -52,14 +58,14 @@ export default function OpponentDeckList({
         </button>
       </div>
 
-      {opponentTexts.length === 0 && (
+      {opponents.length === 0 && (
         <p className="text-xs text-slate-500 italic">No opponent decks added yet.</p>
       )}
 
       <div className="flex flex-col gap-3">
-        {opponentTexts.map((text, i) => {
+        {opponents.map(({ deckText: text, deckName: name }, i) => {
           const parsed = parsePTCGDeck(text);
-          const name = text.trim() ? inferDeckName(text, i) : `Opponent ${i + 1}`;
+          const displayName = name.trim() || (text.trim() ? inferDeckName(text, i) : `Opponent ${i + 1}`);
           const cardCount = parsed.totalCards;
           const hasErrors = parsed.errors.length > 0;
           const isExpanded = expandedIndex === i;
@@ -72,7 +78,7 @@ export default function OpponentDeckList({
               >
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-500 font-mono">{i + 1}.</span>
-                  <span className="text-sm text-slate-800 dark:text-slate-200">{name}</span>
+                  <span className="text-sm text-slate-800 dark:text-slate-200">{displayName}</span>
                   {cardCount > 0 && (
                     <span
                       className={`text-xs px-1.5 py-0.5 rounded-full font-mono ${
@@ -100,10 +106,24 @@ export default function OpponentDeckList({
               </div>
 
               {isExpanded && (
-                <div className="p-3 bg-slate-100/50 dark:bg-slate-800/50">
+                <div className="p-3 bg-slate-100/50 dark:bg-slate-800/50 flex flex-col gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-slate-400">
+                      Opponent Archetype Name{' '}
+                      <span className="font-normal text-slate-500">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => onUpdateName(i, e.target.value)}
+                      placeholder="Leave blank to infer from deck text"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      data-testid={`opponent-name-input-${i}`}
+                    />
+                  </div>
                   <textarea
                     value={text}
-                    onChange={(e) => onUpdate(i, e.target.value)}
+                    onChange={(e) => onUpdateText(i, e.target.value)}
                     placeholder={"Pokémon: 4\n4 Charizard ex sv03-125\n\nTrainer: 8\n4 Arven sv02-166\n4 Iono sv02-185\n\nEnergy: 4\n4 Basic Fire Energy sve-2"}
                     rows={8}
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 rounded-md px-3 py-2 text-sm font-mono resize-y focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -111,7 +131,7 @@ export default function OpponentDeckList({
                     data-testid={`opponent-deck-textarea-${i}`}
                   />
                   {parsed.errors.length > 0 && (
-                    <ul className="mt-1 space-y-0.5">
+                    <ul className="space-y-0.5">
                       {parsed.errors.map((err, j) => (
                         <li key={j} className="text-xs text-red-400">
                           {err}

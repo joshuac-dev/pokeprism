@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-05 (session 18 — History page opponent list collapse)
+Last updated: 2026-05-05 (session 19 — manual deck name overrides in Simulation Setup)
 
 ## Current Workstream
 
@@ -33,10 +33,20 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **584 passed, 1 skipped** — 2026-05-05 session 18 (no backend changes). `cd backend && python3 -m pytest tests/ -x -q`. Historical: 579/1 (session 16), 565/1 (session 15), 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
-| Frontend unit tests | **118 passed (12 files)** — 2026-05-05 session 18. `cd frontend && npm test -- --run`. `History.test.tsx` (14); `OpponentListCell.test.tsx` (7); `OpponentDeckListModal.test.tsx` (8); `imageUrl.test.ts` (11); `Coverage.test.tsx` (12); `CardImageLightbox.test.tsx` (15); `LiveConsole.test.tsx` (18); `EventDetail.test.tsx` (16). |
+| Backend test baseline | **598 passed, 1 skipped** — 2026-05-05 session 19. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 584/1 (session 18), 579/1 (session 16), 565/1 (session 15), 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
+| Frontend unit tests | **140 passed (14 files)** — 2026-05-05 session 19. `cd frontend && npm test -- --run`. Added `DeckUploader.test.tsx` (+3 new tests), `OpponentDeckList.test.tsx` (9 new tests, new file), `SimulationSetup.test.tsx` (9 new tests, new file). Historical: 118/12 (session 18). |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 19 Work (2026-05-05)
+
+### Goal
+
+Add optional manual deck/archetype name overrides to Simulation Setup.
+
+### Completed
+
+- feat(simulation): add manual deck name overrides — users can now specify Deck Archetype Name (user deck) and Opponent Archetype Name (each opponent) in Simulation Setup; blank fields preserve automatic Gemma/fallback naming
 
 ## Session 18 Work (2026-05-05)
 

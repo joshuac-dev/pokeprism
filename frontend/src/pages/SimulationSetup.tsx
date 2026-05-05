@@ -4,7 +4,7 @@ import axios from 'axios';
 import PageShell from '../components/layout/PageShell';
 import DeckUploader from '../components/simulation/DeckUploader';
 import ParamForm from '../components/simulation/ParamForm';
-import OpponentDeckList from '../components/simulation/OpponentDeckList';
+import OpponentDeckList, { type OpponentDeckInput } from '../components/simulation/OpponentDeckList';
 import { createSimulation } from '../api/simulations';
 import { parsePTCGDeck } from '../utils/deckParser';
 import { CardSummary } from '../api/cards';
@@ -20,6 +20,7 @@ export default function SimulationSetup() {
   const [deckText, setDeckText] = useState('');
   const [deckMode, setDeckMode] = useState<DeckMode>('full');
   const [deckLocked, setDeckLocked] = useState(false);
+  const [userDeckName, setUserDeckName] = useState('');
 
   // Param state
   const [gameMode, setGameMode] = useState<GameMode>('hh');
@@ -31,7 +32,7 @@ export default function SimulationSetup() {
   const [excludedCards, setExcludedCards] = useState<CardSummary[]>([]);
 
   // Opponent decks
-  const [opponentTexts, setOpponentTexts] = useState<string[]>([]);
+  const [opponents, setOpponents] = useState<OpponentDeckInput[]>([]);
 
   // Submit state
   const [submitting, setSubmitting] = useState(false);
@@ -61,7 +62,15 @@ export default function SimulationSetup() {
     if (targetWinRatePct < 0 || targetWinRatePct > 100) {
       return 'Target win rate must be between 0% and 100%.';
     }
-    if (opponentTexts.length === 0) {
+    if (userDeckName.trim().length > 120) {
+      return 'Deck name must be 120 characters or fewer.';
+    }
+    for (const opp of opponents) {
+      if (opp.deckName.trim().length > 120) {
+        return 'Opponent deck name must be 120 characters or fewer.';
+      }
+    }
+    if (opponents.length === 0) {
       return 'Add at least one opponent deck.';
     }
     return null;
@@ -80,9 +89,10 @@ export default function SimulationSetup() {
 
     setSubmitting(true);
     try {
+      const trimmedUserDeckName = userDeckName.trim() || null;
       const resp = await createSimulation({
         deck_text: deckMode !== 'none' ? deckText : undefined,
-        opponent_deck_texts: opponentTexts,
+        opponent_deck_texts: opponents.map((o) => o.deckText),
         num_rounds: numRounds,
         matches_per_opponent: matchesPerOpponent,
         target_win_rate: targetWinRatePct / 100,
@@ -92,6 +102,8 @@ export default function SimulationSetup() {
         deck_mode: deckMode,
         deck_locked: deckLocked,
         excluded_card_ids: excludedCards.map((c) => c.tcgdex_id),
+        user_deck_name: trimmedUserDeckName,
+        opponent_deck_names: opponents.map((o) => o.deckName.trim() || null),
       });
 
       if (resp.warning) {
@@ -155,6 +167,8 @@ export default function SimulationSetup() {
             }}
             deckLocked={deckLocked}
             onDeckLockedChange={setDeckLocked}
+            deckName={userDeckName}
+            onDeckNameChange={setUserDeckName}
           />
           <ParamForm
             gameMode={gameMode}
@@ -178,11 +192,14 @@ export default function SimulationSetup() {
         </div>
 
         <OpponentDeckList
-          opponentTexts={opponentTexts}
-          onAdd={() => setOpponentTexts((prev) => [...prev, ''])}
-          onRemove={(i) => setOpponentTexts((prev) => prev.filter((_, idx) => idx !== i))}
-          onUpdate={(i, text) =>
-            setOpponentTexts((prev) => prev.map((t, idx) => (idx === i ? text : t)))
+          opponents={opponents}
+          onAdd={() => setOpponents((prev) => [...prev, { deckText: '', deckName: '' }])}
+          onRemove={(i) => setOpponents((prev) => prev.filter((_, idx) => idx !== i))}
+          onUpdateText={(i, text) =>
+            setOpponents((prev) => prev.map((o, idx) => (idx === i ? { ...o, deckText: text } : o)))
+          }
+          onUpdateName={(i, name) =>
+            setOpponents((prev) => prev.map((o, idx) => (idx === i ? { ...o, deckName: name } : o)))
           }
         />
 
