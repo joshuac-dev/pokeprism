@@ -3953,371 +3953,507 @@ async def test_splashing_turn_deals_damage_and_switches():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Session 10 Engine Gaps (findings #EG4–#EG13)
-#
-# These effects are documented as true engine gaps:  the precise card mechanic
-# cannot be implemented safely without first adding new engine-level support.
-# Each entry follows the AUDIT_RULES.md engine-gap documentation format.
+# Session 10 Engine Gaps (findings #EG4–#EG13) — now implemented
 # ─────────────────────────────────────────────────────────────────────────────
 
-@pytest.mark.skip(reason="engine-gap: attack-cost and retreat-cost modifier for opp next turn not supported")
-def test_engine_gap_EG4_drum_beating():
-    """
-    ENGINE GAP #EG4 — sv06-016 Rillaboom / Twilight Masquerade
-    Handler: _drum_beating_flag  (attacks.py)
-
-    TCGDex effect (ATK0 Drum Beating, 60):
-        "During your opponent's next turn, attacks used by the Defending Pokémon
-         cost {C} more, and its Retreat Cost is {C} more."
-
-    Missing engine capability:
-        The engine has no per-Pokémon "extra attack cost next turn" or "extra
-        retreat cost next turn" state.  PlayerState / PokémonInstance have no
-        such fields.  Implementing this correctly requires:
-          • A new PokémonInstance field, e.g. extra_attack_cost_next_turn: int
-            and extra_retreat_cost_next_turn: int.
-          • Validation in actions.py to add those values when the player tries
-            to attack or retreat on their next turn.
-          • Clearing those fields in runner.py at the start of the owner's turn.
-
-    Files needing changes:
-        backend/app/engine/state.py  (new PokémonInstance fields)
-        backend/app/engine/actions.py  (cost checks for attacks and retreat)
-        backend/app/engine/runner.py  (field reset)
-        backend/app/engine/effects/attacks.py  (_drum_beating_flag implementation)
-
-    Suggested tests:
-        • After Drum Beating, the defending Pokémon's effective attack energy
-          requirement increases by 1 Colorless for opp's next turn.
-        • After Drum Beating, the defending Pokémon's retreat cost increases by
-          1 Colorless for opp's next turn.
-        • Both modifiers reset at the end of opp's next turn.
-
-    Not implemented in this PR because: requires new engine-level state fields
-    and multi-site action-validation changes; too risky for a single audit PR.
-    """
-
-
-@pytest.mark.skip(reason="engine-gap: discard arbitrary card from opponent hand not supported")
-def test_engine_gap_EG5_piercing_gaze():
-    """
-    ENGINE GAP #EG5 — sv06-068 Luxray ex / Twilight Masquerade
-    Handler: _piercing_gaze_flag  (attacks.py)
-
-    TCGDex effect (ATK0 Piercing Gaze, 120):
-        "Your opponent reveals their hand.  Discard a card you find there."
-
-    Missing engine capability:
-        The engine has no mechanism for the attacking player to observe the
-        opponent's hand and then choose a specific card to discard from it.
-        Implementing this requires:
-          • Revealing PlayerState.hand to the attacking player (a new
-            "reveal_hand" event or a ChoiceRequest that lists opponent hand).
-          • A targeted hand-discard ChoiceRequest where the attacker selects
-            1 card from the opponent's revealed hand.
-          • Discarding the chosen card from opp.hand to opp.discard.
-
-    Files needing changes:
-        backend/app/engine/effects/attacks.py  (_piercing_gaze_flag)
-        backend/app/engine/effects/base.py  (possibly new choice_type for opp-hand reveal)
-
-    Suggested tests:
-        • After Piercing Gaze, 120 damage is dealt to opp active.
-        • The attacker is prompted to choose a card from the opponent's hand.
-        • The chosen card moves from opp.hand to opp.discard.
-
-    Not implemented because: requires extending the choice protocol to expose
-    opponent hand state to the attacker — a security-sensitive change that
-    should be reviewed carefully outside the scope of this audit.
-    """
-
-
-@pytest.mark.skip(reason="engine-gap: inter-turn damage boost state for single Pokémon not supported")
-def test_engine_gap_EG6_wind_power_charge():
-    """
-    ENGINE GAP #EG6 — sv06-076 Kilowattrel / Twilight Masquerade
-    Handler: _wind_power_charge_flag  (attacks.py)
-
-    TCGDex effect (ATK0 Wind Power Charge, 10):
-        "During your next turn, attacks used by this Pokémon do 120 more
-         damage to your opponent's Active Pokémon (before applying Weakness
-         and Resistance)."
-
-    Missing engine capability:
-        The engine has no per-Pokémon "next turn damage bonus" state that
-        persists across turns and is consumed/cleared after the boosted attack.
-        Implementing this requires:
-          • A new PokémonInstance field, e.g. next_attack_damage_bonus: int.
-          • Logic in _apply_damage (or the attack dispatch path) to add that
-            bonus to the computed damage before W/R is applied.
-          • Clearing the field after the bonus is consumed or at end of the
-            owning player's following turn.
-
-    Files needing changes:
-        backend/app/engine/state.py  (new PokémonInstance field)
-        backend/app/engine/effects/attacks.py  (_wind_power_charge_flag +
-            _apply_damage damage pipeline)
-        backend/app/engine/runner.py  (field reset on turn start)
-
-    Suggested tests:
-        • Wind Power Charge sets next_attack_damage_bonus = 120 on self.
-        • On the following turn, Strong Volt deals 100 + 120 = 220.
-        • The bonus is cleared after the next attack (not cumulative).
-
-    Not implemented because: requires new engine-level per-Pokémon state and
-    changes to the damage pipeline; scope too large for a single audit fix.
-    """
-
-
-@pytest.mark.skip(reason="engine-gap: shuffle self+attached into deck then deck-search not supported")
-def test_engine_gap_EG7_breezy_gift():
-    """
-    ENGINE GAP #EG7 — sv07-011 Eldegoss / Stellar Crown
-    Handler: _breezy_gift_flag  (attacks.py)
-
-    TCGDex effect (ATK0 Breezy Gift):
-        "Put this Pokémon and all attached cards into your deck.  If you do,
-         search your deck for up to 3 cards and put them into your hand.
-         Then, shuffle your deck."
-
-    Missing engine capability:
-        The engine supports shuffling one bench Pokémon back to deck
-        (Homeward Chime pattern) but not the active Pokémon mid-attack.
-        Returning the active Pokémon to the deck during the attack phase
-        would leave the player without an active Pokémon in the middle of
-        the attack resolution, which requires special phase handling.
-        Additionally, the subsequent free 3-card search from the now-modified
-        deck is a complex multi-step mid-attack operation.
-
-    Files needing changes:
-        backend/app/engine/effects/attacks.py  (_breezy_gift_flag full impl)
-        backend/app/engine/runner.py  (handle active going to deck mid-attack)
-        backend/app/engine/actions.py  (force promote bench after active leaves)
-
-    Suggested tests:
-        • Breezy Gift returns active Pokémon + attached Energy/Tools to deck.
-        • A new active is promoted from bench.
-        • Player is prompted to search deck for up to 3 cards to hand.
-        • Deck is shuffled after the search.
-
-    Not implemented because: mid-attack self-removal of active Pokémon needs
-    engine-level support for the "no active" state and forced promotion.
-    """
-
-
-@pytest.mark.skip(reason="engine-gap: deck peek + selective bench-from-deck not supported")
-def test_engine_gap_EG8_summoning_gate():
-    """
-    ENGINE GAP #EG8 — sv05-072 Reuniclus / Temporal Forces
-    Handler: _summoning_gate_flag  (attacks.py)
-
-    TCGDex effect (ATK0 Summoning Gate):
-        "Look at the top 8 cards of your deck.  You may put any number of
-         Pokémon you find there onto your Bench.  Shuffle the other cards
-         back into your deck."
-
-    Missing engine capability:
-        The engine has no "peek top N cards and choose which to bench"
-        primitive.  The closest existing mechanic is _call_for_family_1 which
-        searches the full deck rather than a top-N subset.  Implementing this
-        correctly requires:
-          • Exposing the top 8 deck cards to the player without shuffling.
-          • A ChoiceRequest allowing the player to choose 0-to-all Pokémon
-            found in that subset.
-          • Benching each chosen Pokémon and shuffling the rest back.
-          • Respecting the 5-bench-slot limit.
-
-    Files needing changes:
-        backend/app/engine/effects/attacks.py  (_summoning_gate_flag full impl)
-
-    Suggested tests:
-        • With 3 Pokémon in top 8, player can bench 0–3 of them.
-        • Non-Pokémon top-8 cards are shuffled back, not put in hand.
-        • Bench-slot limit is respected (at most 5 bench Pokémon total).
-
-    Not implemented because: no existing helper for "peek top N, choose subset"
-    — adding a correct implementation cleanly is more than a one-line fix.
-    """
-
-
-@pytest.mark.skip(reason="engine-gap: copy opponent active's attack not supported")
-def test_engine_gap_EG9_metronome():
-    """
-    ENGINE GAP #EG9 — sv06-079 Clefable / Twilight Masquerade
-    Handler: _metronome_flag  (attacks.py)
-
-    TCGDex effect (ATK0 Metronome):
-        "Choose 1 of your opponent's Active Pokémon's attacks and use it as
-         this attack."
-
-    Missing engine capability:
-        The engine has no mechanism to look up the opponent's active Pokémon's
-        registered attack handlers at runtime and execute one of them as a
-        proxy.  This requires:
-          • Resolving the opponent active's card_def_id and attack index via
-            the EffectRegistry.
-          • Presenting the opponent's available attacks to the attacking player.
-          • Executing the chosen handler in the context of the attacker.
-
-    Files needing changes:
-        backend/app/engine/effects/attacks.py  (_metronome_flag full impl)
-        backend/app/engine/effects/registry.py  (expose attack resolver for
-            a given card_def_id + index)
-
-    Suggested tests:
-        • Metronome lets the player pick from the opponent active's attacks.
-        • The chosen attack fires with the Clefable as the attacker.
-        • If the chosen attack has a ChoiceRequest, that choice is presented.
-
-    Not implemented because: attack-as-metronome requires deep registry
-    introspection and dynamic handler dispatch — architecturally complex.
-    """
-
-
-@pytest.mark.skip(reason="engine-gap: deck peek + selective multi-attach from top-N not supported")
-def test_engine_gap_EG10_larimar_rain():
-    """
-    ENGINE GAP #EG10 — sv07-032 Lapras ex / Stellar Crown
-    Handler: _larimar_rain_flag  (attacks.py)
-
-    TCGDex effect (ATK1 Larimar Rain):
-        "Look at the top 20 cards of your deck and attach any number of
-         Energy cards you find there to your Pokémon in any way you like.
-         Shuffle the other cards back into your deck."
-
-    Missing engine capability:
-        Same top-N deck peek limitation as Summoning Gate (#EG8), compounded
-        by the need to attach an arbitrary number of Energy cards to an
-        arbitrary set of Pokémon.  The energy-attachment step also requires
-        the player to choose (target Pokémon, energy card) pairs for every
-        energy found, which needs a multi-step interactive loop.
-
-    Files needing changes:
-        backend/app/engine/effects/attacks.py  (_larimar_rain_flag full impl)
-
-    Suggested tests:
-        • Top-20 peek exposes only the top 20 cards (not the full deck).
-        • Player can attach 0 to all Energy from those 20 to any own Pokémon.
-        • Remaining top-20 cards are shuffled back into the deck.
-        • Correctly handles fewer than 20 deck cards.
-
-    Not implemented because: requires "peek top N + choose multi-attach" which
-    has no existing engine primitive.
-    """
-
-
-@pytest.mark.skip(reason="engine-gap: blanket attack lock for all player's Pokémon next turn not supported")
-def test_engine_gap_EG11_unleash_lightning():
-    """
-    ENGINE GAP #EG11 — sv07-047 Electivire / Stellar Crown
-    Handler: _unleash_lightning_flag  (attacks.py)
-
-    TCGDex effect (ATK1 Unleash Lightning, 220):
-        "During your next turn, your Pokémon can't attack.
-         (This includes new Pokémon that come into play.)"
-
-    Missing engine capability:
-        The engine's cant_attack_next_turn is a per-PokémonInstance flag.
-        Applying it only to currently in-play Pokémon would miss Pokémon that
-        enter play on the next turn.  A player-wide flag is needed:
-          • New PlayerState field, e.g. all_pokemon_cant_attack_next_turn: bool.
-          • Check in actions.py ATTACK validation: if
-            player.all_pokemon_cant_attack_next_turn, block the attack.
-          • Clear the flag in runner.py at the start of the player's turn after
-            it has been active for one turn.
-
-    Files needing changes:
-        backend/app/engine/state.py  (new PlayerState field)
-        backend/app/engine/actions.py  (attack validation)
-        backend/app/engine/runner.py  (flag reset)
-        backend/app/engine/effects/attacks.py  (_unleash_lightning_flag impl)
-
-    Suggested tests:
-        • After Unleash Lightning, the attacking player cannot attack with any
-          Pokémon on their following turn.
-        • A Pokémon that enters play (from bench switch or promotion) during that
-          turn is also blocked from attacking.
-        • The flag resets at the start of the turn after the blocked turn.
-
-    Not implemented because: requires a new PlayerState field and multi-site
-    engine changes that go beyond the scope of a single audit fix.
-    """
-
-
-@pytest.mark.skip(reason="engine-gap: confused with non-standard counter amount not supported")
-def test_engine_gap_EG12_disorienting_flash():
-    """
-    ENGINE GAP #EG12 — sv07-049 Lanturn / Stellar Crown
-    Handler: _disorienting_flash_flag  (attacks.py)
-
-    TCGDex effect (ATK0 Disorienting Flash):
-        "Your opponent's Active Pokémon is now Confused.  Put 8 damage
-         counters instead of 3 on that Pokémon for this Special Condition."
-
-    Missing engine capability:
-        The engine applies a fixed 3-damage-counter (30 HP) penalty when a
-        Confused Pokémon fails its flip.  There is no per-Pokémon
-        "custom confused counter amount" field.  Implementing the full card
-        requires:
-          • A new PokémonInstance field, e.g. confused_counter_amount: int
-            (default 3, set to 8 by Disorienting Flash).
-          • The Confused-flip resolver in runner.py to read this field instead
-            of the hard-coded 3.
-          • The field must reset when the Confused status is cured.
-
-    Files needing changes:
-        backend/app/engine/state.py  (new PokémonInstance field)
-        backend/app/engine/runner.py  (confused flip damage lookup)
-        backend/app/engine/effects/attacks.py  (_disorienting_flash_flag impl)
-
-    Suggested tests:
-        • Disorienting Flash applies CONFUSED to opp active.
-        • When the Confused Pokémon fails its attack flip, 80 HP is lost
-          (8 × 10) instead of the standard 30 HP.
-        • Curing Confused resets the counter amount to 3.
-
-    Not implemented because: requires a new engine-level state field and
-    changes to the Confused resolution path in runner.py.
-    """
-
-
-@pytest.mark.skip(reason="engine-gap: second-player first-turn conditional bench manipulation not supported")
-def test_engine_gap_EG13_slowing_perfume():
-    """
-    ENGINE GAP #EG13 — sv06-010 Illumise / Twilight Masquerade
-    Handler: _slowing_perfume_flag  (attacks.py)
-
-    TCGDex effect (ATK0 Slowing Perfume):
-        "You can use this attack only if you go second, and only during your
-         first turn.  Shuffle 1 of your opponent's Benched Pokémon and all
-         attached cards into their deck."
-
-    Missing engine capability:
-        The engine has no check for "this player goes second" combined with
-        "this is the player's first turn".  The second-player first-turn
-        condition requires:
-          • Tracking which player goes first (already in GameState as
-            first_player_id) and computing going_second = player_id !=
-            first_player_id.
-          • Tracking the player's absolute turn number (turn 1 for that
-            player = turn 2 of the game overall).
-          • Blocking the attack in action validation if the condition isn't met.
-          • A ChoiceRequest to select 1 of the opponent's Bench Pokémon.
-          • Shuffling the chosen Pokémon + all attached cards into opp.deck
-            and reshuffling.
-
-    Files needing changes:
-        backend/app/engine/effects/attacks.py  (_slowing_perfume_flag full impl)
-        backend/app/engine/actions.py  (attack precondition validation, or
-            handled as a runtime no-op inside the handler)
-
-    Suggested tests:
-        • When going second on turn 1, the attack prompts to choose an opp bench
-          Pokémon and shuffles it + attachments back into opp's deck.
-        • When NOT going second (or not on turn 1), the attack is blocked or
-          does nothing.
-
-    Not implemented because: the "going second + first turn" precondition
-    requires engine-level per-player turn tracking and validation infrastructure
-    not currently present.
-    """
+
+def test_EG4_drum_beating_sets_extra_cost_on_opp():
+    """sv06-016 Rillaboom — Drum Beating sets extra_attack_cost=1 and extra_retreat_cost=1 on opp active."""
+    from app.engine.effects.attacks import _drum_beating
+
+    attacker = CardInstance(
+        instance_id="db-atk", card_def_id="sv06-016",
+        card_name="Rillaboom", current_hp=180, max_hp=180, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="db-opp", card_def_id="tst-db-opp",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+
+    action = _make_action()
+    _drum_beating(state, action)
+
+    assert opp_active.extra_attack_cost == 1
+    assert opp_active.extra_retreat_cost == 1
+    assert any(e.get("event_type") == "drum_beating" for e in state.events)
+
+
+def test_EG4_drum_beating_fields_cleared_by_runner():
+    """extra_attack_cost and extra_retreat_cost are cleared at end of affected player's own turn."""
+    from app.engine.runner import MatchRunner
+
+    opp_active = CardInstance(
+        instance_id="db2-opp", card_def_id="tst-db2",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    opp_active.extra_attack_cost = 1
+    opp_active.extra_retreat_cost = 1
+    state = _make_state(p2_active=opp_active)
+    state.active_player = "p2"  # simulate p2's turn ending
+
+    runner = _runner_for_between_turns()
+    runner._end_turn(state)
+
+    assert opp_active.extra_attack_cost == 0
+    assert opp_active.extra_retreat_cost == 0
+
+
+@pytest.mark.asyncio
+async def test_EG5_piercing_gaze_reveals_hand_and_discards_chosen_card():
+    """sv06-068 Luxray ex — Piercing Gaze: attacker chooses 1 card from opp's hand to discard."""
+    from app.engine.effects.attacks import _piercing_gaze
+
+    attacker = CardInstance(
+        instance_id="pg-atk", card_def_id="sv06-068",
+        card_name="Luxray ex", current_hp=270, max_hp=270, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="pg-opp", card_def_id="tst-pg-opp",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    opp_hand_card = CardInstance(
+        instance_id="pg-hand", card_def_id="tst-pg-hand",
+        card_name="SomeCard", zone=Zone.HAND,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+    state.p2.hand = [opp_hand_card]
+
+    action = _make_action()
+    gen = _piercing_gaze(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_cards"
+    assert any(c.instance_id == opp_hand_card.instance_id for c in req.cards)
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[opp_hand_card.instance_id],
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert opp_hand_card not in state.p2.hand
+    assert opp_hand_card in state.p2.discard
+    assert opp_hand_card.zone == Zone.DISCARD
+    assert any(e.get("event_type") == "piercing_gaze" for e in state.events)
+
+
+def test_EG6_wind_power_charge_sets_bonus():
+    """sv06-076 Kilowattrel — Wind Power Charge sets next_attack_damage_bonus = 120 on self."""
+    from app.engine.effects.attacks import _wind_power_charge
+
+    attacker = CardInstance(
+        instance_id="wpc-atk", card_def_id="sv06-076",
+        card_name="Kilowattrel", current_hp=80, max_hp=80, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="wpc-opp", card_def_id="tst-wpc-opp",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+
+    action = _make_action()
+    _wind_power_charge(state, action)
+
+    assert attacker.next_attack_damage_bonus == 120
+    assert any(e.get("event_type") == "wind_power_charge" for e in state.events)
+
+
+def test_EG6_next_attack_bonus_consumed_on_next_attack(monkeypatch):
+    """next_attack_damage_bonus is added to the next _apply_damage call and then cleared."""
+    from app.engine.effects.attacks import _apply_damage
+
+    attacker = CardInstance(
+        instance_id="wpc2-atk", card_def_id="tst-wpc2-atk",
+        card_name="Attacker", current_hp=80, max_hp=80, zone=Zone.ACTIVE,
+        next_attack_damage_bonus=120,
+    )
+    opp_active = CardInstance(
+        instance_id="wpc2-opp", card_def_id="tst-wpc2-opp",
+        card_name="Defender", current_hp=300, max_hp=300, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+    action = _make_action()
+
+    _apply_damage(state, action, 60)  # 60 base + 120 bonus = 180
+
+    # Bonus should be consumed
+    assert attacker.next_attack_damage_bonus == 0
+    assert opp_active.damage_counters == 18  # 180 damage = 18 counters
+
+
+@pytest.mark.asyncio
+async def test_EG7_breezy_gift_shuffles_self_and_searches_deck():
+    """sv07-011 Eldegoss — Breezy Gift: shuffle self+attached into deck, promote bench, search up to 3."""
+    from app.engine.effects.attacks import _breezy_gift
+
+    attacker = CardInstance(
+        instance_id="bg-atk", card_def_id="sv07-011",
+        card_name="Eldegoss", current_hp=90, max_hp=90, zone=Zone.ACTIVE,
+    )
+    bench_poke = CardInstance(
+        instance_id="bg-bench", card_def_id="tst-bg-bench",
+        card_name="BenchPoke", current_hp=70, max_hp=70, zone=Zone.BENCH,
+    )
+    deck_card1 = CardInstance(
+        instance_id="bg-deck1", card_def_id="tst-bg-dk1",
+        card_name="DeckCard1", zone=Zone.DECK,
+    )
+    deck_card2 = CardInstance(
+        instance_id="bg-deck2", card_def_id="tst-bg-dk2",
+        card_name="DeckCard2", zone=Zone.DECK,
+    )
+    state = _make_state(p1_active=attacker, p1_bench=[bench_poke])
+    state.p1.deck = [deck_card1, deck_card2]
+
+    action = _make_action()
+    gen = _breezy_gift(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_cards"
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[deck_card1.instance_id],
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    # Old attacker should be in deck, bench promoted to active
+    assert attacker in state.p1.deck
+    assert state.p1.active is bench_poke
+    assert bench_poke.zone == Zone.ACTIVE
+    # Chosen card should be in hand
+    assert deck_card1 in state.p1.hand
+    assert any(e.get("event_type") == "breezy_gift_shuffle" for e in state.events)
+
+
+@pytest.mark.asyncio
+async def test_EG8_summoning_gate_benches_top8_pokemon():
+    """sv05-072 Reuniclus — Summoning Gate: look at top 8, bench chosen Pokémon."""
+    from app.engine.effects.attacks import _summoning_gate_b5
+
+    attacker = CardInstance(
+        instance_id="sg-atk", card_def_id="sv05-072",
+        card_name="Reuniclus", current_hp=120, max_hp=120, zone=Zone.ACTIVE,
+    )
+    deck_poke = CardInstance(
+        instance_id="sg-dpoke", card_def_id="tst-sg-poke",
+        card_name="DeckPokemon", current_hp=80, max_hp=80, zone=Zone.DECK,
+        card_type="Pokemon",
+    )
+    deck_trainer = CardInstance(
+        instance_id="sg-dtrain", card_def_id="tst-sg-train",
+        card_name="Trainer", zone=Zone.DECK,
+        card_type="Trainer",
+    )
+    opp_active = CardInstance(
+        instance_id="sg-opp", card_def_id="tst-sg-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+    state.p1.deck = [deck_poke, deck_trainer]
+
+    action = _make_action()
+    gen = _summoning_gate_b5(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_cards"
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[deck_poke.instance_id],
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert deck_poke in state.p1.bench
+    assert deck_poke.zone == Zone.BENCH
+    assert any(e.get("event_type") == "summoning_gate" for e in state.events)
+
+
+@pytest.mark.asyncio
+async def test_EG9_metronome_copies_opp_attack_damage():
+    """sv06-079 Clefable — Metronome: copies base damage of chosen opponent attack."""
+    from app.engine.effects.attacks import _metronome
+
+    attacker = CardInstance(
+        instance_id="met-atk", card_def_id="sv06-079",
+        card_name="Clefable", current_hp=120, max_hp=120, zone=Zone.ACTIVE,
+    )
+    opp_poke_cdef = _make_card(
+        "tst-met-opp", "OppPokemon", hp=200,
+        attacks=[AttackDef(name="Tackle", damage="60", cost=["Colorless"])],
+    )
+    card_registry.register(opp_poke_cdef)
+    opp_active = CardInstance(
+        instance_id="met-opp", card_def_id="tst-met-opp",
+        card_name="OppPokemon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+
+    action = _make_action()
+    gen = _metronome(state, action)
+    # For a single attack, no choice prompt is shown; handler goes straight to damage
+    try:
+        next(gen)
+        # If we get here, opp has multiple attacks and a choice is requested
+    except StopIteration:
+        pass
+
+    # Verify damage was applied (60 damage = 6 counters)
+    assert opp_active.damage_counters == 6
+    assert any(e.get("event_type") == "metronome" for e in state.events)
+
+
+@pytest.mark.asyncio
+async def test_EG10_larimar_rain_attaches_energy_from_top20():
+    """sv07-032 Lapras ex — Larimar Rain: attaches energy from top 20 deck cards to own Pokémon."""
+    from app.engine.effects.attacks import _larimar_rain
+
+    attacker = CardInstance(
+        instance_id="lr-atk", card_def_id="sv07-032",
+        card_name="Lapras ex", current_hp=230, max_hp=230, zone=Zone.ACTIVE,
+    )
+    energy_card = CardInstance(
+        instance_id="lr-energy", card_def_id="basic-water",
+        card_name="Water Energy", zone=Zone.DECK,
+        card_type="Energy",
+        energy_provides=["Water"],
+    )
+    non_energy = CardInstance(
+        instance_id="lr-trainer", card_def_id="tst-lr-trainer",
+        card_name="Trainer", zone=Zone.DECK,
+        card_type="Trainer",
+    )
+    opp_active = CardInstance(
+        instance_id="lr-opp", card_def_id="tst-lr-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+    state.p1.deck = [energy_card, non_energy]
+
+    action = _make_action(attack_index=1)
+    gen = _larimar_rain(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_target"
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_TARGET,
+        target_instance_id=attacker.instance_id,
+    )
+    # Send response to attach; next yield may request next energy (or StopIteration if done)
+    try:
+        req2 = gen.send(resp)
+        # Skip remaining energy selection
+        try:
+            gen.send(None)
+        except StopIteration:
+            pass
+    except StopIteration:
+        pass
+
+    assert len(attacker.energy_attached) >= 1
+    assert any(e.get("event_type") == "energy_attached_from_deck" for e in state.events)
+
+
+def test_EG11_unleash_lightning_sets_player_flag():
+    """sv07-047 Electivire — Unleash Lightning: 220 + sets all_pokemon_cant_attack_next_turn on self."""
+    from app.engine.effects.attacks import _unleash_lightning
+
+    attacker = CardInstance(
+        instance_id="ul-atk", card_def_id="sv07-047",
+        card_name="Electivire", current_hp=170, max_hp=170, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="ul-opp", card_def_id="tst-ul-opp",
+        card_name="OppMon", current_hp=400, max_hp=400, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+
+    action = _make_action(attack_index=1)
+    _unleash_lightning(state, action)
+
+    assert state.p1.all_pokemon_cant_attack_next_turn is True
+    assert any(e.get("event_type") == "unleash_lightning" for e in state.events)
+
+
+def test_EG11_unleash_lightning_blocks_attack_via_actions():
+    """all_pokemon_cant_attack_next_turn=True causes ActionValidator to return no ATTACK actions."""
+    from app.engine.actions import ActionValidator
+
+    rillaboom_cdef = _make_card(
+        "sv06-016", "Rillaboom", hp=180,
+        attacks=[AttackDef(name="Drum Beating", damage="60", cost=["Grass"])],
+    )
+    card_registry.register(rillaboom_cdef)
+    attacker = CardInstance(
+        instance_id="ul2-atk", card_def_id="sv06-016",
+        card_name="Rillaboom", current_hp=180, max_hp=180, zone=Zone.ACTIVE,
+    )
+    attacker.energy_attached = [
+        EnergyAttachment(energy_type=EnergyType.GRASS, source_card_id="g1", card_def_id="basic-grass"),
+    ]
+    opp_active = CardInstance(
+        instance_id="ul2-opp", card_def_id="tst-ul2-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    from app.engine.state import Phase
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+    state.phase = Phase.ATTACK
+    state.p1.all_pokemon_cant_attack_next_turn = True
+
+    legal = ActionValidator.get_legal_actions(state, "p1")
+    attack_actions = [a for a in legal if a.action_type == ActionType.ATTACK]
+    assert len(attack_actions) == 0
+
+
+def test_EG11_unleash_lightning_flag_cleared_by_runner():
+    """all_pokemon_cant_attack_next_turn is cleared at end of the affected player's own turn."""
+    from app.engine.runner import MatchRunner
+
+    attacker = CardInstance(
+        instance_id="ul3-atk", card_def_id="tst-ul3",
+        card_name="Electivire", current_hp=170, max_hp=170, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker)
+    state.p1.all_pokemon_cant_attack_next_turn = True
+    state.active_player = "p1"
+
+    runner = _runner_for_between_turns()
+    runner._end_turn(state)
+
+    assert state.p1.all_pokemon_cant_attack_next_turn is False
+
+
+def test_EG12_disorienting_flash_applies_confused_with_8_counters():
+    """sv07-049 Lanturn — Disorienting Flash: CONFUSED applied with confused_counter_amount=8."""
+    from app.engine.effects.attacks import _disorienting_flash
+
+    attacker = CardInstance(
+        instance_id="df-atk", card_def_id="sv07-049",
+        card_name="Lanturn", current_hp=130, max_hp=130, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="df-opp", card_def_id="tst-df-opp",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+
+    action = _make_action()
+    _disorienting_flash(state, action)
+
+    assert StatusCondition.CONFUSED in opp_active.status_conditions
+    assert opp_active.confused_counter_amount == 8
+    assert any(e.get("event_type") == "status_applied" for e in state.events)
+
+
+def test_EG12_disorienting_flash_confusion_flip_uses_custom_counters(monkeypatch):
+    """Confused flip with confused_counter_amount=8 deals 80 HP damage (not standard 30)."""
+    import random as _random_mod
+
+    # Force tails (confusion triggers)
+    monkeypatch.setattr(_random_mod, "choice", lambda seq: False)
+
+    opp_active = CardInstance(
+        instance_id="df2-opp", card_def_id="tst-df2-opp",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    opp_active.status_conditions.add(StatusCondition.CONFUSED)
+    opp_active.confused_counter_amount = 8
+
+    state = _make_state(p2_active=opp_active)
+    state.active_player = "p2"
+
+    action = Action(player_id="p2", action_type=ActionType.ATTACK, attack_index=0)
+
+    import asyncio
+    from app.engine.transitions import _attack
+
+    asyncio.run(_attack(state, action))
+
+    assert opp_active.damage_counters == 8
+    assert opp_active.current_hp == 120  # 200 - 80
+
+
+@pytest.mark.asyncio
+async def test_EG13_slowing_perfume_shuffles_bench_poke_when_going_second():
+    """sv06-010 Illumise — Slowing Perfume: shuffles opp bench Pokémon to deck when going second on turn 2."""
+    from app.engine.effects.attacks import _slowing_perfume
+
+    attacker = CardInstance(
+        instance_id="sp-atk", card_def_id="sv06-010",
+        card_name="Illumise", current_hp=80, max_hp=80, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="sp-opp", card_def_id="tst-sp-opp",
+        card_name="OppActive", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    opp_bench_poke = CardInstance(
+        instance_id="sp-bench", card_def_id="tst-sp-bench",
+        card_name="OppBench", current_hp=80, max_hp=80, zone=Zone.BENCH,
+    )
+    state = _make_state(p2_active=attacker, p1_active=opp_active, p1_bench=[])
+    state.p1.active = opp_active
+    state.p1.bench = [opp_bench_poke]
+    state.p2.active = attacker
+    state.first_player = "p1"   # p2 goes second
+    state.turn_number = 2       # p2's first turn
+    state.active_player = "p2"
+
+    action = Action(player_id="p2", action_type=ActionType.ATTACK, attack_index=0)
+    gen = _slowing_perfume(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_target"
+
+    resp = Action(
+        player_id="p2",
+        action_type=ActionType.CHOOSE_TARGET,
+        target_instance_id=opp_bench_poke.instance_id,
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert opp_bench_poke not in state.p1.bench
+    assert opp_bench_poke in state.p1.deck
+    assert any(e.get("event_type") == "slowing_perfume" for e in state.events)
+
+
+def test_EG13_slowing_perfume_no_effect_when_going_first():
+    """Slowing Perfume does nothing when the attacker goes first."""
+    from app.engine.effects.attacks import _slowing_perfume
+
+    attacker = CardInstance(
+        instance_id="sp2-atk", card_def_id="sv06-010",
+        card_name="Illumise", current_hp=80, max_hp=80, zone=Zone.ACTIVE,
+    )
+    opp_bench_poke = CardInstance(
+        instance_id="sp2-bench", card_def_id="tst-sp2-bench",
+        card_name="OppBench", current_hp=80, max_hp=80, zone=Zone.BENCH,
+    )
+    state = _make_state(p1_active=attacker)
+    state.p2.bench = [opp_bench_poke]
+    state.first_player = "p1"   # p1 goes FIRST
+    state.turn_number = 1
+    state.active_player = "p1"
+
+    action = _make_action(player_id="p1")
+    gen = _slowing_perfume(state, action)
+    try:
+        next(gen)  # Should reach end without yielding (generator returns immediately)
+    except StopIteration:
+        pass
+
+    assert opp_bench_poke in state.p2.bench  # nothing happened
+    assert any(e.get("event_type") == "slowing_perfume_no_effect" for e in state.events)
+

@@ -206,6 +206,10 @@ def _apply_damage(
     if has_adrena_power(attacker):
         total += 100
     total += attacker.attack_damage_bonus
+    # Wind Power Charge (sv06-076): consume accumulated next-attack bonus
+    if attacker.next_attack_damage_bonus:
+        total += attacker.next_attack_damage_bonus
+        attacker.next_attack_damage_bonus = 0
 
     # Compound Eyes (sv06.5-002 Galvantula): +50 to attacks vs Active before W/R
     if any(p.card_def_id == "sv06.5-002" for p in _in_play(player)):
@@ -17847,7 +17851,7 @@ def register_all(registry):
     registry.register_attack("sv07-008", 0, _reaping_dash_flag)             # Mow Rotom — Reaping Dash (FLAGGED)
     registry.register_attack("sv07-009", 0, _ambush)                        # Grubbin — Ambush (reuse)
     registry.register_attack("sv07-010", 0, _double_spin)                   # Gossifleur — Double Spin (reuse)
-    registry.register_attack("sv07-011", 0, _breezy_gift_flag)              # Eldegoss — Breezy Gift (FLAGGED)
+    registry.register_attack("sv07-011", 0, _breezy_gift)                   # Eldegoss — Breezy Gift
     # sv07-012 Applin (flat 10)
     registry.register_attack("sv07-013", 0, _coated_attack)                 # Dipplin — Coated Attack
     registry.register_attack("sv07-014", 0, _syrup_storm)                   # Hydrapple ex — Syrup Storm
@@ -17872,7 +17876,7 @@ def register_all(registry):
     # sv07-030 Seadra (flat 60)
     # sv07-031 Slowpoke (flat 10) — different from sv07-057 Slowpoke
     registry.register_attack("sv07-032", 0, _power_splash)                  # Lapras ex — Power Splash
-    registry.register_attack("sv07-032", 1, _larimar_rain_flag)             # Lapras ex — Larimar Rain (FLAGGED)
+    registry.register_attack("sv07-032", 1, _larimar_rain)                  # Lapras ex — Larimar Rain
     # sv07-033 Marill (flat 10)
     registry.register_attack("sv07-034", 0, _bubble_beam)                   # Azumarill — Bubble Beam (reuse)
     # sv07-035 Feebas (flat 20)
@@ -17888,9 +17892,9 @@ def register_all(registry):
     registry.register_attack("sv07-045", 0, _sonic_edge)                    # Veluza — Sonic Edge
     registry.register_attack("sv07-046", 0, _collect)                       # Electabuzz — Collect (reuse)
     # sv07-047 Electivire: ATK0 Electroslug (flat 60)
-    registry.register_attack("sv07-047", 1, _unleash_lightning_flag)        # Electivire — Unleash Lightning (FLAGGED)
+    registry.register_attack("sv07-047", 1, _unleash_lightning)             # Electivire — Unleash Lightning
     registry.register_attack("sv07-048", 0, _double_voltage)                # Chinchou — Double Voltage
-    registry.register_attack("sv07-049", 0, _disorienting_flash_flag)       # Lanturn — Disorienting Flash (FLAGGED)
+    registry.register_attack("sv07-049", 0, _disorienting_flash)            # Lanturn — Disorienting Flash
     registry.register_attack("sv07-049", 1, _thunderous_bolt)               # Lanturn — Thunderous Bolt
     registry.register_attack("sv07-050", 0, _jolting_charge_flag)           # Joltik — Jolting Charge (FLAGGED)
     registry.register_attack("sv07-051", 0, _charged_web)                   # Galvantula ex — Charged Web
@@ -18034,11 +18038,11 @@ def register_all(registry):
     registry.register_attack("sv06-008", 0, _body_slam_deino)               # Heracross — Body Slam (reuse)
     registry.register_attack("sv06-009", 0, _quick_sign_flag)               # Volbeat — Quick Sign (FLAGGED)
     registry.register_attack("sv06-009", 1, _coordinated_strike)            # Volbeat — Coordinated Strike
-    registry.register_attack("sv06-010", 0, _slowing_perfume_flag)          # Illumise — Slowing Perfume (FLAGGED)
+    registry.register_attack("sv06-010", 0, _slowing_perfume)               # Illumise — Slowing Perfume
     registry.register_attack("sv06-011", 0, _leaflet_blessings)             # Leafeon — Leaflet Blessings
     registry.register_attack("sv06-012", 0, _leech_seed_phantump)           # Phantump — Leech Seed
     registry.register_attack("sv06-013", 0, _giga_drain_twm)                # Trevenant — Giga Drain
-    registry.register_attack("sv06-016", 0, _drum_beating_flag)             # Rillaboom — Drum Beating (FLAGGED)
+    registry.register_attack("sv06-016", 0, _drum_beating)                  # Rillaboom — Drum Beating
     registry.register_attack("sv06-016", 1, _wood_hammer_50recoil)          # Rillaboom — Wood Hammer
     registry.register_attack("sv06-017", 0, _tumbling_attack)               # Applin — Tumbling Attack
     registry.register_attack("sv06-018", 0, _do_the_wave_twm)               # Dipplin — Do the Wave
@@ -18096,7 +18100,7 @@ def register_all(registry):
     registry.register_attack("sv06-065", 1, _thunderbolt_twm)               # Zapdos — Thunderbolt
     registry.register_attack("sv06-066", 0, _curiosity_shinx)               # Shinx — Curiosity
     registry.register_attack("sv06-067", 0, _big_bite)                      # Luxio — Big Bite (reuse)
-    registry.register_attack("sv06-068", 0, _piercing_gaze_flag)            # Luxray ex — Piercing Gaze (FLAGGED)
+    registry.register_attack("sv06-068", 0, _piercing_gaze)                 # Luxray ex — Piercing Gaze
     registry.register_attack("sv06-068", 1, _volt_strike)                   # Luxray ex — Volt Strike
     registry.register_attack("sv06-069", 0, _sky_wave)                      # Emolga — Sky Wave
     registry.register_attack("sv06-070", 0, _collect)                       # Helioptile — Collect (reuse)
@@ -18104,10 +18108,10 @@ def register_all(registry):
     registry.register_attack("sv06-072", 0, _pick_and_stick)               # Morpeko — Pick and Stick
     registry.register_attack("sv06-074", 0, _thunder_shock_dedenne)         # Bellibolt — Thunder Shock (reuse)
     registry.register_attack("sv06-075", 0, _thunder_shock_dedenne)         # Wattrel — Thunder Shock (reuse)
-    registry.register_attack("sv06-076", 0, _wind_power_charge_flag)        # Kilowattrel — Wind Power Charge (FLAGGED)
+    registry.register_attack("sv06-076", 0, _wind_power_charge)             # Kilowattrel — Wind Power Charge
     registry.register_attack("sv06-076", 1, _scorching_fire)                # Kilowattrel — Strong Volt (reuse)
     registry.register_attack("sv06-077", 0, _volt_cyclone)                  # Iron Thorns ex — Volt Cyclone
-    registry.register_attack("sv06-079", 0, _metronome_flag)                # Clefable — Metronome (FLAGGED)
+    registry.register_attack("sv06-079", 0, _metronome)                     # Clefable — Metronome (reuse me02.5-075)
     registry.register_attack("sv06-081", 0, _psychic_kadabra)               # Kadabra — Psychic
 
 # ── Batch 12: sv08-118..161, sv07-002..059 ───────────────────────────────────
@@ -19073,10 +19077,48 @@ def _reaping_dash_flag(state, action):
                      reason="mass_discard_tools_special_energy_not_supported")
 
 
-def _breezy_gift_flag(state, action):
-    """sv07-011 Eldegoss atk0 — Breezy Gift: FLAGGED (shuffle self into deck + search 3)."""
-    state.emit_event("flagged_effect", attack="Breezy Gift",
-                     reason="shuffle_self_into_deck_search_3_not_supported")
+def _breezy_gift(state, action):
+    """sv07-011 Eldegoss atk0 — Breezy Gift: Shuffle this Pokémon + attached cards into deck, then search deck for up to 3 cards to hand."""
+    player = state.get_player(action.player_id)
+    if not player.active:
+        return
+    poke = player.active
+    # Shuffle self + all attached cards into deck
+    poke.energy_attached.clear()
+    poke.tools_attached.clear()
+    poke.status_conditions.clear()
+    poke.damage_counters = 0
+    poke.current_hp = poke.max_hp
+    poke.zone = Zone.DECK
+    player.active = None
+    player.deck.append(poke)
+    _shuffle_deck(player)
+    state.emit_event("breezy_gift_shuffle", player=action.player_id, card=poke.card_name)
+    # Promote a bench Pokémon if available
+    if player.bench:
+        new_active = player.bench.pop(0)
+        new_active.zone = Zone.ACTIVE
+        player.active = new_active
+        state.emit_event("breezy_gift_promote", player=action.player_id,
+                         card=new_active.card_name)
+    # Search deck for up to 3 cards
+    if not player.deck:
+        return
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        "Breezy Gift: search your deck for up to 3 cards to put in your hand",
+        cards=list(player.deck), min_count=0, max_count=min(3, len(player.deck)),
+    )
+    resp = yield req
+    chosen = resp.selected_cards if resp and resp.selected_cards else []
+    for cid in chosen[:3]:
+        card = next((c for c in player.deck if c.instance_id == cid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+    _shuffle_deck(player)
+    state.emit_event("breezy_gift_search", player=action.player_id, count=len(chosen))
 
 
 def _coated_attack(state, action):
@@ -19187,10 +19229,49 @@ def _power_splash(state, action):
     _apply_damage(state, action, 40 * count)
 
 
-def _larimar_rain_flag(state, action):
-    """sv07-032 Lapras ex atk1 — Larimar Rain: FLAGGED (look at top 20, attach Energy)."""
-    state.emit_event("flagged_effect", attack="Larimar Rain",
-                     reason="deck_search_top20_attach_to_any_not_supported")
+def _larimar_rain(state, action):
+    """sv07-032 Lapras ex atk1 — Larimar Rain: look at top 20 of deck, attach any Energy found to own Pokémon."""
+    from app.engine.effects.trainers import _make_energy_attachment
+    player = state.get_player(action.player_id)
+    in_play = ([player.active] if player.active else []) + list(player.bench)
+    if not player.deck or not in_play:
+        return
+    # Peek top 20
+    top20 = player.deck[:20]
+    energy_cards = [c for c in top20 if c.card_type.lower() == "energy"]
+    if not energy_cards:
+        # No energy found; shuffle back (they're still in deck, no action needed)
+        state.emit_event("larimar_rain_no_energy", player=action.player_id)
+        return
+    # Iteratively let player attach energy cards
+    attached_count = 0
+    for ec in list(energy_cards):
+        if ec not in player.deck:
+            continue  # already moved
+        req_tgt = ChoiceRequest(
+            "choose_target", action.player_id,
+            f"Larimar Rain: choose a Pokémon to attach {ec.card_name} to (or choose none to skip)",
+            targets=in_play,
+        )
+        resp_tgt = yield req_tgt
+        if resp_tgt is None:
+            break
+        target = None
+        if resp_tgt and resp_tgt.target_instance_id:
+            target = next((p for p in in_play if p.instance_id == resp_tgt.target_instance_id), None)
+        if target is None:
+            break
+        player.deck.remove(ec)
+        att = _make_energy_attachment(ec)
+        ec.zone = target.zone
+        target.energy_attached.append(att)
+        attached_count += 1
+        state.emit_event("energy_attached_from_deck", player=action.player_id,
+                         target=target.card_name, energy=ec.card_name,
+                         reason="larimar_rain")
+    # Shuffle remaining top-20 back into deck (they're still in the deck)
+    _shuffle_deck(player)
+    state.emit_event("larimar_rain", player=action.player_id, attached=attached_count)
 
 
 def _return_b12(state, action):
@@ -19257,11 +19338,15 @@ def _sonic_edge(state, action):
     _apply_damage(state, action, 110, bypass_defender_effects=True)
 
 
-def _unleash_lightning_flag(state, action):
-    """sv07-047 Electivire atk1 — Unleash Lightning: FLAGGED (blanket attack lock for all your Pokémon)."""
+def _unleash_lightning(state, action):
+    """sv07-047 Electivire atk1 — Unleash Lightning: 220 damage + during your next turn, your Pokémon can't attack."""
     _do_default_damage(state, action)
-    state.emit_event("flagged_effect", attack="Unleash Lightning",
-                     reason="blanket_attack_lockout_for_all_pokemon_not_supported")
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    player.all_pokemon_cant_attack_next_turn = True
+    state.emit_event("unleash_lightning", player=action.player_id,
+                     reason="all_pokemon_cant_attack_next_turn")
 
 
 def _double_voltage(state, action):
@@ -19275,11 +19360,16 @@ def _double_voltage(state, action):
                          attack_name="Double Voltage")
 
 
-def _disorienting_flash_flag(state, action):
-    """sv07-049 Lanturn atk0 — Disorienting Flash: FLAGGED (confused with modified counter)."""
-    _do_default_damage(state, action)
-    state.emit_event("flagged_effect", attack="Disorienting Flash",
-                     reason="confused_with_modified_counter_amount_not_supported")
+def _disorienting_flash(state, action):
+    """sv07-049 Lanturn atk0 — Disorienting Flash: Confused on opp active + 8 damage counters on failed flip instead of 3."""
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_player(opp_id)
+    if opp.active:
+        opp.active.status_conditions.add(StatusCondition.CONFUSED)
+        opp.active.confused_counter_amount = 8  # 80 damage on failed flip instead of standard 30
+        state.emit_event("status_applied", player=opp_id,
+                         card=opp.active.card_name, status="confused",
+                         confused_counter_amount=8)
 
 
 def _thunderous_bolt(state, action):
@@ -21013,10 +21103,44 @@ def _coordinated_strike(state, action):
     _apply_damage(state, action, 20 + bonus)
 
 
-def _slowing_perfume_flag(state, action):
-    """sv06-010 Illumise atk0 — Slowing Perfume: FLAGGED (second-player first-turn condition)."""
-    state.emit_event("flagged_effect", attack="Slowing Perfume",
-                     reason="second_player_first_turn_condition_not_supported")
+def _slowing_perfume(state, action):
+    """sv06-010 Illumise atk0 — Slowing Perfume: only if going second + first turn; shuffle 1 opp Bench Pokémon + attached into their deck."""
+    # Only usable if this player goes second AND it is their first turn (global turn 2)
+    going_second = action.player_id != state.first_player
+    is_first_turn_for_second = state.turn_number == 2
+    if not (going_second and is_first_turn_for_second):
+        state.emit_event("slowing_perfume_no_effect", player=action.player_id,
+                         reason="not_second_player_first_turn")
+        return
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_player(opp_id)
+    if not opp.bench:
+        state.emit_event("slowing_perfume_no_effect", player=action.player_id,
+                         reason="opponent_has_no_bench")
+        return
+    req = ChoiceRequest(
+        "choose_target", action.player_id,
+        "Slowing Perfume: choose 1 of your opponent's Benched Pokémon to shuffle into their deck",
+        targets=list(opp.bench),
+    )
+    resp = yield req
+    target = None
+    if resp and resp.target_instance_id:
+        target = next((p for p in opp.bench if p.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = opp.bench[0]
+    opp.bench.remove(target)
+    # Clear battle state before returning to deck
+    target.status_conditions.clear()
+    target.damage_counters = 0
+    target.current_hp = target.max_hp
+    target.energy_attached.clear()
+    target.tools_attached.clear()
+    target.zone = Zone.DECK
+    opp.deck.append(target)
+    _shuffle_deck(opp)
+    state.emit_event("slowing_perfume", player=action.player_id,
+                     target=target.card_name, opp=opp_id)
 
 
 def _leaflet_blessings_flag(state, action):
@@ -21060,11 +21184,18 @@ def _giga_drain_twm(state, action):
                              card=player.active.card_name, amount=heal)
 
 
-def _drum_beating_flag(state, action):
-    """sv06-016 Rillaboom atk0 — Drum Beating: FLAGGED (dynamic energy cost modifier)."""
+def _drum_beating(state, action):
+    """sv06-016 Rillaboom atk0 — Drum Beating: 60 damage + opp active's attacks cost {C} more and retreat costs {C} more next turn."""
     _do_default_damage(state, action)
-    state.emit_event("flagged_effect", attack="Drum Beating",
-                     reason="dynamic_energy_cost_modifier_not_supported")
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp = state.get_opponent(action.player_id)
+    if opp.active:
+        opp.active.extra_attack_cost += 1
+        opp.active.extra_retreat_cost += 1
+        state.emit_event("drum_beating", player=action.player_id,
+                         target=opp.active.card_name,
+                         extra_cost=1)
 
 
 def _wood_hammer_50recoil(state, action):
@@ -21748,11 +21879,34 @@ def _curiosity_shinx(state, action):
     state.emit_event("attack_no_damage", attacker="Shinx", attack_name="Curiosity")
 
 
-def _piercing_gaze_flag(state, action):
-    """sv06-068 Luxray ex atk0 — Piercing Gaze: FLAGGED (reveal opp hand + discard a card from it)."""
+def _piercing_gaze(state, action):
+    """sv06-068 Luxray ex atk0 — Piercing Gaze: 120 + attacker chooses 1 card from opp's hand to discard."""
     _do_default_damage(state, action)
-    state.emit_event("flagged_effect", attack="Piercing Gaze",
-                     reason="discard_card_from_opponent_hand_not_supported")
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_player(opp_id)
+    if not opp.hand:
+        return
+    state.emit_event("hand_revealed", player=opp_id,
+                     cards=[c.card_name for c in opp.hand],
+                     reason="Piercing Gaze")
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        "Piercing Gaze: choose 1 card from your opponent's hand to discard",
+        cards=opp.hand, min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen = resp.selected_cards if resp and resp.selected_cards else [opp.hand[0].instance_id]
+    for cid in chosen[:1]:
+        card = next((c for c in opp.hand if c.instance_id == cid), None)
+        if card is None:
+            card = opp.hand[0]
+        opp.hand.remove(card)
+        card.zone = Zone.DISCARD
+        opp.discard.append(card)
+        state.emit_event("piercing_gaze", attacker=action.player_id,
+                         discarded=card.card_name)
 
 
 def _volt_strike(state, action):
@@ -21834,11 +21988,16 @@ def _pick_and_stick(state, action):
     state.emit_event("attack_no_damage", attacker="Morpeko", attack_name="Pick and Stick")
 
 
-def _wind_power_charge_flag(state, action):
-    """sv06-076 Kilowattrel atk0 — Wind Power Charge: FLAGGED (inter-turn attack damage boost)."""
+def _wind_power_charge(state, action):
+    """sv06-076 Kilowattrel atk0 — Wind Power Charge: 10 damage + this Pokémon's next attack does +120 damage."""
     _do_default_damage(state, action)
-    state.emit_event("flagged_effect", attack="Wind Power Charge",
-                     reason="inter_turn_attack_damage_boost_not_supported")
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if player.active:
+        player.active.next_attack_damage_bonus += 120
+        state.emit_event("wind_power_charge", player=action.player_id,
+                         card=player.active.card_name, bonus=120)
 
 
 def _volt_cyclone_flag(state, action):

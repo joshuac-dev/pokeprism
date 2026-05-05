@@ -600,6 +600,8 @@ class ActionValidator:
 
         cdef = card_registry.get(player.active.card_def_id)
         retreat_cost = cdef.retreat_cost if cdef else 0
+        # Drum Beating (sv06-016): extra Colorless retreat cost from opponent's Drum Beating
+        retreat_cost += player.active.extra_retreat_cost
         # Paradise Resort (svp-150 / svp-224): Psyduck retreat cost reduced by 1
         if (state.active_stadium
                 and state.active_stadium.card_def_id in ("svp-150", "svp-224")
@@ -736,6 +738,9 @@ class ActionValidator:
         # Multi-turn lock (e.g. Iron Leaves ex Mach Claw, Bloodmoon Ursaluna ex)
         if player.active.cant_attack_next_turn:
             return []
+        # Unleash Lightning (sv07-047): player-wide attack lock for all Pokémon (incl. new)
+        if player.all_pokemon_cant_attack_next_turn:
+            return []
         # Power Saver (sv10-081 TR Mewtwo ex): cannot attack unless 4+ TR Pokémon in play
         from app.engine.effects.abilities import power_saver_blocks_attack
         if power_saver_blocks_attack(state, player.active, player_id):
@@ -751,6 +756,9 @@ class ActionValidator:
             if player.active.locked_attack_index is not None and i == player.active.locked_attack_index:
                 continue
             effective_cost = list(attack.cost) if attack.cost else []
+            # Drum Beating (sv06-016): extra Colorless cost from opponent's Drum Beating
+            for _ in range(player.active.extra_attack_cost):
+                effective_cost.append("Colorless")
             # Seasoned Skill (sv06-141 Bloodmoon Ursaluna ex): costs 1 less {C}
             # per prize card the opponent has taken.
             if cdef.tcgdex_id == "sv06-141":
