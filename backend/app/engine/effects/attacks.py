@@ -1636,7 +1636,7 @@ def _oil_salvo(state, action):
             target = all_opp[0]
 
         if target is opp.active:
-            _apply_damage(state, action, 20)
+            _apply_damage(state, action, 20, bypass_wr=True)
         else:
             _place_bench_counters(state, opp_id, target, 2)
 
@@ -19205,9 +19205,26 @@ def _return_b12(state, action):
 
 
 def _splashing_turn_flag(state, action):
-    """sv07-037 Tirtouga atk0 — Splashing Turn: FLAGGED (switch self with bench)."""
-    state.emit_event("flagged_effect", attack="Splashing Turn",
-                     reason="switch_self_with_bench_not_supported")
+    """sv07-037 Tirtouga atk0 — Splashing Turn: 70 + switch this Pokémon with 1 Benched Pokémon."""
+    _do_default_damage(state, action)
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if not player.bench:
+        return
+    req_target = ChoiceRequest(
+        "choose_target", action.player_id,
+        "Splashing Turn: choose a Benched Pokémon to switch with",
+        targets=list(player.bench),
+    )
+    resp_target = yield req_target
+    target = None
+    if resp_target and hasattr(resp_target, "target_instance_id") and resp_target.target_instance_id:
+        target = next((p for p in player.bench if p.instance_id == resp_target.target_instance_id), None)
+    if target is None:
+        target = player.bench[0]
+    _switch_active_with_bench(player, target)
+    state.emit_event("self_switch", player=action.player_id, new_active=player.active.card_name)
 
 
 def _shifting_shuriken(state, action):
@@ -20795,16 +20812,82 @@ def _fury_swipes_50(state, action):
 
 
 def _colorful_catch_flag(state, action):
-    """sv06.5-050 Eevee atk0 — Colorful Catch: FLAGGED (search deck for 3 different-type Basic Energy)."""
-    state.emit_event("flagged_effect", attack="Colorful Catch",
-                     reason="search_deck_for_3_different_type_energy_not_supported")
+    """sv06.5-050 Eevee atk0 — Colorful Catch: search deck for up to 3 Basic Energy of different types."""
+    player = state.get_player(action.player_id)
+    basics = [c for c in player.deck
+              if c.card_type.lower() == "energy" and c.card_subtype.lower() == "basic"]
+    if not basics:
+        state.emit_event("deck_search", player=action.player_id,
+                         attack="Colorful Catch", found=0)
+        _shuffle_deck(player)
+        return
+    by_type: dict = {}
+    for c in basics:
+        by_type.setdefault(c.card_name, []).append(c)
+    reps = [v[0] for v in by_type.values()]
+    max_count = min(3, len(reps))
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        f"Colorful Catch: choose up to {max_count} Basic Energy of different types",
+        cards=reps, min_count=0, max_count=max_count,
+    )
+    resp = yield req
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [c.instance_id for c in reps[:max_count]])
+    added = 0
+    for cid in chosen_ids[:max_count]:
+        card = next((c for c in player.deck if c.instance_id == cid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+            added += 1
+    _shuffle_deck(player)
+    state.emit_event("deck_search", player=action.player_id,
+                     attack="Colorful Catch", found=added)
 
 
 def _energy_assist_flag(state, action):
-    """sv06.5-051 Furfrou atk0 — Energy Assist: FLAGGED (attach Basic Energy from discard to Bench)."""
+    """sv06.5-051 Furfrou atk0 — Energy Assist: 30 + attach a Basic Energy from discard to 1 Benched Pokémon."""
+    from app.engine.effects.trainers import _is_basic_energy_card, _make_energy_attachment
     _do_default_damage(state, action)
-    state.emit_event("flagged_effect", attack="Energy Assist",
-                     reason="attach_energy_from_discard_to_bench_not_supported")
+    if state.phase == Phase.GAME_OVER:
+        return
+    player = state.get_player(action.player_id)
+    if not player.bench:
+        return
+    basic_energy = [c for c in player.discard if _is_basic_energy_card(c)]
+    if not basic_energy:
+        return
+    req_energy = ChoiceRequest(
+        "choose_cards", action.player_id,
+        "Energy Assist: choose a Basic Energy from your discard to attach to a Benched Pokémon",
+        cards=basic_energy, min_count=1, max_count=1,
+    )
+    resp_energy = yield req_energy
+    chosen_ids = (resp_energy.selected_cards if resp_energy and resp_energy.selected_cards
+                  else [basic_energy[0].instance_id])
+    energy = next((c for c in player.discard if c.instance_id == chosen_ids[0]), None)
+    if energy is None:
+        energy = basic_energy[0]
+    req_target = ChoiceRequest(
+        "choose_target", action.player_id,
+        "Energy Assist: choose a Benched Pokémon to attach the energy to",
+        targets=list(player.bench),
+    )
+    resp_target = yield req_target
+    target = None
+    if resp_target and hasattr(resp_target, "target_instance_id") and resp_target.target_instance_id:
+        target = next((p for p in player.bench if p.instance_id == resp_target.target_instance_id), None)
+    if target is None:
+        target = player.bench[0]
+    player.discard.remove(energy)
+    att = _make_energy_attachment(energy)
+    energy.zone = Zone.BENCH
+    target.energy_attached.append(att)
+    state.emit_event("energy_attached_from_discard", player=action.player_id,
+                     target=target.card_name, energy=energy.card_name,
+                     reason="energy_assist")
 
 
 def _power_charger(state, action):
@@ -21043,27 +21126,149 @@ def _avenging_edge(state, action):
 
 
 def _tea_server_flag(state, action):
-    """sv06-021 Poltchageist atk0 — Tea Server: FLAGGED (put G Energy from discard to hand)."""
-    state.emit_event("flagged_effect", attack="Tea Server",
-                     reason="put_energy_from_discard_to_hand_not_supported")
+    """sv06-021 Poltchageist atk0 — Tea Server: put a Basic Grass Energy from discard to hand."""
+    player = state.get_player(action.player_id)
+    grass_in_discard = [c for c in player.discard
+                        if c.card_type.lower() == "energy"
+                        and c.card_subtype.lower() == "basic"
+                        and "grass" in c.card_name.lower()]
+    if not grass_in_discard:
+        state.emit_event("attack_no_damage", attacker="Poltchageist",
+                         attack_name="Tea Server", reason="no_basic_grass_energy_in_discard")
+        return
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        "Tea Server: choose a Basic Grass Energy from your discard to put in your hand",
+        cards=grass_in_discard, min_count=1, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else [grass_in_discard[0].instance_id]
+    for cid in chosen_ids[:1]:
+        card = next((c for c in player.discard if c.instance_id == cid), None)
+        if card is None:
+            card = grass_in_discard[0]
+        player.discard.remove(card)
+        card.zone = Zone.HAND
+        player.hand.append(card)
+        state.emit_event("energy_to_hand", player=action.player_id,
+                         card=card.card_name, source="discard", attack="Tea Server")
 
 
 def _cursed_drop_flag(state, action):
-    """sv06-022 Sinistcha atk0 — Cursed Drop: FLAGGED (player choice counter placement)."""
-    state.emit_event("flagged_effect", attack="Cursed Drop",
-                     reason="player_choice_damage_counter_placement_not_supported")
+    """sv06-022 Sinistcha atk0 — Cursed Drop: put 4 damage counters on opp's Pokémon in any way."""
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    for i in range(4):
+        if state.phase == Phase.GAME_OVER:
+            return
+        targets = ([opp.active] if opp.active else []) + list(opp.bench)
+        if not targets:
+            return
+        req = ChoiceRequest(
+            "choose_target", action.player_id,
+            f"Cursed Drop: place damage counter {i + 1} of 4 — choose a target",
+            targets=targets,
+        )
+        resp = yield req
+        target = None
+        if resp and hasattr(resp, "target_instance_id") and resp.target_instance_id:
+            target = next((p for p in targets if p.instance_id == resp.target_instance_id), None)
+        if target is None:
+            target = targets[0]
+        if target is opp.active:
+            opp.active.damage_counters += 1
+            opp.active.current_hp = max(0, opp.active.current_hp - 10)
+            state.emit_event("damage_placed", target=opp.active.card_name, counters=1,
+                             attack="Cursed Drop")
+            check_ko(state, opp.active, opp_id)
+        else:
+            _apply_bench_damage(state, opp_id, target, 10)
 
 
 def _spill_the_tea_flag(state, action):
-    """sv06-022 Sinistcha atk1 — Spill the Tea: FLAGGED (player choice energy discard + variable damage)."""
-    state.emit_event("flagged_effect", attack="Spill the Tea",
-                     reason="player_choice_energy_discard_count_not_supported")
+    """sv06-022 Sinistcha atk1 — Spill the Tea: discard up to 3 Grass Energy from own Pokémon; 70 per discard."""
+    player = state.get_player(action.player_id)
+    grass_attachments = []
+    for poke in _in_play(player):
+        for att in poke.energy_attached:
+            if att.energy_type == EnergyType.GRASS:
+                grass_attachments.append(att)
+    if not grass_attachments:
+        state.emit_event("attack_no_damage", attacker="Sinistcha",
+                         attack_name="Spill the Tea", reason="no_grass_energy")
+        return
+    max_discard = min(3, len(grass_attachments))
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        f"Spill the Tea: choose up to {max_discard} Grass Energy to discard for 70 damage each",
+        cards=grass_attachments, min_count=0, max_count=max_discard,
+    )
+    resp = yield req
+    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
+                  and resp.chosen_card_ids else [])
+    if not chosen_ids:
+        chosen_ids = [a.source_card_id for a in grass_attachments[:max_discard]]
+    discarded = 0
+    for cid in chosen_ids[:max_discard]:
+        for poke in _in_play(player):
+            att = next((a for a in poke.energy_attached if a.source_card_id == cid), None)
+            if att:
+                poke.energy_attached.remove(att)
+                discarded += 1
+                break
+    if discarded > 0:
+        state.emit_event("energy_discarded", player=action.player_id,
+                         count=discarded, reason="Spill the Tea")
+        _apply_damage(state, action, 70 * discarded)
+    else:
+        state.emit_event("attack_no_damage", attacker="Sinistcha",
+                         attack_name="Spill the Tea", reason="no_energy_discarded")
 
 
 def _re_brew_flag(state, action):
-    """sv06-023 Sinistcha ex atk0 — Re-Brew: FLAGGED (player choice counter placement per discard)."""
-    state.emit_event("flagged_effect", attack="Re-Brew",
-                     reason="player_choice_counter_placement_based_on_discard_count_not_supported")
+    """sv06-023 Sinistcha ex atk0 — Re-Brew: 2 counters per Basic Grass Energy in discard on 1 opp Pokémon; shuffle those energy back."""
+    player = state.get_player(action.player_id)
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    grass_in_discard = [c for c in player.discard
+                        if c.card_type.lower() == "energy"
+                        and c.card_subtype.lower() == "basic"
+                        and "grass" in c.card_name.lower()]
+    count = len(grass_in_discard)
+    if count == 0:
+        state.emit_event("attack_no_damage", attacker="Sinistcha ex",
+                         attack_name="Re-Brew", reason="no_basic_grass_energy_in_discard")
+        return
+    targets = ([opp.active] if opp.active else []) + list(opp.bench)
+    if not targets:
+        return
+    req = ChoiceRequest(
+        "choose_target", action.player_id,
+        "Re-Brew: choose 1 of your opponent's Pokémon to place counters on",
+        targets=targets,
+    )
+    resp = yield req
+    target = None
+    if resp and hasattr(resp, "target_instance_id") and resp.target_instance_id:
+        target = next((p for p in targets if p.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = targets[0]
+    counters = 2 * count
+    if target is opp.active:
+        opp.active.damage_counters += counters
+        opp.active.current_hp = max(0, opp.active.current_hp - counters * 10)
+        state.emit_event("damage_placed", target=opp.active.card_name, counters=counters,
+                         attack="Re-Brew")
+        check_ko(state, opp.active, opp_id)
+    else:
+        _place_bench_counters(state, opp_id, target, counters)
+    for c in grass_in_discard:
+        player.discard.remove(c)
+        c.zone = Zone.DECK
+        player.deck.append(c)
+    _shuffle_deck(player)
+    state.emit_event("energy_shuffled_to_deck", player=action.player_id,
+                     count=count, reason="Re-Brew")
 
 
 def _matcha_splash(state, action):
@@ -21278,24 +21483,45 @@ def _whirlpool_coin(state, action):
 
 
 def _peck_off_flag(state, action):
-    """sv06-045 Seaking atk0 — Peck Off: FLAGGED (discard opp Tools before damage)."""
+    """sv06-045 Seaking atk0 — Peck Off: discard any Pokémon Tool from opp's Active; then 50 damage."""
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    if opp.active and opp.active.tools_attached:
+        removed = list(opp.active.tools_attached)
+        opp.active.tools_attached.clear()
+        for tool_id in removed:
+            state.emit_event("tool_discarded", player=opp_id,
+                             card=opp.active.card_name, tool=tool_id)
     _do_default_damage(state, action)
-    state.emit_event("flagged_effect", attack="Peck Off",
-                     reason="discard_opponent_tool_not_supported")
 
 
 def _inviting_kiss_flag(state, action):
-    """sv06-046 Jynx atk0 — Inviting Kiss: search for 1 Basic + energy move (energy move flagged)."""
+    """sv06-046 Jynx atk0 — Inviting Kiss: search deck for 1 Basic Pokémon to bench; that Pokémon is now Confused."""
+    player = state.get_player(action.player_id)
+    bench_before = set(p.instance_id for p in player.bench)
     yield from _call_for_family_1(state, action)
-    state.emit_event("flagged_effect", attack="Inviting Kiss",
-                     reason="energy_transfer_to_new_bench_pokemon_not_supported")
+    new_bench = [p for p in player.bench if p.instance_id not in bench_before]
+    if new_bench:
+        new_poke = new_bench[0]
+        new_poke.status_conditions.add(StatusCondition.CONFUSED)
+        state.emit_event("confused", player=action.player_id, target=new_poke.card_name)
 
 
 def _snip_snip_flag(state, action):
-    """sv06-048 Crawdaunt atk0 — Snip Snip: FLAGGED (flip 2 coins, mill top of opp deck per heads)."""
+    """sv06-048 Crawdaunt atk0 — Snip Snip: 40 + flip 2 coins; for each heads, discard top card of opp's deck."""
     _do_default_damage(state, action)
-    state.emit_event("flagged_effect", attack="Snip Snip",
-                     reason="opponent_deck_discard_flip_not_supported")
+    if state.phase == Phase.GAME_OVER:
+        return
+    opp_id = state.opponent_id(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    heads = sum(1 for _ in range(2) if _random.choice([True, False]))
+    state.emit_event("coin_flip_result", attack="Snip Snip", heads=heads, flips=2)
+    for _ in range(heads):
+        if opp.deck:
+            top = opp.deck.pop(0)
+            top.zone = Zone.DISCARD
+            opp.discard.append(top)
+    state.emit_event("deck_mill", player=opp_id, count=heads)
 
 
 def _rampaging_hammer(state, action):
@@ -21339,9 +21565,43 @@ def _energy_press(state, action):
 
 
 def _flock_flag(state, action):
-    """sv06-056 Froakie atk0 — Flock: FLAGGED (search deck for up to 2 Froakie)."""
-    state.emit_event("flagged_effect", attack="Flock",
-                     reason="deck_search_for_copies_not_supported")
+    """sv06-056 Froakie atk0 — Flock: search deck for up to 2 Froakie and put them on Bench."""
+    player = state.get_player(action.player_id)
+    available_slots = 5 - len(player.bench)
+    if available_slots <= 0 or not player.deck:
+        _shuffle_deck(player)
+        return
+    matches = [c for c in player.deck
+               if c.card_type.lower() in ("pokemon", "pokémon")
+               and c.card_name == "Froakie"]
+    if not matches:
+        _shuffle_deck(player)
+        state.emit_event("deck_search_bench", player=action.player_id,
+                         attack="Flock", placed=0)
+        return
+    max_count = min(2, available_slots, len(matches))
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        f"Flock: choose up to {max_count} Froakie from your deck to put on Bench",
+        cards=matches, min_count=0, max_count=max_count,
+    )
+    resp = yield req
+    chosen = (resp.selected_cards if resp and resp.selected_cards
+              else [c.instance_id for c in matches[:max_count]])
+    placed = 0
+    for cid in chosen[:max_count]:
+        if len(player.bench) >= 5:
+            break
+        card = next((c for c in player.deck if c.instance_id == cid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.BENCH
+            card.turn_played = state.turn_number
+            player.bench.append(card)
+            placed += 1
+    _shuffle_deck(player)
+    state.emit_event("deck_search_bench", player=action.player_id,
+                     attack="Flock", placed=placed)
 
 
 def _spit_shot(state, action):
@@ -21784,18 +22044,33 @@ def _minor_errand_running_flag(state, action):
 # ── sv06-089 Swirlix ─────────────────────────────────────────────────────────
 
 def _sneaky_placement(state, action):
-    """sv06-089 Swirlix atk0 — Sneaky Placement: put 2 damage counters on opp's Active (simplified from any Pokémon)."""
+    """sv06-089 Swirlix atk0 — Sneaky Placement: put 2 damage counters on 1 of opp's Pokémon."""
+    opp_id = state.opponent_id(action.player_id)
     opp = state.get_opponent(action.player_id)
-    if opp.active:
+    targets = ([opp.active] if opp.active else []) + list(opp.bench)
+    if not targets:
+        state.emit_event("attack_no_damage", attacker="Swirlix",
+                         attack_name="Sneaky Placement", reason="no_opp_pokemon")
+        return
+    req = ChoiceRequest(
+        "choose_target", action.player_id,
+        "Sneaky Placement: choose 1 of your opponent's Pokémon to place 2 damage counters on",
+        targets=targets,
+    )
+    resp = yield req
+    target = None
+    if resp and hasattr(resp, "target_instance_id") and resp.target_instance_id:
+        target = next((p for p in targets if p.instance_id == resp.target_instance_id), None)
+    if target is None:
+        target = targets[0]
+    if target is opp.active:
         opp.active.damage_counters += 2
         opp.active.current_hp = max(0, opp.active.current_hp - 20)
         state.emit_event("damage_placed", target=opp.active.card_name, counters=2,
-                         attack="Sneaky Placement",
-                         note="simplified_to_active")
-        check_ko(state, opp.active, state.opponent_id(action.player_id))
+                         attack="Sneaky Placement")
+        check_ko(state, opp.active, opp_id)
     else:
-        state.emit_event("attack_no_damage", attacker="Swirlix",
-                         attack_name="Sneaky Placement", reason="no_opp_active")
+        _place_bench_counters(state, opp_id, target, 2)
 
 
 # ── sv06-090 Slurpuff ────────────────────────────────────────────────────────
@@ -25828,8 +26103,8 @@ def _search_basic_energy_to_hand(state, action, type_filter: str = None, max_cou
 
 
 def _minor_errand_running_b3(state, action):
-    """sv06-087 Floette atk0 — Minor Errand-Running: search deck for 1 Basic Energy to hand."""
-    yield from _search_basic_energy_to_hand(state, action, max_count=1,
+    """sv06-087 Floette atk0 — Minor Errand-Running: search deck for up to 3 Basic Energy to hand."""
+    yield from _search_basic_energy_to_hand(state, action, max_count=3,
                                              attack_name="Minor Errand-Running")
 
 
