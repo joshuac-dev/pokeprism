@@ -26,6 +26,7 @@ const EVENT_TO_ACTION: Record<string, string> = {
   play_basic: 'PLAY_BASIC',
   play_stadium: 'PLAY_STADIUM',
   evolve: 'EVOLVE',
+  evolved: 'EVOLVE',
   pass: 'PASS',
   end_turn: 'END_TURN',
   retreat: 'RETREAT',
@@ -101,13 +102,29 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose, li
   const [loading, setLoading] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Compute live decision synchronously from liveEvents prop (no async needed).
+  // Prefer direct ai_reasoning on the event itself, then correlation with hidden ai_decision events.
+  const directReasoning = event ? (event.data?.ai_reasoning as string | undefined) : undefined;
   const clickedIndex = liveEvents && event ? liveEvents.indexOf(event) : -1;
   const liveDecisionEvent =
-    isAiMode && event && liveEvents && clickedIndex >= 0
+    isAiMode && event && liveEvents && clickedIndex >= 0 && !directReasoning
       ? findLiveDecision(liveEvents, event, clickedIndex)
       : null;
-  const liveDecision = liveDecisionEvent ? eventToDecisionRow(liveDecisionEvent) : null;
+  const liveDecision: DecisionRow | null =
+    directReasoning && event
+      ? {
+          id: `direct-${event.turn ?? 0}-${event.player ?? 'p1'}`,
+          match_id: null,
+          turn_number: (event.turn as number) ?? 0,
+          player_id: event.player ?? 'p1',
+          action_type: toActionType(event.eventType) ?? 'UNKNOWN',
+          card_played: null,
+          target: null,
+          reasoning: directReasoning,
+          legal_action_count: 0,
+          game_state_summary: null,
+          created_at: null,
+        }
+      : (liveDecisionEvent ? eventToDecisionRow(liveDecisionEvent) : null);
 
   // Fetch persisted AI decisions from DB when event has a match_id (post-completion).
   useEffect(() => {

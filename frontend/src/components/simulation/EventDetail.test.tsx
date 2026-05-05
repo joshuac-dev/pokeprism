@@ -213,4 +213,116 @@ describe('EventDetail — live AI reasoning', () => {
     expect(screen.queryByTestId('event-detail-live-reasoning')).not.toBeInTheDocument();
     expect(screen.getByText(/has not been persisted yet/i)).toBeInTheDocument();
   });
+
+  it('correlates energy_attached to an ATTACH_ENERGY ai_decision', () => {
+    const aiDecisionEvent = makeAiDecisionEvent({
+      data: {
+        action_type: 'ATTACH_ENERGY',
+        reasoning: 'Attach Spiky Energy to Crustle for coverage',
+        card_played: null,
+        target: 'Crustle',
+        attack_index: null,
+      },
+    });
+    const energyEvent = makeEvent({
+      turn: 5,
+      player: 'p1',
+      eventType: 'energy_attached',
+      data: { card: 'Spiky Energy', target: 'Crustle', energy_type: 'Colorless' },
+    });
+    const liveEvents = [aiDecisionEvent, energyEvent];
+
+    render(
+      <EventDetail
+        {...BASE_PROPS}
+        event={energyEvent}
+        liveEvents={liveEvents}
+      />
+    );
+
+    const reasoningSection = screen.getByTestId('event-detail-ai-reasoning');
+    expect(within(reasoningSection).getByText('Attach Spiky Energy to Crustle for coverage')).toBeInTheDocument();
+    expect(screen.getByTestId('event-detail-live-reasoning')).toBeInTheDocument();
+  });
+
+  it('correlates evolved to an EVOLVE ai_decision', () => {
+    const aiDecisionEvent = makeAiDecisionEvent({
+      data: {
+        action_type: 'EVOLVE',
+        reasoning: 'Evolve Staryu into Mega Starmie ex now',
+        card_played: 'Mega Starmie ex',
+        target: 'Staryu',
+        attack_index: null,
+      },
+    });
+    const evolvedEvent = makeEvent({
+      turn: 5,
+      player: 'p1',
+      eventType: 'evolved',
+      data: { from: 'Staryu', to: 'Mega Starmie ex' },
+    });
+    const liveEvents = [aiDecisionEvent, evolvedEvent];
+
+    render(
+      <EventDetail
+        {...BASE_PROPS}
+        event={evolvedEvent}
+        liveEvents={liveEvents}
+      />
+    );
+
+    const reasoningSection = screen.getByTestId('event-detail-ai-reasoning');
+    expect(within(reasoningSection).getByText('Evolve Staryu into Mega Starmie ex now')).toBeInTheDocument();
+    expect(screen.getByTestId('event-detail-live-reasoning')).toBeInTheDocument();
+  });
+
+  it('prefers direct event.data.ai_reasoning over correlation with hidden ai_decision', () => {
+    const aiDecisionEvent = makeAiDecisionEvent({
+      data: {
+        action_type: 'ATTACK',
+        reasoning: 'correlation reasoning (should NOT appear)',
+        card_played: null,
+        target: null,
+        attack_index: 0,
+      },
+    });
+    const attackEvent = makeEvent({
+      turn: 5,
+      player: 'p1',
+      eventType: 'attack_damage',
+      data: {
+        final_damage: 120,
+        attacker: 'Dragapult ex',
+        ai_reasoning: 'direct reasoning from action event',
+      },
+    });
+    const liveEvents = [aiDecisionEvent, attackEvent];
+
+    render(
+      <EventDetail
+        {...BASE_PROPS}
+        event={attackEvent}
+        liveEvents={liveEvents}
+      />
+    );
+
+    const reasoningSection = screen.getByTestId('event-detail-ai-reasoning');
+    expect(within(reasoningSection).getByText('direct reasoning from action event')).toBeInTheDocument();
+    expect(within(reasoningSection).queryByText('correlation reasoning (should NOT appear)')).not.toBeInTheDocument();
+  });
+
+  it('does not use the old copy "No AI decision recorded for this event."', () => {
+    const attackEvent = makeEvent();
+    const liveEvents = [attackEvent];
+
+    render(
+      <EventDetail
+        {...BASE_PROPS}
+        event={attackEvent}
+        liveEvents={liveEvents}
+      />
+    );
+
+    expect(screen.queryByText(/No AI decision recorded for this event/i)).not.toBeInTheDocument();
+  });
 });

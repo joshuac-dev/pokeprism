@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 13 — live AI reasoning in event overlay: emit ai_decision events through engine event stream; overlay uses live reasoning before DB fallback)
+Last updated: 2026-05-07 (session 14 — live AI reasoning overlay repair: hide ai_decision console rows; show reasoning only in tile overlay; fix evolved→EVOLVE correlation; add direct ai_reasoning field support)
 
 ## Current Workstream
 
@@ -34,11 +34,86 @@ Re-check them before making claims in user-facing docs.
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
 | Backend test baseline | **547 passed, 1 skipped** — 2026-05-06 session 13. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 542/1 (session 12), 522/1 (session 11, full stack running), 504/7 (session 10, without DB integration; `test_scheduled.py` DB tests skipped when Postgres unreachable), 490/1 (session 10 simulation fix), 478/1 (session 9), 466 (session 8). |
-| Frontend unit tests | **24 passed (5 files)** — 2026-05-06 session 13. `cd frontend && npm test -- --run --reporter=dot`. |
+| Frontend unit tests | **32 passed (6 files)** — 2026-05-07 session 14. `cd frontend && npm test -- --run`. Added `LiveConsole.test.tsx` (4 tests); extended `EventDetail.test.tsx` to 11 tests. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
 
-## Session 13 Work (2026-05-06)
+## Session 14 Work (2026-05-07)
+
+### Goal
+
+Repair the live AI reasoning overlay UX: ai_decision rows were accidentally rendered as
+visible purple console rows (session 13), and the frontend container was never rebuilt after
+the session 13 commit so old JS was still being served. Fix both issues so the console
+remains a plain action/event log while reasoning appears only in the tile overlay.
+
+### Root Cause (two parts)
+
+1. **Stale frontend container**: The `7cc034f` commit added `EventDetail` live reasoning
+   logic but the `frontend` container was never rebuilt — nginx was still serving old compiled
+   JS with "No AI decision recorded for this event." copy.
+
+2. **Visible `ai_decision` console rows**: Session 13's `LiveConsole.tsx` change rendered
+   `ai_decision` events as purple `🤖 ACTION_TYPE — "reasoning…"` rows. User requirement is
+   that the console remain a plain game/action log; reasoning belongs only in the tile overlay.
+
+3. **Missing `evolved` → `EVOLVE` correlation**: `EVENT_TO_ACTION` map had `evolve: 'EVOLVE'`
+   but the engine emits `"evolved"` (past tense). Clicking an `evolved` row would produce
+   action type `'EVOLVED'` (fallback uppercasing), not matching the AI decision's `'EVOLVE'`.
+
+### Completed
+
+1. **`LiveConsole.tsx`** — changed `ai_decision` case from visible purple rows to `skip: true`.
+   Events remain in the store array so `EventDetail` can still correlate them; they just don't
+   render a visible row. Console is a plain game/action log.
+
+2. **`EventDetail.tsx`** — added `evolved: 'EVOLVE'` to `EVENT_TO_ACTION` map (was missing;
+   engine emits `"evolved"`, not `"evolve"`). Added direct `event.data.ai_reasoning` preference:
+   if the clicked event carries an `ai_reasoning` field directly, it is used before correlation
+   search. Expanded `liveDecision` logic to handle both paths with correct `isLive: true` flag.
+
+3. **`src/test/setup.ts`** — added `Element.prototype.scrollIntoView = vi.fn()` global mock
+   so `LiveConsole` tests don't fail on jsdom's missing `scrollIntoView`.
+
+4. **`LiveConsole.test.tsx`** (new, 4 tests):
+   - `ai_decision` event produces no visible row (no `live-console-event` nodes).
+   - `energy_attached` event still renders as a visible row.
+   - `energy_attached` row visible when preceded by hidden `ai_decision`.
+   - `evolved` event renders as a visible row.
+
+5. **`EventDetail.test.tsx`** (extended from 7 → 11 tests):
+   - `energy_attached` → `ATTACH_ENERGY` correlation finds prior `ai_decision` and shows reasoning.
+   - `evolved` → `EVOLVE` correlation finds prior `ai_decision` and shows reasoning.
+   - Direct `event.data.ai_reasoning` is preferred over correlation when present.
+   - Old copy "No AI decision recorded for this event." is not rendered anywhere.
+
+6. **Container rebuild**: rebuilt `frontend` container; nginx now serves updated JS with
+   `"has not been persisted yet"` copy (confirmed via grep on `/usr/share/nginx/html`).
+
+### Validation (session 14)
+
+| Command | Result |
+|---|---|
+| `cd backend && python3 -m pytest tests/ -x -q` | **547 passed, 1 skipped** |
+| `cd frontend && npm test -- --run` | **32 passed (6 files)** |
+| `cd frontend && npm run build` | **✓ built in 4.18s** |
+| `docker compose build frontend && docker compose up -d frontend` | **✓ deployed** |
+| Grep served JS for "No AI decision recorded" | **0 matches** (old copy removed) |
+| Grep served JS for "has not been persisted yet" | **1 match** (new copy confirmed) |
+
+### Files Changed (session 14)
+
+| File | Change |
+|---|---|
+| `frontend/src/components/simulation/LiveConsole.tsx` | Changed `ai_decision` from visible purple row to `skip: true` |
+| `frontend/src/components/simulation/EventDetail.tsx` | Added `evolved: 'EVOLVE'` to map; added direct `ai_reasoning` field preference |
+| `frontend/src/test/setup.ts` | Added `scrollIntoView` global mock for jsdom |
+| `frontend/src/components/simulation/LiveConsole.test.tsx` | New: 4 tests for ai_decision hiding |
+| `frontend/src/components/simulation/EventDetail.test.tsx` | Extended: +4 tests (energy_attached, evolved, direct ai_reasoning, no-old-copy) |
+| `docs/STATUS.md` | This file |
+| `docs/CHANGELOG.md` | Session 14 entry added |
+
+
 
 ### Goal
 
@@ -79,6 +154,8 @@ Fix the live simulation UI so that clicking a decision/action event in the live 
 
 4. **`LiveConsole.tsx`** — added `ai_decision` case: renders compact
    `🤖 ACTION_TYPE — "reasoning preview…"` in purple, clickable like any other event.
+   **NOTE: This visible rendering was removed in session 14** — `ai_decision` events
+   should not appear as console rows; reasoning belongs only in the tile overlay.
 
 ### Validation (session 13)
 

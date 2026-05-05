@@ -32,11 +32,56 @@ merged PR history support that it actually landed.
 
 ### Summary
 
-As of `docs/STATUS.md` last updated on 2026-05-06, the project is in
+As of `docs/STATUS.md` last updated on 2026-05-07, the project is in
 **post-phase DB-backed audit and handler refinement**. Phase 13 and the earlier
 hardening sweep are documented as complete. Current work continues to close
 card-specific implementation gaps found by database-backed audits, coverage
 gates, and runtime simulation checks.
+
+### 2026-05-07 — Session 14: Hide ai_decision console rows; fix overlay correlation
+
+Corrected the live AI reasoning UX introduced in session 13:
+
+- **Problem 1 — Stale frontend container**: The session 13 commit added
+  `EventDetail` live reasoning logic but the `frontend` container was never
+  rebuilt. Nginx was still serving old JS with the "No AI decision recorded"
+  copy; none of the `7cc034f` frontend changes were active.
+
+- **Problem 2 — Visible `ai_decision` console rows**: Session 13 rendered
+  `ai_decision` events as purple `🤖 ACTION_TYPE — "reasoning…"` console rows.
+  User requirement is that the console remain a plain game/action log; reasoning
+  belongs only in the tile overlay when an action row is clicked.
+
+- **Problem 3 — `evolved` → `EVOLVE` correlation gap**: `EVENT_TO_ACTION` had
+  `evolve: 'EVOLVE'` but the engine emits the past-tense `"evolved"`. Clicking
+  an `evolved` console row produced action type `'EVOLVED'` via the toUpperCase
+  fallback, which never matched the AI decision's `action_type: 'EVOLVE'`.
+
+**Changes:**
+
+- **`LiveConsole.tsx`**: Changed `ai_decision` case from visible purple row to
+  `skip: true`. Events remain in the store array so `EventDetail` can correlate
+  them; they never render a visible row. Console is now a plain game/action log.
+
+- **`EventDetail.tsx`**: Added `evolved: 'EVOLVE'` to `EVENT_TO_ACTION`. Added
+  direct `event.data.ai_reasoning` field support — if the clicked event carries
+  this field, it is used as the live decision source without correlation search.
+
+- **`src/test/setup.ts`**: Added global `Element.prototype.scrollIntoView = vi.fn()`
+  mock for jsdom compatibility in `LiveConsole` tests.
+
+- **4 new frontend tests** (`LiveConsole.test.tsx`): `ai_decision` produces no
+  visible row, `energy_attached` still renders, both coexist correctly, `evolved`
+  renders.
+
+- **4 new frontend tests** (`EventDetail.test.tsx` extended 7 → 11): `energy_attached`
+  → `ATTACH_ENERGY` correlation, `evolved` → `EVOLVE` correlation, direct
+  `ai_reasoning` field preference, old copy not rendered.
+
+- **Container rebuild**: `docker compose build frontend && docker compose up -d frontend`.
+  Verified new JS served (new copy present, old copy absent).
+
+**Confidence:** High — tests pass, build clean, container deployed and verified.
 
 ### 2026-05-06 — Session 13: Live AI reasoning in event overlay
 
