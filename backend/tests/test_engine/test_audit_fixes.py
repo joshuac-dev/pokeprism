@@ -4405,8 +4405,8 @@ async def test_EG13_slowing_perfume_shuffles_bench_poke_when_going_second():
     state.p1.active = opp_active
     state.p1.bench = [opp_bench_poke]
     state.p2.active = attacker
-    state.first_player = "p1"   # p2 goes second
-    state.turn_number = 2       # p2's first turn
+    state.first_player = "p1"  # p2 goes second
+    state.turn_number = 2      # p2's first turn
     state.active_player = "p2"
 
     action = Action(player_id="p2", action_type=ActionType.ATTACK, attack_index=0)
@@ -4443,7 +4443,7 @@ def test_EG13_slowing_perfume_no_effect_when_going_first():
     )
     state = _make_state(p1_active=attacker)
     state.p2.bench = [opp_bench_poke]
-    state.first_player = "p1"   # p1 goes FIRST
+    state.first_player = "p1"  # p1 goes FIRST
     state.turn_number = 1
     state.active_player = "p1"
 
