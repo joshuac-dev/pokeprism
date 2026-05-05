@@ -7,6 +7,7 @@ interface Props {
   event: NormalisedEvent | null;
   isAiMode: boolean;
   onClose: () => void;
+  liveEvents?: NormalisedEvent[];
 }
 
 const SKIP_KEYS = new Set(['event_type', 'active_player', 'phase']);
@@ -37,6 +38,54 @@ function toActionType(eventType: string | undefined): string | undefined {
   return EVENT_TO_ACTION[eventType.toLowerCase()] ?? eventType.toUpperCase();
 }
 
+/** Convert a live ai_decision NormalisedEvent into a DecisionRow for rendering. */
+function eventToDecisionRow(ev: NormalisedEvent): DecisionRow {
+  return {
+    id: `live-${ev.turn ?? 0}-${ev.player ?? 'p1'}`,
+    match_id: null,
+    turn_number: (ev.turn as number) ?? 0,
+    player_id: ev.player ?? 'p1',
+    action_type: (ev.data?.action_type as string) ?? 'UNKNOWN',
+    card_played: (ev.data?.card_played as string) ?? null,
+    target: (ev.data?.target as string) ?? null,
+    reasoning: (ev.data?.reasoning as string) ?? null,
+    legal_action_count: (ev.data?.legal_action_count as number) ?? 0,
+    game_state_summary: (ev.data?.game_state_summary as string) ?? null,
+    created_at: null,
+  };
+}
+
+/**
+ * Find the best matching live ai_decision event for a clicked event.
+ *
+ * Rules:
+ * 1. If the clicked event IS an ai_decision, use it directly.
+ * 2. Otherwise, search backwards from clickedIndex for an ai_decision with
+ *    matching turn, player, and action_type.
+ */
+function findLiveDecision(
+  liveEvents: NormalisedEvent[],
+  clicked: NormalisedEvent,
+  clickedIndex: number,
+): NormalisedEvent | null {
+  if (clicked.eventType === 'ai_decision') return clicked;
+
+  const turn = clicked.turn;
+  const player = clicked.player;
+  const actionType = toActionType(clicked.eventType);
+  if (!actionType) return null;
+
+  for (let i = clickedIndex - 1; i >= 0; i--) {
+    const ev = liveEvents[i];
+    if (ev.eventType !== 'ai_decision') continue;
+    if (ev.turn !== turn) break; // past this turn, stop
+    if (ev.player === player && (ev.data?.action_type as string) === actionType) {
+      return ev;
+    }
+  }
+  return null;
+}
+
 function DataRow({ k, v }: { k: string; v: unknown }) {
   if (v == null || v === '') return null;
   return (
@@ -47,14 +96,22 @@ function DataRow({ k, v }: { k: string; v: unknown }) {
   );
 }
 
-export default function EventDetail({ simulationId, event, isAiMode, onClose }: Props) {
-  const [decisions, setDecisions] = useState<DecisionRow[]>([]);
+export default function EventDetail({ simulationId, event, isAiMode, onClose, liveEvents }: Props) {
+  const [dbDecisions, setDbDecisions] = useState<DecisionRow[]>([]);
   const [loading, setLoading] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Fetch matching AI decisions when event changes
+  // Compute live decision synchronously from liveEvents prop (no async needed).
+  const clickedIndex = liveEvents && event ? liveEvents.indexOf(event) : -1;
+  const liveDecisionEvent =
+    isAiMode && event && liveEvents && clickedIndex >= 0
+      ? findLiveDecision(liveEvents, event, clickedIndex)
+      : null;
+  const liveDecision = liveDecisionEvent ? eventToDecisionRow(liveDecisionEvent) : null;
+
+  // Fetch persisted AI decisions from DB when event has a match_id (post-completion).
   useEffect(() => {
-    setDecisions([]);
+    setDbDecisions([]);
     if (!event || !isAiMode || !event.match_id || event.turn == null) return;
     const matchId = event.match_id;
     const turn = event.turn as number;
@@ -71,7 +128,7 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
       action_type: actionType,
       limit: 3,
     })
-      .then((r) => { if (!cancelled) setDecisions(r.decisions); })
+      .then((r) => { if (!cancelled) setDbDecisions(r.decisions); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -94,6 +151,14 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
   const dataEntries = Object.entries(event.data ?? {}).filter(
     ([k]) => !SKIP_KEYS.has(k)
   );
+
+  // Decisions to render: live decision takes priority; DB enriches after persistence.
+  // If live reasoning is available, show it immediately.
+  // DB decisions supplement or replace once persisted (match_id present).
+  const decisions: (DecisionRow & { isLive?: boolean })[] =
+    liveDecision
+      ? [{ ...liveDecision, isLive: true }, ...dbDecisions.filter((d) => d.id !== liveDecision.id)]
+      : dbDecisions;
 
   return (
     <div
@@ -145,23 +210,31 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose }: 
           {isAiMode && (
             <section data-testid="event-detail-ai-reasoning">
               <h3 className="text-xs text-slate-500 uppercase tracking-wider mb-1">AI Reasoning</h3>
-              {loading && (
+              {loading && decisions.length === 0 && (
                 <p className="text-xs text-slate-600 italic">Loading…</p>
               )}
               {!loading && decisions.length === 0 && (
                 <p className="text-xs text-slate-600 italic">
-                  No AI decision recorded for this event.
+                  AI reasoning has not been persisted yet for this event.
                 </p>
               )}
               {decisions.map((d) => (
                 <div key={d.id} className="bg-slate-800/60 rounded-lg p-3 mb-2 space-y-2" data-testid="event-detail-reasoning-block">
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex gap-2 flex-wrap items-center">
                     <span className="text-xs text-orange-400 font-semibold">{d.action_type}</span>
                     {d.card_played && (
                       <span className="text-xs text-slate-300">{d.card_played}</span>
                     )}
                     {d.target && (
                       <span className="text-xs text-slate-500">→ {d.target}</span>
+                    )}
+                    {d.isLive && (
+                      <span
+                        className="text-xs text-purple-400 font-semibold ml-auto"
+                        data-testid="event-detail-live-reasoning"
+                      >
+                        live
+                      </span>
                     )}
                   </div>
                   {d.reasoning && (

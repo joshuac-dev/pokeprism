@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 12 — engine effect gaps fixed: incoming_damage_reduction timing, Iron Defender, Premium Power Pro, Cinderace Explosiveness, Risky Ruins bench_from_effect)
+Last updated: 2026-05-06 (session 13 — live AI reasoning in event overlay: emit ai_decision events through engine event stream; overlay uses live reasoning before DB fallback)
 
 ## Current Workstream
 
@@ -33,10 +33,75 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **542 passed, 1 skipped** — 2026-05-06 session 12. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 522/1 (session 11, full stack running), 504/7 (session 10, without DB integration; `test_scheduled.py` DB tests skipped when Postgres unreachable), 490/1 (session 10 simulation fix), 478/1 (session 9), 466 (session 8). |
-| Frontend unit tests | **17 passed (4 files)** — 2026-05-05. `cd frontend && npm test -- --run --reporter=dot`. |
+| Backend test baseline | **547 passed, 1 skipped** — 2026-05-06 session 13. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 542/1 (session 12), 522/1 (session 11, full stack running), 504/7 (session 10, without DB integration; `test_scheduled.py` DB tests skipped when Postgres unreachable), 490/1 (session 10 simulation fix), 478/1 (session 9), 466 (session 8). |
+| Frontend unit tests | **24 passed (5 files)** — 2026-05-06 session 13. `cd frontend && npm test -- --run --reporter=dot`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 13 Work (2026-05-06)
+
+### Goal
+
+Fix the live simulation UI so that clicking a decision/action event in the live console during an AI/H or AI/AI simulation opens the overlay with AI reasoning already populated — not just after the simulation completes.
+
+### Root Cause
+
+`AIPlayer._record_decision()` stores reasoning in `pending_decisions` immediately after choosing an action, but `drain_decisions()` is only called after the entire match finishes in `batch.py`. `MatchMemoryWriter.write_decisions()` writes to Postgres only after a `match_id` exists — also post-match.
+
+`EventDetail.tsx` guarded its DB query on `event.match_id`, which is never present on live WebSocket events. Result: the AI Reasoning section always showed "No AI decision recorded" during a running simulation.
+
+### Completed
+
+1. **Live `ai_decision` engine event** (`backend/app/engine/runner.py`):
+   - Added `MatchRunner._maybe_emit_ai_decision(state, pid, action)` helper.
+   - Calls `state.emit_event("ai_decision", ...)` with `player`, `action_type`,
+     `card_played`, `target`, `reasoning`, and `attack_index` when `action.reasoning` is set.
+   - Called at all three strategic decision sites in `_run_turn()`: main-phase loop,
+     attack-phase block, and Festival Lead second attack.
+   - Filters naturally: only `AIPlayer` sets `action.reasoning`; heuristic/greedy
+     players leave it `None`, so no event is emitted for non-AI decisions.
+   - The event is captured by `_emit_since()` and published through the existing
+     Redis → WebSocket pipeline with no changes to `simulation.py`.
+
+2. **Frontend overlay live reasoning** (`frontend/src/components/simulation/EventDetail.tsx`):
+   - Added `liveEvents?: NormalisedEvent[]` prop.
+   - Added `eventToDecisionRow()` helper: converts a live `ai_decision` event to a
+     `DecisionRow` for uniform rendering.
+   - Added `findLiveDecision()` helper: if the clicked event IS an `ai_decision`, uses
+     it directly; otherwise searches backwards from `clickedIndex` for the nearest
+     prior `ai_decision` with matching `turn`, `player`, and `action_type`.
+   - Live decision is computed synchronously — no `useEffect`, no async delay.
+   - Live reasoning blocks are tagged with a `live` badge (`data-testid="event-detail-live-reasoning"`).
+   - DB fetch still runs when `event.match_id` is present (post-completion enrichment).
+   - "No AI decision recorded" message updated to "AI reasoning has not been persisted yet."
+
+3. **`SimulationLive.tsx`** — passes `liveEvents={events}` to `<EventDetail>`.
+
+4. **`LiveConsole.tsx`** — added `ai_decision` case: renders compact
+   `🤖 ACTION_TYPE — "reasoning preview…"` in purple, clickable like any other event.
+
+### Validation (session 13)
+
+| Command | Result |
+|---|---|
+| `cd backend && python3 -m pytest tests/test_players/test_ai_player.py -q` | **25 passed** |
+| `cd backend && python3 -m pytest tests/ -x -q` | **547 passed, 1 skipped** |
+| `cd frontend && npm test -- --run` | **24 passed (5 files)** |
+| `cd frontend && npm run build` | **✓ built in 4.10s** |
+| `git diff --check` | Clean |
+
+### Files Changed (session 13)
+
+| File | Change |
+|---|---|
+| `backend/app/engine/runner.py` | Added `_maybe_emit_ai_decision()` helper; 3 call sites in `_run_turn()` |
+| `backend/tests/test_players/test_ai_player.py` | Updated `GameStateStub` with `emit_event()`; added `TestMaybeEmitAiDecision` class (5 tests) |
+| `frontend/src/components/simulation/EventDetail.tsx` | Added `liveEvents` prop, `findLiveDecision()`, `eventToDecisionRow()`, live-before-DB render logic |
+| `frontend/src/components/simulation/LiveConsole.tsx` | Added `ai_decision` match-event case |
+| `frontend/src/pages/SimulationLive.tsx` | Pass `liveEvents={events}` to `<EventDetail>` |
+| `frontend/src/components/simulation/EventDetail.test.tsx` | New: 7 tests for live reasoning, correlation, DB fallback, H/H mode |
+| `docs/STATUS.md` | This file |
+| `docs/CHANGELOG.md` | Session 13 entry added |
 
 ## Session 12 Work (2026-05-06)
 

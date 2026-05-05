@@ -163,6 +163,12 @@ function fmt(ev: NormalisedEvent): FmtResult {
     if (et === 'turn_start' || et === 'end_turn' || et === 'pass' || et === 'prizes_set') {
       return { text: '', cls: '', skip: true };
     }
+    if (et === 'ai_decision') {
+      const reasoning = (ev.data?.reasoning as string) ?? '';
+      const preview = reasoning.length > 60 ? reasoning.slice(0, 60) + '…' : reasoning;
+      const actionType = (ev.data?.action_type as string) ?? 'decision';
+      return { text: `${turn}${who}🤖 ${actionType}${preview ? ` — "${preview}"` : ''}`, cls: 'text-purple-400' };
+    }
     // fallback
     return { text: `${turn}${who}${et}`, cls: 'text-slate-600' };
   }

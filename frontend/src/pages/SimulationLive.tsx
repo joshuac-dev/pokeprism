@@ -128,6 +128,7 @@ export default function SimulationLive() {
           simulationId={id}
           event={selectedEvent}
           isAiMode={isAiMode}
+          liveEvents={events}
           onClose={() => setSelectedEvent(null)}
         />
       )}

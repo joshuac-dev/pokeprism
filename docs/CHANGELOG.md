@@ -38,6 +38,48 @@ hardening sweep are documented as complete. Current work continues to close
 card-specific implementation gaps found by database-backed audits, coverage
 gates, and runtime simulation checks.
 
+### 2026-05-06 — Session 13: Live AI reasoning in event overlay
+
+Fixed live simulation UX where the event detail overlay showed no AI reasoning
+until the simulation completed and decisions were written to Postgres.
+
+- **Root cause:** `AIPlayer` stores reasoning in `pending_decisions` at decision
+  time, but `drain_decisions()` and `write_decisions()` run only after the entire
+  match finishes. `EventDetail.tsx` guarded its DB query on `event.match_id`,
+  which is never present on live WebSocket events — so reasoning never appeared
+  during a running simulation.
+
+- **Backend: live `ai_decision` event** (`runner.py`): Added
+  `MatchRunner._maybe_emit_ai_decision(state, pid, action)`. Calls
+  `state.emit_event("ai_decision", ...)` with `player`, `action_type`,
+  `reasoning`, `card_played`, `target`, and `attack_index` when
+  `action.reasoning` is set. Called at 3 sites in `_run_turn()`. Filters
+  naturally: only `AIPlayer` sets `action.reasoning`, so heuristic players
+  never emit. Event flows through existing `_emit_since()` → Redis → WebSocket
+  pipeline unchanged.
+
+- **Frontend overlay** (`EventDetail.tsx`): Added `liveEvents` prop.
+  `findLiveDecision()` finds the nearest prior `ai_decision` event with matching
+  turn/player/action_type. Live reasoning rendered synchronously (no DB wait).
+  Blocks tagged with `live` badge. DB fetch still runs post-completion for
+  enrichment. "No decision recorded" message replaced with "has not been
+  persisted yet."
+
+- **`SimulationLive.tsx`:** Passes `liveEvents={events}` to `<EventDetail>`.
+
+- **`LiveConsole.tsx`:** Added `ai_decision` case: compact `🤖 ACTION — "preview"` in purple.
+
+- **5 new backend tests** (`test_ai_player.py`): emit on reasoning present,
+  no emit on heuristic, fallback reasoning emits, required fields present,
+  empty reasoning does not emit.
+
+- **7 new frontend tests** (`EventDetail.test.tsx`): live overlay from
+  `ai_decision` event, correlation to action event, DB fallback, live reasoning
+  survives empty DB response, H/H mode hides reasoning section, wrong-turn
+  non-correlation, "not persisted" message.
+
+*Confidence: High. Backed by 547 backend tests (5 new) and 24 frontend tests (7 new).*
+
 ### 2026-05-06 — Session 12: Engine effect gaps resolved (damage-reduction timing, NOOP stubs, Risky Ruins)
 
 Resolved four STATUS.md-tracked effect-engine gaps. No audit cursor advancement.

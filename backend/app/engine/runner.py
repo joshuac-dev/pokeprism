@@ -279,6 +279,7 @@ class MatchRunner:
                 continue
 
             prev_len = len(state.events)
+            self._maybe_emit_ai_decision(state, pid, action)
             state = await StateTransition.apply(state, action, self._get_player)
             self._emit_since(state, prev_len)
 
@@ -308,6 +309,7 @@ class MatchRunner:
                     state.emit_event("invalid_action_attack", player=pid, error=error)
                 else:
                     prev_len = len(state.events)
+                    self._maybe_emit_ai_decision(state, pid, action)
                     state = await StateTransition.apply(state, action, self._get_player)
                     self._emit_since(state, prev_len)
 
@@ -329,6 +331,7 @@ class MatchRunner:
                                 is_valid2, _ = ActionValidator.validate(state, action2)
                                 if is_valid2:
                                     prev_len2 = len(state.events)
+                                    self._maybe_emit_ai_decision(state, pid, action2)
                                     state = await StateTransition.apply(state, action2, self._get_player)
                                     self._emit_since(state, prev_len2)
                                     state.get_player(pid).festival_lead_pending = False
@@ -366,6 +369,29 @@ class MatchRunner:
                 state = await StateTransition.apply(state, action, self._get_player)
                 self._emit_since(state, prev_len)
         return state
+
+    def _maybe_emit_ai_decision(self, state: GameState, pid: str, action: Action) -> None:
+        """Emit a live ai_decision event if the action carries AI reasoning.
+
+        This allows the live console overlay to show reasoning immediately, before
+        decisions are persisted to Postgres after match completion.
+
+        Only emits when action.reasoning is set (AIPlayer sets this; heuristics do not),
+        so this naturally restricts emission to AI players without coupling the runner
+        to the AIPlayer class.
+        """
+        reasoning = getattr(action, "reasoning", None)
+        if not reasoning:
+            return
+        state.emit_event(
+            "ai_decision",
+            player=pid,
+            action_type=action.action_type.name,
+            card_played=action.card_instance_id,
+            target=action.target_instance_id,
+            reasoning=reasoning,
+            attack_index=action.attack_index,
+        )
 
     def _handle_between_turns(self, state: GameState) -> GameState:
         """Apply status conditions (Appendix A §Between Turns)."""
