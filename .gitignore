@@ -43,3 +43,6 @@ test-results/
 # Docker
 *.log
 node_modules/
+
+# Observed Play Memory — raw PTCGL log files (never commit real logs)
+data/ptcgl_logs/

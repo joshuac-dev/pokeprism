@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-05 (session 19 — manual deck name overrides in Simulation Setup)
+Last updated: 2026-05-05 (session 20 — Observed Play Memory Phase 0 design plan)
 
 ## Current Workstream
 
@@ -16,6 +16,10 @@ post-phase development:
 - Card-effect correctness, handler registration, and simulation validation.
 - AI/coach hardening and decision-quality follow-up.
 - Operational refinement for Docker, Celery, CI, and local workflows.
+
+**Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
+is in **Phase 0 (design only)**. See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
+No production code or migrations have been added yet.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
 workflow. `docs/CARDLIST.md`, `docs/POKEMON_MASTER_LIST.md`, and
@@ -37,6 +41,19 @@ Re-check them before making claims in user-facing docs.
 | Frontend unit tests | **140 passed (14 files)** — 2026-05-05 session 19. `cd frontend && npm test -- --run`. Added `DeckUploader.test.tsx` (+3 new tests), `OpponentDeckList.test.tsx` (9 new tests, new file), `SimulationSetup.test.tsx` (9 new tests, new file). Historical: 118/12 (session 18). |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 20 Work (2026-05-05)
+
+### Goal
+
+Phase 0 design-alignment pass for Observed Play Memory on feature branch
+`feature/observed-play-memory`.
+
+### Completed
+
+- docs(observed-play): add implementation plan — created `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md` (all 23 required sections); defines MVP boundary, parallel DB tables, parser v1 architecture, card resolution strategy, 10 API routes, 9 frontend components, confidence tiers, reparse/versioning, memory ingestion stages, testing strategy, and 8-phase phased plan. No production code or migrations added.
+- chore: add `data/ptcgl_logs/` to `.gitignore`
+- docs: update STATUS.md and CHANGELOG.md with branch/design status
 
 ## Session 19 Work (2026-05-05)
 
