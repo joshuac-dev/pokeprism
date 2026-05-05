@@ -5,14 +5,14 @@ This file stores the rotating cursor for the DB-backed card effect audit workflo
 It does not define card text. It does not define the audit candidate set. The database defines audit scope, and TCGDex defines card behavior.
 
 ```text
-next_start_cursor: Unfair Stamp | SV6 | 165 | sv06-165
-last_run_status: PARTIAL_TIME_BUDGET
-last_run_date_utc: 2026-05-05
+next_start_cursor: Lapras | SCR | 31 | sv07-031
+last_run_status: TARGET_REACHED
+last_run_date_utc: 2026-05-06
 last_pr:
-last_issue: Nightly DB-backed card effect implementation audit - 2026-05-05
-last_first_card_audited: Wondrous Patch | PFL | 94 | me02-094
-last_card_fully_audited: Unfair Stamp | SV6 | 165 | sv06-165
-notes: 9 bugs fixed this session (#A1–#A9). Bugs: #A1 duplicate _strong_bash_b2 removed, #A2+#A3 _acerolas_mischief removed bogus draw-to-4 and added missing prize-count gate (opp must have ≤2 prizes), #A4 _lucian_b5 completely rewritten (shuffle hands to deck, coin flip → 6/3 draw), #A5 sv06-159 re-registered to _ogres_mask (was _noop), #A6 _unfair_stamp player draw corrected 3→5, #A7 _dangle_tail_flag → real discard-to-hand, #A8 _recovery_net_flag → real 2-Pokemon discard-to-hand, #A9 _avenging_edge_flag → real 100+60-if-ko-last-turn. Full suite: 411 passed / 3 skipped.
+last_issue: DB-backed card effect audit session 10
+last_first_card_audited: Arboliva ex | SV9 | 23 | sv10-023
+last_card_fully_audited: Lanturn | SCR | 49 | sv07-049
+notes: 25 findings (15 code fixes + 10 engine gaps). Fixes: #1 sv05-015 Wafting Heal passive→real handler, #2 sv10-023 Oil Salvo bypass_wr=True, #3 sv06-087 Floette Minor Errand-Running max_count 1→3, #4 sv06-089 Swirlix Sneaky Placement any-opp-target, #5 sv06-021 Poltchageist Tea Server implemented, #6 sv06-022 Sinistcha Cursed Drop implemented, #7 sv06-022 Sinistcha Spill the Tea implemented, #8 sv06-023 Sinistcha ex Re-Brew implemented, #9 sv06-045 Seaking Peck Off implemented, #10 sv06-046 Jynx Inviting Kiss+Confused, #11 sv06-056 Froakie Flock implemented, #12 sv06-048 Crawdaunt Snip Snip+mill, #13 sv06.5-050 Eevee Colorful Catch, #14 sv06.5-051 Furfrou Energy Assist, #15 sv07-037 Tirtouga Splashing Turn. Engine gaps EG4–EG13 documented in test_audit_fixes.py. Full suite: 488 passed / 17 skipped.
 ```
 
 ## Cursor rules

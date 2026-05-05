@@ -32,11 +32,46 @@ merged PR history support that it actually landed.
 
 ### Summary
 
-As of `docs/STATUS.md` last updated on 2026-05-05, the project is in
+As of `docs/STATUS.md` last updated on 2026-05-06, the project is in
 **post-phase DB-backed audit and handler refinement**. Phase 13 and the earlier
 hardening sweep are documented as complete. Current work continues to close
 card-specific implementation gaps found by database-backed audits, coverage
 gates, and runtime simulation checks.
+
+### 2026-05-06 — Session 10: DB-backed audit, 25 findings (TARGET_REACHED)
+
+**15 handler fixes** (attacks.py / abilities.py):
+- **Fix #1** sv05-015 Wafting Heal: `register_passive_ability` → `register_ability` with real `_wafting_heal` handler
+- **Fix #2** sv10-023 Oil Salvo: active-Pokémon path now uses `bypass_wr=True` (TCGDex: "not affected by W/R")
+- **Fix #3** sv06-087 Floette Minor Errand-Running: `max_count` 1 → 3 (TCGDex: "up to 3 Basic Energy")
+- **Fix #4** sv06-089 Swirlix Sneaky Placement: now targets any opp Pokémon via ChoiceRequest (not just active)
+- **Fix #5** sv06-021 Poltchageist Tea Server: implemented — put 1 Basic Grass Energy from discard to hand
+- **Fix #6** sv06-022 Sinistcha Cursed Drop: implemented — distribute 4 damage counters across opp Pokémon
+- **Fix #7** sv06-022 Sinistcha Spill the Tea: implemented — discard up to 3 Grass Energy, 70 damage each
+- **Fix #8** sv06-023 Sinistcha ex Re-Brew: implemented — 2 counters per Grass Energy in discard on chosen target; shuffle those energy back
+- **Fix #9** sv06-045 Seaking Peck Off: implemented — discard opp Active's Tool, then 50 damage
+- **Fix #10** sv06-046 Jynx Inviting Kiss: implemented — bench Basic Pokémon + apply Confused to newly benched Pokémon
+- **Fix #11** sv06-056 Froakie Flock: implemented — search deck for up to 2 Froakie, bench them
+- **Fix #12** sv06-048 Crawdaunt Snip Snip: implemented — 40 damage + flip 2 coins, 1 mill per heads
+- **Fix #13** sv06.5-050 Eevee Colorful Catch: implemented — search deck for up to 3 Basic Energy of different types
+- **Fix #14** sv06.5-051 Furfrou Energy Assist: implemented — 30 damage + attach Basic Energy from discard to bench
+- **Fix #15** sv07-037 Tirtouga Splashing Turn: implemented — 70 damage + switch self with chosen bench Pokémon
+
+**10 engine gaps documented** (EG4–EG13 in `tests/test_engine/test_audit_fixes.py`):
+- EG4 sv06-016 Rillaboom Drum Beating — per-Pokémon attack/retreat cost modifier for next turn
+- EG5 sv06-068 Luxray ex Piercing Gaze — discard card from opponent's revealed hand
+- EG6 sv06-076 Kilowattrel Wind Power Charge — per-Pokémon next-turn +120 damage bonus
+- EG7 sv07-011 Eldegoss Breezy Gift — shuffle self+attached into deck mid-attack + deck search
+- EG8 sv05-072 Reuniclus Summoning Gate — peek top 8, bench any Pokémon found
+- EG9 sv06-079 Clefable Metronome — copy opponent active's attack at runtime
+- EG10 sv07-032 Lapras ex Larimar Rain — peek top 20, attach any Energy found
+- EG11 sv07-047 Electivire Unleash Lightning — player-wide attack lock including future Pokémon
+- EG12 sv07-049 Lanturn Disorienting Flash — Confused with 8-counter custom penalty (needs engine field)
+- EG13 sv06-010 Illumise Slowing Perfume — second-player first-turn conditional bench manipulation
+
+**Tests**: 488 passed, 17 skipped (was 478/1). 16 new test functions added to `test_audit_fixes.py`.
+
+**Audit cursor advanced**: `sv07-031` (Lapras / SCR) is the next start cursor.
 
 The current operational handoff is `docs/STATUS.md`. This changelog remains the
 evidence-based history, not the live status file.
