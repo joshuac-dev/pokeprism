@@ -38,6 +38,20 @@ hardening sweep are documented as complete. Current work continues to close
 card-specific implementation gaps found by database-backed audits, coverage
 gates, and runtime simulation checks.
 
+### 2026-05-05 — Session 18: History page — collapse long opponent lists
+
+Prevented the History table from becoming excessively wide when simulations have many opponent decks.
+
+- **`OpponentListCell`** (`frontend/src/components/history/OpponentListCell.tsx`, new): Shows the first 3 opponent deck names inline. If there are more, shows a `More… (+N)` button with `aria-label="Show all N opponent decks"`. Renders `—` for zero opponents. `stopPropagation` on click to avoid row-level interference.
+
+- **`OpponentDeckListModal`** (`frontend/src/components/history/OpponentDeckListModal.tsx`, new): Simple modal listing all opponent decks in a numbered `<ol>`, with user deck name (or truncated simulation ID) as subtitle. `role="dialog"`, `aria-modal`, close button, Escape/backdrop/button close. `max-h-[70vh] overflow-y-auto` for long lists.
+
+- **History page** (`frontend/src/pages/History.tsx`): Replaced the inline-join opponents cell with `<OpponentListCell>`. Added `opponentListModal` state and renders `<OpponentDeckListModal>` on demand.
+
+- **Tests**: 118 frontend (no backend changes). `OpponentListCell.test.tsx` (7), `OpponentDeckListModal.test.tsx` (8), `History.test.tsx` (14). Build clean.
+
+**Confidence:** High — all tests pass, build clean.
+
 ### 2026-05-05 — Session 17b: Fix broken card images — normalize TCGDex URLs
 
 Fixed broken card images in the Coverage page lightbox by applying the project-standard URL normalization.

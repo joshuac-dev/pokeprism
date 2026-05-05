@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-05 (session 17b — normalize TCGDex image URLs for Coverage lightbox)
+Last updated: 2026-05-05 (session 18 — History page opponent list collapse)
 
 ## Current Workstream
 
@@ -33,10 +33,62 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **584 passed, 1 skipped** — 2026-05-05 session 17b. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 579/1 (session 16), 565/1 (session 15), 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
-| Frontend unit tests | **89 passed (9 files)** — 2026-05-05 session 17b. `cd frontend && npm test -- --run`. `imageUrl.test.ts` (11); `Coverage.test.tsx` (12); `CardImageLightbox.test.tsx` (15); `LiveConsole.test.tsx` (18); `EventDetail.test.tsx` (16). |
+| Backend test baseline | **584 passed, 1 skipped** — 2026-05-05 session 18 (no backend changes). `cd backend && python3 -m pytest tests/ -x -q`. Historical: 579/1 (session 16), 565/1 (session 15), 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
+| Frontend unit tests | **118 passed (12 files)** — 2026-05-05 session 18. `cd frontend && npm test -- --run`. `History.test.tsx` (14); `OpponentListCell.test.tsx` (7); `OpponentDeckListModal.test.tsx` (8); `imageUrl.test.ts` (11); `Coverage.test.tsx` (12); `CardImageLightbox.test.tsx` (15); `LiveConsole.test.tsx` (18); `EventDetail.test.tsx` (16). |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 18 Work (2026-05-05)
+
+### Goal
+
+Collapse long opponent lists on the History page. Simulations with many opponents were making the table excessively wide.
+
+### Completed
+
+1. **`OpponentListCell`** (`frontend/src/components/history/OpponentListCell.tsx`, new):
+   - Shows at most the first 3 opponent deck names inline.
+   - If `opponents.length > 3`, appends a `More… (+N)` button showing the hidden count.
+   - Renders `—` for zero opponents.
+   - Button has `aria-label="Show all N opponent decks"`, `e.stopPropagation()` to prevent row-level interference.
+
+2. **`OpponentDeckListModal`** (`frontend/src/components/history/OpponentDeckListModal.tsx`, new):
+   - Modal listing all opponent decks with a numbered `<ol>`.
+   - Shows user deck name (or truncated simulation ID) as context subtitle.
+   - `role="dialog"`, `aria-modal="true"`, close button `aria-label="Close opponent deck list"`.
+   - Closes on Escape, backdrop click, close button.
+   - `max-h-[70vh] overflow-y-auto` for long lists.
+
+3. **History page updates** (`frontend/src/pages/History.tsx`):
+   - `opponents` column cell replaced with `<OpponentListCell>`.
+   - `opponentListModal` state added to hold the selected simulation's opponent data.
+   - `<OpponentDeckListModal>` rendered when `opponentListModal` is set; closed when modal closes.
+   - Sort, filter, search, pagination, compare, star, delete unaffected.
+
+4. **Tests** — 29 new tests across 3 new files:
+   - `OpponentListCell.test.tsx` (7 tests): zero/one/three/four+/More… click/aria-label.
+   - `OpponentDeckListModal.test.tsx` (8 tests): all opponents listed, context, Escape/backdrop/close, a11y.
+   - `History.test.tsx` (14 tests): integration — all opponent scenarios, modal open/close, controls still work.
+
+### Validation (session 18)
+
+| Command | Result |
+|---|---|
+| `cd frontend && npm test -- --run` | **118 passed (12 files)** |
+| `cd frontend && npm run build` | **✓ built in 4.13s** |
+
+### Files Changed (session 18)
+
+| File | Change |
+|---|---|
+| `frontend/src/components/history/OpponentListCell.tsx` | New: inline truncated list with More… button |
+| `frontend/src/components/history/OpponentDeckListModal.tsx` | New: full opponent deck list modal |
+| `frontend/src/pages/History.tsx` | Replaced opponents cell; added `opponentListModal` state and rendering |
+| `frontend/src/components/history/OpponentListCell.test.tsx` | New: 7 unit tests |
+| `frontend/src/components/history/OpponentDeckListModal.test.tsx` | New: 8 unit tests |
+| `frontend/src/pages/History.test.tsx` | New: 14 integration tests |
+| `docs/STATUS.md` | This file |
+| `docs/CHANGELOG.md` | Session 18 entry added |
 
 ## Session 17b Work (2026-05-05)
 

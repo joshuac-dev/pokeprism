@@ -13,6 +13,8 @@ import StatusBadge from '../components/history/StatusBadge';
 import ModeBadge from '../components/history/ModeBadge';
 import FilterBar from '../components/history/FilterBar';
 import CompareModal from '../components/history/CompareModal';
+import OpponentListCell from '../components/history/OpponentListCell';
+import OpponentDeckListModal from '../components/history/OpponentDeckListModal';
 import { listSimulations, starSimulation, deleteSimulation } from '../api/history';
 import type { SimulationRow } from '../types/history';
 
@@ -58,6 +60,12 @@ export default function History() {
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [opponentListModal, setOpponentListModal] = useState<{
+    simulationId: string;
+    userDeckName: string | null;
+    opponents: string[];
+  } | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -177,9 +185,18 @@ export default function History() {
     col.accessor('opponents', {
       header: 'Opponent(s)',
       enableSorting: false,
-      cell: ({ getValue }) => {
-        const ops = getValue() as string[];
-        return <span className="text-slate-600 dark:text-slate-300 text-xs">{ops.length > 0 ? ops.join(', ') : '\u2014'}</span>;
+      cell: ({ row }) => {
+        const sim = row.original;
+        return (
+          <OpponentListCell
+            opponents={sim.opponents}
+            onShowAll={() => setOpponentListModal({
+              simulationId: sim.id,
+              userDeckName: sim.user_deck_name,
+              opponents: sim.opponents,
+            })}
+          />
+        );
       },
     }),
     col.accessor('game_mode', {
@@ -375,6 +392,15 @@ export default function History() {
 
         {comparing && compareList.length >= 2 && (
           <CompareModal sims={compareList} onClose={() => setComparing(false)} />
+        )}
+
+        {opponentListModal && (
+          <OpponentDeckListModal
+            simulationId={opponentListModal.simulationId}
+            userDeckName={opponentListModal.userDeckName}
+            opponents={opponentListModal.opponents}
+            onClose={() => setOpponentListModal(null)}
+          />
         )}
       </div>
     </PageShell>
