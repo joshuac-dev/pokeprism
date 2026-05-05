@@ -71,28 +71,31 @@ async def _import_single_file(
             "original_filename": original_filename,
             "sha256_hash": "",
             "status": "failed",
-            "parse_status": "failed",
+            "parse_status": "not_applicable",
             "stored_path": None,
             "error": f"File exceeds {MAX_SINGLE_FILE_BYTES // (1024 * 1024)} MB limit",
         }
 
     try:
-        raw_content = data.decode("utf-8", errors="strict")
+        raw_content = data.decode("utf-8")
     except UnicodeDecodeError:
-        batch.failed_file_count = (batch.failed_file_count or 0) + 1
         try:
-            write_failed_file(data, original_filename, "encoding_error")
-        except Exception:
-            pass
-        return {
-            "log_id": None,
-            "original_filename": original_filename,
-            "sha256_hash": "",
-            "status": "failed",
-            "parse_status": "failed",
-            "stored_path": None,
-            "error": "File is not valid UTF-8",
-        }
+            raw_content = data.decode("utf-8-sig")  # Accept UTF-8 BOM (Windows exports)
+        except UnicodeDecodeError:
+            batch.failed_file_count = (batch.failed_file_count or 0) + 1
+            try:
+                write_failed_file(data, original_filename, "encoding_error")
+            except Exception:
+                pass
+            return {
+                "log_id": None,
+                "original_filename": original_filename,
+                "sha256_hash": "",
+                "status": "failed",
+                "parse_status": "decode_failed",
+                "stored_path": None,
+                "error": "File is not valid UTF-8 or UTF-8 BOM text.",
+            }
 
     sha256_hash = compute_sha256(data)
     batch.accepted_file_count = (batch.accepted_file_count or 0) + 1
@@ -129,7 +132,7 @@ async def _import_single_file(
             "original_filename": original_filename,
             "sha256_hash": sha256_hash,
             "status": "failed",
-            "parse_status": "failed",
+            "parse_status": "archive_failed",
             "stored_path": None,
             "error": f"Archive write failed: {exc}",
         }
@@ -182,7 +185,7 @@ async def _import_zip(
             "original_filename": original_filename,
             "sha256_hash": "",
             "status": "failed",
-            "parse_status": "failed",
+            "parse_status": "not_applicable",
             "stored_path": None,
             "error": f"ZIP file exceeds {MAX_ZIP_BYTES // (1024 * 1024)} MB limit",
         }]
@@ -197,7 +200,7 @@ async def _import_zip(
             "original_filename": original_filename,
             "sha256_hash": "",
             "status": "failed",
-            "parse_status": "failed",
+            "parse_status": "not_applicable",
             "stored_path": None,
             "error": f"Invalid ZIP file: {exc}",
         }]
@@ -212,7 +215,7 @@ async def _import_zip(
             "original_filename": original_filename,
             "sha256_hash": "",
             "status": "failed",
-            "parse_status": "failed",
+            "parse_status": "not_applicable",
             "stored_path": None,
             "error": f"ZIP contains {len(entries)} entries — limit is {MAX_ZIP_ENTRIES}",
         }]
@@ -244,7 +247,7 @@ async def _import_zip(
                 "original_filename": entry_name,
                 "sha256_hash": "",
                 "status": "failed",
-                "parse_status": "failed",
+                "parse_status": "not_applicable",
                 "stored_path": None,
                 "error": f"Read error: {exc}",
             })
@@ -305,6 +308,11 @@ async def run_import(
             batch.status = "completed_with_warnings"
         else:
             batch.status = "completed"
+
+    # Propagate file-level errors to batch.errors_json for API visibility.
+    file_errors = [r["error"] for r in results if r.get("error") and r.get("status") == "failed"]
+    if file_errors:
+        batch.errors_json = file_errors
 
     batch.summary_json = {"files": results}
     db.add(batch)

@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-05 (session 21 — Observed Play Memory Phase 1: Raw Archive and Import Foundation)
+Last updated: 2026-05-05 (session 22 — Observed Play Memory Phase 1: Bugfix — raw `.md` upload failure and error visibility)
 
 ## Current Workstream
 
@@ -18,8 +18,8 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1 (raw import foundation) is complete.** Phase 2+ (parser, card resolution,
-memory ingestion) not yet started.
+**Phase 1 (raw import foundation) is complete and validated with real logs.**
+Phase 2+ (parser, card resolution, memory ingestion) not yet started.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
@@ -38,10 +38,58 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **635 passed, 1 skipped** — 2026-05-05 session 21. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 598/1 (session 19), 584/1 (session 18), 579/1 (session 16), 565/1 (session 15), 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
-| Frontend unit tests | **151 passed (15 files)** — 2026-05-05 session 21. `cd frontend && npm test -- --run`. Added `ObservedPlay.test.tsx` (10 new tests, new file). Historical: 140/14 (session 19), 118/12 (session 18). |
+| Backend test baseline | **648 passed, 1 skipped** — 2026-05-05 session 22. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 635/1 (session 21), 598/1 (session 19), 584/1 (session 18), 579/1 (session 16), 565/1 (session 15), 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
+| Frontend unit tests | **154 passed (15 files)** — 2026-05-05 session 22. `cd frontend && npm test -- --run`. Historical: 151/15 (session 21), 140/14 (session 19), 118/12 (session 18). |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 22 Work (2026-05-05)
+
+### Goal
+
+Fix Phase 1 raw Observed Play import so real PTCGL `.md` logs with spaces, bullets (`•`),
+and curly punctuation (`'`) import successfully. Improve file-level error visibility in
+the import report so users can see why an upload failed without checking logs.
+
+### Root Cause
+
+Docker named volumes are created by the Docker daemon as `root`-owned. The backend
+container runs as `app` (uid=999). The volume was mounted after `USER app`, so the
+app had write access to image layers but not to the named volume. Writes to
+`/data/ptcgl_logs/archive/` failed with `PermissionError: [Errno 13] Permission denied`.
+
+The UI did not display the error reason — the `error` field was returned by the API
+but the import report table had no Error column.
+
+### Fixes Applied
+
+1. **Docker ownership** (`backend/Dockerfile`): Added `RUN mkdir -p /data/ptcgl_logs && chown -R app:app /data/ptcgl_logs` before `USER app`. Docker copies image layer ownership into a named volume on its first creation. For existing volumes, manual `chown -R app:app /data/ptcgl_logs` was applied at runtime.
+
+2. **UTF-8 BOM decode** (`backend/app/observed_play/importer.py`): Added fallback decode via `utf-8-sig` for Windows PTCGL exports with BOM. Failed decode returns `"File is not valid UTF-8 or UTF-8 BOM text."`.
+
+3. **`parse_status` correctness** (`backend/app/observed_play/importer.py`): Infrastructure failures (too large, decode error, archive write error) now use `"not_applicable"`, `"decode_failed"`, `"archive_failed"` — never `"failed"`. Phase 1 has no parser; `"failed"` was semantically wrong for infrastructure errors.
+
+4. **`batch.errors_json` population** (`backend/app/observed_play/importer.py`): Per-file errors from failed results are now collected into `batch.errors_json` after `run_import` completes.
+
+5. **Startup warning** (`backend/app/main.py`): Added `_warn_if_log_root_not_writable()` called from `create_app()` — logs a WARNING with chown instructions if `/data/ptcgl_logs` is not writable at startup.
+
+6. **Frontend Error column** (`frontend/src/pages/ObservedPlay.tsx`): Added `Error` column to import report table (`l.error ?? '—'`). Added batch-level errors/warnings section below the counts grid.
+
+### Tests Added
+
+- **`backend/tests/test_observed_play/test_importer.py`**: 13 new async `TestRunImport` tests covering: realistic PTCGL log with bullets/curly apostrophes, spaced filename, UTF-8 BOM, invalid binary with clear error, `parse_status == "raw_archived"` for success, `parse_status != "failed"` for infrastructure failures, archive directory auto-created, archive file exists at stored_path, failed result includes error, `batch.errors_json` populated on failure, `batch.summary_json` includes files, duplicate detection.
+
+- **`frontend/src/pages/ObservedPlay.test.tsx`**: 3 new tests: failed import shows file-level error in Error column, successful import shows `—`, batch-level errors/warnings render when present.
+
+### Validation (session 22)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **648 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **154 passed (15 files)** ✓
+- `cd frontend && npm run build`: clean ✓
+- `docs/AUDIT_STATE.md`: not touched ✓
+- `frontend/node_modules`: not committed ✓
+- No raw battle logs committed ✓
+- No parser/card-resolution/memory ingestion added ✓
 
 ## Session 21 Work (2026-05-05)
 

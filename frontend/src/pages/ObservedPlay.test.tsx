@@ -346,4 +346,89 @@ describe('ObservedPlay page', () => {
     expect(dupCells.length).toBeGreaterThan(0);
     expect(skipCells.length).toBeGreaterThan(0);
   });
+
+  it('shows file-level error in Error column for failed imports', async () => {
+    const failedResult = {
+      ...sampleUploadResult,
+      status: 'failed',
+      failed_file_count: 1,
+      imported_file_count: 0,
+      logs: [
+        {
+          log_id: null,
+          original_filename: 'bad.md',
+          sha256_hash: 'deadbeef',
+          status: 'failed' as const,
+          parse_status: 'decode_failed',
+          stored_path: null,
+          error: 'File is not valid UTF-8 or UTF-8 BOM text.',
+        },
+      ],
+      errors: ['bad.md: File is not valid UTF-8 or UTF-8 BOM text.'],
+      warnings: [],
+    };
+    (uploadObservedPlayLog as ReturnType<typeof vi.fn>).mockResolvedValue(failedResult);
+
+    setup();
+    await waitFor(() => screen.getByText('Upload Battle Log'));
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await userEvent.upload(input, new File(['\xff\xfe'], 'bad.md', { type: 'application/octet-stream' }));
+    await userEvent.click(screen.getByRole('button', { name: /upload/i }));
+
+    await waitFor(() => screen.getByText('Import Report'));
+
+    // Error column header
+    expect(screen.getByText('Error')).toBeInTheDocument();
+    // Error message displayed in the row
+    expect(screen.getByText('File is not valid UTF-8 or UTF-8 BOM text.')).toBeInTheDocument();
+  });
+
+  it('shows em-dash in Error column for successful imports', async () => {
+    (uploadObservedPlayLog as ReturnType<typeof vi.fn>).mockResolvedValue(sampleUploadResult);
+
+    setup();
+    await waitFor(() => screen.getByText('Upload Battle Log'));
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await userEvent.upload(input, new File(['# log'], 'game.md', { type: 'text/markdown' }));
+    await userEvent.click(screen.getByRole('button', { name: /upload/i }));
+
+    await waitFor(() => screen.getByText('Import Report'));
+
+    expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
+  it('shows batch-level errors when returned', async () => {
+    const resultWithBatchErrors = {
+      ...sampleUploadResult,
+      status: 'failed',
+      failed_file_count: 1,
+      imported_file_count: 0,
+      logs: [
+        {
+          ...sampleUploadResult.logs[0],
+          status: 'failed' as const,
+          error: 'Permission denied writing archive.',
+        },
+      ],
+      errors: ['game.md: Permission denied writing archive.'],
+      warnings: ['Disk usage is high.'],
+    };
+    (uploadObservedPlayLog as ReturnType<typeof vi.fn>).mockResolvedValue(resultWithBatchErrors);
+
+    setup();
+    await waitFor(() => screen.getByText('Upload Battle Log'));
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await userEvent.upload(input, new File(['# log'], 'game.md', { type: 'text/markdown' }));
+    await userEvent.click(screen.getByRole('button', { name: /upload/i }));
+
+    await waitFor(() => screen.getByText('Import Report'));
+
+    // Error appears both in batch errors section and in the per-file table row
+    const errorEls = screen.getAllByText(/Permission denied writing archive/);
+    expect(errorEls.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Disk usage is high/)[0]).toBeInTheDocument();
+  });
 });

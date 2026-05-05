@@ -35,6 +35,9 @@ merged PR history support that it actually landed.
 - **Observed Play Memory: design-alignment plan** — added `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md` on feature branch `feature/observed-play-memory`. Defines MVP boundary (upload/parse/report cycle with no memory ingestion), parallel `observed_play_*` table schema, parser v1 architecture, card resolution strategy, API routes, frontend page plan, confidence tiers, reparse/versioning, and 8-phase implementation roadmap. No production code or migrations included.
 - **Simulation Setup: optional manual deck name overrides** — new `user_deck_name` and `opponent_deck_names` fields in `SimulationCreate`. If provided (non-blank), manual names are used directly for `Deck.name`, `Deck.archetype`, `Simulation.user_deck_name`, and `SimulationOpponent.deck_name`, bypassing Gemma naming for the user deck. Blank/absent fields preserve the existing automatic naming behavior. Max 120 characters enforced backend and frontend; `opponent_deck_names` count must not exceed `opponent_deck_texts` count. Frontend UI adds "Deck Archetype Name" input in DeckUploader and "Opponent Archetype Name" input in each opponent's expanded section.
 
+### Fixed
+- **Observed Play Memory Phase 1: real `.md` upload failure** — Docker named volumes are created root-owned; `PermissionError` prevented any archive write. Fixed by creating `/data/ptcgl_logs` in the Dockerfile before `USER app` so volume initialization inherits correct ownership. UTF-8 BOM decode fallback added for Windows PTCGL exports. `parse_status` corrected for infrastructure failures (`"not_applicable"` / `"decode_failed"` / `"archive_failed"` — never `"failed"` from Phase 1). `batch.errors_json` now populated from per-file errors. Startup warning added when log root is not writable. Frontend import report now shows an Error column and batch-level errors/warnings.
+
 ## Current / Unreleased
 
 ### Summary

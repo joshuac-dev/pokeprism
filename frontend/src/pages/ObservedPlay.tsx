@@ -259,6 +259,20 @@ export default function ObservedPlay() {
               </div>
             ))}
           </div>
+          {uploadResult.errors.length > 0 && (
+            <div className="mt-3 space-y-1">
+              {uploadResult.errors.map((e, i) => (
+                <p key={i} className="text-xs text-red-600" role="alert">⚠ {e}</p>
+              ))}
+            </div>
+          )}
+          {uploadResult.warnings.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {uploadResult.warnings.map((w, i) => (
+                <p key={i} className="text-xs text-yellow-700">⚑ {w}</p>
+              ))}
+            </div>
+          )}
           {uploadResult.logs.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -267,7 +281,8 @@ export default function ObservedPlay() {
                     <th className="pb-1 pr-3">File</th>
                     <th className="pb-1 pr-3">Status</th>
                     <th className="pb-1 pr-3">Parse</th>
-                    <th className="pb-1">Hash prefix</th>
+                    <th className="pb-1 pr-3">Hash prefix</th>
+                    <th className="pb-1">Error</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -276,7 +291,8 @@ export default function ObservedPlay() {
                       <td className="py-1 pr-3 font-mono text-xs">{l.original_filename}</td>
                       <td className="py-1 pr-3"><StatusChip status={l.status} /></td>
                       <td className="py-1 pr-3"><StatusChip status={l.parse_status} /></td>
-                      <td className="py-1 font-mono text-xs">{l.sha256_hash.slice(0, 8) || '—'}</td>
+                      <td className="py-1 pr-3 font-mono text-xs">{l.sha256_hash.slice(0, 8) || '—'}</td>
+                      <td className="py-1 text-xs text-red-600">{l.error ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
