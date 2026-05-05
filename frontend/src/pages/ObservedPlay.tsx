@@ -231,7 +231,20 @@ function EventsModal({
         </div>
         {loading && <p className="text-sm text-gray-500">Loading…</p>}
         {error && <p className="text-sm text-red-600">{error}</p>}
-        {data && (
+        {data && data.total === 0 && (
+          <p className="text-sm text-gray-500">
+            No parsed events found. Try{' '}
+            <button
+              onClick={handleReparse}
+              disabled={reparsing}
+              className="text-blue-600 hover:underline disabled:opacity-50"
+            >
+              Reparse
+            </button>
+            .
+          </p>
+        )}
+        {data && data.total > 0 && (
           <>
             <p className="mb-3 text-xs text-gray-500">{data.total} events total</p>
             <div className="overflow-x-auto">
@@ -356,7 +369,9 @@ export default function ObservedPlay() {
       setLogPage(1);
       await Promise.all([fetchBatches(1), fetchLogs(1)]);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Upload failed';
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      const msg = detail || (err instanceof Error ? err.message : 'Upload failed');
       setUploadError(msg);
     } finally {
       setUploading(false);
@@ -370,7 +385,7 @@ export default function ObservedPlay() {
     <PageShell title="Observed Play">
       {/* Phase banner */}
       <div className="mb-6 rounded border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
-        Raw archive only. Parser and memory ingestion are not active yet.
+        Phase 2 active — parser running. Memory ingestion not yet active.
       </div>
 
       {/* ── Upload panel ─────────────────────────────────────────────────── */}

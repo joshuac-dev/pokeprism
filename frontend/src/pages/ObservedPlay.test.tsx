@@ -117,11 +117,11 @@ describe('ObservedPlay page', () => {
     expect(screen.getByRole('button', { name: /upload/i })).toBeInTheDocument();
   });
 
-  it('shows parser/memory inactive note', async () => {
+  it('shows phase 2 active banner', async () => {
     setup();
     await waitFor(() => {
       expect(
-        screen.getByText(/raw archive only/i),
+        screen.getByText(/phase 2 active/i),
       ).toBeInTheDocument();
     });
   });
@@ -447,5 +447,126 @@ describe('ObservedPlay page', () => {
     const errorEls = screen.getAllByText(/Permission denied writing archive/);
     expect(errorEls.length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/Disk usage is high/)[0]).toBeInTheDocument();
+  });
+
+  it('upload server 500 shows backend detail from response', async () => {
+    const axiosErr = Object.assign(new Error('Request failed with status code 500'), {
+      response: { data: { detail: 'Import failed: disk quota exceeded' } },
+    });
+    (uploadObservedPlayLog as ReturnType<typeof vi.fn>).mockRejectedValue(axiosErr);
+
+    setup();
+    await waitFor(() => screen.getByText('Upload Battle Log'));
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await userEvent.upload(input, new File(['# log'], 'game.md', { type: 'text/markdown' }));
+    await userEvent.click(screen.getByRole('button', { name: /upload/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+    expect(screen.getByText(/disk quota exceeded/i)).toBeInTheDocument();
+  });
+
+  it('duplicate upload response with null event_count renders import report', async () => {
+    const dupResult = {
+      ...sampleUploadResult,
+      duplicate_file_count: 1,
+      imported_file_count: 0,
+      logs: [
+        {
+          log_id: 'log-001',
+          original_filename: 'game.md',
+          sha256_hash: 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+          status: 'duplicate' as const,
+          parse_status: 'raw_archived',
+          stored_path: 'archive/ab/abcdef.md',
+          error: null,
+          event_count: 0,
+          confidence_score: null,
+        },
+      ],
+    };
+    (uploadObservedPlayLog as ReturnType<typeof vi.fn>).mockResolvedValue(dupResult);
+
+    setup();
+    await waitFor(() => screen.getByText('Upload Battle Log'));
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await userEvent.upload(input, new File(['# log'], 'game.md', { type: 'text/markdown' }));
+    await userEvent.click(screen.getByRole('button', { name: /upload/i }));
+
+    await waitFor(() => screen.getByText('Import Report'));
+    // duplicate status chip appears
+    expect(screen.getByText('duplicate')).toBeInTheDocument();
+    // no crash, error column shows dash
+    expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
+  it('event viewer shows empty state when log has no events', async () => {
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [sampleLog],
+      total: 1, page: 1, per_page: 25,
+    });
+    (getObservedPlayLogEvents as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [], total: 0, page: 1, per_page: 50,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /view events/i }));
+    await userEvent.click(screen.getByRole('button', { name: /view events/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/no parsed events found/i)).toBeInTheDocument();
+    });
+    // Reparse button still accessible inside empty state
+    expect(screen.getAllByRole('button', { name: /reparse/i }).length).toBeGreaterThan(0);
+  });
+
+  it('event viewer shows events table when events exist', async () => {
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [{ ...sampleLog, parse_status: 'parsed', event_count: 3 }],
+      total: 1, page: 1, per_page: 25,
+    });
+    (getObservedPlayLogEvents as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [
+        {
+          id: 1, event_index: 0, turn_number: 1, phase: 'turn',
+          player_raw: 'Alice', player_alias: 'player_1', actor_type: 'player',
+          event_type: 'draw', raw_line: 'Alice drew 1 card.', raw_block: null,
+          card_name_raw: null, target_card_name_raw: null,
+          zone: null, target_zone: null, amount: 1, damage: null, base_damage: null,
+          event_payload_json: {}, confidence_score: 0.95, confidence_reasons_json: [],
+        },
+      ],
+      total: 1, page: 1, per_page: 50,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /view events/i }));
+    await userEvent.click(screen.getByRole('button', { name: /view events/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('draw')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Alice drew 1 card.')).toBeInTheDocument();
+  });
+
+  it('event viewer shows error when fetch fails', async () => {
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [sampleLog],
+      total: 1, page: 1, per_page: 25,
+    });
+    (getObservedPlayLogEvents as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('network error'),
+    );
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /view events/i }));
+    await userEvent.click(screen.getByRole('button', { name: /view events/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/failed to load events/i)).toBeInTheDocument();
+    });
   });
 });

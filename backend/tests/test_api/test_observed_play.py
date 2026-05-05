@@ -225,6 +225,8 @@ class TestUploadSingleFile:
                 "parse_status": "raw_archived",
                 "stored_path": log.stored_path,
                 "error": None,
+                "event_count": 0,
+                "confidence_score": None,
             }])
             from app.api.observed_play import get_db
 
@@ -250,6 +252,46 @@ class TestUploadSingleFile:
         assert data["duplicate_file_count"] == 1
         assert data["imported_file_count"] == 0
         assert data["logs"][0]["status"] == "duplicate"
+
+    def test_duplicate_response_includes_event_count_and_confidence(self, client):
+        """Duplicate upload response must include event_count/confidence_score from existing log."""
+        batch = _make_batch_model(imported=0, duplicate=1, accepted=1)
+        log = _make_log_model()
+
+        with patch("app.api.observed_play.run_import") as mock_run:
+            mock_run.return_value = (batch, [{
+                "log_id": log.id,
+                "original_filename": "game.md",
+                "sha256_hash": log.sha256_hash,
+                "status": "duplicate",
+                "parse_status": "parsed",
+                "stored_path": log.stored_path,
+                "error": None,
+                "event_count": 42,
+                "confidence_score": 0.87,
+            }])
+            from app.api.observed_play import get_db
+
+            async def override_db():
+                session = AsyncMock()
+                session.commit = AsyncMock()
+                session.refresh = AsyncMock()
+                yield session
+
+            client.app.fastapi_app.dependency_overrides[get_db] = override_db
+            try:
+                resp = client.post(
+                    "/api/observed-play/upload",
+                    files={"file": ("game.md", _unique_log(), "text/markdown")},
+                )
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 201
+        entry = resp.json()["logs"][0]
+        assert entry["status"] == "duplicate"
+        assert entry["event_count"] == 42
+        assert entry["confidence_score"] == pytest.approx(0.87)
 
     def test_parse_status_is_raw_archived(self, client):
         resp = self._upload_with_mock(client, _unique_log())
@@ -620,6 +662,33 @@ class TestGetLogEvents:
         assert data["per_page"] == 10
         assert "items" in data
         assert "total" in data
+
+    def test_returns_empty_list_for_raw_archived_log(self, client):
+        """Phase-1 raw_archived log with no events returns 200 empty list, not 500."""
+        log = _make_log_model(parse_status="raw_archived")
+
+        async def override_db():
+            session = AsyncMock()
+            log_result = MagicMock()
+            log_result.scalars.return_value.first.return_value = log
+            count_result = MagicMock()
+            count_result.scalar_one.return_value = 0
+            events_result = MagicMock()
+            events_result.scalars.return_value.all.return_value = []
+            session.execute = AsyncMock(side_effect=[log_result, count_result, events_result])
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get(f"/api/observed-play/logs/{log.id}/events")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["items"] == []
+        assert data["total"] == 0
 
 
 # ── Reparse log ────────────────────────────────────────────────────────────────

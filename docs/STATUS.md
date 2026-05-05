@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-05 (session 23 — Observed Play Memory Phase 2: PTCGL parser v1, event storage, confidence scoring, events API, frontend viewer)
+Last updated: 2026-05-05 (session 24 — Observed Play Phase 2 bugfix: migration not applied, duplicate event_count, empty state, error detail, tests)
 
 ## Current Workstream
 
@@ -38,10 +38,73 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **682 passed, 5 skipped** — 2026-05-05 session 23. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 648/1 (session 22), 635/1 (session 21), 598/1 (session 19). |
-| Frontend unit tests | **154 passed (15 files)** — 2026-05-05 session 23. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **688 passed, 1 skipped** — 2026-05-05 session 24. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 686/1 (session 23), 648/1 (session 22), 635/1 (session 21). |
+| Frontend unit tests | **159 passed (15 files)** — 2026-05-05 session 24. `cd frontend && npm test -- --run`. Historical: 154 (session 23). |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 24 Work (2026-05-05)
+
+### Goal
+
+Stabilize Phase 2 after a 500 error during manual upload validation.
+
+### Root Cause
+
+The Phase 2 Alembic migration (`e1f2a3b4c5d6`) was not applied to the running
+PostgreSQL instance after the backend image was rebuilt. The code tried to INSERT
+into `observed_play_events` which didn't exist yet, causing:
+
+```
+asyncpg.exceptions.UndefinedTableError: relation "observed_play_events" does not exist
+```
+
+The DB was at migration `b9f8e1d2c3a4` (Phase 1 head); `e1f2a3b4c5d6` was the new head.
+
+### Fix Applied
+
+1. **Migration applied** — `docker compose exec backend alembic upgrade head` promoted DB
+   from `b9f8e1d2c3a4` → `e1f2a3b4c5d6`. The migration is idempotent. Steps added to
+   docs for post-rebuild workflow.
+
+2. **Duplicate result completeness** (`backend/app/observed_play/importer.py`):
+   Duplicate branch now includes `event_count` and `confidence_score` from the existing
+   log. These have schema defaults (0, None) so no 500 occurred, but the response was
+   semantically incomplete.
+
+3. **Frontend error detail** (`frontend/src/pages/ObservedPlay.tsx`):
+   Upload error handler now extracts `error.response?.data?.detail` from Axios error
+   before falling back to `error.message`. Users now see the specific backend failure
+   reason instead of "Request failed with status code 500".
+
+4. **EventsModal empty state** (`frontend/src/pages/ObservedPlay.tsx`):
+   When a log has zero events (`data.total === 0`), the modal now shows
+   "No parsed events found. Try Reparse." with an inline Reparse button,
+   instead of an empty table. Pre-Phase-2 `raw_archived` logs can be reparsed directly.
+
+5. **Phase banner** (`frontend/src/pages/ObservedPlay.tsx`):
+   Updated from "Raw archive only. Parser and memory ingestion are not active yet."
+   to "Phase 2 active — parser running. Memory ingestion not yet active."
+
+### Tests Added
+
+- Backend (`test_api/test_observed_play.py`): `test_returns_empty_list_for_raw_archived_log`
+  (200+empty for Phase-1 log), `test_duplicate_response_includes_event_count_and_confidence`
+  (duplicate result carries event_count/confidence_score). +2 tests.
+- Frontend (`ObservedPlay.test.tsx`): upload 500 shows backend detail, duplicate with
+  null event_count renders, empty event viewer shows no-events message + reparse button,
+  happy-path event viewer shows events table, fetch failure shows error. +5 tests.
+
+### Validation (session 24)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **688 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **159 passed (15 files)** ✓
+- `cd frontend && npm run build`: clean ✓
+- `docker compose exec backend alembic current`: `e1f2a3b4c5d6 (head)` ✓
+- `docs/AUDIT_STATE.md`: not touched ✓
+- `frontend/node_modules`: not committed ✓
+- No real battle logs committed ✓
+- No card resolution/Coach/AI/memory ingestion added ✓
 
 ## Session 23 Work (2026-05-05)
 

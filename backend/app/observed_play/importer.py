@@ -115,6 +115,8 @@ async def _import_single_file(
             "parse_status": existing.parse_status,
             "stored_path": existing.stored_path,
             "error": None,
+            "event_count": existing.event_count or 0,
+            "confidence_score": existing.confidence_score,
         }
 
     # Archive to filesystem
