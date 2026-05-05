@@ -549,24 +549,45 @@ This is a known Celery+Redis limitation.
 **Disposable sim cleaned up:** `a78da403` was cancelled via `DELETE /api/simulations/{id}`
 and removed from DB. Queue depth confirmed 0.
 
-#### Recommended Fix (not yet implemented — requires threshold decision)
+#### Fix Implemented (Session 10 — 2026-05-05)
 
-Two options:
+**Option B was chosen:** Application-level stale-running detection in `_dispatch_next_queued()`.
 
-**Option A — Redis visibility timeout:** Set a custom visibility timeout shorter than
-1 hour but longer than max expected sim runtime:
-```python
-# In celery_app.py celery_app.conf.update(...)
-broker_transport_options={"visibility_timeout": 7200},  # 2 hours
-```
-This provides faster re-delivery on crash but must be ≥ max task runtime to avoid
-false re-delivery of legitimately long-running sims.
+This is safer than adjusting Redis visibility timeout because:
+- No timing calibration required (threshold is on `started_at`, not broker delivery).
+- Broker-agnostic.
+- Progress indicator is DB-based (`SimulationOpponentResult.updated_at`), not Celery state.
+- Partial-data protection: running checkpoints with `matches_completed > 0` are marked `failed` rather than requeued, preventing duplicate match rows.
 
-**Option B — Stale-running detection in `_dispatch_next_queued()`:**
-Before the active-count check, reset any sim stuck in `running` for longer than
-a configurable threshold (e.g., `started_at < now() - interval '2 hours'`) back to
-`queued`. The `advance_simulation_queue` beat task would then re-dispatch it within
-60 seconds. This is broker-agnostic and does not require timing calibration.
+**Implementation:**
+
+1. `SIMULATION_STALE_RUNNING_MINUTES = 45` (default, overridable via env var).
+2. `_classify_stale_simulation(db, sim, cutoff)` → `'skip'` / `'requeue'` / `'fail'`:
+   - `'skip'`: sim started recently, OR any checkpoint `updated_at ≥ cutoff` (worker may still be alive).
+   - `'requeue'`: stale + no checkpoints / zero-persisted running checkpoints / complete checkpoints only.
+   - `'fail'`: stale + running checkpoint has `matches_completed > 0` (partial, unsafe to replay).
+3. `_recover_stale_running_simulations(SessionFactory, stale_minutes)`:
+   - `SELECT ... WHERE status='running' AND started_at < cutoff FOR UPDATE SKIP LOCKED` (concurrent Beat calls safe).
+   - Requeued sims get `error_message` indicating stale worker recovery.
+4. `_dispatch_next_queued()` Phase 0: calls recovery before active-count check. Recovery errors are non-fatal.
+5. `_run_simulation_async()` concurrent delivery guard: `SELECT ... FOR UPDATE` at task start; if `sim.status == 'running'` at pickup, bail immediately with `{"status": "skipped_duplicate_delivery"}`. Prevents the scenario where stale recovery re-dispatches at T+45min AND Redis redelivers the original unacked message at T+60min.
+
+**Live validation (2026-05-05):**
+
+1. Injected a fake stale simulation: `status='running'`, `started_at = now() - 90 minutes`, no checkpoints.
+2. Triggered `advance_simulation_queue` via `celery call`.
+3. Worker log:
+   ```
+   Stale-running recovery: requeuing simulation f99c41dc... (started_at=2026-05-05 09:31:54..., threshold=45 min)
+   Queue: stale-running recovery affected 1 simulation(s): ['f99c41dc...']
+   Queue: dispatched simulation f99c41dc...
+   ```
+4. Simulation recovered from `running` → `queued` → `pending` → `complete` in one Beat cycle (< 60 seconds).
+5. No duplicate match rows. Disposable sim deleted. Queue depth 0.
+
+**Test coverage:** 12 new tests in `backend/tests/test_tasks/test_scheduled.py`.
+
+**Remaining caveat:** Redis visibility timeout is still 3600s (unchanged). If the stale threshold is set shorter than 45 minutes AND a legitimately long simulation is running, the concurrent delivery guard in `_run_simulation_async` prevents double-execution. However, the default 45-minute threshold is intentionally conservative for this reason.
 
 #### Code Review Findings (verified)
 
