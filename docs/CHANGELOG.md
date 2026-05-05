@@ -32,7 +32,7 @@ merged PR history support that it actually landed.
 
 ### Summary
 
-As of `docs/STATUS.md` last updated on 2026-05-04, the project is in
+As of `docs/STATUS.md` last updated on 2026-05-05, the project is in
 **post-phase DB-backed audit and handler refinement**. Phase 13 and the earlier
 hardening sweep are documented as complete. Current work continues to close
 card-specific implementation gaps found by database-backed audits, coverage
@@ -40,6 +40,36 @@ gates, and runtime simulation checks.
 
 The current operational handoff is `docs/STATUS.md`. This changelog remains the
 evidence-based history, not the live status file.
+
+### Added (2026-05-05 Session 7 — Hardening Sweep Reverification)
+
+Full reverification of all 8 sections of the hardening sweep report. No handler
+bugs found in the 50-card TCGDex spot check. The following work was performed:
+
+- **4 new ActionValidator rejection tests** — `TestIllegalActionRejections` class
+  added to `backend/tests/test_engine/test_actions.py`:
+  - `test_evolve_blocked_when_just_played` — evolution blocked turn it is played
+  - `test_retreat_blocked_without_energy` — retreat action absent when no energy
+  - `test_attack_blocked_without_energy` — attack action absent when insufficient energy
+  - `test_extra_tool_beyond_limit_blocked` — no second Tool action when one is attached
+    (skips when deck has no Tool card)
+  - All 3 active tests pass; 1 correctly skips. New baseline: **466 passed, 1 skipped**.
+  - Confidence: High.
+
+- **`docs/HARDENING_SWEEP_REPORT.md` fully rewritten** — Prior Session 6 report
+  replaced with complete Session 7 evidence for all 19 items. Key corrections:
+  - Frontend test count: "4 passed" → "17 passed (4 files)" (prior referred to files, not tests)
+  - DB card count: 2,027 → 2,036 (STATUS.md was stale)
+  - card_performance rows: 270 → 1,947 (STATUS.md was very stale)
+  - Neo4j BEATS edge properties: `wins`/`losses` → `win_count`/`total_games`/`win_rate` (prior query used wrong names)
+  - Section 2C verdict: BLOCKED_OLLAMA → BLOCKED_NO_AI_DATA (Ollama IS warm; decisions table is empty because no AI/AI game has run)
+  - Section 6A: 14-point exhaustive check added (all 0 orphans)
+  - Sections 7A/7B/7C: Docker health + resilience code review added (new section 7B)
+  - Sections 8A/8B: Docker/env sections replaced with injection+data-quality test inventories
+
+- **`docs/STATUS.md` metrics updated** — Cards 2036, card_performance 1947, backend tests 466, frontend tests 17.
+
+- Confidence: High.
 
 ### Fixed (2026-05-04 Session 6 — Hardening Sweep Section 5 Handler Fixes)
 

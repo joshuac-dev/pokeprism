@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-04 (session 6)
+Last updated: 2026-05-05 (session 7 reverification)
 
 ## Current Workstream
 
@@ -29,15 +29,15 @@ Re-check them before making claims in user-facing docs.
 
 | Metric | Current evidence |
 |---|---|
-| Local cards table | 2,027 rows from `docker compose exec postgres psql -U pokeprism -d pokeprism -c "SELECT count(*) FROM cards;"` on 2026-05-04 |
-| Coverage endpoint snapshot | 2,026 auditable cards, 1,734 implemented, 292 flat-only, 0 missing, 100.0% from direct `backend` container call to `app.api.coverage.get_coverage()` on 2026-05-04 |
-| Local matches table | 6,900 rows from the same DB snapshot |
-| Local `card_performance` table | 270 rows from the same DB snapshot |
-| Running simulations | 0 from the same DB snapshot |
-| Backend test baseline | Latest full documented run after hardening sweep fixes: **463 passed** on 2026-05-04. Run with `cd backend && python3 -m pytest tests/ -x -q`. Historical prior baseline: 460 passed after energy_provides enum fix. |
-| Frontend unit tests | 4 passed on 2026-05-04 with `cd frontend && npm test -- --run --reporter=dot` |
+| Local cards table | **2,036** rows from `docker compose exec postgres psql -U pokeprism -d pokeprism -c "SELECT count(*) FROM cards;"` on 2026-05-05 |
+| Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** from direct `backend` container call to `app.api.coverage.get_coverage()` on 2026-05-05 |
+| Local matches table | 12,266 rows from 2026-05-05 DB snapshot |
+| Local `card_performance` table | **1,947** rows from 2026-05-05 DB snapshot |
+| Running simulations | 0 from 2026-05-05 DB snapshot |
+| Backend test baseline | Latest full documented run: **466 passed, 1 skipped** on 2026-05-05. Run with `cd backend && python3 -m pytest tests/ -x -q`. Prior: 463 passed on 2026-05-04. |
+| Frontend unit tests | **17 passed (4 files)** on 2026-05-05 with `cd frontend && npm test -- --run --reporter=dot`. Prior report of "4 passed" referred to 4 test *files*, not individual tests. |
 | Playwright E2E inventory | 14 tests listed on 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
-| Effect import smoke | Passed on 2026-05-04 with `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+| Effect import smoke | Passed on 2026-05-05 with `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
 
 ## Session 2 Work (2026-05-04)
 
