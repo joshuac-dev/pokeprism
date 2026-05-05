@@ -152,15 +152,79 @@ async def _import_single_file(
     db.add(log)
     await db.flush()
 
+    # Phase 2: parse events
+    try:
+        from app.observed_play.parser import parse_log
+        from app.observed_play.constants import PARSER_VERSION
+        from app.db.models import ObservedPlayEvent
+
+        parsed_log = parse_log(raw_content)
+        for evt in parsed_log.events:
+            event_row = ObservedPlayEvent(
+                observed_play_log_id=log.id,
+                import_batch_id=batch.id,
+                event_index=evt.event_index,
+                turn_number=evt.turn_number,
+                phase=evt.phase,
+                player_raw=evt.player_raw,
+                player_alias=evt.player_alias,
+                actor_type=evt.actor_type,
+                event_type=evt.event_type,
+                raw_line=evt.raw_line,
+                raw_block=evt.raw_block,
+                card_name_raw=evt.card_name_raw,
+                target_card_name_raw=evt.target_card_name_raw,
+                zone=evt.zone,
+                target_zone=evt.target_zone,
+                amount=evt.amount,
+                damage=evt.damage,
+                base_damage=evt.base_damage,
+                weakness_damage=evt.weakness_damage,
+                resistance_delta=evt.resistance_delta,
+                healing_amount=evt.healing_amount,
+                energy_type=evt.energy_type,
+                prize_count_delta=evt.prize_count_delta,
+                deck_count_delta=evt.deck_count_delta,
+                hand_count_delta=evt.hand_count_delta,
+                discard_count_delta=evt.discard_count_delta,
+                event_payload_json=evt.event_payload,
+                confidence_score=evt.confidence_score,
+                confidence_reasons_json=evt.confidence_reasons,
+                parser_version=PARSER_VERSION,
+            )
+            db.add(event_row)
+
+        log.parser_version = parsed_log.parser_version
+        log.parse_status = "parsed" if not parsed_log.warnings else "parsed_with_warnings"
+        log.player_1_name_raw = parsed_log.player_1_name_raw
+        log.player_2_name_raw = parsed_log.player_2_name_raw
+        log.player_1_alias = parsed_log.player_1_alias
+        log.player_2_alias = parsed_log.player_2_alias
+        log.winner_raw = parsed_log.winner_raw
+        log.winner_alias = parsed_log.winner_alias
+        log.win_condition = parsed_log.win_condition
+        log.turn_count = parsed_log.turn_count
+        log.event_count = parsed_log.event_count
+        log.confidence_score = parsed_log.confidence_score
+        log.warnings_json = parsed_log.warnings
+        log.errors_json = parsed_log.errors
+        log.metadata_json = parsed_log.metadata
+    except Exception as parse_exc:
+        logger.error("Parse failed for %s: %s", original_filename, parse_exc)
+        log.parse_status = "parse_failed"
+        log.errors_json = [{"error": str(parse_exc), "type": "parse_exception"}]
+
     batch.imported_file_count = (batch.imported_file_count or 0) + 1
     return {
         "log_id": str(log.id),
         "original_filename": original_filename,
         "sha256_hash": sha256_hash,
         "status": "imported",
-        "parse_status": "raw_archived",
+        "parse_status": log.parse_status,
         "stored_path": stored_path,
         "error": None,
+        "event_count": log.event_count or 0,
+        "confidence_score": log.confidence_score,
     }
 
 
@@ -314,7 +378,13 @@ async def run_import(
     if file_errors:
         batch.errors_json = file_errors
 
-    batch.summary_json = {"files": results}
+    total_events = sum(r.get("event_count", 0) for r in results if r.get("status") == "imported")
+    confidences = [r.get("confidence_score") for r in results if r.get("confidence_score") is not None]
+    batch.summary_json = {
+        "files": results,
+        "total_events_parsed": total_events,
+        "average_confidence": sum(confidences) / len(confidences) if confidences else None,
+    }
     db.add(batch)
     await db.flush()
 

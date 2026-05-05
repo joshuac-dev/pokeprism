@@ -17,6 +17,8 @@ class LogImportResult(BaseModel):
     parse_status: str
     stored_path: str | None
     error: str | None = None
+    event_count: int = 0
+    confidence_score: float | None = None
 
 
 # ── Upload response ────────────────────────────────────────────────────────────
@@ -48,6 +50,11 @@ class LogSummary(BaseModel):
     memory_status: str
     stored_path: str | None
     created_at: str | None
+    parser_version: str | None = None
+    event_count: int = 0
+    confidence_score: float | None = None
+    winner_raw: str | None = None
+    win_condition: str | None = None
 
 
 class LogDetail(LogSummary):
@@ -105,3 +112,44 @@ class PaginatedLogs(BaseModel):
     total: int
     page: int
     per_page: int
+
+
+class EventSummary(BaseModel):
+    id: int
+    event_index: int
+    turn_number: int | None
+    phase: str
+    player_raw: str | None
+    player_alias: str | None
+    actor_type: str | None
+    event_type: str
+    raw_line: str
+    raw_block: str | None
+    card_name_raw: str | None
+    target_card_name_raw: str | None
+    zone: str | None
+    target_zone: str | None
+    amount: int | None
+    damage: int | None
+    base_damage: int | None
+    event_payload_json: dict
+    confidence_score: float
+    confidence_reasons_json: list
+
+
+class PaginatedEvents(BaseModel):
+    items: list[EventSummary]
+    total: int
+    page: int
+    per_page: int
+
+
+class ReparseSummary(BaseModel):
+    log_id: str
+    parse_status: str
+    event_count: int
+    turn_count: int
+    confidence_score: float | None
+    parser_version: str | None
+    warnings: list[Any]
+    errors: list[Any]

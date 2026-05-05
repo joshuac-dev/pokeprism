@@ -93,10 +93,12 @@ def _make_log_model(
     log.player_1_alias = None
     log.player_2_alias = None
     log.winner_raw = None
+    log.winner_alias = None
     log.win_condition = None
     log.turn_count = 0
     log.event_count = 0
     log.confidence_score = None
+    log.parser_version = None
     log.errors_json = []
     log.warnings_json = []
     log.metadata_json = {}
@@ -505,4 +507,164 @@ class TestLogDetail:
             resp = client.get("/api/observed-play/logs/00000000-0000-0000-0000-000000000000")
         finally:
             client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 404
+
+
+# ── Log events ────────────────────────────────────────────────────────────────
+
+def _make_event_model(
+    event_id: int = 1,
+    log_id: str = "log-001",
+    event_index: int = 0,
+    event_type: str = "draw",
+    raw_line: str = "Alice drew 1 card.",
+    turn_number: int = 1,
+    phase: str = "turn",
+    confidence_score: float = 0.95,
+):
+    e = MagicMock()
+    e.id = event_id
+    e.observed_play_log_id = log_id
+    e.import_batch_id = "batch-001"
+    e.event_index = event_index
+    e.turn_number = turn_number
+    e.phase = phase
+    e.player_raw = "Alice"
+    e.player_alias = "player_1"
+    e.actor_type = "player"
+    e.event_type = event_type
+    e.raw_line = raw_line
+    e.raw_block = None
+    e.card_name_raw = None
+    e.target_card_name_raw = None
+    e.zone = None
+    e.target_zone = None
+    e.amount = None
+    e.damage = None
+    e.base_damage = None
+    e.event_payload_json = {}
+    e.confidence_score = confidence_score
+    e.confidence_reasons_json = []
+    return e
+
+
+class TestGetLogEvents:
+    def test_returns_events_for_existing_log(self, client):
+        log = _make_log_model()
+        event = _make_event_model(log_id=log.id)
+
+        async def override_db():
+            session = AsyncMock()
+            log_result = MagicMock()
+            log_result.scalars.return_value.first.return_value = log
+            count_result = MagicMock()
+            count_result.scalar_one.return_value = 1
+            events_result = MagicMock()
+            events_result.scalars.return_value.all.return_value = [event]
+            session.execute = AsyncMock(side_effect=[log_result, count_result, events_result])
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get(f"/api/observed-play/logs/{log.id}/events")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 1
+        assert data["items"][0]["event_type"] == "draw"
+
+    def test_returns_404_for_missing_log(self, client):
+        async def override_db():
+            session = AsyncMock()
+            result = MagicMock()
+            result.scalars.return_value.first.return_value = None
+            session.execute = AsyncMock(return_value=result)
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs/no-such-log/events")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 404
+
+    def test_pagination_fields_present(self, client):
+        log = _make_log_model()
+
+        async def override_db():
+            session = AsyncMock()
+            log_result = MagicMock()
+            log_result.scalars.return_value.first.return_value = log
+            count_result = MagicMock()
+            count_result.scalar_one.return_value = 0
+            events_result = MagicMock()
+            events_result.scalars.return_value.all.return_value = []
+            session.execute = AsyncMock(side_effect=[log_result, count_result, events_result])
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get(f"/api/observed-play/logs/{log.id}/events?page=2&per_page=10")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["page"] == 2
+        assert data["per_page"] == 10
+        assert "items" in data
+        assert "total" in data
+
+
+# ── Reparse log ────────────────────────────────────────────────────────────────
+
+class TestReparseLog:
+    def test_reparse_returns_summary(self, client):
+        log = _make_log_model(raw_content="Alice's Turn 1\nAlice drew 1 card.\n")
+
+        async def override_db():
+            session = AsyncMock()
+            log_result = MagicMock()
+            log_result.scalars.return_value.first.return_value = log
+            delete_result = MagicMock()
+            session.execute = AsyncMock(side_effect=[log_result, delete_result])
+            session.add = MagicMock()
+            session.commit = AsyncMock()
+            session.refresh = AsyncMock(side_effect=lambda obj: None)
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post(f"/api/observed-play/logs/{log.id}/reparse")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "log_id" in data
+        assert "parse_status" in data
+        assert "event_count" in data
+
+    def test_reparse_returns_404_for_unknown_log(self, client):
+        async def override_db():
+            session = AsyncMock()
+            result = MagicMock()
+            result.scalars.return_value.first.return_value = None
+            session.execute = AsyncMock(return_value=result)
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post("/api/observed-play/logs/no-such-log/reparse")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
         assert resp.status_code == 404

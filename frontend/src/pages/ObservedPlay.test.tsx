@@ -11,6 +11,8 @@ vi.mock('../api/observedPlay', () => ({
   listObservedPlayBatches: vi.fn(),
   listObservedPlayLogs: vi.fn(),
   getObservedPlayLog: vi.fn(),
+  getObservedPlayLogEvents: vi.fn(),
+  reparseObservedPlayLog: vi.fn(),
 }));
 
 import {
@@ -18,6 +20,8 @@ import {
   listObservedPlayBatches,
   listObservedPlayLogs,
   getObservedPlayLog,
+  getObservedPlayLogEvents,
+  reparseObservedPlayLog,
 } from '../api/observedPlay';
 
 const emptyBatches = { items: [], total: 0, page: 1, per_page: 25 };
@@ -50,6 +54,11 @@ const sampleLog = {
   memory_status: 'not_ingested',
   stored_path: 'archive/ab/abcdef.md',
   created_at: '2026-01-01T00:00:00Z',
+  parser_version: null,
+  event_count: 0,
+  confidence_score: null,
+  winner_raw: null,
+  win_condition: null,
 };
 
 const sampleUploadResult = {
@@ -88,6 +97,14 @@ beforeEach(() => {
   vi.clearAllMocks();
   (listObservedPlayBatches as ReturnType<typeof vi.fn>).mockResolvedValue(emptyBatches);
   (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue(emptyLogs);
+  (getObservedPlayLogEvents as ReturnType<typeof vi.fn>).mockResolvedValue({
+    items: [], total: 0, page: 1, per_page: 50,
+  });
+  (reparseObservedPlayLog as ReturnType<typeof vi.fn>).mockResolvedValue({
+    log_id: 'log-001', parse_status: 'parsed', event_count: 0,
+    turn_count: 0, confidence_score: null, parser_version: null,
+    warnings: [], errors: [],
+  });
 });
 
 describe('ObservedPlay page', () => {

@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-05 (session 22 — Observed Play Memory Phase 1: Bugfix — raw `.md` upload failure and error visibility)
+Last updated: 2026-05-05 (session 23 — Observed Play Memory Phase 2: PTCGL parser v1, event storage, confidence scoring, events API, frontend viewer)
 
 ## Current Workstream
 
@@ -18,8 +18,8 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1 (raw import foundation) is complete and validated with real logs.**
-Phase 2+ (parser, card resolution, memory ingestion) not yet started.
+**Phase 1 (raw import foundation) and Phase 2 (parser v1, event storage) are complete.**
+Phase 3+ (card resolution, memory ingestion) not yet started.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
@@ -38,10 +38,56 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **648 passed, 1 skipped** — 2026-05-05 session 22. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 635/1 (session 21), 598/1 (session 19), 584/1 (session 18), 579/1 (session 16), 565/1 (session 15), 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
-| Frontend unit tests | **154 passed (15 files)** — 2026-05-05 session 22. `cd frontend && npm test -- --run`. Historical: 151/15 (session 21), 140/14 (session 19), 118/12 (session 18). |
+| Backend test baseline | **682 passed, 5 skipped** — 2026-05-05 session 23. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 648/1 (session 22), 635/1 (session 21), 598/1 (session 19). |
+| Frontend unit tests | **154 passed (15 files)** — 2026-05-05 session 23. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 23 Work (2026-05-05)
+
+### Goal
+
+Observed Play Memory Phase 2: PTCGL battle log parser v1, structured event storage,
+confidence scoring, new events/reparse API endpoints, and frontend event viewer.
+
+### Completed
+
+1. **`observed_play_events` table** (`backend/alembic/versions/e1f2a3b4c5d6_observed_play_events.py`): New migration adding the `observed_play_events` table with 30+ columns (event_type, turn_number, phase, player_raw/alias, card_name_raw, damage, energy_type, prize_count_delta, confidence_score, parser_version, etc.), two indexes (`ix_ope_log_id_event_index`, `ix_ope_log_id_event_type`), and FK to `observed_play_logs`.
+
+2. **Parser modules** (4 new files):
+   - `backend/app/observed_play/constants.py`: All event type constants (`ET_TURN_START`, `ET_DRAW`, `ET_ATTACK_USED`, etc.), phase constants, `PARSER_VERSION = "1.0"`.
+   - `backend/app/observed_play/patterns.py`: Compiled regex patterns for all PTCGL log line types (turn start, draw, attach energy, play trainer, evolve, attack, KO, prize, mulligan, game end, etc.). Fixed turn-number regex to accept `"Alice's Turn 1"` format.
+   - `backend/app/observed_play/confidence.py`: Deterministic per-event and log-level confidence scoring functions.
+   - `backend/app/observed_play/parser.py`: Complete `parse_log()` implementation with `ParsedObservedLog`/`ParsedObservedEvent` dataclasses. Parser never throws; wraps inner parser in try/except. Player aliasing (first seen → `player_1`/`player_2`). Phase transitions (setup → turn → combat → game_end).
+
+3. **Importer Phase 2 block** (`backend/app/observed_play/importer.py`): After `db.flush()`, parse log content and insert `ObservedPlayEvent` rows. `parse_status` transitions to `"parsed"` / `"parsed_with_warnings"` / `"parse_failed"`. Parse failures do not prevent archive writes or lose `raw_content`. Return dict now includes `event_count` and `confidence_score`. `batch.summary_json` now includes `total_events_parsed` and `average_confidence`.
+
+4. **Schemas** (`backend/app/observed_play/schemas.py`): Added `EventSummary`, `PaginatedEvents`, `ReparseSummary` classes; `LogImportResult` gets `event_count`/`confidence_score`; `LogSummary` gets `parser_version`, `event_count`, `confidence_score`, `winner_raw`, `win_condition`.
+
+5. **API endpoints** (`backend/app/api/observed_play.py`): Added `GET /logs/{log_id}/events` (paginated, filterable by event_type/turn_number/min_confidence) and `POST /logs/{log_id}/reparse` (deletes existing events, re-runs parser, updates log fields). `_log_to_summary` updated with new fields.
+
+6. **Frontend** (`frontend/src/`):
+   - `types/observedPlay.ts`: Added `EventSummary`, `PaginatedEvents`; updated `ObservedPlayLog` and `LogImportResult` with new fields.
+   - `api/observedPlay.ts`: Added `getObservedPlayLogEvents`, `reparseObservedPlayLog`, `ListEventsParams`.
+   - `pages/ObservedPlay.tsx`: Added `ConfidenceBadge` component, `EventsModal` component (paginated event table with reparse button), updated raw logs table with Events/Confidence columns and "View events" button alongside "View raw".
+
+7. **Tests**:
+   - `backend/tests/test_observed_play/test_parser.py` (NEW): 33 tests across smoke, parser version, fixture golden tests, confidence scoring, and edge cases.
+   - `backend/tests/test_observed_play/test_importer.py`: 3 tests updated for new `parse_status` values.
+   - `backend/tests/test_api/test_observed_play.py`: `_make_log_model` updated; `TestGetLogEvents` and `TestReparseLog` classes added.
+   - `frontend/src/pages/ObservedPlay.test.tsx`: `getObservedPlayLogEvents` and `reparseObservedPlayLog` added to `vi.mock`; `sampleLog` updated with new fields; `beforeEach` defaults for new mocks.
+
+8. **Fixture files** (`backend/tests/fixtures/observed_play/`): `basic_setup_and_turns.md` and `mulligan_attack_ko_prize.md` added (synthetic, match regex patterns, contain no real battle logs).
+
+### Validation (session 23)
+
+- `docker compose run --rm backend pytest tests/ -q --tb=short`: **682 passed, 5 skipped** ✓
+- `cd frontend && npm test -- --run`: **154 passed (15 files)** ✓
+- `cd frontend && npm run build`: clean ✓
+- `docs/AUDIT_STATE.md`: not touched ✓
+- `frontend/node_modules`: not committed ✓
+- No real battle logs committed ✓
+- Parser never throws; parse failures do not lose raw_content ✓
 
 ## Session 22 Work (2026-05-05)
 

@@ -403,4 +403,54 @@ class ObservedPlayLog(Base):
     updated_at            = Column(TIMESTAMP(timezone=True), server_default=func.now(),
                                    onupdate=func.now())
 
+    events = relationship("ObservedPlayEvent", back_populates="log", cascade="all, delete-orphan")
     import_batch = relationship("ObservedPlayImportBatch", back_populates="logs")
+
+class ObservedPlayEvent(Base):
+    """One parsed event from a PTCGL battle log."""
+    __tablename__ = "observed_play_events"
+    __table_args__ = (
+        UniqueConstraint("observed_play_log_id", "event_index", name="uq_ope_log_event_index"),
+        Index("idx_ope_log_id", "observed_play_log_id"),
+        Index("idx_ope_import_batch_id", "import_batch_id"),
+        Index("idx_ope_event_type", "event_type"),
+        Index("idx_ope_player_alias", "player_alias"),
+        Index("idx_ope_created_at", "created_at"),
+    )
+
+    id                      = Column(BigInteger, primary_key=True, autoincrement=True)
+    observed_play_log_id    = Column(UUID(as_uuid=True),
+                                     ForeignKey("observed_play_logs.id", ondelete="CASCADE"),
+                                     nullable=False)
+    import_batch_id         = Column(UUID(as_uuid=True), nullable=True)
+    event_index             = Column(Integer, nullable=False)
+    turn_number             = Column(Integer, nullable=True)
+    phase                   = Column(Text, nullable=False)
+    player_raw              = Column(Text, nullable=True)
+    player_alias            = Column(Text, nullable=True)
+    actor_type              = Column(Text, nullable=True)
+    event_type              = Column(Text, nullable=False)
+    raw_line                = Column(Text, nullable=False)
+    raw_block               = Column(Text, nullable=True)
+    card_name_raw           = Column(Text, nullable=True)
+    target_card_name_raw    = Column(Text, nullable=True)
+    zone                    = Column(Text, nullable=True)
+    target_zone             = Column(Text, nullable=True)
+    amount                  = Column(Integer, nullable=True)
+    damage                  = Column(Integer, nullable=True)
+    base_damage             = Column(Integer, nullable=True)
+    weakness_damage         = Column(Integer, nullable=True)
+    resistance_delta        = Column(Integer, nullable=True)
+    healing_amount          = Column(Integer, nullable=True)
+    energy_type             = Column(Text, nullable=True)
+    prize_count_delta       = Column(Integer, nullable=True)
+    deck_count_delta        = Column(Integer, nullable=True)
+    hand_count_delta        = Column(Integer, nullable=True)
+    discard_count_delta     = Column(Integer, nullable=True)
+    event_payload_json      = Column(JSONB, default=dict)
+    confidence_score        = Column(Float, nullable=False, default=0.0)
+    confidence_reasons_json = Column(JSONB, default=list)
+    parser_version          = Column(Text, nullable=False)
+    created_at              = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+    log = relationship("ObservedPlayLog", back_populates="events")

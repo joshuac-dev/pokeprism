@@ -6,12 +6,16 @@ import {
   listObservedPlayBatches,
   listObservedPlayLogs,
   getObservedPlayLog,
+  getObservedPlayLogEvents,
+  reparseObservedPlayLog,
 } from '../api/observedPlay';
 import type {
+  EventSummary,
   ObservedPlayBatch,
   ObservedPlayLog,
   ObservedPlayLogDetail,
   ObservedPlayUploadResult,
+  PaginatedEvents,
 } from '../types/observedPlay';
 
 const ACCEPTED_EXTS = '.md,.markdown,.txt,.zip';
@@ -127,6 +131,167 @@ function RawLogModal({
   );
 }
 
+function ConfidenceBadge({ score }: { score: number | null | undefined }) {
+  if (score == null) return <span className="text-xs text-gray-400">—</span>;
+  const pct = Math.round(score * 100);
+  const cls =
+    pct >= 80
+      ? 'bg-green-100 text-green-800'
+      : pct >= 50
+        ? 'bg-yellow-100 text-yellow-800'
+        : 'bg-red-100 text-red-700';
+  return (
+    <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${cls}`}>
+      {pct}%
+    </span>
+  );
+}
+
+// ── Events viewer modal ───────────────────────────────────────────────────────
+
+function EventsModal({
+  logId,
+  onClose,
+}: {
+  logId: string;
+  onClose: () => void;
+}) {
+  const [data, setData] = useState<PaginatedEvents | null>(null);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reparsing, setReparsing] = useState(false);
+  const [reparseMsg, setReparseMsg] = useState<string | null>(null);
+  const PER_PAGE = 50;
+
+  const load = useCallback(
+    (p: number) => {
+      setLoading(true);
+      setError(null);
+      getObservedPlayLogEvents(logId, { page: p, per_page: PER_PAGE })
+        .then(setData)
+        .catch(() => setError('Failed to load events.'))
+        .finally(() => setLoading(false));
+    },
+    [logId],
+  );
+
+  useEffect(() => { load(page); }, [page, load]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  async function handleReparse() {
+    setReparsing(true);
+    setReparseMsg(null);
+    try {
+      const res = await reparseObservedPlayLog(logId);
+      setReparseMsg(`Reparsed: ${res.event_count} events, status=${res.parse_status}`);
+      load(1);
+    } catch {
+      setReparseMsg('Reparse failed.');
+    } finally {
+      setReparsing(false);
+    }
+  }
+
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / PER_PAGE)) : 1;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div
+        className="relative mx-4 max-h-[90vh] w-full max-w-5xl overflow-auto rounded-lg bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 text-gray-500 hover:text-gray-800"
+          aria-label="Close"
+        >
+          <X size={20} />
+        </button>
+        <div className="mb-4 flex items-center gap-4">
+          <h2 className="text-lg font-semibold">Parsed Events</h2>
+          <button
+            onClick={handleReparse}
+            disabled={reparsing}
+            className="rounded border border-blue-300 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+          >
+            {reparsing ? 'Reparsing…' : 'Reparse'}
+          </button>
+          {reparseMsg && <span className="text-xs text-gray-600">{reparseMsg}</span>}
+        </div>
+        {loading && <p className="text-sm text-gray-500">Loading…</p>}
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        {data && (
+          <>
+            <p className="mb-3 text-xs text-gray-500">{data.total} events total</p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-200 text-left text-gray-500">
+                    <th className="pb-1 pr-2">#</th>
+                    <th className="pb-1 pr-2">Turn</th>
+                    <th className="pb-1 pr-2">Phase</th>
+                    <th className="pb-1 pr-2">Player</th>
+                    <th className="pb-1 pr-2">Type</th>
+                    <th className="pb-1 pr-2">Card</th>
+                    <th className="pb-1 pr-2">Dmg</th>
+                    <th className="pb-1 pr-2">Conf</th>
+                    <th className="pb-1">Raw line</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data.items as EventSummary[]).map((evt) => (
+                    <tr key={evt.id} className="border-b border-gray-100 last:border-0">
+                      <td className="py-0.5 pr-2 text-gray-400">{evt.event_index}</td>
+                      <td className="py-0.5 pr-2">{evt.turn_number ?? '—'}</td>
+                      <td className="py-0.5 pr-2">{evt.phase}</td>
+                      <td className="py-0.5 pr-2">{evt.player_alias ?? evt.player_raw ?? '—'}</td>
+                      <td className="py-0.5 pr-2 font-medium">{evt.event_type}</td>
+                      <td className="py-0.5 pr-2">{evt.card_name_raw ?? '—'}</td>
+                      <td className="py-0.5 pr-2">{evt.damage ?? '—'}</td>
+                      <td className="py-0.5 pr-2"><ConfidenceBadge score={evt.confidence_score} /></td>
+                      <td className="max-w-xs truncate py-0.5 font-mono text-gray-500">{evt.raw_line}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {totalPages > 1 && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="rounded border px-2 py-0.5 disabled:opacity-40"
+                >
+                  ‹ Prev
+                </button>
+                <span>Page {page} / {totalPages}</span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="rounded border px-2 py-0.5 disabled:opacity-40"
+                >
+                  Next ›
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function ObservedPlay() {
@@ -146,6 +311,7 @@ export default function ObservedPlay() {
   const [logLoading, setLogLoading] = useState(true);
 
   const [viewLogId, setViewLogId] = useState<string | null>(null);
+  const [viewEventsLogId, setViewEventsLogId] = useState<string | null>(null);
 
   const PER_PAGE = 25;
 
@@ -373,6 +539,8 @@ export default function ObservedPlay() {
                   <th className="pb-1 pr-3">Filename</th>
                   <th className="pb-1 pr-3">Parse</th>
                   <th className="pb-1 pr-3">Memory</th>
+                  <th className="pb-1 pr-3">Events</th>
+                  <th className="pb-1 pr-3">Confidence</th>
                   <th className="pb-1 pr-3">Size</th>
                   <th className="pb-1 pr-3">Imported at</th>
                   <th className="pb-1 pr-3">Hash prefix</th>
@@ -385,15 +553,23 @@ export default function ObservedPlay() {
                     <td className="py-1 pr-3 font-mono text-xs">{log.original_filename}</td>
                     <td className="py-1 pr-3"><StatusChip status={log.parse_status} /></td>
                     <td className="py-1 pr-3"><StatusChip status={log.memory_status} /></td>
+                    <td className="py-1 pr-3 text-center text-xs">{(log.event_count ?? 0) || '—'}</td>
+                    <td className="py-1 pr-3"><ConfidenceBadge score={log.confidence_score} /></td>
                     <td className="py-1 pr-3 text-xs">{fmtBytes(log.file_size_bytes)}</td>
                     <td className="py-1 pr-3 text-xs">{fmtDate(log.created_at)}</td>
                     <td className="py-1 pr-3 font-mono text-xs">{log.sha256_hash.slice(0, 8)}</td>
-                    <td className="py-1">
+                    <td className="py-1 flex gap-1">
                       <button
                         onClick={() => setViewLogId(log.id)}
                         className="rounded border border-gray-300 px-2 py-0.5 text-xs hover:bg-gray-50"
                       >
                         View raw
+                      </button>
+                      <button
+                        onClick={() => setViewEventsLogId(log.id)}
+                        className="rounded border border-blue-300 px-2 py-0.5 text-xs text-blue-700 hover:bg-blue-50"
+                      >
+                        View events
                       </button>
                     </td>
                   </tr>
@@ -423,6 +599,9 @@ export default function ObservedPlay() {
 
       {viewLogId && (
         <RawLogModal logId={viewLogId} onClose={() => setViewLogId(null)} />
+      )}
+      {viewEventsLogId && (
+        <EventsModal logId={viewEventsLogId} onClose={() => setViewEventsLogId(null)} />
       )}
     </PageShell>
   );

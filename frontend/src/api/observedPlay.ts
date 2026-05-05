@@ -3,6 +3,7 @@ import type {
   ObservedPlayBatchDetail,
   ObservedPlayLogDetail,
   ObservedPlayUploadResult,
+  PaginatedEvents,
   PaginatedObservedPlayBatches,
   PaginatedObservedPlayLogs,
 } from '../types/observedPlay';
@@ -19,6 +20,14 @@ export interface ListLogsParams {
   parse_status?: string;
   memory_status?: string;
   search?: string;
+}
+
+export interface ListEventsParams {
+  page?: number;
+  per_page?: number;
+  event_type?: string;
+  turn_number?: number;
+  min_confidence?: number;
 }
 
 export async function uploadObservedPlayLog(
@@ -58,4 +67,19 @@ export async function getObservedPlayLog(
 ): Promise<ObservedPlayLogDetail> {
   const resp = await api.get(`/api/observed-play/logs/${logId}`);
   return resp.data as ObservedPlayLogDetail;
+}
+
+export async function getObservedPlayLogEvents(
+  logId: string,
+  params: ListEventsParams = {},
+): Promise<PaginatedEvents> {
+  const resp = await api.get(`/api/observed-play/logs/${logId}/events`, { params });
+  return resp.data as PaginatedEvents;
+}
+
+export async function reparseObservedPlayLog(
+  logId: string,
+): Promise<{ log_id: string; parse_status: string; event_count: number; turn_count: number; confidence_score: number | null; parser_version: string | null; warnings: unknown[]; errors: unknown[] }> {
+  const resp = await api.post(`/api/observed-play/logs/${logId}/reparse`);
+  return resp.data;
 }

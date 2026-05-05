@@ -6,21 +6,26 @@ import logging
 from typing import AsyncGenerator, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import ObservedPlayImportBatch, ObservedPlayLog
+from app.db.models import ObservedPlayEvent, ObservedPlayImportBatch, ObservedPlayLog
 from app.db.session import AsyncSessionLocal
+from app.observed_play.constants import PARSER_VERSION
 from app.observed_play.importer import run_import
+from app.observed_play.parser import parse_log
 from app.observed_play.schemas import (
     BatchDetail,
     BatchImportResponse,
     BatchSummary,
+    EventSummary,
     LogDetail,
     LogImportResult,
     LogSummary,
     PaginatedBatches,
+    PaginatedEvents,
     PaginatedLogs,
+    ReparseSummary,
 )
 from app.observed_play.storage import SUPPORTED_EXTENSIONS
 
@@ -70,6 +75,11 @@ def _log_to_summary(log: ObservedPlayLog) -> LogSummary:
         memory_status=log.memory_status or "",
         stored_path=log.stored_path,
         created_at=log.created_at.isoformat() if log.created_at else None,
+        parser_version=getattr(log, "parser_version", None),
+        event_count=log.event_count or 0,
+        confidence_score=log.confidence_score,
+        winner_raw=log.winner_raw,
+        win_condition=log.win_condition,
     )
 
 
@@ -270,3 +280,155 @@ async def get_log(
     if log is None:
         raise HTTPException(status_code=404, detail="Log not found")
     return _log_to_detail(log)
+
+
+# ── Log events ────────────────────────────────────────────────────────────────
+
+@router.get("/logs/{log_id}/events")
+async def get_log_events(
+    log_id: str,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+    event_type: Optional[str] = Query(None),
+    turn_number: Optional[int] = Query(None),
+    min_confidence: Optional[float] = Query(None),
+    db: AsyncSession = Depends(get_db),
+) -> PaginatedEvents:
+    """Return paginated parsed events for a log."""
+    log_result = await db.execute(
+        select(ObservedPlayLog).where(ObservedPlayLog.id == log_id)
+    )
+    if log_result.scalars().first() is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+
+    q = select(ObservedPlayEvent).where(ObservedPlayEvent.observed_play_log_id == log_id)
+    if event_type:
+        q = q.where(ObservedPlayEvent.event_type == event_type)
+    if turn_number is not None:
+        q = q.where(ObservedPlayEvent.turn_number == turn_number)
+    if min_confidence is not None:
+        q = q.where(ObservedPlayEvent.confidence_score >= min_confidence)
+    q = q.order_by(ObservedPlayEvent.event_index.asc())
+
+    count_q = select(func.count()).select_from(q.subquery())
+    total = (await db.execute(count_q)).scalar_one()
+
+    q = q.offset((page - 1) * per_page).limit(per_page)
+    rows = (await db.execute(q)).scalars().all()
+
+    items = [
+        EventSummary(
+            id=row.id,
+            event_index=row.event_index,
+            turn_number=row.turn_number,
+            phase=row.phase,
+            player_raw=row.player_raw,
+            player_alias=row.player_alias,
+            actor_type=row.actor_type,
+            event_type=row.event_type,
+            raw_line=row.raw_line,
+            raw_block=row.raw_block,
+            card_name_raw=row.card_name_raw,
+            target_card_name_raw=row.target_card_name_raw,
+            zone=row.zone,
+            target_zone=row.target_zone,
+            amount=row.amount,
+            damage=row.damage,
+            base_damage=row.base_damage,
+            event_payload_json=row.event_payload_json or {},
+            confidence_score=row.confidence_score,
+            confidence_reasons_json=row.confidence_reasons_json or [],
+        )
+        for row in rows
+    ]
+
+    return PaginatedEvents(items=items, total=total, page=page, per_page=per_page)
+
+
+# ── Reparse log ────────────────────────────────────────────────────────────────
+
+@router.post("/logs/{log_id}/reparse")
+async def reparse_log(
+    log_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> ReparseSummary:
+    """Re-parse an existing log, replacing all events."""
+    log_result = await db.execute(
+        select(ObservedPlayLog).where(ObservedPlayLog.id == log_id)
+    )
+    log = log_result.scalars().first()
+    if log is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+
+    raw_content = log.raw_content or ""
+
+    await db.execute(
+        delete(ObservedPlayEvent).where(ObservedPlayEvent.observed_play_log_id == log_id)
+    )
+
+    parsed_log = parse_log(raw_content)
+
+    for evt in parsed_log.events:
+        event_row = ObservedPlayEvent(
+            observed_play_log_id=log.id,
+            import_batch_id=log.import_batch_id,
+            event_index=evt.event_index,
+            turn_number=evt.turn_number,
+            phase=evt.phase,
+            player_raw=evt.player_raw,
+            player_alias=evt.player_alias,
+            actor_type=evt.actor_type,
+            event_type=evt.event_type,
+            raw_line=evt.raw_line,
+            raw_block=evt.raw_block,
+            card_name_raw=evt.card_name_raw,
+            target_card_name_raw=evt.target_card_name_raw,
+            zone=evt.zone,
+            target_zone=evt.target_zone,
+            amount=evt.amount,
+            damage=evt.damage,
+            base_damage=evt.base_damage,
+            weakness_damage=evt.weakness_damage,
+            resistance_delta=evt.resistance_delta,
+            healing_amount=evt.healing_amount,
+            energy_type=evt.energy_type,
+            prize_count_delta=evt.prize_count_delta,
+            deck_count_delta=evt.deck_count_delta,
+            hand_count_delta=evt.hand_count_delta,
+            discard_count_delta=evt.discard_count_delta,
+            event_payload_json=evt.event_payload,
+            confidence_score=evt.confidence_score,
+            confidence_reasons_json=evt.confidence_reasons,
+            parser_version=PARSER_VERSION,
+        )
+        db.add(event_row)
+
+    log.parser_version = parsed_log.parser_version
+    log.parse_status = "parsed" if not parsed_log.warnings else "parsed_with_warnings"
+    log.player_1_name_raw = parsed_log.player_1_name_raw
+    log.player_2_name_raw = parsed_log.player_2_name_raw
+    log.player_1_alias = parsed_log.player_1_alias
+    log.player_2_alias = parsed_log.player_2_alias
+    log.winner_raw = parsed_log.winner_raw
+    log.winner_alias = parsed_log.winner_alias
+    log.win_condition = parsed_log.win_condition
+    log.turn_count = parsed_log.turn_count
+    log.event_count = parsed_log.event_count
+    log.confidence_score = parsed_log.confidence_score
+    log.warnings_json = parsed_log.warnings
+    log.errors_json = parsed_log.errors
+    log.metadata_json = parsed_log.metadata
+
+    await db.commit()
+    await db.refresh(log)
+
+    return ReparseSummary(
+        log_id=str(log.id),
+        parse_status=log.parse_status,
+        event_count=log.event_count or 0,
+        turn_count=log.turn_count or 0,
+        confidence_score=log.confidence_score,
+        parser_version=log.parser_version,
+        warnings=log.warnings_json or [],
+        errors=log.errors_json or [],
+    )

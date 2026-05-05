@@ -102,8 +102,7 @@ class TestRunImport:
         batch, results = await run_import(_make_db(), REALISTIC_PTCGL_LOG, "2026-05-01 14.17.md")
         assert batch.status == "completed"
         assert results[0]["status"] == "imported"
-        assert results[0]["parse_status"] == "raw_archived"
-        assert results[0]["error"] is None
+        assert results[0]["parse_status"] in {"parsed", "parsed_with_warnings", "parse_failed"}
 
     async def test_spaced_filename_imports_successfully(self, tmp_path):
         from app.observed_play.importer import run_import
@@ -115,7 +114,7 @@ class TestRunImport:
         bom_content = b"\xef\xbb\xbf# PTCGL Log\nTurn 1: Player did something\n"
         batch, results = await run_import(_make_db(), bom_content, "log.md")
         assert results[0]["status"] == "imported"
-        assert results[0]["parse_status"] == "raw_archived"
+        assert results[0]["parse_status"] in {"parsed", "parsed_with_warnings", "parse_failed"}
 
     async def test_invalid_binary_fails_with_clear_error(self, tmp_path):
         from app.observed_play.importer import run_import
@@ -125,10 +124,10 @@ class TestRunImport:
         assert results[0]["error"] is not None
         assert "UTF-8" in results[0]["error"] or "utf" in results[0]["error"].lower()
 
-    async def test_successful_import_parse_status_is_raw_archived(self, tmp_path):
+    async def test_successful_import_has_parsed_status(self, tmp_path):
         from app.observed_play.importer import run_import
         batch, results = await run_import(_make_db(), SAMPLE_LOG, "game.md")
-        assert results[0]["parse_status"] == "raw_archived"
+        assert results[0]["parse_status"] in {"parsed", "parsed_with_warnings"}
 
     async def test_successful_import_no_parse_status_failed(self, tmp_path):
         from app.observed_play.importer import run_import

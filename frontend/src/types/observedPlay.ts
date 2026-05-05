@@ -1,5 +1,5 @@
 /**
- * Types for Observed Play Memory API (Phase 1: raw archive only).
+ * Types for Observed Play Memory API (Phase 1 + Phase 2: parser v1).
  */
 
 export interface LogImportResult {
@@ -10,6 +10,8 @@ export interface LogImportResult {
   parse_status: string;
   stored_path: string | null;
   error?: string | null;
+  event_count: number;
+  confidence_score: number | null;
 }
 
 export interface ObservedPlayUploadResult {
@@ -60,6 +62,41 @@ export interface ObservedPlayLog {
   memory_status: string;
   stored_path: string | null;
   created_at: string | null;
+  parser_version: string | null;
+  event_count: number;
+  confidence_score: number | null;
+  winner_raw: string | null;
+  win_condition: string | null;
+}
+
+export interface EventSummary {
+  id: number;
+  event_index: number;
+  turn_number: number | null;
+  phase: string;
+  player_raw: string | null;
+  player_alias: string | null;
+  actor_type: string | null;
+  event_type: string;
+  raw_line: string;
+  raw_block: string | null;
+  card_name_raw: string | null;
+  target_card_name_raw: string | null;
+  zone: string | null;
+  target_zone: string | null;
+  amount: number | null;
+  damage: number | null;
+  base_damage: number | null;
+  event_payload_json: Record<string, unknown>;
+  confidence_score: number;
+  confidence_reasons_json: string[];
+}
+
+export interface PaginatedEvents {
+  items: EventSummary[];
+  total: number;
+  page: number;
+  per_page: number;
 }
 
 export interface ObservedPlayLogDetail extends ObservedPlayLog {
