@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-05 (session 20 — Observed Play Memory Phase 0 design plan)
+Last updated: 2026-05-05 (session 21 — Observed Play Memory Phase 1: Raw Archive and Import Foundation)
 
 ## Current Workstream
 
@@ -18,8 +18,9 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-is in **Phase 0 (design only)**. See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
-No production code or migrations have been added yet.
+**Phase 1 (raw import foundation) is complete.** Phase 2+ (parser, card resolution,
+memory ingestion) not yet started.
+See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
 workflow. `docs/CARDLIST.md`, `docs/POKEMON_MASTER_LIST.md`, and
@@ -37,10 +38,51 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **598 passed, 1 skipped** — 2026-05-05 session 19. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 584/1 (session 18), 579/1 (session 16), 565/1 (session 15), 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
-| Frontend unit tests | **140 passed (14 files)** — 2026-05-05 session 19. `cd frontend && npm test -- --run`. Added `DeckUploader.test.tsx` (+3 new tests), `OpponentDeckList.test.tsx` (9 new tests, new file), `SimulationSetup.test.tsx` (9 new tests, new file). Historical: 118/12 (session 18). |
+| Backend test baseline | **635 passed, 1 skipped** — 2026-05-05 session 21. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 598/1 (session 19), 584/1 (session 18), 579/1 (session 16), 565/1 (session 15), 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
+| Frontend unit tests | **151 passed (15 files)** — 2026-05-05 session 21. `cd frontend && npm test -- --run`. Added `ObservedPlay.test.tsx` (10 new tests, new file). Historical: 140/14 (session 19), 118/12 (session 18). |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 21 Work (2026-05-05)
+
+### Goal
+
+Observed Play Memory Phase 1: Raw Archive and Import Foundation on branch `feature/observed-play-memory`.
+
+### Completed
+
+**Phase 1 — Raw import foundation implemented:**
+
+1. **DB models** (`backend/app/db/models.py`): Added `ObservedPlayImportBatch` and `ObservedPlayLog` ORM models with all Phase 1 fields, relationships, and unique constraint on `sha256_hash`.
+
+2. **Alembic migration** (`backend/alembic/versions/b9f8e1d2c3a4_observed_play_foundation.py`): Creates `observed_play_import_batches`, `observed_play_logs`, 4 indexes, unique constraint. `alembic upgrade head` applied successfully.
+
+3. **Storage module** (`backend/app/observed_play/storage.py`): SHA-256 computation, archive path convention (`archive/{sha[:2]}/{sha}{ext}`), archive/failed file writers, safe_filename, directory setup. Constants: max single file 2 MB, max ZIP 25 MB, max ZIP entries 500.
+
+4. **Importer module** (`backend/app/observed_play/importer.py`): `run_import()` orchestrates `.md`/`.markdown`/`.txt` (single file) and `.zip` (synchronous, Phase 1). Duplicate detection via `sha256_hash`, ZIP-slip protection, size/entry limits. Sets `parse_status="raw_archived"`, `memory_status="not_ingested"` — no parser or memory ingestion.
+
+5. **API routes** (`backend/app/api/observed_play.py`): `POST /api/observed-play/upload`, `GET /api/observed-play/batches`, `GET /api/observed-play/batches/{id}`, `GET /api/observed-play/logs`, `GET /api/observed-play/logs/{id}`. Registered in `backend/app/api/router.py`.
+
+6. **Docker** (`docker-compose.yml`): Added `ptcgl_logs_data` named volume, mounted to backend and celery-worker at `/data/ptcgl_logs`. Added `OBSERVED_PLAY_LOG_ROOT` env var to both.
+
+7. **Pydantic schemas** (`backend/app/observed_play/schemas.py`): `LogImportResult`, `BatchImportResponse`, `LogSummary`, `LogDetail`, `BatchSummary`, `BatchDetail`, `PaginatedBatches`, `PaginatedLogs`.
+
+8. **Frontend** (`frontend/src/types/observedPlay.ts`, `frontend/src/api/observedPlay.ts`, `frontend/src/pages/ObservedPlay.tsx`): TypeScript types, API client functions, full Observed Play page with upload panel, import report, import history table, raw logs table, raw log viewer modal. Phase banner: "Raw archive only. Parser and memory ingestion are not active yet."
+
+9. **Navigation**: Added Observed Play entry to `frontend/src/components/layout/Sidebar.tsx`. Route `/observed-play` added to `frontend/src/router.tsx`.
+
+10. **Tests**: 37 new backend tests (18 storage, 7 importer, 12 API mock-DB style). 10 new frontend tests. All pass.
+
+### Validation (session 21)
+
+- `alembic upgrade head`: applied migration `b9f8e1d2c3a4` ✓
+- `alembic current`: `b9f8e1d2c3a4 (head)` ✓
+- `cd backend && python3 -m pytest tests/ -x -q`: **635 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **151 passed (15 files)** ✓
+- `cd frontend && npm run build`: clean ✓
+- `docker compose config`: valid ✓
+
+**Not implemented (Phase 2+):** parser event extraction, card mention/resolution, Coach/AI Player integration, Neo4j writes, pgvector embeddings, memory ingestion.
 
 ## Session 20 Work (2026-05-05)
 

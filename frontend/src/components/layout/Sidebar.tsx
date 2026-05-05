@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { PlusCircle, History, Brain, Shield } from 'lucide-react';
+import { PlusCircle, History, Brain, Shield, FileText } from 'lucide-react';
 
 const NAV = [
   { to: '/', label: 'New Simulation', icon: PlusCircle },
   { to: '/history', label: 'History', icon: History },
   { to: '/memory', label: 'Memory', icon: Brain },
   { to: '/coverage', label: 'Coverage', icon: Shield },
+  { to: '/observed-play', label: 'Observed Play', icon: FileText },
 ];
 
 export default function Sidebar() {

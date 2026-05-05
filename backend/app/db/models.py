@@ -6,7 +6,7 @@ import uuid
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
-    BigInteger, Boolean, Column, ForeignKey, Index, Integer, Text,
+    BigInteger, Boolean, Column, Float, ForeignKey, Index, Integer, Text,
     UniqueConstraint, func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID
@@ -327,3 +327,80 @@ class Embedding(Base):
     content_text = Column(Text)
     embedding    = Column(Vector(768))           # nomic-embed-text outputs 768-dim vectors
     created_at   = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+
+# ── Observed Play Memory ───────────────────────────────────────────────────────
+
+class ObservedPlayImportBatch(Base):
+    """One row per upload operation (single file or ZIP)."""
+    __tablename__ = "observed_play_import_batches"
+
+    id                   = Column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    source               = Column(Text, nullable=False, default="upload_single")
+    uploaded_filename    = Column(Text)
+    celery_task_id       = Column(Text)
+    status               = Column(Text, nullable=False, default="pending")
+    original_file_count  = Column(Integer, default=0)
+    accepted_file_count  = Column(Integer, default=0)
+    duplicate_file_count = Column(Integer, default=0)
+    failed_file_count    = Column(Integer, default=0)
+    imported_file_count  = Column(Integer, default=0)
+    skipped_file_count   = Column(Integer, default=0)
+    started_at           = Column(TIMESTAMP(timezone=True))
+    finished_at          = Column(TIMESTAMP(timezone=True))
+    summary_json         = Column(JSONB, default=dict)
+    errors_json          = Column(JSONB, default=list)
+    warnings_json        = Column(JSONB, default=list)
+    created_at           = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at           = Column(TIMESTAMP(timezone=True), server_default=func.now(),
+                                  onupdate=func.now())
+
+    logs = relationship("ObservedPlayLog", back_populates="import_batch")
+
+
+class ObservedPlayLog(Base):
+    """One row per imported raw battle log. Canonical source record."""
+    __tablename__ = "observed_play_logs"
+    __table_args__ = (
+        UniqueConstraint("sha256_hash", name="uq_observed_play_logs_sha256"),
+        Index("idx_opl_import_batch_id", "import_batch_id"),
+        Index("idx_opl_parse_status", "parse_status"),
+        Index("idx_opl_memory_status", "memory_status"),
+        Index("idx_opl_created_at", "created_at"),
+    )
+
+    id                    = Column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    import_batch_id       = Column(UUID(as_uuid=True),
+                                   ForeignKey("observed_play_import_batches.id"))
+    source                = Column(Text, nullable=False, default="ptcgl_export")
+    original_filename     = Column(Text, nullable=False)
+    stored_path           = Column(Text)
+    sha256_hash           = Column(Text, nullable=False)
+    raw_content           = Column(Text)
+    file_size_bytes       = Column(Integer, nullable=False, default=0)
+    parse_status          = Column(Text, nullable=False, default="raw_archived")
+    memory_status         = Column(Text, nullable=False, default="not_ingested")
+    parser_version        = Column(Text)
+    player_1_name_raw     = Column(Text)
+    player_2_name_raw     = Column(Text)
+    player_1_alias        = Column(Text)
+    player_2_alias        = Column(Text)
+    self_player_index     = Column(Integer)
+    winner_raw            = Column(Text)
+    winner_alias          = Column(Text)
+    win_condition         = Column(Text)
+    game_date_detected    = Column(Text)  # ISO date string; set by parser in Phase 2
+    turn_count            = Column(Integer, default=0)
+    event_count           = Column(Integer, default=0)
+    recognized_card_count = Column(Integer, default=0)
+    unresolved_card_count = Column(Integer, default=0)
+    ambiguous_card_count  = Column(Integer, default=0)
+    confidence_score      = Column(Float)
+    errors_json           = Column(JSONB, default=list)
+    warnings_json         = Column(JSONB, default=list)
+    metadata_json         = Column(JSONB, default=dict)
+    created_at            = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at            = Column(TIMESTAMP(timezone=True), server_default=func.now(),
+                                   onupdate=func.now())
+
+    import_batch = relationship("ObservedPlayImportBatch", back_populates="logs")

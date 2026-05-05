@@ -31,6 +31,7 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Added
+- **Observed Play Memory Phase 1: Raw Archive and Import Foundation** — implemented on feature branch `feature/observed-play-memory`. New tables (`observed_play_import_batches`, `observed_play_logs`), Alembic migration `b9f8e1d2c3a4`, storage module (SHA-256 dedup, archive/failed path conventions), import orchestration (`.md`/`.txt`/`.zip` upload, ZIP-slip protection, size limits), 5 backend API routes, Pydantic schemas, frontend page (`/observed-play`) with upload panel, import report, batch history, raw logs table, raw log viewer modal, and Sidebar navigation entry. Phase 1 intentionally does NOT parse events, resolve cards, write Coach/Player memory, create embeddings, or write Neo4j graph memory. 37 backend + 10 frontend tests added.
 - **Observed Play Memory: design-alignment plan** — added `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md` on feature branch `feature/observed-play-memory`. Defines MVP boundary (upload/parse/report cycle with no memory ingestion), parallel `observed_play_*` table schema, parser v1 architecture, card resolution strategy, API routes, frontend page plan, confidence tiers, reparse/versioning, and 8-phase implementation roadmap. No production code or migrations included.
 - **Simulation Setup: optional manual deck name overrides** — new `user_deck_name` and `opponent_deck_names` fields in `SimulationCreate`. If provided (non-blank), manual names are used directly for `Deck.name`, `Deck.archetype`, `Simulation.user_deck_name`, and `SimulationOpponent.deck_name`, bypassing Gemma naming for the user deck. Blank/absent fields preserve the existing automatic naming behavior. Max 120 characters enforced backend and frontend; `opponent_deck_names` count must not exceed `opponent_deck_texts` count. Frontend UI adds "Deck Archetype Name" input in DeckUploader and "Opponent Archetype Name" input in each opponent's expanded section.
 
@@ -43,6 +44,30 @@ As of `docs/STATUS.md` last updated on 2026-05-05, the project is in
 hardening sweep are documented as complete. Current work continues to close
 card-specific implementation gaps found by database-backed audits, coverage
 gates, and runtime simulation checks.
+
+### 2026-05-05 — Session 21: Observed Play Memory Phase 1 — raw import foundation
+
+Added raw import pipeline for PTCGL battle logs on feature branch `feature/observed-play-memory`. Phase 1 covers safe raw import, archive, deduplication, batch reporting, and UI visibility only. No parser, card resolution, or memory ingestion.
+
+- **DB models** (`backend/app/db/models.py`): `ObservedPlayImportBatch` and `ObservedPlayLog` with all Phase 1 fields, SHA-256 unique constraint, and 4 indexes on `observed_play_logs`.
+
+- **Alembic migration** (`b9f8e1d2c3a4_observed_play_foundation`): Creates `observed_play_import_batches` and `observed_play_logs` tables. Applied.
+
+- **Storage module** (`backend/app/observed_play/storage.py`): SHA-256 computation, archive path convention (`archive/{sha[:2]}/{sha}{ext}`), directory setup, safe filename, archive/failed file writers. Max single file 2 MB, max ZIP 25 MB/500 entries.
+
+- **Importer** (`backend/app/observed_play/importer.py`): `run_import()` handles `.md`/`.markdown`/`.txt` (single file) and `.zip` (synchronous Phase 1). Duplicate detection, ZIP-slip protection, size/entry limits. Sets `parse_status="raw_archived"`, `memory_status="not_ingested"`.
+
+- **API routes** (`backend/app/api/observed_play.py`): `POST /api/observed-play/upload`, `GET /batches`, `GET /batches/{id}`, `GET /logs`, `GET /logs/{id}`. Registered in router.
+
+- **Docker** (`docker-compose.yml`): `ptcgl_logs_data` named volume mounted to backend and celery-worker at `/data/ptcgl_logs` with `OBSERVED_PLAY_LOG_ROOT` env var.
+
+- **Frontend**: TypeScript types, API client, `/observed-play` page (upload panel, import report, batch history, raw logs table, raw log viewer modal). Sidebar navigation entry. Phase banner: "Raw archive only. Parser and memory ingestion are not active yet."
+
+- **Tests**: 37 backend (18 storage, 7 importer, 12 API), 10 frontend. Full suite: 635 backend / 151 frontend. Build clean.
+
+**Not implemented (Phase 2+):** parser event extraction, card mention/resolution, Coach/AI Player integration, Neo4j, pgvector, memory ingestion.
+
+**Confidence:** High — all tests pass, build clean, alembic head applied.
 
 ### 2026-05-05 — Session 18: History page — collapse long opponent lists
 

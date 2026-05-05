@@ -87,6 +87,7 @@ services:
       NEO4J_USER: ${NEO4J_USER:-neo4j}
       NEO4J_PASSWORD: ${NEO4J_PASSWORD}
       OLLAMA_BASE_URL: http://ollama:11434
+      OBSERVED_PLAY_LOG_ROOT: /data/ptcgl_logs
     depends_on:
       postgres:
         condition: service_healthy
@@ -98,6 +99,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend/app:/app/app
+      - ptcgl_logs_data:/data/ptcgl_logs
 
   celery-worker:
     build:
@@ -114,9 +116,12 @@ services:
       NEO4J_USER: ${NEO4J_USER:-neo4j}
       NEO4J_PASSWORD: ${NEO4J_PASSWORD}
       OLLAMA_BASE_URL: http://ollama:11434
+      OBSERVED_PLAY_LOG_ROOT: /data/ptcgl_logs
     depends_on:
       - backend
       - redis
+    volumes:
+      - ptcgl_logs_data:/data/ptcgl_logs
 
   celery-beat:
     build:
@@ -147,3 +152,4 @@ volumes:
   postgres_data:
   neo4j_data:
   redis_data:
+  ptcgl_logs_data:
