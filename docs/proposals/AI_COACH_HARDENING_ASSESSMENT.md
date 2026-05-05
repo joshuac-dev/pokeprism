@@ -68,15 +68,3 @@ These tests use `AsyncMock` with controlled Ollama responses and do not require 
 | ~~Later~~ **Done** | ~~Stage 2 provider interface — trigger: second LLM provider arrives~~ Closed by product decision: Ollama-only, no second provider planned | Medium |
 | ~~Later~~ **Done** | ~~Stage 3 DB evidence schema — trigger: frontend needs to display evidence~~ Completed 2026-05-03 | Medium |
 
----
-
-## Stage 1 Gap: Missing Injection Fixture Tests
-
-The proposal's diff sketch included three new tests:
-1. `test_prompt_wraps_similar_memory_as_untrusted_data` — checks `<untrusted_data` is in the user message
-2. `test_coach_rejects_swaps_without_evidence` — checks evidence requirement
-3. `test_coach_repair_does_not_resend_untrusted_context` — checks repair path excludes hostile context
-
-Tests 1 and 2 are implemented. Test 3 uses `await` inside a function not declared `async` — it will fail silently in sync pytest. It needs to be an `async def` test decorated with `@pytest.mark.asyncio` (and `pytest-asyncio` must be installed).
-
-The actual injection tests (hostile card names, hostile memory text as `side_effect` inputs) are NOT yet in the test suite. These are the highest-value addition for Stage 1 completeness.

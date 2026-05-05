@@ -518,6 +518,12 @@ class MatchRunner:
                 player.supporters_locked_next_turn = False
                 # Unleash Lightning (sv07-047): clear player-wide attack block at end of affected player's own turn
                 player.all_pokemon_cant_attack_next_turn = False
+                # Premium Power Pro (me01-124): Fighting bonus only lasts this turn
+                player.fighting_pokemon_damage_bonus = 0
+            if pid != current_pid:
+                # Iron Defender / Jasmine's Gaze: opponent-next-turn protection expires after opponent attacks
+                player.metal_type_damage_reduction = 0
+                player.opponent_next_turn_all_reduction = 0
             if player.active:
                 player.active.retreated_this_turn = False
                 player.active.ability_used_this_turn = False
@@ -526,6 +532,10 @@ class MatchRunner:
                 # opponent's Pokémon by the current player's attacks; only clear them
                 # at the end of THIS player's own turn so they apply during the
                 # opponent's upcoming turn.
+                # incoming_damage_reduction is set on YOUR OWN Pokémon by your own
+                # effects to protect against opponent's NEXT turn attacks; clear it
+                # at the end of the OPPONENT's turn (pid != current_pid) so it stays
+                # active while the opponent attacks.
                 if pid == current_pid:
                     player.active.cant_retreat_next_turn = False
                     player.active.attack_damage_reduction = 0
@@ -533,8 +543,9 @@ class MatchRunner:
                     # Drum Beating (sv06-016): clear extra cost modifiers at end of affected player's own turn
                     player.active.extra_attack_cost = 0
                     player.active.extra_retreat_cost = 0
+                if pid != current_pid:
+                    player.active.incoming_damage_reduction = 0
                 player.active.cant_attack_next_turn = False
-                player.active.incoming_damage_reduction = 0
                 player.active.prevent_damage_one_turn = False
                 player.active.resolute_heart_eligible = False
                 player.active.moved_from_bench_this_turn = False
@@ -557,7 +568,8 @@ class MatchRunner:
                 b.ability_used_this_turn = False
                 if pid == current_pid:
                     b.attack_damage_reduction = 0
-                b.incoming_damage_reduction = 0
+                if pid != current_pid:
+                    b.incoming_damage_reduction = 0
                 b.prevent_damage_one_turn = False
                 b.resolute_heart_eligible = False
                 b.moved_from_bench_this_turn = False

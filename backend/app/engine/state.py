@@ -191,6 +191,9 @@ class PlayerState:
     wide_wall_protected: bool = False  # sv07-076 Rhyperior Wide Wall: prevents Supporter effects on this player's Pokémon
     mystery_garden_used_this_turn: bool = False  # Mystery Garden (me02.5-194 / me01-122): once-per-turn draw effect used
     all_pokemon_cant_attack_next_turn: bool = False  # Unleash Lightning (sv07-047): all Pokémon can't attack next turn (incl. new ones)
+    metal_type_damage_reduction: int = 0    # Iron Defender (me01-118): all Metal-type Pokémon take N less during opp's next turn (incl. new)
+    opponent_next_turn_all_reduction: int = 0  # Jasmine's Gaze (sv08-178): all Pokémon take N less during opp's next turn (incl. new)
+    fighting_pokemon_damage_bonus: int = 0  # Premium Power Pro (me01-124/me02.5-199): Fighting Pokémon do N more this turn
 
 
 @dataclass

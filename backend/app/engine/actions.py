@@ -359,8 +359,16 @@ class ActionValidator:
         basics = [c for c in player.hand
                   if c.card_type.lower() == "pokemon" and c.evolution_stage == 0]
 
-        # If player has no basics → must mulligan
-        if not basics:
+        # Explosiveness (me01-028 Cinderace): Stage 2 may be placed face-down as
+        # the Active Pokémon during setup ("if this Pokémon is in your hand when
+        # you are setting up to play, you may put it face down in the Active Spot").
+        explosiveness_eligible = [
+            c for c in player.hand
+            if c.card_def_id == "me01-028"
+        ]
+
+        # If player has no basics AND no Explosiveness cards → must mulligan
+        if not basics and not explosiveness_eligible:
             actions.append(Action(ActionType.MULLIGAN_REDRAW, player_id))
             return actions
 
@@ -371,6 +379,12 @@ class ActionValidator:
                     Action(ActionType.PLACE_ACTIVE, player_id,
                            card_instance_id=b.instance_id)
                 )
+            for e in explosiveness_eligible:
+                if not any(a.card_instance_id == e.instance_id for a in actions):
+                    actions.append(
+                        Action(ActionType.PLACE_ACTIVE, player_id,
+                               card_instance_id=e.instance_id)
+                    )
             return actions
 
         # Active is set; may place up to MAX_BENCH_SIZE bench Pokémon

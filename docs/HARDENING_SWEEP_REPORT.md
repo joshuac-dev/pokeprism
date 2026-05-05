@@ -242,7 +242,7 @@ Total engine test files: 13; total engine-scoped tests: **142**.
 
 ## Section 5 — Handler Logic vs. Card Text
 
-**Verdict: 35 PASS, 8 TRIVIAL, 5 MISMATCH (all fixed), 3 NOOP_STUB (deferred), 0 MISSING_HANDLER [Session 8: full 50-card live TCGDex comparison]**
+**Verdict: 35 PASS, 8 TRIVIAL, 5 MISMATCH (all fixed), 3 NOOP_STUB (fixed in session 12), 0 MISSING_HANDLER [Session 8: full 50-card live TCGDex comparison]**
 
 ### Methodology
 
@@ -348,16 +348,15 @@ Note: Cinderace's Turbo Flare attack deviates (accepts Special Energy; distribut
 | 19 | me01-116 Fighting Gong | `_fighting_gong` (trainers.py) | Pokémon branch had no evolution stage check — included Stage 1/2 | Added `and c.evolution_stage == 0` |
 | 30 | me01-127 Risky Ruins | `_place_bench` + `_play_basic` (transitions.py) | Applied 20 damage to any non-Darkness Pokémon; should be Basic only | Added `cdef_rr.is_basic_pokemon` check in both bench locations |
 | 43 | me01-063 Grumpig | `_energized_steps` (abilities.py) | 4 deviations: full deck search, Psychic only, bench only, max 1 | Rewritten: `deck[:4]` peek, any Basic Energy, any Pokémon (active+bench), any number |
+### NOOP Stubs — **Fixed in Session 12**
 
-### NOOP Stubs — Deferred
+| Card | Implementation | Session |
+|------|----------------|---------|
+| me01-118 Iron Defender | `player.metal_type_damage_reduction += 30` in `_iron_defender_b18`; applied in `_apply_damage` for Metal-type defenders; cleared at `pid != current_pid` in `_end_turn` | Session 12 |
+| me01-124 Premium Power Pro | `player.fighting_pokemon_damage_bonus += 30` in `_premium_power_pro_b18`; applied in `_apply_damage` for Fighting-type attackers before W/R; cleared at `pid == current_pid` | Session 12 |
+| me01-028 Cinderace (Explosiveness) | `deck_has_basic` recognizes `me01-028`; `_setup_actions` includes it in PLACE_ACTIVE; `choose_setup` treats it as valid Active candidate | Session 12 |
 
-| Card | Stub | Required Engine Work |
-|------|------|---------------------|
-| me01-118 Iron Defender | `flagged_effect: metal_damage_reduction_per_player_not_implemented` | Turn-scoped `metal_damage_reduction_30` flag on `PlayerState`; check in `_apply_damage` when defender is Metal-type |
-| me01-124 Premium Power Pro | `flagged_effect: fighting_bonus_not_implemented` | Turn-scoped `fighting_damage_bonus_30` flag on `PlayerState`; check in `_apply_damage` when attacker is Fighting-type |
-| me01-028 Cinderace (Explosiveness) | `register_passive_ability` only | Setup-phase hook during mulligan/initial placement to allow Cinderace in starting hand to be placed face-down in Active |
-
-### Historical Fixes (Session 6, still in effect)
+### Historical Deferred Stubs (pre-Session 12)
 
 | Card | Handler | Bug | Fix |
 |------|---------|-----|-----|
@@ -677,7 +676,7 @@ skipped with a log warning before any card lookup (no placeholder creation).
 | 4A | Damage Calculation Tests | VERIFIED COMPLETE (9 tests) |
 | 4B | Status Condition Tests | VERIFIED COMPLETE (10 tests) |
 | 4C | Special Mechanics Tests | VERIFIED COMPLETE (10 tests) |
-| 5 | 50-Card TCGDex Spot Check | **35 PASS, 8 TRIVIAL, 5 MISMATCH (all fixed), 3 NOOP_STUB (deferred)** |
+| 5 | 50-Card TCGDex Spot Check | **35 PASS, 8 TRIVIAL, 5 MISMATCH (all fixed), 3 NOOP_STUB (fixed in session 12)** |
 | 6A | DB Integrity | VERIFIED COMPLETE (14-point check, all zero) |
 | 6B | Neo4j Graph Orphans | KNOWN ARTIFACT — NOT A REGRESSION |
 | 6C | API Endpoint Coverage | VERIFIED COMPLETE (live curl tests) |
@@ -749,12 +748,17 @@ bugs found and fixed during test authoring:
 
 | Card | Gap | Reason deferred |
 |---|---|---|
-| me01-118 Iron Defender | Turn-scoped Metal damage reduction (30 less) — fires `flagged_effect` only | Requires `metal_damage_reduction_30` flag on `PlayerState` + `_apply_damage` check for defender Metal-type |
-| me01-124 Premium Power Pro | Turn-scoped Fighting damage bonus (30 more) — fires `flagged_effect` only | Requires `fighting_damage_bonus_30` flag on `PlayerState` + `_apply_damage` check for attacker Fighting-type |
-| me01-028 Cinderace (Explosiveness) | Setup-phase ability: place Cinderace face-down in Active if in starting hand | Requires setup-phase hook during mulligan/initial placement; no such hook exists in engine |
 | svp-089 Feraligatr Torrential Heart | Energy-attach trigger callback absent | Requires new event-hook architecture for energy attachment |
 | svp-134 Crabominable Food Prep | Multi-target bench-to-bench energy redistribution absent | Requires new multi-source choice flow |
-| All "opponent's next turn" damage-reduction effects (Gaia Wave, Jasmine's Gaze new-Pokémon clause, etc.) | `incoming_damage_reduction` reset unconditionally in `_end_turn()` for all Pokémon before opponent attacks | Systemic timing fix needed; out of scope for this sweep |
+
+### Fixed in Session 12 (removed from gaps table)
+
+| Card | Gap | Fix |
+|---|---|---|
+| me01-118 Iron Defender | Turn-scoped Metal damage reduction (30 less) — NOOP stub | `metal_type_damage_reduction` field on `PlayerState`; applied in `_apply_damage` |
+| me01-124 Premium Power Pro | Turn-scoped Fighting damage bonus (30 more) — NOOP stub | `fighting_pokemon_damage_bonus` field on `PlayerState`; applied in `_apply_damage` |
+| me01-028 Cinderace (Explosiveness) | Setup-phase ability: place Cinderace face-down in Active if in starting hand | `deck_has_basic` + `_setup_actions` + `choose_setup` all updated |
+| All "opponent's next turn" damage-reduction effects | `incoming_damage_reduction` reset before opponent attacks | Resets moved to `pid != current_pid` in `_end_turn`; Jasmine's Gaze player-level field added |
 
 ---
 

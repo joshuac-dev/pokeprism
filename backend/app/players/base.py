@@ -88,14 +88,21 @@ class RandomPlayer(PlayerInterface):
         return random.choice(legal_actions)
 
     async def choose_setup(self, state, hand: list) -> tuple[str, list[str]]:
-        """Place first basic found as active; put all other basics on bench."""
+        """Place first basic found as active; put all other basics on bench.
+
+        Cinderace (me01-028) with Explosiveness may be placed as Active even
+        though it is a Stage 2.
+        """
         from app.cards import registry as card_registry
+
+        _EXPLOSIVENESS_IDS = {"me01-028"}
 
         basics = [
             c for c in hand
             if card_registry.get(c.card_def_id) and
                card_registry.get(c.card_def_id).is_pokemon and
-               card_registry.get(c.card_def_id).stage.lower() == "basic"
+               (card_registry.get(c.card_def_id).stage.lower() == "basic"
+                or c.card_def_id in _EXPLOSIVENESS_IDS)
         ]
         if not basics:
             # Fallback: just use the first card (shouldn't happen after mulligan)
@@ -104,7 +111,9 @@ class RandomPlayer(PlayerInterface):
         import random
         random.shuffle(basics)
         active_id = basics[0].instance_id
-        bench_ids = [b.instance_id for b in basics[1:5]]  # max 5 bench slots
+        # Only Basic Pokémon can go to bench; Explosiveness stays Active
+        bench_eligible = [b for b in basics[1:] if b.card_def_id not in _EXPLOSIVENESS_IDS]
+        bench_ids = [b.instance_id for b in bench_eligible[:5]]  # max 5 bench slots
         return active_id, bench_ids
 
 
@@ -412,11 +421,14 @@ class BasePlayer(PlayerInterface):
     async def choose_setup(self, state, hand: list) -> tuple[str, list[str]]:
         from app.cards import registry as card_registry
 
+        _EXPLOSIVENESS_IDS = {"me01-028"}
+
         basics = [
             c for c in hand
             if card_registry.get(c.card_def_id) and
                card_registry.get(c.card_def_id).is_pokemon and
-               card_registry.get(c.card_def_id).stage.lower() == "basic"
+               (card_registry.get(c.card_def_id).stage.lower() == "basic"
+                or c.card_def_id in _EXPLOSIVENESS_IDS)
         ]
         if not basics:
             basics = [hand[0]] if hand else []
@@ -428,7 +440,9 @@ class BasePlayer(PlayerInterface):
 
         basics.sort(key=hp_of, reverse=True)
         active_id = basics[0].instance_id
-        bench_ids = [b.instance_id for b in basics[1:5]]
+        # Only Basic Pokémon can go to bench; Explosiveness stays Active
+        bench_eligible = [b for b in basics[1:] if b.card_def_id not in _EXPLOSIVENESS_IDS]
+        bench_ids = [b.instance_id for b in bench_eligible[:4]]
         return active_id, bench_ids
 
 

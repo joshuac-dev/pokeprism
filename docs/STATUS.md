@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 11 — E2E CI workflow fix: Alembic DATABASE_URL override, DB readiness check, card seeding, diagnostics)
+Last updated: 2026-05-06 (session 12 — engine effect gaps fixed: incoming_damage_reduction timing, Iron Defender, Premium Power Pro, Cinderace Explosiveness, Risky Ruins bench_from_effect)
 
 ## Current Workstream
 
@@ -33,12 +33,108 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **504 passed, 7 skipped** — 2026-05-06 session 10. `cd backend && python3 -m pytest tests/ -x -q`. Prior: 490/1 (session 10 simulation fix), 478/1 (session 9), 466 (session 8). |
+| Backend test baseline | **542 passed, 1 skipped** — 2026-05-06 session 12. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 522/1 (session 11, full stack running), 504/7 (session 10, without DB integration; `test_scheduled.py` DB tests skipped when Postgres unreachable), 490/1 (session 10 simulation fix), 478/1 (session 9), 466 (session 8). |
 | Frontend unit tests | **17 passed (4 files)** — 2026-05-05. `cd frontend && npm test -- --run --reporter=dot`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
 
-## Session 11 Work (2026-05-06)
+## Session 12 Work (2026-05-06)
+
+### Goal
+
+Resolve four remaining STATUS.md effect-engine gaps:
+1. Metrics inconsistency between Authoritative Metrics table and session notes.
+2. `incoming_damage_reduction` timing bug (cleared before opponent attacks).
+3. Three NOOP stubs: Iron Defender, Premium Power Pro, Cinderace Explosiveness.
+4. Missing public-path coverage for Risky Ruins evolved special-effect bench placement.
+
+### Completed
+
+1. **STATUS.md metrics table corrected** — Authoritative Metrics table updated to `542 passed,
+   1 skipped` (session 12 baseline). Historical counts preserved with session labels.
+   Root cause: the old `504/7` figure was session 10 without Postgres running (DB-integration
+   tests in `test_scheduled.py` were skipped). Session 11 with the full stack running was
+   `522/1`. Session 12 adds 20 new tests → `542/1`.
+
+2. **`incoming_damage_reduction` timing fix** (`backend/app/engine/runner.py`):
+   - The bug: `_end_turn()` unconditionally reset `incoming_damage_reduction = 0` for ALL
+     Pokémon of BOTH players at the end of every turn, destroying protection set by the current
+     player before the opponent had a chance to attack.
+   - Fix: moved `incoming_damage_reduction` resets (for `.active` and all `.bench` Pokémon)
+     inside the `if pid != current_pid:` block, mirroring the existing pattern already used
+     for `attack_damage_reduction` and `cant_retreat_next_turn`.
+
+3. **Jasmine's Gaze new-Pokémon clause** (`backend/app/engine/effects/trainers.py`):
+   - Added `player.opponent_next_turn_all_reduction += 30` alongside existing per-Pokémon
+     reduction. This covers Pokémon that come into play AFTER the effect fires.
+   - Added `opponent_next_turn_all_reduction: int = 0` to `PlayerState` (`state.py`).
+   - Applied in `_apply_damage()` (`attacks.py`): checked for the defender's player state.
+   - Cleared in `_end_turn()` at `pid != current_pid` (same timing as per-card reduction).
+
+4. **Iron Defender (me01-118)** — NOOP stub replaced with real implementation:
+   - `_iron_defender_b18` now sets `player.metal_type_damage_reduction += 30`.
+   - Added `metal_type_damage_reduction: int = 0` to `PlayerState`.
+   - Applied in `_apply_damage()`: if defender player has `metal_type_damage_reduction > 0`
+     and the defender is Metal-type, subtract it from total damage.
+   - Cleared at `pid != current_pid` in `_end_turn()`.
+   - Card text: "During your opponent's next turn, all of your {M} Pokémon take 30 less
+     damage from attacks … (includes new Pokémon that come into play)."
+
+5. **Premium Power Pro (me01-124 / me02.5-199)** — NOOP stub replaced with real implementation:
+   - `_premium_power_pro_b18` now sets `player.fighting_pokemon_damage_bonus += 30`.
+   - Added `fighting_pokemon_damage_bonus: int = 0` to `PlayerState`.
+   - Applied in `_apply_damage()`: if attacker player has bonus > 0 and attacker is Fighting-type,
+     bonus is added BEFORE W/R and defense effects (matches "before applying Weakness and Resistance").
+   - Cleared at `pid == current_pid` in `_end_turn()` (same-turn effect).
+   - Corrected the previous NOOP comment: card text says YOUR Fighting Pokémon, not "each player's".
+
+6. **Cinderace Explosiveness (me01-028)** — setup-phase placement hooks implemented:
+   - `RuleEngine.deck_has_basic()` (`rules.py`): recognizes `me01-028` as a valid starting card.
+   - `ActionValidator._setup_actions()` (`actions.py`): includes `me01-028` in `PLACE_ACTIVE`
+     options during SETUP phase (alongside Basics).
+   - `RandomPlayer.choose_setup()` and `BasePlayer.choose_setup()` (`players/base.py`):
+     include `me01-028` in Basic-eligible candidates for Active slot selection.
+   - Card text: "If this Pokémon is in your hand when you are setting up to play, you may put
+     it face down in the Active Spot."
+
+7. **Risky Ruins `bench_pokemon_from_effect` helper** (`backend/app/engine/transitions.py`):
+   - Added public `bench_pokemon_from_effect(state, player_id, card, source_zone, *, allow_evolved=False)`.
+   - Moves a Pokémon from any source zone to the Bench via a card effect.
+   - Enforces bench size limit; rejects evolved Pokémon unless `allow_evolved=True`.
+   - Triggers Risky Ruins (me01-127) for Basic non-Darkness Pokémon exactly as the standard
+     `_play_basic` and `_place_bench` paths do.
+   - Emits `bench_from_effect` and optionally `risky_ruins_damage` events.
+
+### Validation (session 12)
+
+| Command | Result |
+|---|---|
+| `cd backend && python3 -m pytest tests/test_engine/test_audit_fixes.py -q` | **140 passed** |
+| `cd backend && python3 -m pytest tests/ -x -q` | **542 passed, 1 skipped** |
+| `git diff --check` | Clean |
+
+### Files Changed (session 12)
+
+| File | Change |
+|---|---|
+| `backend/app/engine/state.py` | Added `metal_type_damage_reduction`, `opponent_next_turn_all_reduction`, `fighting_pokemon_damage_bonus` to `PlayerState` |
+| `backend/app/engine/runner.py` | Fixed `incoming_damage_reduction` timing in `_end_turn()`; added clearing of new player-level fields |
+| `backend/app/engine/effects/attacks.py` | Added player-level bonus/reduction checks in `_apply_damage()` |
+| `backend/app/engine/effects/trainers.py` | Replaced Iron Defender NOOP; replaced Premium Power Pro NOOP; updated Jasmine's Gaze with player-level reduction |
+| `backend/app/engine/rules.py` | Updated `deck_has_basic()` to recognize `me01-028` (Explosiveness) |
+| `backend/app/engine/actions.py` | Updated `_setup_actions()` to include `me01-028` as PLACE_ACTIVE |
+| `backend/app/players/base.py` | Updated `RandomPlayer.choose_setup()` and `BasePlayer.choose_setup()` for Explosiveness |
+| `backend/app/engine/transitions.py` | Added `bench_pokemon_from_effect()` public helper |
+| `backend/tests/test_engine/test_audit_fixes.py` | +20 tests for all four fixed gaps |
+| `docs/STATUS.md` | This file |
+| `docs/CHANGELOG.md` | Session 12 entry added |
+
+### Audit discipline
+
+This was **not** an audit session. `docs/AUDIT_STATE.md` was not advanced.
+No DB-backed audit was performed. Cursor is unchanged.
+
+
 
 ### Goal
 
@@ -246,17 +342,18 @@ No DB-backed audit was performed. Cursor is unchanged.
 | Issue | Status | Notes |
 |---|---|---|
 | Section 7B Redis stale-running simulation gap | **Fixed (session 10)** | Application-level stale detection added to `_dispatch_next_queued`. Default threshold: 45 minutes (overridable via `SIMULATION_STALE_RUNNING_MINUTES` env var). See session 10 notes. |
-| "Opponent's next turn" damage-reduction timing | Open — systemic | `incoming_damage_reduction` reset unconditionally in `_end_turn()` before opponent attacks. Affects Gaia Wave, Jasmine's Gaze new-Pokémon clause, etc. Documented in sweep report. |
-| Iron Defender / Premium Power Pro / Cinderace Explosiveness | NOOP stubs | Turn-scoped damage modifier and setup-phase placement hooks not implemented; require engine architecture changes. |
-| me01-127 Risky Ruins evolved-placement via special effects | Partially deferred | `_place_bench` guard added; no public engine path for evolved special-effect bench placement tested end-to-end. |
+| "Opponent's next turn" damage-reduction timing | **Fixed (session 12)** | `incoming_damage_reduction` reset moved to `pid != current_pid` block in `_end_turn()`. Player-level `opponent_next_turn_all_reduction` and `metal_type_damage_reduction` added for new-Pokémon clause. |
+| Iron Defender / Premium Power Pro / Cinderace Explosiveness | **Fixed (session 12)** | Iron Defender: `metal_type_damage_reduction` player-level field. Premium Power Pro: `fighting_pokemon_damage_bonus` player-level field. Cinderace: `deck_has_basic` + `_setup_actions` + `choose_setup` updated. |
+| me01-127 Risky Ruins evolved-placement via special effects | **Fixed (session 12)** | `bench_pokemon_from_effect()` helper in `transitions.py` provides public effect-path with Risky Ruins trigger. 4 new tests added. |
 
 ## Immediate Next Steps
 
-1. **Next recommended task:** Resume DB-backed card-effect audit from current
+1. **Rebuild celery-worker** with updated engine files:
+   `docker compose build celery-worker && docker compose up -d celery-worker`
+2. **Next recommended task:** Resume DB-backed card-effect audit from current
    `docs/AUDIT_STATE.md` cursor. Run `docs/AUDIT_RULES.md` workflow.
-2. **Or:** Run AI/AI or coach simulations now that the stack is clean and all
+3. **Or:** Run AI/AI or coach simulations now that the stack is clean and all
    known handler bugs are fixed.
-3. **Stack note:** Worker runs current code from session 10 commit.
 
 ## Operational Caveats
 

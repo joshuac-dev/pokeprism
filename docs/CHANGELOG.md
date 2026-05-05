@@ -38,6 +38,52 @@ hardening sweep are documented as complete. Current work continues to close
 card-specific implementation gaps found by database-backed audits, coverage
 gates, and runtime simulation checks.
 
+### 2026-05-06 — Session 12: Engine effect gaps resolved (damage-reduction timing, NOOP stubs, Risky Ruins)
+
+Resolved four STATUS.md-tracked effect-engine gaps. No audit cursor advancement.
+
+- **Root cause of metrics inconsistency:** `504/7` was session 10's baseline
+  without Postgres running. DB-integration tests in `test_scheduled.py` skip when
+  Postgres is unreachable, inflating the skip count to 7. Session 11 with the full
+  stack running was `522/1`. Session 12 adds 20 new tests → **542/1**.
+
+- **`incoming_damage_reduction` timing** (`runner.py`): `_end_turn()` was
+  unconditionally resetting `incoming_damage_reduction` to 0 for ALL Pokémon of
+  BOTH players, including the protected player's Pokémon, BEFORE the opponent had
+  a chance to attack. Moved these resets inside `if pid != current_pid:` to match
+  the existing correct pattern for `attack_damage_reduction`.
+
+- **Iron Defender (me01-118):** Replaced NOOP stub with `player.metal_type_damage_reduction += 30`.
+  Applied in `_apply_damage()` for Metal-type defenders. Cleared at `pid != current_pid`.
+  Added `metal_type_damage_reduction: int = 0` to `PlayerState`.
+
+- **Premium Power Pro (me01-124 / me02.5-199):** Replaced NOOP stub with
+  `player.fighting_pokemon_damage_bonus += 30`. Applied in `_apply_damage()` for
+  Fighting-type attackers before W/R. Cleared at `pid == current_pid`.
+  Corrected erroneous NOOP comment: effect is YOUR Fighting Pokémon only, not
+  "each player's Fighting Pokémon". Added `fighting_pokemon_damage_bonus: int = 0` to `PlayerState`.
+
+- **Jasmine's Gaze (sv08-178) new-Pokémon clause:** Added
+  `player.opponent_next_turn_all_reduction += 30` alongside existing per-card
+  reduction, covering Pokémon that come into play after the effect fires.
+  Added `opponent_next_turn_all_reduction: int = 0` to `PlayerState`.
+
+- **Cinderace Explosiveness (me01-028):** `RuleEngine.deck_has_basic()` now
+  recognizes `me01-028` as a valid starting card. `_setup_actions()` includes it
+  in `PLACE_ACTIVE` options. `RandomPlayer.choose_setup()` and
+  `BasePlayer.choose_setup()` include it in Active-slot candidates.
+
+- **`bench_pokemon_from_effect()` helper** (`transitions.py`): Public function for
+  effect handlers that need to bench a Pokémon from any source zone. Enforces bench
+  size; respects `allow_evolved=False` default; triggers Risky Ruins for Basic
+  non-Darkness Pokémon.
+
+- **20 new tests** (`test_audit_fixes.py`): timing fix (3), Jasmine's Gaze new-Pokémon clause
+  (2), Iron Defender (4), Premium Power Pro (4), Cinderace Explosiveness (3),
+  Risky Ruins effect path (4).
+
+*Confidence: High. All changes backed by focused tests.*
+
 ### 2026-05-06 — Session 11: E2E CI workflow fix (Alembic DATABASE_URL override)
 
 Fixed the GitHub Actions Playwright E2E workflow failure where `alembic upgrade head`

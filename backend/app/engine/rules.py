@@ -57,7 +57,15 @@ class RuleEngine:
 
     @staticmethod
     def deck_has_basic(deck: list[CardInstance]) -> bool:
+        """True if the hand contains a legal starting Pokémon.
+
+        Normally this means a Basic Pokémon, but Cinderace (me01-028) with the
+        Explosiveness ability may be placed as the Active during setup even
+        though it is a Stage 2.
+        """
+        _EXPLOSIVENESS_IDS = {"me01-028"}
         return any(
-            c.card_type.lower() == "pokemon" and c.evolution_stage == 0
+            (c.card_type.lower() == "pokemon" and c.evolution_stage == 0)
+            or c.card_def_id in _EXPLOSIVENESS_IDS
             for c in deck
         )

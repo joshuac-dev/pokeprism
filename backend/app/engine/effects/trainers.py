@@ -3164,13 +3164,16 @@ def _grimsleys_move_b18(state: GameState, action):
 
 
 def _iron_defender_b18(state: GameState, action):
-    """Iron Defender (me01-118) — noop stub.
+    """Iron Defender (me01-118) — Item
 
-    During your opponent's next turn, each of your Metal-type Pokémon takes
-    30 less damage (player-level type-filtered reduction not implemented).
+    During your opponent's next turn, all of your {M} Pokémon take 30 less
+    damage from attacks from your opponent's Pokémon (after applying Weakness
+    and Resistance). (This includes new Pokémon that come into play.)
     """
-    state.emit_event("flagged_effect", card="Iron Defender",
-                     reason="metal_damage_reduction_per_player_not_implemented")
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    player.metal_type_damage_reduction += 30
+    state.emit_event("iron_defender", player=player_id, reduction=30)
 
 
 def _pokemon_center_lady_b18(state: GameState, action):
@@ -3207,13 +3210,15 @@ def _pokemon_center_lady_b18(state: GameState, action):
 
 
 def _premium_power_pro_b18(state: GameState, action):
-    """Premium Power Pro (me01-124, me02.5-199) — noop stub.
+    """Premium Power Pro (me01-124, me02.5-199) — Item
 
-    During this turn, attacks used by each player's Fighting-type Pokémon do
-    30 more damage (type-filtered bonus not implemented).
+    During this turn, attacks used by your {F} Pokémon do 30 more damage to
+    your opponent's Active Pokémon (before applying Weakness and Resistance).
     """
-    state.emit_event("flagged_effect", card="Premium Power Pro",
-                     reason="fighting_bonus_not_implemented")
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    player.fighting_pokemon_damage_bonus += 30
+    state.emit_event("premium_power_pro", player=player_id, bonus=30)
 
 
 def _repel_b18(state: GameState, action):
@@ -4473,6 +4478,9 @@ def _jasmine_gaze(state: GameState, action):
     targets = ([player.active] if player.active else []) + list(player.bench)
     for poke in targets:
         poke.incoming_damage_reduction += 30
+    # Player-level flag ensures new Pokémon that enter play after this effect
+    # is used also benefit from the protection ("includes new Pokémon").
+    player.opponent_next_turn_all_reduction += 30
     state.emit_event("jasmine_gaze", player=player_id,
                      targets=[p.card_name for p in targets], reduction=30)
 

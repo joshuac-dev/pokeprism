@@ -4457,3 +4457,627 @@ def test_EG13_slowing_perfume_no_effect_when_going_first():
     assert opp_bench_poke in state.p2.bench  # nothing happened
     assert any(e.get("event_type") == "slowing_perfume_no_effect" for e in state.events)
 
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Session 12 engine-gap fixes
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ── Phase 2: incoming_damage_reduction timing fix ────────────────────────────
+
+def test_incoming_damage_reduction_persists_through_opponent_turn():
+    """incoming_damage_reduction set by current player must survive _end_turn
+    so it still applies when the opponent attacks on their next turn."""
+    from app.engine.runner import MatchRunner
+
+    runner = _runner_for_between_turns()
+
+    p1_active = CardInstance(
+        instance_id="idr-p1", card_def_id="tst-idr-p1",
+        card_name="P1Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    p2_active = CardInstance(
+        instance_id="idr-p2", card_def_id="tst-idr-p2",
+        card_name="P2Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=p1_active, p2_active=p2_active)
+    state.active_player = "p1"
+
+    # P1 sets protection on their active (simulates e.g. Gaia Wave)
+    p1_active.incoming_damage_reduction = 30
+
+    # P1 ends their turn
+    runner._end_turn(state)
+
+    # After P1's turn ends, the reduction must still be present (opponent hasn't attacked yet)
+    assert p1_active.incoming_damage_reduction == 30, (
+        "Protection must persist after the protecting player ends their own turn"
+    )
+
+
+def test_incoming_damage_reduction_clears_after_opponent_turn():
+    """incoming_damage_reduction is cleared at the end of the opponent's turn
+    (i.e. after the opponent has had the chance to attack)."""
+    from app.engine.runner import MatchRunner
+
+    runner = _runner_for_between_turns()
+
+    p1_active = CardInstance(
+        instance_id="idr2-p1", card_def_id="tst-idr2-p1",
+        card_name="P1Active2", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    p2_active = CardInstance(
+        instance_id="idr2-p2", card_def_id="tst-idr2-p2",
+        card_name="P2Active2", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=p1_active, p2_active=p2_active)
+    state.active_player = "p1"
+
+    # P1 sets protection on their active
+    p1_active.incoming_damage_reduction = 30
+
+    # P1 ends their turn (protection should survive)
+    runner._end_turn(state)
+    assert p1_active.incoming_damage_reduction == 30
+
+    # Simulate P2's turn end: active_player is now p2
+    state.active_player = "p2"
+    runner._end_turn(state)
+
+    # After P2's turn ends, the reduction must be cleared
+    assert p1_active.incoming_damage_reduction == 0, (
+        "Protection must clear after the opponent's turn ends"
+    )
+
+
+def test_bench_incoming_damage_reduction_timing():
+    """Bench Pokémon incoming_damage_reduction has the same timing behaviour."""
+    from app.engine.runner import MatchRunner
+
+    runner = _runner_for_between_turns()
+
+    p1_active = CardInstance(
+        instance_id="bidr-p1a", card_def_id="tst-bidr-p1a",
+        card_name="P1Ac", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    p1_bench = CardInstance(
+        instance_id="bidr-p1b", card_def_id="tst-bidr-p1b",
+        card_name="P1Bench", current_hp=80, max_hp=80, zone=Zone.BENCH,
+    )
+    p2_active = CardInstance(
+        instance_id="bidr-p2a", card_def_id="tst-bidr-p2a",
+        card_name="P2Ac", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=p1_active, p1_bench=[p1_bench], p2_active=p2_active)
+    state.active_player = "p1"
+
+    p1_bench.incoming_damage_reduction = 20
+
+    runner._end_turn(state)
+    assert p1_bench.incoming_damage_reduction == 20, "Bench protection must persist after own turn"
+
+    state.active_player = "p2"
+    runner._end_turn(state)
+    assert p1_bench.incoming_damage_reduction == 0, "Bench protection must clear after opponent's turn"
+
+
+# ── Phase 2: Jasmine's Gaze — player-level new-Pokémon clause ────────────────
+
+def test_jasmine_gaze_sets_player_level_all_reduction():
+    """sv08-178 Jasmine's Gaze must also set opponent_next_turn_all_reduction
+    on the player so new Pokémon that come into play are also protected."""
+    from app.engine.effects.trainers import _jasmine_gaze
+
+    p1_active = CardInstance(
+        instance_id="jg2-a", card_def_id="tst-jg2-a", card_name="JG2Active",
+        current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(
+        p1_active=p1_active,
+        p2_active=CardInstance(instance_id="jg2-o", card_def_id="tst-jg2-o",
+                               card_name="JG2Opp", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    action = Action(player_id="p1", action_type=ActionType.PLAY_SUPPORTER,
+                    card_instance_id="jg2-a")
+
+    _jasmine_gaze(state, action)
+
+    assert state.p1.opponent_next_turn_all_reduction == 30, (
+        "Player-level reduction must be set for new-Pokémon clause"
+    )
+
+
+def test_jasmine_gaze_player_level_reduction_clears_after_opponent_turn():
+    """opponent_next_turn_all_reduction is cleared at end of opponent's turn."""
+    from app.engine.runner import MatchRunner
+    from app.engine.effects.trainers import _jasmine_gaze
+
+    runner = _runner_for_between_turns()
+
+    p1_active = CardInstance(
+        instance_id="jg3-a", card_def_id="tst-jg3-a", card_name="JG3Active",
+        current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(
+        p1_active=p1_active,
+        p2_active=CardInstance(instance_id="jg3-o", card_def_id="tst-jg3-o",
+                               card_name="JG3Opp", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    state.active_player = "p1"
+    action = Action(player_id="p1", action_type=ActionType.PLAY_SUPPORTER,
+                    card_instance_id="jg3-a")
+    _jasmine_gaze(state, action)
+
+    # End P1's turn — protection should still be active
+    runner._end_turn(state)
+    assert state.p1.opponent_next_turn_all_reduction == 30
+
+    # End P2's turn — protection should be cleared
+    state.active_player = "p2"
+    runner._end_turn(state)
+    assert state.p1.opponent_next_turn_all_reduction == 0
+
+
+# ── Phase 3: Iron Defender (me01-118) ────────────────────────────────────────
+
+def test_iron_defender_sets_metal_reduction():
+    """me01-118 Iron Defender must set metal_type_damage_reduction, not be a NOOP."""
+    from app.engine.effects.trainers import _iron_defender_b18
+
+    p1_active = CardInstance(
+        instance_id="id-a", card_def_id="tst-id-a", card_name="ID_Active",
+        current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(
+        p1_active=p1_active,
+        p2_active=CardInstance(instance_id="id-o", card_def_id="tst-id-o",
+                               card_name="ID_Opp", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    action = Action(player_id="p1", action_type=ActionType.PLAY_ITEM,
+                    card_instance_id="id-a")
+
+    _iron_defender_b18(state, action)
+
+    assert state.p1.metal_type_damage_reduction == 30, (
+        "Iron Defender must set metal_type_damage_reduction = 30"
+    )
+    assert any(e.get("event_type") == "iron_defender" for e in state.events)
+
+
+def test_iron_defender_metal_pokemon_takes_less_damage():
+    """Metal-type Pokémon controlled by the Iron Defender player takes 30 less
+    damage from attacks."""
+    from app.engine.effects.attacks import _apply_damage
+
+    metal_cdef = CardDefinition(
+        tcgdex_id="tst-id-metal", name="Metal Mon",
+        set_abbrev="TST", set_number="ID1",
+        category="pokemon", stage="Basic",
+        hp=100, attacks=[AttackDef(name="Smash", damage="60")], abilities=[],
+        types=["Metal"],
+    )
+    card_registry.register(metal_cdef)
+
+    fire_atk_cdef = CardDefinition(
+        tcgdex_id="tst-id-fire", name="Fire Atk",
+        set_abbrev="TST", set_number="ID2",
+        category="pokemon", stage="Basic",
+        hp=100, attacks=[AttackDef(name="Flare", damage="60")], abilities=[],
+        types=["Fire"],
+    )
+    card_registry.register(fire_atk_cdef)
+
+    metal_defender = CardInstance(
+        instance_id="id-metal", card_def_id="tst-id-metal",
+        card_name="Metal Mon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    fire_attacker = CardInstance(
+        instance_id="id-fire", card_def_id="tst-id-fire",
+        card_name="Fire Atk", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=fire_attacker, p2_active=metal_defender)
+    state.p2.metal_type_damage_reduction = 30
+
+    action = Action(player_id="p1", action_type=ActionType.ATTACK, attack_index=0)
+    _apply_damage(state, action, base_damage=60, bypass_wr=True)
+
+    assert metal_defender.current_hp == 70, (
+        f"Expected 70 HP after 60-30=30 damage, got {metal_defender.current_hp}"
+    )
+
+
+def test_iron_defender_non_metal_unaffected():
+    """Non-Metal Pokémon do not benefit from iron_defender metal_type_damage_reduction."""
+    from app.engine.effects.attacks import _apply_damage
+
+    water_cdef = CardDefinition(
+        tcgdex_id="tst-id-water", name="Water Mon",
+        set_abbrev="TST", set_number="ID3",
+        category="pokemon", stage="Basic",
+        hp=100, attacks=[AttackDef(name="Splash", damage="60")], abilities=[],
+        types=["Water"],
+    )
+    card_registry.register(water_cdef)
+
+    fire_atk2_cdef = CardDefinition(
+        tcgdex_id="tst-id-fire2", name="Fire Atk 2",
+        set_abbrev="TST", set_number="ID4",
+        category="pokemon", stage="Basic",
+        hp=100, attacks=[AttackDef(name="Flare2", damage="60")], abilities=[],
+        types=["Fire"],
+    )
+    card_registry.register(fire_atk2_cdef)
+
+    water_defender = CardInstance(
+        instance_id="id-water", card_def_id="tst-id-water",
+        card_name="Water Mon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    fire_attacker2 = CardInstance(
+        instance_id="id-fire2", card_def_id="tst-id-fire2",
+        card_name="Fire Atk 2", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=fire_attacker2, p2_active=water_defender)
+    state.p2.metal_type_damage_reduction = 30  # only helps Metal-type
+
+    action = Action(player_id="p1", action_type=ActionType.ATTACK, attack_index=0)
+    _apply_damage(state, action, base_damage=60, bypass_wr=True)
+
+    assert water_defender.current_hp == 40, (
+        f"Non-Metal must take full 60 damage, got {100 - water_defender.current_hp}"
+    )
+
+
+def test_iron_defender_reduction_clears_after_opponent_turn():
+    """metal_type_damage_reduction clears at end of the protected player's turn
+    (which corresponds to end of opponent's use turn)."""
+    from app.engine.runner import MatchRunner
+
+    runner = _runner_for_between_turns()
+
+    p1_active = CardInstance(
+        instance_id="idcl-a", card_def_id="tst-idcl-a", card_name="IDCL",
+        current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(
+        p1_active=p1_active,
+        p2_active=CardInstance(instance_id="idcl-o", card_def_id="tst-idcl-o",
+                               card_name="IDCLOpp", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    state.active_player = "p1"
+    state.p1.metal_type_damage_reduction = 30
+
+    # End P1's turn — reduction should persist so it applies on P2's upcoming turn
+    runner._end_turn(state)
+    assert state.p1.metal_type_damage_reduction == 30
+
+    # End P2's turn — reduction should now be cleared
+    state.active_player = "p2"
+    runner._end_turn(state)
+    assert state.p1.metal_type_damage_reduction == 0
+
+
+# ── Phase 3: Premium Power Pro (me01-124) ────────────────────────────────────
+
+def test_premium_power_pro_sets_fighting_bonus():
+    """me01-124 Premium Power Pro must set fighting_pokemon_damage_bonus = 30."""
+    from app.engine.effects.trainers import _premium_power_pro_b18
+
+    p1_active = CardInstance(
+        instance_id="ppp-a", card_def_id="tst-ppp-a", card_name="PPP_Active",
+        current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(
+        p1_active=p1_active,
+        p2_active=CardInstance(instance_id="ppp-o", card_def_id="tst-ppp-o",
+                               card_name="PPP_Opp", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    action = Action(player_id="p1", action_type=ActionType.PLAY_ITEM,
+                    card_instance_id="ppp-a")
+
+    _premium_power_pro_b18(state, action)
+
+    assert state.p1.fighting_pokemon_damage_bonus == 30, (
+        "Premium Power Pro must set fighting_pokemon_damage_bonus = 30"
+    )
+    assert any(e.get("event_type") == "premium_power_pro" for e in state.events)
+
+
+def test_premium_power_pro_fighting_attacker_does_more_damage():
+    """Fighting-type attacker does 30 more damage when fighting_pokemon_damage_bonus is set."""
+    from app.engine.effects.attacks import _apply_damage
+
+    fighting_cdef = CardDefinition(
+        tcgdex_id="tst-ppp-fgt", name="Fighting Mon",
+        set_abbrev="TST", set_number="PPP1",
+        category="pokemon", stage="Basic",
+        hp=100, attacks=[AttackDef(name="Punch", damage="60")], abilities=[],
+        types=["Fighting"],
+    )
+    card_registry.register(fighting_cdef)
+
+    opp_def_cdef = CardDefinition(
+        tcgdex_id="tst-ppp-def", name="Opp Defender",
+        set_abbrev="TST", set_number="PPP2",
+        category="pokemon", stage="Basic",
+        hp=200, attacks=[AttackDef(name="Tackle", damage="30")], abilities=[],
+    )
+    card_registry.register(opp_def_cdef)
+
+    fighting_attacker = CardInstance(
+        instance_id="ppp-fgt", card_def_id="tst-ppp-fgt",
+        card_name="Fighting Mon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    defender = CardInstance(
+        instance_id="ppp-def", card_def_id="tst-ppp-def",
+        card_name="Opp Defender", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=fighting_attacker, p2_active=defender)
+    state.p1.fighting_pokemon_damage_bonus = 30
+
+    action = Action(player_id="p1", action_type=ActionType.ATTACK, attack_index=0)
+    _apply_damage(state, action, base_damage=60, bypass_wr=True)
+
+    assert defender.current_hp == 110, (
+        f"Expected 200-90=110 HP (60+30 bonus), got {defender.current_hp}"
+    )
+
+
+def test_premium_power_pro_non_fighting_attacker_unaffected():
+    """Non-Fighting attacker gets NO bonus from fighting_pokemon_damage_bonus."""
+    from app.engine.effects.attacks import _apply_damage
+
+    water_atk_cdef = CardDefinition(
+        tcgdex_id="tst-ppp-wtr", name="Water Attacker",
+        set_abbrev="TST", set_number="PPP3",
+        category="pokemon", stage="Basic",
+        hp=100, attacks=[AttackDef(name="Splash", damage="60")], abilities=[],
+        types=["Water"],
+    )
+    card_registry.register(water_atk_cdef)
+
+    ppp_def2_cdef = CardDefinition(
+        tcgdex_id="tst-ppp-def2", name="PPP Opp2",
+        set_abbrev="TST", set_number="PPP4",
+        category="pokemon", stage="Basic",
+        hp=200, attacks=[AttackDef(name="Tackle2", damage="30")], abilities=[],
+    )
+    card_registry.register(ppp_def2_cdef)
+
+    water_attacker = CardInstance(
+        instance_id="ppp-wtr", card_def_id="tst-ppp-wtr",
+        card_name="Water Attacker", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    defender2 = CardInstance(
+        instance_id="ppp-def2", card_def_id="tst-ppp-def2",
+        card_name="PPP Opp2", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=water_attacker, p2_active=defender2)
+    state.p1.fighting_pokemon_damage_bonus = 30  # only for Fighting types
+
+    action = Action(player_id="p1", action_type=ActionType.ATTACK, attack_index=0)
+    _apply_damage(state, action, base_damage=60, bypass_wr=True)
+
+    assert defender2.current_hp == 140, (
+        f"Non-Fighting attacker must deal exactly 60 damage, got {200 - defender2.current_hp}"
+    )
+
+
+def test_premium_power_pro_bonus_clears_after_own_turn():
+    """fighting_pokemon_damage_bonus clears at end of the using player's turn."""
+    from app.engine.runner import MatchRunner
+
+    runner = _runner_for_between_turns()
+
+    p1_active = CardInstance(
+        instance_id="pppcl-a", card_def_id="tst-pppcl-a", card_name="PPPCl",
+        current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(
+        p1_active=p1_active,
+        p2_active=CardInstance(instance_id="pppcl-o", card_def_id="tst-pppcl-o",
+                               card_name="PPPClOpp", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    state.active_player = "p1"
+    state.p1.fighting_pokemon_damage_bonus = 30
+
+    runner._end_turn(state)
+
+    assert state.p1.fighting_pokemon_damage_bonus == 0, (
+        "fighting_pokemon_damage_bonus must clear at end of own turn"
+    )
+
+
+# ── Phase 3: Cinderace Explosiveness (me01-028) ──────────────────────────────
+
+def test_cinderace_explosiveness_setup_actions_allows_stage2():
+    """During setup, Cinderace (me01-028) with Explosiveness must appear as a
+    valid PLACE_ACTIVE action even though it is Stage 2."""
+    from app.engine.actions import ActionValidator, ActionType
+
+    cinderace_card = CardInstance(
+        instance_id="exp-cinderace", card_def_id="me01-028",
+        card_name="Cinderace", current_hp=160, max_hp=160, zone=Zone.HAND,
+        card_type="pokemon", evolution_stage=2,
+    )
+    state = _make_state(
+        p2_active=CardInstance(instance_id="exp-opp", card_def_id="tst-exp-opp",
+                               card_name="OppPoke", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    state.p1.hand = [cinderace_card]
+    state.p1.active = None
+
+    actions = ActionValidator.get_legal_actions(state, "p1")
+    place_active_actions = [a for a in actions if a.action_type == ActionType.PLACE_ACTIVE]
+
+    assert any(a.card_instance_id == cinderace_card.instance_id
+               for a in place_active_actions), (
+        "Cinderace (me01-028) must appear as a PLACE_ACTIVE option during setup"
+    )
+
+
+def test_cinderace_explosiveness_deck_has_basic_true():
+    """deck_has_basic must return True when Cinderace (me01-028) is in hand."""
+    from app.engine.rules import RuleEngine
+
+    cinderace = CardInstance(
+        instance_id="exp-cind2", card_def_id="me01-028",
+        card_name="Cinderace", current_hp=160, max_hp=160, zone=Zone.HAND,
+        card_type="pokemon", evolution_stage=2,
+    )
+    assert RuleEngine.deck_has_basic([cinderace]) is True
+
+
+def test_cinderace_explosiveness_deck_has_basic_false_without_cinderace():
+    """deck_has_basic returns False when hand only contains non-Basic, non-Explosiveness cards."""
+    from app.engine.rules import RuleEngine
+
+    non_basic = CardInstance(
+        instance_id="exp-nb", card_def_id="tst-exp-nb",
+        card_name="Stage2NotCinderace", current_hp=160, max_hp=160, zone=Zone.HAND,
+        card_type="pokemon", evolution_stage=2,
+    )
+    assert RuleEngine.deck_has_basic([non_basic]) is False
+
+
+# ── Phase 4: Risky Ruins — bench_pokemon_from_effect public path ─────────────
+
+def test_risky_ruins_bench_from_effect_basic_non_darkness_takes_damage():
+    """bench_pokemon_from_effect: Basic non-Darkness Pokémon placed via effect
+    takes 20 damage under Risky Ruins."""
+    from app.engine.transitions import bench_pokemon_from_effect
+
+    fire_cdef2 = CardDefinition(
+        tcgdex_id="tst-bfe-fire", name="Fire Basic Effect",
+        set_abbrev="TST", set_number="BFE1",
+        category="pokemon", stage="Basic",
+        hp=80, attacks=[], abilities=[],
+        types=["Fire"],
+    )
+    card_registry.register(fire_cdef2)
+
+    placed = CardInstance(
+        instance_id="bfe-fire", card_def_id="tst-bfe-fire",
+        card_name="Fire Basic Effect", current_hp=80, max_hp=80, zone=Zone.HAND,
+    )
+    state = _make_state(
+        p1_active=CardInstance(instance_id="bfe-a", card_def_id="tst-bfe-a",
+                               card_name="A", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+        p2_active=CardInstance(instance_id="bfe-o", card_def_id="tst-bfe-o",
+                               card_name="O", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    state.p1.hand = [placed]
+    state.active_stadium = _risky_ruins_stadium()
+
+    result = bench_pokemon_from_effect(state, "p1", placed, Zone.HAND)
+
+    assert result is True
+    assert placed in state.p1.bench
+    assert placed.damage_counters == 2, "Basic non-Darkness must take 2 damage counters"
+    assert placed.current_hp == 60
+
+
+def test_risky_ruins_bench_from_effect_evolved_no_damage():
+    """bench_pokemon_from_effect: Evolved non-Darkness Pokémon placed via effect
+    (allow_evolved=True) takes NO damage under Risky Ruins."""
+    from app.engine.transitions import bench_pokemon_from_effect
+
+    s1_cdef2 = CardDefinition(
+        tcgdex_id="tst-bfe-s1", name="Stage 1 Effect",
+        set_abbrev="TST", set_number="BFE2",
+        category="pokemon", stage="Stage 1",
+        hp=120, attacks=[], abilities=[],
+        types=["Psychic"],
+    )
+    card_registry.register(s1_cdef2)
+
+    placed_s1 = CardInstance(
+        instance_id="bfe-s1", card_def_id="tst-bfe-s1",
+        card_name="Stage 1 Effect", current_hp=120, max_hp=120, zone=Zone.HAND,
+    )
+    state = _make_state(
+        p1_active=CardInstance(instance_id="bfe2-a", card_def_id="tst-bfe2-a",
+                               card_name="A2", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+        p2_active=CardInstance(instance_id="bfe2-o", card_def_id="tst-bfe2-o",
+                               card_name="O2", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    state.p1.hand = [placed_s1]
+    state.active_stadium = _risky_ruins_stadium()
+
+    result = bench_pokemon_from_effect(state, "p1", placed_s1, Zone.HAND, allow_evolved=True)
+
+    assert result is True
+    assert placed_s1 in state.p1.bench
+    assert placed_s1.damage_counters == 0, "Evolved Pokémon must NOT take Risky Ruins damage"
+    assert placed_s1.current_hp == 120
+
+
+def test_risky_ruins_bench_from_effect_rejects_evolved_without_flag():
+    """bench_pokemon_from_effect: Evolved Pokémon cannot be benched when
+    allow_evolved=False (the default)."""
+    from app.engine.transitions import bench_pokemon_from_effect
+
+    s1_cdef3 = CardDefinition(
+        tcgdex_id="tst-bfe-s1b", name="Stage 1 No Allow",
+        set_abbrev="TST", set_number="BFE3",
+        category="pokemon", stage="Stage 1",
+        hp=120, attacks=[], abilities=[],
+        types=["Water"],
+    )
+    card_registry.register(s1_cdef3)
+
+    placed_s1b = CardInstance(
+        instance_id="bfe-s1b", card_def_id="tst-bfe-s1b",
+        card_name="Stage 1 No Allow", current_hp=120, max_hp=120, zone=Zone.HAND,
+    )
+    state = _make_state(
+        p1_active=CardInstance(instance_id="bfe3-a", card_def_id="tst-bfe3-a",
+                               card_name="A3", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+        p2_active=CardInstance(instance_id="bfe3-o", card_def_id="tst-bfe3-o",
+                               card_name="O3", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    state.p1.hand = [placed_s1b]
+
+    result = bench_pokemon_from_effect(state, "p1", placed_s1b, Zone.HAND)
+
+    assert result is False, "Evolved Pokémon must not be benched when allow_evolved=False"
+    assert placed_s1b not in state.p1.bench
+
+
+def test_bench_from_effect_bench_full_returns_false():
+    """bench_pokemon_from_effect returns False when bench is already full."""
+    from app.engine.transitions import bench_pokemon_from_effect
+
+    basic_cdef_full = CardDefinition(
+        tcgdex_id="tst-bfe-full", name="Basic Full",
+        set_abbrev="TST", set_number="BFE4",
+        category="pokemon", stage="Basic",
+        hp=60, attacks=[], abilities=[],
+        types=["Grass"],
+    )
+    card_registry.register(basic_cdef_full)
+
+    placed_full = CardInstance(
+        instance_id="bfe-full", card_def_id="tst-bfe-full",
+        card_name="Basic Full", current_hp=60, max_hp=60, zone=Zone.HAND,
+    )
+    bench_mons = [
+        CardInstance(
+            instance_id=f"bfe-bench-{i}", card_def_id="tst-bfe-full",
+            card_name="Basic Full", current_hp=60, max_hp=60, zone=Zone.BENCH,
+        )
+        for i in range(5)
+    ]
+    state = _make_state(
+        p1_active=CardInstance(instance_id="bfe4-a", card_def_id="tst-bfe4-a",
+                               card_name="A4", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+        p1_bench=bench_mons,
+        p2_active=CardInstance(instance_id="bfe4-o", card_def_id="tst-bfe4-o",
+                               card_name="O4", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    state.p1.hand = [placed_full]
+
+    result = bench_pokemon_from_effect(state, "p1", placed_full, Zone.HAND)
+
+    assert result is False
+    assert placed_full not in state.p1.bench
+    assert len(state.p1.bench) == 5

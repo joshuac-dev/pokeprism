@@ -455,6 +455,19 @@ def _apply_damage(
             return 0
 
     total = max(0, total)
+
+    # Player-level outgoing bonus: Premium Power Pro (me01-124/me02.5-199)
+    # "During this turn, attacks used by your {F} Pokémon do 30 more damage"
+    _atk_player_id = action.player_id
+    _atk_player_st = state.get_player(_atk_player_id)
+    if _atk_player_st.fighting_pokemon_damage_bonus > 0:
+        _atk_cdef_ppp = card_registry.get(attacker.card_def_id)
+        if _atk_cdef_ppp and "Fighting" in (_atk_cdef_ppp.types or []):
+            total += _atk_player_st.fighting_pokemon_damage_bonus
+            state.emit_event("fighting_damage_bonus", player=_atk_player_id,
+                             attacker=attacker.card_name,
+                             bonus=_atk_player_st.fighting_pokemon_damage_bonus)
+
     if not bypass_defender_effects and has_tundra_wall(state, opp_id):
         if any(att.energy_type == EnergyType.WATER for att in defender.energy_attached):
             total = max(0, total - 50)
@@ -462,6 +475,18 @@ def _apply_damage(
         total = max(0, total - defender.incoming_damage_reduction)
     if attacker.attack_damage_reduction > 0:
         total = max(0, total - attacker.attack_damage_reduction)
+
+    # Player-level incoming reduction: Iron Defender (me01-118), Jasmine's Gaze (sv08-178)
+    # These cover new Pokémon that came into play after the effect was set.
+    if not bypass_defender_effects:
+        _def_player_st = state.get_player(opp_id)
+        if _def_player_st.opponent_next_turn_all_reduction > 0:
+            total = max(0, total - _def_player_st.opponent_next_turn_all_reduction)
+        if _def_player_st.metal_type_damage_reduction > 0:
+            _def_cdef_id = card_registry.get(defender.card_def_id)
+            if _def_cdef_id and "Metal" in (_def_cdef_id.types or []):
+                total = max(0, total - _def_player_st.metal_type_damage_reduction)
+
     defender.current_hp -= total
     defender.damage_counters += total // 10
     state.emit_event(

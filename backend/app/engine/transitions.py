@@ -126,6 +126,85 @@ def _mulligan_redraw(state: GameState, action: Action, get_player=None) -> GameS
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Public effect-helper: place Pokémon on bench via card effect
+# ──────────────────────────────────────────────────────────────────────────────
+
+def bench_pokemon_from_effect(
+    state: GameState,
+    player_id: str,
+    card: CardInstance,
+    source_zone: Zone,
+    *,
+    allow_evolved: bool = False,
+) -> bool:
+    """Move *card* from *source_zone* to a player's Bench via a card effect.
+
+    Returns True if the Pokémon was benched successfully, False if the bench
+    was full or the placement was illegal.
+
+    :param state: Current game state (mutated in place).
+    :param player_id: The player who controls the new Pokémon.
+    :param card: The CardInstance to bench.
+    :param source_zone: Zone the card is coming from (HAND, DECK, DISCARD, …).
+    :param allow_evolved: If True, evolved Pokémon may be benched by this effect.
+                          Default False mirrors normal TCG rules (only card effects
+                          with explicit text may bench evolved Pokémon).
+
+    Triggers Risky Ruins (me01-127) for Basic non-Darkness Pokémon exactly as
+    the standard play_basic / place_bench paths do.
+    """
+    from app.engine.actions import ActionValidator  # bench limit constant
+
+    player = state.get_player(player_id)
+    if len(player.bench) >= ActionValidator.MAX_BENCH_SIZE:
+        return False
+
+    cdef = card_registry.get(card.card_def_id)
+    is_basic = cdef and cdef.is_basic_pokemon
+    if not allow_evolved and not is_basic:
+        return False
+
+    # Remove from source zone list
+    source_list: list[CardInstance]
+    if source_zone == Zone.HAND:
+        source_list = player.hand
+    elif source_zone == Zone.DECK:
+        source_list = player.deck
+    elif source_zone == Zone.DISCARD:
+        source_list = player.discard
+    else:
+        source_list = []
+
+    if card in source_list:
+        source_list.remove(card)
+
+    card.zone = Zone.BENCH
+    card.turn_played = state.turn_number
+    player.bench.append(card)
+    state.emit_event(
+        "bench_from_effect",
+        player=player_id,
+        card=card.card_name,
+        source_zone=source_zone.name if hasattr(source_zone, "name") else str(source_zone),
+        bench_size=len(player.bench),
+    )
+
+    # Risky Ruins (me01-127): only Basic non-Darkness Pokémon take damage
+    if state.active_stadium and state.active_stadium.card_def_id == "me01-127":
+        if is_basic and cdef and "Darkness" not in (cdef.types or []):
+            card.current_hp = max(0, card.current_hp - 20)
+            card.damage_counters += 2
+            state.emit_event(
+                "risky_ruins_damage",
+                player=player_id,
+                card=card.card_name,
+                damage=20,
+            )
+
+    return True
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Main phase transitions
 # ──────────────────────────────────────────────────────────────────────────────
 
