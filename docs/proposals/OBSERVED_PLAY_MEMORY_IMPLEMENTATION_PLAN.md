@@ -1544,6 +1544,64 @@ unresolved cards table, card resolution modal, failed logs table.
 
 ---
 
+## 22.1 Phase 2.1 — Parser Hardening Against Real Logs
+
+**Status:** Queued. Phase 2 accepted (upload, parse, event storage, events API, reparse all functional). Manual validation of a real log revealed 56% confidence — too low to proceed to Phase 3 card resolution. Parser needs to recognize a broader set of common PTCGL log lines without overclaiming hidden state.
+
+**Trigger:** Manual upload of `2026-05-03 02.15.md` → 290 events, 56% confidence. Common lines falling into `unknown`.
+
+**What to fix (patterns observed in the real log):**
+
+| Bad line | Current | Expected |
+|---|---|---|
+| `gehejo played Buddy-Buddy Poffin.` | `unknown` | `play_trainer` (or `play_item` from safe map) |
+| `DAVIDELIRIUM drew a card.` | `draw` with `card_name_raw="a card"` | `draw_hidden`, amount=1, card_name_raw=null |
+| `DAVIDELIRIUM attached Maximum Belt to Riolu...` | `attach_energy` | `attach_tool` or `attach_card` (not energy) |
+| `DAVIDELIRIUM evolved Riolu to Mega Lucario ex...` | `unknown` | `evolve`, from=Riolu, to=Mega Lucario ex |
+| `DAVIDELIRIUM's Hariyama used Heave-Ho Catcher.` | `unknown` | `ability_used`, card=Hariyama, ability=Heave-Ho Catcher |
+| `gehejo's Dwebble used Ascension.` | `unknown` | `attack_used`, card=Dwebble, attack=Ascension, damage=null |
+| `DAVIDELIRIUM took a Prize card.` | `unknown` | `prize_taken`, amount=1 |
+| `- gehejo drew 2 cards and played them to the Bench.` | `play_to_bench` with `card_name_raw="them"` | `bench_from_deck_hidden`, amount=2, identities unknown |
+| `gehejo's Dwebble is now in the Active Spot.` | `unknown` | `switch_active`, card=Dwebble |
+
+**Key constraints:**
+- Do not overclaim hidden information (hidden draws stay hidden; bench-from-deck stays anonymous).
+- Do not attach card names to "them" / pronouns.
+- Do not require card DB resolution.
+- Energy detection: use `attach_energy` only when card name contains "Energy" or matches known energy pattern.
+- Support both straight apostrophe `'` and curly apostrophe `'` in ability/attack/trainer name patterns.
+
+**Parser diagnostics:** store in `ObservedPlayLog.metadata_json["parser_diagnostics"]`:
+- `unknown_count`, `unknown_ratio`, `low_confidence_count`, `event_type_counts`, `top_unknown_raw_lines`.
+
+**Files touched:**
+- `backend/app/observed_play/constants.py` — new event type constants.
+- `backend/app/observed_play/patterns.py` — new/corrected patterns.
+- `backend/app/observed_play/parser.py` — new/corrected match branches; diagnostics population.
+- `backend/app/observed_play/confidence.py` — update scoring for new event types.
+- `backend/app/db/models.py` — verify `metadata_json` column exists on `ObservedPlayLog` (add if absent).
+- `backend/tests/fixtures/observed_play/` — curated fixture lines only (no real log corpus).
+- `backend/tests/test_observed_play/test_parser.py` — 17+ new/updated tests.
+- `frontend/src/pages/ObservedPlay.tsx` — optional: show parser diagnostics in event modal.
+- `frontend/src/pages/ObservedPlay.test.tsx` — update if diagnostics are added.
+
+**Acceptance criteria:**
+1. All 9 previously-bad example lines parse correctly (not `unknown`, not misclassified).
+2. `draw_hidden` used for "drew a card" / "drew N cards" without named cards.
+3. Energy attachment uses `attach_energy` only when card name is energy-like.
+4. Evolution, ability, no-damage attack, prize, bench-from-deck-hidden, switch-active all have correct types.
+5. `card_name_raw` is never set to a pronoun (`"them"`, `"it"`, `"a card"`).
+6. Parser diagnostics present in `metadata_json` for any newly-parsed log.
+7. Confidence on a representative curated fixture improves materially from 56% baseline.
+8. All Phase 2.1 tests pass (≥ 17 new/updated tests).
+9. No card DB resolution / Coach / Player / pgvector / Neo4j / memory ingestion added.
+10. `alembic upgrade head` is a no-op (no new migration required unless `metadata_json` column missing).
+
+**Tests required:**
+- All 17 tests listed in next-session prompt (draw_hidden singular/plural, trainer plays ×3, evolve, ability ×2 apostrophes, no-damage attack, prize ×2, bench-from-deck-hidden card_name_raw=null, switch_active, non-energy attachment, energy attachment, diagnostics, confidence improvement).
+
+---
+
 ## 23. First Implementation Prompt Preview
 
 The next session prompt (Phase 1) will be titled:
