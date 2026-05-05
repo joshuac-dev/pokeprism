@@ -71,7 +71,79 @@ bugs found in the 50-card TCGDex spot check. The following work was performed:
 
 - Confidence: High.
 
-### Fixed (2026-05-04 Session 6 — Hardening Sweep Section 5 Handler Fixes)
+### Fixed (2026-05-05 Session 8 — Hardening Sweep Gap Closeout)
+
+Closed remaining gaps from Session 7 hardening sweep: completed Section 2C (AI/AI
+games), Section 5 (full 50-card live TCGDex comparison), and Section 7B (fault injection).
+
+- **5 handler mismatches fixed** found by full 50-card live TCGDex comparison:
+
+  - **`_cast_off_shell` wrong card ID (me01-017 Ninjask, abilities.py)** — Handler
+    searched for `card_def_id == "me01-016"` (Nincada) instead of `"me01-061"`
+    (Shedinja). In decks containing Shedinja but not Nincada, Cast-Off Shell silently
+    failed; in decks with Nincada it would bench Nincada instead.
+    Fix: changed target to `"me01-061"`. Confidence: High.
+
+  - **`_fall_back_to_reload` wrong source/count/type (me01-038 Clawitzer, abilities.py)**
+    — Handler was attaching from `player.discard` (not hand), limited to 1 energy
+    (not 2), and accepted any energy type (not Water-only). Three distinct deviations
+    from TCGDex card text.
+    Fix: rewritten to use hand, filter `_energy_provides_type(c, "Water")`,
+    `max_count=2`. Condition function updated accordingly. Confidence: High.
+
+  - **`_energized_steps` four deviations (me01-063 Grumpig, abilities.py)** —
+    Handler searched entire deck (not top 4 cards), restricted to Psychic Energy
+    (not any Basic Energy), targeted Bench only (not any Pokémon), and allowed only
+    1 attachment (not any number). TCGDex text: "Look at the top 4 cards of your
+    deck. Attach any number of Basic Energy cards you find there to any of your
+    Pokémon in any way you like."
+    Fix: rewritten to peek `player.deck[:4]`, extract any Basic Energy from those 4,
+    ChoiceRequest for any number, ChoiceRequest target for each (active+bench). Confidence: High.
+
+  - **`_fighting_gong` missing Basic Pokémon filter (me01-116 Fighting Gong, trainers.py)**
+    — Pokémon branch had no evolution stage check, allowing Stage 1 and Stage 2
+    Fighting Pokémon to be searched. TCGDex text specifies "Basic {F} Pokémon."
+    Fix: added `and c.evolution_stage == 0` to Pokémon branch. Confidence: High.
+
+  - **`_place_bench` / `_play_basic` Risky Ruins missing Basic check (me01-127, transitions.py)**
+    — Stadium effect applied 20 damage to any non-Darkness Pokémon placed on bench,
+    including evolved Pokémon placed via special effects. TCGDex text specifies "Basic
+    Pokémon" only. Fix: added `cdef_rr.is_basic_pokemon` check in both bench placement
+    functions. Confidence: High.
+
+- **3 NOOP stubs documented as deferred engine gaps:**
+  - me01-118 Iron Defender: turn-scoped Metal damage reduction (requires `PlayerState`
+    flag + `_apply_damage` check)
+  - me01-124 Premium Power Pro: turn-scoped Fighting damage bonus (same pattern)
+  - me01-028 Cinderace Explosiveness: setup-phase placement hook (requires
+    mulligan/setup engine changes)
+
+- **Section 7B fault injection completed** — Created and killed a disposable H/H
+  simulation mid-run to test recovery. Found: `advance_simulation_queue` beat task
+  does not detect stuck-running simulations; Redis visibility timeout default is 3600s
+  (1 hour), so re-delivery of the killed task takes up to 1 hour. Queue is blocked by
+  the stuck running sim during this window. Two remediation options documented:
+  Option A (set `broker_transport_options.visibility_timeout`); Option B (stale-running
+  detection in `_dispatch_next_queued()`). Checkpointing idempotency confirmed correct.
+
+- **Section 2C AI/AI behavioral run completed** — 3 games run via
+  `backend/scripts/ai_diagnostic_3games.py` (model: Qwen3.5:9B-Q4_K_M). Results:
+  - Game 1: p2 wins (TR Mewtwo beats Dragapult), 57 turns, 127 decisions
+  - Game 2: p1 wins (Dragapult beats Ogerpon), 125 turns, 264 decisions
+  - Game 3: p2 wins (Ogerpon beats TR Mewtwo), 41 turns, 98 decisions
+  - 0 validator warnings across 489 decisions — hard gate held
+  - No hallucinations, no illegal action acceptance, no state contradictions
+  - Minor BAD_STRATEGIC_PLAY finding (forward-planning bias on PASS decisions)
+
+- **`docs/HARDENING_SWEEP_REPORT.md` updated** — Section 2C, Section 5, and Section
+  7B replaced/extended with actual evidence. Summary table updated. Session 8 fixes table added.
+
+- **Test count unchanged at 466 passed, 1 skipped** — all 5 handler fixes maintain
+  existing passing tests.
+
+- Confidence: High.
+
+### Added (2026-05-05 Session 7 — Hardening Sweep Reverification)
 
 - **`_sinister_surge` duplicate deleted (me02-068 Toxtricity)** — A second
   definition of `_sinister_surge` existed at lines 2313–2368 of `abilities.py`,

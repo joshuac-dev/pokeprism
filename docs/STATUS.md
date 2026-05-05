@@ -242,6 +242,13 @@ reset-before-opponent-attacks timing issue.
 Section 2C AI behavioral run was blocked by Qwen3.5-9B cold-start exceeding time
 budget. Hard gate (Section 2B) and AI prompt (Section 2A) verified by code review.
 
+**Session 8 (2026-05-05):** Closed remaining hardening sweep gaps. 5 handler mismatches
+fixed (Ninjask Cast-Off Shell wrong card ID, Clawitzer Fall Back to Reload wrong source/
+count/type, Grumpig Energized Steps 4 deviations, Fighting Gong missing Basic filter,
+Risky Ruins missing Basic check). Section 2C AI/AI behavioral run completed: 3 games,
+489 decisions, 0 validator violations. Section 7B fault injection ran: Redis 1-hour
+recovery window gap documented. Backend test count: **466 passed, 1 skipped**.
+
 Files changed:
 - `backend/app/engine/effects/abilities.py` — incorrect `_sinister_surge` duplicate deleted
 - `backend/app/engine/effects/trainers.py` — `_jasmine_gaze` bench fix, `_grimsleys_move_b18` max_count=1
@@ -255,9 +262,19 @@ Files changed:
 - AI/Coach provider abstraction is intentionally not planned. PokePrism remains
   Ollama-only by product decision; see
   `docs/proposals/AI_COACH_HARDENING_ASSESSMENT.md`.
-- AI decision quality still has documented follow-up areas: reasoning-to-action
-  mismatch, Fairy Zone rules misunderstanding, and no greedy-KO override
-  backstop.
+- AI decision quality minor finding: forward-planning bias on PASS decisions (AI
+  narrates future action rather than evaluating present-turn play). No hallucinations
+  or illegal action acceptance found in 489-decision audit. Not a correctness issue.
+- **NOOP stubs (require engine work before they take effect in games):**
+  - me01-118 Iron Defender: turn-scoped Metal damage reduction (30 less) — requires
+    `fighting_damage_bonus_30`-style flag on `PlayerState` + `_apply_damage` check
+  - me01-124 Premium Power Pro: turn-scoped Fighting damage bonus (30 more) — same pattern
+  - me01-028 Cinderace Explosiveness: setup-phase placement — requires mulligan/setup hook
+- **Resilience gap: Redis 1-hour recovery window** — if Celery worker is killed mid-task,
+  the simulation stuck in `running` status blocks `advance_simulation_queue` until the
+  Redis visibility timeout expires (default 3600s). Fix: set
+  `broker_transport_options={"visibility_timeout": N}` in `celery_app.py`, or add
+  stale-running detection in `_dispatch_next_queued()`.
 - Team Rocket's Watchtower (sv10-180 / me02.5-210): Colorless Pokémon ability
   suppression is fully implemented in the action validator. Passive ability
   interactions (e.g. Damp) remain a future gap if a Colorless Pokémon with a

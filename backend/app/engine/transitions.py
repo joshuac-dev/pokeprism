@@ -83,10 +83,10 @@ def _place_bench(state: GameState, action: Action, get_player=None) -> GameState
     card.turn_played = state.turn_number
     player.bench.append(card)
     state.emit_event("place_bench", player=action.player_id, card=card.card_name)
-    # Risky Ruins (me01-127): non-Darkness Pokémon placed on bench take 20 damage
+    # Risky Ruins (me01-127): Basic non-Darkness Pokémon placed on bench take 20 damage
     if state.active_stadium and state.active_stadium.card_def_id == "me01-127":
         cdef_rr = card_registry.get(card.card_def_id)
-        if cdef_rr and "Darkness" not in (cdef_rr.types or []):
+        if cdef_rr and cdef_rr.is_basic_pokemon and "Darkness" not in (cdef_rr.types or []):
             card.current_hp = max(0, card.current_hp - 20)
             card.damage_counters += 2
     return state
@@ -145,10 +145,10 @@ async def _play_basic(state: GameState, action: Action, get_player=None) -> Game
         card=card.card_name,
         bench_size=len(player.bench),
     )
-    # Risky Ruins (me01-127): non-Darkness Pokémon placed on bench take 20 damage
+    # Risky Ruins (me01-127): Basic non-Darkness Pokémon placed on bench take 20 damage
     if state.active_stadium and state.active_stadium.card_def_id == "me01-127":
         cdef_rr = card_registry.get(card.card_def_id)
-        if cdef_rr and "Darkness" not in (cdef_rr.types or []):
+        if cdef_rr and cdef_rr.is_basic_pokemon and "Darkness" not in (cdef_rr.types or []):
             card.current_hp = max(0, card.current_hp - 20)
             card.damage_counters += 2
     # On-bench trigger abilities (fire automatically when the Pokémon is played to bench)

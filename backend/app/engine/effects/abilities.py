@@ -2210,7 +2210,7 @@ def _cast_off_shell(state: GameState, action):
     player = state.get_player(player_id)
     if len(player.bench) >= 5:
         return
-    shedinja_cards = [c for c in player.deck if c.card_def_id == "me01-016"]
+    shedinja_cards = [c for c in player.deck if c.card_def_id == "me01-061"]
     if not shedinja_cards:
         import random
         random.shuffle(player.deck)
@@ -2227,53 +2227,56 @@ def _cast_off_shell(state: GameState, action):
 # Energized Steps (me01-063 Grumpig) — evolve trigger ────────────────────────
 
 def _energized_steps(state: GameState, action):
-    """me01-063 Grumpig — Energized Steps: on evolve, attach {P} Energy from deck to Bench."""
+    """me01-063 Grumpig — Energized Steps: on evolve, look at top 4 deck cards;
+    attach any number of Basic Energy to any of your Pokémon; shuffle rest back."""
     player_id = action.player_id
     player = state.get_player(player_id)
-    if not player.bench:
+    if not player.deck:
         return
-    p_energy = [c for c in player.deck
-                if c.card_type.lower() == "energy"
-                and c.card_subtype.lower() == "basic"
-                and "Psychic" in (c.energy_provides or [])]
-    if not p_energy:
+    top4 = player.deck[:4]
+    basic_energy = [c for c in top4
+                    if c.card_type.lower() == "energy"
+                    and c.card_subtype.lower() == "basic"]
+    if not basic_energy:
+        import random
+        random.shuffle(player.deck)
+        return
+    all_own_pokemon = ([player.active] if player.active else []) + list(player.bench)
+    if not all_own_pokemon:
         import random
         random.shuffle(player.deck)
         return
     req_e = ChoiceRequest(
         "choose_cards", player_id,
-        "Energized Steps: choose a Basic {P} Energy from deck to attach to a Benched Pokémon.",
-        cards=p_energy, min_count=0, max_count=1,
+        "Energized Steps: choose any number of Basic Energy from the top 4 cards to attach.",
+        cards=basic_energy, min_count=0, max_count=len(basic_energy),
     )
     resp_e = yield req_e
-    chosen_e = (resp_e.selected_cards if resp_e and resp_e.selected_cards else []) or [p_energy[0].instance_id]
-    energy_card = next((c for c in player.deck if c.instance_id in chosen_e), None)
-    if energy_card is None:
-        import random
-        random.shuffle(player.deck)
-        return
-    req_t = ChoiceRequest(
-        "choose_target", player_id,
-        "Energized Steps: choose a Benched Pokémon to attach {P} Energy to.",
-        targets=player.bench,
-    )
-    resp_t = yield req_t
-    target = None
-    if resp_t and resp_t.target_instance_id:
-        target = next((p for p in player.bench if p.instance_id == resp_t.target_instance_id), None)
-    if target is None:
-        target = player.bench[0]
-    player.deck.remove(energy_card)
+    chosen_ids = (resp_e.selected_cards if resp_e and resp_e.selected_cards else [])
+    chosen_energy = [c for c in basic_energy if c.instance_id in chosen_ids]
+    for energy_card in chosen_energy:
+        req_t = ChoiceRequest(
+            "choose_target", player_id,
+            f"Energized Steps: choose a Pokémon to attach {energy_card.card_name} to.",
+            targets=all_own_pokemon,
+        )
+        resp_t = yield req_t
+        target = None
+        if resp_t and resp_t.target_instance_id:
+            target = next((p for p in all_own_pokemon if p.instance_id == resp_t.target_instance_id), None)
+        if target is None:
+            target = all_own_pokemon[0]
+        player.deck.remove(energy_card)
+        _attach_from_hand_or_discard(player, target, energy_card)
     import random
     random.shuffle(player.deck)
-    _attach_from_hand_or_discard(player, target, energy_card)
-    state.emit_event("energized_steps", player=player_id, target=target.card_name)
+    state.emit_event("energized_steps", player=player_id, card=action.card_def_id)
 
 
 # Fall Back to Reload (me01-038 Clawitzer) ────────────────────────────────────
 
 def _fall_back_to_reload(state: GameState, action):
-    """me01-038 Clawitzer — Fall Back to Reload: attach an Energy from discard to self."""
+    """me01-038 Clawitzer — Fall Back to Reload: attach up to 2 Basic {W} Energy from hand to self."""
     player_id = action.player_id
     player = state.get_player(player_id)
     poke = _find_in_play(player, action.card_instance_id)
@@ -2281,20 +2284,25 @@ def _fall_back_to_reload(state: GameState, action):
         poke = next((p for p in player.bench if p.card_def_id == "me01-038"), None)
     if poke is None:
         return
-    energy_in_discard = [c for c in player.discard if c.card_type.lower() == "energy"]
-    if not energy_in_discard:
+    water_energy_in_hand = [
+        c for c in player.hand
+        if c.card_type.lower() == "energy"
+        and c.card_subtype.lower() == "basic"
+        and _energy_provides_type(c, "Water")
+    ]
+    if not water_energy_in_hand:
         return
     req = ChoiceRequest(
         "choose_cards", player_id,
-        "Fall Back to Reload: choose an Energy from discard to attach to Clawitzer.",
-        cards=energy_in_discard, min_count=0, max_count=1,
+        "Fall Back to Reload: choose up to 2 Basic {W} Energy from hand to attach to Clawitzer.",
+        cards=water_energy_in_hand, min_count=0, max_count=2,
     )
     resp = yield req
-    chosen = (resp.selected_cards if resp and resp.selected_cards else []) or [energy_in_discard[0].instance_id]
-    energy_card = next((c for c in player.discard if c.instance_id in chosen), None)
-    if energy_card is None:
-        return
-    _attach_from_hand_or_discard(player, poke, energy_card)
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards else []) or [water_energy_in_hand[0].instance_id]
+    for iid in chosen_ids[:2]:
+        energy_card = next((c for c in player.hand if c.instance_id == iid), None)
+        if energy_card is not None:
+            _attach_from_hand_or_discard(player, poke, energy_card)
     state.emit_event("fall_back_to_reload", player=player_id, card=poke.card_name)
 
 
@@ -2305,7 +2313,15 @@ def _cond_fall_back_to_reload(state, player_id):
     )
     if clawitzer is None:
         return False
-    return bool(p.discard and any(c.card_type.lower() == "energy" for c in p.discard))
+    return bool(
+        p.hand
+        and any(
+            c.card_type.lower() == "energy"
+            and c.card_subtype.lower() == "basic"
+            and _energy_provides_type(c, "Water")
+            for c in p.hand
+        )
+    )
 
 
 # ── Batch 5: MEG + BLK ability handlers ──────────────────────────────────────

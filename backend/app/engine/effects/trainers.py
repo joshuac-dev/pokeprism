@@ -1512,7 +1512,7 @@ def _fighting_gong(state: GameState, action):
     for c in player.deck:
         if _is_basic_energy_card(c) and _energy_provides_type(c, "Fighting"):
             candidates.append(c)
-        elif c.card_type.lower() == "pokemon" and _pokemon_has_type(c, "Fighting"):
+        elif c.card_type.lower() == "pokemon" and _pokemon_has_type(c, "Fighting") and c.evolution_stage == 0:
             candidates.append(c)
 
     if not candidates:
