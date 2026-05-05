@@ -121,6 +121,7 @@ def _mulligan_redraw(state: GameState, action: Action, get_player=None) -> GameS
         "mulligan",
         player=action.player_id,
         new_hand_size=len(player.hand),
+        new_hand=[c.card_name for c in player.hand],
     )
     return state
 

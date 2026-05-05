@@ -20,6 +20,12 @@ interface FmtResult {
   skip?: boolean;
 }
 
+function fmtCards(cards: unknown, maxShow = 8): string {
+  if (!Array.isArray(cards) || cards.length === 0) return '';
+  const names = cards.slice(0, maxShow).join(', ');
+  return cards.length > maxShow ? `${names}, …+${cards.length - maxShow}` : names;
+}
+
 function fmt(ev: NormalisedEvent): FmtResult {
   const t  = ev.type ?? '';
   const et = ev.eventType ?? '';
@@ -81,6 +87,52 @@ function fmt(ev: NormalisedEvent): FmtResult {
 
   // ── match_event discriminated by event_type ──────────────────────────────
   if (t === 'match_event') {
+    // ── Setup phase ─────────────────────────────────────────────────────────
+    if (et === 'setup_start') {
+      const p1 = (ev.data?.p1_deck as string) ?? 'P1';
+      const p2 = (ev.data?.p2_deck as string) ?? 'P2';
+      return { text: `━━━ Setup: ${p1} vs ${p2} ━━━`, cls: 'text-cyan-300 font-semibold' };
+    }
+    if (et === 'opening_hand_drawn') {
+      const cards = fmtCards(ev.data?.cards);
+      const suffix = cards ? `: ${cards}` : ` ×${(ev.data?.count as number) ?? '?'}`;
+      return { text: `Setup ${who}Hand${suffix}`, cls: 'text-slate-400' };
+    }
+    if (et === 'coin_flip') {
+      const fp = (ev.data?.first_player as string) ?? '?';
+      return { text: `Setup coin flip → ${fp} goes first`, cls: 'text-slate-400' };
+    }
+    if (et === 'mulligan') {
+      const cards = fmtCards(ev.data?.new_hand);
+      const suffix = cards ? `: ${cards}` : '';
+      return { text: `Setup ${who}Mulligan — new hand${suffix}`, cls: 'text-yellow-600' };
+    }
+    if (et === 'place_active') {
+      const card = (ev.data?.card as string) || 'Pokémon';
+      return { text: `Setup ${who}Active: ${card}`, cls: 'text-slate-400' };
+    }
+    if (et === 'place_bench') {
+      const card = (ev.data?.card as string) || 'Pokémon';
+      return { text: `Setup ${who}Bench: ${card}`, cls: 'text-slate-400' };
+    }
+    if (et === 'prizes_set') {
+      const cnt   = (ev.data?.count as number) ?? '?';
+      const cards = fmtCards(ev.data?.cards);
+      const suffix = cards ? ` (${cards})` : '';
+      return { text: `Setup ${who}Prizes: ${cnt}${suffix}`, cls: 'text-slate-400' };
+    }
+    if (et === 'setup_complete') {
+      const p1a = (ev.data?.p1_active as string) ?? '?';
+      const p2a = (ev.data?.p2_active as string) ?? '?';
+      return { text: `━━━ Setup complete — ${p1a} vs ${p2a} ━━━`, cls: 'text-cyan-300 font-semibold' };
+    }
+
+    // ── Turn separator ───────────────────────────────────────────────────────
+    if (et === 'turn_start') {
+      const tNum = (ev.data?.turn as number) ?? ev.turn ?? '?';
+      return { text: `── T${tNum} ${who}──`, cls: 'text-slate-600' };
+    }
+
     if (et === 'game_start') {
       const p1 = (ev.data?.p1_deck as string) ?? 'P1';
       const p2 = (ev.data?.p2_deck as string) ?? 'P2';
@@ -157,11 +209,15 @@ function fmt(ev: NormalisedEvent): FmtResult {
     }
     if (et === 'draw') {
       const count = (ev.data?.count as number) ?? 1;
+      const cards = ev.data?.cards as string[] | undefined;
+      if (cards && cards.length > 0) {
+        const label = cards.length === 1 ? cards[0] : fmtCards(cards, 4);
+        return { text: `${turn}${who}↓ Draw: ${label}`, cls: 'text-slate-500' };
+      }
       return { text: `${turn}${who}↓ Draw ×${count}`, cls: 'text-slate-500' };
     }
-    // skip noise events
-    if (et === 'turn_start' || et === 'prizes_set') {
-      return { text: '', cls: '', skip: true };
+    if (et === 'shuffle_deck') {
+      return { text: `${turn}${who}⟳ Shuffle deck`, cls: 'text-slate-600' };
     }
     if (et === 'pass') {
       return { text: `${turn}${who}· Pass`, cls: 'text-slate-500' };
@@ -174,7 +230,7 @@ function fmt(ev: NormalisedEvent): FmtResult {
     if (et === 'ai_decision') {
       return { text: '', cls: '', skip: true };
     }
-    // fallback
+    // fallback: render raw event type so nothing is silently swallowed
     return { text: `${turn}${who}${et}`, cls: 'text-slate-600' };
   }
 

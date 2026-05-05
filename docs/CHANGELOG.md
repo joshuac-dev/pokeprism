@@ -38,6 +38,28 @@ hardening sweep are documented as complete. Current work continues to close
 card-specific implementation gaps found by database-backed audits, coverage
 gates, and runtime simulation checks.
 
+### 2026-05-08 — Session 16: Verbose match transcript — setup events, draw, turn separators
+
+Expanded the live simulation console from a filtered action log into a complete verbose match transcript.
+
+- **Setup events** (`runner.py` `_run_setup`): New structured events emitted for `setup_start` (with deck names), `opening_hand_drawn` (with full card name list per player), `coin_flip` (was emitted to state but never forwarded via callback — now streamed), `prizes_set` (now includes `cards=[prize card names]` for audit visibility), `setup_complete` (active Pokémon and bench counts for both players), and `turn_start` T1 (so the console shows the first turn separator before any action).
+
+- **Turn draw visible** (`runner.py` `_run_turn`): Turn-draw `draw` events were written to `state.events` but flushed much later. Fix: capture `prev_draw_len` before `_draw_cards`, call `_emit_since` immediately after.
+
+- **Turn-start callbacks** (`runner.py` `_end_turn`): `turn_start` events for turns 2+ were appended to `state.events` but the callback was never called. Fix: `_emit(state.events[-1])` after appending.
+
+- **Card names in draw events** (`runner.py` `_draw_cards`): Added `cards=[card names]` to all `draw` events emitted by `_draw_cards`. Supporter/effect draws that bypass `_draw_cards` still lack the field — handled gracefully in tests and UI.
+
+- **Mulligan `new_hand`** (`transitions.py` `_mulligan_redraw`): `mulligan` event now includes `new_hand=[card names]`.
+
+- **`_emit` safety** (`runner.py`): Changed `if self.event_callback` → `getattr(self, "event_callback", None)` so test helpers that call `object.__new__(MatchRunner)` without `__init__` do not get `AttributeError`.
+
+- **LiveConsole full rewrite** (`LiveConsole.tsx`): New `fmtCards()` helper with truncation. Format cases for all setup events, turn separators, draw with card names, `shuffle_deck` as `⟳ Shuffle deck`. `turn_start` and `prizes_set` removed from skip set.
+
+- **Tests**: 579 backend (+14 new in `test_runner_setup_events.py`), 51 frontend (+11 new in `LiveConsole.test.tsx`). Build and deploy confirmed.
+
+**Confidence:** High — all tests pass, build clean, backend health check OK.
+
 ### 2026-05-08 — Session 15: Emergency stabilization — import crash, AI reasoning, pass/end_turn
 
 Emergency stabilization pass fixing four live simulation issues.

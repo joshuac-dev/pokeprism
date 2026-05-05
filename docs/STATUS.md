@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-08 (session 15 — emergency stabilization: fix runtime card_registry import crash; attach ai_reasoning to visible events; show pass/end_turn in console; restrict AI Reasoning overlay to action events only)
+Last updated: 2026-05-08 (session 16 — verbose match transcript: setup events, opening hands, coin flip, active/bench placement, prize setup, turn separators, turn draw with card names, all attached to live console)
 
 ## Current Workstream
 
@@ -33,10 +33,83 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **565 passed, 1 skipped** — 2026-05-08 session 15. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
-| Frontend unit tests | **40 passed (6 files)** — 2026-05-08 session 15. `cd frontend && npm test -- --run`. `LiveConsole.test.tsx` (7 tests); `EventDetail.test.tsx` (16 tests). |
+| Backend test baseline | **579 passed, 1 skipped** — 2026-05-08 session 16. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 565/1 (session 15), 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
+| Frontend unit tests | **51 passed (6 files)** — 2026-05-08 session 16. `cd frontend && npm test -- --run`. `LiveConsole.test.tsx` (18 tests); `EventDetail.test.tsx` (16 tests). |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 16 Work (2026-05-08)
+
+### Goal
+
+Upgrade the live simulation console from a filtered event display into a complete verbose match transcript. Show all setup-phase events (opening hands with card names, coin flip, active/bench placement, prize setup), turn separators, per-turn draw with card names, and pass/end-turn — and keep AI reasoning in tile overlays only.
+
+### Completed
+
+1. **`_run_setup` enriched** (`backend/app/engine/runner.py`):
+   - Emits `setup_start` with deck names before any draws.
+   - After each player's opening draw, emits `opening_hand_drawn` (with `player`, `count`, and `cards=[card names]`).
+   - `coin_flip` event was previously written to `state.events` but never sent via the callback; now emitted via `_emit` so it appears in live stream.
+   - `prizes_set` event now includes `cards=[prize card names]` for full audit visibility.
+   - Emits `setup_complete` with active Pokémon and bench counts for both players.
+   - Emits `turn_start` (T1) at the end of setup so the console shows the turn-1 separator before the first action.
+
+2. **`_run_turn` draw visible** (`backend/app/engine/runner.py`):
+   - `prev_draw_len` is now captured *before* `_draw_cards`, and `_emit_since` is called immediately after — so turn-draw events are streamed live.
+   - Previously the draw event sat in `state.events` but was only flushed much later in the first action's `_emit_since` window.
+
+3. **`_end_turn` turn_start callback** (`backend/app/engine/runner.py`):
+   - `turn_start` events for turns 2+ were emitted to `state.events` but not forwarded via the callback. Now calls `_emit(state.events[-1])` after appending.
+
+4. **`_draw_cards` card names** (`backend/app/engine/runner.py`):
+   - Tracks drawn card names in a local list; includes `cards=[names]` in the `draw` event.
+
+5. **`_mulligan_redraw` new_hand** (`backend/app/engine/transitions.py`):
+   - `mulligan` event now includes `new_hand=[card names]` so the console can show what was redrawn.
+
+6. **`_emit` safe against bare `object.__new__` runners** (`backend/app/engine/runner.py`):
+   - Changed `if self.event_callback` to `getattr(self, "event_callback", None)` so test helpers that use `object.__new__(MatchRunner)` without calling `__init__` don't get `AttributeError`.
+
+7. **`LiveConsole.tsx` full rewrite of `fmt()`** (`frontend/src/components/simulation/LiveConsole.tsx`):
+   - Added `fmtCards(cards, maxShow=8)` helper that truncates long lists with `…+N`.
+   - Added format cases for: `setup_start`, `opening_hand_drawn`, `coin_flip`, `mulligan`, `place_active`, `place_bench`, `prizes_set`, `setup_complete`, `turn_start` (separator).
+   - `draw` now shows card names when the `cards` field is present (`↓ Draw: Card A, Card B`); falls back to `↓ Draw ×N` for Supporter-emitted draws that lack `cards`.
+   - `shuffle_deck` now renders `⟳ Shuffle deck` instead of the raw event name.
+   - `turn_start` and `prizes_set` removed from the skip set — both render as visible rows.
+
+8. **Backend tests** (`backend/tests/test_engine/test_runner_setup_events.py`, new):
+   - 14 tests across 3 classes: `TestSetupEvents`, `TestDrawEventCards`, `TestMulliganEvent`.
+   - `TestSetupEvents`: `setup_start` emitted; `opening_hand_drawn` for both players with card names; `coin_flip` emitted; `place_active`/`place_bench` emitted; `prizes_set` with card names; `setup_complete`; `turn_start` T1; setup event ordering.
+   - `TestDrawEventCards`: DRAW-phase draw events include card names; `draw.count == len(draw.cards)` when `cards` is present; at least one DRAW-phase draw per turn emitted via callback.
+   - `TestMulliganEvent`: `mulligan` includes `new_hand` list.
+
+9. **Frontend tests updated** (`frontend/src/components/simulation/LiveConsole.test.tsx`):
+   - Updated existing `turn_start` test (previously tested it was hidden; now tests it renders a separator).
+   - Added `describe('LiveConsole — setup phase events')` with 8 new tests: `setup_start`, `opening_hand_drawn` (with names), `coin_flip`, `place_active`, `place_bench`, `prizes_set`, `setup_complete`, `mulligan`.
+   - Added `describe('LiveConsole — draw event formatting')` with 3 new tests: draw with card names; draw without cards fallback; draw with empty cards fallback.
+
+### Validation (session 16)
+
+| Command | Result |
+|---|---|
+| `cd backend && python3 -m pytest tests/test_engine/test_runner_setup_events.py -x -q` | **14 passed** |
+| `cd backend && python3 -m pytest tests/ -x -q` | **579 passed, 1 skipped** |
+| `cd frontend && npm test -- --run` | **51 passed (6 files)** |
+| `docker compose build backend celery-worker frontend` | **✓ all images built** |
+| `docker compose up -d backend celery-worker celery-beat frontend` | **✓ deployed** |
+| Backend health | **`{"status":"ok"}`** |
+
+### Files Changed (session 16)
+
+| File | Change |
+|---|---|
+| `backend/app/engine/runner.py` | `_run_setup` emits setup_start/opening_hand_drawn/coin_flip/prizes_set(+cards)/setup_complete/turn_start; `_run_turn` draw via `_emit_since`; `_end_turn` calls `_emit` for turn_start; `_draw_cards` includes card names; `_emit` uses `getattr` for safety |
+| `backend/app/engine/transitions.py` | `_mulligan_redraw` includes `new_hand` in mulligan event |
+| `backend/tests/test_engine/test_runner_setup_events.py` | New: 14 tests for setup event emission |
+| `frontend/src/components/simulation/LiveConsole.tsx` | Full `fmt()` rewrite; `fmtCards()` helper; all setup events formatted; turn_start separator; draw with card names; shuffle_deck readable |
+| `frontend/src/components/simulation/LiveConsole.test.tsx` | Updated turn_start test; +11 new tests |
+| `docs/STATUS.md` | This file |
+| `docs/CHANGELOG.md` | Session 16 entry added |
 
 ## Session 15 Work (2026-05-08)
 

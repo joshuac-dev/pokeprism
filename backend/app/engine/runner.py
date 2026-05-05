@@ -176,15 +176,27 @@ class MatchRunner:
 
     async def _run_setup(self, state: GameState) -> GameState:
         """Draw opening hands, handle mulligans, place basics, set prizes."""
-        # Draw 7 for each player
+        state.emit_event("setup_start", p1_deck=self.p1_deck_name, p2_deck=self.p2_deck_name)
+        self._emit(state.events[-1])
+
+        # Draw 7 for each player; emit opening_hand_drawn showing the full initial hand.
         for pid in ("p1", "p2"):
             self._draw_cards(state, pid, 7)
+            player = state.get_player(pid)
+            state.emit_event(
+                "opening_hand_drawn",
+                player=pid,
+                count=len(player.hand),
+                cards=[c.card_name for c in player.hand],
+            )
+            self._emit(state.events[-1])
 
         # Coin flip for first player
         first = self._rng.choice(("p1", "p2"))
         state.first_player = first
         state.active_player = first
         state.emit_event("coin_flip", first_player=first)
+        self._emit(state.events[-1])
 
         # Handle mulligans (up to 10 iterations to avoid infinite loops)
         for _ in range(10):
@@ -220,20 +232,38 @@ class MatchRunner:
                 await StateTransition.apply(state, action, self._get_player)
                 self._emit_since(state, prev_len)
 
-        # Set 6 prize cards for each player
+        # Set 6 prize cards for each player (cards included for audit visibility)
         for pid in ("p1", "p2"):
             player = state.get_player(pid)
+            prize_names: list[str] = []
             for _ in range(PRIZE_COUNT):
                 if player.deck:
                     prize = player.deck.pop(0)
                     prize.zone = Zone.PRIZES
                     player.prizes.append(prize)
+                    prize_names.append(prize.card_name)
             player.prizes_remaining = len(player.prizes)
-            state.emit_event("prizes_set", player=pid, count=len(player.prizes))
+            state.emit_event("prizes_set", player=pid, count=len(player.prizes), cards=prize_names)
             self._emit(state.events[-1])
 
         state.phase = Phase.DRAW
         state.turn_number = 1
+
+        # Emit setup_complete summary and the first turn_start before entering the turn loop
+        state.emit_event(
+            "setup_complete",
+            p1_active=state.p1.active.card_name if state.p1.active else None,
+            p2_active=state.p2.active.card_name if state.p2.active else None,
+            p1_bench=[c.card_name for c in state.p1.bench],
+            p2_bench=[c.card_name for c in state.p2.bench],
+            p1_prizes=state.p1.prizes_remaining,
+            p2_prizes=state.p2.prizes_remaining,
+        )
+        self._emit(state.events[-1])
+
+        state.emit_event("turn_start", player=state.active_player, turn=state.turn_number)
+        self._emit(state.events[-1])
+
         return state
 
     # ── Turn structure (Appendix A) ────────────────────────────────────────────
@@ -244,6 +274,7 @@ class MatchRunner:
 
         # ── DRAW ──────────────────────────────────────────────────────────────
         state.phase = Phase.DRAW
+        prev_draw_len = len(state.events)
         drawn = self._draw_cards(state, pid, 1)
         if drawn == 0:
             # Cannot draw → opponent wins (deck out)
@@ -254,6 +285,7 @@ class MatchRunner:
             state.emit_event("game_over", winner=opp, condition="deck_out")
             self._emit(state.events[-1])
             return state
+        self._emit_since(state, prev_draw_len)
 
         if state.phase == Phase.GAME_OVER:
             return state
@@ -748,6 +780,7 @@ class MatchRunner:
         state.turn_number += 1
         state.phase = Phase.DRAW
         state.emit_event("turn_start", player=state.active_player, turn=state.turn_number)
+        self._emit(state.events[-1])
 
         # Clear C.O.D.E.: Protect immunity for the newly-active player
         # (immunity was set for "during your opponent's next turn")
@@ -778,21 +811,24 @@ class MatchRunner:
     def _draw_cards(self, state: GameState, pid: str, count: int) -> int:
         player = state.get_player(pid)
         drawn = 0
+        drawn_cards: list[str] = []
         for _ in range(count):
             if not player.deck:
                 break
             card = player.deck.pop(0)
             card.zone = Zone.HAND
             player.hand.append(card)
+            drawn_cards.append(card.card_name)
             drawn += 1
         if drawn > 0:
             state.emit_event("draw", player=pid, count=drawn,
-                             hand_size=len(player.hand))
+                             hand_size=len(player.hand), cards=drawn_cards)
         return drawn
 
     def _emit(self, event: dict) -> None:
-        if self.event_callback:
-            self.event_callback(event)
+        cb = getattr(self, "event_callback", None)
+        if cb:
+            cb(event)
 
     def _emit_since(self, state: GameState, prev_len: int) -> None:
         """Emit all events appended to state.events since prev_len."""

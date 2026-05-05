@@ -123,13 +123,195 @@ describe('LiveConsole — ai_decision visibility', () => {
     expect(eventList.textContent).toContain('End turn');
   });
 
-  it('does NOT render visible row for turn_start events', () => {
-    const turnStart = makeEvent({ eventType: 'turn_start', data: {} });
+  it('renders turn_start events as a visible separator row', () => {
+    const turnStart = makeEvent({ eventType: 'turn_start', turn: 5, player: 'p1', data: { turn: 5 } });
 
     render(<LiveConsole {...BASE_PROPS} events={[turnStart]} totalEvents={1} />);
 
     const eventList = screen.getByTestId('live-console-events');
-    expect(screen.queryAllByTestId('live-console-event').length).toBe(0);
-    expect(eventList.textContent?.trim()).toBe('');
+    const rows = screen.queryAllByTestId('live-console-event');
+    expect(rows.length).toBe(1);
+    expect(eventList.textContent).toContain('T5');
+  });
+});
+
+describe('LiveConsole — setup phase events', () => {
+  it('renders setup_start as a match banner', () => {
+    const ev = makeEvent({
+      eventType: 'setup_start',
+      turn: undefined,
+      player: undefined,
+      data: { p1_deck: 'Meowth ex Deck', p2_deck: 'Roselia Deck' },
+    });
+
+    render(<LiveConsole {...BASE_PROPS} events={[ev]} totalEvents={1} />);
+
+    const eventList = screen.getByTestId('live-console-events');
+    expect(eventList.textContent).toContain('Setup');
+    expect(eventList.textContent).toContain('Meowth ex Deck');
+    expect(eventList.textContent).toContain('Roselia Deck');
+  });
+
+  it('renders opening_hand_drawn with card names', () => {
+    const ev = makeEvent({
+      eventType: 'opening_hand_drawn',
+      turn: undefined,
+      player: 'p1',
+      data: {
+        count: 3,
+        cards: ['Meowth ex', 'Ignition Energy', "Boss's Orders"],
+      },
+    });
+
+    render(<LiveConsole {...BASE_PROPS} events={[ev]} totalEvents={1} />);
+
+    const eventList = screen.getByTestId('live-console-events');
+    expect(eventList.textContent).toContain('Hand');
+    expect(eventList.textContent).toContain('Meowth ex');
+    expect(eventList.textContent).toContain('Ignition Energy');
+  });
+
+  it('renders coin_flip with first player indication', () => {
+    const ev = makeEvent({
+      eventType: 'coin_flip',
+      turn: undefined,
+      player: undefined,
+      data: { first_player: 'p1' },
+    });
+
+    render(<LiveConsole {...BASE_PROPS} events={[ev]} totalEvents={1} />);
+
+    const eventList = screen.getByTestId('live-console-events');
+    expect(eventList.textContent).toContain('coin flip');
+    expect(eventList.textContent).toContain('p1');
+  });
+
+  it('renders place_active as setup active selection', () => {
+    const ev = makeEvent({
+      eventType: 'place_active',
+      turn: undefined,
+      player: 'p2',
+      data: { card: "Cynthia's Roselia" },
+    });
+
+    render(<LiveConsole {...BASE_PROPS} events={[ev]} totalEvents={1} />);
+
+    const eventList = screen.getByTestId('live-console-events');
+    expect(eventList.textContent).toContain('Active');
+    expect(eventList.textContent).toContain("Cynthia's Roselia");
+  });
+
+  it('renders place_bench as setup bench placement', () => {
+    const ev = makeEvent({
+      eventType: 'place_bench',
+      turn: undefined,
+      player: 'p1',
+      data: { card: 'Fezandipiti ex' },
+    });
+
+    render(<LiveConsole {...BASE_PROPS} events={[ev]} totalEvents={1} />);
+
+    const eventList = screen.getByTestId('live-console-events');
+    expect(eventList.textContent).toContain('Bench');
+    expect(eventList.textContent).toContain('Fezandipiti ex');
+  });
+
+  it('renders prizes_set with count', () => {
+    const ev = makeEvent({
+      eventType: 'prizes_set',
+      turn: undefined,
+      player: 'p1',
+      data: { count: 6, cards: ['A', 'B', 'C', 'D', 'E', 'F'] },
+    });
+
+    render(<LiveConsole {...BASE_PROPS} events={[ev]} totalEvents={1} />);
+
+    const eventList = screen.getByTestId('live-console-events');
+    expect(eventList.textContent).toContain('Prizes');
+    expect(eventList.textContent).toContain('6');
+  });
+
+  it('renders setup_complete as a completion banner', () => {
+    const ev = makeEvent({
+      eventType: 'setup_complete',
+      turn: undefined,
+      player: undefined,
+      data: {
+        p1_active: 'Meowth ex',
+        p2_active: "Cynthia's Roselia",
+        p1_bench: [],
+        p2_bench: [],
+        p1_prizes: 6,
+        p2_prizes: 6,
+      },
+    });
+
+    render(<LiveConsole {...BASE_PROPS} events={[ev]} totalEvents={1} />);
+
+    const eventList = screen.getByTestId('live-console-events');
+    expect(eventList.textContent).toContain('Setup complete');
+    expect(eventList.textContent).toContain('Meowth ex');
+  });
+
+  it('renders mulligan event with new hand', () => {
+    const ev = makeEvent({
+      eventType: 'mulligan',
+      turn: undefined,
+      player: 'p2',
+      data: { new_hand_size: 2, new_hand: ['Duskull', 'Water Energy'] },
+    });
+
+    render(<LiveConsole {...BASE_PROPS} events={[ev]} totalEvents={1} />);
+
+    const eventList = screen.getByTestId('live-console-events');
+    expect(eventList.textContent).toContain('Mulligan');
+    expect(eventList.textContent).toContain('Duskull');
+  });
+});
+
+describe('LiveConsole — draw event formatting', () => {
+  it('renders draw with card names when cards field is present', () => {
+    const ev = makeEvent({
+      eventType: 'draw',
+      turn: 7,
+      player: 'p1',
+      data: { count: 1, cards: ['Meowth ex'], hand_size: 5 },
+    });
+
+    render(<LiveConsole {...BASE_PROPS} events={[ev]} totalEvents={1} />);
+
+    const eventList = screen.getByTestId('live-console-events');
+    expect(eventList.textContent).toContain('T7');
+    expect(eventList.textContent).toContain('Meowth ex');
+    expect(eventList.textContent).toContain('Draw');
+  });
+
+  it('renders draw as Draw×N when no cards field', () => {
+    const ev = makeEvent({
+      eventType: 'draw',
+      turn: 3,
+      player: 'p2',
+      data: { count: 4, hand_size: 7 },
+    });
+
+    render(<LiveConsole {...BASE_PROPS} events={[ev]} totalEvents={1} />);
+
+    const eventList = screen.getByTestId('live-console-events');
+    expect(eventList.textContent).toContain('Draw');
+    expect(eventList.textContent).toContain('4');
+  });
+
+  it('renders shuffle_deck with readable text', () => {
+    const ev = makeEvent({
+      eventType: 'shuffle_deck',
+      turn: 9,
+      player: 'p1',
+      data: {},
+    });
+
+    render(<LiveConsole {...BASE_PROPS} events={[ev]} totalEvents={1} />);
+
+    const eventList = screen.getByTestId('live-console-events');
+    expect(eventList.textContent).toContain('Shuffle deck');
   });
 });
