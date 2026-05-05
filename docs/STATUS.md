@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-05 (session 17 — Coverage page card image preview/lightbox)
+Last updated: 2026-05-05 (session 17b — normalize TCGDex image URLs for Coverage lightbox)
 
 ## Current Workstream
 
@@ -33,10 +33,62 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **584 passed, 1 skipped** — 2026-05-05 session 17. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 579/1 (session 16), 565/1 (session 15), 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
-| Frontend unit tests | **75 passed (8 files)** — 2026-05-05 session 17. `cd frontend && npm test -- --run`. `Coverage.test.tsx` (12); `CardImageLightbox.test.tsx` (12); `LiveConsole.test.tsx` (18); `EventDetail.test.tsx` (16). |
+| Backend test baseline | **584 passed, 1 skipped** — 2026-05-05 session 17b. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 579/1 (session 16), 565/1 (session 15), 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
+| Frontend unit tests | **89 passed (9 files)** — 2026-05-05 session 17b. `cd frontend && npm test -- --run`. `imageUrl.test.ts` (11); `Coverage.test.tsx` (12); `CardImageLightbox.test.tsx` (15); `LiveConsole.test.tsx` (18); `EventDetail.test.tsx` (16). |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 17b Work (2026-05-05)
+
+### Goal
+
+Fix broken card images on the Coverage page by normalizing bare TCGDex asset URLs to renderable image URLs (append `/high.webp`).
+
+### Root Cause
+
+The DB stores bare TCGDex asset paths (e.g. `https://assets.tcgdex.net/en/sv/sv06/130`). Without a format suffix, the server returns HTML, not an image. All other backend endpoints (Memory, Cards search/detail) already used the `card_image_url()` normalizer from `app.api.cards`. Coverage was the only outlier — it was returning the raw DB value.
+
+### Completed
+
+1. **Backend fix** (`backend/app/api/coverage.py`):
+   - Imported `card_image_url` from `app.api.cards`.
+   - Changed `"image_url": row.image_url` → `"image_url": card_image_url(row.image_url)`.
+   - Now consistent with Memory and Cards endpoints.
+
+2. **Frontend utility** (`frontend/src/utils/imageUrl.ts`, new):
+   - `normalizeTcgdexImageUrl(url, quality='high')` — defense-in-depth for future frontend use.
+   - Returns `null` for null/undefined/empty. Passes through `.webp`/`.png`/`.jpg`/`.jpeg` unchanged. Appends `/{quality}.webp` to bare TCGDex paths.
+
+3. **`CardImageLightbox` updated** (`frontend/src/components/cards/CardImageLightbox.tsx`):
+   - Imports and applies `normalizeTcgdexImageUrl` before rendering `<img src=...>`.
+
+4. **Tests updated**:
+   - `backend/tests/test_api/test_coverage.py`: `test_each_card_includes_image_url` now asserts URL ends in `/high.webp`.
+   - `frontend/src/utils/imageUrl.test.ts` (new, 11 tests): null/empty/already-normalized/png/jpg/jpeg/base-URL/low-quality cases.
+   - `frontend/src/components/cards/CardImageLightbox.test.tsx` (15 tests, was 12): added base-URL normalization, already-normalized (no double-append), and .png pass-through cases.
+   - `frontend/src/pages/Coverage.test.tsx`: mock `image_url` uses pre-normalized URL; `src` assertion expects `/high.webp`.
+
+### Validation (session 17b)
+
+| Command | Result |
+|---|---|
+| `cd backend && python3 -m pytest tests/test_api/test_coverage.py -q` | **5 passed** |
+| `cd frontend && npm test -- --run` | **89 passed (9 files)** |
+| `cd frontend && npm run build` | **✓ built in 4.18s** |
+
+### Files Changed (session 17b)
+
+| File | Change |
+|---|---|
+| `backend/app/api/coverage.py` | Use `card_image_url()` for normalized image URLs |
+| `backend/tests/test_api/test_coverage.py` | Assert `/high.webp` normalization |
+| `frontend/src/utils/imageUrl.ts` | New: `normalizeTcgdexImageUrl` utility |
+| `frontend/src/utils/imageUrl.test.ts` | New: 11 utility tests |
+| `frontend/src/components/cards/CardImageLightbox.tsx` | Use `normalizeTcgdexImageUrl` before rendering image |
+| `frontend/src/components/cards/CardImageLightbox.test.tsx` | 15 tests (3 new: normalization behavior) |
+| `frontend/src/pages/Coverage.test.tsx` | Mock/assertion updated for normalized URL |
+| `docs/STATUS.md` | This file |
+| `docs/CHANGELOG.md` | Session 17b entry added |
 
 ## Session 17 Work (2026-05-05)
 
@@ -47,7 +99,8 @@ Add clickable card image preview/lightbox to the Coverage page. Clicking a card 
 ### Completed
 
 1. **Coverage API `image_url`** (`backend/app/api/coverage.py`):
-   - Added `"image_url": row.image_url` to each card object in the `/api/coverage` response.
+   - Added `"image_url": card_image_url(row.image_url)` to each card object in the `/api/coverage` response.
+   - Uses the existing `card_image_url()` normalizer from `app.api.cards` (same as Memory/Cards endpoints).
    - `Card.image_url` column already existed; no migration needed.
    - Backward-compatible (only adds a field).
 

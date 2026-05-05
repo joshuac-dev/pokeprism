@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import CardImageLightbox from './CardImageLightbox';
 import type { CardImageLightboxCard } from './CardImageLightbox';
 
+// Base URL (no extension) — lightbox must normalize to /high.webp
 const CARD_WITH_IMAGE: CardImageLightboxCard = {
   name: 'Dragapult ex',
   tcgdex_id: 'sv06-130',
@@ -14,6 +15,18 @@ const CARD_WITH_IMAGE: CardImageLightboxCard = {
   image_url: 'https://assets.tcgdex.net/en/sv/sv06/130',
   status: 'implemented',
   missing_effects: [],
+};
+
+// Already-normalized URL — must NOT double-append
+const CARD_ALREADY_NORMALIZED: CardImageLightboxCard = {
+  ...CARD_WITH_IMAGE,
+  image_url: 'https://assets.tcgdex.net/en/sv/sv06/130/high.webp',
+};
+
+// PNG URL — must remain unchanged
+const CARD_PNG: CardImageLightboxCard = {
+  ...CARD_WITH_IMAGE,
+  image_url: 'https://example.com/card.png',
 };
 
 const CARD_WITHOUT_IMAGE: CardImageLightboxCard = {
@@ -29,14 +42,33 @@ const CARD_WITHOUT_IMAGE: CardImageLightboxCard = {
 };
 
 describe('CardImageLightbox', () => {
-  it('renders the dialog with card name and image', () => {
+  it('normalizes a bare TCGDex base URL to /high.webp', () => {
+    render(<CardImageLightbox card={CARD_WITH_IMAGE} onClose={vi.fn()} />);
+
+    const img = screen.getByTestId('card-lightbox-image');
+    expect(img).toHaveAttribute('src', 'https://assets.tcgdex.net/en/sv/sv06/130/high.webp');
+    expect(img).toHaveAttribute('alt', 'Dragapult ex');
+  });
+
+  it('does not double-append /high.webp on an already-normalized URL', () => {
+    render(<CardImageLightbox card={CARD_ALREADY_NORMALIZED} onClose={vi.fn()} />);
+
+    const img = screen.getByTestId('card-lightbox-image');
+    expect(img).toHaveAttribute('src', 'https://assets.tcgdex.net/en/sv/sv06/130/high.webp');
+  });
+
+  it('leaves .png URLs unchanged', () => {
+    render(<CardImageLightbox card={CARD_PNG} onClose={vi.fn()} />);
+
+    const img = screen.getByTestId('card-lightbox-image');
+    expect(img).toHaveAttribute('src', 'https://example.com/card.png');
+  });
+
+  it('renders the dialog with card name', () => {
     render(<CardImageLightbox card={CARD_WITH_IMAGE} onClose={vi.fn()} />);
 
     expect(screen.getByTestId('card-lightbox')).toBeInTheDocument();
     expect(screen.getByTestId('card-lightbox-name')).toHaveTextContent('Dragapult ex');
-    const img = screen.getByTestId('card-lightbox-image');
-    expect(img).toHaveAttribute('src', 'https://assets.tcgdex.net/en/sv/sv06/130');
-    expect(img).toHaveAttribute('alt', 'Dragapult ex');
   });
 
   it('shows set label and tcgdex_id', () => {

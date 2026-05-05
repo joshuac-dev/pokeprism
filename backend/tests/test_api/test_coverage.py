@@ -81,7 +81,8 @@ class TestCoverageEndpoint:
         cards = resp.json()["cards"]
         assert len(cards) == 1
         assert "image_url" in cards[0]
-        assert cards[0]["image_url"] == "https://assets.tcgdex.net/en/sv/sv06/130"
+        # Backend normalizes bare TCGDex URLs to /high.webp
+        assert cards[0]["image_url"] == "https://assets.tcgdex.net/en/sv/sv06/130/high.webp"
 
     def test_card_without_image_url_returns_null(self, client):
         card = _make_mock_card(image_url=None)

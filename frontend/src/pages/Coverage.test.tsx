@@ -22,7 +22,7 @@ const MOCK_COVERAGE: object = {
       subcategory: null,
       status: 'implemented',
       missing_effects: [],
-      image_url: 'https://assets.tcgdex.net/en/sv/sv06/130',
+      image_url: 'https://assets.tcgdex.net/en/sv/sv06/130/high.webp',
     },
     {
       tcgdex_id: 'sv05-015',
@@ -84,7 +84,7 @@ describe('Coverage page', () => {
     expect(screen.getByTestId('card-lightbox')).toBeInTheDocument();
     expect(screen.getByTestId('card-lightbox-name')).toHaveTextContent('Dragapult ex');
     const img = screen.getByTestId('card-lightbox-image');
-    expect(img).toHaveAttribute('src', 'https://assets.tcgdex.net/en/sv/sv06/130');
+    expect(img).toHaveAttribute('src', 'https://assets.tcgdex.net/en/sv/sv06/130/high.webp');
     expect(img).toHaveAttribute('alt', 'Dragapult ex');
     expect(screen.getByTestId('card-lightbox-set')).toHaveTextContent('TWM 130');
     expect(screen.getByTestId('card-lightbox-tcgdex-id')).toHaveTextContent('sv06-130');

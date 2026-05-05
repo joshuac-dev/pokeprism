@@ -38,11 +38,27 @@ hardening sweep are documented as complete. Current work continues to close
 card-specific implementation gaps found by database-backed audits, coverage
 gates, and runtime simulation checks.
 
+### 2026-05-05 — Session 17b: Fix broken card images — normalize TCGDex URLs
+
+Fixed broken card images in the Coverage page lightbox by applying the project-standard URL normalization.
+
+**Root cause**: The DB stores bare TCGDex asset paths (e.g. `https://assets.tcgdex.net/en/sv/sv06/130`). Without a format suffix the server returns HTML, not an image. All other endpoints (Memory, Cards) already used `card_image_url()` from `app.api.cards`. Coverage was the only exception — it was returning raw DB values.
+
+- **Backend** (`backend/app/api/coverage.py`): Imported `card_image_url` from `app.api.cards`. Changed `"image_url": row.image_url` → `"image_url": card_image_url(row.image_url)`. Now consistent with all other image-returning endpoints.
+
+- **Frontend utility** (`frontend/src/utils/imageUrl.ts`, new): `normalizeTcgdexImageUrl(url, quality='high')` — defense-in-depth for future frontend use. Returns `null` for null/empty. Passes `.webp`/`.png`/`.jpg`/`.jpeg` unchanged. Appends `/{quality}.webp` to bare TCGDex paths. No double-append.
+
+- **`CardImageLightbox`** (`frontend/src/components/cards/CardImageLightbox.tsx`): Applies `normalizeTcgdexImageUrl` before rendering `<img src=...>`.
+
+- **Tests**: 584 backend (5 coverage tests updated to assert `/high.webp`). 89 frontend — +11 `imageUrl.test.ts` (new), +3 `CardImageLightbox.test.tsx` normalization cases (total 15). Build clean.
+
+**Confidence:** High — all tests pass, build clean.
+
 ### 2026-05-05 — Session 17: Coverage page card image preview/lightbox
 
 Added a clickable card image preview to the Coverage page.
 
-- **Coverage API `image_url`** (`backend/app/api/coverage.py`): Added `"image_url": row.image_url` to each card entry in the `/api/coverage` response. `Card.image_url` column already existed; no migration needed. Backward-compatible.
+- **Coverage API `image_url`** (`backend/app/api/coverage.py`): Added `"image_url"` (initially raw; corrected to normalized in session 17b) to each card entry in the `/api/coverage` response. `Card.image_url` column already existed; no migration needed. Backward-compatible.
 
 - **`CardImageLightbox` component** (`frontend/src/components/cards/CardImageLightbox.tsx`, new): Reusable modal/lightbox component. Shows card image (`max-h-[60vh] max-w-[80vw]`) or "No card image available." fallback. Metadata: name, set label, `tcgdex_id`, category, status badge, missing effects. Closes on Escape, backdrop click, or close button. Accessible: `role="dialog"`, `aria-modal`, `aria-label`, `aria-label="Close card preview"`.
 

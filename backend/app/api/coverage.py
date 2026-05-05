@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Card
 from app.db.session import AsyncSessionLocal
+from app.api.cards import card_image_url
 
 router = APIRouter()
 
@@ -86,7 +87,7 @@ async def get_coverage(db: AsyncSession = Depends(get_db)) -> dict:
             "subcategory": row.subcategory,
             "status": status,
             "missing_effects": missing_effects,
-            "image_url": row.image_url,
+            "image_url": card_image_url(row.image_url),
         })
 
     coverage_pct = round(100.0 * (implemented + flat_only) / max(total, 1), 1)

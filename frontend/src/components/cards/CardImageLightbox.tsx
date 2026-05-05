@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { normalizeTcgdexImageUrl } from '../../utils/imageUrl';
 
 export interface CardImageLightboxCard {
   name: string;
@@ -32,6 +33,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function CardImageLightbox({ card, onClose }: Props) {
   const setLabel = [card.set_abbrev, card.set_number].filter(Boolean).join(' ');
+  const imageSrc = normalizeTcgdexImageUrl(card.image_url);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -63,9 +65,9 @@ export default function CardImageLightbox({ card, onClose }: Props) {
         </button>
 
         {/* Card image or fallback */}
-        {card.image_url ? (
+        {imageSrc ? (
           <img
-            src={card.image_url}
+            src={imageSrc}
             alt={card.name}
             className="max-h-[60vh] max-w-[80vw] rounded-xl shadow-xl object-contain"
             data-testid="card-lightbox-image"
