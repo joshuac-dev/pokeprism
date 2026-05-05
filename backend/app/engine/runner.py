@@ -516,6 +516,8 @@ class MatchRunner:
                 player.evolution_blocked_next_turn = False
                 player.ancient_supporter_played_this_turn = False
                 player.supporters_locked_next_turn = False
+                # Unleash Lightning (sv07-047): clear player-wide attack block at end of affected player's own turn
+                player.all_pokemon_cant_attack_next_turn = False
             if player.active:
                 player.active.retreated_this_turn = False
                 player.active.ability_used_this_turn = False
@@ -528,6 +530,9 @@ class MatchRunner:
                     player.active.cant_retreat_next_turn = False
                     player.active.attack_damage_reduction = 0
                     player.active.torment_blocked_attack_name = None
+                    # Drum Beating (sv06-016): clear extra cost modifiers at end of affected player's own turn
+                    player.active.extra_attack_cost = 0
+                    player.active.extra_retreat_cost = 0
                 player.active.cant_attack_next_turn = False
                 player.active.incoming_damage_reduction = 0
                 player.active.prevent_damage_one_turn = False

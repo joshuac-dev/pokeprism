@@ -141,6 +141,10 @@ class CardInstance:
     ready_to_ram_active: bool = False         # Bouffalant Ready to Ram: 6 counters on attacker if hit next turn
     prevent_damage_from_ancient: bool = False  # Iron Moth Anachronism Repulsor: block Ancient Pokémon damage next turn
     custom_counters: dict = field(default_factory=dict)   # Per-card counter tracking (e.g., feather counters)
+    extra_attack_cost: int = 0             # Drum Beating (sv06-016): opp active's attacks cost +{C} next turn
+    extra_retreat_cost: int = 0           # Drum Beating (sv06-016): opp active's retreat cost +{C} next turn
+    next_attack_damage_bonus: int = 0     # Wind Power Charge (sv06-076): this Pokémon's next attack does +N damage
+    confused_counter_amount: int = 3      # Disorienting Flash (sv07-049): place this many counters on confused-flip tails (default 3)
 
     # Energy-card-specific ─────────────────────────────────────────────────────
     # Populated from CardDefinition.energy_provides at deck-build time.
@@ -186,6 +190,7 @@ class PlayerState:
     face_up_prize_indices: list = field(default_factory=list)  # Bother-Bot: indices of face-up prizes
     wide_wall_protected: bool = False  # sv07-076 Rhyperior Wide Wall: prevents Supporter effects on this player's Pokémon
     mystery_garden_used_this_turn: bool = False  # Mystery Garden (me02.5-194 / me01-122): once-per-turn draw effect used
+    all_pokemon_cant_attack_next_turn: bool = False  # Unleash Lightning (sv07-047): all Pokémon can't attack next turn (incl. new ones)
 
 
 @dataclass

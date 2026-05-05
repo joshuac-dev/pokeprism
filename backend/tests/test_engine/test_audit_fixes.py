@@ -44,7 +44,7 @@ from app.engine.effects.base import ChoiceRequest
 from app.engine.effects.registry import _choice_to_legal_actions, _default_choice
 from app.engine.effects.registry import EffectRegistry
 from app.engine.runner import MatchRunner
-from app.engine.state import CardInstance, EnergyAttachment, EnergyType, GameState, Zone
+from app.engine.state import CardInstance, EnergyAttachment, EnergyType, GameState, Zone, StatusCondition
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -3272,3 +3272,1188 @@ async def test_risky_ruins_play_basic_no_damage_basic_darkness():
     assert placed in state.p1.bench
     assert placed.damage_counters == 0, "Darkness Pokémon must NOT take Risky Ruins damage"
     assert placed.current_hp == 90
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Audit Batch fixes: Fixes #3-#15
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Fix #3: _minor_errand_running_b3 — max_count=3
+def test_minor_errand_running_searches_up_to_3():
+    """sv06-087 Floette — Minor Errand-Running: searches up to 3 Basic Energy (not 1)."""
+    from app.engine.effects.attacks import _minor_errand_running_b3
+
+    attacker = CardInstance(
+        instance_id="mer-atk", card_def_id="sv06-087",
+        card_name="Floette", current_hp=70, max_hp=70, zone=Zone.ACTIVE,
+    )
+    opp = CardInstance(
+        instance_id="mer-opp", card_def_id="tst-mer-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    e1 = CardInstance(
+        instance_id="mer-e1", card_def_id="grass-energy",
+        card_name="Grass Energy", current_hp=0, max_hp=0, zone=Zone.DECK,
+        card_type="energy", card_subtype="basic",
+    )
+    e2 = CardInstance(
+        instance_id="mer-e2", card_def_id="fire-energy",
+        card_name="Fire Energy", current_hp=0, max_hp=0, zone=Zone.DECK,
+        card_type="energy", card_subtype="basic",
+    )
+    e3 = CardInstance(
+        instance_id="mer-e3", card_def_id="water-energy",
+        card_name="Water Energy", current_hp=0, max_hp=0, zone=Zone.DECK,
+        card_type="energy", card_subtype="basic",
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp)
+    state.p1.deck = [e1, e2, e3]
+
+    action = _make_action(attack_index=0)
+    gen = _minor_errand_running_b3(state, action)
+    req = next(gen)
+    assert req.max_count == 3, "Minor Errand-Running must allow up to 3"
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[e1.instance_id, e2.instance_id, e3.instance_id],
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert e1 in state.p1.hand
+    assert e2 in state.p1.hand
+    assert e3 in state.p1.hand
+    assert len(state.p1.deck) == 0
+
+
+# Fix #4: _sneaky_placement — targets any opp Pokémon (bench or active)
+@pytest.mark.asyncio
+async def test_sneaky_placement_targets_bench():
+    """sv06-089 Swirlix — Sneaky Placement: can target benched Pokémon."""
+    from app.engine.effects.attacks import _sneaky_placement
+
+    attacker = CardInstance(
+        instance_id="sp-atk", card_def_id="sv06-089",
+        card_name="Swirlix", current_hp=70, max_hp=70, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="sp-opp-a", card_def_id="tst-sp-opp",
+        card_name="OppActive", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    opp_bench = CardInstance(
+        instance_id="sp-opp-b", card_def_id="tst-sp-bench",
+        card_name="OppBench", current_hp=80, max_hp=80, zone=Zone.BENCH,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active, p2_bench=[opp_bench])
+
+    action = _make_action(attack_index=0)
+    gen = _sneaky_placement(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_target"
+    assert len(req.targets) == 2
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_TARGET,
+        target_instance_id=opp_bench.instance_id,
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert opp_bench.damage_counters == 2
+    assert opp_bench.current_hp == 60
+
+
+def test_sneaky_placement_targets_active():
+    """sv06-089 Swirlix — Sneaky Placement: can target active Pokémon."""
+    from app.engine.effects.attacks import _sneaky_placement
+
+    attacker = CardInstance(
+        instance_id="spa-atk", card_def_id="sv06-089",
+        card_name="Swirlix", current_hp=70, max_hp=70, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="spa-opp-a", card_def_id="tst-sp-opp2",
+        card_name="OppActive2", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+
+    action = _make_action(attack_index=0)
+    gen = _sneaky_placement(state, action)
+    req = next(gen)
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_TARGET,
+        target_instance_id=opp_active.instance_id,
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert opp_active.damage_counters == 2
+    assert opp_active.current_hp == 80
+
+
+# Fix #5: _tea_server_flag — retrieve Basic Grass Energy from discard
+@pytest.mark.asyncio
+async def test_tea_server_moves_grass_energy_from_discard_to_hand():
+    """sv06-021 Poltchageist — Tea Server: moves 1 Basic Grass Energy from discard to hand."""
+    from app.engine.effects.attacks import _tea_server_flag
+
+    attacker = CardInstance(
+        instance_id="ts-atk", card_def_id="sv06-021",
+        card_name="Poltchageist", current_hp=60, max_hp=60, zone=Zone.ACTIVE,
+    )
+    opp = CardInstance(
+        instance_id="ts-opp", card_def_id="tst-ts-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    grass_e = CardInstance(
+        instance_id="ts-grass-e", card_def_id="grass-energy",
+        card_name="Grass Energy", current_hp=0, max_hp=0, zone=Zone.DISCARD,
+        card_type="energy", card_subtype="basic",
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp)
+    state.p1.discard = [grass_e]
+
+    action = _make_action(attack_index=0)
+    gen = _tea_server_flag(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_cards"
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[grass_e.instance_id],
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert grass_e not in state.p1.discard
+    assert grass_e in state.p1.hand
+    assert grass_e.zone == Zone.HAND
+
+
+def test_tea_server_no_op_when_no_grass_energy_in_discard():
+    """sv06-021 Poltchageist — Tea Server: no-op when no Grass Energy in discard."""
+    from app.engine.effects.attacks import _tea_server_flag
+
+    attacker = CardInstance(
+        instance_id="ts2-atk", card_def_id="sv06-021",
+        card_name="Poltchageist", current_hp=60, max_hp=60, zone=Zone.ACTIVE,
+    )
+    opp = CardInstance(
+        instance_id="ts2-opp", card_def_id="tst-ts2-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp)
+
+    action = _make_action(attack_index=0)
+    result = _tea_server_flag(state, action)
+    if hasattr(result, "__next__"):
+        try:
+            next(result)
+        except StopIteration:
+            pass
+
+    assert state.p1.hand == []
+
+
+# Fix #6: _cursed_drop_flag — place 4 counters in any way on opp's Pokémon
+@pytest.mark.asyncio
+async def test_cursed_drop_places_4_counters_on_active():
+    """sv06-022 Sinistcha — Cursed Drop: places 4 damage counters (choosing active each time)."""
+    from app.engine.effects.attacks import _cursed_drop_flag
+
+    attacker = CardInstance(
+        instance_id="cd-atk", card_def_id="sv06-022",
+        card_name="Sinistcha", current_hp=120, max_hp=120, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="cd-opp-a", card_def_id="tst-cd-opp",
+        card_name="OppActive", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+
+    action = _make_action(attack_index=0)
+    gen = _cursed_drop_flag(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_target"
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_TARGET,
+        target_instance_id=opp_active.instance_id,
+    )
+    for _ in range(3):
+        try:
+            req = gen.send(resp)
+        except StopIteration:
+            break
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert opp_active.damage_counters == 4
+    assert opp_active.current_hp == 60
+
+
+# Fix #7: _spill_the_tea_flag — discard Grass Energy from own Pokémon, 70 per discard
+@pytest.mark.asyncio
+async def test_spill_the_tea_discards_grass_and_deals_damage():
+    """sv06-022 Sinistcha atk1 — Spill the Tea: discards 2 Grass Energy and deals 140 damage."""
+    from app.engine.effects.attacks import _spill_the_tea_flag
+
+    attacker = CardInstance(
+        instance_id="stt-atk", card_def_id="sv06-022",
+        card_name="Sinistcha", current_hp=120, max_hp=120, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="stt-opp", card_def_id="tst-stt-opp",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    g1 = EnergyAttachment(
+        energy_type=EnergyType.GRASS, source_card_id="stt-g1-src", card_def_id="grass-energy",
+    )
+    g2 = EnergyAttachment(
+        energy_type=EnergyType.GRASS, source_card_id="stt-g2-src", card_def_id="grass-energy",
+    )
+    attacker.energy_attached = [g1, g2]
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+
+    action = _make_action(attack_index=1)
+    gen = _spill_the_tea_flag(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_cards"
+    assert req.max_count == 2
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=["stt-g1-src", "stt-g2-src"],
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert len(attacker.energy_attached) == 0
+    assert opp_active.current_hp == 200 - 140
+
+
+# Fix #8: _re_brew_flag — counters based on Grass Energy in discard
+@pytest.mark.asyncio
+async def test_re_brew_places_counters_and_shuffles_energy():
+    """sv06-023 Sinistcha ex — Re-Brew: 2 counters per Grass Energy in discard, shuffles energy back."""
+    from app.engine.effects.attacks import _re_brew_flag
+
+    attacker = CardInstance(
+        instance_id="rb-atk", card_def_id="sv06-023",
+        card_name="Sinistcha ex", current_hp=240, max_hp=240, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="rb-opp", card_def_id="tst-rb-opp",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    grass1 = CardInstance(
+        instance_id="rb-g1", card_def_id="grass-energy",
+        card_name="Grass Energy", current_hp=0, max_hp=0, zone=Zone.DISCARD,
+        card_type="energy", card_subtype="basic",
+    )
+    grass2 = CardInstance(
+        instance_id="rb-g2", card_def_id="grass-energy",
+        card_name="Grass Energy", current_hp=0, max_hp=0, zone=Zone.DISCARD,
+        card_type="energy", card_subtype="basic",
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+    state.p1.discard = [grass1, grass2]
+
+    action = _make_action(attack_index=0)
+    gen = _re_brew_flag(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_target"
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_TARGET,
+        target_instance_id=opp_active.instance_id,
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    # 2 grass energy → 4 counters → 40 HP damage
+    assert opp_active.damage_counters == 4
+    assert opp_active.current_hp == 160
+    # Energy shuffled back into deck
+    assert grass1 in state.p1.deck
+    assert grass2 in state.p1.deck
+    assert grass1 not in state.p1.discard
+    assert grass2 not in state.p1.discard
+
+
+# Fix #9: _peck_off_flag — discards opp active's tool, then deals 50
+def test_peck_off_discards_tool_and_deals_damage():
+    """sv06-045 Seaking — Peck Off: discards tool from opp Active, then 50 damage."""
+    from app.engine.effects.attacks import _peck_off_flag
+    from app.cards.models import CardDefinition
+
+    seaking_cdef = CardDefinition(
+        tcgdex_id="sv06-045", name="Seaking",
+        set_abbrev="TWM", set_number="045",
+        category="pokemon", stage="Stage 1", hp=110,
+        attacks=[AttackDef(name="Peck Off", damage="50", cost=["Water"])],
+        abilities=[],
+    )
+    card_registry.register(seaking_cdef)
+
+    attacker = CardInstance(
+        instance_id="po-atk", card_def_id="sv06-045",
+        card_name="Seaking", current_hp=110, max_hp=110, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="po-opp", card_def_id="tst-po-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    opp_active.tools_attached = ["some-tool-id"]
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+
+    action = _make_action(attack_index=0)
+    result = _peck_off_flag(state, action)
+    if hasattr(result, "__next__"):
+        try:
+            next(result)
+        except StopIteration:
+            pass
+
+    assert opp_active.tools_attached == []
+    assert opp_active.current_hp == 50  # 50 default damage
+
+
+# Fix #10: _inviting_kiss_flag — benched Pokémon becomes Confused
+def test_inviting_kiss_benches_pokemon_and_applies_confused():
+    """sv06-046 Jynx — Inviting Kiss: benches 1 Basic Pokémon which becomes Confused."""
+    from app.engine.effects.attacks import _inviting_kiss_flag
+
+    attacker = CardInstance(
+        instance_id="ik-atk", card_def_id="sv06-046",
+        card_name="Jynx", current_hp=80, max_hp=80, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="ik-opp", card_def_id="tst-ik-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    basic_in_deck = CardInstance(
+        instance_id="ik-basic", card_def_id="tst-ik-basic",
+        card_name="BasicPoke", current_hp=60, max_hp=60, zone=Zone.DECK,
+        card_type="pokemon", card_subtype="basic",
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+    state.p1.deck = [basic_in_deck]
+
+    action = _make_action(attack_index=0)
+    gen = _inviting_kiss_flag(state, action)
+    try:
+        req = next(gen)
+        resp = Action(
+            player_id="p1",
+            action_type=ActionType.CHOOSE_CARDS,
+            selected_cards=[basic_in_deck.instance_id],
+        )
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert basic_in_deck in state.p1.bench
+    assert StatusCondition.CONFUSED in basic_in_deck.status_conditions
+
+
+# Fix #11: _flock_flag — searches deck for up to 2 Froakie
+@pytest.mark.asyncio
+async def test_flock_benches_up_to_2_froakie():
+    """sv06-056 Froakie — Flock: puts up to 2 Froakie from deck onto Bench."""
+    from app.engine.effects.attacks import _flock_flag
+
+    attacker = CardInstance(
+        instance_id="fl-atk", card_def_id="sv06-056",
+        card_name="Froakie", current_hp=60, max_hp=60, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="fl-opp", card_def_id="tst-fl-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    froakie1 = CardInstance(
+        instance_id="fl-f1", card_def_id="sv06-056",
+        card_name="Froakie", current_hp=60, max_hp=60, zone=Zone.DECK,
+        card_type="pokemon", card_subtype="basic",
+    )
+    froakie2 = CardInstance(
+        instance_id="fl-f2", card_def_id="sv06-056",
+        card_name="Froakie", current_hp=60, max_hp=60, zone=Zone.DECK,
+        card_type="pokemon", card_subtype="basic",
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+    state.p1.deck = [froakie1, froakie2]
+
+    action = _make_action(attack_index=0)
+    gen = _flock_flag(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_cards"
+    assert req.max_count == 2
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[froakie1.instance_id, froakie2.instance_id],
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert froakie1 in state.p1.bench
+    assert froakie2 in state.p1.bench
+    assert froakie1.zone == Zone.BENCH
+    assert froakie2.zone == Zone.BENCH
+
+
+# Fix #12: _snip_snip_flag — flip 2 coins, mill per heads
+def test_snip_snip_mills_deck_on_heads(monkeypatch):
+    """sv06-048 Crawdaunt — Snip Snip: mills 2 cards from opp deck (both heads)."""
+    from app.engine.effects import attacks as attacks_mod
+
+    monkeypatch.setattr(attacks_mod._random, "choice", lambda _: True)
+
+    attacker = CardInstance(
+        instance_id="ss-atk", card_def_id="sv06-048",
+        card_name="Crawdaunt", current_hp=130, max_hp=130, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="ss-opp", card_def_id="tst-ss-opp",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    deck_card1 = CardInstance(
+        instance_id="ss-dc1", card_def_id="tst-dc1",
+        card_name="DeckCard1", current_hp=0, max_hp=0, zone=Zone.DECK,
+    )
+    deck_card2 = CardInstance(
+        instance_id="ss-dc2", card_def_id="tst-dc2",
+        card_name="DeckCard2", current_hp=0, max_hp=0, zone=Zone.DECK,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+    state.p2.deck = [deck_card1, deck_card2]
+
+    action = _make_action(attack_index=0)
+    result = attacks_mod._snip_snip_flag(state, action)
+    if hasattr(result, "__next__"):
+        try:
+            next(result)
+        except StopIteration:
+            pass
+
+    assert len(state.p2.deck) == 0
+    assert deck_card1 in state.p2.discard
+    assert deck_card2 in state.p2.discard
+
+
+def test_snip_snip_no_mill_on_tails(monkeypatch):
+    """sv06-048 Crawdaunt — Snip Snip: no mill when both tails."""
+    from app.engine.effects import attacks as attacks_mod
+
+    monkeypatch.setattr(attacks_mod._random, "choice", lambda _: False)
+
+    attacker = CardInstance(
+        instance_id="ss2-atk", card_def_id="sv06-048",
+        card_name="Crawdaunt", current_hp=130, max_hp=130, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="ss2-opp", card_def_id="tst-ss2-opp",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    deck_card = CardInstance(
+        instance_id="ss2-dc1", card_def_id="tst-dc3",
+        card_name="DeckCard3", current_hp=0, max_hp=0, zone=Zone.DECK,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+    state.p2.deck = [deck_card]
+
+    action = _make_action(attack_index=0)
+    result = attacks_mod._snip_snip_flag(state, action)
+    if hasattr(result, "__next__"):
+        try:
+            next(result)
+        except StopIteration:
+            pass
+
+    assert deck_card in state.p2.deck
+    assert len(state.p2.discard) == 0
+
+
+# Fix #13: _colorful_catch_flag — up to 3 different-type Basic Energy from deck
+@pytest.mark.asyncio
+async def test_colorful_catch_fetches_different_type_energy():
+    """sv06.5-050 Eevee — Colorful Catch: fetches up to 3 Basic Energy of different types."""
+    from app.engine.effects.attacks import _colorful_catch_flag
+
+    attacker = CardInstance(
+        instance_id="cc-atk", card_def_id="sv06.5-050",
+        card_name="Eevee", current_hp=60, max_hp=60, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="cc-opp", card_def_id="tst-cc-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    grass_e = CardInstance(
+        instance_id="cc-g", card_def_id="grass-energy",
+        card_name="Grass Energy", current_hp=0, max_hp=0, zone=Zone.DECK,
+        card_type="energy", card_subtype="basic",
+    )
+    fire_e = CardInstance(
+        instance_id="cc-f", card_def_id="fire-energy",
+        card_name="Fire Energy", current_hp=0, max_hp=0, zone=Zone.DECK,
+        card_type="energy", card_subtype="basic",
+    )
+    water_e = CardInstance(
+        instance_id="cc-w", card_def_id="water-energy",
+        card_name="Water Energy", current_hp=0, max_hp=0, zone=Zone.DECK,
+        card_type="energy", card_subtype="basic",
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+    state.p1.deck = [grass_e, fire_e, water_e]
+
+    action = _make_action(attack_index=0)
+    gen = _colorful_catch_flag(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_cards"
+    assert req.max_count == 3
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[grass_e.instance_id, fire_e.instance_id, water_e.instance_id],
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert grass_e in state.p1.hand
+    assert fire_e in state.p1.hand
+    assert water_e in state.p1.hand
+    assert len(state.p1.deck) == 0
+
+
+# Fix #14: _energy_assist_flag — attach Basic Energy from discard to benched Pokémon
+@pytest.mark.asyncio
+async def test_energy_assist_attaches_energy_from_discard_to_bench():
+    """sv06.5-051 Furfrou — Energy Assist: attaches a Basic Energy from discard to a Benched Pokémon."""
+    from app.engine.effects.attacks import _energy_assist_flag
+
+    attacker = CardInstance(
+        instance_id="ea-atk", card_def_id="sv06.5-051",
+        card_name="Furfrou", current_hp=110, max_hp=110, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="ea-opp", card_def_id="tst-ea-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    bench_poke = CardInstance(
+        instance_id="ea-bench", card_def_id="tst-ea-bench",
+        card_name="BenchPoke", current_hp=80, max_hp=80, zone=Zone.BENCH,
+    )
+    energy_in_discard = CardInstance(
+        instance_id="ea-energy", card_def_id="grass-energy",
+        card_name="Grass Energy", current_hp=0, max_hp=0, zone=Zone.DISCARD,
+        card_type="energy", card_subtype="basic",
+        energy_provides=["Grass"],
+    )
+    state = _make_state(p1_active=attacker, p1_bench=[bench_poke], p2_active=opp_active)
+    state.p1.discard = [energy_in_discard]
+
+    action = _make_action(attack_index=0)
+    gen = _energy_assist_flag(state, action)
+    # First yield: choose energy
+    req1 = next(gen)
+    assert req1.choice_type == "choose_cards"
+
+    resp1 = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[energy_in_discard.instance_id],
+    )
+    # Second yield: choose target bench
+    req2 = gen.send(resp1)
+    assert req2.choice_type == "choose_target"
+
+    resp2 = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_TARGET,
+        target_instance_id=bench_poke.instance_id,
+    )
+    try:
+        gen.send(resp2)
+    except StopIteration:
+        pass
+
+    assert energy_in_discard not in state.p1.discard
+    assert len(bench_poke.energy_attached) == 1
+    # Damage is dealt via _do_default_damage (30 for Furfrou, requires card registration to test)
+
+
+# Fix #15: _splashing_turn_flag — 70 + switch active with bench
+@pytest.mark.asyncio
+async def test_splashing_turn_deals_damage_and_switches():
+    """sv07-037 Tirtouga — Splashing Turn: 70 damage + switches active with chosen benched Pokémon."""
+    from app.engine.effects.attacks import _splashing_turn_flag
+
+    attacker = CardInstance(
+        instance_id="st-atk", card_def_id="sv07-037",
+        card_name="Tirtouga", current_hp=80, max_hp=80, zone=Zone.ACTIVE,
+    )
+    bench_poke = CardInstance(
+        instance_id="st-bench", card_def_id="tst-st-bench",
+        card_name="BenchPoke", current_hp=80, max_hp=80, zone=Zone.BENCH,
+    )
+    opp_active = CardInstance(
+        instance_id="st-opp", card_def_id="tst-st-opp",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p1_bench=[bench_poke], p2_active=opp_active)
+
+    action = _make_action(attack_index=0)
+    gen = _splashing_turn_flag(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_target"
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_TARGET,
+        target_instance_id=bench_poke.instance_id,
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    # Damage is dealt via _do_default_damage (requires card registration to verify exact amount)
+    assert state.p1.active is bench_poke
+    assert bench_poke.zone == Zone.ACTIVE
+    assert attacker in state.p1.bench
+    assert attacker.zone == Zone.BENCH
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Session 10 Engine Gaps (findings #EG4–#EG13) — now implemented
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def test_EG4_drum_beating_sets_extra_cost_on_opp():
+    """sv06-016 Rillaboom — Drum Beating sets extra_attack_cost=1 and extra_retreat_cost=1 on opp active."""
+    from app.engine.effects.attacks import _drum_beating
+
+    attacker = CardInstance(
+        instance_id="db-atk", card_def_id="sv06-016",
+        card_name="Rillaboom", current_hp=180, max_hp=180, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="db-opp", card_def_id="tst-db-opp",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+
+    action = _make_action()
+    _drum_beating(state, action)
+
+    assert opp_active.extra_attack_cost == 1
+    assert opp_active.extra_retreat_cost == 1
+    assert any(e.get("event_type") == "drum_beating" for e in state.events)
+
+
+def test_EG4_drum_beating_fields_cleared_by_runner():
+    """extra_attack_cost and extra_retreat_cost are cleared at end of affected player's own turn."""
+    from app.engine.runner import MatchRunner
+
+    opp_active = CardInstance(
+        instance_id="db2-opp", card_def_id="tst-db2",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    opp_active.extra_attack_cost = 1
+    opp_active.extra_retreat_cost = 1
+    state = _make_state(p2_active=opp_active)
+    state.active_player = "p2"  # simulate p2's turn ending
+
+    runner = _runner_for_between_turns()
+    runner._end_turn(state)
+
+    assert opp_active.extra_attack_cost == 0
+    assert opp_active.extra_retreat_cost == 0
+
+
+@pytest.mark.asyncio
+async def test_EG5_piercing_gaze_reveals_hand_and_discards_chosen_card():
+    """sv06-068 Luxray ex — Piercing Gaze: attacker chooses 1 card from opp's hand to discard."""
+    from app.engine.effects.attacks import _piercing_gaze
+
+    attacker = CardInstance(
+        instance_id="pg-atk", card_def_id="sv06-068",
+        card_name="Luxray ex", current_hp=270, max_hp=270, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="pg-opp", card_def_id="tst-pg-opp",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    opp_hand_card = CardInstance(
+        instance_id="pg-hand", card_def_id="tst-pg-hand",
+        card_name="SomeCard", zone=Zone.HAND,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+    state.p2.hand = [opp_hand_card]
+
+    action = _make_action()
+    gen = _piercing_gaze(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_cards"
+    assert any(c.instance_id == opp_hand_card.instance_id for c in req.cards)
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[opp_hand_card.instance_id],
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert opp_hand_card not in state.p2.hand
+    assert opp_hand_card in state.p2.discard
+    assert opp_hand_card.zone == Zone.DISCARD
+    assert any(e.get("event_type") == "piercing_gaze" for e in state.events)
+
+
+def test_EG6_wind_power_charge_sets_bonus():
+    """sv06-076 Kilowattrel — Wind Power Charge sets next_attack_damage_bonus = 120 on self."""
+    from app.engine.effects.attacks import _wind_power_charge
+
+    attacker = CardInstance(
+        instance_id="wpc-atk", card_def_id="sv06-076",
+        card_name="Kilowattrel", current_hp=80, max_hp=80, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="wpc-opp", card_def_id="tst-wpc-opp",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+
+    action = _make_action()
+    _wind_power_charge(state, action)
+
+    assert attacker.next_attack_damage_bonus == 120
+    assert any(e.get("event_type") == "wind_power_charge" for e in state.events)
+
+
+def test_EG6_next_attack_bonus_consumed_on_next_attack(monkeypatch):
+    """next_attack_damage_bonus is added to the next _apply_damage call and then cleared."""
+    from app.engine.effects.attacks import _apply_damage
+
+    attacker = CardInstance(
+        instance_id="wpc2-atk", card_def_id="tst-wpc2-atk",
+        card_name="Attacker", current_hp=80, max_hp=80, zone=Zone.ACTIVE,
+        next_attack_damage_bonus=120,
+    )
+    opp_active = CardInstance(
+        instance_id="wpc2-opp", card_def_id="tst-wpc2-opp",
+        card_name="Defender", current_hp=300, max_hp=300, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+    action = _make_action()
+
+    _apply_damage(state, action, 60)  # 60 base + 120 bonus = 180
+
+    # Bonus should be consumed
+    assert attacker.next_attack_damage_bonus == 0
+    assert opp_active.damage_counters == 18  # 180 damage = 18 counters
+
+
+@pytest.mark.asyncio
+async def test_EG7_breezy_gift_shuffles_self_and_searches_deck():
+    """sv07-011 Eldegoss — Breezy Gift: shuffle self+attached into deck, promote bench, search up to 3."""
+    from app.engine.effects.attacks import _breezy_gift
+
+    attacker = CardInstance(
+        instance_id="bg-atk", card_def_id="sv07-011",
+        card_name="Eldegoss", current_hp=90, max_hp=90, zone=Zone.ACTIVE,
+    )
+    bench_poke = CardInstance(
+        instance_id="bg-bench", card_def_id="tst-bg-bench",
+        card_name="BenchPoke", current_hp=70, max_hp=70, zone=Zone.BENCH,
+    )
+    deck_card1 = CardInstance(
+        instance_id="bg-deck1", card_def_id="tst-bg-dk1",
+        card_name="DeckCard1", zone=Zone.DECK,
+    )
+    deck_card2 = CardInstance(
+        instance_id="bg-deck2", card_def_id="tst-bg-dk2",
+        card_name="DeckCard2", zone=Zone.DECK,
+    )
+    state = _make_state(p1_active=attacker, p1_bench=[bench_poke])
+    state.p1.deck = [deck_card1, deck_card2]
+
+    action = _make_action()
+    gen = _breezy_gift(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_cards"
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[deck_card1.instance_id],
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    # Old attacker should be in deck, bench promoted to active
+    assert attacker in state.p1.deck
+    assert state.p1.active is bench_poke
+    assert bench_poke.zone == Zone.ACTIVE
+    # Chosen card should be in hand
+    assert deck_card1 in state.p1.hand
+    assert any(e.get("event_type") == "breezy_gift_shuffle" for e in state.events)
+
+
+@pytest.mark.asyncio
+async def test_EG8_summoning_gate_benches_top8_pokemon():
+    """sv05-072 Reuniclus — Summoning Gate: look at top 8, bench chosen Pokémon."""
+    from app.engine.effects.attacks import _summoning_gate_b5
+
+    attacker = CardInstance(
+        instance_id="sg-atk", card_def_id="sv05-072",
+        card_name="Reuniclus", current_hp=120, max_hp=120, zone=Zone.ACTIVE,
+    )
+    deck_poke = CardInstance(
+        instance_id="sg-dpoke", card_def_id="tst-sg-poke",
+        card_name="DeckPokemon", current_hp=80, max_hp=80, zone=Zone.DECK,
+        card_type="Pokemon",
+    )
+    deck_trainer = CardInstance(
+        instance_id="sg-dtrain", card_def_id="tst-sg-train",
+        card_name="Trainer", zone=Zone.DECK,
+        card_type="Trainer",
+    )
+    opp_active = CardInstance(
+        instance_id="sg-opp", card_def_id="tst-sg-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+    state.p1.deck = [deck_poke, deck_trainer]
+
+    action = _make_action()
+    gen = _summoning_gate_b5(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_cards"
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[deck_poke.instance_id],
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert deck_poke in state.p1.bench
+    assert deck_poke.zone == Zone.BENCH
+    assert any(e.get("event_type") == "summoning_gate" for e in state.events)
+
+
+@pytest.mark.asyncio
+async def test_EG9_metronome_copies_opp_attack_damage():
+    """sv06-079 Clefable — Metronome: copies base damage of chosen opponent attack."""
+    from app.engine.effects.attacks import _metronome
+
+    attacker = CardInstance(
+        instance_id="met-atk", card_def_id="sv06-079",
+        card_name="Clefable", current_hp=120, max_hp=120, zone=Zone.ACTIVE,
+    )
+    opp_poke_cdef = _make_card(
+        "tst-met-opp", "OppPokemon", hp=200,
+        attacks=[AttackDef(name="Tackle", damage="60", cost=["Colorless"])],
+    )
+    card_registry.register(opp_poke_cdef)
+    opp_active = CardInstance(
+        instance_id="met-opp", card_def_id="tst-met-opp",
+        card_name="OppPokemon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+
+    action = _make_action()
+    gen = _metronome(state, action)
+    # For a single attack, no choice prompt is shown; handler goes straight to damage
+    try:
+        next(gen)
+        # If we get here, opp has multiple attacks and a choice is requested
+    except StopIteration:
+        pass
+
+    # Verify damage was applied (60 damage = 6 counters)
+    assert opp_active.damage_counters == 6
+    assert any(e.get("event_type") == "metronome" for e in state.events)
+
+
+@pytest.mark.asyncio
+async def test_EG10_larimar_rain_attaches_energy_from_top20():
+    """sv07-032 Lapras ex — Larimar Rain: attaches energy from top 20 deck cards to own Pokémon."""
+    from app.engine.effects.attacks import _larimar_rain
+
+    attacker = CardInstance(
+        instance_id="lr-atk", card_def_id="sv07-032",
+        card_name="Lapras ex", current_hp=230, max_hp=230, zone=Zone.ACTIVE,
+    )
+    energy_card = CardInstance(
+        instance_id="lr-energy", card_def_id="basic-water",
+        card_name="Water Energy", zone=Zone.DECK,
+        card_type="Energy",
+        energy_provides=["Water"],
+    )
+    non_energy = CardInstance(
+        instance_id="lr-trainer", card_def_id="tst-lr-trainer",
+        card_name="Trainer", zone=Zone.DECK,
+        card_type="Trainer",
+    )
+    opp_active = CardInstance(
+        instance_id="lr-opp", card_def_id="tst-lr-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+    state.p1.deck = [energy_card, non_energy]
+
+    action = _make_action(attack_index=1)
+    gen = _larimar_rain(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_target"
+
+    resp = Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_TARGET,
+        target_instance_id=attacker.instance_id,
+    )
+    # Send response to attach; next yield may request next energy (or StopIteration if done)
+    try:
+        req2 = gen.send(resp)
+        # Skip remaining energy selection
+        try:
+            gen.send(None)
+        except StopIteration:
+            pass
+    except StopIteration:
+        pass
+
+    assert len(attacker.energy_attached) >= 1
+    assert any(e.get("event_type") == "energy_attached_from_deck" for e in state.events)
+
+
+def test_EG11_unleash_lightning_sets_player_flag():
+    """sv07-047 Electivire — Unleash Lightning: 220 + sets all_pokemon_cant_attack_next_turn on self."""
+    from app.engine.effects.attacks import _unleash_lightning
+
+    attacker = CardInstance(
+        instance_id="ul-atk", card_def_id="sv07-047",
+        card_name="Electivire", current_hp=170, max_hp=170, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="ul-opp", card_def_id="tst-ul-opp",
+        card_name="OppMon", current_hp=400, max_hp=400, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+
+    action = _make_action(attack_index=1)
+    _unleash_lightning(state, action)
+
+    assert state.p1.all_pokemon_cant_attack_next_turn is True
+    assert any(e.get("event_type") == "unleash_lightning" for e in state.events)
+
+
+def test_EG11_unleash_lightning_blocks_attack_via_actions():
+    """all_pokemon_cant_attack_next_turn=True causes ActionValidator to return no ATTACK actions."""
+    from app.engine.actions import ActionValidator
+
+    rillaboom_cdef = _make_card(
+        "sv06-016", "Rillaboom", hp=180,
+        attacks=[AttackDef(name="Drum Beating", damage="60", cost=["Grass"])],
+    )
+    card_registry.register(rillaboom_cdef)
+    attacker = CardInstance(
+        instance_id="ul2-atk", card_def_id="sv06-016",
+        card_name="Rillaboom", current_hp=180, max_hp=180, zone=Zone.ACTIVE,
+    )
+    attacker.energy_attached = [
+        EnergyAttachment(energy_type=EnergyType.GRASS, source_card_id="g1", card_def_id="basic-grass"),
+    ]
+    opp_active = CardInstance(
+        instance_id="ul2-opp", card_def_id="tst-ul2-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    from app.engine.state import Phase
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+    state.phase = Phase.ATTACK
+    state.p1.all_pokemon_cant_attack_next_turn = True
+
+    legal = ActionValidator.get_legal_actions(state, "p1")
+    attack_actions = [a for a in legal if a.action_type == ActionType.ATTACK]
+    assert len(attack_actions) == 0
+
+
+def test_EG11_unleash_lightning_flag_cleared_by_runner():
+    """all_pokemon_cant_attack_next_turn is cleared at end of the affected player's own turn."""
+    from app.engine.runner import MatchRunner
+
+    attacker = CardInstance(
+        instance_id="ul3-atk", card_def_id="tst-ul3",
+        card_name="Electivire", current_hp=170, max_hp=170, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker)
+    state.p1.all_pokemon_cant_attack_next_turn = True
+    state.active_player = "p1"
+
+    runner = _runner_for_between_turns()
+    runner._end_turn(state)
+
+    assert state.p1.all_pokemon_cant_attack_next_turn is False
+
+
+def test_EG12_disorienting_flash_applies_confused_with_8_counters():
+    """sv07-049 Lanturn — Disorienting Flash: CONFUSED applied with confused_counter_amount=8."""
+    from app.engine.effects.attacks import _disorienting_flash
+
+    attacker = CardInstance(
+        instance_id="df-atk", card_def_id="sv07-049",
+        card_name="Lanturn", current_hp=130, max_hp=130, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="df-opp", card_def_id="tst-df-opp",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p2_active=opp_active)
+
+    action = _make_action()
+    _disorienting_flash(state, action)
+
+    assert StatusCondition.CONFUSED in opp_active.status_conditions
+    assert opp_active.confused_counter_amount == 8
+    assert any(e.get("event_type") == "status_applied" for e in state.events)
+
+
+def test_EG12_disorienting_flash_confusion_flip_uses_custom_counters(monkeypatch):
+    """Confused flip with confused_counter_amount=8 deals 80 HP damage (not standard 30)."""
+    import random as _random_mod
+
+    # Force tails (confusion triggers)
+    monkeypatch.setattr(_random_mod, "choice", lambda seq: False)
+
+    opp_active = CardInstance(
+        instance_id="df2-opp", card_def_id="tst-df2-opp",
+        card_name="OppMon", current_hp=200, max_hp=200, zone=Zone.ACTIVE,
+    )
+    opp_active.status_conditions.add(StatusCondition.CONFUSED)
+    opp_active.confused_counter_amount = 8
+
+    state = _make_state(p2_active=opp_active)
+    state.active_player = "p2"
+
+    action = Action(player_id="p2", action_type=ActionType.ATTACK, attack_index=0)
+
+    import asyncio
+    from app.engine.transitions import _attack
+
+    asyncio.run(_attack(state, action))
+
+    assert opp_active.damage_counters == 8
+    assert opp_active.current_hp == 120  # 200 - 80
+
+
+@pytest.mark.asyncio
+async def test_EG13_slowing_perfume_shuffles_bench_poke_when_going_second():
+    """sv06-010 Illumise — Slowing Perfume: shuffles opp bench Pokémon to deck when going second on turn 2."""
+    from app.engine.effects.attacks import _slowing_perfume
+
+    attacker = CardInstance(
+        instance_id="sp-atk", card_def_id="sv06-010",
+        card_name="Illumise", current_hp=80, max_hp=80, zone=Zone.ACTIVE,
+    )
+    opp_active = CardInstance(
+        instance_id="sp-opp", card_def_id="tst-sp-opp",
+        card_name="OppActive", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    opp_bench_poke = CardInstance(
+        instance_id="sp-bench", card_def_id="tst-sp-bench",
+        card_name="OppBench", current_hp=80, max_hp=80, zone=Zone.BENCH,
+    )
+    state = _make_state(p2_active=attacker, p1_active=opp_active, p1_bench=[])
+    state.p1.active = opp_active
+    state.p1.bench = [opp_bench_poke]
+    state.p2.active = attacker
+    state.first_player = "p1"  # p2 goes second
+    state.turn_number = 2      # p2's first turn
+    state.active_player = "p2"
+
+    action = Action(player_id="p2", action_type=ActionType.ATTACK, attack_index=0)
+    gen = _slowing_perfume(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_target"
+
+    resp = Action(
+        player_id="p2",
+        action_type=ActionType.CHOOSE_TARGET,
+        target_instance_id=opp_bench_poke.instance_id,
+    )
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert opp_bench_poke not in state.p1.bench
+    assert opp_bench_poke in state.p1.deck
+    assert any(e.get("event_type") == "slowing_perfume" for e in state.events)
+
+
+def test_EG13_slowing_perfume_no_effect_when_going_first():
+    """Slowing Perfume does nothing when the attacker goes first."""
+    from app.engine.effects.attacks import _slowing_perfume
+
+    attacker = CardInstance(
+        instance_id="sp2-atk", card_def_id="sv06-010",
+        card_name="Illumise", current_hp=80, max_hp=80, zone=Zone.ACTIVE,
+    )
+    opp_bench_poke = CardInstance(
+        instance_id="sp2-bench", card_def_id="tst-sp2-bench",
+        card_name="OppBench", current_hp=80, max_hp=80, zone=Zone.BENCH,
+    )
+    state = _make_state(p1_active=attacker)
+    state.p2.bench = [opp_bench_poke]
+    state.first_player = "p1"  # p1 goes FIRST
+    state.turn_number = 1
+    state.active_player = "p1"
+
+    action = _make_action(player_id="p1")
+    gen = _slowing_perfume(state, action)
+    try:
+        next(gen)  # Should reach end without yielding (generator returns immediately)
+    except StopIteration:
+        pass
+
+    assert opp_bench_poke in state.p2.bench  # nothing happened
+    assert any(e.get("event_type") == "slowing_perfume_no_effect" for e in state.events)
+

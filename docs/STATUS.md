@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-05 (session 10 — stale-running simulation recovery)
+Last updated: 2026-05-06 (session 10 — DB-backed audit: 15 handler fixes + 10 engine gaps; stale-running simulation recovery)
 
 ## Current Workstream
 
@@ -33,7 +33,7 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **490 passed, 1 skipped** — 2026-05-05 session 10. `cd backend && python3 -m pytest tests/ -x -q`. Prior: 478 (session 9), 466 (session 8). |
+| Backend test baseline | **504 passed, 7 skipped** — 2026-05-06 session 10. `cd backend && python3 -m pytest tests/ -x -q`. Prior: 490/1 (session 10 simulation fix), 478/1 (session 9), 466 (session 8). |
 | Frontend unit tests | **17 passed (4 files)** — 2026-05-05. `cd frontend && npm test -- --run --reporter=dot`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |

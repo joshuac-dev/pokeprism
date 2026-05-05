@@ -5158,7 +5158,7 @@ def register_all(registry):
     registry.register_passive_ability("sv05-008", "Poison Point")           # Roselia (on-hit poison: noop)
     registry.register_passive_ability("sv05-009", "Poison Point")           # Roserade (on-hit poison: noop)
     registry.register_passive_ability("sv05-010", "Solid Shell")            # Turtwig (damage reduction: noop)
-    registry.register_passive_ability("sv05-015", "Wafting Heal")           # Whimsicott (turn-start heal: noop)
+    registry.register_ability("sv05-015", "Wafting Heal", _wafting_heal)     # Whimsicott (on-evolve: heal all dmg from Active Grass + discard Energy)
     registry.register_passive_ability("sv05-017", "Changing Seasons")       # Sawsbuck (energy cost modifier: noop)
     registry.register_passive_ability("sv05-021", "Resilient Soul")         # Brambleghast (dynamic HP: logic in base.py)
     registry.register_passive_ability("sv05-029", "Lava Zone")              # Magcargo (on-retreat burn: flag)
