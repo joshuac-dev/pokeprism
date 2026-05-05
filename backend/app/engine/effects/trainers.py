@@ -3288,7 +3288,6 @@ def _switch_b18(state: GameState, action):
 
 def _wallys_compassion(state: GameState, action):
     """me01-132 Wally's Compassion — Heal 1 Mega ex; if healed, return all energy to hand."""
-    from app.cards.loader import card_registry as _cr
     player_id = action.player_id
     player = state.get_player(player_id)
 
@@ -3317,7 +3316,7 @@ def _wallys_compassion(state: GameState, action):
 
     if healed and target.energy_attached:
         for ea in list(target.energy_attached):
-            cdef = _cr.get(ea.card_def_id)
+            cdef = card_registry.get(ea.card_def_id)
             new_energy = CardInstance(
                 card_def_id=ea.card_def_id,
                 card_name=cdef.name if cdef else "Energy",

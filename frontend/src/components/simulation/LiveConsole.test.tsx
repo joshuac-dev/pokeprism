@@ -92,4 +92,44 @@ describe('LiveConsole — ai_decision visibility', () => {
     const eventList = screen.getByTestId('live-console-events');
     expect(eventList.textContent).toContain('T21');
   });
+
+  it('renders pass events as visible console rows with "Pass" text', () => {
+    const passEvent = makeEvent({
+      eventType: 'pass',
+      turn: 12,
+      player: 'p2',
+      data: {},
+    });
+
+    render(<LiveConsole {...BASE_PROPS} events={[passEvent]} totalEvents={1} />);
+
+    const eventList = screen.getByTestId('live-console-events');
+    expect(eventList.textContent).toContain('T12');
+    expect(eventList.textContent).toContain('Pass');
+  });
+
+  it('renders end_turn events as visible console rows with "End turn" text', () => {
+    const endTurnEvent = makeEvent({
+      eventType: 'end_turn',
+      turn: 13,
+      player: 'p1',
+      data: {},
+    });
+
+    render(<LiveConsole {...BASE_PROPS} events={[endTurnEvent]} totalEvents={1} />);
+
+    const eventList = screen.getByTestId('live-console-events');
+    expect(eventList.textContent).toContain('T13');
+    expect(eventList.textContent).toContain('End turn');
+  });
+
+  it('does NOT render visible row for turn_start events', () => {
+    const turnStart = makeEvent({ eventType: 'turn_start', data: {} });
+
+    render(<LiveConsole {...BASE_PROPS} events={[turnStart]} totalEvents={1} />);
+
+    const eventList = screen.getByTestId('live-console-events');
+    expect(screen.queryAllByTestId('live-console-event').length).toBe(0);
+    expect(eventList.textContent?.trim()).toBe('');
+  });
 });

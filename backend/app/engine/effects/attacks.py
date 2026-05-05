@@ -28184,7 +28184,6 @@ def register_flagged_batch5_attacks(registry):
 
 def _fluorite(state, action):
     """sv08-188 TM: Fluorite — Discard all Energy from this Pokémon + heal all your Tera Pokémon."""
-    from app.cards.loader import card_registry as _cr
     player_id = action.player_id
     player = state.get_player(player_id)
 
@@ -28198,7 +28197,7 @@ def _fluorite(state, action):
     # Heal all Tera Pokémon in play
     in_play = ([player.active] if player.active else []) + list(player.bench)
     for poke in in_play:
-        pdef = _cr.get(poke.card_def_id)
+        pdef = card_registry.get(poke.card_def_id)
         if pdef and pdef.is_tera and poke.damage_counters > 0:
             poke.damage_counters = 0
             poke.current_hp = poke.max_hp

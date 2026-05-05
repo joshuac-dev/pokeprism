@@ -279,8 +279,8 @@ class MatchRunner:
                 continue
 
             prev_len = len(state.events)
-            self._maybe_emit_ai_decision(state, pid, action)
             state = await StateTransition.apply(state, action, self._get_player)
+            self._annotate_action_events_with_ai_reasoning(state, prev_len, action)
             self._emit_since(state, prev_len)
 
             if state.force_end_turn:
@@ -309,8 +309,8 @@ class MatchRunner:
                     state.emit_event("invalid_action_attack", player=pid, error=error)
                 else:
                     prev_len = len(state.events)
-                    self._maybe_emit_ai_decision(state, pid, action)
                     state = await StateTransition.apply(state, action, self._get_player)
+                    self._annotate_action_events_with_ai_reasoning(state, prev_len, action)
                     self._emit_since(state, prev_len)
 
                     # Handle forced switch if KO occurred
@@ -331,8 +331,8 @@ class MatchRunner:
                                 is_valid2, _ = ActionValidator.validate(state, action2)
                                 if is_valid2:
                                     prev_len2 = len(state.events)
-                                    self._maybe_emit_ai_decision(state, pid, action2)
                                     state = await StateTransition.apply(state, action2, self._get_player)
+                                    self._annotate_action_events_with_ai_reasoning(state, prev_len2, action2)
                                     self._emit_since(state, prev_len2)
                                     state.get_player(pid).festival_lead_pending = False
                                     state = await self._resolve_ko_aftermath(state)
@@ -370,28 +370,36 @@ class MatchRunner:
                 self._emit_since(state, prev_len)
         return state
 
-    def _maybe_emit_ai_decision(self, state: GameState, pid: str, action: Action) -> None:
-        """Emit a live ai_decision event if the action carries AI reasoning.
+    def _annotate_action_events_with_ai_reasoning(
+        self,
+        state: "GameState",
+        prev_len: int,
+        action: "Action",
+    ) -> None:
+        """Inject AI reasoning metadata directly into visible events emitted by the action.
 
-        This allows the live console overlay to show reasoning immediately, before
-        decisions are persisted to Postgres after match completion.
+        Called after StateTransition.apply() but before _emit_since(), so that every event
+        published downstream already carries ai_reasoning. EventDetail can then show reasoning
+        by reading event.data.ai_reasoning directly — no hidden-event correlation needed.
 
-        Only emits when action.reasoning is set (AIPlayer sets this; heuristics do not),
-        so this naturally restricts emission to AI players without coupling the runner
-        to the AIPlayer class.
+        Only injects when action.reasoning is set (AIPlayer sets this; heuristic/greedy
+        players leave it None), so this naturally restricts to AI players.
         """
         reasoning = getattr(action, "reasoning", None)
         if not reasoning:
             return
-        state.emit_event(
-            "ai_decision",
-            player=pid,
-            action_type=action.action_type.name,
-            card_played=action.card_instance_id,
-            target=action.target_instance_id,
-            reasoning=reasoning,
-            attack_index=action.attack_index,
-        )
+        fields = {
+            "ai_reasoning": reasoning,
+            "ai_action_type": action.action_type.name,
+        }
+        if action.card_instance_id:
+            fields["ai_card_played"] = action.card_instance_id
+        if action.target_instance_id:
+            fields["ai_target"] = action.target_instance_id
+        if action.attack_index is not None:
+            fields["ai_attack_index"] = action.attack_index
+        for event in state.events[prev_len:]:
+            event.update(fields)
 
     def _handle_between_turns(self, state: GameState) -> GameState:
         """Apply status conditions (Appendix A §Between Turns)."""

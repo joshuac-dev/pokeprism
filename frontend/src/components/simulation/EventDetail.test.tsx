@@ -326,3 +326,100 @@ describe('EventDetail — live AI reasoning', () => {
     expect(screen.queryByText(/No AI decision recorded for this event/i)).not.toBeInTheDocument();
   });
 });
+
+describe('EventDetail — simulation_error does not show AI Reasoning', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockGetDecisions.mockResolvedValue({ decisions: [], total: 0 });
+  });
+
+  it('does not render AI Reasoning section for simulation_error events', () => {
+    const errorEvent = makeEvent({
+      eventType: 'simulation_error',
+      data: { error: 'cannot import name card_registry' },
+    });
+
+    render(
+      <EventDetail
+        {...BASE_PROPS}
+        event={errorEvent}
+        liveEvents={[errorEvent]}
+      />
+    );
+
+    expect(screen.queryByTestId('event-detail-ai-reasoning')).not.toBeInTheDocument();
+  });
+
+  it('does not render AI Reasoning for other lifecycle events (game_over, draw, ko)', () => {
+    for (const et of ['game_over', 'draw', 'ko', 'prizes_taken', 'round_start', 'game_start']) {
+      const ev = makeEvent({ eventType: et, data: {} });
+      const { unmount } = render(
+        <EventDetail {...BASE_PROPS} event={ev} liveEvents={[ev]} />
+      );
+      expect(screen.queryByTestId('event-detail-ai-reasoning')).not.toBeInTheDocument();
+      unmount();
+    }
+  });
+});
+
+describe('EventDetail — pass and end_turn show direct ai_reasoning', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockGetDecisions.mockResolvedValue({ decisions: [], total: 0 });
+  });
+
+  it('shows direct ai_reasoning for pass event', () => {
+    const passEvent = makeEvent({
+      eventType: 'pass',
+      turn: 12,
+      player: 'p2',
+      data: { ai_reasoning: 'No good attacks available', ai_action_type: 'PASS' },
+    });
+
+    render(
+      <EventDetail
+        {...BASE_PROPS}
+        event={passEvent}
+        liveEvents={[passEvent]}
+      />
+    );
+
+    expect(screen.getByTestId('event-detail-ai-reasoning')).toBeInTheDocument();
+    expect(screen.getByText('No good attacks available')).toBeInTheDocument();
+  });
+
+  it('shows direct ai_reasoning for end_turn event', () => {
+    const endTurnEvent = makeEvent({
+      eventType: 'end_turn',
+      turn: 13,
+      player: 'p1',
+      data: { ai_reasoning: 'Conserving resources this turn', ai_action_type: 'END_TURN' },
+    });
+
+    render(
+      <EventDetail
+        {...BASE_PROPS}
+        event={endTurnEvent}
+        liveEvents={[endTurnEvent]}
+      />
+    );
+
+    expect(screen.getByTestId('event-detail-ai-reasoning')).toBeInTheDocument();
+    expect(screen.getByText('Conserving resources this turn')).toBeInTheDocument();
+  });
+
+  it('shows the AI Reasoning section for pass even without reasoning (shows not-persisted message)', () => {
+    const passEvent = makeEvent({ eventType: 'pass', turn: 7, player: 'p1', data: {} });
+
+    render(
+      <EventDetail
+        {...BASE_PROPS}
+        event={passEvent}
+        liveEvents={[passEvent]}
+      />
+    );
+
+    expect(screen.getByTestId('event-detail-ai-reasoning')).toBeInTheDocument();
+    expect(screen.getByText(/has not been persisted yet/i)).toBeInTheDocument();
+  });
+});

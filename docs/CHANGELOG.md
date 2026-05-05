@@ -38,6 +38,47 @@ hardening sweep are documented as complete. Current work continues to close
 card-specific implementation gaps found by database-backed audits, coverage
 gates, and runtime simulation checks.
 
+### 2026-05-08 — Session 15: Emergency stabilization — import crash, AI reasoning, pass/end_turn
+
+Emergency stabilization pass fixing four live simulation issues.
+
+- **Runtime crash** (`attacks.py` / `trainers.py`): `_fluorite` and
+  `_wallys_compassion` both had a bad lazy import
+  `from app.cards.loader import card_registry as _cr`. The correct module is
+  `app.cards.registry` (already imported at module level as `card_registry`).
+  This caused `ImportError: cannot import name 'card_registry' from 'app.cards.loader'`
+  the first time either function was called. Fixed by removing the bad local
+  import and using the module-level name.
+
+- **Import smoke test** (new `backend/tests/test_engine/test_import_smoke.py`):
+  10 tests covering the full simulation stack plus AST-level guards that reject
+  `from app.cards.loader import card_registry` in `attacks.py` and `trainers.py`.
+
+- **AI reasoning now attached directly to visible events** (`runner.py`):
+  Replaced `_maybe_emit_ai_decision` (which emitted hidden `ai_decision` events
+  before the transition) with `_annotate_action_events_with_ai_reasoning` (which
+  mutates the visible events emitted by `StateTransition.apply` with
+  `ai_reasoning`, `ai_action_type`, etc., before `_emit_since` publishes them).
+  `EventDetail` already has `event.data.ai_reasoning` as its primary lookup path
+  from session 14 — the field now reliably arrives on the clicked event.
+
+- **`pass`/`end_turn` visible in console** (`LiveConsole.tsx`):
+  Removed both from the skip set; added explicit format:
+  `T{N} [{player}] · Pass` and `T{N} [{player}] · End turn`.
+
+- **`simulation_error` no longer shows AI Reasoning** (`EventDetail.tsx`):
+  Added `AI_REASONING_EVENT_TYPES` allowlist. Only action-category event types
+  (attack, evolve, energy, trainer, pass, end_turn, use_ability, etc.) render
+  the AI Reasoning section. Lifecycle/system events (`simulation_error`,
+  `game_over`, `draw`, `ko`, etc.) do not. AI annotation fields (`ai_reasoning`,
+  `ai_action_type`, `ai_card_played`, `ai_target`, `ai_attack_index`) excluded
+  from the raw Event Data display via `SKIP_KEYS`.
+
+- **Tests**: 565 backend (+18 new), 40 frontend (+8 new). Build and container
+  import smoke confirmed.
+
+**Confidence:** High — all tests pass, build clean, both containers confirmed OK.
+
 ### 2026-05-07 — Session 14: Hide ai_decision console rows; fix overlay correlation
 
 Corrected the live AI reasoning UX introduced in session 13:

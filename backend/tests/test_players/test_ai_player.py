@@ -6,7 +6,7 @@ Tests cover:
   - choose_action: LLM path, CHOOSE_* bypass, retry+fallback, exception handling
   - _build_prompt: key content present
   - pending_decisions / drain_decisions
-  - _maybe_emit_ai_decision (MatchRunner helper): emits live ai_decision events
+  - _annotate_action_events_with_ai_reasoning (MatchRunner helper): injects ai_reasoning into visible events
 """
 
 from __future__ import annotations
@@ -370,19 +370,20 @@ class TestBuildPrompt:
         assert "Switch in 1 of your opponent's Benched" in prompt
 
 
-# ── _maybe_emit_ai_decision tests ─────────────────────────────────────────────
+# ── _annotate_action_events_with_ai_reasoning tests ──────────────────────────
 
 class TestMaybeEmitAiDecision:
-    """Tests for MatchRunner._maybe_emit_ai_decision.
+    """Tests for MatchRunner._annotate_action_events_with_ai_reasoning.
 
-    The method emits a live ai_decision event when action.reasoning is set.
-    It is the gate that keeps heuristic/BasePlayer decisions silent.
+    The method injects AI reasoning fields directly into visible events emitted
+    by the action, replacing the old hidden ai_decision event approach.
+    Only annotates when action.reasoning is set; heuristic actions leave
+    events untouched.
     """
 
     @pytest.fixture
     def runner(self):
         from app.engine.runner import MatchRunner
-        from unittest.mock import MagicMock
         r = MatchRunner.__new__(MatchRunner)
         r.event_callback = None
         return r
@@ -392,48 +393,46 @@ class TestMaybeEmitAiDecision:
         return GameStateStub(turn_number=5, active_player="p1")
 
     def test_emits_when_reasoning_present(self, runner, state):
-        """Action with reasoning → ai_decision event appended to state.events."""
+        """Action with reasoning → visible events annotated with ai_reasoning."""
+        event = state.emit_event("attack_damage", player="p1", final_damage=120)
         action = Action(ActionType.ATTACK, "p1", attack_index=0)
         action.reasoning = "Phantom Dive for KO"
-        runner._maybe_emit_ai_decision(state, "p1", action)
-        assert len(state.events) == 1
-        ev = state.events[0]
-        assert ev["event_type"] == "ai_decision"
-        assert ev["reasoning"] == "Phantom Dive for KO"
+        runner._annotate_action_events_with_ai_reasoning(state, prev_len=0, action=action)
+        assert event["ai_reasoning"] == "Phantom Dive for KO"
+        assert event["ai_action_type"] == "ATTACK"
 
     def test_no_emit_when_no_reasoning(self, runner, state):
-        """Action without reasoning (heuristic) → no event emitted."""
+        """Action without reasoning (heuristic) → events not annotated."""
+        event = state.emit_event("pass", player="p1")
         action = Action(ActionType.PASS, "p1")
         # action.reasoning is None by default (not set by heuristic players)
-        runner._maybe_emit_ai_decision(state, "p1", action)
-        assert len(state.events) == 0
+        runner._annotate_action_events_with_ai_reasoning(state, prev_len=0, action=action)
+        assert "ai_reasoning" not in event
 
-    def test_fallback_reasoning_emits(self, runner, state):
-        """[FALLBACK] reasoning from AIPlayer still emits an ai_decision event."""
+    def test_fallback_reasoning_annotates(self, runner, state):
+        """[FALLBACK] reasoning from AIPlayer still annotates visible events."""
+        event = state.emit_event("end_turn", player="p1")
         action = Action(ActionType.END_TURN, "p1")
         action.reasoning = "[FALLBACK] Heuristic choice after 3 failures"
-        runner._maybe_emit_ai_decision(state, "p1", action)
-        assert len(state.events) == 1
-        assert "[FALLBACK]" in state.events[0]["reasoning"]
+        runner._annotate_action_events_with_ai_reasoning(state, prev_len=0, action=action)
+        assert "[FALLBACK]" in event["ai_reasoning"]
 
     def test_event_includes_required_fields(self, runner, state):
-        """Emitted event carries turn, player, action_type, and reasoning."""
-        action = Action(ActionType.ATTACK, "p1", attack_index=1,
+        """Annotated event carries ai_reasoning, ai_action_type, ai_card_played, ai_target, ai_attack_index."""
+        event = state.emit_event("energy_attached", player="p1")
+        action = Action(ActionType.ATTACH_ENERGY, "p1",
                         card_instance_id="ci-42", target_instance_id="ci-opp")
-        action.reasoning = "attack wins"
-        runner._maybe_emit_ai_decision(state, "p1", action)
-        ev = state.events[0]
-        assert ev["turn"] == 5
-        assert ev["player"] == "p1"
-        assert ev["action_type"] == "ATTACK"
-        assert ev["card_played"] == "ci-42"
-        assert ev["target"] == "ci-opp"
-        assert ev["reasoning"] == "attack wins"
-        assert ev["attack_index"] == 1
+        action.reasoning = "attach wins"
+        runner._annotate_action_events_with_ai_reasoning(state, prev_len=0, action=action)
+        assert event["ai_reasoning"] == "attach wins"
+        assert event["ai_action_type"] == "ATTACH_ENERGY"
+        assert event["ai_card_played"] == "ci-42"
+        assert event["ai_target"] == "ci-opp"
 
     def test_empty_reasoning_string_does_not_emit(self, runner, state):
-        """Empty string reasoning (falsy) → no event emitted."""
+        """Empty string reasoning (falsy) → events not annotated."""
+        event = state.emit_event("pass", player="p1")
         action = Action(ActionType.PASS, "p1")
         action.reasoning = ""
-        runner._maybe_emit_ai_decision(state, "p1", action)
-        assert len(state.events) == 0
+        runner._annotate_action_events_with_ai_reasoning(state, prev_len=0, action=action)
+        assert "ai_reasoning" not in event

@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-07 (session 14 — live AI reasoning overlay repair: hide ai_decision console rows; show reasoning only in tile overlay; fix evolved→EVOLVE correlation; add direct ai_reasoning field support)
+Last updated: 2026-05-08 (session 15 — emergency stabilization: fix runtime card_registry import crash; attach ai_reasoning to visible events; show pass/end_turn in console; restrict AI Reasoning overlay to action events only)
 
 ## Current Workstream
 
@@ -33,87 +33,138 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **547 passed, 1 skipped** — 2026-05-06 session 13. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 542/1 (session 12), 522/1 (session 11, full stack running), 504/7 (session 10, without DB integration; `test_scheduled.py` DB tests skipped when Postgres unreachable), 490/1 (session 10 simulation fix), 478/1 (session 9), 466 (session 8). |
-| Frontend unit tests | **32 passed (6 files)** — 2026-05-07 session 14. `cd frontend && npm test -- --run`. Added `LiveConsole.test.tsx` (4 tests); extended `EventDetail.test.tsx` to 11 tests. |
+| Backend test baseline | **565 passed, 1 skipped** — 2026-05-08 session 15. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
+| Frontend unit tests | **40 passed (6 files)** — 2026-05-08 session 15. `cd frontend && npm test -- --run`. `LiveConsole.test.tsx` (7 tests); `EventDetail.test.tsx` (16 tests). |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
 
-## Session 14 Work (2026-05-07)
+## Session 15 Work (2026-05-08)
 
 ### Goal
 
-Repair the live AI reasoning overlay UX: ai_decision rows were accidentally rendered as
-visible purple console rows (session 13), and the frontend container was never rebuilt after
-the session 13 commit so old JS was still being served. Fix both issues so the console
-remains a plain action/event log while reasoning appears only in the tile overlay.
+Emergency stabilization: fix a live simulation crash caused by an invalid import,
+attach AI reasoning directly to visible events, make pass/end_turn visible in
+the console, and restrict the AI Reasoning overlay to action-type events.
 
-### Root Cause (two parts)
+### Root Cause — Runtime Crash
 
-1. **Stale frontend container**: The `7cc034f` commit added `EventDetail` live reasoning
-   logic but the `frontend` container was never rebuilt — nginx was still serving old compiled
-   JS with "No AI decision recorded for this event." copy.
+`backend/app/engine/effects/attacks.py` (`_fluorite`) and
+`backend/app/engine/effects/trainers.py` (`_wallys_compassion`) each contained
+a bad lazy import: `from app.cards.loader import card_registry as _cr`. This
+module does not export `card_registry`; the correct import is
+`from app.cards import registry as card_registry` (already present at module
+level in both files). The lazy imports were redundant and broken — they caused
+`ImportError: cannot import name 'card_registry' from 'app.cards.loader'` the
+first time either function was called during a live simulation.
 
-2. **Visible `ai_decision` console rows**: Session 13's `LiveConsole.tsx` change rendered
-   `ai_decision` events as purple `🤖 ACTION_TYPE — "reasoning…"` rows. User requirement is
-   that the console remain a plain game/action log; reasoning belongs only in the tile overlay.
+### Root Cause — AI Reasoning Still Not Appearing in Overlay
 
-3. **Missing `evolved` → `EVOLVE` correlation**: `EVENT_TO_ACTION` map had `evolve: 'EVOLVE'`
-   but the engine emits `"evolved"` (past tense). Clicking an `evolved` row would produce
-   action type `'EVOLVED'` (fallback uppercasing), not matching the AI decision's `'EVOLVE'`.
+The prior correlation approach (hidden `ai_decision` events emitted before
+`StateTransition.apply`) was fragile at live runtime: event index positions
+could drift when extra events were emitted by transitions, and
+`liveEvents.indexOf(event)` could return stale positions. More importantly,
+`pass` and `end_turn` events were filtered out of `liveEvents` entirely
+(because LiveConsole was skipping them), so the clicked event index was always
+−1 for those actions.
+
+### Root Cause — Missing Turn Display (Turns 13–14 Vanish)
+
+`LiveConsole.tsx` was hiding `end_turn` and `pass` event types with
+`skip: true`. If a player's only action on a turn was to pass or end their turn,
+no visible row appeared and the turn looked like it vanished.
+
+### Root Cause — simulation_error Showing AI Reasoning
+
+`EventDetail.tsx` rendered the AI Reasoning section for all events whenever
+`isAiMode` was true. `simulation_error` is a lifecycle/system event, not an AI
+action, so it should never have an AI Reasoning section.
 
 ### Completed
 
-1. **`LiveConsole.tsx`** — changed `ai_decision` case from visible purple rows to `skip: true`.
-   Events remain in the store array so `EventDetail` can still correlate them; they just don't
-   render a visible row. Console is a plain game/action log.
+1. **Fix `_fluorite` bad import** (`backend/app/engine/effects/attacks.py`):
+   Removed the bad `from app.cards.loader import card_registry as _cr` lazy
+   import. Changed `_cr.get()` to `card_registry.get()` using the module-level
+   import that was already present.
 
-2. **`EventDetail.tsx`** — added `evolved: 'EVOLVE'` to `EVENT_TO_ACTION` map (was missing;
-   engine emits `"evolved"`, not `"evolve"`). Added direct `event.data.ai_reasoning` preference:
-   if the clicked event carries an `ai_reasoning` field directly, it is used before correlation
-   search. Expanded `liveDecision` logic to handle both paths with correct `isLive: true` flag.
+2. **Fix `_wallys_compassion` bad import** (`backend/app/engine/effects/trainers.py`):
+   Same fix — removed bad lazy import, uses module-level `card_registry.get()`.
 
-3. **`src/test/setup.ts`** — added `Element.prototype.scrollIntoView = vi.fn()` global mock
-   so `LiveConsole` tests don't fail on jsdom's missing `scrollIntoView`.
+3. **Import smoke test** (`backend/tests/test_engine/test_import_smoke.py`, new):
+   10 tests covering all simulation stack modules (runner, transitions, attacks,
+   abilities, trainers, energies, batch, tasks.simulation) plus AST-level guards
+   confirming no `from app.cards.loader import card_registry` pattern exists in
+   `attacks.py` or `trainers.py`.
 
-4. **`LiveConsole.test.tsx`** (new, 4 tests):
-   - `ai_decision` event produces no visible row (no `live-console-event` nodes).
-   - `energy_attached` event still renders as a visible row.
-   - `energy_attached` row visible when preceded by hidden `ai_decision`.
-   - `evolved` event renders as a visible row.
+4. **Replace `_maybe_emit_ai_decision` with `_annotate_action_events_with_ai_reasoning`**
+   (`backend/app/engine/runner.py`):
+   New method annotates visible events in `state.events[prev_len:]` directly
+   with `ai_reasoning`, `ai_action_type`, `ai_card_played`, `ai_target`, and
+   `ai_attack_index` *after* `StateTransition.apply()` emits them but *before*
+   `_emit_since()` publishes them. This means every published event already
+   carries reasoning. All 3 `_maybe_emit_ai_decision` call sites in `_run_turn`
+   updated. Hidden `ai_decision` events no longer emitted.
 
-5. **`EventDetail.test.tsx`** (extended from 7 → 11 tests):
-   - `energy_attached` → `ATTACH_ENERGY` correlation finds prior `ai_decision` and shows reasoning.
-   - `evolved` → `EVOLVE` correlation finds prior `ai_decision` and shows reasoning.
-   - Direct `event.data.ai_reasoning` is preferred over correlation when present.
-   - Old copy "No AI decision recorded for this event." is not rendered anywhere.
+5. **Runner annotation tests** (`backend/tests/test_engine/test_runner_annotation.py`, new):
+   8 unit tests: ATTACH_ENERGY annotates `energy_attached`; EVOLVE annotates
+   `evolved`; ATTACK annotates all attack events; PASS annotates `pass`; END_TURN
+   annotates `end_turn`; no reasoning → no annotation; only events after
+   `prev_len` annotated; optional fields absent when action fields are None.
 
-6. **Container rebuild**: rebuilt `frontend` container; nginx now serves updated JS with
-   `"has not been persisted yet"` copy (confirmed via grep on `/usr/share/nginx/html`).
+6. **Updated `TestMaybeEmitAiDecision`** (`backend/tests/test_players/test_ai_player.py`):
+   Renamed/updated all 5 tests to use the new
+   `_annotate_action_events_with_ai_reasoning` method (tests now pre-populate
+   events and verify annotation rather than checking for emitted `ai_decision`
+   events).
 
-### Validation (session 14)
+7. **LiveConsole pass/end_turn rows** (`frontend/src/components/simulation/LiveConsole.tsx`):
+   Removed `end_turn` and `pass` from the skip set. Added explicit format cases:
+   `pass` → `T{N} [{player}] · Pass`; `end_turn` → `T{N} [{player}] · End turn`.
+
+8. **EventDetail AI Reasoning allowlist** (`frontend/src/components/simulation/EventDetail.tsx`):
+   Added `AI_REASONING_EVENT_TYPES` set — an explicit allowlist of event types
+   that can show an AI Reasoning section (all action types: energy_attached,
+   evolved, attack variants, trainer plays, pass, end_turn, use_ability, etc.).
+   `simulation_error` and all lifecycle events not in the list. AI annotation
+   fields (`ai_reasoning`, `ai_action_type`, `ai_card_played`, `ai_target`,
+   `ai_attack_index`) added to `SKIP_KEYS` so they don't appear in the raw
+   Event Data section.
+
+9. **Frontend tests**:
+   - `LiveConsole.test.tsx` (4 → 7 tests): `pass` renders "Pass"; `end_turn`
+     renders "End turn"; `turn_start` still hidden.
+   - `EventDetail.test.tsx` (11 → 16 tests): `simulation_error` has no AI
+     Reasoning section; lifecycle events have no AI Reasoning section; `pass`
+     with direct `ai_reasoning` shows it; `end_turn` with direct `ai_reasoning`
+     shows it; `pass` without reasoning shows "has not been persisted yet".
+
+### Validation (session 15)
 
 | Command | Result |
 |---|---|
-| `cd backend && python3 -m pytest tests/ -x -q` | **547 passed, 1 skipped** |
-| `cd frontend && npm test -- --run` | **32 passed (6 files)** |
-| `cd frontend && npm run build` | **✓ built in 4.18s** |
-| `docker compose build frontend && docker compose up -d frontend` | **✓ deployed** |
-| Grep served JS for "No AI decision recorded" | **0 matches** (old copy removed) |
-| Grep served JS for "has not been persisted yet" | **1 match** (new copy confirmed) |
+| `cd backend && python3 -m pytest tests/test_engine/test_import_smoke.py tests/test_engine/test_runner_annotation.py -q` | **18 passed** |
+| `cd backend && python3 -m pytest tests/ -x -q` | **565 passed, 1 skipped** |
+| `cd frontend && npm test -- --run` | **40 passed (6 files)** |
+| `cd frontend && npm run build` | **✓ built in 4.33s** |
+| `docker compose build backend celery-worker frontend && docker compose up -d ...` | **✓ deployed** |
+| Backend container import smoke | **backend import smoke OK** |
+| Celery-worker container import smoke | **worker import smoke OK** |
 
-### Files Changed (session 14)
+### Files Changed (session 15)
 
 | File | Change |
 |---|---|
-| `frontend/src/components/simulation/LiveConsole.tsx` | Changed `ai_decision` from visible purple row to `skip: true` |
-| `frontend/src/components/simulation/EventDetail.tsx` | Added `evolved: 'EVOLVE'` to map; added direct `ai_reasoning` field preference |
-| `frontend/src/test/setup.ts` | Added `scrollIntoView` global mock for jsdom |
-| `frontend/src/components/simulation/LiveConsole.test.tsx` | New: 4 tests for ai_decision hiding |
-| `frontend/src/components/simulation/EventDetail.test.tsx` | Extended: +4 tests (energy_attached, evolved, direct ai_reasoning, no-old-copy) |
+| `backend/app/engine/effects/attacks.py` | Removed bad `from app.cards.loader import card_registry` in `_fluorite` |
+| `backend/app/engine/effects/trainers.py` | Removed bad `from app.cards.loader import card_registry` in `_wallys_compassion` |
+| `backend/app/engine/runner.py` | Replaced `_maybe_emit_ai_decision` with `_annotate_action_events_with_ai_reasoning`; updated 3 call sites |
+| `backend/tests/test_engine/test_import_smoke.py` | New: 10 import smoke tests |
+| `backend/tests/test_engine/test_runner_annotation.py` | New: 8 annotation unit tests |
+| `backend/tests/test_players/test_ai_player.py` | Updated `TestMaybeEmitAiDecision` class to test new annotation method |
+| `frontend/src/components/simulation/LiveConsole.tsx` | `pass`/`end_turn` now render visible rows; `turn_start` remains hidden |
+| `frontend/src/components/simulation/EventDetail.tsx` | Added `AI_REASONING_EVENT_TYPES` allowlist; AI fields added to `SKIP_KEYS` |
+| `frontend/src/components/simulation/LiveConsole.test.tsx` | +3 tests (pass, end_turn render; turn_start hidden) |
+| `frontend/src/components/simulation/EventDetail.test.tsx` | +5 tests (simulation_error; lifecycle events; pass/end_turn with direct reasoning) |
 | `docs/STATUS.md` | This file |
-| `docs/CHANGELOG.md` | Session 14 entry added |
-
-
+| `docs/CHANGELOG.md` | Session 15 entry added |
 
 ### Goal
 

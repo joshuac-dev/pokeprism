@@ -160,8 +160,14 @@ function fmt(ev: NormalisedEvent): FmtResult {
       return { text: `${turn}${who}↓ Draw ×${count}`, cls: 'text-slate-500' };
     }
     // skip noise events
-    if (et === 'turn_start' || et === 'end_turn' || et === 'pass' || et === 'prizes_set') {
+    if (et === 'turn_start' || et === 'prizes_set') {
       return { text: '', cls: '', skip: true };
+    }
+    if (et === 'pass') {
+      return { text: `${turn}${who}· Pass`, cls: 'text-slate-500' };
+    }
+    if (et === 'end_turn') {
+      return { text: `${turn}${who}· End turn`, cls: 'text-slate-500' };
     }
     // ai_decision events are hidden from the console but kept in the events array
     // so EventDetail can correlate them to the visible action events they precede.

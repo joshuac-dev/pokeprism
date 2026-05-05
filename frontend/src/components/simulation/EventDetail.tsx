@@ -10,7 +10,25 @@ interface Props {
   liveEvents?: NormalisedEvent[];
 }
 
-const SKIP_KEYS = new Set(['event_type', 'active_player', 'phase']);
+const SKIP_KEYS = new Set([
+  'event_type', 'active_player', 'phase',
+  // AI annotation fields — shown in AI Reasoning section, not Event Data
+  'ai_reasoning', 'ai_action_type', 'ai_card_played', 'ai_target', 'ai_attack_index',
+]);
+
+// Events that can plausibly correspond to an AI action decision.
+// Only these event types show the AI Reasoning section.
+const AI_REASONING_EVENT_TYPES = new Set([
+  'energy_attached', 'attach_energy', 'play_energy',
+  'evolved', 'evolve', 'rare_candy_evolve',
+  'attack', 'attack_declared', 'attack_damage', 'attack_no_damage',
+  'play_item', 'play_supporter', 'play_stadium', 'play_tool',
+  'play_basic', 'bench_played',
+  'retreat', 'switch_active',
+  'use_ability',
+  'pass', 'end_turn',
+  'ai_decision',
+]);
 
 // Map engine event_type strings (lowercase) to Decision action_type enum names (UPPERCASE).
 // Engine events that don't correspond to AI decisions are left unmapped (return undefined).
@@ -223,8 +241,8 @@ export default function EventDetail({ simulationId, event, isAiMode, onClose, li
             </section>
           )}
 
-          {/* AI Reasoning */}
-          {isAiMode && (
+          {/* AI Reasoning — only for action events, not lifecycle/error events */}
+          {isAiMode && AI_REASONING_EVENT_TYPES.has(et.toLowerCase()) && (
             <section data-testid="event-detail-ai-reasoning">
               <h3 className="text-xs text-slate-500 uppercase tracking-wider mb-1">AI Reasoning</h3>
               {loading && decisions.length === 0 && (
