@@ -1115,15 +1115,7 @@ function MemoryPreviewModal({
                   {ingesting ? 'Ingesting…' : 'Ingest memory'}
                 </button>
               )}
-              {!preview.eligible && (
-                <button
-                  onClick={() => handleIngest({ force: true, allow_unresolved: true })}
-                  disabled={ingesting}
-                  className="rounded border border-orange-400 px-4 py-1.5 text-sm font-medium text-orange-700 hover:bg-orange-50 disabled:opacity-50"
-                >
-                  {ingesting ? 'Forcing…' : 'Force ingest'}
-                </button>
-              )}
+
               <button
                 onClick={onClose}
                 className="rounded border border-gray-300 dark:border-slate-600 dark:text-slate-200 px-4 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"

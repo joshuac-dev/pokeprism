@@ -1005,6 +1005,29 @@ describe('Phase 3 card resolution', () => {
     });
   });
 
+  it('MemoryPreviewModal does not show "Force ingest" when ineligible', async () => {
+    (previewMemoryIngestion as ReturnType<typeof vi.fn>).mockResolvedValue({
+      eligible: false,
+      eligibility_status: 'ineligible',
+      reasons: [{ code: 'low_confidence', detail: 'score 0.70 below 0.80' }],
+      estimated_memory_item_count: 0,
+    });
+
+    const parsedLog = { ...sampleLog, parse_status: 'parsed' };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [parsedLog], total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /preview memory/i }));
+    await userEvent.click(screen.getByRole('button', { name: /preview memory/i }));
+
+    await waitFor(() => expect(screen.getByText(/not eligible/i)).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: /force ingest/i })).not.toBeInTheDocument();
+    // Ingest memory button must not appear when ineligible
+    expect(screen.queryByRole('button', { name: /^ingest memory$/i })).not.toBeInTheDocument();
+  });
+
   it('clicking "View memory" opens the MemoryItemsModal', async () => {
     const ingestedLog = { ...sampleLog, parse_status: 'parsed', memory_status: 'ingested', memory_item_count: 2 };
     (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({

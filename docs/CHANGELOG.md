@@ -31,6 +31,10 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Fixed
+- **Observed Play stabilization: removed "Force ingest" UI** — frontend only. The
+  `MemoryPreviewModal` had a "Force ingest" button visible when a log was ineligible, added
+  contrary to Phase 4.1 requirements. Removed the button; ineligible previews now show only
+  blocker/reason details and Cancel. Backend force-ingest path unchanged. +1 test (207 total).
 - **Observed Play dark mode styling** — frontend only. Added 177 `dark:` Tailwind classes across
   all 13 components in `ObservedPlay.tsx`. Panels, tables, badges, buttons, and modals now use
   theme-aware surfaces/text/borders matching the dark mode conventions of History and Memory pages.

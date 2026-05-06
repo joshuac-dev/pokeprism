@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 33 — Observed Play dark mode styling fix)
+Last updated: 2026-05-06 (session 34 — Observed Play stabilization sweep)
 
 ## Current Workstream
 
@@ -224,6 +224,68 @@ Unresolved/ambiguous panel uses `dark:bg-amber-950/50 dark:border-amber-800`.
 | `frontend/src/pages/ObservedPlay.test.tsx` | +6 dark mode styling tests |
 | `docs/STATUS.md` | This file |
 | `docs/CHANGELOG.md` | Dark mode entry |
+
+## Session 34 Work (2026-05-06)
+
+### Goal
+
+Stabilization sweep of Observed Play Memory feature branch before Phase 5.
+Verified migrations, backend/frontend suites, Docker compose, API smoke, import
+smoke, dark-mode behavior, and memory item review. Fixed one UI bug found during sweep.
+
+### Bug Fixed
+
+**"Force ingest" button present in MemoryPreviewModal when ineligible.**
+
+The Phase 4.1 prompt explicitly prohibited a force-ingest UI ("Do not add a new
+force-ingest UI in this pass"). The implementation agent added it anyway. Removed
+the button (lines 1118–1126 in `ObservedPlay.tsx`). When a log is ineligible, only
+the Cancel button is shown alongside the blocker/reason details. The backend force
+path (`force=True, allow_unresolved=True`) remains available for future admin use;
+only the UI exposure is removed.
+
+### Checks Passed
+
+| Check | Result |
+|---|---|
+| `git status --short` | clean ✓ |
+| `git diff --check` | no whitespace errors ✓ |
+| `alembic current` / `alembic heads` | `g3h4i5j6k7l8 (head)` ✓ |
+| `docs/AUDIT_STATE.md` not touched | ✓ |
+| `frontend/node_modules` not committed (pre-existing tracked files from Phase 8) | noted |
+| No real battle logs committed | ✓ |
+| Backend import smoke | all observed-play and engine imports ok ✓ |
+| Docker compose up | all services healthy ✓ |
+| `GET /api/observed-play/logs` | 45 logs, 200 OK ✓ |
+| `GET /api/observed-play/unresolved-cards` | 50 groups, 200 OK ✓ |
+| `POST /api/observed-play/logs/{id}/memory-preview` | eligible/ineligible responses correct ✓ |
+| `GET /api/observed-play/logs/{id}/events` | 375 events ✓ |
+| `GET /api/observed-play/logs/{id}/card-mentions` | 205 mentions ✓ |
+| `POST /api/observed-play/logs/{id}/ingest-memory` | 158 items written ✓ |
+| `GET /api/observed-play/logs/{id}/memory-items` | 158 items returned ✓ |
+| Memory item quality | actor/target plausible, confidences correct ✓ |
+| No Coach/AI/Neo4j/pgvector/simulator integration found | ✓ |
+
+### Tests Added (session 34)
+
+- **+1 test**: `MemoryPreviewModal does not show "Force ingest" when ineligible`
+  — asserts neither "Force ingest" nor "Ingest memory" appears when preview is ineligible.
+  207 frontend tests total (up from 206).
+
+### Validation (session 34)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **935 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **207 passed (15 files)** ✓
+- `cd frontend && npm run build`: **passed** ✓
+
+### Files Changed (session 34)
+
+| File | Change |
+|---|---|
+| `frontend/src/pages/ObservedPlay.tsx` | Removed "Force ingest" button (7 lines) |
+| `frontend/src/pages/ObservedPlay.test.tsx` | +1 force-ingest-absent test |
+| `docs/STATUS.md` | This file |
+| `docs/CHANGELOG.md` | Stabilization entry |
 
 
 
