@@ -20,8 +20,10 @@ from app.observed_play.constants import (
     ET_CARD_EFFECT_ACTIVATED,
     ET_DISCARD,
     ET_DISCARD_FROM_POKEMON,
+    ET_DRAW,
     ET_EVOLVE,
     ET_KNOCKOUT,
+    ET_OPENING_HAND_DRAW_KNOWN,
     ET_PLAY_BASIC_TO_BENCH,
     ET_PLAY_ITEM,
     ET_PLAY_STADIUM,
@@ -34,6 +36,7 @@ from app.observed_play.constants import (
     ET_PRIZE_TAKEN,
     ET_RETREAT,
     ET_ATTACK_USED,
+    ET_SWITCH_ACTIVE,
 )
 
 _RE_WHITESPACE = re.compile(r"\s+")
@@ -42,9 +45,52 @@ _RE_WHITESPACE = re.compile(r"\s+")
 _IGNORED_NORMALIZED = frozenset({
     "a card",
     "card",
+    "cards",
+    "them",
     "",
     "unknown",
 })
+
+# Matches "2 cards", "3 cards", "10 cards", etc. — never a card name.
+_RE_NUMERIC_CARDS = re.compile(r"^\d+\s+cards?$", re.IGNORECASE)
+
+# Zone/location suffixes appended by PTCGL to Pokémon names in some log lines.
+# These are stripped from extracted mention names so the resolution sees the
+# bare card name rather than e.g. "Dreepy in the Active Spot".
+_ZONE_SUFFIXES = (
+    " in the Active Spot",
+    " to the Active Spot",
+    " on the Bench",
+    " to the Bench",
+    " in the Bench",
+    " on your Bench",
+    " on their Bench",
+    " from the Active Spot",
+    " from the Bench",
+)
+
+
+def clean_extracted_card_name(raw: str) -> str:
+    """Strip known PTCGL zone/location suffixes from an extracted card name.
+
+    Only removes well-known PTCGL zone phrases from the end of the string.
+    Does not alter internal text or strip anything ambiguous.
+
+    Examples::
+
+        "Dreepy in the Active Spot"                      -> "Dreepy"
+        "Munkidori on the Bench"                         -> "Munkidori"
+        "Cornerstone Mask Ogerpon ex in the Active Spot" -> "Cornerstone Mask Ogerpon ex"
+        "Team Rocket's Mewtwo ex on the Bench"           -> "Team Rocket's Mewtwo ex"
+        "Pikachu"                                        -> "Pikachu"  (unchanged)
+    """
+    if not raw:
+        return raw
+    lower = raw.lower()
+    for suffix in _ZONE_SUFFIXES:
+        if lower.endswith(suffix.lower()):
+            return raw[: -len(suffix)].strip()
+    return raw
 
 
 def normalize_card_name(raw: str) -> str:
@@ -68,7 +114,11 @@ def _is_meaningful(raw: str) -> bool:
     if not raw:
         return False
     norm = normalize_card_name(raw)
-    return norm not in _IGNORED_NORMALIZED and len(norm) >= 2
+    if norm in _IGNORED_NORMALIZED:
+        return False
+    if _RE_NUMERIC_CARDS.match(norm):
+        return False
+    return len(norm) >= 2
 
 
 def _guess_attached_role(card_name: str | None) -> str:
@@ -98,6 +148,8 @@ def extract_mentions_from_event(event: Any) -> list[dict[str, Any]]:
 
     def _add(role: str, raw_name: str | None,
              source_field: str, source_payload_path: str | None = None) -> None:
+        if raw_name:
+            raw_name = clean_extracted_card_name(raw_name)
         if raw_name and _is_meaningful(raw_name):
             mentions.append({
                 "mention_role": role,
@@ -161,7 +213,13 @@ def extract_mentions_from_event(event: Any) -> list[dict[str, Any]]:
     elif et == ET_KNOCKOUT:
         _add("actor_card", card, "card_name_raw")
 
-    elif et in ("opening_hand_draw_known", ET_PLAY_TO_BENCH):
+    elif et == ET_DRAW:
+        _add("drawn_card", card, "card_name_raw")
+
+    elif et == ET_SWITCH_ACTIVE:
+        _add("actor_card", card, "card_name_raw")
+
+    elif et == ET_OPENING_HAND_DRAW_KNOWN:
         _add("revealed_card", card, "card_name_raw")
 
     else:
@@ -170,15 +228,17 @@ def extract_mentions_from_event(event: Any) -> list[dict[str, Any]]:
         _add("unknown_card", target, "target_card_name_raw")
 
     # Opening hand / mulligan payload card lists
-    if et in ("opening_hand_draw_known", "mulligan_cards_revealed"):
+    if et in (ET_OPENING_HAND_DRAW_KNOWN, "mulligan_cards_revealed"):
         for i, c in enumerate(payload.get("cards", [])):
-            if isinstance(c, str) and _is_meaningful(c):
-                mentions.append({
-                    "mention_role": "revealed_card",
-                    "raw_name": c,
-                    "source_field": "event_payload_json",
-                    "source_payload_path": f"cards[{i}]",
-                })
+            if isinstance(c, str):
+                cleaned_c = clean_extracted_card_name(c)
+                if _is_meaningful(cleaned_c):
+                    mentions.append({
+                        "mention_role": "revealed_card",
+                        "raw_name": cleaned_c,
+                        "source_field": "event_payload_json",
+                        "source_payload_path": f"cards[{i}]",
+                    })
 
     # Deduplicate by (role, normalized_name, source_field) while preserving order
     seen: set[tuple[str, str, str]] = set()

@@ -17,6 +17,7 @@ import pytest
 
 from app.observed_play.card_mentions import (
     _is_meaningful,
+    clean_extracted_card_name,
     extract_mentions_from_event,
     normalize_card_name,
 )
@@ -36,13 +37,16 @@ from app.observed_play.constants import (
     ET_CARD_ADDED_TO_HAND,
     ET_CARD_EFFECT_ACTIVATED,
     ET_DISCARD_FROM_POKEMON,
+    ET_DRAW,
     ET_EVOLVE,
     ET_ATTACH_CARD,
     ET_ATTACH_ENERGY,
+    ET_OPENING_HAND_DRAW_KNOWN,
     ET_PLAY_ITEM,
     ET_PLAY_SUPPORTER,
     ET_PLAY_TRAINER,
     ET_RETREAT,
+    ET_SWITCH_ACTIVE,
 )
 
 
@@ -338,3 +342,195 @@ class TestDeriveLogResolutionStatus:
             ambiguous_card_count=1,
         )
         assert _derive_log_resolution_status(s) == "has_ambiguous"
+
+# ── clean_extracted_card_name ──────────────────────────────────────────────────
+
+class TestCleanExtractedCardName:
+    def test_dreepy_in_active_spot(self):
+        assert clean_extracted_card_name("Dreepy in the Active Spot") == "Dreepy"
+
+    def test_munkidori_on_bench(self):
+        assert clean_extracted_card_name("Munkidori on the Bench") == "Munkidori"
+
+    def test_dunsparce_on_bench(self):
+        assert clean_extracted_card_name("Dunsparce on the Bench") == "Dunsparce"
+
+    def test_drakloak_on_bench(self):
+        assert clean_extracted_card_name("Drakloak on the Bench") == "Drakloak"
+
+    def test_multiword_name_in_active_spot(self):
+        assert (
+            clean_extracted_card_name("Cornerstone Mask Ogerpon ex in the Active Spot")
+            == "Cornerstone Mask Ogerpon ex"
+        )
+
+    def test_apostrophe_name_on_bench(self):
+        assert (
+            clean_extracted_card_name("Team Rocket's Mewtwo ex on the Bench")
+            == "Team Rocket's Mewtwo ex"
+        )
+
+    def test_no_suffix_unchanged(self):
+        assert clean_extracted_card_name("Pikachu") == "Pikachu"
+        assert clean_extracted_card_name("Lucario ex") == "Lucario ex"
+        assert clean_extracted_card_name("Basic Fighting Energy") == "Basic Fighting Energy"
+
+    def test_no_internal_stripping(self):
+        # "Bench" does not appear at end with the right prefix → unchanged
+        assert clean_extracted_card_name("Bench Press Energy") == "Bench Press Energy"
+
+    def test_empty_string(self):
+        assert clean_extracted_card_name("") == ""
+
+    def test_to_active_spot(self):
+        assert clean_extracted_card_name("Riolu to the Active Spot") == "Riolu"
+
+    def test_from_bench(self):
+        assert clean_extracted_card_name("Pikachu from the Bench") == "Pikachu"
+
+    def test_from_active_spot(self):
+        assert clean_extracted_card_name("Hariyama from the Active Spot") == "Hariyama"
+
+    def test_case_insensitive(self):
+        # Suffix check is case-insensitive
+        assert clean_extracted_card_name("Pikachu ON THE BENCH") == "Pikachu"
+
+
+# ── Phase 3.1: zone-suffix cleaning in extraction ─────────────────────────────
+
+class TestZoneSuffixCleaningInExtraction:
+    def test_attack_target_zone_suffix_stripped(self):
+        """target_card_name_raw with zone suffix should produce cleaned raw_name."""
+        evt = _event(ET_ATTACK_USED,
+                     card_name_raw="Lucario ex",
+                     target_card_name_raw="Dreepy in the Active Spot")
+        mentions = extract_mentions_from_event(evt)
+        names = {m["raw_name"] for m in mentions}
+        assert "Dreepy in the Active Spot" not in names
+        assert "Dreepy" in names
+
+    def test_attack_target_bench_suffix_stripped(self):
+        evt = _event(ET_ATTACK_USED,
+                     card_name_raw="Lucario ex",
+                     target_card_name_raw="Munkidori on the Bench")
+        mentions = extract_mentions_from_event(evt)
+        names = {m["raw_name"] for m in mentions}
+        assert "Munkidori on the Bench" not in names
+        assert "Munkidori" in names
+
+    def test_no_suffix_name_unchanged(self):
+        evt = _event(ET_ATTACK_USED,
+                     card_name_raw="Lucario ex",
+                     target_card_name_raw="Pikachu")
+        mentions = extract_mentions_from_event(evt)
+        names = {m["raw_name"] for m in mentions}
+        assert "Pikachu" in names
+
+    def test_multiword_zone_suffix_stripped(self):
+        evt = _event(ET_ATTACK_USED,
+                     card_name_raw="Lucario ex",
+                     target_card_name_raw="Cornerstone Mask Ogerpon ex in the Active Spot")
+        mentions = extract_mentions_from_event(evt)
+        names = {m["raw_name"] for m in mentions}
+        assert "Cornerstone Mask Ogerpon ex in the Active Spot" not in names
+        assert "Cornerstone Mask Ogerpon ex" in names
+
+
+# ── Phase 3.1: improved mention roles ─────────────────────────────────────────
+
+class TestImprovedMentionRoles:
+    def test_draw_event_uses_drawn_card_role(self):
+        evt = _event(ET_DRAW, card_name_raw="Pikachu")
+        mentions = extract_mentions_from_event(evt)
+        assert len(mentions) == 1
+        assert mentions[0]["mention_role"] == "drawn_card"
+        assert mentions[0]["raw_name"] == "Pikachu"
+
+    def test_draw_hidden_produces_no_mention(self):
+        """draw_hidden has no card_name_raw so nothing should be extracted."""
+        evt = _event("draw_hidden", card_name_raw=None)
+        mentions = extract_mentions_from_event(evt)
+        assert len(mentions) == 0
+
+    def test_switch_active_uses_actor_card_role(self):
+        evt = _event(ET_SWITCH_ACTIVE, card_name_raw="Hariyama")
+        mentions = extract_mentions_from_event(evt)
+        assert len(mentions) == 1
+        assert mentions[0]["mention_role"] == "actor_card"
+        assert mentions[0]["raw_name"] == "Hariyama"
+
+    def test_opening_hand_draw_known_uses_revealed_card_role(self):
+        evt = _event(ET_OPENING_HAND_DRAW_KNOWN, card_name_raw=None,
+                     event_payload_json={"cards": ["Pikachu", "Lucario"]})
+        mentions = extract_mentions_from_event(evt)
+        roles = {m["mention_role"] for m in mentions}
+        assert roles == {"revealed_card"}
+        names = {m["raw_name"] for m in mentions}
+        assert "Pikachu" in names
+        assert "Lucario" in names
+
+    def test_opening_hand_payload_zone_suffix_stripped(self):
+        """Zone suffixes in payload card lists should be cleaned."""
+        evt = _event(ET_OPENING_HAND_DRAW_KNOWN, card_name_raw=None,
+                     event_payload_json={"cards": ["Pikachu on the Bench"]})
+        mentions = extract_mentions_from_event(evt)
+        names = {m["raw_name"] for m in mentions}
+        assert "Pikachu on the Bench" not in names
+        assert "Pikachu" in names
+
+    def test_card_added_to_hand_role(self):
+        evt = _event(ET_CARD_ADDED_TO_HAND, card_name_raw="Growing Grass Energy")
+        mentions = extract_mentions_from_event(evt)
+        assert len(mentions) == 1
+        assert mentions[0]["mention_role"] == "added_to_hand_card"
+
+    def test_card_effect_activated_role(self):
+        evt = _event(ET_CARD_EFFECT_ACTIVATED, card_name_raw="Spiky Energy")
+        mentions = extract_mentions_from_event(evt)
+        assert len(mentions) == 1
+        assert mentions[0]["mention_role"] == "effect_card"
+
+    def test_non_card_strings_not_extracted(self):
+        """Zone-only or generic strings should not become mentions."""
+        for bad_name in ("a card", "card", "them", "", "2 cards"):
+            evt = _event(ET_ATTACH_ENERGY, card_name_raw=bad_name)
+            mentions = extract_mentions_from_event(evt)
+            assert all(m["raw_name"] != bad_name for m in mentions), (
+                f"Should not extract '{bad_name}'"
+            )
+
+    def test_false_unresolved_becomes_resolvable(self):
+        """After cleaning, a zone-suffixed name that matches a card DB entry
+        should become ambiguous/resolved rather than unresolved."""
+        from app.observed_play.card_resolution import _resolve_one
+        # Simulate: before cleaning "Dreepy in the Active Spot" → unresolved
+        # After cleaning → "Dreepy" → ambiguous (2 prints)
+        cards = {
+            "dreepy": [
+                {"tcgdex_id": "sv01-001", "name": "Dreepy",
+                 "set_abbrev": "sv01", "set_number": "001", "image_url": None},
+                {"tcgdex_id": "sv02-001", "name": "Dreepy",
+                 "set_abbrev": "sv02", "set_number": "001", "image_url": None},
+            ]
+        }
+        # Uncleaned → unresolved
+        result_bad = _resolve_one("dreepy in the active spot", cards, {})
+        assert result_bad["resolution_status"] == "unresolved"
+        # Cleaned → ambiguous
+        result_good = _resolve_one("dreepy", cards, {})
+        assert result_good["resolution_status"] == "ambiguous"
+
+    def test_ambiguous_same_name_stays_ambiguous(self):
+        """Multiple prints of same name must remain ambiguous."""
+        from app.observed_play.card_resolution import _resolve_one
+        cards = {
+            "pikachu": [
+                {"tcgdex_id": "sv01-001", "name": "Pikachu",
+                 "set_abbrev": "sv01", "set_number": "001", "image_url": None},
+                {"tcgdex_id": "sv02-001", "name": "Pikachu",
+                 "set_abbrev": "sv02", "set_number": "001", "image_url": None},
+            ]
+        }
+        result = _resolve_one("pikachu", cards, {})
+        assert result["resolution_status"] == "ambiguous"
+        assert result["candidate_count"] == 2

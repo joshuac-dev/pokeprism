@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 28 — Observed Play Phase 3: Card Mention Extraction and Conservative Card Resolution)
+Last updated: 2026-05-06 (session 29 — Observed Play Phase 3.1: Card Mention Cleanup and False-Unresolved Reduction)
 
 ## Current Workstream
 
@@ -18,7 +18,7 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, and Phase 3 are complete.**
+**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, and Phase 3.1 are complete.**
 Phase 4+ (memory ingestion) not yet started.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
@@ -38,8 +38,8 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **804 passed, 1 skipped** — 2026-05-06 session 28. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 767/1 (session 27). |
-| Frontend unit tests | **173 passed (15 files)** — 2026-05-06 session 28. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **831 passed, 1 skipped** — 2026-05-06 session 29. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 804/1 (session 28). |
+| Frontend unit tests | **173 passed (15 files)** — 2026-05-06 session 29. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
 
@@ -125,6 +125,91 @@ Known patterns still producing `unknown` events in real logs:
 - Deck search confirmations without explicit card names
 - "Looked at top N cards" observation lines
 These are candidates for Phase 2.3 if needed before Phase 3.
+
+## Session 29 Work (2026-05-06)
+
+### Goal
+
+Phase 3.1: Card Mention Cleanup and False-Unresolved Reduction. Strip safe
+zone/location suffixes from extracted mention names, improve mention role
+assignments for additional event types, and add `them`/numeric-card filtering so
+false unresolved counts drop without any silent ambiguous resolution.
+
+### Root Cause Fixed
+
+Mention extraction stored raw names like `"Dreepy in the Active Spot"` because the
+`RE_ATTACK` pattern captures `(?P<target_card>.+?)` including any trailing zone
+phrase. `_resolve_one()` would then try to look up `"Dreepy in the Active Spot"` in
+the card DB, which never matched → `unresolved`. Similarly, `"them"` passed
+`_is_meaningful()` and could be extracted as a spurious mention.
+
+### Changes Applied
+
+#### `backend/app/observed_play/card_mentions.py`
+
+1. **`_ZONE_SUFFIXES`** — 9 zone phrase variants to strip from mention names:
+   `in the Active Spot`, `to the Active Spot`, `on the Bench`, `to the Bench`,
+   `in the Bench`, `on your Bench`, `on their Bench`, `from the Active Spot`,
+   `from the Bench`.
+
+2. **`clean_extracted_card_name(raw)`** — strips the first matching zone suffix
+   (case-insensitive) and returns the trimmed card name. Does not mutate `raw_line`.
+
+3. **`_add()`** — calls `clean_extracted_card_name()` before `_is_meaningful()`.
+
+4. **`_IGNORED_NORMALIZED`** extended with `"cards"` and `"them"`.
+
+5. **`_RE_NUMERIC_CARDS`** — `re.compile(r"^\d+\s+cards?$")` added to
+   `_is_meaningful()` so strings like `"2 cards"` are never extracted.
+
+6. **Dispatch branches added**:
+   - `ET_DRAW → drawn_card` (known draw events extract card name).
+   - `ET_SWITCH_ACTIVE → actor_card` (switch/retreat events extract promoted Pokémon).
+   - `ET_OPENING_HAND_DRAW_KNOWN` branch no longer incorrectly bundled with `ET_PLAY_TO_BENCH`.
+
+7. **Payload card loop** — cleaned names applied for opening-hand and mulligan
+   card lists.
+
+### Tests Added
+
+**27 new tests** across 3 new classes in `test_card_mentions.py`:
+
+- `TestCleanExtractedCardName` (13 tests) — zone strip, multi-word names, no-op
+  on clean names, all 9 suffix variants.
+- `TestZoneSuffixCleaningInExtraction` (4 tests) — attack event with suffixed
+  target produces clean mention name; name without suffix unchanged; attack event
+  with no zone text unchanged.
+- `TestImprovedMentionRoles` (11 tests) — `ET_DRAW → drawn_card`;
+  `ET_SWITCH_ACTIVE → actor_card`; `ET_DRAW_HIDDEN` produces no mention;
+  `opening_hand_draw_known` cards → `revealed_card`; `mulligan_cards_revealed` →
+  `revealed_card`; `"them"`, `"a card"`, `"2 cards"` not extracted.
+
+(64 total card mention tests, up from 37.)
+
+### Validation (session 29)
+
+- `cd backend && python3 -m pytest tests/test_observed_play/test_card_mentions.py -q`: **64 passed** ✓
+- `cd backend && python3 -m pytest tests/ -x -q`: **831 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **173 passed (15 files)** ✓
+- `cd frontend && npm run build`: ✓ built in ~4s
+- `docs/AUDIT_STATE.md`: not modified ✓
+- `frontend/node_modules`: not committed ✓
+- No real battle-log corpus committed ✓
+- No Coach / AI / Neo4j / pgvector / memory ingestion added ✓
+
+### Expected Manual Validation
+
+After reparsing real logs the suffix raw names `"Dreepy in the Active Spot"`,
+`"Munkidori on the Bench"`, `"Dunsparce on the Bench"`, and `"Drakloak on the Bench"`
+should no longer appear as unresolved card mentions. Cleaned names will resolve to
+`ambiguous` (multiple prints) or `resolved` (unique print). Ambiguous same-name
+cards remain ambiguous.
+
+### Remaining Limitations
+
+- Resolution rules UI (create-rule flow) not yet wired in frontend.
+- No memory ingestion (Phase 4+).
+- No Coach or AI Player integration (Phase 6/8).
 
 ## Session 28 Work (2026-05-06)
 

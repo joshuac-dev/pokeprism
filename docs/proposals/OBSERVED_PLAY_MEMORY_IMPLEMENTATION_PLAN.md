@@ -1697,6 +1697,36 @@ identified in the card DB.
 14. 37 new backend tests + ~12 new frontend tests; 804 backend / 173 frontend passing.
 15. No Coach / AI Player / pgvector / Neo4j / memory ingestion added.
 
+## 22.5 Phase 3.1 — Card Mention Cleanup and False-Unresolved Reduction
+
+**Status:** COMPLETE (session 29).
+
+**Problem:** Manual validation after Phase 3 showed false unresolved mentions caused
+by zone/location text embedded in extracted mention raw names. Examples:
+`"Dreepy in the Active Spot"`, `"Munkidori on the Bench"`, `"Dunsparce on the Bench"`,
+`"Drakloak on the Bench"`. These did not match any card in the DB and became `unresolved`.
+In addition, `"them"` and `"N cards"` strings could pass `_is_meaningful()`.
+
+**Root cause:** `RE_ATTACK` captures `target_card` group as everything between the
+player prefix and ` for N damage`, which includes PTCGL zone text. Mention extraction
+stored this unstripped text as `raw_name`.
+
+**Changes:** See `docs/STATUS.md` session 29 and `docs/CHANGELOG.md` for detail.
+
+**Acceptance criteria met:**
+1. `clean_extracted_card_name()` helper strips 9 safe zone suffix phrases.
+2. Cleaning applied in `_add()` before `_is_meaningful()` and before DB insert.
+3. Cleaning applied in payload card list loop.
+4. Raw `raw_line` on events unchanged.
+5. `_IGNORED_NORMALIZED` extended: `"cards"`, `"them"`.
+6. `_RE_NUMERIC_CARDS` pattern rejects `"N cards"` strings.
+7. `ET_DRAW → drawn_card` dispatch branch added.
+8. `ET_SWITCH_ACTIVE → actor_card` dispatch branch added.
+9. `ET_OPENING_HAND_DRAW_KNOWN` branch isolated from `ET_PLAY_TO_BENCH`.
+10. 27 new backend tests (64 total in `test_card_mentions.py`); 831 backend passing.
+11. Frontend 173 tests / build unchanged.
+12. No Coach / AI Player / pgvector / Neo4j / memory ingestion added.
+
 ---
 
 *End of Observed Play Memory Implementation Plan.*
