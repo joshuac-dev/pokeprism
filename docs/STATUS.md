@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 37 — Observed Play data reset: cleared dev/test data for real corpus upload)
+Last updated: 2026-05-06 (session 38 — Observed Play real corpus intake: 49 logs uploaded, manual validation pending)
 
 ## Current Workstream
 
@@ -19,8 +19,10 @@ post-phase development:
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
 **Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, and Phase 5.1 are complete.**
-Phase 6+ (Coach/AI integration) not yet started.
+**Phase 5.2 has NOT started.** Phase 6+ (Coach/AI integration) has NOT started.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
+
+**Next step (tomorrow):** Manual real-corpus validation of 49 uploaded logs. See "Tomorrow's Manual Validation Plan" section below.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
 workflow. `docs/CARDLIST.md`, `docs/POKEMON_MASTER_LIST.md`, and
@@ -42,6 +44,158 @@ Re-check them before making claims in user-facing docs.
 | Frontend unit tests | **224 passed (15 files)** — 2026-05-06 session 36. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 38 Work (2026-05-06) — End-of-Session Checkpoint
+
+### Goal
+
+End-of-session checkpoint. 49 real battle logs uploaded after data reset. No new feature work.
+
+### Real corpus state after upload
+
+**Import batch:** 1 batch, status: `completed`
+
+| Field | Value |
+|---|---|
+| original_file_count | 49 |
+| accepted_file_count | 49 |
+| imported_file_count | 49 |
+| duplicate_file_count | 0 |
+| skipped_file_count | 0 |
+| failed_file_count | 0 |
+| started_at | 2026-05-06 20:01:56 UTC |
+| finished_at | 2026-05-06 20:02:00 UTC |
+
+**Post-upload table counts:**
+
+| Table | Count |
+|---|---|
+| observed_play_import_batches | 1 |
+| observed_play_logs | 49 |
+| observed_play_events | 9,278 |
+| observed_card_mentions | 7,093 |
+| observed_card_resolution_rules | 2 |
+| observed_play_memory_ingestions | 0 |
+| observed_play_memory_items | 0 |
+
+**Log quality snapshot:**
+
+| parse_status | memory_status | logs | avg_confidence | event_range | unresolved_cards | ambiguous_cards |
+|---|---|---|---|---|---|---|
+| parsed | not_ingested | 49 | 0.878 | 86–403 | 0 | 5,066 |
+
+**Key observations:**
+
+- ✅ All 49 logs parsed successfully (`parse_status = parsed`)
+- ✅ Average confidence 0.878 — above the 0.80 ingestion threshold
+- ✅ Zero unresolved cards — no complete card-recognition failures
+- ⚠️ 5,066 ambiguous card mentions across 49 logs (~103/log) — likely card versions that need resolution rules before or after ingestion
+- ℹ️ 2 resolution rules already exist (created during session)
+- ℹ️ 0 ingestions — no memory has been ingested yet; all logs remain `not_ingested`
+
+**No ingestion performed. No Coach/AI integration. Memories remain review-only.**
+
+### Files changed
+
+- `docs/STATUS.md` only (checkpoint docs)
+
+---
+
+## Tomorrow's Manual Validation Plan
+
+Work through these steps before deciding whether Phase 5.2 starts.
+
+### Step 1 — Import health
+
+Open `/observed-play`, inspect Import Report / Import History:
+
+```
+Original files: 49
+Accepted: 49
+Imported: 49
+Duplicates: 0
+Failed: 0
+Skipped: 0
+```
+
+Resolve any failed imports before moving forward.
+
+### Step 2 — Raw Logs quality bucketing
+
+For all 49 logs, classify into:
+
+- **Good:** parsed, high confidence, zero unresolved, reasonable event count
+- **Needs review:** parsed, decent confidence, ambiguous card references
+- **Bad:** low confidence, high unknown ratio, unresolved critical cards, suspicious event counts
+
+### Step 3 — Sample parsed events
+
+Open `View events` for at least 5 logs across different decks/matchups.
+
+Check: setup, turn starts, draws, attachments, trainer plays, abilities, attacks, KOs, prizes, retreats/switches, end turns.
+
+Look for systemic parser issues.
+
+### Step 4 — Card mention review
+
+Use `View cards`, `Unresolved / Ambiguous Cards`, and Memory Analytics quality filters.
+
+Prioritize:
+
+1. Unresolved cards first
+2. High-frequency ambiguous card names second
+3. Low-confidence examples third
+
+Create manual resolution rules only when the correct card version is obvious from source lines or deck context. Do not guess.
+
+### Step 5 — Preview and ingest only eligible logs
+
+For logs that pass eligibility, use `Preview memory` → `Ingest memory`.
+
+Do **not** force-ingest low-confidence logs.
+
+For ineligible logs, inspect blocker reasons (low confidence, high unknown ratio, unresolved critical cards) — parser-quality failures should become parser fixes, not manual rules.
+
+### Step 6 — Inspect memory quality
+
+After ingestion, sample `View memory` rows and verify:
+
+- actor is plausible
+- target is plausible
+- action name is correct
+- source line matches the memory
+- confidence is reasonable
+- hidden draws not treated as known cards
+- attachments/evolutions/KOs represented correctly
+
+### Step 7 — Use Memory Analytics
+
+Review memory type breakdown, top actors/actions/attacks/abilities, quality flags.
+
+Toggle filters: All / Ambiguous refs / Low confidence / Unresolved refs.
+
+Click Examples for high-volume or suspicious rows.
+
+### Step 8 — Decide whether Phase 5.2 starts
+
+Phase 5.2 readiness gate:
+
+- Most eligible logs ingest cleanly
+- Unresolved references near zero
+- Top recurring ambiguous rows resolved or consciously accepted
+- Low-confidence examples understandable
+- Memory examples are source-faithful
+- No major parser bug appears across the corpus
+
+If not ready, fix parser/card-resolution/memory-mapping issues before Phase 5.2.
+
+### Recommended Phase 5.2 direction (if ready)
+
+Phase 5.2 should remain **read-only**: a Corpus Quality Report / Readiness Scorecard summarising safe logs, blocked logs, parser quality issues, unresolved/ambiguous card backlog, low-confidence examples, memory type reliability, and corpus readiness for limited Coach usage later.
+
+**Do not integrate with Coach/AI in Phase 5.2.**
+
+---
 
 ## Session 37 Work (2026-05-06)
 
