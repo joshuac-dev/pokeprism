@@ -391,6 +391,10 @@ export interface MemoryAnalyticsGroup {
   unresolved_count: number;
   sample_memory_item_ids: string[];
   sample_source_lines: string[];
+  // Phase 5.1: review metadata
+  review_raw_name?: string | null;
+  review_status?: string | null;
+  can_review_resolution?: boolean;
 }
 
 export interface MemoryAnalyticsResponse {
@@ -412,8 +416,11 @@ export interface MemoryAnalyticsSourceItemsParams {
   actor_card_def_id?: string;
   target_card_raw?: string;
   target_card_def_id?: string;
+  related_card_raw?: string;
   action_name?: string;
   quality_flag?: string;
+  min_confidence?: number;
+  card_name?: string;
   page?: number;
   per_page?: number;
 }

@@ -443,6 +443,10 @@ class MemoryAnalyticsGroup(BaseModel):
     unresolved_count: int = 0
     sample_memory_item_ids: list[str] = Field(default_factory=list)
     sample_source_lines: list[str] = Field(default_factory=list)
+    # Phase 5.1: review metadata
+    review_raw_name: str | None = None
+    review_status: str | None = None
+    can_review_resolution: bool = False
 
 
 class MemoryAnalyticsResponse(BaseModel):

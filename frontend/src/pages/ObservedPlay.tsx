@@ -780,7 +780,13 @@ function ResolutionRuleModal({
   );
 }
 
-function UnresolvedCardsSection({ onRefreshLogs }: { onRefreshLogs?: () => void }) {
+function UnresolvedCardsSection({
+  onRefreshLogs,
+  refreshRef,
+}: {
+  onRefreshLogs?: () => void;
+  refreshRef?: { current: (() => void) | null };
+}) {
   const [items, setItems] = useState<UnresolvedCardItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -794,6 +800,10 @@ function UnresolvedCardsSection({ onRefreshLogs }: { onRefreshLogs?: () => void 
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (refreshRef) refreshRef.current = load;
+  });
 
   const handleResolved = () => {
     setModalItem(null);
@@ -1320,10 +1330,12 @@ function AnalyticsGroupTable({
   title,
   groups,
   onViewExamples,
+  onReview,
 }: {
   title: string;
   groups: MemoryAnalyticsGroup[];
   onViewExamples: (g: MemoryAnalyticsGroup) => void;
+  onReview?: (g: MemoryAnalyticsGroup) => void;
 }) {
   return (
     <div className="mb-4">
@@ -1338,6 +1350,7 @@ function AnalyticsGroupTable({
               <th className="px-2 py-1 text-right font-medium">Resolved</th>
               <th className="px-2 py-1 text-right font-medium">Ambig</th>
               <th className="px-2 py-1 text-right font-medium">Unresolved</th>
+              <th className="px-2 py-1"></th>
               <th className="px-2 py-1"></th>
             </tr>
           </thead>
@@ -1360,6 +1373,16 @@ function AnalyticsGroupTable({
                     Examples
                   </button>
                 </td>
+                <td className="px-2 py-1">
+                  {onReview && g.can_review_resolution && (g.ambiguous_count + g.unresolved_count) > 0 ? (
+                    <button
+                      onClick={() => onReview(g)}
+                      className="text-yellow-600 dark:text-yellow-400 hover:underline ml-2"
+                    >
+                      Review
+                    </button>
+                  ) : null}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -1374,11 +1397,13 @@ function MemoryAnalyticsExamplesModal({
   total,
   loading,
   onClose,
+  filterLabel,
 }: {
   items: MemoryItemSummary[];
   total: number;
   loading: boolean;
   onClose: () => void;
+  filterLabel?: string;
 }) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -1406,6 +1431,7 @@ function MemoryAnalyticsExamplesModal({
           <X size={20} />
         </button>
         <h2 className="mb-1 text-lg font-semibold text-slate-900 dark:text-white">Memory Examples</h2>
+        {filterLabel && <p className="mb-1 text-xs text-slate-500 dark:text-slate-400">Filter: {filterLabel}</p>}
         <p className="mb-3 text-xs text-gray-500 dark:text-slate-400">{total} matching items</p>
         {loading && <p className="text-sm text-gray-500 dark:text-slate-400">Loading…</p>}
         {!loading && items.length === 0 && (
@@ -1458,8 +1484,12 @@ function MemoryAnalyticsExamplesModal({
 
 function MemoryAnalyticsSection({
   refreshRef,
+  onRefreshLogs,
+  onRefreshUnresolved,
 }: {
   refreshRef?: { current: (() => void) | null };
+  onRefreshLogs?: () => void;
+  onRefreshUnresolved?: () => void;
 }) {
   const [summary, setSummary] = useState<MemorySummary | null>(null);
   const [analytics, setAnalytics] = useState<MemoryAnalyticsResponse | null>(null);
@@ -1469,12 +1499,17 @@ function MemoryAnalyticsSection({
   const [examplesItems, setExamplesItems] = useState<MemoryItemSummary[]>([]);
   const [examplesTotal, setExamplesTotal] = useState(0);
   const [examplesLoading, setExamplesLoading] = useState(false);
+  const [qualityFilter, setQualityFilter] = useState<'all' | 'ambiguous' | 'low_confidence' | 'unresolved'>('all');
+  const [unresolvedLookup, setUnresolvedLookup] = useState<Record<string, UnresolvedCardItem>>({});
+  const [reviewItem, setReviewItem] = useState<UnresolvedCardItem | null>(null);
+  const [examplesFilterLabel, setExamplesFilterLabel] = useState<string>('');
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [s, a] = await Promise.all([getMemorySummary(), getMemoryAnalytics()]);
+      const analyticsParams = qualityFilter !== 'all' ? { quality_filter: qualityFilter } : {};
+      const [s, a] = await Promise.all([getMemorySummary(), getMemoryAnalytics(analyticsParams)]);
       setSummary(s);
       setAnalytics(a);
     } catch {
@@ -1482,7 +1517,7 @@ function MemoryAnalyticsSection({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [qualityFilter]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -1490,8 +1525,21 @@ function MemoryAnalyticsSection({
     if (refreshRef) refreshRef.current = load;
   });
 
-  async function openExamples(filter: MemoryAnalyticsSourceItemsParams) {
+  useEffect(() => {
+    getUnresolvedCards({ per_page: 100 })
+      .then((data) => {
+        const lookup: Record<string, UnresolvedCardItem> = {};
+        for (const item of data.items) {
+          lookup[item.raw_name] = item;
+        }
+        setUnresolvedLookup(lookup);
+      })
+      .catch(() => {});
+  }, []);
+
+  async function openExamples(filter: MemoryAnalyticsSourceItemsParams, label?: string) {
     setExamplesFilter(filter);
+    setExamplesFilterLabel(label ?? '');
     setExamplesLoading(true);
     try {
       const res = await getMemoryAnalyticsSourceItems({ ...filter, per_page: 20 });
@@ -1502,6 +1550,24 @@ function MemoryAnalyticsSection({
       setExamplesTotal(0);
     } finally {
       setExamplesLoading(false);
+    }
+  }
+
+  function handleReview(g: MemoryAnalyticsGroup) {
+    const rawName = g.review_raw_name;
+    if (!rawName) return;
+    const item = unresolvedLookup[rawName];
+    if (item) {
+      setReviewItem(item);
+    }
+  }
+
+  function handleReviewResolved(affectedLogIds: string[]) {
+    setReviewItem(null);
+    load();
+    if (affectedLogIds.length > 0) {
+      onRefreshLogs?.();
+      onRefreshUnresolved?.();
     }
   }
 
@@ -1520,6 +1586,32 @@ function MemoryAnalyticsSection({
       <p className="text-xs text-gray-500 dark:text-slate-400 mb-4">
         Observed memories are for review only. They are not used by Coach or AI Player yet.
       </p>
+
+      {/* Quality filter controls */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {(['all', 'ambiguous', 'low_confidence', 'unresolved'] as const).map((f) => {
+          const labels = {
+            all: 'All',
+            ambiguous: 'Ambiguous refs',
+            low_confidence: 'Low confidence',
+            unresolved: 'Unresolved refs',
+          };
+          return (
+            <button
+              key={f}
+              onClick={() => setQualityFilter(f)}
+              className={`rounded border px-2 py-0.5 text-xs ${
+                qualityFilter === f
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-medium'
+                  : 'border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800'
+              }`}
+              aria-pressed={qualityFilter === f}
+            >
+              {labels[f]}
+            </button>
+          );
+        })}
+      </div>
 
       {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
 
@@ -1547,7 +1639,7 @@ function MemoryAnalyticsSection({
         <AnalyticsGroupTable
           title="Memory types"
           groups={analytics.top_memory_types}
-          onViewExamples={(g) => openExamples({ memory_type: g.label })}
+          onViewExamples={(g) => openExamples({ memory_type: g.label }, g.label)}
         />
       )}
 
@@ -1557,7 +1649,7 @@ function MemoryAnalyticsSection({
           groups={analytics.top_actions}
           onViewExamples={(g) => {
             const [mt, ...rest] = g.label.split(':');
-            openExamples({ memory_type: mt, action_name: rest.join(':') });
+            openExamples({ memory_type: mt, action_name: rest.join(':') }, g.label);
           }}
         />
       )}
@@ -1566,7 +1658,17 @@ function MemoryAnalyticsSection({
         <AnalyticsGroupTable
           title="Top actor cards"
           groups={analytics.top_actor_cards}
-          onViewExamples={(g) => openExamples({ actor_card_raw: g.label })}
+          onViewExamples={(g) => openExamples({ actor_card_raw: g.label }, g.label)}
+          onReview={handleReview}
+        />
+      )}
+
+      {analytics && analytics.top_target_cards.length > 0 && (
+        <AnalyticsGroupTable
+          title="Top target cards"
+          groups={analytics.top_target_cards}
+          onViewExamples={(g) => openExamples({ target_card_raw: g.label }, g.label)}
+          onReview={handleReview}
         />
       )}
 
@@ -1576,8 +1678,46 @@ function MemoryAnalyticsSection({
           groups={analytics.top_attacks}
           onViewExamples={(g) => {
             const [actor, ...rest] = g.label.split(':');
-            openExamples({ memory_type: 'attack_used', actor_card_raw: actor, action_name: rest.join(':') });
+            openExamples({ memory_type: 'attack_used', actor_card_raw: actor, action_name: rest.join(':') }, g.label);
           }}
+        />
+      )}
+
+      {analytics && analytics.top_abilities.length > 0 && (
+        <AnalyticsGroupTable
+          title="Top abilities"
+          groups={analytics.top_abilities}
+          onViewExamples={(g) => {
+            const [actor, ...rest] = g.label.split(':');
+            openExamples({ memory_type: 'ability_used', actor_card_raw: actor, action_name: rest.join(':') }, g.label);
+          }}
+        />
+      )}
+
+      {analytics && analytics.top_attachments.length > 0 && (
+        <AnalyticsGroupTable
+          title="Top attachments"
+          groups={analytics.top_attachments}
+          onViewExamples={(g) => openExamples({ memory_type: 'card_attached', target_card_raw: g.label }, g.label)}
+          onReview={handleReview}
+        />
+      )}
+
+      {analytics && analytics.top_evolutions.length > 0 && (
+        <AnalyticsGroupTable
+          title="Top evolutions"
+          groups={analytics.top_evolutions}
+          onViewExamples={(g) => openExamples({ memory_type: 'card_evolved', actor_card_raw: g.label }, g.label)}
+          onReview={handleReview}
+        />
+      )}
+
+      {analytics && analytics.top_knockouts.length > 0 && (
+        <AnalyticsGroupTable
+          title="Top knockouts"
+          groups={analytics.top_knockouts}
+          onViewExamples={(g) => openExamples({ memory_type: 'knockout', target_card_raw: g.label }, g.label)}
+          onReview={handleReview}
         />
       )}
 
@@ -1585,16 +1725,29 @@ function MemoryAnalyticsSection({
         <AnalyticsGroupTable
           title="Quality flags"
           groups={analytics.quality_flags}
-          onViewExamples={(g) => openExamples({ quality_flag: g.label })}
+          onViewExamples={(g) => openExamples({ quality_flag: g.label }, g.label)}
         />
       )}
+
+      <p className="mt-2 text-xs text-gray-400 dark:text-slate-500 italic">
+        Resolution rules update parsed card mention metadata. Re-ingest logs to reflect changed resolution details in memory items.
+      </p>
 
       {examplesFilter && (
         <MemoryAnalyticsExamplesModal
           items={examplesItems}
           total={examplesTotal}
           loading={examplesLoading}
-          onClose={() => setExamplesFilter(null)}
+          filterLabel={examplesFilterLabel}
+          onClose={() => { setExamplesFilter(null); setExamplesFilterLabel(''); }}
+        />
+      )}
+
+      {reviewItem && (
+        <ResolutionRuleModal
+          item={reviewItem}
+          onClose={() => setReviewItem(null)}
+          onResolved={handleReviewResolved}
         />
       )}
     </section>
@@ -1625,6 +1778,7 @@ export default function ObservedPlay() {
 
   const PER_PAGE = 25;
   const analyticsRefreshRef = useRef<(() => void) | null>(null);
+  const unresolvedRefreshRef = useRef<(() => void) | null>(null);
 
   const fetchBatches = useCallback(async (p: number) => {
     setBatchLoading(true);
@@ -1944,9 +2098,16 @@ export default function ObservedPlay() {
       </section>
 
       {/* ── Unresolved cards section ──────────────────────────────────────── */}
-      <UnresolvedCardsSection onRefreshLogs={() => fetchLogs(logPage)} />
+      <UnresolvedCardsSection
+        onRefreshLogs={() => fetchLogs(logPage)}
+        refreshRef={unresolvedRefreshRef}
+      />
 
-      <MemoryAnalyticsSection refreshRef={analyticsRefreshRef} />
+      <MemoryAnalyticsSection
+        refreshRef={analyticsRefreshRef}
+        onRefreshLogs={() => fetchLogs(logPage)}
+        onRefreshUnresolved={() => unresolvedRefreshRef.current?.()}
+      />
 
       {viewLogId && (
         <RawLogModal logId={viewLogId} onClose={() => setViewLogId(null)} />

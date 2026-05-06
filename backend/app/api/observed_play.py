@@ -1058,6 +1058,7 @@ async def _fetch_analytics_groups(
     limit: int,
     extra_filter=None,
     label_prefix: str | None = None,
+    is_card_group: bool = False,
 ) -> list[MemoryAnalyticsGroup]:
     """Helper: aggregate memory items by a grouping column."""
     q = (
@@ -1100,6 +1101,13 @@ async def _fetch_analytics_groups(
             sample_q = sample_q.where(extra_filter)
         samples = (await db.execute(sample_q)).all()
 
+        amb = row.amb_cnt or 0
+        unr = row.unr_cnt or 0
+        can_review = is_card_group and (amb + unr) > 0
+        review_status: str | None = None
+        if can_review:
+            review_status = "ambiguous" if amb > 0 else "unresolved"
+
         groups.append(
             MemoryAnalyticsGroup(
                 label=label,
@@ -1107,10 +1115,13 @@ async def _fetch_analytics_groups(
                 count=row.cnt,
                 average_confidence=float(row.avg_conf) if row.avg_conf is not None else None,
                 resolved_count=row.res_cnt or 0,
-                ambiguous_count=row.amb_cnt or 0,
-                unresolved_count=row.unr_cnt or 0,
+                ambiguous_count=amb,
+                unresolved_count=unr,
                 sample_memory_item_ids=[str(s.id) for s in samples],
                 sample_source_lines=[s.source_raw_line for s in samples if s.source_raw_line],
+                review_raw_name=grp_val if can_review else None,
+                review_status=review_status,
+                can_review_resolution=can_review,
             )
         )
     return groups
@@ -1121,6 +1132,7 @@ async def get_memory_analytics(
     limit: int = Query(10, ge=1, le=50),
     memory_type: Optional[str] = Query(None),
     min_confidence: Optional[float] = Query(None),
+    quality_filter: Optional[str] = Query(None, description="all|ambiguous|low_confidence|unresolved"),
     db: AsyncSession = Depends(get_db),
 ) -> MemoryAnalyticsResponse:
     """Read-only analytics aggregates over ingested observed play memory items."""
@@ -1131,6 +1143,21 @@ async def get_memory_analytics(
             filters.append(ObservedPlayMemoryItem.memory_type == memory_type)
         if min_confidence is not None:
             filters.append(ObservedPlayMemoryItem.confidence_score >= min_confidence)
+        if quality_filter == "ambiguous":
+            filters.append(
+                (ObservedPlayMemoryItem.actor_resolution_status == "ambiguous")
+                | (ObservedPlayMemoryItem.target_resolution_status == "ambiguous")
+                | (ObservedPlayMemoryItem.related_resolution_status == "ambiguous")
+            )
+        elif quality_filter == "low_confidence":
+            filters.append(ObservedPlayMemoryItem.confidence_score < LOW_CONFIDENCE_THRESHOLD)
+        elif quality_filter == "unresolved":
+            filters.append(
+                (ObservedPlayMemoryItem.actor_resolution_status == "unresolved")
+                | (ObservedPlayMemoryItem.target_resolution_status == "unresolved")
+                | (ObservedPlayMemoryItem.related_resolution_status == "unresolved")
+            )
+        # quality_filter="all" or None → no additional filter
         return and_(*filters) if filters else None
 
     base = _base_filter()
@@ -1179,12 +1206,12 @@ async def get_memory_analytics(
 
     top_actor_cards = await _fetch_analytics_groups(
         db, ObservedPlayMemoryItem.actor_card_raw, "actor_card", limit,
-        extra_filter=base,
+        extra_filter=base, is_card_group=True,
     )
 
     top_target_cards = await _fetch_analytics_groups(
         db, ObservedPlayMemoryItem.target_card_raw, "target_card", limit,
-        extra_filter=base,
+        extra_filter=base, is_card_group=True,
     )
 
     action_q = (
@@ -1308,16 +1335,19 @@ async def get_memory_analytics(
     top_attachments = await _fetch_analytics_groups(
         db, ObservedPlayMemoryItem.target_card_raw, "card_attached", limit,
         extra_filter=and_(ObservedPlayMemoryItem.memory_type == "card_attached", *([] if base is None else [base])),
+        is_card_group=True,
     )
 
     top_evolutions = await _fetch_analytics_groups(
         db, ObservedPlayMemoryItem.actor_card_raw, "card_evolved", limit,
         extra_filter=and_(ObservedPlayMemoryItem.memory_type == "card_evolved", *([] if base is None else [base])),
+        is_card_group=True,
     )
 
     top_knockouts = await _fetch_analytics_groups(
         db, ObservedPlayMemoryItem.target_card_raw, "knockout", limit,
         extra_filter=and_(ObservedPlayMemoryItem.memory_type == "knockout", *([] if base is None else [base])),
+        is_card_group=True,
     )
 
     quality_flags = []
@@ -1362,6 +1392,9 @@ async def get_memory_analytics_source_items(
     target_card_def_id: Optional[str] = Query(None),
     action_name: Optional[str] = Query(None),
     quality_flag: Optional[str] = Query(None),
+    related_card_raw: Optional[str] = Query(None),
+    min_confidence: Optional[float] = Query(None),
+    card_name: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -1390,6 +1423,17 @@ async def get_memory_analytics_source_items(
         q = q.where(ObservedPlayMemoryItem.actor_resolution_status == "unresolved")
     elif quality_flag == "unresolved_target":
         q = q.where(ObservedPlayMemoryItem.target_resolution_status == "unresolved")
+    if related_card_raw:
+        q = q.where(ObservedPlayMemoryItem.related_card_raw == related_card_raw)
+    if min_confidence is not None:
+        q = q.where(ObservedPlayMemoryItem.confidence_score >= min_confidence)
+    if card_name:
+        ilike_val = f"%{card_name}%"
+        q = q.where(
+            ObservedPlayMemoryItem.actor_card_raw.ilike(ilike_val)
+            | ObservedPlayMemoryItem.target_card_raw.ilike(ilike_val)
+            | ObservedPlayMemoryItem.related_card_raw.ilike(ilike_val)
+        )
     q = q.order_by(ObservedPlayMemoryItem.created_at.desc())
 
     total_result = await db.execute(select(func.count()).select_from(q.subquery()))

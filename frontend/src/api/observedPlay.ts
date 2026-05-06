@@ -185,6 +185,7 @@ export interface GetMemoryAnalyticsParams {
   limit?: number;
   memory_type?: string;
   min_confidence?: number;
+  quality_filter?: string;
 }
 
 export async function getMemoryAnalytics(

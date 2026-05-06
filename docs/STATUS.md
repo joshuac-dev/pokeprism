@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 35 — Observed Play Memory Phase 5: Read-Only Memory Analytics)
+Last updated: 2026-05-06 (session 35.1 — Observed Play Memory Phase 5.1: Analytics Quality Triage Polish)
 
 ## Current Workstream
 
@@ -18,7 +18,7 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, and Phase 5 are complete.**
+**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, and Phase 5.1 are complete.**
 Phase 6+ (Coach/AI integration) not yet started.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
@@ -38,10 +38,52 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **940 passed, 1 skipped** — 2026-05-06 session 35. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 880/1 (Phase 4 commit). |
-| Frontend unit tests | **215 passed (15 files)** — 2026-05-06 session 35. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **949 passed, 1 skipped** — 2026-05-06 session 35.1. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 940/1 (Phase 5 commit). |
+| Frontend unit tests | **221 passed (15 files)** — 2026-05-06 session 35.1. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 35.1 Work (2026-05-06)
+
+### Goal
+
+Observed Play Memory Phase 5.1: Analytics Quality Triage Polish on branch `feature/observed-play-memory`.
+
+### Summary
+
+Made Memory Analytics actionable for quality triage: quality filter controls, Review action linking analytics rows to the existing manual card-resolution flow, examples modal filter label, and re-ingestion note.
+
+### Backend changes
+
+- `backend/app/observed_play/schemas.py`: Added `review_raw_name`, `review_status`, `can_review_resolution` fields to `MemoryAnalyticsGroup`.
+- `backend/app/api/observed_play.py`:
+  - `GET /memory-analytics`: Added `quality_filter` param (all/ambiguous/low_confidence/unresolved). Added quality filter logic to `_base_filter()`.
+  - `_fetch_analytics_groups`: Added `is_card_group=False` param. When True, populates `review_raw_name`, `review_status`, `can_review_resolution` for groups with ambiguous/unresolved counts.
+  - Card group calls (`top_actor_cards`, `top_target_cards`, `top_attachments`, `top_evolutions`, `top_knockouts`) now pass `is_card_group=True`.
+  - `GET /memory-analytics/source-items`: Added `related_card_raw`, `min_confidence`, `card_name` filter params.
+
+### Frontend changes
+
+- `frontend/src/types/observedPlay.ts`: Added `review_raw_name`, `review_status`, `can_review_resolution` to `MemoryAnalyticsGroup`. Added `quality_filter` to `GetMemoryAnalyticsParams`. Added `related_card_raw`, `min_confidence`, `card_name` to `MemoryAnalyticsSourceItemsParams`.
+- `frontend/src/api/observedPlay.ts`: Added `quality_filter` to `GetMemoryAnalyticsParams`.
+- `frontend/src/pages/ObservedPlay.tsx`:
+  - `AnalyticsGroupTable`: Added optional `onReview` prop. Review button appears when `can_review_resolution && (ambiguous_count + unresolved_count) > 0`.
+  - `MemoryAnalyticsExamplesModal`: Added `filterLabel` prop, renders "Filter: {label}" below title.
+  - `UnresolvedCardsSection`: Added `refreshRef` prop to expose `load` externally.
+  - `MemoryAnalyticsSection`: Added `onRefreshLogs`, `onRefreshUnresolved` props. Added `qualityFilter` state with quality filter buttons. Added `unresolvedLookup` (fetched on mount), `reviewItem`, `examplesFilterLabel` state. `load` passes `quality_filter` when not 'all'. Opens `ResolutionRuleModal` for review rows. Added re-ingestion note. Added `onReview` to card group tables. Added `filterLabel` to examples modal. Sections for `top_target_cards`, `top_abilities`, `top_attachments`, `top_evolutions`, `top_knockouts` added (were missing from original render).
+  - Main page: Added `unresolvedRefreshRef`. Passes `refreshRef`, `onRefreshLogs`, `onRefreshUnresolved` to `MemoryAnalyticsSection`; passes `refreshRef` to `UnresolvedCardsSection`.
+
+### Tests Added
+
+- `backend/tests/test_api/test_observed_play.py`: 9 new `TestMemoryAnalytics` tests — quality_filter variants (low_confidence, ambiguous, unresolved, all, invalid), source-items new filters (card_name, min_confidence, related_card_raw), review fields shape.
+- `frontend/src/pages/ObservedPlay.test.tsx`: 5 new Phase 5.1 tests — quality filter controls render, ambiguous/low_confidence filter calls, Review button visibility, re-ingestion note, examples modal filter label.
+
+### Validation (session 35.1)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **949 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **221 passed (15 files)** ✓
+- `cd frontend && npm run build`: clean ✓
+- `git diff --check`: clean ✓
 
 ## Session 35 Work (2026-05-06)
 

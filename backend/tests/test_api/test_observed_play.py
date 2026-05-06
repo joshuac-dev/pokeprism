@@ -1974,3 +1974,131 @@ class TestMemoryAnalytics:
             client.app.fastapi_app.dependency_overrides.clear()
 
         assert before_count == after_count
+
+    def _empty_analytics_db(self, client):
+        """Helper: override db with empty results for analytics endpoint."""
+        from app.api.observed_play import get_db
+        empty_rows = MagicMock()
+        empty_rows.all.return_value = []
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(return_value=empty_rows)
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        return override_db
+
+    def test_memory_analytics_quality_filter_low_confidence(self, client):
+        self._empty_analytics_db(client)
+        try:
+            resp = client.get("/api/observed-play/memory-analytics?quality_filter=low_confidence")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "top_memory_types" in data
+
+    def test_memory_analytics_quality_filter_ambiguous(self, client):
+        self._empty_analytics_db(client)
+        try:
+            resp = client.get("/api/observed-play/memory-analytics?quality_filter=ambiguous")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+
+    def test_memory_analytics_quality_filter_unresolved(self, client):
+        self._empty_analytics_db(client)
+        try:
+            resp = client.get("/api/observed-play/memory-analytics?quality_filter=unresolved")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+
+    def test_memory_analytics_quality_filter_all(self, client):
+        self._empty_analytics_db(client)
+        try:
+            resp = client.get("/api/observed-play/memory-analytics?quality_filter=all")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+
+    def test_memory_analytics_quality_filter_invalid(self, client):
+        self._empty_analytics_db(client)
+        try:
+            resp = client.get("/api/observed-play/memory-analytics?quality_filter=bogus")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code in (200, 422)
+
+    def test_source_items_card_name_filter(self, client):
+        from app.api.observed_play import get_db
+        count_result = MagicMock()
+        count_result.scalar.return_value = 0
+        rows_result = MagicMock()
+        rows_result.scalars.return_value.all.return_value = []
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(side_effect=[count_result, rows_result])
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/memory-analytics/source-items?card_name=Pikachu")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "items" in data
+
+    def test_source_items_min_confidence_filter(self, client):
+        from app.api.observed_play import get_db
+        count_result = MagicMock()
+        count_result.scalar.return_value = 0
+        rows_result = MagicMock()
+        rows_result.scalars.return_value.all.return_value = []
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(side_effect=[count_result, rows_result])
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/memory-analytics/source-items?min_confidence=0.5")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+
+    def test_source_items_related_card_filter(self, client):
+        from app.api.observed_play import get_db
+        count_result = MagicMock()
+        count_result.scalar.return_value = 0
+        rows_result = MagicMock()
+        rows_result.scalars.return_value.all.return_value = []
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(side_effect=[count_result, rows_result])
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/memory-analytics/source-items?related_card_raw=Rare+Candy")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+
+    def test_analytics_group_includes_review_fields(self, client):
+        """MemoryAnalyticsGroup shape includes review metadata fields."""
+        self._empty_analytics_db(client)
+        try:
+            resp = client.get("/api/observed-play/memory-analytics")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+        data = resp.json()
+        for section_key in ["top_actor_cards", "top_target_cards"]:
+            for grp in data.get(section_key, []):
+                assert "can_review_resolution" in grp

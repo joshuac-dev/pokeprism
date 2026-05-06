@@ -1856,3 +1856,97 @@ describe('Phase 5 — Memory Analytics', () => {
     expect(section?.className).toContain('dark:bg-slate-900');
   });
 });
+
+describe('Phase 5.1 — Analytics Quality Triage', () => {
+  it('quality filter controls render', async () => {
+    setup();
+    await waitFor(() => screen.getByText('Memory Analytics'));
+    expect(screen.getByText('All')).toBeInTheDocument();
+    expect(screen.getByText('Ambiguous refs')).toBeInTheDocument();
+    expect(screen.getByText('Low confidence')).toBeInTheDocument();
+    expect(screen.getByText('Unresolved refs')).toBeInTheDocument();
+  });
+
+  it('selecting Ambiguous refs calls getMemoryAnalytics with quality_filter=ambiguous', async () => {
+    setup();
+    await waitFor(() => screen.getByText('Memory Analytics'));
+    const btn = screen.getByRole('button', { name: /ambiguous refs/i });
+    fireEvent.click(btn);
+    await waitFor(() =>
+      expect(getMemoryAnalytics as ReturnType<typeof vi.fn>).toHaveBeenCalledWith(
+        expect.objectContaining({ quality_filter: 'ambiguous' })
+      )
+    );
+  });
+
+  it('selecting Low confidence calls getMemoryAnalytics with quality_filter=low_confidence', async () => {
+    setup();
+    await waitFor(() => screen.getByText('Memory Analytics'));
+    const btn = screen.getByRole('button', { name: /low confidence/i });
+    fireEvent.click(btn);
+    await waitFor(() =>
+      expect(getMemoryAnalytics as ReturnType<typeof vi.fn>).toHaveBeenCalledWith(
+        expect.objectContaining({ quality_filter: 'low_confidence' })
+      )
+    );
+  });
+
+  it('Review button appears for rows with can_review_resolution and ambiguous/unresolved counts', async () => {
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValue({ items: [], total: 0, page: 1, per_page: 100 });
+    (getMemoryAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...emptyAnalytics,
+      top_actor_cards: [{
+        label: 'Dudunsparce',
+        memory_type: 'actor_card',
+        count: 5,
+        average_confidence: 0.7,
+        resolved_count: 1,
+        ambiguous_count: 4,
+        unresolved_count: 0,
+        sample_memory_item_ids: [],
+        sample_source_lines: [],
+        can_review_resolution: true,
+        review_raw_name: 'Dudunsparce',
+        review_status: 'ambiguous',
+      }],
+    });
+    setup();
+    await waitFor(() => screen.getByText('Dudunsparce'));
+    expect(screen.getByRole('button', { name: /^review$/i })).toBeInTheDocument();
+  });
+
+  it('re-ingestion note is visible', async () => {
+    setup();
+    await waitFor(() => screen.getByText('Memory Analytics'));
+    expect(screen.getByText(/re-ingest logs to reflect changed resolution/i)).toBeInTheDocument();
+  });
+
+  it('examples modal shows filter label', async () => {
+    (getMemorySummary as ReturnType<typeof vi.fn>).mockResolvedValue(sampleSummary);
+    (getMemoryAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...emptyAnalytics,
+      top_memory_types: [{
+        label: 'attack_used',
+        memory_type: 'attack_used',
+        count: 5,
+        average_confidence: 0.9,
+        resolved_count: 5,
+        ambiguous_count: 0,
+        unresolved_count: 0,
+        sample_memory_item_ids: [],
+        sample_source_lines: [],
+      }],
+    });
+    (getMemoryAnalyticsSourceItems as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      per_page: 20,
+    });
+    setup();
+    await waitFor(() => screen.getByText('attack_used'));
+    fireEvent.click(screen.getByText('Examples'));
+    await waitFor(() => screen.getByRole('dialog', { name: /memory examples/i }));
+    expect(screen.getByText(/filter:/i)).toBeInTheDocument();
+  });
+});

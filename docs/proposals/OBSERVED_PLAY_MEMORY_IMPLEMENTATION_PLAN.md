@@ -1906,5 +1906,49 @@ Surface read-only analytics over ingested observed play memory items: summary co
 
 ---
 
+## 22.10 Phase 5.1 — Analytics Quality Triage Polish
+
+**Branch:** `feature/observed-play-memory`
+**Status:** ✅ Complete
+
+### Goal
+
+Make Memory Analytics actionable for quality triage: quality filter controls, Review action linking analytics rows to the existing manual card-resolution flow, examples modal filter label, re-ingestion note. No Coach/AI integration, pgvector, Neo4j, destructive actions, or new migrations.
+
+### Backend
+
+- `backend/app/observed_play/schemas.py`: Added `review_raw_name: str | None`, `review_status: str | None`, `can_review_resolution: bool = False` to `MemoryAnalyticsGroup`.
+- `backend/app/api/observed_play.py`:
+  - `GET /memory-analytics`: Added `quality_filter` query param (all/ambiguous/low_confidence/unresolved). `_base_filter()` applies OR-conditions on actor/target/related resolution status columns for ambiguous and unresolved filters.
+  - `_fetch_analytics_groups`: Added `is_card_group: bool = False` param. When True, sets `review_raw_name`, `review_status`, `can_review_resolution` on groups with (amb_cnt + unr_cnt) > 0.
+  - Card group calls (`top_actor_cards`, `top_target_cards`, `top_attachments`, `top_evolutions`, `top_knockouts`) pass `is_card_group=True`.
+  - `GET /memory-analytics/source-items`: Added `related_card_raw`, `min_confidence`, `card_name` (ilike across actor/target/related card raw columns) filter params.
+
+### Frontend
+
+- `frontend/src/types/observedPlay.ts`: `MemoryAnalyticsGroup` extended with optional `review_raw_name`, `review_status`, `can_review_resolution`. `GetMemoryAnalyticsParams` gains `quality_filter`. `MemoryAnalyticsSourceItemsParams` gains `related_card_raw`, `min_confidence`, `card_name`.
+- `frontend/src/api/observedPlay.ts`: `GetMemoryAnalyticsParams` gains `quality_filter`.
+- `frontend/src/pages/ObservedPlay.tsx`:
+  - `AnalyticsGroupTable`: Optional `onReview` prop; Review button rendered when `can_review_resolution && (ambiguous_count + unresolved_count) > 0`.
+  - `MemoryAnalyticsExamplesModal`: Optional `filterLabel` prop rendered as "Filter: {label}" below title.
+  - `UnresolvedCardsSection`: Added `refreshRef` prop to expose internal `load`.
+  - `MemoryAnalyticsSection`: Added `qualityFilter` state + filter buttons. `unresolvedLookup` loaded on mount from `getUnresolvedCards({ per_page: 100 })`. `handleReview` looks up `review_raw_name` in lookup and opens `ResolutionRuleModal`. `handleReviewResolved` calls `load()`, `onRefreshLogs`, and `onRefreshUnresolved` after resolution. Re-ingestion note in section footer. Card group tables receive `onReview={handleReview}`. Full set of group tables rendered (added `top_target_cards`, `top_abilities`, `top_attachments`, `top_evolutions`, `top_knockouts` that were missing from Phase 5 render).
+  - Main page: Added `unresolvedRefreshRef`. Passes `onRefreshLogs`, `onRefreshUnresolved` to `MemoryAnalyticsSection`; passes `refreshRef` to `UnresolvedCardsSection`.
+
+### Tests
+
+- 9 new backend tests (`TestMemoryAnalytics`): quality_filter=low_confidence, quality_filter=ambiguous, quality_filter=unresolved, quality_filter=all, quality_filter=invalid (bogus), source-items card_name, source-items min_confidence, source-items related_card_raw, analytics group review fields shape.
+- 5 new frontend tests (Phase 5.1 describe block): quality filter controls render, selecting Ambiguous refs calls API with quality_filter, selecting Low confidence calls API with quality_filter, Review button appears for reviewable rows, re-ingestion note visible, examples modal shows filter label.
+
+### Validation
+
+1. `backend/tests/test_api/test_observed_play.py` Phase 5.1 tests pass.
+2. `frontend/src/pages/ObservedPlay.test.tsx` Phase 5.1 tests pass.
+3. Frontend build clean (`npm run build`).
+4. No DB migration required.
+5. No Coach/AI, pgvector, Neo4j, simulator match_events, card-performance, or destructive action added.
+
+---
+
 *End of Observed Play Memory Implementation Plan.*
 *Feature branch: `feature/observed-play-memory`. No production code in this document.*
