@@ -926,7 +926,7 @@ describe('Phase 3 card resolution', () => {
 
   // ── Phase 4: Memory ingestion tests ──────────────────────────────────────────
 
-  it('shows "Ingest memory" button for parsed logs', async () => {
+  it('shows "Preview memory" button for parsed logs', async () => {
     const parsedLog = { ...sampleLog, parse_status: 'parsed', event_count: 10, confidence_score: 0.9 };
     (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
       items: [parsedLog], total: 1, page: 1, per_page: 25,
@@ -934,11 +934,13 @@ describe('Phase 3 card resolution', () => {
 
     setup();
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /ingest memory/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /preview memory/i })).toBeInTheDocument();
     });
+    // Row button must NOT say "Ingest memory" — that label lives only inside the modal
+    expect(screen.queryByRole('button', { name: /^ingest memory$/i })).not.toBeInTheDocument();
   });
 
-  it('shows "Re-ingest" button for already-ingested logs', async () => {
+  it('shows "Re-preview memory" button for already-ingested logs', async () => {
     const ingestedLog = { ...sampleLog, parse_status: 'parsed', memory_status: 'ingested', memory_item_count: 5 };
     (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
       items: [ingestedLog], total: 1, page: 1, per_page: 25,
@@ -946,7 +948,7 @@ describe('Phase 3 card resolution', () => {
 
     setup();
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /re-ingest/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /re-preview memory/i })).toBeInTheDocument();
     });
   });
 
@@ -958,24 +960,26 @@ describe('Phase 3 card resolution', () => {
 
     setup();
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /view memory/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'View memory' })).toBeInTheDocument();
     });
   });
 
-  it('clicking "Ingest memory" opens the MemoryPreviewModal', async () => {
+  it('clicking "Preview memory" opens the MemoryPreviewModal with "Ingest memory" action inside', async () => {
     const parsedLog = { ...sampleLog, parse_status: 'parsed', event_count: 10, confidence_score: 0.9 };
     (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
       items: [parsedLog], total: 1, page: 1, per_page: 25,
     });
 
     setup();
-    await waitFor(() => screen.getByRole('button', { name: /ingest memory/i }));
-    await userEvent.click(screen.getByRole('button', { name: /ingest memory/i }));
+    await waitFor(() => screen.getByRole('button', { name: /preview memory/i }));
+    await userEvent.click(screen.getByRole('button', { name: /preview memory/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('dialog', { name: /memory ingestion/i })).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /memory preview/i })).toBeInTheDocument();
     });
     expect(screen.getByText(/estimated 5 memory items/i)).toBeInTheDocument();
+    // "Ingest memory" exists but only inside the modal — not as a row-level button
+    expect(screen.getByRole('button', { name: /^ingest memory$/i })).toBeInTheDocument();
   });
 
   it('MemoryPreviewModal shows eligibility reasons when ineligible', async () => {
@@ -992,8 +996,8 @@ describe('Phase 3 card resolution', () => {
     });
 
     setup();
-    await waitFor(() => screen.getByRole('button', { name: /ingest memory/i }));
-    await userEvent.click(screen.getByRole('button', { name: /ingest memory/i }));
+    await waitFor(() => screen.getByRole('button', { name: /preview memory/i }));
+    await userEvent.click(screen.getByRole('button', { name: /preview memory/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/not eligible/i)).toBeInTheDocument();
@@ -1043,8 +1047,8 @@ describe('Phase 3 card resolution', () => {
     });
 
     setup();
-    await waitFor(() => screen.getByRole('button', { name: /view memory/i }));
-    await userEvent.click(screen.getByRole('button', { name: /view memory/i }));
+    await waitFor(() => screen.getByRole('button', { name: 'View memory' }));
+    await userEvent.click(screen.getByRole('button', { name: 'View memory' }));
 
     await waitFor(() => {
       expect(screen.getByRole('dialog', { name: /memory items/i })).toBeInTheDocument();
@@ -1079,11 +1083,11 @@ describe('Phase 3 card resolution', () => {
     });
 
     setup();
-    await waitFor(() => screen.getByRole('button', { name: /ingest memory/i }));
-    await userEvent.click(screen.getByRole('button', { name: /ingest memory/i }));
+    await waitFor(() => screen.getByRole('button', { name: /preview memory/i }));
+    await userEvent.click(screen.getByRole('button', { name: /preview memory/i }));
 
     await waitFor(() => {
-      const dialog = screen.getByRole('dialog', { name: /memory ingestion/i });
+      const dialog = screen.getByRole('dialog', { name: /memory preview/i });
       expect(within(dialog).getByText(/not used by coach or ai player/i)).toBeInTheDocument();
     });
   });

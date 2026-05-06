@@ -641,7 +641,7 @@ function MemoryPreviewModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       role="dialog"
-      aria-label="Memory Ingestion"
+      aria-label="Memory Preview"
       aria-modal="true"
       onClick={onClose}
     >
@@ -657,7 +657,7 @@ function MemoryPreviewModal({
           <X size={20} />
         </button>
 
-        <h2 className="mb-1 text-lg font-semibold">Memory Ingestion</h2>
+        <h2 className="mb-1 text-lg font-semibold">Memory Preview</h2>
         <p className="mb-4 text-xs text-gray-500">
           Observed memories are stored for review only. They are not used by Coach or AI Player yet.
         </p>
@@ -1257,7 +1257,7 @@ export default function ObservedPlay() {
                           onClick={() => setMemoryPreviewLogId(log.id)}
                           className="rounded border border-teal-300 px-2 py-0.5 text-xs text-teal-700 hover:bg-teal-50"
                         >
-                          {log.memory_status === 'ingested' ? 'Re-ingest' : 'Ingest memory'}
+                          {log.memory_status === 'ingested' || (log.memory_item_count ?? 0) > 0 ? 'Re-preview memory' : 'Preview memory'}
                         </button>
                       ) : null}
                       {(log.memory_item_count ?? 0) > 0 && (

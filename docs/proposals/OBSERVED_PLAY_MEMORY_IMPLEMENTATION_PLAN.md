@@ -1754,7 +1754,10 @@ resolution) to prevent low-quality data from entering the memory store.
 8. `LogSummary` extended with `memory_item_count` and `last_memory_ingested_at`.
 9. 49 new backend tests (880 total, up from 831).
 10. Frontend: Phase 4 types, `previewMemoryIngestion`/`ingestMemory`/`getMemoryItems` API funcs,
-    `MemoryPreviewModal`, `MemoryItemsModal`, "Mem items" column, action buttons, phase banner.
+    `MemoryPreviewModal` (title: "Memory Preview") + `MemoryItemsModal` components; row-level
+    button labeled `"Preview memory"` (opens dry-run modal) / `"Re-preview memory"` (already
+    ingested); `"Ingest memory"` write action inside the modal only; "Mem items" column;
+    phase banner updated to "Phase 4 active".
 11. 9 new frontend tests (182 total, up from 173); build passes.
 12. Ingested memories stored for review only — not used by Coach or AI Player.
 13. No Coach / AI Player / pgvector / Neo4j integration added.
