@@ -773,7 +773,7 @@ function ResolutionRuleModal({
   );
 }
 
-function UnresolvedCardsSection() {
+function UnresolvedCardsSection({ onRefreshLogs }: { onRefreshLogs?: () => void }) {
   const [items, setItems] = useState<UnresolvedCardItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -792,6 +792,7 @@ function UnresolvedCardsSection() {
     setModalItem(null);
     setLoading(true);
     load();
+    onRefreshLogs?.();
   };
 
   if (loading) return null;
@@ -1649,7 +1650,7 @@ export default function ObservedPlay() {
       </section>
 
       {/* ── Unresolved cards section ──────────────────────────────────────── */}
-      <UnresolvedCardsSection />
+      <UnresolvedCardsSection onRefreshLogs={() => fetchLogs(logPage)} />
 
       {viewLogId && (
         <RawLogModal logId={viewLogId} onClose={() => setViewLogId(null)} />

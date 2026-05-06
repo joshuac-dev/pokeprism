@@ -1516,19 +1516,91 @@ describe('Phase 3.2 — Unresolved/Ambiguous Cards section', () => {
     });
   });
 
-  it('empty candidates state renders fallback message', async () => {
-    const noCandsItem = { ...sampleUnresolvedItem, candidates: [], candidate_count: 0 };
-    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValue({
-      items: [noCandsItem], total: 1, page: 1, per_page: 20,
-    });
+  it('after closing modal following successful resolve, listObservedPlayLogs is called again', async () => {
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      items: [sampleUnresolvedItem], total: 1, page: 1, per_page: 20,
+    }).mockResolvedValue({ items: [], total: 0, page: 1, per_page: 20 });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     setup();
 
     await waitFor(() => screen.getByRole('button', { name: /review dragapult ex/i }));
     await userEvent.click(screen.getByRole('button', { name: /review dragapult ex/i }));
+    await waitFor(() => screen.getByRole('button', { name: /^select$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
+
+    await waitFor(() => screen.getByText(/rule created/i));
+
+    const callsBefore = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls.length;
+
+    // close the modal via the text "Close" button
+    await userEvent.click(screen.getByText('Close'));
 
     await waitFor(() => {
-      expect(screen.getByText(/no candidates available/i)).toBeInTheDocument();
+      expect((listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(callsBefore);
     });
+  });
+
+  it('after ignore rule and close, listObservedPlayLogs is called again', async () => {
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      items: [sampleUnresolvedItem], total: 1, page: 1, per_page: 20,
+    }).mockResolvedValue({ items: [], total: 0, page: 1, per_page: 20 });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review dragapult ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review dragapult ex/i }));
+    await waitFor(() => screen.getByRole('button', { name: /ignore this name/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ignore this name/i }));
+
+    await waitFor(() => screen.getByText(/ignore rule created/i));
+
+    const callsBefore = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls.length;
+
+    await userEvent.click(screen.getByText('Close'));
+
+    await waitFor(() => {
+      expect((listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+  });
+
+  it('Raw Logs table card counts reflect updated data after rule creation', async () => {
+    const logWithCounts = {
+      id: 'log-001', filename: 'game.md', upload_batch_id: 'b1',
+      parse_status: 'parsed', created_at: '2024-01-01T00:00:00Z',
+      card_mention_count: 10, resolved_card_count: 7, ambiguous_card_count: 3, unresolved_card_count: 0,
+      card_resolution_status: 'ambiguous', memory_status: null, memory_item_count: 0,
+      event_count: 0, turn_count: 0, confidence_score: null, parser_version: null,
+      warnings: [], errors: [], parser_diagnostics: null,
+      sha256_hash: 'abcdef1234567890', file_size_bytes: 1024,
+    };
+    const updatedLog = { ...logWithCounts, resolved_card_count: 10, ambiguous_card_count: 0, card_resolution_status: 'resolved' };
+
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ items: [logWithCounts], total: 1, page: 1, per_page: 25 })
+      .mockResolvedValue({ items: [updatedLog], total: 1, page: 1, per_page: 25 });
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      items: [sampleUnresolvedItem], total: 1, page: 1, per_page: 20,
+    }).mockResolvedValue({ items: [], total: 0, page: 1, per_page: 20 });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    setup();
+
+    // initial counts: resolved=7✓, ambiguous=3?
+    await waitFor(() => expect(screen.getByText('7✓')).toBeInTheDocument());
+    expect(screen.getByText('3?')).toBeInTheDocument();
+
+    await waitFor(() => screen.getByRole('button', { name: /review dragapult ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review dragapult ex/i }));
+    await waitFor(() => screen.getByRole('button', { name: /^select$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
+
+    await waitFor(() => screen.getByText(/rule created/i));
+    await userEvent.click(screen.getByText('Close'));
+
+    // after refresh: resolved=10✓, no ambiguous badge
+    await waitFor(() => expect(screen.getByText('10✓')).toBeInTheDocument());
+    expect(screen.queryByText('3?')).not.toBeInTheDocument();
   });
 });

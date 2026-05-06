@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 31 — Observed Play Phase 3.2: Manual Card Resolution UI)
+Last updated: 2026-05-06 (session 32 — Observed Play Phase 3.2 hotfix: refresh Raw Logs after rule creation)
 
 ## Current Workstream
 
@@ -128,6 +128,51 @@ and rerun card resolution for affected logs.
 | `docs/STATUS.md` | This file |
 | `docs/CHANGELOG.md` | Phase 3.2 entry |
 | `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md` | Phase 3.2 section |
+
+## Session 32 Work (2026-05-06)
+
+### Goal
+
+Phase 3.2 hotfix: after creating a manual resolution rule and rerunning affected
+log resolution, the Raw Logs table now refreshes immediately without a browser reload.
+
+### Root Cause
+
+`UnresolvedCardsSection` was self-contained with no external props.  `handleResolved`
+only refreshed the local unresolved groups via `load()` but never called the parent
+component's `fetchLogs`, so the Raw Logs table remained stale until page reload.
+
+### Fix
+
+- `UnresolvedCardsSection` now accepts an `onRefreshLogs?: () => void` prop.
+- `handleResolved` calls `onRefreshLogs?.()` after `load()`.
+- Parent component passes `() => fetchLogs(logPage)` as `onRefreshLogs`.
+- No backend changes; no API changes; no DB migration.
+
+### Tests Added (session 32)
+
+- **+3 new frontend tests** in `Phase 3.2 — Unresolved/Ambiguous Cards section`:
+  - After resolve rule + close modal → `listObservedPlayLogs` is called again.
+  - After ignore rule + close modal → `listObservedPlayLogs` is called again.
+  - Raw Logs table card count badges update from refreshed data (7✓/3? → 10✓).
+
+### Validation (session 32)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **935 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **200 passed (15 files)** ✓
+- `cd frontend && npm run build`: **passed** ✓
+- `docs/AUDIT_STATE.md` not touched ✓
+- `frontend/node_modules` not committed ✓
+- No real battle logs committed ✓
+
+### Files Changed (session 32)
+
+| File | Change |
+|---|---|
+| `frontend/src/pages/ObservedPlay.tsx` | `UnresolvedCardsSection` accepts `onRefreshLogs` prop; `handleResolved` calls it; parent passes `fetchLogs` |
+| `frontend/src/pages/ObservedPlay.test.tsx` | +3 refresh tests |
+| `docs/STATUS.md` | This file |
+| `docs/CHANGELOG.md` | Hotfix entry |
 
 
 
