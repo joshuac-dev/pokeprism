@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 35.1 — Observed Play Memory Phase 5.1: Analytics Quality Triage Polish)
+Last updated: 2026-05-06 (session 36 — Observed Play Phase 5.1 UI polish: analytics column alignment)
 
 ## Current Workstream
 
@@ -38,10 +38,32 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **949 passed, 1 skipped** — 2026-05-06 session 35.1. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 940/1 (Phase 5 commit). |
-| Frontend unit tests | **221 passed (15 files)** — 2026-05-06 session 35.1. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **949 passed, 1 skipped** — 2026-05-06 session 36. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Frontend unit tests | **224 passed (15 files)** — 2026-05-06 session 36. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 36 Work (2026-05-06)
+
+### Goal
+
+Observed Play Phase 5.1 UI polish: align Memory Analytics table columns on branch `feature/observed-play-memory`.
+
+### Summary
+
+`AnalyticsGroupTable` now uses `w-full table-fixed` + `<colgroup>` with 8 fixed column widths (34%/7%/9%/10%/8%/11%/10%/11%) so all analytics sections share a consistent column grid. Named column headers for Examples and Review. Non-reviewable rows render a muted `—` placeholder in the Review column (instead of null). Label cells gain `title=` for truncation safety.
+
+### Files changed
+
+- `frontend/src/pages/ObservedPlay.tsx` — `AnalyticsGroupTable` column layout
+- `frontend/src/pages/ObservedPlay.test.tsx` — 3 new column alignment tests (224 total)
+
+### Validation (session 36)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **949 passed, 1 skipped** ✓ (unchanged)
+- `cd frontend && npm test -- --run`: **224 passed (15 files)** ✓
+- `cd frontend && npm run build`: clean ✓
+- `git diff --check`: clean ✓
 
 ## Session 35.1 Work (2026-05-06)
 

@@ -1948,6 +1948,40 @@ Make Memory Analytics actionable for quality triage: quality filter controls, Re
 4. No DB migration required.
 5. No Coach/AI, pgvector, Neo4j, simulator match_events, card-performance, or destructive action added.
 
+## 22.11 Phase 5.1 UI Polish — Analytics Table Column Alignment
+
+**Status: COMPLETE (session 36, commit 712ba31)**
+
+### Problem
+
+Analytics tables sized columns to their own content independently, causing visible horizontal drift across sections (Memory types, Top actions, Top actor/target cards, Top attacks, Top abilities, Top attachments/evolutions/knockouts, Quality flags). The Examples and Review column headers were empty strings; non-reviewable rows rendered null in the Review cell.
+
+### Fix
+
+Updated `AnalyticsGroupTable` in `frontend/src/pages/ObservedPlay.tsx`:
+
+- `<table className="min-w-full ...">` → `<table className="w-full table-fixed ...">`
+- Added `<colgroup>` with 8 fixed column widths: Label 34% / Count 7% / Avg conf 9% / Resolved 10% / Ambig 8% / Unresolved 11% / Examples 10% / Review 11%.
+- Empty header `<th>` → "Examples" and "Review" text labels.
+- Non-reviewable Review cell: `null` → muted `—` placeholder with `aria-label="Not reviewable"`.
+- Label cell gains `title={g.label}` for truncation safety.
+- Numeric columns aligned consistently (center for Avg conf/Resolved/Ambig/Unresolved/Examples/Review).
+
+No backend changes. Frontend layout-only.
+
+### Tests
+
+3 new tests in `frontend/src/pages/ObservedPlay.test.tsx` (224 total):
+- Table always renders Examples and Review column headers.
+- Non-reviewable rows render `—` placeholder; no Review button present.
+- Label cell has a `title` attribute matching the label text.
+
+### Validation
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **949 passed, 1 skipped** (unchanged)
+- `cd frontend && npm test -- --run`: **224 passed (15 files)**
+- `cd frontend && npm run build`: clean
+
 ---
 
 *End of Observed Play Memory Implementation Plan.*

@@ -31,6 +31,7 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Fixed
+- **Observed Play Phase 5.1 UI polish: align analytics table columns** — frontend only. `AnalyticsGroupTable` now uses `w-full table-fixed` with an explicit `<colgroup>` (8 columns: Label 34% / Count 7% / Avg conf 9% / Resolved 10% / Ambig 8% / Unresolved 11% / Examples 10% / Review 11%) so all analytics sections (Memory types, Top actions, Top actor/target cards, Top attacks, Top abilities, Top attachments/evolutions/knockouts, Quality flags) share the same column widths. Column headers always include "Examples" and "Review" text. Non-reviewable rows render a muted `—` placeholder in the Review column. Label cells gain `title=` for truncation safety. +3 frontend tests (224 total). No backend changes.
 - **Observed Play stabilization: removed "Force ingest" UI** — frontend only. The
   `MemoryPreviewModal` had a "Force ingest" button visible when a log was ineligible, added
   contrary to Phase 4.1 requirements. Removed the button; ineligible previews now show only
