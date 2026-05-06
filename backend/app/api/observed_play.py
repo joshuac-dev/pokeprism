@@ -750,6 +750,9 @@ async def ingest_memory(
                 "message": "Log is not eligible for ingestion",
                 "eligibility_status": summary.eligibility_status,
                 "reasons": [r.model_dump() for r in summary.reasons],
+                "blockers": [b.model_dump() for b in summary.blockers],
+                "blocker_count": summary.blocker_count,
+                "blockers_truncated": summary.blockers_truncated,
             },
         )
 

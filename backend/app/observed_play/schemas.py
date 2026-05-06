@@ -295,11 +295,30 @@ class EligibilityReason(BaseModel):
     detail: str
 
 
+class IngestionBlocker(BaseModel):
+    """Structured details for one unresolved critical card mention blocking ingestion."""
+    code: str = "unresolved_critical_card"
+    raw_name: str | None = None
+    normalized_name: str | None = None
+    mention_role: str | None = None
+    resolution_status: str | None = None
+    source_event_type: str | None = None
+    source_field: str | None = None
+    turn_number: int | None = None
+    player_alias: str | None = None
+    raw_line: str | None = None
+    observed_play_event_id: int | None = None
+    observed_card_mention_id: str | None = None
+
+
 class EligibilityResult(BaseModel):
     eligible: bool
     status: str  # eligible / ineligible / forced
     reasons: list[EligibilityReason] = []
     metrics: EligibilityMetrics = EligibilityMetrics()
+    blockers: list[IngestionBlocker] = []
+    blocker_count: int = 0
+    blockers_truncated: bool = False
 
 
 class MemoryItemPreview(BaseModel):
@@ -326,6 +345,9 @@ class MemoryIngestionPreview(BaseModel):
     estimated_memory_item_count: int = 0
     event_type_counts: dict[str, int] = Field(default_factory=dict)
     sample_items: list[MemoryItemPreview] = []
+    blockers: list[IngestionBlocker] = []
+    blocker_count: int = 0
+    blockers_truncated: bool = False
 
 
 class MemoryIngestionSummary(BaseModel):
@@ -340,6 +362,9 @@ class MemoryIngestionSummary(BaseModel):
     blocked_reason_count: int = 0
     ingestion_version: str
     error: str | None = None
+    blockers: list[IngestionBlocker] = []
+    blocker_count: int = 0
+    blockers_truncated: bool = False
 
 
 class MemoryItemSummary(BaseModel):

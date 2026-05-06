@@ -1066,6 +1066,108 @@ class TestMemoryPreview:
         assert resp.status_code == 404
 
 
+    def test_preview_includes_blockers_for_ineligible_log(self, client):
+        """Preview response includes blockers list when log is ineligible."""
+        log = _make_log_model(parse_status="parsed")
+
+        with patch(
+            "app.api.observed_play.preview_observed_play_ingestion",
+            new_callable=AsyncMock,
+        ) as mock_preview:
+            from app.observed_play.schemas import EligibilityReason, IngestionBlocker, MemoryIngestionPreview
+            mock_preview.return_value = MemoryIngestionPreview(
+                eligible=False,
+                eligibility_status="ineligible",
+                reasons=[EligibilityReason(code="unresolved_critical_cards", detail="1 unresolved critical")],
+                estimated_memory_item_count=0,
+                blockers=[IngestionBlocker(
+                    code="unresolved_critical_card",
+                    raw_name="SomeCard",
+                    normalized_name="somecard",
+                    mention_role="actor_card",
+                    resolution_status="unresolved",
+                    source_event_type="attack_used",
+                    source_field="card_name_raw",
+                    turn_number=4,
+                    player_alias="P1",
+                    raw_line="P1's SomeCard used Attack.",
+                )],
+                blocker_count=1,
+                blockers_truncated=False,
+            )
+
+            async def override_db():
+                session = AsyncMock()
+                log_result = MagicMock()
+                log_result.scalars.return_value.first.return_value = log
+                session.execute = AsyncMock(return_value=log_result)
+                yield session
+
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override_db
+            try:
+                resp = client.post(f"/api/observed-play/logs/{log.id}/memory-preview")
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["eligible"] is False
+        assert data["blocker_count"] == 1
+        assert len(data["blockers"]) == 1
+        b = data["blockers"][0]
+        assert b["raw_name"] == "SomeCard"
+        assert b["mention_role"] == "actor_card"
+        assert b["turn_number"] == 4
+        assert b["player_alias"] == "P1"
+        assert b["source_event_type"] == "attack_used"
+        assert b["raw_line"] == "P1's SomeCard used Attack."
+
+    def test_preview_eligible_log_returns_empty_blockers(self, client):
+        """Eligible preview returns empty blockers list."""
+        log = _make_log_model(parse_status="parsed")
+
+        with patch(
+            "app.api.observed_play.preview_observed_play_ingestion",
+            new_callable=AsyncMock,
+        ) as mock_preview:
+            from app.observed_play.schemas import EligibilityMetrics, MemoryIngestionPreview
+            mock_preview.return_value = MemoryIngestionPreview(
+                eligible=True,
+                eligibility_status="eligible",
+                reasons=[],
+                metrics=EligibilityMetrics(confidence_score=0.9, event_count=10,
+                                           unknown_ratio=0.01, low_confidence_count=0,
+                                           card_mention_count=5, unresolved_card_count=0,
+                                           ambiguous_card_count=0, critical_unresolved_count=0),
+                estimated_memory_item_count=8,
+                blockers=[],
+                blocker_count=0,
+                blockers_truncated=False,
+            )
+
+            async def override_db():
+                session = AsyncMock()
+                log_result = MagicMock()
+                log_result.scalars.return_value.first.return_value = log
+                session.execute = AsyncMock(return_value=log_result)
+                yield session
+
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override_db
+            try:
+                resp = client.post(f"/api/observed-play/logs/{log.id}/memory-preview")
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["eligible"] is True
+        assert data["blockers"] == []
+        assert data["blocker_count"] == 0
+        assert data["blockers_truncated"] is False
+
+
 class TestIngestMemory:
     """Tests for POST /api/observed-play/logs/{log_id}/ingest-memory."""
 
@@ -1160,6 +1262,58 @@ class TestIngestMemory:
             client.app.fastapi_app.dependency_overrides.clear()
 
         assert resp.status_code == 404
+
+    def test_ingest_422_includes_blockers(self, client):
+        """422 response from ineligible log includes blockers in the detail body."""
+        log = _make_log_model(parse_status="parsed")
+
+        with patch(
+            "app.api.observed_play.ingest_observed_play_log",
+            new_callable=AsyncMock,
+        ) as mock_ingest:
+            from app.observed_play.schemas import EligibilityReason, IngestionBlocker, MemoryIngestionSummary
+            mock_ingest.return_value = MemoryIngestionSummary(
+                ingestion_id="",
+                log_id=str(log.id),
+                status="skipped",
+                eligibility_status="ineligible",
+                reasons=[EligibilityReason(code="unresolved_critical_cards", detail="1 critical unresolved")],
+                ingestion_version="1.0",
+                error="Ineligible for ingestion",
+                blockers=[IngestionBlocker(
+                    code="unresolved_critical_card",
+                    raw_name="BadCard",
+                    mention_role="actor_card",
+                    turn_number=2,
+                    player_alias="P2",
+                    raw_line="P2's BadCard used Move.",
+                )],
+                blocker_count=1,
+                blockers_truncated=False,
+            )
+
+            async def override_db():
+                session = AsyncMock()
+                log_result = MagicMock()
+                log_result.scalars.return_value.first.return_value = log
+                session.execute = AsyncMock(return_value=log_result)
+                session.commit = AsyncMock()
+                yield session
+
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override_db
+            try:
+                resp = client.post(f"/api/observed-play/logs/{log.id}/ingest-memory")
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 422
+        data = resp.json()["detail"]
+        assert data["blocker_count"] == 1
+        assert len(data["blockers"]) == 1
+        assert data["blockers"][0]["raw_name"] == "BadCard"
+        assert data["blockers"][0]["mention_role"] == "actor_card"
+        assert data["blockers_truncated"] is False
 
 
 class TestMemoryItems:

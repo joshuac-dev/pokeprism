@@ -47,6 +47,7 @@ from app.observed_play.memory_ingestion import (
     _card_fields_from_mention,
     _compute_item_confidence,
     _mention_index_by_role,
+    _MAX_BLOCKERS,
     evaluate_log_ingestion_eligibility,
     ingest_observed_play_log,
     preview_observed_play_ingestion,
@@ -133,14 +134,22 @@ def _mention(
     resolution_status: str = "resolved",
     resolved_card_def_id: str | None = "sv06-001",
     event_id: int = EVENT_ID,
+    normalized_name: str | None = None,
+    source_event_type: str = ET_ATTACK_USED,
+    source_field: str = "card_name_raw",
+    mention_id: str | None = None,
 ) -> Any:
     return SimpleNamespace(
+        id=mention_id or str(uuid.uuid4()),
         mention_role=role,
         raw_name=raw_name,
+        normalized_name=normalized_name or raw_name.lower(),
         resolution_status=resolution_status,
         resolved_card_def_id=resolved_card_def_id if resolution_status == "resolved" else None,
         observed_play_event_id=event_id,
         observed_play_log_id=LOG_ID,
+        source_event_type=source_event_type,
+        source_field=source_field,
     )
 
 
@@ -149,6 +158,7 @@ def _db_with_log(
     critical_mentions: list[Any] | None = None,
     events: list[Any] | None = None,
     all_mentions: list[Any] | None = None,
+    blocker_events: list[Any] | None = None,
 ) -> AsyncMock:
     """Build an AsyncMock DB session with pre-configured execute responses."""
     session = AsyncMock()
@@ -164,10 +174,13 @@ def _db_with_log(
     responses.append(_make_result([log] if log else []))
     # 2nd execute: critical unresolved mentions
     responses.append(_make_result(critical_mentions or []))
-    # 3rd execute: events (for preview/ingest)
+    # 3rd execute: blocker events query (only when there are critical mentions)
+    if critical_mentions:
+        responses.append(_make_result(blocker_events or []))
+    # 4th execute: events (for preview/ingest)
     if events is not None:
         responses.append(_make_result(events))
-    # 4th execute: all mentions
+    # 5th execute: all mentions
     if all_mentions is not None:
         responses.append(_make_result(all_mentions))
 
@@ -759,3 +772,210 @@ def test_no_simulator_imports_in_memory_ingestion():
                 assert "ai_player" not in name.lower(), f"AIPlayer import found: {name}"
                 assert "match_event" not in name.lower(), f"match_events import found: {name}"
                 assert "pgvector" not in name.lower(), f"pgvector import found: {name}"
+
+
+# ── Phase 4.1: Blocker detail tests ──────────────────────────────────────────
+
+def _blocker_event(
+    event_id: int = EVENT_ID,
+    turn_number: int = 3,
+    player_alias: str = "P1",
+    raw_line: str = "P1's Mystery Card used Attack.",
+) -> Any:
+    return SimpleNamespace(
+        id=event_id,
+        turn_number=turn_number,
+        player_alias=player_alias,
+        raw_line=raw_line,
+    )
+
+
+@pytest.mark.asyncio
+async def test_eligibility_result_includes_blocker_details():
+    """Eligibility result contains structured blockers for unresolved critical mentions."""
+    log = _log(unresolved_card_count=1)
+    mention_id = str(uuid.uuid4())
+    critical = [_mention(
+        "actor_card", "Mystery Card",
+        resolution_status="unresolved",
+        resolved_card_def_id=None,
+        mention_id=mention_id,
+        source_event_type=ET_ATTACK_USED,
+        source_field="card_name_raw",
+    )]
+    event = _blocker_event(event_id=EVENT_ID, turn_number=3, player_alias="P1",
+                           raw_line="P1's Mystery Card used Attack.")
+    db = _db_with_log(log, critical_mentions=critical, blocker_events=[event])
+    result = await evaluate_log_ingestion_eligibility(db, LOG_ID, IngestionConfig())
+
+    assert result.blocker_count == 1
+    assert len(result.blockers) == 1
+    b = result.blockers[0]
+    assert b.code == "unresolved_critical_card"
+    assert b.raw_name == "Mystery Card"
+    assert b.normalized_name == "mystery card"
+    assert b.mention_role == "actor_card"
+    assert b.resolution_status == "unresolved"
+    assert b.source_event_type == ET_ATTACK_USED
+    assert b.source_field == "card_name_raw"
+    assert b.turn_number == 3
+    assert b.player_alias == "P1"
+    assert b.raw_line == "P1's Mystery Card used Attack."
+    assert b.observed_play_event_id == EVENT_ID
+    assert b.observed_card_mention_id == mention_id
+
+
+@pytest.mark.asyncio
+async def test_blockers_truncated_when_over_limit():
+    """blocker_count reflects full count; blockers list is limited to _MAX_BLOCKERS."""
+    log = _log(unresolved_card_count=_MAX_BLOCKERS + 5)
+    critical = [
+        _mention("actor_card", f"Card {i}", resolution_status="unresolved",
+                 resolved_card_def_id=None, event_id=EVENT_ID + i)
+        for i in range(_MAX_BLOCKERS + 5)
+    ]
+    db = _db_with_log(log, critical_mentions=critical, blocker_events=[])
+    result = await evaluate_log_ingestion_eligibility(db, LOG_ID, IngestionConfig())
+
+    assert result.blocker_count == _MAX_BLOCKERS + 5
+    assert len(result.blockers) == _MAX_BLOCKERS
+    assert result.blockers_truncated is True
+
+
+@pytest.mark.asyncio
+async def test_blockers_not_truncated_below_limit():
+    """blockers_truncated is False when count is at or below limit."""
+    log = _log(unresolved_card_count=3)
+    critical = [
+        _mention("actor_card", f"Card {i}", resolution_status="unresolved",
+                 resolved_card_def_id=None, event_id=EVENT_ID + i)
+        for i in range(3)
+    ]
+    db = _db_with_log(log, critical_mentions=critical, blocker_events=[])
+    result = await evaluate_log_ingestion_eligibility(db, LOG_ID, IngestionConfig())
+
+    assert result.blocker_count == 3
+    assert len(result.blockers) == 3
+    assert result.blockers_truncated is False
+
+
+@pytest.mark.asyncio
+async def test_eligible_log_has_empty_blockers():
+    """A fully eligible log returns empty blockers list."""
+    log = _log()
+    db = _db_with_log(log, critical_mentions=[])
+    result = await evaluate_log_ingestion_eligibility(db, LOG_ID, IngestionConfig())
+
+    assert result.eligible is True
+    assert result.blockers == []
+    assert result.blocker_count == 0
+    assert result.blockers_truncated is False
+
+
+@pytest.mark.asyncio
+async def test_blocker_raw_line_truncated_to_max_length():
+    """Raw lines longer than _MAX_RAW_LINE_LENGTH are truncated."""
+    from app.observed_play.memory_ingestion import _MAX_RAW_LINE_LENGTH
+    long_line = "x" * (_MAX_RAW_LINE_LENGTH + 50)
+    log = _log(unresolved_card_count=1)
+    critical = [_mention("actor_card", "SomeCard", resolution_status="unresolved",
+                         resolved_card_def_id=None)]
+    event = _blocker_event(raw_line=long_line)
+    db = _db_with_log(log, critical_mentions=critical, blocker_events=[event])
+    result = await evaluate_log_ingestion_eligibility(db, LOG_ID, IngestionConfig())
+
+    assert len(result.blockers[0].raw_line) == _MAX_RAW_LINE_LENGTH
+
+
+@pytest.mark.asyncio
+async def test_preview_includes_blockers_for_ineligible_log():
+    """Preview response carries blockers when log is ineligible due to critical unresolved."""
+    log = _log(unresolved_card_count=1)
+    critical = [_mention("actor_card", "BlockerCard", resolution_status="unresolved",
+                         resolved_card_def_id=None)]
+    event = _blocker_event(raw_line="P1's BlockerCard used Move.")
+    db = _db_with_log(log, critical_mentions=critical, blocker_events=[event])
+    result = await preview_observed_play_ingestion(db, LOG_ID, IngestionConfig())
+
+    assert result.eligible is False
+    assert result.blocker_count == 1
+    assert len(result.blockers) == 1
+    assert result.blockers[0].raw_name == "BlockerCard"
+
+
+@pytest.mark.asyncio
+async def test_ingest_skipped_summary_includes_blockers():
+    """Ineligible ingest returns skipped summary with blocker details."""
+    log = _log(unresolved_card_count=1)
+    critical = [_mention("actor_card", "BlockerCard", resolution_status="unresolved",
+                         resolved_card_def_id=None)]
+    event = _blocker_event()
+    db = _db_with_log(log, critical_mentions=critical, blocker_events=[event])
+    result = await ingest_observed_play_log(db, LOG_ID, IngestionConfig())
+
+    assert result.status == "skipped"
+    assert result.blocker_count == 1
+    assert len(result.blockers) == 1
+    assert result.blockers[0].mention_role == "actor_card"
+
+
+@pytest.mark.asyncio
+async def test_non_critical_unresolved_not_in_blockers():
+    """Non-critical unresolved roles (e.g. revealed_card) do not appear in blockers."""
+    log = _log(unresolved_card_count=1)
+    # revealed_card is not a critical role — it shouldn't appear in critical_mentions at all
+    # The gate query filters by _CRITICAL_MENTION_ROLES, so a non-critical mention
+    # would never be in critical_unresolved_mentions.
+    db = _db_with_log(log, critical_mentions=[])  # no critical blockers
+    result = await evaluate_log_ingestion_eligibility(db, LOG_ID, IngestionConfig())
+
+    # There may be an unresolved_cards reason but no blockers
+    assert result.blockers == []
+    assert result.blocker_count == 0
+
+
+@pytest.mark.asyncio
+async def test_blocker_event_lookup_handles_missing_event():
+    """Blocker is built even if the event row is not found (raw_line/turn/player are None)."""
+    log = _log(unresolved_card_count=1)
+    critical = [_mention("actor_card", "OrphanCard", resolution_status="unresolved",
+                         resolved_card_def_id=None, event_id=9999)]
+    # blocker_events is empty — no matching event row
+    db = _db_with_log(log, critical_mentions=critical, blocker_events=[])
+    result = await evaluate_log_ingestion_eligibility(db, LOG_ID, IngestionConfig())
+
+    assert len(result.blockers) == 1
+    b = result.blockers[0]
+    assert b.raw_name == "OrphanCard"
+    assert b.turn_number is None
+    assert b.player_alias is None
+    assert b.raw_line is None
+
+
+@pytest.mark.asyncio
+async def test_preview_eligible_log_has_empty_blockers_in_preview():
+    """Eligible preview returns blockers=[] (no blocking issues)."""
+    log = _log()
+    events = [_event(ET_ATTACK_USED, card_name_raw="Pikachu", damage=70)]
+    mentions = [_mention("actor_card", "Pikachu", event_id=events[0].id)]
+
+    session = AsyncMock()
+
+    def _r(items):
+        r = MagicMock()
+        r.scalars.return_value.first.return_value = items[0] if items else None
+        r.scalars.return_value.all.return_value = items
+        return r
+
+    session.execute = AsyncMock(side_effect=[
+        _r([log]),       # log lookup
+        _r([]),          # critical unresolved (empty → no blocker events query)
+        _r(events),      # events
+        _r(mentions),    # mentions
+    ])
+
+    result = await preview_observed_play_ingestion(session, LOG_ID, IngestionConfig())
+    assert result.eligible is True
+    assert result.blockers == []
+    assert result.blocker_count == 0
+    assert result.blockers_truncated is False

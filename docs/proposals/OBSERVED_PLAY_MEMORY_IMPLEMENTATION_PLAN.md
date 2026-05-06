@@ -1776,5 +1776,42 @@ resolution) to prevent low-quality data from entering the memory store.
 
 ---
 
+## 22.7 Phase 4.1 — Memory Preview Blocker Details
+
+**Status:** COMPLETE (session 30).
+
+**Problem:** Phase 4 preview eligibility showed counts (e.g. "2 unresolved critical mentions") but
+not which card names, roles, turns, or source lines were blocking ingestion. Users had no visibility
+into whether a blocker was a real unresolved card, a parser artifact, or something they could ignore.
+
+**Changes:**
+- New `IngestionBlocker` Pydantic model in `schemas.py` (12 fields: `code`, `raw_name`,
+  `normalized_name`, `mention_role`, `resolution_status`, `source_event_type`, `source_field`,
+  `turn_number`, `player_alias`, `raw_line`, `observed_play_event_id`, `observed_card_mention_id`).
+- `EligibilityResult`, `MemoryIngestionPreview`, and `MemoryIngestionSummary` extended with
+  `blockers: list[IngestionBlocker]`, `blocker_count: int`, `blockers_truncated: bool`.
+- `evaluate_log_ingestion_eligibility` does a conditional extra `db.execute` when critical unresolved
+  mentions exist, joining `ObservedPlayEvent` for `turn_number`, `player_alias`, and `raw_line`.
+- Blocker list capped at `_MAX_BLOCKERS = 25`; raw lines truncated to `_MAX_RAW_LINE_LENGTH = 300`.
+- 422 ingest-error detail body now includes `blockers`, `blocker_count`, `blockers_truncated`.
+- No DB migration required — response-only improvement.
+- Frontend `MemoryIngestionPreview` and `MemoryIngestionSummary` types extended with blocker fields;
+  new `IngestionBlocker` interface added to `types/observedPlay.ts`.
+- `MemoryPreviewModal` shows "Blocking unresolved mentions" compact table when `blockers.length > 0`;
+  truncation notice if `blockers_truncated`; 422 ingest error also surfaces blockers in-modal.
+
+**Acceptance criteria met:**
+1. Preview endpoint returns `blockers` list for ineligible logs.
+2. Each blocker includes raw name, role, source event type, turn, player, raw line.
+3. Blockers capped at 25; `blocker_count` reflects full count; `blockers_truncated` when clipped.
+4. Eligible preview returns empty `blockers` list.
+5. 422 ingest response includes blocker details.
+6. No DB migration needed.
+7. 13 new backend tests (924 total, up from 911).
+8. 6 new frontend tests (188 total, up from 182); build passes.
+9. No manual resolution-rule UI, Coach/AI, Neo4j, pgvector, simulator, or card-performance added.
+
+---
+
 *End of Observed Play Memory Implementation Plan.*
 *Feature branch: `feature/observed-play-memory`. No production code in this document.*

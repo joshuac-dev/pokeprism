@@ -62,6 +62,7 @@ from app.observed_play.schemas import (
     EligibilityMetrics,
     EligibilityReason,
     EligibilityResult,
+    IngestionBlocker,
     IngestionConfig,
     MemoryIngestionPreview,
     MemoryIngestionSummary,
@@ -71,6 +72,9 @@ from app.observed_play.schemas import (
 logger = logging.getLogger(__name__)
 
 # ── Constants ─────────────────────────────────────────────────────────────────
+
+_MAX_BLOCKERS = 25
+_MAX_RAW_LINE_LENGTH = 300
 
 # Event types that produce memory items
 _INGESTIBLE_EVENT_TYPES: frozenset[str] = frozenset({
@@ -458,6 +462,46 @@ async def evaluate_log_ingestion_eligibility(
                 detail=f"{critical_unresolved_count} unresolved critical (actor/target/evolution/etc.) mentions",
             ))
 
+    # ── Build blocker details ──────────────────────────────────────────────────
+    blockers: list[IngestionBlocker] = []
+    blocker_count = 0
+    blockers_truncated = False
+
+    if critical_unresolved_mentions:
+        blocker_count = len(critical_unresolved_mentions)
+        blockers_truncated = blocker_count > _MAX_BLOCKERS
+        blocking_slice = list(critical_unresolved_mentions)[:_MAX_BLOCKERS]
+
+        # Load event rows for turn/player/raw_line details
+        event_ids = list({m.observed_play_event_id for m in blocking_slice
+                          if m.observed_play_event_id is not None})
+        blocker_events_map: dict[int, Any] = {}
+        if event_ids:
+            events_result = await db.execute(
+                select(ObservedPlayEvent).where(ObservedPlayEvent.id.in_(event_ids))
+            )
+            blocker_events_map = {e.id: e for e in events_result.scalars().all()}
+
+        for m in blocking_slice:
+            event = blocker_events_map.get(m.observed_play_event_id)
+            raw_line: str | None = event.raw_line if event else None
+            if raw_line and len(raw_line) > _MAX_RAW_LINE_LENGTH:
+                raw_line = raw_line[:_MAX_RAW_LINE_LENGTH]
+            blockers.append(IngestionBlocker(
+                code="unresolved_critical_card",
+                raw_name=m.raw_name,
+                normalized_name=m.normalized_name,
+                mention_role=m.mention_role,
+                resolution_status=m.resolution_status,
+                source_event_type=m.source_event_type,
+                source_field=m.source_field,
+                turn_number=event.turn_number if event else None,
+                player_alias=event.player_alias if event else None,
+                raw_line=raw_line,
+                observed_play_event_id=m.observed_play_event_id,
+                observed_card_mention_id=str(m.id) if m.id is not None else None,
+            ))
+
     # ── Build metrics ──────────────────────────────────────────────────────────
     metrics = EligibilityMetrics(
         confidence_score=confidence,
@@ -471,7 +515,10 @@ async def evaluate_log_ingestion_eligibility(
     )
 
     if not reasons:
-        return EligibilityResult(eligible=True, status="eligible", reasons=[], metrics=metrics)
+        return EligibilityResult(
+            eligible=True, status="eligible", reasons=[], metrics=metrics,
+            blockers=blockers, blocker_count=blocker_count, blockers_truncated=blockers_truncated,
+        )
 
     if config.force and config.allow_unresolved:
         return EligibilityResult(
@@ -479,9 +526,13 @@ async def evaluate_log_ingestion_eligibility(
             status="forced",
             reasons=reasons,
             metrics=metrics,
+            blockers=blockers, blocker_count=blocker_count, blockers_truncated=blockers_truncated,
         )
 
-    return EligibilityResult(eligible=False, status="ineligible", reasons=reasons, metrics=metrics)
+    return EligibilityResult(
+        eligible=False, status="ineligible", reasons=reasons, metrics=metrics,
+        blockers=blockers, blocker_count=blocker_count, blockers_truncated=blockers_truncated,
+    )
 
 
 # ── Preview ───────────────────────────────────────────────────────────────────
@@ -500,6 +551,9 @@ async def preview_observed_play_ingestion(
             eligibility_status=eligibility.status,
             reasons=eligibility.reasons,
             metrics=eligibility.metrics,
+            blockers=eligibility.blockers,
+            blocker_count=eligibility.blocker_count,
+            blockers_truncated=eligibility.blockers_truncated,
         )
 
     # Load events and their mentions
@@ -564,6 +618,9 @@ async def preview_observed_play_ingestion(
         estimated_memory_item_count=total_items,
         event_type_counts=event_type_counts,
         sample_items=items_preview,
+        blockers=eligibility.blockers,
+        blocker_count=eligibility.blocker_count,
+        blockers_truncated=eligibility.blockers_truncated,
     )
 
 
@@ -592,6 +649,9 @@ async def ingest_observed_play_log(
             reasons=eligibility.reasons,
             ingestion_version=MEMORY_INGESTION_VERSION,
             error="Ineligible for ingestion; see reasons",
+            blockers=eligibility.blockers,
+            blocker_count=eligibility.blocker_count,
+            blockers_truncated=eligibility.blockers_truncated,
         )
 
     # Fetch log

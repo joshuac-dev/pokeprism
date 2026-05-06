@@ -274,6 +274,21 @@ export interface MemoryItemPreview {
   confidence_score: number;
 }
 
+export interface IngestionBlocker {
+  code: string;
+  raw_name?: string | null;
+  normalized_name?: string | null;
+  mention_role?: string | null;
+  resolution_status?: string | null;
+  source_event_type?: string | null;
+  source_field?: string | null;
+  turn_number?: number | null;
+  player_alias?: string | null;
+  raw_line?: string | null;
+  observed_play_event_id?: number | null;
+  observed_card_mention_id?: string | null;
+}
+
 export interface MemoryIngestionPreview {
   eligible: boolean;
   eligibility_status: string;
@@ -282,6 +297,9 @@ export interface MemoryIngestionPreview {
   estimated_memory_item_count: number;
   event_type_counts?: Record<string, number>;
   sample_items?: MemoryItemPreview[];
+  blockers?: IngestionBlocker[];
+  blocker_count?: number;
+  blockers_truncated?: boolean;
 }
 
 export interface MemoryItemSummary {
@@ -325,6 +343,9 @@ export interface MemoryIngestionSummary {
   skipped_event_count?: number;
   ingestion_version: string;
   error?: string | null;
+  blockers?: IngestionBlocker[];
+  blocker_count?: number;
+  blockers_truncated?: boolean;
 }
 
 export interface PaginatedMemoryItems {

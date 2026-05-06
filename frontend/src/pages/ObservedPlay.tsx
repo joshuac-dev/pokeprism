@@ -18,6 +18,7 @@ import type {
   CardMentionItem,
   EligibilityReason,
   EventSummary,
+  IngestionBlocker,
   IngestionConfig,
   MemoryIngestionPreview,
   MemoryIngestionSummary,
@@ -601,6 +602,8 @@ function MemoryPreviewModal({
   const [ingesting, setIngesting] = useState(false);
   const [ingestResult, setIngestResult] = useState<MemoryIngestionSummary | null>(null);
   const [ingestError, setIngestError] = useState<string | null>(null);
+  const [ingestBlockers, setIngestBlockers] = useState<IngestionBlocker[]>([]);
+  const [ingestBlockersTruncated, setIngestBlockersTruncated] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -621,17 +624,23 @@ function MemoryPreviewModal({
   async function handleIngest(config: IngestionConfig = {}) {
     setIngesting(true);
     setIngestError(null);
+    setIngestBlockers([]);
+    setIngestBlockersTruncated(false);
     try {
       const result = await ingestMemory(logId, config);
       setIngestResult(result);
       onIngestSuccess();
     } catch (err: unknown) {
       const detail =
-        (err as { response?: { data?: { detail?: { message?: string } | string } } })?.response?.data?.detail;
+        (err as { response?: { data?: { detail?: { message?: string; blockers?: IngestionBlocker[]; blocker_count?: number; blockers_truncated?: boolean } | string } } })?.response?.data?.detail;
       const msg = typeof detail === 'object' && detail?.message
         ? detail.message
         : (typeof detail === 'string' ? detail : 'Ingestion failed');
       setIngestError(msg);
+      if (typeof detail === 'object' && detail?.blockers) {
+        setIngestBlockers(detail.blockers);
+        setIngestBlockersTruncated(detail.blockers_truncated ?? false);
+      }
     } finally {
       setIngesting(false);
     }
@@ -683,6 +692,41 @@ function MemoryPreviewModal({
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+
+            {preview.blockers && preview.blockers.length > 0 && (
+              <div className="mb-4">
+                <p className="mb-1 text-xs font-medium text-gray-600">Blocking unresolved mentions:</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b text-left text-gray-500">
+                        <th className="pb-0.5 pr-2">Raw name</th>
+                        <th className="pb-0.5 pr-2">Role</th>
+                        <th className="pb-0.5 pr-2">Turn</th>
+                        <th className="pb-0.5 pr-2">Player</th>
+                        <th className="pb-0.5 pr-2">Event</th>
+                        <th className="pb-0.5">Source line</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {preview.blockers.map((b, i) => (
+                        <tr key={i} className="border-b border-gray-100 last:border-0">
+                          <td className="py-0.5 pr-2 font-medium text-red-700">{b.raw_name ?? '—'}</td>
+                          <td className="py-0.5 pr-2 font-mono text-gray-600">{b.mention_role ?? '—'}</td>
+                          <td className="py-0.5 pr-2">{b.turn_number ?? '—'}</td>
+                          <td className="py-0.5 pr-2">{b.player_alias ?? '—'}</td>
+                          <td className="py-0.5 pr-2 text-gray-500">{b.source_event_type ?? '—'}</td>
+                          <td className="py-0.5 max-w-[200px] truncate text-gray-500" title={b.raw_line ?? undefined}>{b.raw_line ?? '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {preview.blockers_truncated && (
+                  <p className="mt-1 text-xs text-gray-500">Showing first {preview.blockers.length} blockers.</p>
+                )}
               </div>
             )}
 
@@ -747,7 +791,39 @@ function MemoryPreviewModal({
             )}
 
             {ingestError && (
-              <p className="mb-3 text-sm text-red-600" role="alert">{ingestError}</p>
+              <div className="mb-3">
+                <p className="text-sm text-red-600" role="alert">{ingestError}</p>
+                {ingestBlockers.length > 0 && (
+                  <div className="mt-2 overflow-x-auto">
+                    <p className="mb-1 text-xs font-medium text-gray-600">Blocking unresolved mentions:</p>
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b text-left text-gray-500">
+                          <th className="pb-0.5 pr-2">Raw name</th>
+                          <th className="pb-0.5 pr-2">Role</th>
+                          <th className="pb-0.5 pr-2">Turn</th>
+                          <th className="pb-0.5 pr-2">Player</th>
+                          <th className="pb-0.5">Event</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ingestBlockers.map((b, i) => (
+                          <tr key={i} className="border-b border-gray-100 last:border-0">
+                            <td className="py-0.5 pr-2 font-medium text-red-700">{b.raw_name ?? '—'}</td>
+                            <td className="py-0.5 pr-2 font-mono text-gray-600">{b.mention_role ?? '—'}</td>
+                            <td className="py-0.5 pr-2">{b.turn_number ?? '—'}</td>
+                            <td className="py-0.5 pr-2">{b.player_alias ?? '—'}</td>
+                            <td className="py-0.5 text-gray-500">{b.source_event_type ?? '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {ingestBlockersTruncated && (
+                      <p className="mt-1 text-xs text-gray-500">Showing first {ingestBlockers.length} blockers.</p>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             <div className="flex gap-2">

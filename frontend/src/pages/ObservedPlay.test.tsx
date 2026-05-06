@@ -1091,4 +1091,194 @@ describe('Phase 3 card resolution', () => {
       expect(within(dialog).getByText(/not used by coach or ai player/i)).toBeInTheDocument();
     });
   });
+
+  // ── Phase 4.1: Memory preview blocker details ────────────────────────────────
+
+  it('shows blocker table when preview response includes blockers', async () => {
+    const parsedLog = { ...sampleLog, parse_status: 'parsed', event_count: 10 };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [parsedLog], total: 1, page: 1, per_page: 25,
+    });
+    (previewMemoryIngestion as ReturnType<typeof vi.fn>).mockResolvedValue({
+      eligible: false,
+      eligibility_status: 'ineligible',
+      reasons: [{ code: 'unresolved_critical_cards', detail: '1 unresolved critical' }],
+      estimated_memory_item_count: 0,
+      blockers: [{
+        code: 'unresolved_critical_card',
+        raw_name: 'Mystery Card',
+        mention_role: 'actor_card',
+        turn_number: 3,
+        player_alias: 'P1',
+        source_event_type: 'attack_used',
+        raw_line: "P1's Mystery Card used Tackle.",
+      }],
+      blocker_count: 1,
+      blockers_truncated: false,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /preview memory/i }));
+    await userEvent.click(screen.getByRole('button', { name: /preview memory/i }));
+
+    await waitFor(() => {
+      const dialog = screen.getByRole('dialog', { name: /memory preview/i });
+      expect(within(dialog).getByText(/blocking unresolved mentions/i)).toBeInTheDocument();
+      expect(within(dialog).getByText('Mystery Card')).toBeInTheDocument();
+      expect(within(dialog).getByText('actor_card')).toBeInTheDocument();
+    });
+  });
+
+  it('blocker table shows raw name, role, turn, player, event, and source line', async () => {
+    const parsedLog = { ...sampleLog, parse_status: 'parsed', event_count: 10 };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [parsedLog], total: 1, page: 1, per_page: 25,
+    });
+    (previewMemoryIngestion as ReturnType<typeof vi.fn>).mockResolvedValue({
+      eligible: false,
+      eligibility_status: 'ineligible',
+      reasons: [{ code: 'unresolved_critical_cards', detail: '1 unresolved critical' }],
+      estimated_memory_item_count: 0,
+      blockers: [{
+        code: 'unresolved_critical_card',
+        raw_name: 'FireCard',
+        mention_role: 'target_card',
+        turn_number: 7,
+        player_alias: 'Opponent',
+        source_event_type: 'knockout',
+        raw_line: "Opponent's FireCard was knocked out.",
+      }],
+      blocker_count: 1,
+      blockers_truncated: false,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /preview memory/i }));
+    await userEvent.click(screen.getByRole('button', { name: /preview memory/i }));
+
+    await waitFor(() => {
+      const dialog = screen.getByRole('dialog', { name: /memory preview/i });
+      expect(within(dialog).getByText('FireCard')).toBeInTheDocument();
+      expect(within(dialog).getByText('target_card')).toBeInTheDocument();
+      expect(within(dialog).getByText('7')).toBeInTheDocument();
+      expect(within(dialog).getByText('Opponent')).toBeInTheDocument();
+      expect(within(dialog).getByText('knockout')).toBeInTheDocument();
+      expect(within(dialog).getByText("Opponent's FireCard was knocked out.")).toBeInTheDocument();
+    });
+  });
+
+  it('blocker section is absent when no blockers are present', async () => {
+    const parsedLog = { ...sampleLog, parse_status: 'parsed', event_count: 10 };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [parsedLog], total: 1, page: 1, per_page: 25,
+    });
+    // Default mock: eligible, no blockers
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /preview memory/i }));
+    await userEvent.click(screen.getByRole('button', { name: /preview memory/i }));
+
+    await waitFor(() => screen.getByRole('dialog', { name: /memory preview/i }));
+    const dialog = screen.getByRole('dialog', { name: /memory preview/i });
+    expect(within(dialog).queryByText(/blocking unresolved mentions/i)).not.toBeInTheDocument();
+  });
+
+  it('shows truncation notice when blockers_truncated is true', async () => {
+    const parsedLog = { ...sampleLog, parse_status: 'parsed', event_count: 10 };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [parsedLog], total: 1, page: 1, per_page: 25,
+    });
+    (previewMemoryIngestion as ReturnType<typeof vi.fn>).mockResolvedValue({
+      eligible: false,
+      eligibility_status: 'ineligible',
+      reasons: [{ code: 'unresolved_critical_cards', detail: '30 unresolved critical' }],
+      estimated_memory_item_count: 0,
+      blockers: Array.from({ length: 25 }, (_, i) => ({
+        code: 'unresolved_critical_card',
+        raw_name: `Card ${i + 1}`,
+        mention_role: 'actor_card',
+        turn_number: i + 1,
+        player_alias: 'P1',
+        source_event_type: 'attack_used',
+        raw_line: `Card ${i + 1} used move.`,
+      })),
+      blocker_count: 30,
+      blockers_truncated: true,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /preview memory/i }));
+    await userEvent.click(screen.getByRole('button', { name: /preview memory/i }));
+
+    await waitFor(() => {
+      const dialog = screen.getByRole('dialog', { name: /memory preview/i });
+      expect(within(dialog).getByText(/showing first 25 blockers/i)).toBeInTheDocument();
+    });
+  });
+
+  it('eligibility reasons still render alongside blockers', async () => {
+    const parsedLog = { ...sampleLog, parse_status: 'parsed', event_count: 10 };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [parsedLog], total: 1, page: 1, per_page: 25,
+    });
+    (previewMemoryIngestion as ReturnType<typeof vi.fn>).mockResolvedValue({
+      eligible: false,
+      eligibility_status: 'ineligible',
+      reasons: [{ code: 'unresolved_critical_cards', detail: '2 critical unresolved' }],
+      estimated_memory_item_count: 0,
+      blockers: [{ code: 'unresolved_critical_card', raw_name: 'A', mention_role: 'actor_card' }],
+      blocker_count: 1,
+      blockers_truncated: false,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /preview memory/i }));
+    await userEvent.click(screen.getByRole('button', { name: /preview memory/i }));
+
+    await waitFor(() => {
+      const dialog = screen.getByRole('dialog', { name: /memory preview/i });
+      expect(within(dialog).getByText('unresolved_critical_cards')).toBeInTheDocument();
+      expect(within(dialog).getByText(/2 critical unresolved/i)).toBeInTheDocument();
+      expect(within(dialog).getByText(/blocking unresolved mentions/i)).toBeInTheDocument();
+    });
+  });
+
+  it('ingest 422 error with blockers displays blockers in modal', async () => {
+    const parsedLog = { ...sampleLog, parse_status: 'parsed', event_count: 10 };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [parsedLog], total: 1, page: 1, per_page: 25,
+    });
+    (ingestMemory as ReturnType<typeof vi.fn>).mockRejectedValue({
+      response: {
+        data: {
+          detail: {
+            message: 'Ineligible for ingestion',
+            blockers: [{
+              code: 'unresolved_critical_card',
+              raw_name: 'ErrorCard',
+              mention_role: 'actor_card',
+              turn_number: 2,
+              player_alias: 'P2',
+              source_event_type: 'attack_used',
+            }],
+            blocker_count: 1,
+            blockers_truncated: false,
+          },
+        },
+      },
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /preview memory/i }));
+    await userEvent.click(screen.getByRole('button', { name: /preview memory/i }));
+
+    await waitFor(() => screen.getByRole('dialog', { name: /memory preview/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^ingest memory$/i }));
+
+    await waitFor(() => {
+      const dialog = screen.getByRole('dialog', { name: /memory preview/i });
+      expect(within(dialog).getByText(/ineligible for ingestion/i)).toBeInTheDocument();
+      expect(within(dialog).getByText('ErrorCard')).toBeInTheDocument();
+    });
+  });
 });
