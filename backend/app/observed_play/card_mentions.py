@@ -41,12 +41,26 @@ from app.observed_play.constants import (
 
 _RE_WHITESPACE = re.compile(r"\s+")
 
-# Raw names that are not meaningful card names (hidden placeholders, etc.)
+# Raw names that are not meaningful card names (hidden placeholders, pronouns, etc.)
 _IGNORED_NORMALIZED = frozenset({
+    # Hidden-card placeholders
     "a card",
     "card",
     "cards",
+    # Pronouns and pronoun phrases that PTCGL emits instead of real card names
+    "it",
+    "its",
+    "itself",
     "them",
+    "they",
+    "their",
+    "this",
+    "that",
+    "these",
+    "those",
+    "one",
+    "one of them",
+    # Misc non-name tokens
     "",
     "unknown",
 })

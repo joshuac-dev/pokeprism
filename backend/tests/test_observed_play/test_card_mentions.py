@@ -41,7 +41,9 @@ from app.observed_play.constants import (
     ET_EVOLVE,
     ET_ATTACH_CARD,
     ET_ATTACH_ENERGY,
+    ET_KNOCKOUT,
     ET_OPENING_HAND_DRAW_KNOWN,
+    ET_PLAY_BASIC_TO_BENCH,
     ET_PLAY_ITEM,
     ET_PLAY_SUPPORTER,
     ET_PLAY_TRAINER,
@@ -534,3 +536,106 @@ class TestImprovedMentionRoles:
         result = _resolve_one("pikachu", cards, {})
         assert result["resolution_status"] == "ambiguous"
         assert result["candidate_count"] == 2
+
+
+# ── Pronoun / placeholder filtering ───────────────────────────────────────────
+
+class TestPronounPlaceholderFiltering:
+    """Pronoun strings must never create card mention rows.
+
+    These placeholders appear in real PTCGL logs when the game engine refers
+    to an unnamed target (e.g. "it was Knocked Out") instead of emitting the
+    actual card name.
+    """
+
+    @pytest.mark.parametrize("placeholder", [
+        "it", "It", "IT",
+        "its", "Its",
+        "itself",
+        "them", "Them",
+        "they", "They",
+        "their", "Their",
+        "this", "This",
+        "that", "That",
+        "these", "These",
+        "those", "Those",
+        "one", "One",
+        "one of them",
+    ])
+    def test_is_meaningful_rejects_placeholder(self, placeholder):
+        assert _is_meaningful(placeholder) is False, (
+            f"_is_meaningful should return False for placeholder '{placeholder}'"
+        )
+
+    def test_it_not_extracted_as_actor_card(self):
+        """'it' in card_name_raw must not create an actor_card mention."""
+        evt = _event(ET_ATTACK_USED, card_name_raw="it", target_card_name_raw="Pikachu")
+        mentions = extract_mentions_from_event(evt)
+        names = [m["raw_name"] for m in mentions]
+        assert "it" not in names
+        # Real target should still be captured
+        assert "Pikachu" in names
+
+    def test_it_not_extracted_as_knockout_card(self):
+        """Knockout events sometimes have 'it' as card_name_raw."""
+        evt = _event(ET_KNOCKOUT, card_name_raw="it")
+        mentions = extract_mentions_from_event(evt)
+        assert len(mentions) == 0
+
+    def test_them_not_extracted_from_attack(self):
+        evt = _event(ET_ATTACK_USED, card_name_raw="Lucario", target_card_name_raw="them")
+        mentions = extract_mentions_from_event(evt)
+        names = [m["raw_name"] for m in mentions]
+        assert "them" not in names
+        assert "Lucario" in names
+
+    def test_one_of_them_not_extracted_from_payload(self):
+        """Payload card list containing 'one of them' must be filtered."""
+        evt = _event(ET_OPENING_HAND_DRAW_KNOWN, card_name_raw=None,
+                     event_payload_json={"cards": ["Pikachu", "one of them", "Lucario"]})
+        mentions = extract_mentions_from_event(evt)
+        names = [m["raw_name"] for m in mentions]
+        assert "one of them" not in names
+        assert "Pikachu" in names
+        assert "Lucario" in names
+
+    def test_this_that_these_those_not_extracted(self):
+        for placeholder in ("this", "that", "these", "those"):
+            evt = _event(ET_SWITCH_ACTIVE, card_name_raw=placeholder)
+            mentions = extract_mentions_from_event(evt)
+            assert len(mentions) == 0, (
+                f"Expected no mention for placeholder '{placeholder}'"
+            )
+
+    def test_placeholder_after_zone_cleanup(self):
+        """Zone suffix cleaning should not revive a placeholder.
+
+        e.g. 'it in the Active Spot' → strip suffix → 'it' → still filtered.
+        """
+        evt = _event(ET_ATTACK_USED, card_name_raw="it in the Active Spot",
+                     target_card_name_raw="Pikachu")
+        mentions = extract_mentions_from_event(evt)
+        names = [m["raw_name"] for m in mentions]
+        assert "it" not in names
+        assert "it in the Active Spot" not in names
+        assert "Pikachu" in names
+
+    def test_real_card_name_containing_pronoun_word_is_kept(self):
+        """A legitimate card name that merely contains a pronoun word must not be filtered.
+
+        "Team Rocket's It" is a contrived example — what matters is that no
+        substring check silently drops real multi-word names.
+        """
+        # "themselves" contains "them" but is not an exact normalized match
+        # Use a realistic long-name that would not be normalized to a placeholder
+        evt = _event(ET_PLAY_ITEM, card_name_raw="Counter Catcher")
+        mentions = extract_mentions_from_event(evt)
+        assert len(mentions) == 1
+        assert mentions[0]["raw_name"] == "Counter Catcher"
+
+    def test_existing_valid_names_still_extract(self):
+        for name in ("Pikachu", "Lucario ex", "Radiant Greninja", "Professor's Research"):
+            evt = _event(ET_PLAY_BASIC_TO_BENCH, card_name_raw=name)
+            mentions = extract_mentions_from_event(evt)
+            assert len(mentions) == 1
+            assert mentions[0]["raw_name"] == name

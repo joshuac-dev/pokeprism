@@ -1729,7 +1729,19 @@ stored this unstripped text as `raw_name`.
 
 ## 22.6 Phase 4 — Gated Memory Ingestion Foundation
 
-**Status:** COMPLETE (session 30).
+**Status:** COMPLETE (session 30). Pronoun-placeholder hotfix applied same session.
+
+**Problem:** After Phase 3.1, card mentions were resolved and stored but there was no
+pipeline to convert parsed events into structured memory items for later Coach/AI retrieval.
+Memory ingestion needed eligibility gates (confidence threshold, parse completeness, card
+resolution) to prevent low-quality data from entering the memory store.
+
+**Pronoun hotfix:** After Phase 4 implementation, real-log validation revealed that PTCGL
+emits `"it"` (and similar pronouns) as `card_name_raw` in some event types (e.g. knockouts)
+instead of the actual card name. These created false `actor_card: it (unresolved critical)`
+mentions that blocked otherwise-valid memory ingestion. Fixed by extending `_IGNORED_NORMALIZED`
+in `card_mentions.py` with exact-normalized pronoun/placeholder strings. Exact match only —
+legitimate multi-word card names containing these words as substrings are unaffected.
 
 **Problem:** After Phase 3.1, card mentions were resolved and stored but there was no
 pipeline to convert parsed events into structured memory items for later Coach/AI retrieval.

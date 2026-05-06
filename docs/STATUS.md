@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 30 — Observed Play Phase 4: Gated Memory Ingestion Foundation)
+Last updated: 2026-05-06 (session 30 — Observed Play Phase 4: Gated Memory Ingestion + pronoun-placeholder hotfix)
 
 ## Current Workstream
 
@@ -38,7 +38,7 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **880 passed, 1 skipped** — 2026-05-06 session 30. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 831/1 (session 29). |
+| Backend test baseline | **911 passed, 1 skipped** — 2026-05-06 session 30. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 880/1 (Phase 4 commit). |
 | Frontend unit tests | **182 passed (15 files)** — 2026-05-06 session 30. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
