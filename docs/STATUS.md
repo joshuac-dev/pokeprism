@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 36 — Observed Play Phase 5.1 UI polish: analytics column alignment)
+Last updated: 2026-05-06 (session 37 — Observed Play data reset: cleared dev/test data for real corpus upload)
 
 ## Current Workstream
 
@@ -42,6 +42,45 @@ Re-check them before making claims in user-facing docs.
 | Frontend unit tests | **224 passed (15 files)** — 2026-05-06 session 36. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 37 Work (2026-05-06)
+
+### Goal
+
+Observed Play data reset: clear all development/test data before uploading real battle-log corpus.
+
+### Summary
+
+Created `scripts/reset_observed_play_data.sh` — a guarded local maintenance script that truncates all 7 observed-play tables and clears the observed-play upload archive/staging directories. Requires `--yes` flag; verifies tables before acting; prints pre- and post-reset counts. No card data, simulator matches, card_performance, audit state, Coach/AI, Neo4j, pgvector, or runtime memory integration touched.
+
+### Pre-reset counts
+
+| Table | Count |
+|---|---|
+| observed_play_import_batches | 48 |
+| observed_play_logs | 45 |
+| observed_play_events | 1196 |
+| observed_card_mentions | 842 |
+| observed_card_resolution_rules | 6 |
+| observed_play_memory_ingestions | 6 |
+| observed_play_memory_items | 158 |
+| archive files | 4 |
+
+All cleared to 0.
+
+### Files changed
+
+- `scripts/reset_observed_play_data.sh` (new)
+- `docs/STATUS.md`, `docs/CHANGELOG.md`, `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`
+
+### Validation (session 37)
+
+- Reset script: clean exit, all post-reset counts = 0 ✓
+- Archive check: no files remaining ✓
+- API smoke: logs total=0, memory summary zeroed, analytics empty ✓
+- `cd backend && python3 -m pytest tests/ -x -q`: **949 passed, 1 skipped** ✓ (unchanged)
+- `cd frontend && npm test -- --run`: **224 passed (15 files)** ✓ (unchanged)
+- `cd frontend && npm run build`: clean ✓
 
 ## Session 36 Work (2026-05-06)
 

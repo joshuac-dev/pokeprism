@@ -1982,6 +1982,34 @@ No backend changes. Frontend layout-only.
 - `cd frontend && npm test -- --run`: **224 passed (15 files)**
 - `cd frontend && npm run build`: clean
 
+## Operational: Local Data Reset (session 37)
+
+**Status: COMPLETE (session 37)**
+
+Added `scripts/reset_observed_play_data.sh` — a guarded local maintenance script to clear all Observed Play development/test data before uploading the real battle-log corpus.
+
+**Usage:**
+```bash
+./scripts/reset_observed_play_data.sh --yes
+```
+
+**What it clears:**
+- All 7 observed-play DB tables (TRUNCATE RESTART IDENTITY CASCADE)
+- `/data/ptcgl_logs/archive`, `/data/ptcgl_logs/inbox`, `/data/ptcgl_logs/tmp`, `/data/ptcgl_logs/failed`
+
+**What it does NOT touch:**
+- `cards`, `card_performance`, `matches`, `match_events`, simulator, Coach/AI, Neo4j, pgvector, audit state, deck data, users/settings
+
+**Pre-reset counts cleared:**
+- observed_play_import_batches: 48 → 0
+- observed_play_logs: 45 → 0
+- observed_play_events: 1196 → 0
+- observed_card_mentions: 842 → 0
+- observed_card_resolution_rules: 6 → 0
+- observed_play_memory_ingestions: 6 → 0
+- observed_play_memory_items: 158 → 0
+- Archive files: 4 → 0
+
 ---
 
 *End of Observed Play Memory Implementation Plan.*
