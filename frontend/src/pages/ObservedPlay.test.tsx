@@ -1945,8 +1945,80 @@ describe('Phase 5.1 — Analytics Quality Triage', () => {
     });
     setup();
     await waitFor(() => screen.getByText('attack_used'));
-    fireEvent.click(screen.getByText('Examples'));
+    fireEvent.click(screen.getByRole('button', { name: 'Examples' }));
     await waitFor(() => screen.getByRole('dialog', { name: /memory examples/i }));
     expect(screen.getByText(/filter:/i)).toBeInTheDocument();
+  });
+});
+
+describe('Phase 5.1 — Analytics Table Column Alignment', () => {
+  it('analytics table always renders Examples and Review column headers', async () => {
+    (getMemorySummary as ReturnType<typeof vi.fn>).mockResolvedValue(sampleSummary);
+    (getMemoryAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...emptyAnalytics,
+      top_memory_types: [{
+        label: 'card_played',
+        memory_type: 'card_played',
+        count: 3,
+        average_confidence: 0.9,
+        resolved_count: 3,
+        ambiguous_count: 0,
+        unresolved_count: 0,
+        sample_memory_item_ids: [],
+        sample_source_lines: [],
+      }],
+    });
+    setup();
+    await waitFor(() => screen.getByText('Memory types'));
+    // Both column headers must be visible
+    const examplesHeaders = screen.getAllByText('Examples');
+    const reviewHeaders = screen.getAllByText('Review');
+    expect(examplesHeaders.length).toBeGreaterThan(0);
+    expect(reviewHeaders.length).toBeGreaterThan(0);
+  });
+
+  it('non-reviewable rows render a placeholder in the Review column', async () => {
+    (getMemorySummary as ReturnType<typeof vi.fn>).mockResolvedValue(sampleSummary);
+    (getMemoryAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...emptyAnalytics,
+      top_actor_cards: [{
+        label: 'Pikachu',
+        memory_type: 'actor_card',
+        count: 2,
+        average_confidence: 0.95,
+        resolved_count: 2,
+        ambiguous_count: 0,
+        unresolved_count: 0,
+        sample_memory_item_ids: [],
+        sample_source_lines: [],
+        can_review_resolution: false,
+      }],
+    });
+    setup();
+    await waitFor(() => screen.getByText('Pikachu'));
+    // Placeholder — should be present; no Review button
+    expect(screen.queryByRole('button', { name: /^review$/i })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Not reviewable')).toBeInTheDocument();
+  });
+
+  it('label cell renders title attribute for truncation', async () => {
+    (getMemoryAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...emptyAnalytics,
+      top_actions: [{
+        label: 'attack_used:Very Long Attack Name That Would Overflow',
+        memory_type: 'attack_used',
+        count: 1,
+        average_confidence: 0.8,
+        resolved_count: 0,
+        ambiguous_count: 1,
+        unresolved_count: 0,
+        sample_memory_item_ids: [],
+        sample_source_lines: [],
+      }],
+    });
+    setup();
+    await waitFor(() => screen.getByText('attack_used:Very Long Attack Name That Would Overflow'));
+    const cell = screen.getByTitle('attack_used:Very Long Attack Name That Would Overflow');
+    expect(cell).toBeInTheDocument();
   });
 });

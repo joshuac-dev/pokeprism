@@ -1341,31 +1341,41 @@ function AnalyticsGroupTable({
     <div className="mb-4">
       <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{title}</h3>
       <div className="overflow-x-auto">
-        <table className="min-w-full text-xs">
+        <table className="w-full table-fixed text-xs">
+          <colgroup>
+            <col className="w-[34%]" />
+            <col className="w-[7%]" />
+            <col className="w-[9%]" />
+            <col className="w-[10%]" />
+            <col className="w-[8%]" />
+            <col className="w-[11%]" />
+            <col className="w-[10%]" />
+            <col className="w-[11%]" />
+          </colgroup>
           <thead className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400">
             <tr>
               <th className="px-2 py-1 text-left font-medium">Label</th>
               <th className="px-2 py-1 text-right font-medium">Count</th>
-              <th className="px-2 py-1 text-right font-medium">Avg conf</th>
-              <th className="px-2 py-1 text-right font-medium">Resolved</th>
-              <th className="px-2 py-1 text-right font-medium">Ambig</th>
-              <th className="px-2 py-1 text-right font-medium">Unresolved</th>
-              <th className="px-2 py-1"></th>
-              <th className="px-2 py-1"></th>
+              <th className="px-2 py-1 text-center font-medium">Avg conf</th>
+              <th className="px-2 py-1 text-center font-medium">Resolved</th>
+              <th className="px-2 py-1 text-center font-medium">Ambig</th>
+              <th className="px-2 py-1 text-center font-medium">Unresolved</th>
+              <th className="px-2 py-1 text-center font-medium">Examples</th>
+              <th className="px-2 py-1 text-center font-medium">Review</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
             {groups.map((g) => (
               <tr key={g.label} className="hover:bg-gray-50 dark:hover:bg-slate-800">
-                <td className="px-2 py-1 text-slate-900 dark:text-slate-100 max-w-[200px] truncate">{g.label}</td>
+                <td className="px-2 py-1 text-slate-900 dark:text-slate-100 truncate" title={g.label}>{g.label}</td>
                 <td className="px-2 py-1 text-right text-slate-700 dark:text-slate-300">{g.count}</td>
-                <td className="px-2 py-1 text-right text-slate-700 dark:text-slate-300">
+                <td className="px-2 py-1 text-center text-slate-700 dark:text-slate-300">
                   {g.average_confidence != null ? `${(g.average_confidence * 100).toFixed(0)}%` : '—'}
                 </td>
-                <td className="px-2 py-1 text-right text-green-700 dark:text-green-400">{g.resolved_count}</td>
-                <td className="px-2 py-1 text-right text-yellow-700 dark:text-yellow-400">{g.ambiguous_count}</td>
-                <td className="px-2 py-1 text-right text-red-700 dark:text-red-400">{g.unresolved_count}</td>
-                <td className="px-2 py-1">
+                <td className="px-2 py-1 text-center text-green-700 dark:text-green-400">{g.resolved_count}</td>
+                <td className="px-2 py-1 text-center text-yellow-700 dark:text-yellow-400">{g.ambiguous_count}</td>
+                <td className="px-2 py-1 text-center text-red-700 dark:text-red-400">{g.unresolved_count}</td>
+                <td className="px-2 py-1 text-center">
                   <button
                     onClick={() => onViewExamples(g)}
                     className="text-blue-600 dark:text-blue-400 hover:underline"
@@ -1373,15 +1383,17 @@ function AnalyticsGroupTable({
                     Examples
                   </button>
                 </td>
-                <td className="px-2 py-1">
+                <td className="px-2 py-1 text-center">
                   {onReview && g.can_review_resolution && (g.ambiguous_count + g.unresolved_count) > 0 ? (
                     <button
                       onClick={() => onReview(g)}
-                      className="text-yellow-600 dark:text-yellow-400 hover:underline ml-2"
+                      className="text-yellow-600 dark:text-yellow-400 hover:underline"
                     >
                       Review
                     </button>
-                  ) : null}
+                  ) : (
+                    <span className="text-gray-300 dark:text-slate-600" aria-label="Not reviewable">—</span>
+                  )}
                 </td>
               </tr>
             ))}
