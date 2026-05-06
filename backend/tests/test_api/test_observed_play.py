@@ -737,3 +737,65 @@ class TestReparseLog:
             client.app.fastapi_app.dependency_overrides.clear()
 
         assert resp.status_code == 404
+
+
+# ── Parser diagnostics in API ──────────────────────────────────────────────────
+
+class TestParserDiagnosticsInApi:
+    def test_reparse_stores_diagnostics_in_metadata(self, client):
+        """Reparse should produce metadata with parser_diagnostics."""
+        log = _make_log_model(raw_content="Alice's Turn 1\nAlice drew a card.\nAlice played Buddy-Buddy Poffin.\n")
+        log.metadata_json = {}
+
+        async def override_db():
+            session = AsyncMock()
+            log_result = MagicMock()
+            log_result.scalars.return_value.first.return_value = log
+            delete_result = MagicMock()
+            session.execute = AsyncMock(side_effect=[log_result, delete_result])
+            session.add = MagicMock()
+            session.commit = AsyncMock()
+            session.refresh = AsyncMock(side_effect=lambda obj: None)
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post(f"/api/observed-play/logs/{log.id}/reparse")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        # Diagnostics are stored in the log model's metadata_json during reparse
+        assert "parser_diagnostics" in log.metadata_json
+
+    def test_diagnostics_keys_present_after_reparse(self, client):
+        """After reparse, metadata_json should have all diagnostic keys."""
+        log = _make_log_model(raw_content="Alice's Turn 1\nAlice drew a card.\nunknown line here\n")
+        log.metadata_json = {}
+
+        async def override_db():
+            session = AsyncMock()
+            log_result = MagicMock()
+            log_result.scalars.return_value.first.return_value = log
+            delete_result = MagicMock()
+            session.execute = AsyncMock(side_effect=[log_result, delete_result])
+            session.add = MagicMock()
+            session.commit = AsyncMock()
+            session.refresh = AsyncMock(side_effect=lambda obj: None)
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post(f"/api/observed-play/logs/{log.id}/reparse")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        diag = log.metadata_json.get("parser_diagnostics", {})
+        assert "unknown_count" in diag
+        assert "unknown_ratio" in diag
+        assert "low_confidence_count" in diag
+        assert "event_type_counts" in diag
+        assert "top_unknown_raw_lines" in diag

@@ -25,6 +25,8 @@ def event_confidence(event_type: str, fields_captured: list[str]) -> tuple[float
     if event_type == "attack_used":
         if "damage" in fields_captured and "card_name_raw" in fields_captured:
             return 0.95, ["attack with player/card/damage captured"]
+        if "card_name_raw" in fields_captured:
+            return 0.88, ["no-damage attack with player/card captured"]
         return 0.80, ["attack pattern partial match"]
 
     if event_type in ("knockout", "game_end"):
@@ -34,7 +36,7 @@ def event_confidence(event_type: str, fields_captured: list[str]) -> tuple[float
         return 0.97, ["exact prize count captured"]
 
     if event_type in ("opening_hand_draw_hidden", "draw_hidden"):
-        return 0.80, ["hidden card identity"]
+        return 0.82, ["hidden card identity"]
 
     if event_type in ("opening_hand_draw_known", "mulligan_cards_revealed"):
         if "card_list" in fields_captured:
@@ -43,6 +45,20 @@ def event_confidence(event_type: str, fields_captured: list[str]) -> tuple[float
 
     if event_type in ("draw",):
         return 0.95, ["known draw with card name"]
+
+    if event_type == "ability_used":
+        if "card_name_raw" in fields_captured:
+            return 0.88, ["ability with player/card captured"]
+        return 0.80, ["ability pattern partial match"]
+
+    if event_type == "play_trainer":
+        return 0.85, ["generic trainer play with card name"]
+
+    if event_type == "attach_card":
+        return 0.87, ["non-energy attachment with player/card/target captured"]
+
+    if event_type == "play_to_bench_hidden":
+        return 0.82, ["hidden aggregate bench play"]
 
     if len(fields_captured) >= 2:
         return 0.88, ["pattern matched with multiple fields"]

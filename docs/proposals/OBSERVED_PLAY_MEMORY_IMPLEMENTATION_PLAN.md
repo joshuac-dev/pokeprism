@@ -1405,31 +1405,36 @@ table so it auto-detects on every upload without requiring the form field.
 
 ### Phase 2 — Parser v1 + Golden Fixtures
 
-**Files likely touched:**
-- `backend/app/observed_play/parser.py`, `patterns.py`, `confidence.py`, `importer.py` (updated)
-- `backend/app/db/models.py` (add `ObservedPlayEvent`)
-- `backend/alembic/versions/{new_id}_observed_play_events.py`
-- `backend/tests/fixtures/observed_play/` (curated fixture logs)
-- `backend/tests/test_observed_play/test_parser.py`
-- `backend/tests/test_observed_play/test_confidence.py`
-- `backend/tests/test_observed_play/test_event_api.py`
-- `backend/tests/test_observed_play/test_reparse.py`
-- `backend/app/api/observed_play.py` (add event + reparse endpoints)
+**Status: COMPLETE** (sessions 22–24)
 
-**Acceptance criteria:**
-1. Parser processes the `sample_crustle_win.md` fixture and produces ≥ 30 events.
-2. Turn boundaries correctly identified.
-3. `DRAW` vs `DRAW_HIDDEN` correctly classified.
-4. Win condition extracted.
-5. Log-level confidence ≥ 0.75 for fixture with all cards in DB.
-6. `GET /api/observed-play/logs/{id}/events` returns events with correct `event_type`.
-7. `POST /api/observed-play/logs/{id}/reparse` replaces events and updates `parser_version`.
-8. All Phase 2 tests pass.
+- Parser v1 with 30+ event types, player aliasing, phase tracking.
+- `observed_play_events` table (Alembic `e1f2a3b4c5d6`).
+- Reparse endpoint. Frontend events modal.
 
-**Tests required:** parser golden fixtures, confidence scoring, event API, reparse.
+---
 
-**Stop condition:** if real log format differs significantly from the expected
-structure, revise the parser before writing more tests.
+### Phase 2.1 — Parser Hardening Against Real Logs
+
+**Status: COMPLETE** (session 25)
+
+**Problem:** Real PTCGL logs produce ~56% confidence due to 9 common patterns
+falling into `unknown` or being misclassified.
+
+**Changes:**
+- Fixed 9 parser bugs (see `docs/CHANGELOG.md` and `docs/STATUS.md` session 25 for detail).
+- Added 3 new event types: `play_trainer`, `attach_card`, `play_to_bench_hidden`.
+- Added parser diagnostics stored in `metadata_json["parser_diagnostics"]`.
+- Updated confidence scoring for new event types.
+- 42 new parser tests + 2 new API tests. New `real_log_sample.md` fixture.
+
+**Known remaining parser limitations (pre-Phase 3):**
+- `PLAYER's CARD used X.` (no target) always classified as `ability_used`; cannot
+  distinguish ability from no-target attack without card DB.
+- `PLAYER played CARD.` without `(Item)`/`(Supporter)` subtype tag classified as
+  generic `play_trainer`; subtype not determinable without card DB.
+- Card names are raw text only — no card DB resolution, no `observed_card_mentions`.
+
+**No Phase 3 work in this session.**
 
 ---
 

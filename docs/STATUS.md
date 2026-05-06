@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-05 (session 24 — Observed Play Phase 2 bugfix: migration not applied, duplicate event_count, empty state, error detail, tests)
+Last updated: 2026-05-06 (session 25 — Observed Play Phase 2.1: Parser Hardening)
 
 ## Current Workstream
 
@@ -18,7 +18,7 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1 (raw import foundation) and Phase 2 (parser v1, event storage) are complete.**
+**Phase 1 (raw import foundation), Phase 2 (parser v1, event storage), and Phase 2.1 (parser hardening) are complete.**
 Phase 3+ (card resolution, memory ingestion) not yet started.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
@@ -38,12 +38,91 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **688 passed, 1 skipped** — 2026-05-05 session 24. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 686/1 (session 23), 648/1 (session 22), 635/1 (session 21). |
-| Frontend unit tests | **159 passed (15 files)** — 2026-05-05 session 24. `cd frontend && npm test -- --run`. Historical: 154 (session 23). |
+| Backend test baseline | **730 passed, 1 skipped** — 2026-05-06 session 25. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 688/1 (session 24). |
+| Frontend unit tests | **159 passed (15 files)** — 2026-05-06 session 25. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
 
-## Session 24 Work (2026-05-05)
+## Session 25 Work (2026-05-06)
+
+### Goal
+
+Phase 2.1: Harden parser v1 against real PTCGL log patterns. Target: reduce
+unknown/misclassified event ratio, improve confidence from 56% baseline.
+
+### Patterns Fixed
+
+9 specific real-log misclassification bugs resolved:
+
+1. **Generic trainer play** — `PLAYER played CARD.` without `(Item)`/`(Supporter)` tag
+   now parses as new `play_trainer` event type (not `unknown`).
+2. **Hidden draw** — `PLAYER drew a card.` and `PLAYER drew N cards.` now correctly
+   parse as `draw_hidden` (not misclassified as known draw). Hidden draws check BEFORE
+   known draw pattern. `draw_hidden` now sets `amount=1` for singular form.
+3. **Non-energy attachment** — `PLAYER attached TOOL to TARGET.` now parses as new
+   `attach_card` event type when card name doesn't contain "Energy". Zone extracted
+   from target string ("in the Active Spot" → `active`, "on the Bench" → `bench`).
+   Energy attachments still correctly parse as `attach_energy`.
+4. **Direct evolution** — `PLAYER evolved FROM to TO [in ZONE].` (PTCGL direct format)
+   now parses as `evolve` with zone extraction. Possessive format still works.
+5. **Ability used** — `PLAYER's CARD used ABILITY.` (no target) now parses as
+   `ability_used`. Both straight (`'`) and curly (`'`) apostrophes supported.
+6. **No-damage attack** — `PLAYER's CARD used ATTACK on TARGET.` (no "for N damage")
+   now parses as `attack_used` with `damage=None`.
+7. **Singular prize** — `PLAYER took a Prize card.` now parses as `prize_taken`
+   with `prize_count_delta=1`. Checked before numeric pattern.
+8. **Hidden bench from deck** — `- PLAYER drew N cards and played them to the Bench.`
+   now parses as new `play_to_bench_hidden` event. `card_name_raw` is not set to `"them"`.
+   Checked before `play_to_bench` pattern.
+9. **Active switch/promotion** — `PLAYER's CARD is now in the Active Spot.` now
+   parses as `switch_active` with `zone="active"`.
+
+### New Event Types
+
+- `play_trainer` — generic trainer play without explicit subtype (confidence 0.85)
+- `attach_card` — non-energy card attachment to a Pokémon (confidence 0.87)
+- `play_to_bench_hidden` — hidden aggregate bench placement from deck (confidence 0.82)
+
+### Parser Diagnostics
+
+Parser now computes and stores diagnostics in `metadata_json["parser_diagnostics"]`:
+
+```json
+{
+  "unknown_count": N,
+  "unknown_ratio": 0.14,
+  "low_confidence_count": K,
+  "event_type_counts": {"turn_start": 20, "draw_hidden": 14, ...},
+  "top_unknown_raw_lines": ["...", ...]
+}
+```
+
+Diagnostics are computed after each parse and reparse. Exposed via existing
+`LogDetail.metadata_json` field — no schema/migration changes required.
+
+### Tests Added
+
+- Parser tests: **42 new tests** across 9 bug classes + diagnostics + real-log fixture
+  (73 total up from 31).
+- API tests: **2 new tests** for diagnostics in reparse response (27 total up from 25).
+- New test fixture: `tests/fixtures/observed_play/real_log_sample.md` with all 9
+  bug-example patterns.
+- Updated `basic_setup_and_turns.md`: first draw changed to named-card draw for
+  `test_draw_events_exist` to remain valid after draw-ordering fix.
+
+### No Phase 3 Work
+
+No card resolution, `observed_card_mentions`, unresolved-card UI, Coach/Player
+integration, pgvector, Neo4j, simulator `match_events`, card performance writes,
+or memory ingestion was added.
+
+### Validation (session 25)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **730 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **159 passed (15 files)** ✓
+- `docs/AUDIT_STATE.md`: not modified ✓
+- `frontend/node_modules`: not committed ✓
+- No real battle-log corpus committed ✓
 
 ### Goal
 

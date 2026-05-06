@@ -1,6 +1,6 @@
 Alice's Turn 1
 
-Alice drew 1 card.
+Alice drew Charizard ex.
 Alice played Rare Candy (Item).
 Alice played Charizard ex to the Bench.
 
