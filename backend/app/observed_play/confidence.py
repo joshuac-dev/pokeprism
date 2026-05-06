@@ -60,6 +60,19 @@ def event_confidence(event_type: str, fields_captured: list[str]) -> tuple[float
     if event_type == "play_to_bench_hidden":
         return 0.82, ["hidden aggregate bench play"]
 
+    if event_type == "card_effect_activated":
+        return 0.78, ["card activation with name captured"]
+
+    if event_type == "discard_from_pokemon":
+        if "card_name_raw" in fields_captured and "target_card_name_raw" in fields_captured:
+            return 0.88, ["discard from pokemon with card/player/target captured"]
+        return 0.80, ["discard from pokemon pattern matched"]
+
+    if event_type == "card_added_to_hand":
+        if "card_name_raw" in fields_captured:
+            return 0.88, ["known card added to hand with player captured"]
+        return 0.80, ["hidden card added to hand with player captured"]
+
     if len(fields_captured) >= 2:
         return 0.88, ["pattern matched with multiple fields"]
     if len(fields_captured) == 1:

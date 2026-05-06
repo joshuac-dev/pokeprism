@@ -32,4 +32,9 @@ gehejo's Dwebble used Ascension.
 gehejo's Dwebble used Shell Smash on DAVIDELIRIUM's Hariyama.
 DAVIDELIRIUM took a Prize card.
 DAVIDELIRIUM took 2 Prize cards.
+DAVIDELIRIUM retreated Hariyama to the Bench.
+DAVIDELIRIUM retreated Mega Lucario ex to the Bench.
+Spiky Energy was activated.
+Basic Fighting Energy was discarded from DAVIDELIRIUM's Solrock.
+Growing Grass Energy was added to gehejo's hand.
 DAVIDELIRIUM ended their turn.

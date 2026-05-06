@@ -1464,11 +1464,52 @@ third unknown player.
 - Frontend: 163 passed (15 files).
 - Manual real-log reparse: dash-prefixed child lines now show correct player aliases.
 
+**Real-log metrics after Phase 2.2:**
+- events: 292, confidence: 84%, unknown: 14 (4.8%), low_confidence: 14
+
 **No Phase 3 work in this session.**
 
 ---
 
-### Phase 3 — Card Mentions / Resolution UI
+### Phase 2.3 — Top Unknown Pattern Hardening
+
+**Status: COMPLETE** (session 27)
+
+**Problem:** After Phase 2.2, 14 unknown events remained (4.8%). The top 5 patterns
+were: direct retreat-to-bench, card/effect activation, discard-from-Pokémon, and
+card-added-to-hand lines.
+
+**Changes:**
+- Added 3 new event types: `card_effect_activated`, `discard_from_pokemon`,
+  `card_added_to_hand`.
+- Added 4 new regex patterns: `RE_RETREAT_DIRECT`, `RE_DISCARD_FROM_POKEMON`,
+  `RE_CARD_EFFECT_ACTIVATED`, `RE_CARD_ADDED_TO_HAND_KNOWN`.
+- Supports both straight `'` and curly `\u2019` apostrophes in possessive patterns.
+- `top_unknown_raw_lines` de-duplicated (same list shape, no frontend changes).
+- 20 new parser tests (107 total, up from 87).
+
+**Top unknown lines resolved:**
+- `PLAYER retreated CARD to the Bench.` → `retreat`
+- `Spiky Energy was activated.` → `card_effect_activated`
+- `CARD was discarded from PLAYER's TARGET.` → `discard_from_pokemon`
+- `CARD was added to PLAYER's hand.` → `card_added_to_hand`
+
+**Validation:**
+- Backend: 767 passed, 1 skipped.
+- Frontend: 163 passed (15 files).
+- All Phase 2.1/2.2 behaviors preserved (dash-prefix, Dwebble Ascension, diagnostics).
+
+**Remaining parser limitations (pre-Phase 3):**
+- PTCGL text art separator lines
+- Some conditional ability announcement formats
+- Deck search confirmations without explicit card names
+- "Looked at top N cards" observation lines
+
+**No Phase 3 work in this session.**
+
+---
+
+
 
 **Files likely touched:**
 - `backend/app/observed_play/card_resolution.py` (new)
@@ -1606,7 +1647,31 @@ Parser diagnostics were stored in `metadata_json` but not exposed in the API or 
 
 ---
 
-## 23. First Implementation Prompt Preview
+## 22.3 Phase 2.3 — Top Unknown Pattern Hardening
+
+**Status:** COMPLETE (session 27).
+
+**Problem:** After Phase 2.2, 14 unknown events (4.8%) remained in the real log.
+Top unknown patterns: direct retreat-to-bench, card/effect activation, discard-from-Pokémon,
+and card-added-to-hand lines.
+
+**Changes:** See `docs/STATUS.md` session 27 and `docs/CHANGELOG.md` for detail.
+
+**Acceptance criteria met:**
+1. `PLAYER retreated CARD to the Bench.` → `retreat` with `target_zone = "bench"`.
+2. `CARD was activated.` → `card_effect_activated`, no unsafe player attribution.
+3. `CARD was discarded from PLAYER's TARGET.` → `discard_from_pokemon`, player/target extracted.
+4. `CARD was added to PLAYER's hand.` → `card_added_to_hand`, known card.
+5. `"A card was added to PLAYER's hand."` still → `prize_card_added_to_hand` (ordering preserved).
+6. Straight and curly apostrophes supported.
+7. `top_unknown_raw_lines` de-duplicated.
+8. 20 new parser tests (107 total).
+9. All Phase 2.1/2.2 behaviors preserved.
+10. No card DB resolution / Coach / Player / pgvector / Neo4j / memory ingestion added.
+
+---
+
+
 
 The next session prompt (Phase 1) will be titled:
 

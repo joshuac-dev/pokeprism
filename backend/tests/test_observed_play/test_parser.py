@@ -21,6 +21,10 @@ from app.observed_play.constants import (
     ET_EVOLVE as EVENT_EVOLVE,
     ET_ABILITY_USED as EVENT_ABILITY_USED,
     ET_SWITCH_ACTIVE as EVENT_SWITCH_ACTIVE,
+    ET_RETREAT as EVENT_RETREAT,
+    ET_CARD_EFFECT_ACTIVATED as EVENT_CARD_EFFECT_ACTIVATED,
+    ET_DISCARD_FROM_POKEMON as EVENT_DISCARD_FROM_POKEMON,
+    ET_CARD_ADDED_TO_HAND as EVENT_CARD_ADDED_TO_HAND,
     ET_UNKNOWN as EVENT_UNKNOWN,
     PHASE_SETUP,
     PHASE_TURN,
@@ -678,3 +682,212 @@ class TestDashChildLineAttribution:
         assert "unknown_ratio" in diag
         assert "event_type_counts" in diag
         assert "top_unknown_raw_lines" in diag
+
+
+class TestPhase23TopUnknowns:
+    """Phase 2.3: top unknown patterns from the real log must be recognized."""
+
+    def _parse_with_players(self, body: str) -> "ParsedObservedLog":
+        """Wrap body with turn headers to register player aliases first."""
+        log = f"gehejo's Turn 1\n\nDAVIDELIRIUM's Turn 1\n\n{body}\n"
+        return parse_log(log)
+
+    # ── Retreat (direct form) ────────────────────────────────────────────────
+
+    def test_retreat_direct_single_word_pokemon(self):
+        result = self._parse_with_players("DAVIDELIRIUM retreated Hariyama to the Bench.\n")
+        retreats = [e for e in result.events if e.event_type == EVENT_RETREAT]
+        assert len(retreats) >= 1
+        r = retreats[0]
+        assert r.player_raw == "DAVIDELIRIUM"
+        assert r.player_alias == "player_2"
+        assert r.card_name_raw == "Hariyama"
+        assert r.target_zone == "bench"
+
+    def test_retreat_direct_multi_word_pokemon(self):
+        result = self._parse_with_players("DAVIDELIRIUM retreated Mega Lucario ex to the Bench.\n")
+        retreats = [e for e in result.events if e.event_type == EVENT_RETREAT]
+        assert len(retreats) >= 1
+        r = retreats[0]
+        assert r.card_name_raw == "Mega Lucario ex"
+        assert r.player_alias == "player_2"
+        assert r.target_zone == "bench"
+
+    def test_retreat_direct_raw_line_preserved(self):
+        result = self._parse_with_players("DAVIDELIRIUM retreated Hariyama to the Bench.\n")
+        retreats = [e for e in result.events if e.event_type == EVENT_RETREAT]
+        assert len(retreats) >= 1
+        assert retreats[0].raw_line == "DAVIDELIRIUM retreated Hariyama to the Bench."
+
+    # ── Card/effect activated ────────────────────────────────────────────────
+
+    def test_card_effect_activated_no_player_guess(self):
+        result = self._parse_with_players("Spiky Energy was activated.\n")
+        activated = [e for e in result.events if e.event_type == EVENT_CARD_EFFECT_ACTIVATED]
+        assert len(activated) >= 1
+        a = activated[0]
+        assert a.card_name_raw == "Spiky Energy"
+        assert a.player_raw is None
+        assert a.player_alias is None
+
+    def test_card_effect_activated_payload(self):
+        result = self._parse_with_players("Legacy Energy was activated.\n")
+        activated = [e for e in result.events if e.event_type == EVENT_CARD_EFFECT_ACTIVATED]
+        assert len(activated) >= 1
+        assert activated[0].event_payload.get("activation_name") == "Legacy Energy"
+
+    def test_card_effect_activated_raw_line_preserved(self):
+        result = self._parse_with_players("Spiky Energy was activated.\n")
+        activated = [e for e in result.events if e.event_type == EVENT_CARD_EFFECT_ACTIVATED]
+        assert len(activated) >= 1
+        assert activated[0].raw_line == "Spiky Energy was activated."
+
+    # ── Discard from Pokémon ─────────────────────────────────────────────────
+
+    def test_discard_from_pokemon_straight_apostrophe(self):
+        result = self._parse_with_players(
+            "Basic Fighting Energy was discarded from DAVIDELIRIUM's Solrock.\n"
+        )
+        discards = [e for e in result.events if e.event_type == EVENT_DISCARD_FROM_POKEMON]
+        assert len(discards) >= 1
+        d = discards[0]
+        assert d.card_name_raw == "Basic Fighting Energy"
+        assert d.player_raw == "DAVIDELIRIUM"
+        assert d.player_alias == "player_2"
+        assert d.target_card_name_raw == "Solrock"
+        assert d.zone == "discard"
+
+    def test_discard_from_pokemon_curly_apostrophe(self):
+        result = self._parse_with_players(
+            "Spiky Energy was discarded from gehejo\u2019s Crustle.\n"
+        )
+        discards = [e for e in result.events if e.event_type == EVENT_DISCARD_FROM_POKEMON]
+        assert len(discards) >= 1
+        d = discards[0]
+        assert d.card_name_raw == "Spiky Energy"
+        assert d.player_raw == "gehejo"
+        assert d.player_alias == "player_1"
+        assert d.target_card_name_raw == "Crustle"
+
+    def test_discard_from_pokemon_payload_source(self):
+        result = self._parse_with_players(
+            "Basic Fighting Energy was discarded from DAVIDELIRIUM's Solrock.\n"
+        )
+        discards = [e for e in result.events if e.event_type == EVENT_DISCARD_FROM_POKEMON]
+        assert len(discards) >= 1
+        assert discards[0].event_payload.get("source") == "from_pokemon"
+
+    def test_discard_from_pokemon_raw_line_preserved(self):
+        result = self._parse_with_players(
+            "Basic Fighting Energy was discarded from DAVIDELIRIUM's Solrock.\n"
+        )
+        discards = [e for e in result.events if e.event_type == EVENT_DISCARD_FROM_POKEMON]
+        assert len(discards) >= 1
+        assert discards[0].raw_line == "Basic Fighting Energy was discarded from DAVIDELIRIUM's Solrock."
+
+    # ── Card added to hand ───────────────────────────────────────────────────
+
+    def test_card_added_to_hand_known_card(self):
+        result = self._parse_with_players("Growing Grass Energy was added to gehejo's hand.\n")
+        added = [e for e in result.events if e.event_type == EVENT_CARD_ADDED_TO_HAND]
+        assert len(added) >= 1
+        a = added[0]
+        assert a.card_name_raw == "Growing Grass Energy"
+        assert a.player_raw == "gehejo"
+        assert a.player_alias == "player_1"
+        assert a.zone == "hand"
+
+    def test_card_added_to_hand_curly_apostrophe(self):
+        result = self._parse_with_players(
+            "Hero\u2019s Cape was added to gehejo\u2019s hand.\n"
+        )
+        added = [e for e in result.events if e.event_type == EVENT_CARD_ADDED_TO_HAND]
+        assert len(added) >= 1
+        assert added[0].card_name_raw == "Hero\u2019s Cape"
+        assert added[0].player_raw == "gehejo"
+
+    def test_card_added_to_hand_raw_line_preserved(self):
+        result = self._parse_with_players("Growing Grass Energy was added to gehejo's hand.\n")
+        added = [e for e in result.events if e.event_type == EVENT_CARD_ADDED_TO_HAND]
+        assert len(added) >= 1
+        assert added[0].raw_line == "Growing Grass Energy was added to gehejo's hand."
+
+    # ── Regression guards ────────────────────────────────────────────────────
+
+    def test_dwebble_ascension_still_ability_used(self):
+        result = parse_log("gehejo's Turn 1\ngehejo's Dwebble used Ascension.\n")
+        abilities = [e for e in result.events if e.event_type == EVENT_ABILITY_USED]
+        assert len(abilities) >= 1
+        assert abilities[0].card_name_raw == "Dwebble"
+
+    def test_no_damage_attack_still_attack_used(self):
+        result = parse_log(
+            "Alice's Turn 1\nBob's Turn 1\n"
+            "Alice's Charizard used Flame Charge on Bob's Squirtle.\n"
+        )
+        attacks = [e for e in result.events if e.event_type == EVENT_ATTACK]
+        assert len(attacks) >= 1
+
+    def test_dash_prefix_regression_still_works(self):
+        log = "gehejo's Turn 1\n\n- gehejo shuffled their deck.\n"
+        result = parse_log(log)
+        shuffles = [e for e in result.events if e.event_type == "shuffle_deck"]
+        assert len(shuffles) >= 1
+        assert shuffles[0].player_alias == "player_1"
+
+    def test_real_log_fixture_top_unknowns_resolved(self):
+        """Phase 2.3 patterns must clear the 5 top unknown lines from the real log."""
+        import os
+        fixture_path = os.path.join(
+            os.path.dirname(__file__), "..", "fixtures", "observed_play", "real_log_sample.md"
+        )
+        with open(fixture_path) as f:
+            content = f.read()
+        result = parse_log(content)
+        unknown_lines = {
+            e.raw_line for e in result.events if e.event_type == EVENT_UNKNOWN
+        }
+        for expected_resolved in [
+            "DAVIDELIRIUM retreated Hariyama to the Bench.",
+            "DAVIDELIRIUM retreated Mega Lucario ex to the Bench.",
+            "Spiky Energy was activated.",
+            "Basic Fighting Energy was discarded from DAVIDELIRIUM's Solrock.",
+            "Growing Grass Energy was added to gehejo's hand.",
+        ]:
+            assert expected_resolved not in unknown_lines, (
+                f"Expected line to be resolved but still unknown: {expected_resolved!r}"
+            )
+
+    def test_diagnostics_unknown_count_reduced(self):
+        """After Phase 2.3 patterns, unknown_count must be <= 1 on the curated fixture."""
+        import os
+        fixture_path = os.path.join(
+            os.path.dirname(__file__), "..", "fixtures", "observed_play", "real_log_sample.md"
+        )
+        with open(fixture_path) as f:
+            content = f.read()
+        result = parse_log(content)
+        diag = result.metadata["parser_diagnostics"]
+        assert diag["unknown_count"] <= 1, (
+            f"Expected <= 1 unknowns after Phase 2.3, got {diag['unknown_count']}. "
+            f"Top unknown lines: {diag['top_unknown_raw_lines']}"
+        )
+
+    def test_diagnostics_top_unknown_lines_deduplicated(self):
+        """top_unknown_raw_lines must not contain duplicate strings."""
+        log = "gehejo's Turn 1\n\nXXXXX unknown line here.\nXXXXX unknown line here.\n"
+        result = parse_log(log)
+        diag = result.metadata["parser_diagnostics"]
+        lines = diag["top_unknown_raw_lines"]
+        assert len(lines) == len(set(lines)), "top_unknown_raw_lines contains duplicates"
+
+    def test_parser_never_throws_on_fixture(self):
+        import os
+        fixture_path = os.path.join(
+            os.path.dirname(__file__), "..", "fixtures", "observed_play", "real_log_sample.md"
+        )
+        with open(fixture_path) as f:
+            content = f.read()
+        result = parse_log(content)
+        assert result is not None
+        assert len(result.events) > 0

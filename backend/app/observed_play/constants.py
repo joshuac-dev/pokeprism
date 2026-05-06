@@ -45,6 +45,11 @@ ET_SEARCH_OR_FETCH = "search_or_fetch"
 ET_RECOVER_FROM_DISCARD = "recover_from_discard"
 ET_END_TURN = "end_turn"
 
+# Event types (turn — Phase 2.3 additions)
+ET_CARD_EFFECT_ACTIVATED = "card_effect_activated"
+ET_DISCARD_FROM_POKEMON = "discard_from_pokemon"
+ET_CARD_ADDED_TO_HAND = "card_added_to_hand"
+
 # Event types (combat/game end)
 ET_ATTACK_USED = "attack_used"
 ET_DAMAGE_BREAKDOWN = "damage_breakdown"

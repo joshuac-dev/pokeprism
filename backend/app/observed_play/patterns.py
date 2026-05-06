@@ -75,6 +75,11 @@ RE_GAME_END_KO = re.compile(r"(?P<winner>.+?) wins!", re.IGNORECASE)
 
 # Retreat / switch
 RE_RETREAT = re.compile(r"^(?P<player>.+?)['\u2019]s (?P<card>.+?) retreated", re.IGNORECASE)
+# Direct retreat: "PLAYER retreated CARD to the Bench."
+RE_RETREAT_DIRECT = re.compile(
+    r"^(?P<player>.+?) retreated (?P<card>.+?) to the Bench\.$",
+    re.IGNORECASE,
+)
 RE_SWITCH_ACTIVE = re.compile(r"^(?P<player>.+?) switched in (?P<card>.+?) to the Active Spot", re.IGNORECASE)
 # Promotion / "now in Active Spot": "PLAYER's CARD is now in the Active Spot."
 RE_NOW_ACTIVE = re.compile(r"^(?P<player>.+?)['\u2019]s (?P<card>.+?) is now in the Active Spot", re.IGNORECASE)
@@ -87,6 +92,11 @@ RE_SHUFFLE = re.compile(r"^(?P<player>.+?) shuffled their deck", re.IGNORECASE)
 
 # Discard
 RE_DISCARD = re.compile(r"^(?P<player>.+?) discarded (?P<card>.+?) from their", re.IGNORECASE)
+# Passive discard from a Pokémon: "CARD was discarded from PLAYER's TARGET."
+RE_DISCARD_FROM_POKEMON = re.compile(
+    r"^(?P<card>.+?) was discarded from (?P<player>.+?)['\u2019]s (?P<target>.+?)\.$",
+    re.IGNORECASE,
+)
 
 # Bullet / sub-line
 RE_BULLET_LINE = re.compile(r"^\s+•\s*(?P<content>.+)$")
@@ -105,3 +115,16 @@ RE_RECOVER = re.compile(r"^(?P<player>.+?) recovered (?P<card>.+?) from the disc
 
 # Play basic to bench (generic; RE_PLAY_TO_BENCH will also match)
 RE_PLAY_BASIC = re.compile(r"^(?P<player>.+?) played (?P<card>.+?) to the Bench", re.IGNORECASE)
+
+# Phase 2.3 patterns
+# Card/effect activation: "CARD was activated."
+RE_CARD_EFFECT_ACTIVATED = re.compile(
+    r"^(?P<card>.+?) was activated\.$",
+    re.IGNORECASE,
+)
+# Named card added to hand: "CARD was added to PLAYER's hand."
+# (keep after RE_PRIZE_CARD_ADDED which handles "A card was added to PLAYER's hand.")
+RE_CARD_ADDED_TO_HAND_KNOWN = re.compile(
+    r"^(?P<card>.+?) was added to (?P<player>.+?)['\u2019]s hand\.$",
+    re.IGNORECASE,
+)

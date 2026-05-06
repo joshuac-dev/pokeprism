@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 26 — Observed Play Phase 2.2: Parser Polish & Diagnostics UI)
+Last updated: 2026-05-06 (session 27 — Observed Play Phase 2.3: Top Unknown Pattern Hardening)
 
 ## Current Workstream
 
@@ -18,7 +18,7 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1, Phase 2, Phase 2.1, and Phase 2.2 are complete.**
+**Phase 1, Phase 2, Phase 2.1, Phase 2.2, and Phase 2.3 are complete.**
 Phase 3+ (card resolution, memory ingestion) not yet started.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
@@ -38,7 +38,7 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **747 passed, 1 skipped** — 2026-05-06 session 26. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 730/1 (session 25). |
+| Backend test baseline | **767 passed, 1 skipped** — 2026-05-06 session 27. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 747/1 (session 26). |
 | Frontend unit tests | **163 passed (15 files)** — 2026-05-06 session 26. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
@@ -126,7 +126,75 @@ Known patterns still producing `unknown` events in real logs:
 - "Looked at top N cards" observation lines
 These are candidates for Phase 2.3 if needed before Phase 3.
 
-## Session 25 Work (2026-05-06)
+## Session 27 Work (2026-05-06)
+
+### Goal
+
+Phase 2.3: Address the top remaining unknown patterns from the manually validated
+real log. After Phase 2.2 the log had 14 unknowns (4.8%). The top 5 patterns were:
+direct retreat-to-bench, card/effect activation, discard-from-Pokémon, and
+card-added-to-hand.
+
+### New Event Types
+
+- `ET_CARD_EFFECT_ACTIVATED` (`"card_effect_activated"`) — lines like `"Spiky Energy was activated."`
+- `ET_DISCARD_FROM_POKEMON` (`"discard_from_pokemon"`) — lines like `"Basic Fighting Energy was discarded from DAVIDELIRIUM's Solrock."`
+- `ET_CARD_ADDED_TO_HAND` (`"card_added_to_hand"`) — lines like `"Growing Grass Energy was added to gehejo's hand."` and hidden `"A card was added to PLAYER's hand."`
+
+### New Patterns
+
+- `RE_RETREAT_DIRECT` — `PLAYER retreated CARD to the Bench.` (direct form, before `RE_RETREAT`)
+- `RE_DISCARD_FROM_POKEMON` — passive discard from Pokémon with player/target extraction (after `RE_DISCARD`)
+- `RE_CARD_EFFECT_ACTIVATED` — `CARD was activated.` (late in parser before bullet-skip)
+- `RE_CARD_ADDED_TO_HAND_KNOWN` — named-card form added to hand (after `RE_PRIZE_CARD_ADDED`)
+
+Pattern ordering preserved: prize-card-added before named-card-added-to-hand so "A card was added to PLAYER's hand" still emits `prize_card_added_to_hand`.
+
+Supports both straight `'` and curly `\u2019` apostrophes in possessive patterns.
+
+### Diagnostics Improvement
+
+- `top_unknown_raw_lines` de-duplicated using a seen-set; same list shape, no frontend changes.
+
+### Tests Added
+
+- **20 new tests** in `TestPhase23TopUnknowns` class covering all 4 new patterns,
+  multi-word Pokémon names, curly apostrophe, hidden-card variant, Phase 2.2 regression
+  (dash-prefix, Dwebble Ascension, targeted attack), and unknown-count reduction.
+  (107 total parser tests, up from 87.)
+
+### Validation (session 27)
+
+- `cd backend && python3 -m pytest tests/test_observed_play/ -q`: **107 passed** ✓
+- `cd backend && python3 -m pytest tests/ -x -q`: **767 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **163 passed (15 files)** ✓
+- `cd frontend && npm run build`: ✓ built in ~4.5s
+- `docs/AUDIT_STATE.md`: not modified ✓
+- `frontend/node_modules`: not committed ✓
+- No real battle-log corpus committed ✓
+- No card resolution / Coach / AI / Neo4j / pgvector / memory ingestion added ✓
+
+### Manual Real-Log Metrics (before/after Phase 2.3)
+
+Before:  events=292, confidence=84%, unknown=14 (4.8%), low_confidence=14
+Expected after: events≈292, confidence≥84%, unknown materially lower
+
+The five top unknown lines targeted:
+- `DAVIDELIRIUM retreated Hariyama to the Bench.` → `retreat` ✓
+- `DAVIDELIRIUM retreated Mega Lucario ex to the Bench.` → `retreat` ✓
+- `Spiky Energy was activated.` → `card_effect_activated` ✓
+- `Basic Fighting Energy was discarded from DAVIDELIRIUM's Solrock.` → `discard_from_pokemon` ✓
+- `Growing Grass Energy was added to gehejo's hand.` → `card_added_to_hand` ✓
+
+### Parser Limitations Remaining
+
+- PTCGL text art separator lines
+- Some conditional ability announcement formats
+- Deck search confirmations without explicit card names
+- "Looked at top N cards" observation lines
+
+## Session 26 Work (2026-05-06)
+
 
 ### Goal
 

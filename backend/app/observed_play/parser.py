@@ -26,6 +26,7 @@ from .constants import (
     ET_END_TURN,
     ET_ATTACK_USED, ET_DAMAGE_BREAKDOWN, ET_KNOCKOUT, ET_PRIZE_TAKEN,
     ET_PRIZE_CARD_ADDED, ET_GAME_END,
+    ET_CARD_EFFECT_ACTIVATED, ET_DISCARD_FROM_POKEMON, ET_CARD_ADDED_TO_HAND,
     ET_UNKNOWN,
 )
 from .patterns import (
@@ -40,12 +41,13 @@ from .patterns import (
     RE_EVOLVE, RE_EVOLVE_DIRECT,
     RE_ATTACH_ENERGY, RE_ATTACH_GENERAL,
     RE_ABILITY_USED, RE_ABILITY_USED_NEW,
-    RE_RETREAT, RE_SWITCH_ACTIVE, RE_NOW_ACTIVE,
-    RE_END_TURN, RE_SHUFFLE, RE_DISCARD,
+    RE_RETREAT, RE_RETREAT_DIRECT, RE_SWITCH_ACTIVE, RE_NOW_ACTIVE,
+    RE_END_TURN, RE_SHUFFLE, RE_DISCARD, RE_DISCARD_FROM_POKEMON,
     RE_ATTACK, RE_ATTACK_NO_DAMAGE, RE_DAMAGE_BREAKDOWN_LABEL,
     RE_BASE_DAMAGE, RE_TOTAL_DAMAGE,
     RE_KNOCKOUT,
     RE_PRIZE_TAKEN_SINGULAR, RE_PRIZE_TAKEN, RE_PRIZE_CARD_ADDED,
+    RE_CARD_ADDED_TO_HAND_KNOWN, RE_CARD_EFFECT_ACTIVATED,
     RE_GAME_END_PRIZES, RE_GAME_END_DECK, RE_GAME_END_KO,
     RE_BULLET_LINE, RE_DASH_LINE, RE_BENCH_FROM_DECK_HIDDEN,
     RE_SEARCH, RE_RECOVER,
@@ -691,6 +693,26 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             i += 1
             continue
 
+        # ── Named card added to hand ──────────────────────────────────────────
+        # "CARD was added to PLAYER's hand." (must run AFTER RE_PRIZE_CARD_ADDED
+        # so "A card was added to..." stays as prize_card_added_to_hand)
+        m = RE_CARD_ADDED_TO_HAND_KNOWN.match(match_line)
+        if m:
+            card = m.group("card").strip()
+            player = m.group("player").strip()
+            alias, actor = get_alias(player)
+            score, reasons = event_confidence(ET_CARD_ADDED_TO_HAND, ["player_raw", "card_name_raw"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_CARD_ADDED_TO_HAND, stripped,
+                player_raw=player, player_alias=alias, actor_type=actor,
+                card_name_raw=card, zone="hand",
+                event_payload={"hidden": False},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
         # ── Draw hidden (N cards) — checked BEFORE known draw ─────────────────
         m = RE_DRAW_N_HIDDEN.match(match_line)
         if m:
@@ -982,7 +1004,24 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             i += 1
             continue
 
-        # ── Retreat ───────────────────────────────────────────────────────────
+        # ── Retreat (direct: PLAYER retreated CARD to the Bench.) ────────────
+        m = RE_RETREAT_DIRECT.match(match_line)
+        if m:
+            player = m.group("player").strip()
+            card = m.group("card").strip()
+            alias, actor = get_alias(player)
+            score, reasons = event_confidence(ET_RETREAT, ["player_raw", "card_name_raw"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_RETREAT, stripped,
+                player_raw=player, player_alias=alias, actor_type=actor,
+                card_name_raw=card, target_zone="bench",
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
+        # ── Retreat (possessive: PLAYER's CARD retreated) ─────────────────────
         m = RE_RETREAT.match(match_line)
         if m:
             player = m.group("player").strip()
@@ -1042,6 +1081,25 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             events.append(_make_event(
                 event_idx, current_turn, current_phase, ET_SHUFFLE_DECK, stripped,
                 player_raw=player, player_alias=alias, actor_type=actor,
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
+        # ── Discard from Pokémon (passive: CARD was discarded from PLAYER's TARGET.) ──
+        m = RE_DISCARD_FROM_POKEMON.match(match_line)
+        if m:
+            card = m.group("card").strip()
+            player = m.group("player").strip()
+            target = m.group("target").strip()
+            alias, actor = get_alias(player)
+            score, reasons = event_confidence(ET_DISCARD_FROM_POKEMON, ["player_raw", "card_name_raw", "target_card_name_raw"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_DISCARD_FROM_POKEMON, stripped,
+                player_raw=player, player_alias=alias, actor_type=actor,
+                card_name_raw=card, target_card_name_raw=target, zone="discard",
+                event_payload={"source": "from_pokemon"},
                 confidence_score=score, confidence_reasons=reasons,
             ))
             event_idx += 1
@@ -1115,6 +1173,21 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             i += 1
             continue
 
+        # ── Card/effect activated ("CARD was activated.") ────────────────────
+        m = RE_CARD_EFFECT_ACTIVATED.match(match_line)
+        if m:
+            card = m.group("card").strip()
+            score, reasons = event_confidence(ET_CARD_EFFECT_ACTIVATED, ["card_name_raw"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_CARD_EFFECT_ACTIVATED, stripped,
+                card_name_raw=card,
+                event_payload={"activation_name": card},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
         # ── Bullet/dash sub-lines (not consumed by parent) ────────────────────
         if RE_BULLET_LINE.match(line):
             i += 1
@@ -1168,9 +1241,14 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
     event_type_counts: dict[str, int] = {}
     for e in events:
         event_type_counts[e.event_type] = event_type_counts.get(e.event_type, 0) + 1
-    top_unknown_raw_lines = [
-        e.raw_line for e in unknown_events if e.raw_line
-    ][:20]
+    top_unknown_raw_lines: list[str] = []
+    _seen_unknown_lines: set[str] = set()
+    for _e in unknown_events:
+        if _e.raw_line and _e.raw_line not in _seen_unknown_lines:
+            _seen_unknown_lines.add(_e.raw_line)
+            top_unknown_raw_lines.append(_e.raw_line)
+            if len(top_unknown_raw_lines) >= 20:
+                break
 
     diagnostics = {
         "unknown_count": unknown_count,
