@@ -799,3 +799,92 @@ class TestParserDiagnosticsInApi:
         assert "low_confidence_count" in diag
         assert "event_type_counts" in diag
         assert "top_unknown_raw_lines" in diag
+
+    def test_log_list_includes_parser_diagnostics_when_present(self, client):
+        """Log list should include parser_diagnostics when metadata_json contains it."""
+        log = _make_log_model()
+        log.metadata_json = {
+            "parser_diagnostics": {
+                "unknown_count": 5,
+                "unknown_ratio": 0.05,
+                "low_confidence_count": 3,
+                "event_type_counts": {"draw_hidden": 10, "unknown": 5},
+                "top_unknown_raw_lines": ["some unknown line"],
+            }
+        }
+
+        async def override_db():
+            session = AsyncMock()
+            count_result = MagicMock()
+            count_result.scalar_one.return_value = 1
+            list_result = MagicMock()
+            list_result.scalars.return_value.all.return_value = [log]
+            session.execute = AsyncMock(side_effect=[count_result, list_result])
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        item = resp.json()["items"][0]
+        assert item["parser_diagnostics"] is not None
+        assert item["parser_diagnostics"]["unknown_count"] == 5
+        assert item["parser_diagnostics"]["unknown_ratio"] == pytest.approx(0.05)
+
+    def test_log_list_null_diagnostics_for_old_logs(self, client):
+        """Logs without diagnostics in metadata_json return null, not 500."""
+        log = _make_log_model()
+        log.metadata_json = {}  # no parser_diagnostics key
+
+        async def override_db():
+            session = AsyncMock()
+            count_result = MagicMock()
+            count_result.scalar_one.return_value = 1
+            list_result = MagicMock()
+            list_result.scalars.return_value.all.return_value = [log]
+            session.execute = AsyncMock(side_effect=[count_result, list_result])
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        item = resp.json()["items"][0]
+        assert item["parser_diagnostics"] is None
+
+    def test_reparse_response_includes_parser_diagnostics(self, client):
+        """Reparse endpoint should include parser_diagnostics in response."""
+        log = _make_log_model(raw_content="Alice's Turn 1\nAlice drew a card.\nunknown stuff\n")
+
+        async def override_db():
+            session = AsyncMock()
+            log_result = MagicMock()
+            log_result.scalars.return_value.first.return_value = log
+            delete_result = MagicMock()
+            session.execute = AsyncMock(side_effect=[log_result, delete_result])
+            session.add = MagicMock()
+            session.commit = AsyncMock()
+            session.refresh = AsyncMock(side_effect=lambda obj: None)
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post(f"/api/observed-play/logs/{log.id}/reparse")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "parser_diagnostics" in data
+        # After reparse, metadata_json is populated so diagnostics should be non-null
+        assert data["parser_diagnostics"] is not None
+        assert "unknown_count" in data["parser_diagnostics"]

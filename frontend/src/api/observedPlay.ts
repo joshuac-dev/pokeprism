@@ -6,6 +6,7 @@ import type {
   PaginatedEvents,
   PaginatedObservedPlayBatches,
   PaginatedObservedPlayLogs,
+  ParserDiagnostics,
 } from '../types/observedPlay';
 
 export interface ListBatchesParams {
@@ -79,7 +80,7 @@ export async function getObservedPlayLogEvents(
 
 export async function reparseObservedPlayLog(
   logId: string,
-): Promise<{ log_id: string; parse_status: string; event_count: number; turn_count: number; confidence_score: number | null; parser_version: string | null; warnings: unknown[]; errors: unknown[] }> {
+): Promise<{ log_id: string; parse_status: string; event_count: number; turn_count: number; confidence_score: number | null; parser_version: string | null; warnings: unknown[]; errors: unknown[]; parser_diagnostics: ParserDiagnostics | null }> {
   const resp = await api.post(`/api/observed-play/logs/${logId}/reparse`);
   return resp.data;
 }

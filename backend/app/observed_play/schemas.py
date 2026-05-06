@@ -4,7 +4,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class ParserDiagnostics(BaseModel):
+    unknown_count: int = 0
+    unknown_ratio: float = 0.0
+    low_confidence_count: int = 0
+    event_type_counts: dict[str, int] = Field(default_factory=dict)
+    top_unknown_raw_lines: list[str] = Field(default_factory=list)
 
 
 # ── Per-file import result ─────────────────────────────────────────────────────
@@ -55,6 +63,7 @@ class LogSummary(BaseModel):
     confidence_score: float | None = None
     winner_raw: str | None = None
     win_condition: str | None = None
+    parser_diagnostics: ParserDiagnostics | None = None
 
 
 class LogDetail(LogSummary):
@@ -153,3 +162,4 @@ class ReparseSummary(BaseModel):
     parser_version: str | None
     warnings: list[Any]
     errors: list[Any]
+    parser_diagnostics: ParserDiagnostics | None = None

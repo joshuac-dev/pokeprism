@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 25 — Observed Play Phase 2.1: Parser Hardening)
+Last updated: 2026-05-06 (session 26 — Observed Play Phase 2.2: Parser Polish & Diagnostics UI)
 
 ## Current Workstream
 
@@ -18,7 +18,7 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1 (raw import foundation), Phase 2 (parser v1, event storage), and Phase 2.1 (parser hardening) are complete.**
+**Phase 1, Phase 2, Phase 2.1, and Phase 2.2 are complete.**
 Phase 3+ (card resolution, memory ingestion) not yet started.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
@@ -38,10 +38,93 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **730 passed, 1 skipped** — 2026-05-06 session 25. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 688/1 (session 24). |
-| Frontend unit tests | **159 passed (15 files)** — 2026-05-06 session 25. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **747 passed, 1 skipped** — 2026-05-06 session 26. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 730/1 (session 25). |
+| Frontend unit tests | **163 passed (15 files)** — 2026-05-06 session 26. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 26 Work (2026-05-06)
+
+### Goal
+
+Phase 2.2: Polish parser v1 after Phase 2.1. Fix dash-prefixed child-line player
+attribution, expose parser diagnostics in the API and UI.
+
+### Root Cause Fixed
+
+Dash-prefixed child lines like `"- gehejo shuffled their deck."` were matched
+against patterns with `stripped` (the raw whitespace-stripped value). The lazy
+regex `^(?P<player>.+?) shuffled their deck` would capture `player = "- gehejo"`.
+`get_alias("- gehejo")` registered it as a new third player → `unknown` alias.
+
+### Fix Applied
+
+1. **`_strip_dash_prefix(line)`** helper added to `parser.py` — strips leading
+   `"- "` from a line for pattern matching only; `raw_line` still records the
+   original line with the dash.
+
+2. **`match_line`** computed after `stripped = line.strip()` at the top of the
+   parser's main `while` loop. All ~44 pattern `.match()` and `.search()` calls
+   now use `match_line`. The bottom `RE_DASH_LINE.match(stripped)` fallback still
+   uses `stripped` so unrecognized dash lines are silently skipped.
+
+3. **`patterns.py`** — removed `^-\s*` prefix from `RE_MULLIGAN_CARDS_LABEL`,
+   `RE_DAMAGE_BREAKDOWN_LABEL`, and `RE_BENCH_FROM_DECK_HIDDEN`. These now rely
+   on `match_line` normalization.
+
+### Diagnostics API Exposure
+
+4. **`schemas.py`** — new `ParserDiagnostics` Pydantic model with `unknown_count`,
+   `unknown_ratio`, `low_confidence_count`, `event_type_counts`, `top_unknown_raw_lines`.
+   Added `parser_diagnostics: ParserDiagnostics | None = None` to `LogSummary` and
+   `ReparseSummary`.
+
+5. **`api/observed_play.py`** — `_log_to_summary` now extracts `parser_diagnostics`
+   from `metadata_json` and returns it in the log list response. Reparse endpoint
+   includes `parser_diagnostics` in its `ReparseSummary` response.
+
+### Diagnostics UI
+
+6. **`frontend/src/types/observedPlay.ts`** — `ParserDiagnostics` interface added;
+   `parser_diagnostics?: ParserDiagnostics | null` added to `ObservedPlayLog`.
+
+7. **`frontend/src/pages/ObservedPlay.tsx`** — `ParserDiagnosticsPanel` component
+   shows unknown count/ratio, low-confidence count, and top unknown lines. Shown
+   inside `EventsModal` above the events table when diagnostics are present.
+   Diagnostics state is initialized from the log list and updated after reparse.
+
+### Tests Added
+
+- Parser tests: **14 new tests** in `TestDashChildLineAttribution` class covering
+  dash-prefixed shuffle, draw, hidden draw, evolution, bench-from-deck with player
+  alias assertions; raw_line preservation; non-dash regression; Dwebble Ascension
+  preserved; targeted no-damage attack stays `attack_used`; real-log fixture dash
+  lines check; diagnostics still present after changes. (87 total, up from 73.)
+- API tests: **3 new tests** in `TestParserDiagnosticsInApi` — log list includes
+  `parser_diagnostics` when present, null for old logs, reparse response includes
+  `parser_diagnostics`. (17 total in class, up from 14.)
+- Frontend tests: **5 new tests** — diagnostics panel shown with correct values,
+  top unknown lines rendered, modal works without diagnostics, reparse updates
+  diagnostics display. (163 total, up from 159.)
+
+### Validation (session 26)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **747 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **163 passed (15 files)** ✓
+- `cd frontend && npm run build`: ✓ built in ~4s
+- `docs/AUDIT_STATE.md`: not modified ✓
+- `frontend/node_modules`: not committed ✓
+- No real battle-log corpus committed ✓
+- No card resolution / Coach / AI / Neo4j / pgvector / memory ingestion added ✓
+
+### Parser Limitations Remaining
+
+Known patterns still producing `unknown` events in real logs:
+- PTCGL text art separator lines
+- Some conditional ability announcement formats
+- Deck search confirmations without explicit card names
+- "Looked at top N cards" observation lines
+These are candidates for Phase 2.3 if needed before Phase 3.
 
 ## Session 25 Work (2026-05-06)
 

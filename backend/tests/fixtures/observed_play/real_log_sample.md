@@ -9,6 +9,8 @@ gehejo's Turn 1
 gehejo drew a card.
 gehejo drew 2 cards.
 gehejo played Buddy-Buddy Poffin.
+- gehejo shuffled their deck.
+- gehejo drew Hero's Cape.
 gehejo played Team Rocket's Petrel.
 - gehejo drew 2 cards and played them to the Bench.
 gehejo attached Psychic Energy to Dwebble.
@@ -22,6 +24,9 @@ DAVIDELIRIUM drew a card.
 DAVIDELIRIUM played Hilda.
 DAVIDELIRIUM evolved Riolu to Mega Lucario ex in the Active Spot.
 DAVIDELIRIUM evolved Makuhita to Hariyama on the Bench.
+- DAVIDELIRIUM drew 2 cards.
+- DAVIDELIRIUM shuffled their deck.
+- gehejo evolved Dwebble to Crustle in the Active Spot.
 DAVIDELIRIUM's Hariyama used Heave-Ho Catcher.
 gehejo's Dwebble used Ascension.
 gehejo's Dwebble used Shell Smash on DAVIDELIRIUM's Hariyama.

@@ -8,7 +8,7 @@ RE_TURN_ORDER_CHOICE = re.compile(r'^(?P<player>.+?) decided to go (?P<order>fir
 RE_OPENING_HAND_HIDDEN = re.compile(r'^(?P<player>.+?) drew (?P<n>\d+) cards? for the opening hand', re.IGNORECASE)
 RE_MULLIGAN = re.compile(r'^(?P<player>.+?) took a mulligan', re.IGNORECASE)
 RE_MULLIGAN_EXTRA_DRAW = re.compile(r'^(?P<player>.+?) drew (?P<n>\d+) more card.*because (?P<other>.+?) took at least', re.IGNORECASE)
-RE_MULLIGAN_CARDS_LABEL = re.compile(r'^-\s*Cards revealed from Mulligan', re.IGNORECASE)
+RE_MULLIGAN_CARDS_LABEL = re.compile(r'^Cards revealed from Mulligan', re.IGNORECASE)
 RE_PLAY_TO_ACTIVE = re.compile(r'^(?P<player>.+?) played (?P<card>.+?) to the Active Spot', re.IGNORECASE)
 RE_PLAY_TO_BENCH = re.compile(r"^(?P<player>.+?) played (?P<card>.+?) to the Bench", re.IGNORECASE)
 
@@ -55,7 +55,7 @@ RE_ATTACK_NO_DAMAGE = re.compile(
     r"^(?P<player>.+?)['\u2019]s (?P<card>.+?) used (?P<attack>.+?) on (?P<target_player>.+?)['\u2019]s (?P<target_card>.+?)\.$",
     re.IGNORECASE,
 )
-RE_DAMAGE_BREAKDOWN_LABEL = re.compile(r"^-\s*Damage breakdown:\s*$", re.IGNORECASE)
+RE_DAMAGE_BREAKDOWN_LABEL = re.compile(r"^Damage breakdown:\s*$", re.IGNORECASE)
 RE_DAMAGE_LINE = re.compile(r"•\s*(?:Base damage|Total damage|.*?):\s*(?P<n>\d+) damage", re.IGNORECASE)
 RE_BASE_DAMAGE = re.compile(r"•\s*Base damage:\s*(?P<n>\d+) damage", re.IGNORECASE)
 RE_TOTAL_DAMAGE = re.compile(r"•\s*Total damage:\s*(?P<n>\d+) damage", re.IGNORECASE)
@@ -95,7 +95,7 @@ RE_DASH_LINE = re.compile(r"^-\s*(?P<content>.+)$")
 # Bench from deck (hidden aggregate dash-line):
 # "- PLAYER drew N cards and played them to the Bench."
 RE_BENCH_FROM_DECK_HIDDEN = re.compile(
-    r"^-\s*(?P<player>.+?) drew (?P<n>\d+) cards? and played them to the Bench",
+    r"^(?P<player>.+?) drew (?P<n>\d+) cards? and played them to the Bench",
     re.IGNORECASE,
 )
 

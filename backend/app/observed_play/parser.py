@@ -103,6 +103,16 @@ class ParsedObservedLog:
     metadata: dict
 
 
+
+def _strip_dash_prefix(line: str) -> str:
+    """Return line with leading '- ' stripped for pattern matching.
+
+    Keeps the original unchanged so ``raw_line`` can still record the real line.
+    """
+    if line.startswith("- "):
+        return line[2:].strip()
+    return line
+
 def _make_event(
     event_index: int,
     turn_number: Optional[int],
@@ -221,13 +231,14 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
     while i < len(lines):
         line = lines[i]
         stripped = line.strip()
+        match_line = _strip_dash_prefix(stripped)
 
         if not stripped:
             i += 1
             continue
 
         # ── Game end (check before others) ────────────────────────────────────
-        m = RE_GAME_END_PRIZES.search(stripped)
+        m = RE_GAME_END_PRIZES.search(match_line)
         if m:
             winner_raw = m.group("winner").strip()
             win_condition = "prizes"
@@ -245,7 +256,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             i += 1
             continue
 
-        m = RE_GAME_END_DECK.search(stripped)
+        m = RE_GAME_END_DECK.search(match_line)
         if m:
             winner_raw = m.group("winner").strip()
             win_condition = "deck_out"
@@ -264,7 +275,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Setup header ──────────────────────────────────────────────────────
-        if RE_SETUP_HEADER.match(stripped):
+        if RE_SETUP_HEADER.match(match_line):
             score, reasons = event_confidence(ET_SETUP_START, [])
             events.append(_make_event(
                 event_idx, None, PHASE_SETUP, ET_SETUP_START, stripped,
@@ -275,7 +286,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Coin flip choice ──────────────────────────────────────────────────
-        m = RE_COIN_FLIP_CHOICE.match(stripped)
+        m = RE_COIN_FLIP_CHOICE.match(match_line)
         if m:
             player = m.group("player").strip()
             choice = m.group("choice")
@@ -292,7 +303,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Coin flip result ──────────────────────────────────────────────────
-        m = RE_COIN_FLIP_RESULT.match(stripped)
+        m = RE_COIN_FLIP_RESULT.match(match_line)
         if m:
             player = m.group("player").strip()
             alias, actor = get_alias(player)
@@ -307,7 +318,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Turn order choice ─────────────────────────────────────────────────
-        m = RE_TURN_ORDER_CHOICE.match(stripped)
+        m = RE_TURN_ORDER_CHOICE.match(match_line)
         if m:
             player = m.group("player").strip()
             order = m.group("order")
@@ -324,7 +335,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Mulligan extra draw ───────────────────────────────────────────────
-        m = RE_MULLIGAN_EXTRA_DRAW.match(stripped)
+        m = RE_MULLIGAN_EXTRA_DRAW.match(match_line)
         if m:
             player = m.group("player").strip()
             n = int(m.group("n"))
@@ -355,7 +366,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Mulligan cards label ──────────────────────────────────────────────
-        if RE_MULLIGAN_CARDS_LABEL.match(stripped):
+        if RE_MULLIGAN_CARDS_LABEL.match(match_line):
             block_lines = [stripped]
             cards: list[str] = []
             j = i + 1
@@ -385,7 +396,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Mulligan ──────────────────────────────────────────────────────────
-        m = RE_MULLIGAN.match(stripped)
+        m = RE_MULLIGAN.match(match_line)
         if m:
             player = m.group("player").strip()
             alias, actor = get_alias(player)
@@ -400,7 +411,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Opening hand draw ─────────────────────────────────────────────────
-        m = RE_OPENING_HAND_HIDDEN.match(stripped)
+        m = RE_OPENING_HAND_HIDDEN.match(match_line)
         if m:
             player = m.group("player").strip()
             n = int(m.group("n"))
@@ -448,7 +459,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Play to active (setup) ────────────────────────────────────────────
-        m = RE_PLAY_TO_ACTIVE.match(stripped)
+        m = RE_PLAY_TO_ACTIVE.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -465,7 +476,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Turn start ────────────────────────────────────────────────────────
-        m = RE_TURN_START.match(stripped)
+        m = RE_TURN_START.match(match_line)
         if m:
             current_phase = PHASE_TURN
             current_turn = (current_turn or 0) + 1
@@ -484,7 +495,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
 
         # ── Bench from deck hidden (dash-line) ───────────────────────────────
         # Must precede play_to_bench to avoid "played them to the Bench" misparse.
-        m = RE_BENCH_FROM_DECK_HIDDEN.match(stripped)
+        m = RE_BENCH_FROM_DECK_HIDDEN.match(match_line)
         if m:
             player = m.group("player").strip()
             n = int(m.group("n"))
@@ -502,7 +513,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Play to bench ─────────────────────────────────────────────────────
-        m = RE_PLAY_TO_BENCH.match(stripped)
+        m = RE_PLAY_TO_BENCH.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -519,7 +530,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Damage breakdown label ────────────────────────────────────────────
-        if RE_DAMAGE_BREAKDOWN_LABEL.match(stripped):
+        if RE_DAMAGE_BREAKDOWN_LABEL.match(match_line):
             block_lines = [stripped]
             base_dmg: Optional[int] = None
             total_dmg: Optional[int] = None
@@ -559,7 +570,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Attack used ───────────────────────────────────────────────────────
-        m = RE_ATTACK.match(stripped)
+        m = RE_ATTACK.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -588,7 +599,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── No-damage attack (has target but no "for N damage") ───────────────
-        m = RE_ATTACK_NO_DAMAGE.match(stripped)
+        m = RE_ATTACK_NO_DAMAGE.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -616,7 +627,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Knockout ──────────────────────────────────────────────────────────
-        m = RE_KNOCKOUT.match(stripped)
+        m = RE_KNOCKOUT.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -633,7 +644,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Prize taken (singular) — checked BEFORE numeric pattern ──────────
-        m = RE_PRIZE_TAKEN_SINGULAR.match(stripped)
+        m = RE_PRIZE_TAKEN_SINGULAR.match(match_line)
         if m:
             player = m.group("player").strip()
             alias, actor = get_alias(player)
@@ -649,7 +660,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Prize taken ───────────────────────────────────────────────────────
-        m = RE_PRIZE_TAKEN.match(stripped)
+        m = RE_PRIZE_TAKEN.match(match_line)
         if m:
             player = m.group("player").strip()
             n = int(m.group("n"))
@@ -666,7 +677,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Prize card added to hand ──────────────────────────────────────────
-        m = RE_PRIZE_CARD_ADDED.match(stripped)
+        m = RE_PRIZE_CARD_ADDED.match(match_line)
         if m:
             player = m.group("player").strip()
             alias, actor = get_alias(player)
@@ -681,7 +692,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Draw hidden (N cards) — checked BEFORE known draw ─────────────────
-        m = RE_DRAW_N_HIDDEN.match(stripped)
+        m = RE_DRAW_N_HIDDEN.match(match_line)
         if m:
             player = m.group("player").strip()
             n = int(m.group("n"))
@@ -698,7 +709,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Draw hidden (a card) — checked BEFORE known draw ──────────────────
-        m = RE_DRAW_HIDDEN.match(stripped)
+        m = RE_DRAW_HIDDEN.match(match_line)
         if m:
             player = m.group("player").strip()
             alias, actor = get_alias(player)
@@ -714,7 +725,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Draw (known card) ─────────────────────────────────────────────────
-        m = RE_DRAW_KNOWN.match(stripped)
+        m = RE_DRAW_KNOWN.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -737,7 +748,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
         # (legacy block removed; handled above)
 
         # ── Play tool ─────────────────────────────────────────────────────────
-        m = RE_PLAY_TOOL.match(stripped)
+        m = RE_PLAY_TOOL.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -755,7 +766,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Evolve (possessive format) ────────────────────────────────────────
-        m = RE_EVOLVE.match(stripped)
+        m = RE_EVOLVE.match(match_line)
         if m:
             player = m.group("player").strip()
             from_card = m.group("from_card").strip()
@@ -774,7 +785,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Evolve (direct format: PLAYER evolved FROM to TO [in ZONE]) ──────
-        m = RE_EVOLVE_DIRECT.match(stripped)
+        m = RE_EVOLVE_DIRECT.match(match_line)
         if m:
             player = m.group("player").strip()
             from_card = m.group("from_card").strip()
@@ -806,7 +817,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Attach energy ─────────────────────────────────────────────────────
-        m = RE_ATTACH_ENERGY.match(stripped)
+        m = RE_ATTACH_ENERGY.match(match_line)
         if m:
             player = m.group("player").strip()
             energy = m.group("energy").strip()
@@ -824,7 +835,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── General attachment (tools, Pokémon Tools, any non-energy card) ────
-        m = RE_ATTACH_GENERAL.match(stripped)
+        m = RE_ATTACH_GENERAL.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -865,7 +876,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Play stadium ──────────────────────────────────────────────────────
-        m = RE_PLAY_STADIUM.match(stripped)
+        m = RE_PLAY_STADIUM.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -882,7 +893,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Play item ─────────────────────────────────────────────────────────
-        m = RE_PLAY_ITEM.match(stripped)
+        m = RE_PLAY_ITEM.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -899,7 +910,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Play supporter ────────────────────────────────────────────────────
-        m = RE_PLAY_SUPPORTER.match(stripped)
+        m = RE_PLAY_SUPPORTER.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -916,7 +927,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Play trainer generic (no subtype tag) — fallback after specific played handlers ──
-        m = RE_PLAY_TRAINER_GENERIC.match(stripped)
+        m = RE_PLAY_TRAINER_GENERIC.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -933,7 +944,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Ability used (legacy format: PLAYER used CARD's ABILITY ability) ──
-        m = RE_ABILITY_USED.match(stripped)
+        m = RE_ABILITY_USED.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -953,7 +964,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
 
         # ── Ability used (new format: PLAYER's CARD used ABILITY.) ────────────
         # Note: no target means ability activation, not attack.
-        m = RE_ABILITY_USED_NEW.match(stripped)
+        m = RE_ABILITY_USED_NEW.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -972,7 +983,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Retreat ───────────────────────────────────────────────────────────
-        m = RE_RETREAT.match(stripped)
+        m = RE_RETREAT.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -989,7 +1000,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Switch active ─────────────────────────────────────────────────────
-        m = RE_SWITCH_ACTIVE.match(stripped)
+        m = RE_SWITCH_ACTIVE.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -1006,7 +1017,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Promotion: "PLAYER's CARD is now in the Active Spot." ────────────
-        m = RE_NOW_ACTIVE.match(stripped)
+        m = RE_NOW_ACTIVE.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -1023,7 +1034,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Shuffle deck ──────────────────────────────────────────────────────
-        m = RE_SHUFFLE.match(stripped)
+        m = RE_SHUFFLE.match(match_line)
         if m:
             player = m.group("player").strip()
             alias, actor = get_alias(player)
@@ -1038,7 +1049,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Discard ───────────────────────────────────────────────────────────
-        m = RE_DISCARD.match(stripped)
+        m = RE_DISCARD.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -1055,7 +1066,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Search or fetch ───────────────────────────────────────────────────
-        m = RE_SEARCH.match(stripped)
+        m = RE_SEARCH.match(match_line)
         if m:
             player = m.group("player").strip()
             zone = m.group("zone").strip()
@@ -1073,7 +1084,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Recover from discard ──────────────────────────────────────────────
-        m = RE_RECOVER.match(stripped)
+        m = RE_RECOVER.match(match_line)
         if m:
             player = m.group("player").strip()
             card = m.group("card").strip()
@@ -1090,7 +1101,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── End turn ──────────────────────────────────────────────────────────
-        m = RE_END_TURN.match(stripped)
+        m = RE_END_TURN.match(match_line)
         if m:
             player = m.group("player").strip()
             alias, actor = get_alias(player)
@@ -1113,7 +1124,7 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             continue
 
         # ── Game end fallback (X wins!) ────────────────────────────────────────
-        m = RE_GAME_END_KO.search(stripped)
+        m = RE_GAME_END_KO.search(match_line)
         if m:
             w = m.group("winner").strip()
             winner_raw = w

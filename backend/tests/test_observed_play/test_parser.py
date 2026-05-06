@@ -539,3 +539,142 @@ class TestRealLogSampleFixture:
     def test_raw_line_preservation(self):
         for e in self.result.events:
             assert e.raw_line is not None
+
+
+class TestDashChildLineAttribution:
+    """Phase 2.2: dash-prefixed child lines must preserve player alias."""
+
+    def _parse_with_players(self, body: str) -> "ParsedObservedLog":
+        """Wrap body with turn headers to register player aliases first."""
+        log = f"gehejo's Turn 1\n\n{body}\nDAVIDELIRIUM's Turn 1\n"
+        return parse_log(log)
+
+    def test_dash_shuffle_assigns_player_alias(self):
+        result = self._parse_with_players("- gehejo shuffled their deck.\n")
+        shuffles = [e for e in result.events if e.event_type == "shuffle_deck"]
+        assert len(shuffles) >= 1
+        s = shuffles[0]
+        assert s.player_raw == "gehejo"
+        assert s.player_alias == "player_1"
+
+    def test_dash_shuffle_raw_line_preserved_with_dash(self):
+        result = self._parse_with_players("- gehejo shuffled their deck.\n")
+        shuffles = [e for e in result.events if e.event_type == "shuffle_deck"]
+        assert len(shuffles) >= 1
+        assert shuffles[0].raw_line == "- gehejo shuffled their deck."
+
+    def test_dash_known_draw_assigns_player_alias(self):
+        result = self._parse_with_players("- gehejo drew Hero's Cape.\n")
+        draws = [e for e in result.events if e.event_type == EVENT_DRAW]
+        assert len(draws) >= 1
+        d = draws[0]
+        assert d.player_raw == "gehejo"
+        assert d.player_alias == "player_1"
+        assert d.card_name_raw == "Hero's Cape"
+
+    def test_dash_known_draw_raw_line_preserved(self):
+        result = self._parse_with_players("- gehejo drew Hero's Cape.\n")
+        draws = [e for e in result.events if e.event_type == EVENT_DRAW]
+        assert len(draws) >= 1
+        assert draws[0].raw_line == "- gehejo drew Hero's Cape."
+
+    def test_dash_hidden_draw_assigns_player_alias(self):
+        result = self._parse_with_players("- DAVIDELIRIUM drew 2 cards.\n")
+        draws = [e for e in result.events if e.event_type == EVENT_DRAW_HIDDEN]
+        assert len(draws) >= 1
+        d = draws[0]
+        assert d.player_raw == "DAVIDELIRIUM"
+        assert d.player_alias == "player_2"
+        assert d.amount == 2
+
+    def test_dash_hidden_draw_raw_line_preserved(self):
+        result = self._parse_with_players("- DAVIDELIRIUM drew 2 cards.\n")
+        draws = [e for e in result.events if e.event_type == EVENT_DRAW_HIDDEN]
+        assert len(draws) >= 1
+        assert draws[0].raw_line == "- DAVIDELIRIUM drew 2 cards."
+
+    def test_dash_evolve_assigns_player_alias(self):
+        result = self._parse_with_players(
+            "- gehejo evolved Dwebble to Crustle in the Active Spot.\n"
+        )
+        evolves = [e for e in result.events if e.event_type == EVENT_EVOLVE]
+        assert len(evolves) >= 1
+        ev = evolves[0]
+        assert ev.player_raw == "gehejo"
+        assert ev.player_alias == "player_1"
+        assert ev.target_card_name_raw == "Dwebble"
+        assert ev.card_name_raw == "Crustle"
+
+    def test_dash_bench_from_deck_assigns_player_alias(self):
+        result = self._parse_with_players(
+            "- gehejo drew 2 cards and played them to the Bench.\n"
+        )
+        bench = [e for e in result.events if e.event_type == EVENT_PLAY_TO_BENCH_HIDDEN]
+        assert len(bench) >= 1
+        b = bench[0]
+        assert b.player_raw == "gehejo"
+        assert b.player_alias == "player_1"
+        assert b.amount == 2
+        assert b.card_name_raw is None
+
+    def test_dash_bench_from_deck_raw_line_preserved(self):
+        result = self._parse_with_players(
+            "- gehejo drew 2 cards and played them to the Bench.\n"
+        )
+        bench = [e for e in result.events if e.event_type == EVENT_PLAY_TO_BENCH_HIDDEN]
+        assert len(bench) >= 1
+        assert bench[0].raw_line == "- gehejo drew 2 cards and played them to the Bench."
+
+    def test_non_dash_line_unaffected(self):
+        result = parse_log("Alice's Turn 1\nAlice shuffled their deck.\n")
+        shuffles = [e for e in result.events if e.event_type == "shuffle_deck"]
+        assert len(shuffles) >= 1
+        s = shuffles[0]
+        assert s.player_alias == "player_1"
+        assert s.raw_line == "Alice shuffled their deck."
+
+    def test_dwebble_ascension_remains_ability_used(self):
+        """Owner clarification: 'used Ascension.' with no target = ability_used."""
+        result = parse_log("gehejo's Turn 1\ngehejo's Dwebble used Ascension.\n")
+        abilities = [e for e in result.events if e.event_type == EVENT_ABILITY_USED]
+        assert len(abilities) >= 1
+        a = abilities[0]
+        assert a.card_name_raw == "Dwebble"
+        assert a.event_payload.get("ability_name") == "Ascension"
+
+    def test_targeted_no_damage_attack_remains_attack_used(self):
+        """'used ATTACK on OPPONENT's TARGET.' (no damage) = attack_used."""
+        result = parse_log(
+            "Alice's Turn 1\nBob's Turn 1\n"
+            "Alice's Charizard used Flame Charge on Bob's Squirtle.\n"
+        )
+        attacks = [e for e in result.events if e.event_type == EVENT_ATTACK]
+        assert len(attacks) >= 1
+        a = attacks[0]
+        assert a.card_name_raw == "Charizard"
+        assert a.event_payload.get("attack_name") == "Flame Charge"
+
+    def test_real_log_dash_lines_have_correct_aliases(self):
+        """Dash-prefixed lines in real_log_sample.md must not have unknown alias."""
+        import os
+        fixture_path = os.path.join(
+            os.path.dirname(__file__), "..", "fixtures", "observed_play", "real_log_sample.md"
+        )
+        with open(fixture_path) as f:
+            content = f.read()
+        result = parse_log(content)
+        dash_events = [e for e in result.events if e.raw_line and e.raw_line.startswith("- ")]
+        for e in dash_events:
+            if e.player_raw is not None:
+                assert e.player_alias in {"player_1", "player_2"}, (
+                    f"Dash-line event has unknown alias: {e.raw_line!r}, alias={e.player_alias!r}"
+                )
+
+    def test_diagnostics_still_present_after_dash_changes(self):
+        """parser_diagnostics keys should still exist in metadata after Phase 2.2."""
+        result = self._parse_with_players("- gehejo shuffled their deck.\n")
+        diag = result.metadata["parser_diagnostics"]
+        assert "unknown_count" in diag
+        assert "unknown_ratio" in diag
+        assert "event_type_counts" in diag
+        assert "top_unknown_raw_lines" in diag

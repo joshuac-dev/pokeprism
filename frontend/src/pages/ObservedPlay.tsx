@@ -16,6 +16,7 @@ import type {
   ObservedPlayLogDetail,
   ObservedPlayUploadResult,
   PaginatedEvents,
+  ParserDiagnostics,
 } from '../types/observedPlay';
 
 const ACCEPTED_EXTS = '.md,.markdown,.txt,.zip';
@@ -149,12 +150,34 @@ function ConfidenceBadge({ score }: { score: number | null | undefined }) {
 
 // ── Events viewer modal ───────────────────────────────────────────────────────
 
+function ParserDiagnosticsPanel({ diag }: { diag: ParserDiagnostics }) {
+  return (
+    <div className="mb-4 rounded border border-gray-100 bg-gray-50 p-3 text-xs">
+      <p className="mb-1 font-medium text-gray-600">Parser diagnostics</p>
+      <p>Unknown: {diag.unknown_count} ({(diag.unknown_ratio * 100).toFixed(1)}%)</p>
+      <p>Low confidence: {diag.low_confidence_count}</p>
+      {diag.top_unknown_raw_lines.length > 0 && (
+        <div className="mt-1">
+          <p className="font-medium text-gray-600">Top unknown lines:</p>
+          <ul className="mt-0.5 space-y-0.5">
+            {diag.top_unknown_raw_lines.slice(0, 5).map((line, i) => (
+              <li key={i} className="truncate font-mono text-gray-500">{line}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EventsModal({
   logId,
   onClose,
+  initialDiagnostics,
 }: {
   logId: string;
   onClose: () => void;
+  initialDiagnostics?: ParserDiagnostics | null;
 }) {
   const [data, setData] = useState<PaginatedEvents | null>(null);
   const [page, setPage] = useState(1);
@@ -162,6 +185,7 @@ function EventsModal({
   const [error, setError] = useState<string | null>(null);
   const [reparsing, setReparsing] = useState(false);
   const [reparseMsg, setReparseMsg] = useState<string | null>(null);
+  const [diagnostics, setDiagnostics] = useState<ParserDiagnostics | null | undefined>(initialDiagnostics);
   const PER_PAGE = 50;
 
   const load = useCallback(
@@ -190,6 +214,7 @@ function EventsModal({
     try {
       const res = await reparseObservedPlayLog(logId);
       setReparseMsg(`Reparsed: ${res.event_count} events, status=${res.parse_status}`);
+      if (res.parser_diagnostics) setDiagnostics(res.parser_diagnostics);
       load(1);
     } catch {
       setReparseMsg('Reparse failed.');
@@ -231,6 +256,7 @@ function EventsModal({
         </div>
         {loading && <p className="text-sm text-gray-500">Loading…</p>}
         {error && <p className="text-sm text-red-600">{error}</p>}
+        {diagnostics && <ParserDiagnosticsPanel diag={diagnostics} />}
         {data && data.total === 0 && (
           <p className="text-sm text-gray-500">
             No parsed events found. Try{' '}
@@ -616,7 +642,11 @@ export default function ObservedPlay() {
         <RawLogModal logId={viewLogId} onClose={() => setViewLogId(null)} />
       )}
       {viewEventsLogId && (
-        <EventsModal logId={viewEventsLogId} onClose={() => setViewEventsLogId(null)} />
+        <EventsModal
+          logId={viewEventsLogId}
+          onClose={() => setViewEventsLogId(null)}
+          initialDiagnostics={logs.find((l) => l.id === viewEventsLogId)?.parser_diagnostics}
+        />
       )}
     </PageShell>
   );

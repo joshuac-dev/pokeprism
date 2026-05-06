@@ -103,7 +103,7 @@ beforeEach(() => {
   (reparseObservedPlayLog as ReturnType<typeof vi.fn>).mockResolvedValue({
     log_id: 'log-001', parse_status: 'parsed', event_count: 0,
     turn_count: 0, confidence_score: null, parser_version: null,
-    warnings: [], errors: [],
+    warnings: [], errors: [], parser_diagnostics: null,
   });
 });
 
@@ -567,6 +567,122 @@ describe('ObservedPlay page', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/failed to load events/i)).toBeInTheDocument();
+    });
+  });
+
+  it('event modal shows diagnostics panel when log has parser_diagnostics', async () => {
+    const logWithDiag = {
+      ...sampleLog,
+      parser_diagnostics: {
+        unknown_count: 12,
+        unknown_ratio: 0.041,
+        low_confidence_count: 5,
+        event_type_counts: { draw_hidden: 20, unknown: 12 },
+        top_unknown_raw_lines: ['- some unknown line', 'another unknown line'],
+      },
+    };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [logWithDiag],
+      total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /view events/i }));
+    await userEvent.click(screen.getByRole('button', { name: /view events/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/parser diagnostics/i)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/unknown: 12/i)).toBeInTheDocument();
+    expect(screen.getByText(/low confidence: 5/i)).toBeInTheDocument();
+    // unknown_ratio 0.041 → 4.1%
+    expect(screen.getByText(/4\.1%/)).toBeInTheDocument();
+  });
+
+  it('event modal shows top unknown lines when present', async () => {
+    const logWithDiag = {
+      ...sampleLog,
+      parser_diagnostics: {
+        unknown_count: 2,
+        unknown_ratio: 0.02,
+        low_confidence_count: 0,
+        event_type_counts: {},
+        top_unknown_raw_lines: ['mystery line 1', 'mystery line 2'],
+      },
+    };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [logWithDiag],
+      total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /view events/i }));
+    await userEvent.click(screen.getByRole('button', { name: /view events/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('mystery line 1')).toBeInTheDocument();
+    });
+    expect(screen.getByText('mystery line 2')).toBeInTheDocument();
+  });
+
+  it('event modal works without diagnostics (null)', async () => {
+    const logNoDiag = { ...sampleLog, parser_diagnostics: null };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [logNoDiag],
+      total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /view events/i }));
+    await userEvent.click(screen.getByRole('button', { name: /view events/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /parsed events/i })).toBeInTheDocument();
+    });
+    // Diagnostics panel should not appear
+    expect(screen.queryByText(/parser diagnostics/i)).not.toBeInTheDocument();
+  });
+
+  it('reparse updates diagnostics in event modal', async () => {
+    const logWithDiag = {
+      ...sampleLog,
+      parser_diagnostics: {
+        unknown_count: 10,
+        unknown_ratio: 0.10,
+        low_confidence_count: 3,
+        event_type_counts: {},
+        top_unknown_raw_lines: [],
+      },
+    };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [logWithDiag],
+      total: 1, page: 1, per_page: 25,
+    });
+    (reparseObservedPlayLog as ReturnType<typeof vi.fn>).mockResolvedValue({
+      log_id: 'log-001', parse_status: 'parsed', event_count: 5,
+      turn_count: 1, confidence_score: 0.9, parser_version: 'v1',
+      warnings: [], errors: [],
+      parser_diagnostics: {
+        unknown_count: 2,
+        unknown_ratio: 0.02,
+        low_confidence_count: 1,
+        event_type_counts: {},
+        top_unknown_raw_lines: ['new unknown'],
+      },
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /view events/i }));
+    await userEvent.click(screen.getByRole('button', { name: /view events/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/unknown: 10/i)).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getAllByRole('button', { name: /reparse/i })[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/unknown: 2/i)).toBeInTheDocument();
     });
   });
 });

@@ -25,6 +25,7 @@ from app.observed_play.schemas import (
     PaginatedBatches,
     PaginatedEvents,
     PaginatedLogs,
+    ParserDiagnostics,
     ReparseSummary,
 )
 from app.observed_play.storage import SUPPORTED_EXTENSIONS
@@ -64,6 +65,13 @@ def _batch_to_summary(b: ObservedPlayImportBatch) -> BatchSummary:
 
 
 def _log_to_summary(log: ObservedPlayLog) -> LogSummary:
+    diag_raw = (log.metadata_json or {}).get("parser_diagnostics")
+    diag: Optional[ParserDiagnostics] = None
+    if diag_raw and isinstance(diag_raw, dict):
+        try:
+            diag = ParserDiagnostics(**diag_raw)
+        except Exception:
+            diag = None
     return LogSummary(
         id=str(log.id),
         import_batch_id=str(log.import_batch_id) if log.import_batch_id else None,
@@ -80,6 +88,7 @@ def _log_to_summary(log: ObservedPlayLog) -> LogSummary:
         confidence_score=log.confidence_score,
         winner_raw=log.winner_raw,
         win_condition=log.win_condition,
+        parser_diagnostics=diag,
     )
 
 
@@ -422,6 +431,14 @@ async def reparse_log(
     await db.commit()
     await db.refresh(log)
 
+    diag_raw = (log.metadata_json or {}).get("parser_diagnostics")
+    diag: Optional[ParserDiagnostics] = None
+    if diag_raw and isinstance(diag_raw, dict):
+        try:
+            diag = ParserDiagnostics(**diag_raw)
+        except Exception:
+            diag = None
+
     return ReparseSummary(
         log_id=str(log.id),
         parse_status=log.parse_status,
@@ -431,4 +448,5 @@ async def reparse_log(
         parser_version=log.parser_version,
         warnings=log.warnings_json or [],
         errors=log.errors_json or [],
+        parser_diagnostics=diag,
     )

@@ -2,6 +2,14 @@
  * Types for Observed Play Memory API (Phase 1 + Phase 2: parser v1).
  */
 
+export interface ParserDiagnostics {
+  unknown_count: number;
+  unknown_ratio: number;
+  low_confidence_count: number;
+  event_type_counts: Record<string, number>;
+  top_unknown_raw_lines: string[];
+}
+
 export interface LogImportResult {
   log_id: string | null;
   original_filename: string;
@@ -67,6 +75,7 @@ export interface ObservedPlayLog {
   confidence_score: number | null;
   winner_raw: string | null;
   win_condition: string | null;
+  parser_diagnostics?: ParserDiagnostics | null;
 }
 
 export interface EventSummary {
