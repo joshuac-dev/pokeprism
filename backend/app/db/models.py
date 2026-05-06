@@ -380,6 +380,8 @@ class ObservedPlayLog(Base):
     file_size_bytes       = Column(Integer, nullable=False, default=0)
     parse_status          = Column(Text, nullable=False, default="raw_archived")
     memory_status         = Column(Text, nullable=False, default="not_ingested")
+    memory_item_count     = Column(Integer, default=0)
+    last_memory_ingested_at = Column(TIMESTAMP(timezone=True), nullable=True)
     parser_version        = Column(Text)
     player_1_name_raw     = Column(Text)
     player_2_name_raw     = Column(Text)
@@ -409,6 +411,7 @@ class ObservedPlayLog(Base):
     events = relationship("ObservedPlayEvent", back_populates="log", cascade="all, delete-orphan")
     card_mentions = relationship("ObservedCardMention", back_populates="log", cascade="all, delete-orphan")
     import_batch = relationship("ObservedPlayImportBatch", back_populates="logs")
+    memory_ingestions = relationship("ObservedPlayMemoryIngestion", back_populates="log", cascade="all, delete-orphan")
 
 class ObservedPlayEvent(Base):
     """One parsed event from a PTCGL battle log."""
@@ -531,3 +534,97 @@ class ObservedCardResolutionRule(Base):
     created_at          = Column(TIMESTAMP(timezone=True), server_default=func.now())
     updated_at          = Column(TIMESTAMP(timezone=True), server_default=func.now(),
                                  onupdate=func.now())
+
+
+# ── Observed Play Memory Ingestion (Phase 4) ──────────────────────────────────
+
+class ObservedPlayMemoryIngestion(Base):
+    """One ingestion run for an observed play log."""
+    __tablename__ = "observed_play_memory_ingestions"
+    __table_args__ = (
+        Index("idx_opmi_log_id", "observed_play_log_id"),
+        Index("idx_opmi_import_batch_id", "import_batch_id"),
+        Index("idx_opmi_status", "status"),
+        Index("idx_opmi_created_at", "created_at"),
+    )
+
+    id                      = Column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    observed_play_log_id    = Column(UUID(as_uuid=True),
+                                     ForeignKey("observed_play_logs.id", ondelete="CASCADE"),
+                                     nullable=False)
+    import_batch_id         = Column(UUID(as_uuid=True), nullable=True)
+    status                  = Column(Text, nullable=False)          # pending/completed/failed/skipped
+    ingestion_version       = Column(Text, nullable=False)
+    eligibility_status      = Column(Text, nullable=False)          # eligible/ineligible/forced
+    eligibility_reasons_json = Column(JSONB, default=list)
+    config_json             = Column(JSONB, default=dict)
+    summary_json            = Column(JSONB, default=dict)
+    error_json              = Column(JSONB, default=dict)
+    source_event_count      = Column(Integer, default=0)
+    memory_item_count       = Column(Integer, default=0)
+    skipped_event_count     = Column(Integer, default=0)
+    blocked_reason_count    = Column(Integer, default=0)
+    created_at              = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at              = Column(TIMESTAMP(timezone=True), server_default=func.now(),
+                                     onupdate=func.now())
+    completed_at            = Column(TIMESTAMP(timezone=True), nullable=True)
+
+    log   = relationship("ObservedPlayLog", back_populates="memory_ingestions")
+    items = relationship("ObservedPlayMemoryItem", back_populates="ingestion",
+                         cascade="all, delete-orphan")
+
+
+class ObservedPlayMemoryItem(Base):
+    """One normalized memory fact derived from a parsed observed play event."""
+    __tablename__ = "observed_play_memory_items"
+    __table_args__ = (
+        Index("idx_opitem_log_id", "observed_play_log_id"),
+        Index("idx_opitem_event_id", "observed_play_event_id"),
+        Index("idx_opitem_ingestion_id", "ingestion_id"),
+        Index("idx_opitem_memory_type", "memory_type"),
+        Index("idx_opitem_memory_key", "memory_key"),
+        Index("idx_opitem_actor_card_def_id", "actor_card_def_id"),
+        Index("idx_opitem_target_card_def_id", "target_card_def_id"),
+        Index("idx_opitem_source_event_type", "source_event_type"),
+        Index("idx_opitem_created_at", "created_at"),
+    )
+
+    id                      = Column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    ingestion_id            = Column(UUID(as_uuid=True),
+                                     ForeignKey("observed_play_memory_ingestions.id", ondelete="CASCADE"),
+                                     nullable=False)
+    observed_play_log_id    = Column(UUID(as_uuid=True),
+                                     ForeignKey("observed_play_logs.id", ondelete="CASCADE"),
+                                     nullable=False)
+    observed_play_event_id  = Column(BigInteger,
+                                     ForeignKey("observed_play_events.id", ondelete="CASCADE"),
+                                     nullable=False)
+    import_batch_id         = Column(UUID(as_uuid=True), nullable=True)
+    memory_type             = Column(Text, nullable=False)
+    memory_key              = Column(Text, nullable=False)
+    turn_number             = Column(Integer, nullable=True)
+    phase                   = Column(Text, nullable=True)
+    player_alias            = Column(Text, nullable=True)
+    player_raw              = Column(Text, nullable=True)
+    actor_card_raw          = Column(Text, nullable=True)
+    actor_card_def_id       = Column(Text, nullable=True)
+    actor_resolution_status = Column(Text, nullable=True)
+    target_card_raw         = Column(Text, nullable=True)
+    target_card_def_id      = Column(Text, nullable=True)
+    target_resolution_status = Column(Text, nullable=True)
+    related_card_raw        = Column(Text, nullable=True)
+    related_card_def_id     = Column(Text, nullable=True)
+    related_resolution_status = Column(Text, nullable=True)
+    action_name             = Column(Text, nullable=True)
+    amount                  = Column(Integer, nullable=True)
+    damage                  = Column(Integer, nullable=True)
+    zone                    = Column(Text, nullable=True)
+    target_zone             = Column(Text, nullable=True)
+    confidence_score        = Column(Float, nullable=False, default=0.0)
+    source_event_type       = Column(Text, nullable=False)
+    source_raw_line         = Column(Text, nullable=False)
+    source_payload_json     = Column(JSONB, default=dict)
+    metadata_json           = Column(JSONB, default=dict)
+    created_at              = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+    ingestion = relationship("ObservedPlayMemoryIngestion", back_populates="items")

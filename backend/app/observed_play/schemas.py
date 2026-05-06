@@ -70,6 +70,9 @@ class LogSummary(BaseModel):
     ambiguous_card_count: int = 0
     unresolved_card_count: int = 0
     card_resolution_status: str | None = None
+    # Phase 4 memory ingestion
+    memory_item_count: int = 0
+    last_memory_ingested_at: str | None = None
 
 
 class LogDetail(LogSummary):
@@ -264,3 +267,114 @@ class ResolutionRuleResponse(BaseModel):
     scope: str
     notes: str | None
     created_at: str | None
+
+
+# ── Phase 4: Memory ingestion schemas ─────────────────────────────────────────
+
+class IngestionConfig(BaseModel):
+    allow_unresolved: bool = False
+    force: bool = False
+    max_unresolved: int = 0
+    min_confidence: float = 0.8
+    max_unknown_ratio: float = 0.05
+
+
+class EligibilityMetrics(BaseModel):
+    confidence_score: float | None = None
+    event_count: int = 0
+    unknown_ratio: float = 0.0
+    low_confidence_count: int = 0
+    card_mention_count: int = 0
+    unresolved_card_count: int = 0
+    ambiguous_card_count: int = 0
+    critical_unresolved_count: int = 0
+
+
+class EligibilityReason(BaseModel):
+    code: str
+    detail: str
+
+
+class EligibilityResult(BaseModel):
+    eligible: bool
+    status: str  # eligible / ineligible / forced
+    reasons: list[EligibilityReason] = []
+    metrics: EligibilityMetrics = EligibilityMetrics()
+
+
+class MemoryItemPreview(BaseModel):
+    memory_type: str
+    memory_key: str
+    turn_number: int | None
+    player_alias: str | None
+    actor_card_raw: str | None
+    actor_card_def_id: str | None
+    actor_resolution_status: str | None
+    action_name: str | None
+    target_card_raw: str | None
+    damage: int | None
+    confidence_score: float
+    source_event_type: str
+    source_raw_line: str
+
+
+class MemoryIngestionPreview(BaseModel):
+    eligible: bool
+    eligibility_status: str
+    reasons: list[EligibilityReason] = []
+    metrics: EligibilityMetrics = EligibilityMetrics()
+    estimated_memory_item_count: int = 0
+    event_type_counts: dict[str, int] = Field(default_factory=dict)
+    sample_items: list[MemoryItemPreview] = []
+
+
+class MemoryIngestionSummary(BaseModel):
+    ingestion_id: str
+    log_id: str
+    status: str
+    eligibility_status: str
+    reasons: list[EligibilityReason] = []
+    source_event_count: int = 0
+    memory_item_count: int = 0
+    skipped_event_count: int = 0
+    blocked_reason_count: int = 0
+    ingestion_version: str
+    error: str | None = None
+
+
+class MemoryItemSummary(BaseModel):
+    id: str
+    ingestion_id: str
+    observed_play_log_id: str
+    observed_play_event_id: int
+    memory_type: str
+    memory_key: str
+    turn_number: int | None
+    phase: str | None
+    player_alias: str | None
+    player_raw: str | None
+    actor_card_raw: str | None
+    actor_card_def_id: str | None
+    actor_resolution_status: str | None
+    target_card_raw: str | None
+    target_card_def_id: str | None
+    target_resolution_status: str | None
+    related_card_raw: str | None
+    related_card_def_id: str | None
+    related_resolution_status: str | None
+    action_name: str | None
+    amount: int | None
+    damage: int | None
+    zone: str | None
+    target_zone: str | None
+    confidence_score: float
+    source_event_type: str
+    source_raw_line: str
+    created_at: str | None
+
+
+class PaginatedMemoryItems(BaseModel):
+    items: list[MemoryItemSummary]
+    total: int
+    page: int
+    per_page: int

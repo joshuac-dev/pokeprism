@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 29 — Observed Play Phase 3.1: Card Mention Cleanup and False-Unresolved Reduction)
+Last updated: 2026-05-06 (session 30 — Observed Play Phase 4: Gated Memory Ingestion Foundation)
 
 ## Current Workstream
 
@@ -18,8 +18,8 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, and Phase 3.1 are complete.**
-Phase 4+ (memory ingestion) not yet started.
+**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, and Phase 4 are complete.**
+Phase 5+ (Coach/AI integration) not yet started.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
@@ -38,8 +38,8 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **831 passed, 1 skipped** — 2026-05-06 session 29. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 804/1 (session 28). |
-| Frontend unit tests | **173 passed (15 files)** — 2026-05-06 session 29. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **880 passed, 1 skipped** — 2026-05-06 session 30. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 831/1 (session 29). |
+| Frontend unit tests | **182 passed (15 files)** — 2026-05-06 session 30. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
 

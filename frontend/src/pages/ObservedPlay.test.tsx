@@ -17,6 +17,9 @@ vi.mock('../api/observedPlay', () => ({
   getUnresolvedCards: vi.fn(),
   resolveCards: vi.fn(),
   createResolutionRule: vi.fn(),
+  previewMemoryIngestion: vi.fn(),
+  ingestMemory: vi.fn(),
+  getMemoryItems: vi.fn(),
 }));
 
 import {
@@ -28,6 +31,9 @@ import {
   reparseObservedPlayLog,
   getCardMentions,
   getUnresolvedCards,
+  previewMemoryIngestion,
+  ingestMemory,
+  getMemoryItems,
 } from '../api/observedPlay';
 
 const emptyBatches = { items: [], total: 0, page: 1, per_page: 25 };
@@ -119,6 +125,26 @@ beforeEach(() => {
   (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValue({
     items: [], total: 0, page: 1, per_page: 20,
   });
+  (previewMemoryIngestion as ReturnType<typeof vi.fn>).mockResolvedValue({
+    eligible: true,
+    eligibility_status: 'eligible',
+    reasons: [],
+    estimated_memory_item_count: 5,
+    event_type_counts: { attack_used: 3, knockout: 2 },
+    sample_items: [],
+  });
+  (ingestMemory as ReturnType<typeof vi.fn>).mockResolvedValue({
+    ingestion_id: 'ing-001',
+    log_id: 'log-001',
+    status: 'completed',
+    eligibility_status: 'eligible',
+    reasons: [],
+    memory_item_count: 5,
+    ingestion_version: '1.0',
+  });
+  (getMemoryItems as ReturnType<typeof vi.fn>).mockResolvedValue({
+    items: [], total: 0, page: 1, per_page: 50,
+  });
 });
 
 describe('ObservedPlay page', () => {
@@ -131,11 +157,11 @@ describe('ObservedPlay page', () => {
     expect(screen.getByRole('button', { name: /upload/i })).toBeInTheDocument();
   });
 
-  it('shows phase 3 active banner', async () => {
+  it('shows phase 4 active banner', async () => {
     setup();
     await waitFor(() => {
       expect(
-        screen.getByText(/phase 3 active/i),
+        screen.getByText(/phase 4 active/i),
       ).toBeInTheDocument();
     });
   });
@@ -891,10 +917,174 @@ describe('Phase 3 card resolution', () => {
     });
   });
 
-  it('phase banner reflects Phase 3', async () => {
+  it('phase banner reflects Phase 4', async () => {
     setup();
     await waitFor(() => {
-      expect(screen.getByText(/phase 3 active/i)).toBeInTheDocument();
+      expect(screen.getByText(/phase 4 active/i)).toBeInTheDocument();
+    });
+  });
+
+  // ── Phase 4: Memory ingestion tests ──────────────────────────────────────────
+
+  it('shows "Ingest memory" button for parsed logs', async () => {
+    const parsedLog = { ...sampleLog, parse_status: 'parsed', event_count: 10, confidence_score: 0.9 };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [parsedLog], total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /ingest memory/i })).toBeInTheDocument();
+    });
+  });
+
+  it('shows "Re-ingest" button for already-ingested logs', async () => {
+    const ingestedLog = { ...sampleLog, parse_status: 'parsed', memory_status: 'ingested', memory_item_count: 5 };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [ingestedLog], total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /re-ingest/i })).toBeInTheDocument();
+    });
+  });
+
+  it('shows "View memory" button for logs with memory items', async () => {
+    const ingestedLog = { ...sampleLog, parse_status: 'parsed', memory_status: 'ingested', memory_item_count: 3 };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [ingestedLog], total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /view memory/i })).toBeInTheDocument();
+    });
+  });
+
+  it('clicking "Ingest memory" opens the MemoryPreviewModal', async () => {
+    const parsedLog = { ...sampleLog, parse_status: 'parsed', event_count: 10, confidence_score: 0.9 };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [parsedLog], total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /ingest memory/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest memory/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /memory ingestion/i })).toBeInTheDocument();
+    });
+    expect(screen.getByText(/estimated 5 memory items/i)).toBeInTheDocument();
+  });
+
+  it('MemoryPreviewModal shows eligibility reasons when ineligible', async () => {
+    (previewMemoryIngestion as ReturnType<typeof vi.fn>).mockResolvedValue({
+      eligible: false,
+      eligibility_status: 'ineligible',
+      reasons: [{ code: 'low_confidence', detail: 'score 0.70 below 0.80' }],
+      estimated_memory_item_count: 0,
+    });
+
+    const parsedLog = { ...sampleLog, parse_status: 'parsed' };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [parsedLog], total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /ingest memory/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest memory/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/not eligible/i)).toBeInTheDocument();
+      expect(screen.getByText(/low_confidence/i)).toBeInTheDocument();
+    });
+  });
+
+  it('clicking "View memory" opens the MemoryItemsModal', async () => {
+    const ingestedLog = { ...sampleLog, parse_status: 'parsed', memory_status: 'ingested', memory_item_count: 2 };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [ingestedLog], total: 1, page: 1, per_page: 25,
+    });
+    (getMemoryItems as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [
+        {
+          id: 'item-001',
+          ingestion_id: 'ing-001',
+          observed_play_log_id: 'log-001',
+          observed_play_event_id: 42,
+          memory_type: 'attack_used',
+          memory_key: 'attack_used:42:Pikachu:Thunderbolt:',
+          turn_number: 3,
+          phase: 'turn',
+          player_alias: 'P1',
+          player_raw: 'Player1',
+          actor_card_raw: 'Pikachu',
+          actor_card_def_id: 'sv06-049',
+          actor_resolution_status: 'resolved',
+          target_card_raw: null,
+          target_card_def_id: null,
+          target_resolution_status: null,
+          related_card_raw: null,
+          related_card_def_id: null,
+          related_resolution_status: null,
+          action_name: 'Thunderbolt',
+          amount: null,
+          damage: 90,
+          zone: 'active',
+          target_zone: 'active',
+          confidence_score: 0.88,
+          source_event_type: 'attack_used',
+          source_raw_line: "P1's Pikachu used Thunderbolt.",
+          created_at: null,
+        },
+      ],
+      total: 1, page: 1, per_page: 50,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /view memory/i }));
+    await userEvent.click(screen.getByRole('button', { name: /view memory/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /memory items/i })).toBeInTheDocument();
+    });
+    expect(screen.getByText('attack_used')).toBeInTheDocument();
+    expect(screen.getByText('Pikachu')).toBeInTheDocument();
+  });
+
+  it('memory item count shows in logs table for ingested logs', async () => {
+    const ingestedLog = { ...sampleLog, parse_status: 'parsed', memory_status: 'ingested', memory_item_count: 7 };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [ingestedLog], total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText('7')).toBeInTheDocument();
+    });
+  });
+
+  it('phase 4 banner mentions "not used by Coach or AI Player"', async () => {
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText(/not used by coach or ai player/i)).toBeInTheDocument();
+    });
+  });
+
+  it('MemoryPreviewModal shows safety copy about Coach/AI', async () => {
+    const parsedLog = { ...sampleLog, parse_status: 'parsed' };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [parsedLog], total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /ingest memory/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest memory/i }));
+
+    await waitFor(() => {
+      const dialog = screen.getByRole('dialog', { name: /memory ingestion/i });
+      expect(within(dialog).getByText(/not used by coach or ai player/i)).toBeInTheDocument();
     });
   });
 });

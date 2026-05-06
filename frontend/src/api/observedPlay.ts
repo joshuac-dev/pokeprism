@@ -2,10 +2,14 @@ import api from './client';
 import type {
   CardMentionListResponse,
   CardResolutionSummaryResponse,
+  IngestionConfig,
+  MemoryIngestionPreview,
+  MemoryIngestionSummary,
   ObservedPlayBatchDetail,
   ObservedPlayLogDetail,
   ObservedPlayUploadResult,
   PaginatedEvents,
+  PaginatedMemoryItems,
   PaginatedObservedPlayBatches,
   PaginatedObservedPlayLogs,
   ParserDiagnostics,
@@ -132,4 +136,37 @@ export async function createResolutionRule(
 ): Promise<ResolutionRuleResponse> {
   const resp = await api.post('/api/observed-play/resolution-rules', body);
   return resp.data as ResolutionRuleResponse;
+}
+
+// ── Phase 4: Memory ingestion API ────────────────────────────────────────────
+
+export async function previewMemoryIngestion(
+  logId: string,
+  config: IngestionConfig = {},
+): Promise<MemoryIngestionPreview> {
+  const resp = await api.post(`/api/observed-play/logs/${logId}/memory-preview`, config);
+  return resp.data as MemoryIngestionPreview;
+}
+
+export async function ingestMemory(
+  logId: string,
+  config: IngestionConfig = {},
+): Promise<MemoryIngestionSummary> {
+  const resp = await api.post(`/api/observed-play/logs/${logId}/ingest-memory`, config);
+  return resp.data as MemoryIngestionSummary;
+}
+
+export interface ListMemoryItemsParams {
+  page?: number;
+  per_page?: number;
+  memory_type?: string;
+  card_name?: string;
+}
+
+export async function getMemoryItems(
+  logId: string,
+  params: ListMemoryItemsParams = {},
+): Promise<PaginatedMemoryItems> {
+  const resp = await api.get(`/api/observed-play/logs/${logId}/memory-items`, { params });
+  return resp.data as PaginatedMemoryItems;
 }

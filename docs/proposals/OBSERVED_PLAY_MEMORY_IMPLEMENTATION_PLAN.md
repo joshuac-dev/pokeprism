@@ -1727,6 +1727,38 @@ stored this unstripped text as `raw_name`.
 11. Frontend 173 tests / build unchanged.
 12. No Coach / AI Player / pgvector / Neo4j / memory ingestion added.
 
+## 22.6 Phase 4 — Gated Memory Ingestion Foundation
+
+**Status:** COMPLETE (session 30).
+
+**Problem:** After Phase 3.1, card mentions were resolved and stored but there was no
+pipeline to convert parsed events into structured memory items for later Coach/AI retrieval.
+Memory ingestion needed eligibility gates (confidence threshold, parse completeness, card
+resolution) to prevent low-quality data from entering the memory store.
+
+**Changes:** See `docs/STATUS.md` session 30 and `docs/CHANGELOG.md` for detail.
+
+**Acceptance criteria met:**
+1. Alembic migration `g3h4i5j6k7l8` adds `memory_item_count` and `last_memory_ingested_at`
+   to `observed_play_logs`; creates `observed_play_memory_ingestions` and
+   `observed_play_memory_items` tables with indexes.
+2. `evaluate_log_ingestion_eligibility` gates: confidence ≥ 0.80, parse_status == parsed,
+   ≥1 event, ≥1 card mention, no partial flag. Returns `eligible`, `ineligible`, or `forced`.
+3. `force=True` + `allow_unresolved=True` bypass gates when other blocking conditions exist,
+   producing `forced` status.
+4. `preview_observed_play_ingestion` dry-run returns eligibility + event_type_counts + sample items.
+5. `ingest_observed_play_log` idempotent delete+insert pipeline; updates log counters.
+6. `MEMORY_INGESTION_VERSION = "1.0"` constant in `constants.py`.
+7. API routes: `POST /logs/{id}/memory-preview`, `POST /logs/{id}/ingest-memory`,
+   `GET /logs/{id}/memory-items`, `GET /memory-items` (global).
+8. `LogSummary` extended with `memory_item_count` and `last_memory_ingested_at`.
+9. 49 new backend tests (880 total, up from 831).
+10. Frontend: Phase 4 types, `previewMemoryIngestion`/`ingestMemory`/`getMemoryItems` API funcs,
+    `MemoryPreviewModal`, `MemoryItemsModal`, "Mem items" column, action buttons, phase banner.
+11. 9 new frontend tests (182 total, up from 173); build passes.
+12. Ingested memories stored for review only — not used by Coach or AI Player.
+13. No Coach / AI Player / pgvector / Neo4j integration added.
+
 ---
 
 *End of Observed Play Memory Implementation Plan.*

@@ -15,12 +15,19 @@ from app.db.models import (
     ObservedPlayEvent,
     ObservedPlayImportBatch,
     ObservedPlayLog,
+    ObservedPlayMemoryItem,
+    ObservedPlayMemoryIngestion,
 )
 from app.db.session import AsyncSessionLocal
 from app.observed_play.card_mentions import normalize_card_name
 from app.observed_play.card_resolution import RESOLVER_VERSION, extract_and_resolve_mentions_for_log
 from app.observed_play.constants import PARSER_VERSION
 from app.observed_play.importer import run_import
+from app.observed_play.memory_ingestion import (
+    evaluate_log_ingestion_eligibility,
+    ingest_observed_play_log,
+    preview_observed_play_ingestion,
+)
 from app.observed_play.parser import parse_log
 from app.observed_play.schemas import (
     BatchDetail,
@@ -28,14 +35,20 @@ from app.observed_play.schemas import (
     BatchSummary,
     CardMentionItem,
     CardResolutionSummaryResponse,
+    EligibilityResult,
     EventSummary,
+    IngestionConfig,
     LogDetail,
     LogImportResult,
     LogSummary,
+    MemoryIngestionPreview,
+    MemoryIngestionSummary,
+    MemoryItemSummary,
     PaginatedBatches,
     PaginatedCardMentions,
     PaginatedEvents,
     PaginatedLogs,
+    PaginatedMemoryItems,
     ParserDiagnostics,
     ReparseSummary,
     ResolutionRuleCreate,
@@ -109,6 +122,12 @@ def _log_to_summary(log: ObservedPlayLog) -> LogSummary:
         ambiguous_card_count=getattr(log, "ambiguous_card_count", None) or 0,
         unresolved_card_count=getattr(log, "unresolved_card_count", None) or 0,
         card_resolution_status=getattr(log, "card_resolution_status", None),
+        memory_item_count=getattr(log, "memory_item_count", None) or 0,
+        last_memory_ingested_at=(
+            log.last_memory_ingested_at.isoformat()
+            if getattr(log, "last_memory_ingested_at", None)
+            else None
+        ),
     )
 
 
@@ -680,3 +699,186 @@ async def create_resolution_rule(
         notes=rule.notes,
         created_at=rule.created_at.isoformat() if rule.created_at else None,
     )
+
+
+# ── Memory ingestion ──────────────────────────────────────────────────────────
+
+@router.post("/logs/{log_id}/memory-preview")
+async def preview_memory_ingestion(
+    log_id: str,
+    config: IngestionConfig = None,
+    db: AsyncSession = Depends(get_db),
+) -> MemoryIngestionPreview:
+    """Preview memory ingestion for a log without writing anything."""
+    if config is None:
+        config = IngestionConfig()
+    log_result = await db.execute(
+        select(ObservedPlayLog).where(ObservedPlayLog.id == log_id)
+    )
+    if log_result.scalars().first() is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+    return await preview_observed_play_ingestion(db, log_id, config)
+
+
+@router.post("/logs/{log_id}/ingest-memory")
+async def ingest_memory(
+    log_id: str,
+    config: IngestionConfig = None,
+    db: AsyncSession = Depends(get_db),
+) -> MemoryIngestionSummary:
+    """Ingest parsed events for a log into observed play memory items.
+
+    Returns 422 with eligibility reasons if the log is ineligible and
+    force=False or allow_unresolved=False.
+
+    Observed memories are stored for review only.
+    They are not used by Coach or AI Player yet.
+    """
+    if config is None:
+        config = IngestionConfig()
+    log_result = await db.execute(
+        select(ObservedPlayLog).where(ObservedPlayLog.id == log_id)
+    )
+    if log_result.scalars().first() is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+
+    summary = await ingest_observed_play_log(db, log_id, config)
+    if summary.status == "skipped":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "Log is not eligible for ingestion",
+                "eligibility_status": summary.eligibility_status,
+                "reasons": [r.model_dump() for r in summary.reasons],
+            },
+        )
+
+    await db.commit()
+    return summary
+
+
+@router.get("/logs/{log_id}/memory-items")
+async def get_memory_items(
+    log_id: str,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+    memory_type: Optional[str] = Query(None),
+    card_name: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+) -> PaginatedMemoryItems:
+    """List memory items for a log."""
+    log_result = await db.execute(
+        select(ObservedPlayLog).where(ObservedPlayLog.id == log_id)
+    )
+    if log_result.scalars().first() is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+
+    q = select(ObservedPlayMemoryItem).where(
+        ObservedPlayMemoryItem.observed_play_log_id == log_id
+    )
+    if memory_type:
+        q = q.where(ObservedPlayMemoryItem.memory_type == memory_type)
+    if card_name:
+        search = f"%{card_name.lower()}%"
+        q = q.where(
+            ObservedPlayMemoryItem.actor_card_raw.ilike(search)
+            | ObservedPlayMemoryItem.target_card_raw.ilike(search)
+            | ObservedPlayMemoryItem.related_card_raw.ilike(search)
+        )
+    q = q.order_by(ObservedPlayMemoryItem.created_at.asc())
+
+    total_result = await db.execute(select(func.count()).select_from(q.subquery()))
+    total = total_result.scalar() or 0
+
+    rows_result = await db.execute(q.offset((page - 1) * per_page).limit(per_page))
+    rows = rows_result.scalars().all()
+
+    items = [
+        MemoryItemSummary(
+            id=str(row.id),
+            ingestion_id=str(row.ingestion_id),
+            observed_play_log_id=str(row.observed_play_log_id),
+            observed_play_event_id=row.observed_play_event_id,
+            memory_type=row.memory_type,
+            memory_key=row.memory_key,
+            turn_number=row.turn_number,
+            phase=row.phase,
+            player_alias=row.player_alias,
+            player_raw=row.player_raw,
+            actor_card_raw=row.actor_card_raw,
+            actor_card_def_id=row.actor_card_def_id,
+            actor_resolution_status=row.actor_resolution_status,
+            target_card_raw=row.target_card_raw,
+            target_card_def_id=row.target_card_def_id,
+            target_resolution_status=row.target_resolution_status,
+            related_card_raw=row.related_card_raw,
+            related_card_def_id=row.related_card_def_id,
+            related_resolution_status=row.related_resolution_status,
+            action_name=row.action_name,
+            amount=row.amount,
+            damage=row.damage,
+            zone=row.zone,
+            target_zone=row.target_zone,
+            confidence_score=row.confidence_score,
+            source_event_type=row.source_event_type,
+            source_raw_line=row.source_raw_line,
+            created_at=row.created_at.isoformat() if row.created_at else None,
+        )
+        for row in rows
+    ]
+    return PaginatedMemoryItems(items=items, total=total, page=page, per_page=per_page)
+
+
+@router.get("/memory-items")
+async def list_all_memory_items(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+    memory_type: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+) -> PaginatedMemoryItems:
+    """List observed play memory items across all logs (read-only)."""
+    q = select(ObservedPlayMemoryItem)
+    if memory_type:
+        q = q.where(ObservedPlayMemoryItem.memory_type == memory_type)
+    q = q.order_by(ObservedPlayMemoryItem.created_at.desc())
+
+    total_result = await db.execute(select(func.count()).select_from(q.subquery()))
+    total = total_result.scalar() or 0
+
+    rows_result = await db.execute(q.offset((page - 1) * per_page).limit(per_page))
+    rows = rows_result.scalars().all()
+
+    items = [
+        MemoryItemSummary(
+            id=str(row.id),
+            ingestion_id=str(row.ingestion_id),
+            observed_play_log_id=str(row.observed_play_log_id),
+            observed_play_event_id=row.observed_play_event_id,
+            memory_type=row.memory_type,
+            memory_key=row.memory_key,
+            turn_number=row.turn_number,
+            phase=row.phase,
+            player_alias=row.player_alias,
+            player_raw=row.player_raw,
+            actor_card_raw=row.actor_card_raw,
+            actor_card_def_id=row.actor_card_def_id,
+            actor_resolution_status=row.actor_resolution_status,
+            target_card_raw=row.target_card_raw,
+            target_card_def_id=row.target_card_def_id,
+            target_resolution_status=row.target_resolution_status,
+            related_card_raw=row.related_card_raw,
+            related_card_def_id=row.related_card_def_id,
+            related_resolution_status=row.related_resolution_status,
+            action_name=row.action_name,
+            amount=row.amount,
+            damage=row.damage,
+            zone=row.zone,
+            target_zone=row.target_zone,
+            confidence_score=row.confidence_score,
+            source_event_type=row.source_event_type,
+            source_raw_line=row.source_raw_line,
+            created_at=row.created_at.isoformat() if row.created_at else None,
+        )
+        for row in rows
+    ]
+    return PaginatedMemoryItems(items=items, total=total, page=page, per_page=per_page)

@@ -109,6 +109,8 @@ def _make_log_model(
     log.card_mention_count = 0
     log.card_resolution_status = None
     log.resolver_version = None
+    log.memory_item_count = 0
+    log.last_memory_ingested_at = None
     return log
 
 
@@ -954,3 +956,342 @@ class TestParserDiagnosticsInApi:
         # After reparse, metadata_json is populated so diagnostics should be non-null
         assert data["parser_diagnostics"] is not None
         assert "unknown_count" in data["parser_diagnostics"]
+
+
+# ── Phase 4: Memory ingestion API ─────────────────────────────────────────────
+
+class TestMemoryPreview:
+    """Tests for POST /api/observed-play/logs/{log_id}/memory-preview."""
+
+    def test_preview_returns_200_and_eligible_true(self, client):
+        """Preview on eligible log returns 200 with eligible=True."""
+        log = _make_log_model(parse_status="parsed")
+
+        with patch(
+            "app.api.observed_play.preview_observed_play_ingestion",
+            new_callable=AsyncMock,
+        ) as mock_preview:
+            from app.observed_play.schemas import (
+                EligibilityMetrics,
+                MemoryIngestionPreview,
+            )
+            mock_preview.return_value = MemoryIngestionPreview(
+                eligible=True,
+                eligibility_status="eligible",
+                reasons=[],
+                metrics=EligibilityMetrics(
+                    confidence_score=0.91,
+                    event_count=20,
+                    unknown_ratio=0.01,
+                    low_confidence_count=0,
+                    card_mention_count=8,
+                    unresolved_card_count=0,
+                    ambiguous_card_count=1,
+                    critical_unresolved_count=0,
+                ),
+                estimated_memory_item_count=15,
+                event_type_counts={"attack_used": 5, "knockout": 2},
+                sample_items=[],
+            )
+
+            async def override_db():
+                session = AsyncMock()
+                log_result = MagicMock()
+                log_result.scalars.return_value.first.return_value = log
+                session.execute = AsyncMock(return_value=log_result)
+                yield session
+
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override_db
+            try:
+                resp = client.post(f"/api/observed-play/logs/{log.id}/memory-preview")
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["eligible"] is True
+        assert data["eligibility_status"] == "eligible"
+        assert data["estimated_memory_item_count"] == 15
+
+    def test_preview_returns_200_with_ineligible_log(self, client):
+        """Preview on ineligible log returns 200 (not 422), eligible=False."""
+        log = _make_log_model(parse_status="parsed")
+
+        with patch(
+            "app.api.observed_play.preview_observed_play_ingestion",
+            new_callable=AsyncMock,
+        ) as mock_preview:
+            from app.observed_play.schemas import EligibilityReason, MemoryIngestionPreview
+            mock_preview.return_value = MemoryIngestionPreview(
+                eligible=False,
+                eligibility_status="ineligible",
+                reasons=[EligibilityReason(code="low_confidence", detail="score too low")],
+                estimated_memory_item_count=0,
+            )
+
+            async def override_db():
+                session = AsyncMock()
+                log_result = MagicMock()
+                log_result.scalars.return_value.first.return_value = log
+                session.execute = AsyncMock(return_value=log_result)
+                yield session
+
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override_db
+            try:
+                resp = client.post(f"/api/observed-play/logs/{log.id}/memory-preview")
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["eligible"] is False
+
+    def test_preview_404_for_unknown_log(self, client):
+        async def override_db():
+            session = AsyncMock()
+            result = MagicMock()
+            result.scalars.return_value.first.return_value = None
+            session.execute = AsyncMock(return_value=result)
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post("/api/observed-play/logs/00000000-0000-0000-0000-000000000000/memory-preview")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 404
+
+
+class TestIngestMemory:
+    """Tests for POST /api/observed-play/logs/{log_id}/ingest-memory."""
+
+    def test_ingest_returns_200_on_success(self, client):
+        log = _make_log_model(parse_status="parsed")
+
+        with patch(
+            "app.api.observed_play.ingest_observed_play_log",
+            new_callable=AsyncMock,
+        ) as mock_ingest:
+            from app.observed_play.schemas import MemoryIngestionSummary
+            mock_ingest.return_value = MemoryIngestionSummary(
+                ingestion_id="ing-001",
+                log_id=str(log.id),
+                status="completed",
+                eligibility_status="eligible",
+                reasons=[],
+                memory_item_count=12,
+                skipped_event_count=3,
+                ingestion_version="1.0",
+            )
+
+            async def override_db():
+                session = AsyncMock()
+                log_result = MagicMock()
+                log_result.scalars.return_value.first.return_value = log
+                session.execute = AsyncMock(return_value=log_result)
+                session.commit = AsyncMock()
+                yield session
+
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override_db
+            try:
+                resp = client.post(f"/api/observed-play/logs/{log.id}/ingest-memory")
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "completed"
+        assert data["memory_item_count"] == 12
+
+    def test_ingest_returns_422_when_ineligible(self, client):
+        """Ineligible log returns 422 when not forced."""
+        log = _make_log_model(parse_status="parsed")
+
+        with patch(
+            "app.api.observed_play.ingest_observed_play_log",
+            new_callable=AsyncMock,
+        ) as mock_ingest:
+            from app.observed_play.schemas import EligibilityReason, MemoryIngestionSummary
+            mock_ingest.return_value = MemoryIngestionSummary(
+                ingestion_id="",
+                log_id=str(log.id),
+                status="skipped",
+                eligibility_status="ineligible",
+                reasons=[EligibilityReason(code="low_confidence", detail="0.70 < 0.80")],
+                ingestion_version="1.0",
+                error="Ineligible for ingestion",
+            )
+
+            async def override_db():
+                session = AsyncMock()
+                log_result = MagicMock()
+                log_result.scalars.return_value.first.return_value = log
+                session.execute = AsyncMock(return_value=log_result)
+                session.commit = AsyncMock()
+                yield session
+
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override_db
+            try:
+                resp = client.post(f"/api/observed-play/logs/{log.id}/ingest-memory")
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 422
+
+    def test_ingest_404_for_unknown_log(self, client):
+        async def override_db():
+            session = AsyncMock()
+            result = MagicMock()
+            result.scalars.return_value.first.return_value = None
+            session.execute = AsyncMock(return_value=result)
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post("/api/observed-play/logs/00000000-0000-0000-0000-000000000000/ingest-memory")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 404
+
+
+class TestMemoryItems:
+    """Tests for GET /api/observed-play/logs/{log_id}/memory-items."""
+
+    def _make_memory_item_model(self, item_id: str = "item-001", memory_type: str = "attack_used"):
+        item = MagicMock()
+        item.id = item_id
+        item.ingestion_id = "ing-001"
+        item.observed_play_log_id = "log-001"
+        item.observed_play_event_id = 42
+        item.memory_type = memory_type
+        item.memory_key = f"{memory_type}:42:Pikachu:Thunderbolt:"
+        item.turn_number = 3
+        item.phase = "turn"
+        item.player_alias = "P1"
+        item.player_raw = "Player1"
+        item.actor_card_raw = "Pikachu"
+        item.actor_card_def_id = "sv06-049"
+        item.actor_resolution_status = "resolved"
+        item.target_card_raw = "Charizard"
+        item.target_card_def_id = None
+        item.target_resolution_status = "ambiguous"
+        item.related_card_raw = None
+        item.related_card_def_id = None
+        item.related_resolution_status = None
+        item.action_name = "Thunderbolt"
+        item.amount = None
+        item.damage = 120
+        item.zone = "active"
+        item.target_zone = "active"
+        item.confidence_score = 0.88
+        item.source_event_type = "attack_used"
+        item.source_raw_line = "P1's Pikachu used Thunderbolt."
+        item.created_at = None
+        return item
+
+    def test_memory_items_returns_paginated_list(self, client):
+        log = _make_log_model()
+        item = self._make_memory_item_model()
+
+        async def override_db():
+            session = AsyncMock()
+            log_result = MagicMock()
+            log_result.scalars.return_value.first.return_value = log
+            count_result = MagicMock()
+            count_result.scalar.return_value = 1
+            items_result = MagicMock()
+            items_result.scalars.return_value.all.return_value = [item]
+            session.execute = AsyncMock(side_effect=[log_result, count_result, items_result])
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get(f"/api/observed-play/logs/{log.id}/memory-items")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["memory_type"] == "attack_used"
+
+    def test_memory_items_404_for_unknown_log(self, client):
+        async def override_db():
+            session = AsyncMock()
+            result = MagicMock()
+            result.scalars.return_value.first.return_value = None
+            session.execute = AsyncMock(return_value=result)
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs/00000000-0000-0000-0000-000000000000/memory-items")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 404
+
+    def test_memory_items_includes_pagination_fields(self, client):
+        log = _make_log_model()
+
+        async def override_db():
+            session = AsyncMock()
+            log_result = MagicMock()
+            log_result.scalars.return_value.first.return_value = log
+            count_result = MagicMock()
+            count_result.scalar.return_value = 0
+            items_result = MagicMock()
+            items_result.scalars.return_value.all.return_value = []
+            session.execute = AsyncMock(side_effect=[log_result, count_result, items_result])
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get(f"/api/observed-play/logs/{log.id}/memory-items?page=2&per_page=10")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["page"] == 2
+        assert data["per_page"] == 10
+        assert data["total"] == 0
+
+    def test_log_summary_includes_memory_fields(self, client):
+        """Log summary response includes memory_item_count and last_memory_ingested_at."""
+        log = _make_log_model()
+        log.memory_item_count = 7
+        log.last_memory_ingested_at = None
+
+        async def override_db():
+            session = AsyncMock()
+            count_result = MagicMock()
+            count_result.scalar_one.return_value = 1
+            list_result = MagicMock()
+            list_result.scalars.return_value.all.return_value = [log]
+            session.execute = AsyncMock(side_effect=[count_result, list_result])
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        item = resp.json()["items"][0]
+        assert "memory_item_count" in item
+        assert item["memory_item_count"] == 7

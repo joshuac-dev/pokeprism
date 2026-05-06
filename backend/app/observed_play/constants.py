@@ -2,6 +2,7 @@
 
 PARSER_VERSION = "1.0"
 RESOLVER_VERSION = "1.0"
+MEMORY_INGESTION_VERSION = "1.0"
 
 # Event phases
 PHASE_SETUP = "setup"

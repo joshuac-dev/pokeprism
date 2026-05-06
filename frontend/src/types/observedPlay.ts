@@ -82,6 +82,9 @@ export interface ObservedPlayLog {
   ambiguous_card_count?: number;
   unresolved_card_count?: number;
   card_resolution_status?: string | null;
+  // Phase 4: memory ingestion
+  memory_item_count?: number;
+  last_memory_ingested_at?: string | null;
 }
 
 export interface EventSummary {
@@ -231,4 +234,102 @@ export interface ResolutionRuleResponse {
   scope: string;
   notes: string | null;
   created_at: string | null;
+}
+
+// ── Phase 4: Memory ingestion types ─────────────────────────────────────────
+
+export interface IngestionConfig {
+  min_confidence?: number;
+  max_unknown_ratio?: number;
+  max_unresolved?: number;
+  allow_unresolved?: boolean;
+  force?: boolean;
+}
+
+export interface EligibilityReason {
+  code: string;
+  detail: string;
+}
+
+export interface EligibilityMetrics {
+  confidence_score: number;
+  event_count: number;
+  unknown_ratio: number;
+  low_confidence_count: number;
+  card_mention_count: number;
+  unresolved_card_count: number;
+  ambiguous_card_count: number;
+  critical_unresolved_count: number;
+}
+
+export interface MemoryItemPreview {
+  event_id: number;
+  event_type: string;
+  memory_type: string;
+  turn_number: number | null;
+  actor_card_raw: string | null;
+  target_card_raw: string | null;
+  action_name: string | null;
+  damage: number | null;
+  confidence_score: number;
+}
+
+export interface MemoryIngestionPreview {
+  eligible: boolean;
+  eligibility_status: string;
+  reasons: EligibilityReason[];
+  metrics?: EligibilityMetrics | null;
+  estimated_memory_item_count: number;
+  event_type_counts?: Record<string, number>;
+  sample_items?: MemoryItemPreview[];
+}
+
+export interface MemoryItemSummary {
+  id: string;
+  ingestion_id: string;
+  observed_play_log_id: string;
+  observed_play_event_id: number | null;
+  memory_type: string;
+  memory_key: string;
+  turn_number: number | null;
+  phase: string | null;
+  player_alias: string | null;
+  player_raw: string | null;
+  actor_card_raw: string | null;
+  actor_card_def_id: string | null;
+  actor_resolution_status: string | null;
+  target_card_raw: string | null;
+  target_card_def_id: string | null;
+  target_resolution_status: string | null;
+  related_card_raw: string | null;
+  related_card_def_id: string | null;
+  related_resolution_status: string | null;
+  action_name: string | null;
+  amount: number | null;
+  damage: number | null;
+  zone: string | null;
+  target_zone: string | null;
+  confidence_score: number;
+  source_event_type: string;
+  source_raw_line: string | null;
+  created_at: string | null;
+}
+
+export interface MemoryIngestionSummary {
+  ingestion_id: string;
+  log_id: string;
+  status: "completed" | "skipped" | "failed";
+  eligibility_status: string;
+  reasons: EligibilityReason[];
+  memory_item_count?: number;
+  skipped_event_count?: number;
+  ingestion_version: string;
+  error?: string | null;
+}
+
+export interface PaginatedMemoryItems {
+  items: MemoryItemSummary[];
+  total: number;
+  page: number;
+  per_page: number;
 }

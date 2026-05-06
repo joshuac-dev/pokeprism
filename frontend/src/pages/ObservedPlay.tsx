@@ -10,15 +10,24 @@ import {
   reparseObservedPlayLog,
   getCardMentions,
   getUnresolvedCards,
+  previewMemoryIngestion,
+  ingestMemory,
+  getMemoryItems,
 } from '../api/observedPlay';
 import type {
   CardMentionItem,
+  EligibilityReason,
   EventSummary,
+  IngestionConfig,
+  MemoryIngestionPreview,
+  MemoryIngestionSummary,
+  MemoryItemSummary,
   ObservedPlayBatch,
   ObservedPlayLog,
   ObservedPlayLogDetail,
   ObservedPlayUploadResult,
   PaginatedEvents,
+  PaginatedMemoryItems,
   ParserDiagnostics,
   UnresolvedCardItem,
 } from '../types/observedPlay';
@@ -51,6 +60,9 @@ function StatusChip({ status }: { status: string }) {
     skipped: 'bg-gray-100 text-gray-500',
     raw_archived: 'bg-blue-100 text-blue-700',
     not_ingested: 'bg-gray-100 text-gray-500',
+    ingested: 'bg-green-100 text-green-800',
+    ingestion_failed: 'bg-red-100 text-red-700',
+    ingestion_skipped: 'bg-yellow-100 text-yellow-700',
   };
   const cls = palette[status] ?? 'bg-gray-100 text-gray-600';
   return (
@@ -572,6 +584,375 @@ function UnresolvedCardsSection() {
   );
 }
 
+// ── Memory preview & ingest modal ─────────────────────────────────────────────
+
+function MemoryPreviewModal({
+  logId,
+  onClose,
+  onIngestSuccess,
+}: {
+  logId: string;
+  onClose: () => void;
+  onIngestSuccess: () => void;
+}) {
+  const [preview, setPreview] = useState<MemoryIngestionPreview | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [ingesting, setIngesting] = useState(false);
+  const [ingestResult, setIngestResult] = useState<MemoryIngestionSummary | null>(null);
+  const [ingestError, setIngestError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    previewMemoryIngestion(logId)
+      .then(setPreview)
+      .catch(() => setError('Failed to load preview.'))
+      .finally(() => setLoading(false));
+  }, [logId]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  async function handleIngest(config: IngestionConfig = {}) {
+    setIngesting(true);
+    setIngestError(null);
+    try {
+      const result = await ingestMemory(logId, config);
+      setIngestResult(result);
+      onIngestSuccess();
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: { message?: string } | string } } })?.response?.data?.detail;
+      const msg = typeof detail === 'object' && detail?.message
+        ? detail.message
+        : (typeof detail === 'string' ? detail : 'Ingestion failed');
+      setIngestError(msg);
+    } finally {
+      setIngesting(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-label="Memory Ingestion"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div
+        className="relative mx-4 max-h-[90vh] w-full max-w-2xl overflow-auto rounded-lg bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 text-gray-500 hover:text-gray-800"
+          aria-label="Close"
+        >
+          <X size={20} />
+        </button>
+
+        <h2 className="mb-1 text-lg font-semibold">Memory Ingestion</h2>
+        <p className="mb-4 text-xs text-gray-500">
+          Observed memories are stored for review only. They are not used by Coach or AI Player yet.
+        </p>
+
+        {loading && <p className="text-sm text-gray-500">Loading preview…</p>}
+        {error && <p className="text-sm text-red-600">{error}</p>}
+
+        {preview && !ingestResult && (
+          <>
+            <div className={`mb-4 rounded border px-3 py-2 text-sm ${preview.eligible ? 'border-green-200 bg-green-50 text-green-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
+              {preview.eligible
+                ? `✓ Eligible — estimated ${preview.estimated_memory_item_count} memory items`
+                : '✗ Not eligible for ingestion'}
+            </div>
+
+            {preview.reasons.length > 0 && (
+              <div className="mb-4">
+                <p className="mb-1 text-xs font-medium text-gray-600">Eligibility reasons:</p>
+                <ul className="space-y-0.5 text-xs text-gray-600">
+                  {preview.reasons.map((r: EligibilityReason) => (
+                    <li key={r.code}>
+                      <span className="font-mono text-red-700">{r.code}</span>: {r.detail}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {preview.metrics && (
+              <div className="mb-4 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-gray-600">
+                <span className="font-medium">Confidence</span>
+                <span>{(preview.metrics.confidence_score * 100).toFixed(1)}%</span>
+                <span className="font-medium">Events</span>
+                <span>{preview.metrics.event_count}</span>
+                <span className="font-medium">Card mentions</span>
+                <span>{preview.metrics.card_mention_count}</span>
+                <span className="font-medium">Unresolved</span>
+                <span>{preview.metrics.unresolved_card_count}</span>
+                <span className="font-medium">Ambiguous</span>
+                <span>{preview.metrics.ambiguous_card_count}</span>
+              </div>
+            )}
+
+            {preview.event_type_counts && Object.keys(preview.event_type_counts).length > 0 && (
+              <div className="mb-4">
+                <p className="mb-1 text-xs font-medium text-gray-600">Memory types to be created:</p>
+                <div className="flex flex-wrap gap-1">
+                  {Object.entries(preview.event_type_counts).map(([k, v]) => (
+                    <span key={k} className="rounded bg-gray-100 px-2 py-0.5 text-xs">
+                      {k}: {v}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {preview.sample_items && preview.sample_items.length > 0 && (
+              <div className="mb-4">
+                <p className="mb-1 text-xs font-medium text-gray-600">Sample items (first {preview.sample_items.length}):</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b text-left text-gray-500">
+                        <th className="pb-0.5 pr-2">Turn</th>
+                        <th className="pb-0.5 pr-2">Type</th>
+                        <th className="pb-0.5 pr-2">Actor</th>
+                        <th className="pb-0.5 pr-2">Action</th>
+                        <th className="pb-0.5 pr-2">Dmg</th>
+                        <th className="pb-0.5">Conf</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {preview.sample_items.map((item) => (
+                        <tr key={item.event_id} className="border-b border-gray-100 last:border-0">
+                          <td className="py-0.5 pr-2">{item.turn_number ?? '—'}</td>
+                          <td className="py-0.5 pr-2 text-gray-500">{item.memory_type}</td>
+                          <td className="py-0.5 pr-2 font-medium">{item.actor_card_raw ?? '—'}</td>
+                          <td className="py-0.5 pr-2">{item.action_name ?? '—'}</td>
+                          <td className="py-0.5 pr-2">{item.damage ?? '—'}</td>
+                          <td className="py-0.5">{(item.confidence_score * 100).toFixed(0)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {ingestError && (
+              <p className="mb-3 text-sm text-red-600" role="alert">{ingestError}</p>
+            )}
+
+            <div className="flex gap-2">
+              {preview.eligible && (
+                <button
+                  onClick={() => handleIngest()}
+                  disabled={ingesting}
+                  className="rounded bg-teal-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+                >
+                  {ingesting ? 'Ingesting…' : 'Ingest memory'}
+                </button>
+              )}
+              {!preview.eligible && (
+                <button
+                  onClick={() => handleIngest({ force: true, allow_unresolved: true })}
+                  disabled={ingesting}
+                  className="rounded border border-orange-400 px-4 py-1.5 text-sm font-medium text-orange-700 hover:bg-orange-50 disabled:opacity-50"
+                >
+                  {ingesting ? 'Forcing…' : 'Force ingest'}
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="rounded border border-gray-300 px-4 py-1.5 text-sm hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
+
+        {ingestResult && (
+          <div className="text-sm">
+            <p className="mb-2 font-medium text-green-700">
+              ✓ Ingestion {ingestResult.status} — {ingestResult.memory_item_count ?? 0} memory items created
+            </p>
+            <button
+              onClick={onClose}
+              className="rounded bg-gray-100 px-4 py-1.5 text-sm hover:bg-gray-200"
+            >
+              Close
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Memory items viewer modal ─────────────────────────────────────────────────
+
+function MemoryItemsModal({
+  logId,
+  onClose,
+}: {
+  logId: string;
+  onClose: () => void;
+}) {
+  const [data, setData] = useState<PaginatedMemoryItems | null>(null);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [memoryTypeFilter, setMemoryTypeFilter] = useState('');
+  const PER_PAGE = 50;
+
+  const load = useCallback(
+    (p: number) => {
+      setLoading(true);
+      setError(null);
+      getMemoryItems(logId, {
+        page: p,
+        per_page: PER_PAGE,
+        memory_type: memoryTypeFilter || undefined,
+      })
+        .then(setData)
+        .catch(() => setError('Failed to load memory items.'))
+        .finally(() => setLoading(false));
+    },
+    [logId, memoryTypeFilter],
+  );
+
+  useEffect(() => { load(page); }, [page, load]);
+
+  useEffect(() => {
+    setPage(1);
+    load(1);
+  }, [memoryTypeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const pages = data ? Math.max(1, Math.ceil(data.total / PER_PAGE)) : 1;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-label="Memory Items"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div
+        className="relative mx-4 max-h-[90vh] w-full max-w-5xl overflow-auto rounded-lg bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 text-gray-500 hover:text-gray-800"
+          aria-label="Close"
+        >
+          <X size={20} />
+        </button>
+
+        <h2 className="mb-1 text-lg font-semibold">Memory Items</h2>
+        <p className="mb-3 text-xs text-gray-500">
+          Observed memories are stored for review only. They are not used by Coach or AI Player yet.
+        </p>
+
+        <div className="mb-3 flex items-center gap-3">
+          <label className="text-xs text-gray-600">Filter by type:</label>
+          <input
+            type="text"
+            value={memoryTypeFilter}
+            onChange={(e) => setMemoryTypeFilter(e.target.value)}
+            placeholder="e.g. attack_used"
+            className="rounded border border-gray-300 px-2 py-0.5 text-xs w-36"
+          />
+          {data && <span className="text-xs text-gray-500">{data.total} total</span>}
+        </div>
+
+        {loading && <p className="text-sm text-gray-500">Loading…</p>}
+        {error && <p className="text-sm text-red-600">{error}</p>}
+
+        {data && data.items.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-gray-200 text-left text-gray-500">
+                  <th className="pb-1 pr-2">Turn</th>
+                  <th className="pb-1 pr-2">Type</th>
+                  <th className="pb-1 pr-2">Player</th>
+                  <th className="pb-1 pr-2">Actor</th>
+                  <th className="pb-1 pr-2">Action</th>
+                  <th className="pb-1 pr-2">Target</th>
+                  <th className="pb-1 pr-2">Dmg/Amt</th>
+                  <th className="pb-1 pr-2">Conf</th>
+                  <th className="pb-1">Source line</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.items.map((item: MemoryItemSummary) => (
+                  <tr key={item.id} className="border-b border-gray-100 last:border-0">
+                    <td className="py-0.5 pr-2">{item.turn_number ?? '—'}</td>
+                    <td className="py-0.5 pr-2 text-gray-500">{item.memory_type}</td>
+                    <td className="py-0.5 pr-2">{item.player_alias ?? item.player_raw ?? '—'}</td>
+                    <td className="py-0.5 pr-2 font-medium">{item.actor_card_raw ?? '—'}</td>
+                    <td className="py-0.5 pr-2">{item.action_name ?? '—'}</td>
+                    <td className="py-0.5 pr-2">{item.target_card_raw ?? '—'}</td>
+                    <td className="py-0.5 pr-2">
+                      {item.damage != null ? `${item.damage} dmg` : item.amount != null ? `${item.amount}` : '—'}
+                    </td>
+                    <td className="py-0.5 pr-2">
+                      <ConfidenceBadge score={item.confidence_score} />
+                    </td>
+                    <td className="py-0.5 max-w-xs truncate text-gray-400" title={item.source_raw_line ?? ''}>
+                      {item.source_raw_line ?? '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {pages > 1 && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="rounded border px-2 py-0.5 disabled:opacity-40"
+                >
+                  ‹ Prev
+                </button>
+                <span>Page {page} / {pages}</span>
+                <button
+                  onClick={() => setPage((p) => Math.min(pages, p + 1))}
+                  disabled={page >= pages}
+                  className="rounded border px-2 py-0.5 disabled:opacity-40"
+                >
+                  Next ›
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        {data && data.items.length === 0 && !loading && (
+          <p className="text-sm text-gray-400">No memory items found.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ObservedPlay() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -591,6 +972,8 @@ export default function ObservedPlay() {
   const [viewLogId, setViewLogId] = useState<string | null>(null);
   const [viewEventsLogId, setViewEventsLogId] = useState<string | null>(null);
   const [viewCardMentionsLogId, setViewCardMentionsLogId] = useState<string | null>(null);
+  const [memoryPreviewLogId, setMemoryPreviewLogId] = useState<string | null>(null);
+  const [memoryItemsLogId, setMemoryItemsLogId] = useState<string | null>(null);
 
   const PER_PAGE = 25;
 
@@ -651,7 +1034,8 @@ export default function ObservedPlay() {
     <PageShell title="Observed Play">
       {/* Phase banner */}
       <div className="mb-6 rounded border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
-        Phase 3 active — parser running, card resolution enabled. Memory ingestion not yet active.
+        Phase 4 active — memory ingestion enabled. Observed memories are stored for review only.
+        They are not used by Coach or AI Player yet.
       </div>
 
       {/* ── Upload panel ─────────────────────────────────────────────────── */}
@@ -823,6 +1207,7 @@ export default function ObservedPlay() {
                   <th className="pb-1 pr-3">Events</th>
                   <th className="pb-1 pr-3">Confidence</th>
                   <th className="pb-1 pr-3">Cards</th>
+                  <th className="pb-1 pr-3">Mem items</th>
                   <th className="pb-1 pr-3">Size</th>
                   <th className="pb-1 pr-3">Imported at</th>
                   <th className="pb-1 pr-3">Hash prefix</th>
@@ -838,10 +1223,15 @@ export default function ObservedPlay() {
                     <td className="py-1 pr-3 text-center text-xs">{(log.event_count ?? 0) || '—'}</td>
                     <td className="py-1 pr-3"><ConfidenceBadge score={log.confidence_score} /></td>
                     <td className="py-1 pr-3"><CardResolutionBadges log={log} /></td>
+                    <td className="py-1 pr-3 text-center text-xs">
+                      {(log.memory_item_count ?? 0) > 0
+                        ? <span className="font-medium text-green-700">{log.memory_item_count}</span>
+                        : '—'}
+                    </td>
                     <td className="py-1 pr-3 text-xs">{fmtBytes(log.file_size_bytes)}</td>
                     <td className="py-1 pr-3 text-xs">{fmtDate(log.created_at)}</td>
                     <td className="py-1 pr-3 font-mono text-xs">{log.sha256_hash.slice(0, 8)}</td>
-                    <td className="py-1 flex gap-1">
+                    <td className="py-1 flex flex-wrap gap-1">
                       <button
                         onClick={() => setViewLogId(log.id)}
                         className="rounded border border-gray-300 px-2 py-0.5 text-xs hover:bg-gray-50"
@@ -860,6 +1250,22 @@ export default function ObservedPlay() {
                           className="rounded border border-purple-300 px-2 py-0.5 text-xs text-purple-700 hover:bg-purple-50"
                         >
                           View cards
+                        </button>
+                      )}
+                      {log.parse_status === 'parsed' || log.parse_status === 'parsed_with_warnings' ? (
+                        <button
+                          onClick={() => setMemoryPreviewLogId(log.id)}
+                          className="rounded border border-teal-300 px-2 py-0.5 text-xs text-teal-700 hover:bg-teal-50"
+                        >
+                          {log.memory_status === 'ingested' ? 'Re-ingest' : 'Ingest memory'}
+                        </button>
+                      ) : null}
+                      {(log.memory_item_count ?? 0) > 0 && (
+                        <button
+                          onClick={() => setMemoryItemsLogId(log.id)}
+                          className="rounded border border-green-300 px-2 py-0.5 text-xs text-green-700 hover:bg-green-50"
+                        >
+                          View memory
                         </button>
                       )}
                     </td>
@@ -905,6 +1311,22 @@ export default function ObservedPlay() {
         <CardMentionsModal
           logId={viewCardMentionsLogId}
           onClose={() => setViewCardMentionsLogId(null)}
+        />
+      )}
+      {memoryPreviewLogId && (
+        <MemoryPreviewModal
+          logId={memoryPreviewLogId}
+          onClose={() => setMemoryPreviewLogId(null)}
+          onIngestSuccess={() => {
+            setMemoryPreviewLogId(null);
+            fetchLogs(logPage);
+          }}
+        />
+      )}
+      {memoryItemsLogId && (
+        <MemoryItemsModal
+          logId={memoryItemsLogId}
+          onClose={() => setMemoryItemsLogId(null)}
         />
       )}
     </PageShell>
