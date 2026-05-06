@@ -31,6 +31,11 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Fixed
+- **Observed Play dark mode styling** — frontend only. Added 177 `dark:` Tailwind classes across
+  all 13 components in `ObservedPlay.tsx`. Panels, tables, badges, buttons, and modals now use
+  theme-aware surfaces/text/borders matching the dark mode conventions of History and Memory pages.
+  Unresolved/Ambiguous Cards panel uses `dark:bg-amber-950/50 dark:border-amber-800`. No backend
+  changes. +6 dark mode tests (206 total, up from 200); build passes.
 - **Observed Play Phase 3.2 hotfix: refresh Raw Logs after resolution rule creation** — frontend
   only. `UnresolvedCardsSection` now accepts an `onRefreshLogs` prop; after a manual resolution
   rule is created and affected logs are rerun, the parent `fetchLogs` is called so the Raw Logs

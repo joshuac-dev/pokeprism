@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 32 — Observed Play Phase 3.2 hotfix: refresh Raw Logs after rule creation)
+Last updated: 2026-05-06 (session 33 — Observed Play dark mode styling fix)
 
 ## Current Workstream
 
@@ -173,6 +173,57 @@ component's `fetchLogs`, so the Raw Logs table remained stale until page reload.
 | `frontend/src/pages/ObservedPlay.test.tsx` | +3 refresh tests |
 | `docs/STATUS.md` | This file |
 | `docs/CHANGELOG.md` | Hotfix entry |
+
+## Session 33 Work (2026-05-06)
+
+### Goal
+
+Dark mode styling hotfix for `ObservedPlay.tsx`. The page showed white panels and
+low-contrast text in dark mode because the file had zero `dark:` Tailwind classes.
+
+### Root Cause
+
+`ObservedPlay.tsx` was written without any `dark:` Tailwind variants. All other pages
+(History, Memory, Coverage) had consistent dark mode support; Observed Play did not.
+
+### Fix
+
+Added 177 `dark:` Tailwind classes across all 13 components/sections in `ObservedPlay.tsx`:
+StatusChip, RawLogModal, ConfidenceBadge, ParserDiagnosticsPanel, EventsModal,
+CardResolutionBadges, ResolutionStatusBadge (palette), CardMentionsModal,
+ResolutionRuleModal, UnresolvedCardsSection, MemoryPreviewModal, MemoryItemsModal,
+and all main page sections (phase banner, upload, import report, import batches,
+raw logs). Follows exact dark mode patterns from History.tsx and Memory.tsx
+(`dark:bg-slate-900`, `dark:border-slate-700`, `dark:text-slate-400`, etc.).
+Unresolved/ambiguous panel uses `dark:bg-amber-950/50 dark:border-amber-800`.
+
+### Tests Added (session 33)
+
+- **+6 new frontend tests** in `describe('Dark mode styling')`:
+  - Raw Logs panel has `dark:bg-slate-900`
+  - Import History/Batches panel has `dark:bg-slate-900`
+  - Unresolved section has amber dark classes
+  - RawLogModal has `dark:bg-slate-900`
+  - MemoryPreviewModal has `dark:bg-slate-900`
+  - ResolutionRuleModal has `dark:bg-slate-900`
+
+### Validation (session 33)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **935 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **206 passed (15 files)** ✓
+- `cd frontend && npm run build`: **passed** ✓
+- `docs/AUDIT_STATE.md` not touched ✓
+- `frontend/node_modules` not committed ✓
+- No real battle logs committed ✓
+
+### Files Changed (session 33)
+
+| File | Change |
+|---|---|
+| `frontend/src/pages/ObservedPlay.tsx` | +177 `dark:` Tailwind classes across all components |
+| `frontend/src/pages/ObservedPlay.test.tsx` | +6 dark mode styling tests |
+| `docs/STATUS.md` | This file |
+| `docs/CHANGELOG.md` | Dark mode entry |
 
 
 
