@@ -20,6 +20,9 @@ vi.mock('../api/observedPlay', () => ({
   previewMemoryIngestion: vi.fn(),
   ingestMemory: vi.fn(),
   getMemoryItems: vi.fn(),
+  getMemorySummary: vi.fn(),
+  getMemoryAnalytics: vi.fn(),
+  getMemoryAnalyticsSourceItems: vi.fn(),
 }));
 
 import {
@@ -34,6 +37,9 @@ import {
   previewMemoryIngestion,
   ingestMemory,
   getMemoryItems,
+  getMemorySummary,
+  getMemoryAnalytics,
+  getMemoryAnalyticsSourceItems,
 } from '../api/observedPlay';
 
 const emptyBatches = { items: [], total: 0, page: 1, per_page: 25 };
@@ -97,6 +103,41 @@ const sampleUploadResult = {
   warnings: [],
 };
 
+const emptyAnalytics = {
+  top_memory_types: [],
+  top_actor_cards: [],
+  top_target_cards: [],
+  top_actions: [],
+  top_attacks: [],
+  top_abilities: [],
+  top_attachments: [],
+  top_evolutions: [],
+  top_knockouts: [],
+  quality_flags: [],
+};
+
+const sampleSummary = {
+  ingested_log_count: 3,
+  memory_item_count: 158,
+  memory_type_counts: { attack_used: 18, card_played: 32 },
+  average_confidence: 0.82,
+  low_confidence_count: 5,
+  ambiguous_reference_count: 10,
+  unresolved_reference_count: 0,
+  latest_ingested_at: '2026-05-06T16:00:00Z',
+};
+
+const emptySummary = {
+  ingested_log_count: 0,
+  memory_item_count: 0,
+  memory_type_counts: {},
+  average_confidence: null,
+  low_confidence_count: 0,
+  ambiguous_reference_count: 0,
+  unresolved_reference_count: 0,
+  latest_ingested_at: null,
+};
+
 function setup() {
   return render(
     <MemoryRouter>
@@ -144,6 +185,11 @@ beforeEach(() => {
   });
   (getMemoryItems as ReturnType<typeof vi.fn>).mockResolvedValue({
     items: [], total: 0, page: 1, per_page: 50,
+  });
+  (getMemorySummary as ReturnType<typeof vi.fn>).mockResolvedValue(emptySummary);
+  (getMemoryAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue(emptyAnalytics);
+  (getMemoryAnalyticsSourceItems as ReturnType<typeof vi.fn>).mockResolvedValue({
+    items: [], total: 0, page: 1, per_page: 20,
   });
 });
 
@@ -1095,7 +1141,8 @@ describe('Phase 3 card resolution', () => {
   it('phase 4 banner mentions "not used by Coach or AI Player"', async () => {
     setup();
     await waitFor(() => {
-      expect(screen.getByText(/not used by coach or ai player/i)).toBeInTheDocument();
+      const matches = screen.getAllByText(/not used by coach or ai player/i);
+      expect(matches.length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -1707,5 +1754,105 @@ describe('Dark mode styling', () => {
 
     const panel = document.querySelector('.dark\\:bg-slate-900');
     expect(panel).toBeTruthy();
+  });
+});
+describe('Phase 5 — Memory Analytics', () => {
+  it('Memory Analytics section renders', async () => {
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText('Memory Analytics')).toBeInTheDocument();
+    });
+  });
+
+  it('Empty state renders when no memory items', async () => {
+    (getMemorySummary as ReturnType<typeof vi.fn>).mockResolvedValue(emptySummary);
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText(/no observed memories have been ingested yet/i)).toBeInTheDocument();
+    });
+  });
+
+  it('Summary cards render when items exist', async () => {
+    (getMemorySummary as ReturnType<typeof vi.fn>).mockResolvedValue(sampleSummary);
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText('158')).toBeInTheDocument();
+      expect(screen.getByText('Memory Analytics')).toBeInTheDocument();
+    });
+  });
+
+  it('Memory type counts render', async () => {
+    (getMemorySummary as ReturnType<typeof vi.fn>).mockResolvedValue(sampleSummary);
+    (getMemoryAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...emptyAnalytics,
+      top_memory_types: [{
+        label: 'attack_used',
+        memory_type: 'attack_used',
+        count: 18,
+        average_confidence: 0.9,
+        resolved_count: 15,
+        ambiguous_count: 2,
+        unresolved_count: 1,
+        sample_memory_item_ids: [],
+        sample_source_lines: [],
+      }],
+    });
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText('attack_used')).toBeInTheDocument();
+    });
+  });
+
+  it('View examples opens modal', async () => {
+    (getMemorySummary as ReturnType<typeof vi.fn>).mockResolvedValue(sampleSummary);
+    (getMemoryAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...emptyAnalytics,
+      top_memory_types: [{
+        label: 'attack_used',
+        memory_type: 'attack_used',
+        count: 18,
+        average_confidence: 0.9,
+        resolved_count: 15,
+        ambiguous_count: 2,
+        unresolved_count: 1,
+        sample_memory_item_ids: [],
+        sample_source_lines: [],
+      }],
+    });
+    (getMemoryAnalyticsSourceItems as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [], total: 0, page: 1, per_page: 20,
+    });
+    setup();
+    await waitFor(() => screen.getByText('attack_used'));
+    const examplesBtns = screen.getAllByRole('button', { name: /examples/i });
+    await userEvent.click(examplesBtns[0]);
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /memory examples/i })).toBeInTheDocument();
+    });
+  });
+
+  it('Refresh analytics button calls APIs', async () => {
+    setup();
+    await waitFor(() => screen.getByText('Memory Analytics'));
+    const refreshBtn = screen.getByRole('button', { name: /refresh analytics/i });
+    await userEvent.click(refreshBtn);
+    await waitFor(() => {
+      expect(getMemorySummary as ReturnType<typeof vi.fn>).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('Safety copy present', async () => {
+    setup();
+    await waitFor(() => {
+      const matches = screen.getAllByText(/not used by coach or ai player yet/i);
+      expect(matches.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  it('Dark mode classes on analytics panel', async () => {
+    setup();
+    await waitFor(() => screen.getByText('Memory Analytics'));
+    const section = screen.getByText('Memory Analytics').closest('section');
+    expect(section?.className).toContain('dark:bg-slate-900');
   });
 });

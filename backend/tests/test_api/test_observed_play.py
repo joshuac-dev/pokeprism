@@ -1828,3 +1828,149 @@ class TestUnresolvedCardsPhase32:
         data = resp.json()
         assert data["items"] == []
         assert data["total"] == 0
+
+
+class TestMemoryAnalytics:
+    """Phase 5: read-only memory analytics endpoints."""
+
+    def test_memory_summary_empty(self, client):
+        """Summary returns zeros when no memory items exist."""
+        log_count_result = MagicMock()
+        log_count_result.scalar.return_value = 0
+        item_count_result = MagicMock()
+        item_count_result.scalar.return_value = 0
+
+        from app.api.observed_play import get_db
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(side_effect=[log_count_result, item_count_result])
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/memory-summary")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["memory_item_count"] == 0
+        assert data["ingested_log_count"] == 0
+
+    def test_memory_analytics_empty(self, client):
+        """Analytics returns empty lists when no items exist."""
+        empty_rows = MagicMock()
+        empty_rows.all.return_value = []
+
+        from app.api.observed_play import get_db
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(return_value=empty_rows)
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/memory-analytics")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data["top_memory_types"], list)
+        assert isinstance(data["top_actor_cards"], list)
+
+    def test_memory_analytics_source_items_empty(self, client):
+        """Source items returns empty when no items exist."""
+        count_result = MagicMock()
+        count_result.scalar.return_value = 0
+        rows_result = MagicMock()
+        rows_result.scalars.return_value.all.return_value = []
+
+        from app.api.observed_play import get_db
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(side_effect=[count_result, rows_result])
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/memory-analytics/source-items")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 0
+        assert data["items"] == []
+
+    def test_source_items_filters(self, client):
+        """Source items endpoint accepts filter parameters and returns 200."""
+        count_result = MagicMock()
+        count_result.scalar.return_value = 0
+        rows_result = MagicMock()
+        rows_result.scalars.return_value.all.return_value = []
+
+        from app.api.observed_play import get_db
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(side_effect=[count_result, rows_result])
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get(
+                "/api/observed-play/memory-analytics/source-items",
+                params={"memory_type": "attack_used"},
+            )
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+
+    def test_analytics_read_only(self, client):
+        """GET analytics endpoints do not modify data (read-only check)."""
+        log_count = MagicMock()
+        log_count.scalar.return_value = 0
+        item_count = MagicMock()
+        item_count.scalar.return_value = 0
+
+        from app.api.observed_play import get_db
+
+        async def override_db_summary():
+            session = AsyncMock()
+            session.execute = AsyncMock(side_effect=[log_count, item_count])
+            session.add = AsyncMock()
+            session.delete = AsyncMock()
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db_summary
+        try:
+            resp = client.get("/api/observed-play/memory-summary")
+            assert resp.status_code == 200
+            before_count = resp.json()["memory_item_count"]
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        log_count2 = MagicMock()
+        log_count2.scalar.return_value = 0
+        item_count2 = MagicMock()
+        item_count2.scalar.return_value = 0
+
+        async def override_db_summary2():
+            session = AsyncMock()
+            session.execute = AsyncMock(side_effect=[log_count2, item_count2])
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db_summary2
+        try:
+            after_resp = client.get("/api/observed-play/memory-summary")
+            assert after_resp.status_code == 200
+            after_count = after_resp.json()["memory_item_count"]
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert before_count == after_count

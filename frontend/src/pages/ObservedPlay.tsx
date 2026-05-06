@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Upload, X } from 'lucide-react';
 import PageShell from '../components/layout/PageShell';
 import {
@@ -15,6 +15,9 @@ import {
   getMemoryItems,
   createResolutionRule,
   resolveCards,
+  getMemorySummary,
+  getMemoryAnalytics,
+  getMemoryAnalyticsSourceItems,
 } from '../api/observedPlay';
 import type {
   CardCandidateItem,
@@ -34,6 +37,10 @@ import type {
   PaginatedMemoryItems,
   ParserDiagnostics,
   ResolutionRuleCreate,
+  MemorySummary,
+  MemoryAnalyticsResponse,
+  MemoryAnalyticsGroup,
+  MemoryAnalyticsSourceItemsParams,
   UnresolvedCardItem,
 } from '../types/observedPlay';
 import { normalizeTcgdexImageUrl } from '../utils/imageUrl';
@@ -1300,6 +1307,300 @@ function MemoryItemsModal({
   );
 }
 
+function StatCard({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2">
+      <p className="text-xs text-gray-500 dark:text-slate-400">{label}</p>
+      <p className="text-lg font-semibold text-slate-900 dark:text-white">{String(value)}</p>
+    </div>
+  );
+}
+
+function AnalyticsGroupTable({
+  title,
+  groups,
+  onViewExamples,
+}: {
+  title: string;
+  groups: MemoryAnalyticsGroup[];
+  onViewExamples: (g: MemoryAnalyticsGroup) => void;
+}) {
+  return (
+    <div className="mb-4">
+      <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{title}</h3>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-xs">
+          <thead className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400">
+            <tr>
+              <th className="px-2 py-1 text-left font-medium">Label</th>
+              <th className="px-2 py-1 text-right font-medium">Count</th>
+              <th className="px-2 py-1 text-right font-medium">Avg conf</th>
+              <th className="px-2 py-1 text-right font-medium">Resolved</th>
+              <th className="px-2 py-1 text-right font-medium">Ambig</th>
+              <th className="px-2 py-1 text-right font-medium">Unresolved</th>
+              <th className="px-2 py-1"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+            {groups.map((g) => (
+              <tr key={g.label} className="hover:bg-gray-50 dark:hover:bg-slate-800">
+                <td className="px-2 py-1 text-slate-900 dark:text-slate-100 max-w-[200px] truncate">{g.label}</td>
+                <td className="px-2 py-1 text-right text-slate-700 dark:text-slate-300">{g.count}</td>
+                <td className="px-2 py-1 text-right text-slate-700 dark:text-slate-300">
+                  {g.average_confidence != null ? `${(g.average_confidence * 100).toFixed(0)}%` : '—'}
+                </td>
+                <td className="px-2 py-1 text-right text-green-700 dark:text-green-400">{g.resolved_count}</td>
+                <td className="px-2 py-1 text-right text-yellow-700 dark:text-yellow-400">{g.ambiguous_count}</td>
+                <td className="px-2 py-1 text-right text-red-700 dark:text-red-400">{g.unresolved_count}</td>
+                <td className="px-2 py-1">
+                  <button
+                    onClick={() => onViewExamples(g)}
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Examples
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function MemoryAnalyticsExamplesModal({
+  items,
+  total,
+  loading,
+  onClose,
+}: {
+  items: MemoryItemSummary[];
+  total: number;
+  loading: boolean;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-label="Memory Examples"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div
+        className="relative mx-4 max-h-[90vh] w-full max-w-5xl overflow-auto rounded-lg bg-white dark:bg-slate-900 p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-100"
+          aria-label="Close"
+        >
+          <X size={20} />
+        </button>
+        <h2 className="mb-1 text-lg font-semibold text-slate-900 dark:text-white">Memory Examples</h2>
+        <p className="mb-3 text-xs text-gray-500 dark:text-slate-400">{total} matching items</p>
+        {loading && <p className="text-sm text-gray-500 dark:text-slate-400">Loading…</p>}
+        {!loading && items.length === 0 && (
+          <p className="text-sm text-gray-400 dark:text-slate-500">No items found.</p>
+        )}
+        {!loading && items.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-slate-700 text-left text-gray-500 dark:text-slate-400">
+                  <th className="pb-1 pr-2">Type</th>
+                  <th className="pb-1 pr-2">Turn</th>
+                  <th className="pb-1 pr-2">Player</th>
+                  <th className="pb-1 pr-2">Actor</th>
+                  <th className="pb-1 pr-2">Action</th>
+                  <th className="pb-1 pr-2">Target</th>
+                  <th className="pb-1 pr-2">Dmg/Amt</th>
+                  <th className="pb-1 pr-2">Conf</th>
+                  <th className="pb-1">Source line</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr key={item.id} className="border-b border-gray-100 dark:border-slate-800 last:border-0">
+                    <td className="py-0.5 pr-2 text-gray-500 dark:text-slate-400">{item.memory_type}</td>
+                    <td className="py-0.5 pr-2">{item.turn_number ?? '—'}</td>
+                    <td className="py-0.5 pr-2">{item.player_alias ?? item.player_raw ?? '—'}</td>
+                    <td className="py-0.5 pr-2 font-medium">{item.actor_card_raw ?? '—'}</td>
+                    <td className="py-0.5 pr-2">{item.action_name ?? '—'}</td>
+                    <td className="py-0.5 pr-2">{item.target_card_raw ?? '—'}</td>
+                    <td className="py-0.5 pr-2">
+                      {item.damage != null ? `${item.damage} dmg` : item.amount != null ? `${item.amount}` : '—'}
+                    </td>
+                    <td className="py-0.5 pr-2">
+                      <ConfidenceBadge score={item.confidence_score} />
+                    </td>
+                    <td className="py-0.5 max-w-xs truncate text-gray-400 dark:text-slate-500" title={item.source_raw_line ?? ''}>
+                      {item.source_raw_line ?? '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MemoryAnalyticsSection({
+  refreshRef,
+}: {
+  refreshRef?: { current: (() => void) | null };
+}) {
+  const [summary, setSummary] = useState<MemorySummary | null>(null);
+  const [analytics, setAnalytics] = useState<MemoryAnalyticsResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [examplesFilter, setExamplesFilter] = useState<MemoryAnalyticsSourceItemsParams | null>(null);
+  const [examplesItems, setExamplesItems] = useState<MemoryItemSummary[]>([]);
+  const [examplesTotal, setExamplesTotal] = useState(0);
+  const [examplesLoading, setExamplesLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [s, a] = await Promise.all([getMemorySummary(), getMemoryAnalytics()]);
+      setSummary(s);
+      setAnalytics(a);
+    } catch {
+      setError('Failed to load memory analytics.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (refreshRef) refreshRef.current = load;
+  });
+
+  async function openExamples(filter: MemoryAnalyticsSourceItemsParams) {
+    setExamplesFilter(filter);
+    setExamplesLoading(true);
+    try {
+      const res = await getMemoryAnalyticsSourceItems({ ...filter, per_page: 20 });
+      setExamplesItems(res.items);
+      setExamplesTotal(res.total);
+    } catch {
+      setExamplesItems([]);
+      setExamplesTotal(0);
+    } finally {
+      setExamplesLoading(false);
+    }
+  }
+
+  return (
+    <section className="mb-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-base font-semibold text-slate-900 dark:text-white">Memory Analytics</h2>
+        <button
+          onClick={() => load()}
+          disabled={loading}
+          className="rounded border border-gray-300 dark:border-slate-600 px-2 py-0.5 text-xs text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-40"
+        >
+          {loading ? 'Loading…' : 'Refresh analytics'}
+        </button>
+      </div>
+      <p className="text-xs text-gray-500 dark:text-slate-400 mb-4">
+        Observed memories are for review only. They are not used by Coach or AI Player yet.
+      </p>
+
+      {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+
+      {summary && summary.memory_item_count === 0 && (
+        <p className="text-sm text-gray-500 dark:text-slate-400">
+          No observed memories have been ingested yet. Preview and ingest eligible logs above to populate analytics.
+        </p>
+      )}
+
+      {summary && summary.memory_item_count > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+          <StatCard label="Ingested logs" value={summary.ingested_log_count} />
+          <StatCard label="Memory items" value={summary.memory_item_count} />
+          <StatCard
+            label="Avg confidence"
+            value={summary.average_confidence != null ? `${(summary.average_confidence * 100).toFixed(0)}%` : '—'}
+          />
+          <StatCard label="Low confidence" value={summary.low_confidence_count} />
+          <StatCard label="Ambiguous refs" value={summary.ambiguous_reference_count} />
+          <StatCard label="Unresolved refs" value={summary.unresolved_reference_count} />
+        </div>
+      )}
+
+      {analytics && analytics.top_memory_types.length > 0 && (
+        <AnalyticsGroupTable
+          title="Memory types"
+          groups={analytics.top_memory_types}
+          onViewExamples={(g) => openExamples({ memory_type: g.label })}
+        />
+      )}
+
+      {analytics && analytics.top_actions.length > 0 && (
+        <AnalyticsGroupTable
+          title="Top actions"
+          groups={analytics.top_actions}
+          onViewExamples={(g) => {
+            const [mt, ...rest] = g.label.split(':');
+            openExamples({ memory_type: mt, action_name: rest.join(':') });
+          }}
+        />
+      )}
+
+      {analytics && analytics.top_actor_cards.length > 0 && (
+        <AnalyticsGroupTable
+          title="Top actor cards"
+          groups={analytics.top_actor_cards}
+          onViewExamples={(g) => openExamples({ actor_card_raw: g.label })}
+        />
+      )}
+
+      {analytics && analytics.top_attacks.length > 0 && (
+        <AnalyticsGroupTable
+          title="Top attacks"
+          groups={analytics.top_attacks}
+          onViewExamples={(g) => {
+            const [actor, ...rest] = g.label.split(':');
+            openExamples({ memory_type: 'attack_used', actor_card_raw: actor, action_name: rest.join(':') });
+          }}
+        />
+      )}
+
+      {analytics && analytics.quality_flags.length > 0 && (
+        <AnalyticsGroupTable
+          title="Quality flags"
+          groups={analytics.quality_flags}
+          onViewExamples={(g) => openExamples({ quality_flag: g.label })}
+        />
+      )}
+
+      {examplesFilter && (
+        <MemoryAnalyticsExamplesModal
+          items={examplesItems}
+          total={examplesTotal}
+          loading={examplesLoading}
+          onClose={() => setExamplesFilter(null)}
+        />
+      )}
+    </section>
+  );
+}
+
 export default function ObservedPlay() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -1323,6 +1624,7 @@ export default function ObservedPlay() {
   const [memoryItemsLogId, setMemoryItemsLogId] = useState<string | null>(null);
 
   const PER_PAGE = 25;
+  const analyticsRefreshRef = useRef<(() => void) | null>(null);
 
   const fetchBatches = useCallback(async (p: number) => {
     setBatchLoading(true);
@@ -1644,6 +1946,8 @@ export default function ObservedPlay() {
       {/* ── Unresolved cards section ──────────────────────────────────────── */}
       <UnresolvedCardsSection onRefreshLogs={() => fetchLogs(logPage)} />
 
+      <MemoryAnalyticsSection refreshRef={analyticsRefreshRef} />
+
       {viewLogId && (
         <RawLogModal logId={viewLogId} onClose={() => setViewLogId(null)} />
       )}
@@ -1667,6 +1971,7 @@ export default function ObservedPlay() {
           onIngestSuccess={() => {
             setMemoryPreviewLogId(null);
             fetchLogs(logPage);
+            analyticsRefreshRef.current?.();
           }}
         />
       )}

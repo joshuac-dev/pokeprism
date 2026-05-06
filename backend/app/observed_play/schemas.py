@@ -416,3 +416,43 @@ class PaginatedMemoryItems(BaseModel):
     total: int
     page: int
     per_page: int
+
+# ── Phase 5: Memory analytics ──────────────────────────────────────────────────
+
+LOW_CONFIDENCE_THRESHOLD = 0.75  # items below this are "low confidence"
+
+
+class MemorySummary(BaseModel):
+    ingested_log_count: int = 0
+    memory_item_count: int = 0
+    memory_type_counts: dict[str, int] = Field(default_factory=dict)
+    average_confidence: float | None = None
+    low_confidence_count: int = 0
+    ambiguous_reference_count: int = 0
+    unresolved_reference_count: int = 0
+    latest_ingested_at: str | None = None
+
+
+class MemoryAnalyticsGroup(BaseModel):
+    label: str
+    memory_type: str
+    count: int
+    average_confidence: float | None = None
+    resolved_count: int = 0
+    ambiguous_count: int = 0
+    unresolved_count: int = 0
+    sample_memory_item_ids: list[str] = Field(default_factory=list)
+    sample_source_lines: list[str] = Field(default_factory=list)
+
+
+class MemoryAnalyticsResponse(BaseModel):
+    top_memory_types: list[MemoryAnalyticsGroup] = Field(default_factory=list)
+    top_actor_cards: list[MemoryAnalyticsGroup] = Field(default_factory=list)
+    top_target_cards: list[MemoryAnalyticsGroup] = Field(default_factory=list)
+    top_actions: list[MemoryAnalyticsGroup] = Field(default_factory=list)
+    top_attacks: list[MemoryAnalyticsGroup] = Field(default_factory=list)
+    top_abilities: list[MemoryAnalyticsGroup] = Field(default_factory=list)
+    top_attachments: list[MemoryAnalyticsGroup] = Field(default_factory=list)
+    top_evolutions: list[MemoryAnalyticsGroup] = Field(default_factory=list)
+    top_knockouts: list[MemoryAnalyticsGroup] = Field(default_factory=list)
+    quality_flags: list[MemoryAnalyticsGroup] = Field(default_factory=list)

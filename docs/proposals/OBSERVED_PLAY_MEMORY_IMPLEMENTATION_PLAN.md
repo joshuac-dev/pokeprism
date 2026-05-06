@@ -1868,5 +1868,43 @@ Frontend:
 
 ---
 
+## 22.9 Phase 5 — Read-Only Memory Analytics
+
+**Branch:** `feature/observed-play-memory`
+**Status:** ✅ Complete
+
+### Goal
+
+Surface read-only analytics over ingested observed play memory items: summary counts, per-type aggregates, quality flags, and a drill-down examples modal. No Coach/AI integration, pgvector, Neo4j, destructive actions, or new migrations.
+
+### Backend
+
+- `backend/app/observed_play/schemas.py`: Added `LOW_CONFIDENCE_THRESHOLD = 0.75`, `MemorySummary`, `MemoryAnalyticsGroup`, `MemoryAnalyticsResponse`.
+- `backend/app/api/observed_play.py`: Updated sqlalchemy import to add `and_`, `case`, `distinct`. Added schema imports. Three new read-only routes:
+  - `GET /memory-summary` — aggregate counts (ingested logs, memory items, type distribution, avg confidence, low-confidence count, ambiguous/unresolved reference counts, latest ingestion timestamp).
+  - `GET /memory-analytics` — top-N groups for: memory types, actor cards, target cards, actions, attacks (attack_used with actor+action), abilities, attachments, evolutions, knockouts, and quality flags. Each group includes label, count, avg confidence, resolution status counts, and up to 3 sample item IDs/source lines. Filterable by `memory_type` and `min_confidence`.
+  - `GET /memory-analytics/source-items` — paginated drill-down of memory items matching filter params (memory_type, actor_card_raw, actor_card_def_id, target_card_raw, target_card_def_id, action_name, quality_flag) plus standard pagination.
+
+### Frontend
+
+- `frontend/src/types/observedPlay.ts`: Added `MemorySummary`, `MemoryAnalyticsGroup`, `MemoryAnalyticsResponse`, `MemoryAnalyticsSourceItemsParams`.
+- `frontend/src/api/observedPlay.ts`: Added `getMemorySummary`, `getMemoryAnalytics`, `getMemoryAnalyticsSourceItems`.
+- `frontend/src/pages/ObservedPlay.tsx`: Added `useRef`. New components: `StatCard` (small label+value tile), `AnalyticsGroupTable` (sortable mini-table with Examples button per row), `MemoryAnalyticsExamplesModal` (drill-down modal with full memory item table), `MemoryAnalyticsSection` (section with summary cards + analytics tables). Placed after `UnresolvedCardsSection`. `analyticsRefreshRef` auto-refreshes after ingest success.
+
+### Tests
+
+- 5 new backend tests (`TestMemoryAnalytics`): empty summary, empty analytics, empty source items, filter params, read-only assertion.
+- 7 new frontend tests (Phase 5 describe block): renders, empty state, summary cards, type counts, examples modal, refresh button, safety copy, dark mode classes.
+
+### Validation
+
+1. `backend/tests/test_api/test_observed_play.py` Phase 5 tests pass.
+2. `frontend/src/pages/ObservedPlay.test.tsx` Phase 5 tests pass.
+3. Frontend build clean (`npm run build`).
+4. No DB migration required.
+5. No Coach/AI, pgvector, Neo4j, simulator match_events, card-performance, or destructive action added.
+
+---
+
 *End of Observed Play Memory Implementation Plan.*
 *Feature branch: `feature/observed-play-memory`. No production code in this document.*

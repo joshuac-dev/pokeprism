@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 34 — Observed Play stabilization sweep)
+Last updated: 2026-05-06 (session 35 — Observed Play Memory Phase 5: Read-Only Memory Analytics)
 
 ## Current Workstream
 
@@ -18,8 +18,8 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, and Phase 4.1 are complete.**
-Phase 5+ (Coach/AI integration) not yet started.
+**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, and Phase 5 are complete.**
+Phase 6+ (Coach/AI integration) not yet started.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
@@ -38,10 +38,42 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **911 passed, 1 skipped** — 2026-05-06 session 30. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 880/1 (Phase 4 commit). |
-| Frontend unit tests | **182 passed (15 files)** — 2026-05-06 session 30. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **940 passed, 1 skipped** — 2026-05-06 session 35. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 880/1 (Phase 4 commit). |
+| Frontend unit tests | **215 passed (15 files)** — 2026-05-06 session 35. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 35 Work (2026-05-06)
+
+### Goal
+
+Observed Play Memory Phase 5: Read-Only Memory Analytics on branch `feature/observed-play-memory`.
+
+### Summary
+
+Added three read-only API endpoints and a `MemoryAnalyticsSection` frontend component to surface observed play memory analytics without integrating with Coach or AI Player.
+
+### Backend changes
+
+- `backend/app/observed_play/schemas.py`: Added `LOW_CONFIDENCE_THRESHOLD`, `MemorySummary`, `MemoryAnalyticsGroup`, and `MemoryAnalyticsResponse` schemas.
+- `backend/app/api/observed_play.py`: Added `and_`, `case`, `distinct` imports. Added `LOW_CONFIDENCE_THRESHOLD`, `MemoryAnalyticsGroup`, `MemoryAnalyticsResponse`, `MemorySummary` schema imports. Three new read-only routes: `GET /memory-summary`, `GET /memory-analytics`, `GET /memory-analytics/source-items`. Helper `_fetch_analytics_groups` for reuse across aggregation queries.
+
+### Frontend changes
+
+- `frontend/src/types/observedPlay.ts`: Added `MemorySummary`, `MemoryAnalyticsGroup`, `MemoryAnalyticsResponse`, `MemoryAnalyticsSourceItemsParams` interfaces.
+- `frontend/src/api/observedPlay.ts`: Added `getMemorySummary`, `getMemoryAnalytics`, `getMemoryAnalyticsSourceItems` API functions.
+- `frontend/src/pages/ObservedPlay.tsx`: Added `useRef` import. Added `StatCard`, `AnalyticsGroupTable`, `MemoryAnalyticsExamplesModal`, and `MemoryAnalyticsSection` components. `MemoryAnalyticsSection` renders summary stat cards, memory type table, top action/actor/attack tables, quality flags table, and drill-down examples modal. Placed after `UnresolvedCardsSection`. `analyticsRefreshRef` wired to auto-refresh analytics after ingest success.
+
+### Tests Added
+
+- `backend/tests/test_api/test_observed_play.py`: 5 new `TestMemoryAnalytics` tests (empty summary, empty analytics, empty source items, filter params, read-only assertion).
+- `frontend/src/pages/ObservedPlay.test.tsx`: 7 new Phase 5 tests (renders, empty state, summary cards, type counts, examples modal, refresh button, safety copy, dark mode classes).
+
+### Validation (session 35)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **940 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **215 passed (15 files)** ✓
+- `cd frontend && npm run build`: clean ✓
 
 ## Session 31 Work (2026-05-06)
 

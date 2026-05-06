@@ -3,8 +3,11 @@ import type {
   CardMentionListResponse,
   CardResolutionSummaryResponse,
   IngestionConfig,
+  MemoryAnalyticsResponse,
+  MemoryAnalyticsSourceItemsParams,
   MemoryIngestionPreview,
   MemoryIngestionSummary,
+  MemorySummary,
   ObservedPlayBatchDetail,
   ObservedPlayLogDetail,
   ObservedPlayUploadResult,
@@ -168,5 +171,32 @@ export async function getMemoryItems(
   params: ListMemoryItemsParams = {},
 ): Promise<PaginatedMemoryItems> {
   const resp = await api.get(`/api/observed-play/logs/${logId}/memory-items`, { params });
+  return resp.data as PaginatedMemoryItems;
+}
+
+// ── Phase 5: Memory analytics API ─────────────────────────────────────────────
+
+export async function getMemorySummary(): Promise<MemorySummary> {
+  const resp = await api.get('/api/observed-play/memory-summary');
+  return resp.data as MemorySummary;
+}
+
+export interface GetMemoryAnalyticsParams {
+  limit?: number;
+  memory_type?: string;
+  min_confidence?: number;
+}
+
+export async function getMemoryAnalytics(
+  params: GetMemoryAnalyticsParams = {},
+): Promise<MemoryAnalyticsResponse> {
+  const resp = await api.get('/api/observed-play/memory-analytics', { params });
+  return resp.data as MemoryAnalyticsResponse;
+}
+
+export async function getMemoryAnalyticsSourceItems(
+  params: MemoryAnalyticsSourceItemsParams = {},
+): Promise<PaginatedMemoryItems> {
+  const resp = await api.get('/api/observed-play/memory-analytics/source-items', { params });
   return resp.data as PaginatedMemoryItems;
 }

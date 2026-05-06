@@ -367,3 +367,53 @@ export interface PaginatedMemoryItems {
   page: number;
   per_page: number;
 }
+
+// ── Phase 5: Memory analytics ─────────────────────────────────────────────────
+
+export interface MemorySummary {
+  ingested_log_count: number;
+  memory_item_count: number;
+  memory_type_counts: Record<string, number>;
+  average_confidence: number | null;
+  low_confidence_count: number;
+  ambiguous_reference_count: number;
+  unresolved_reference_count: number;
+  latest_ingested_at: string | null;
+}
+
+export interface MemoryAnalyticsGroup {
+  label: string;
+  memory_type: string;
+  count: number;
+  average_confidence: number | null;
+  resolved_count: number;
+  ambiguous_count: number;
+  unresolved_count: number;
+  sample_memory_item_ids: string[];
+  sample_source_lines: string[];
+}
+
+export interface MemoryAnalyticsResponse {
+  top_memory_types: MemoryAnalyticsGroup[];
+  top_actor_cards: MemoryAnalyticsGroup[];
+  top_target_cards: MemoryAnalyticsGroup[];
+  top_actions: MemoryAnalyticsGroup[];
+  top_attacks: MemoryAnalyticsGroup[];
+  top_abilities: MemoryAnalyticsGroup[];
+  top_attachments: MemoryAnalyticsGroup[];
+  top_evolutions: MemoryAnalyticsGroup[];
+  top_knockouts: MemoryAnalyticsGroup[];
+  quality_flags: MemoryAnalyticsGroup[];
+}
+
+export interface MemoryAnalyticsSourceItemsParams {
+  memory_type?: string;
+  actor_card_raw?: string;
+  actor_card_def_id?: string;
+  target_card_raw?: string;
+  target_card_def_id?: string;
+  action_name?: string;
+  quality_flag?: string;
+  page?: number;
+  per_page?: number;
+}

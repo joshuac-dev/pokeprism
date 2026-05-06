@@ -6,7 +6,7 @@ import logging
 from typing import AsyncGenerator, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from sqlalchemy import delete, func, select
+from sqlalchemy import and_, case, delete, distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import (
@@ -57,6 +57,10 @@ from app.observed_play.schemas import (
     SampleMentionItem,
     UnresolvedCardItem,
     UnresolvedCardsResponse,
+    LOW_CONFIDENCE_THRESHOLD,
+    MemoryAnalyticsGroup,
+    MemoryAnalyticsResponse,
+    MemorySummary,
 )
 from app.observed_play.storage import SUPPORTED_EXTENSIONS
 
@@ -938,6 +942,458 @@ async def list_all_memory_items(
     total_result = await db.execute(select(func.count()).select_from(q.subquery()))
     total = total_result.scalar() or 0
 
+    rows_result = await db.execute(q.offset((page - 1) * per_page).limit(per_page))
+    rows = rows_result.scalars().all()
+
+    items = [
+        MemoryItemSummary(
+            id=str(row.id),
+            ingestion_id=str(row.ingestion_id),
+            observed_play_log_id=str(row.observed_play_log_id),
+            observed_play_event_id=row.observed_play_event_id,
+            memory_type=row.memory_type,
+            memory_key=row.memory_key,
+            turn_number=row.turn_number,
+            phase=row.phase,
+            player_alias=row.player_alias,
+            player_raw=row.player_raw,
+            actor_card_raw=row.actor_card_raw,
+            actor_card_def_id=row.actor_card_def_id,
+            actor_resolution_status=row.actor_resolution_status,
+            target_card_raw=row.target_card_raw,
+            target_card_def_id=row.target_card_def_id,
+            target_resolution_status=row.target_resolution_status,
+            related_card_raw=row.related_card_raw,
+            related_card_def_id=row.related_card_def_id,
+            related_resolution_status=row.related_resolution_status,
+            action_name=row.action_name,
+            amount=row.amount,
+            damage=row.damage,
+            zone=row.zone,
+            target_zone=row.target_zone,
+            confidence_score=row.confidence_score,
+            source_event_type=row.source_event_type,
+            source_raw_line=row.source_raw_line,
+            created_at=row.created_at.isoformat() if row.created_at else None,
+        )
+        for row in rows
+    ]
+    return PaginatedMemoryItems(items=items, total=total, page=page, per_page=per_page)
+
+
+# ── Phase 5: Memory analytics ──────────────────────────────────────────────────
+
+@router.get("/memory-summary")
+async def get_memory_summary(db: AsyncSession = Depends(get_db)) -> MemorySummary:
+    """Read-only summary of all ingested observed play memory items."""
+    log_count_result = await db.execute(
+        select(func.count(ObservedPlayLog.id)).where(ObservedPlayLog.memory_status == "ingested")
+    )
+    ingested_log_count = log_count_result.scalar() or 0
+
+    item_count_result = await db.execute(select(func.count(ObservedPlayMemoryItem.id)))
+    memory_item_count = item_count_result.scalar() or 0
+
+    if memory_item_count == 0:
+        return MemorySummary(ingested_log_count=ingested_log_count)
+
+    stats_result = await db.execute(
+        select(
+            func.avg(ObservedPlayMemoryItem.confidence_score),
+            func.count(ObservedPlayMemoryItem.id).filter(
+                ObservedPlayMemoryItem.confidence_score < LOW_CONFIDENCE_THRESHOLD
+            ),
+        )
+    )
+    avg_conf, low_conf_count = stats_result.one()
+
+    ambiguous_result = await db.execute(
+        select(func.count(ObservedPlayMemoryItem.id)).where(
+            (ObservedPlayMemoryItem.actor_resolution_status == "ambiguous")
+            | (ObservedPlayMemoryItem.target_resolution_status == "ambiguous")
+            | (ObservedPlayMemoryItem.related_resolution_status == "ambiguous")
+        )
+    )
+    ambiguous_reference_count = ambiguous_result.scalar() or 0
+
+    unresolved_result = await db.execute(
+        select(func.count(ObservedPlayMemoryItem.id)).where(
+            (ObservedPlayMemoryItem.actor_resolution_status == "unresolved")
+            | (ObservedPlayMemoryItem.target_resolution_status == "unresolved")
+            | (ObservedPlayMemoryItem.related_resolution_status == "unresolved")
+        )
+    )
+    unresolved_reference_count = unresolved_result.scalar() or 0
+
+    type_count_result = await db.execute(
+        select(ObservedPlayMemoryItem.memory_type, func.count(ObservedPlayMemoryItem.id))
+        .group_by(ObservedPlayMemoryItem.memory_type)
+        .order_by(func.count(ObservedPlayMemoryItem.id).desc())
+    )
+    memory_type_counts = {row[0]: row[1] for row in type_count_result}
+
+    latest_result = await db.execute(
+        select(func.max(ObservedPlayLog.last_memory_ingested_at)).where(
+            ObservedPlayLog.memory_status == "ingested"
+        )
+    )
+    latest_ts = latest_result.scalar()
+
+    return MemorySummary(
+        ingested_log_count=ingested_log_count,
+        memory_item_count=memory_item_count,
+        memory_type_counts=memory_type_counts,
+        average_confidence=float(avg_conf) if avg_conf is not None else None,
+        low_confidence_count=low_conf_count or 0,
+        ambiguous_reference_count=ambiguous_reference_count,
+        unresolved_reference_count=unresolved_reference_count,
+        latest_ingested_at=latest_ts.isoformat() if latest_ts else None,
+    )
+
+
+async def _fetch_analytics_groups(
+    db: AsyncSession,
+    group_by_col,
+    memory_type_label: str,
+    limit: int,
+    extra_filter=None,
+    label_prefix: str | None = None,
+) -> list[MemoryAnalyticsGroup]:
+    """Helper: aggregate memory items by a grouping column."""
+    q = (
+        select(
+            group_by_col.label("grp"),
+            func.count(ObservedPlayMemoryItem.id).label("cnt"),
+            func.avg(ObservedPlayMemoryItem.confidence_score).label("avg_conf"),
+            func.count(ObservedPlayMemoryItem.id).filter(
+                ObservedPlayMemoryItem.actor_resolution_status == "resolved"
+            ).label("res_cnt"),
+            func.count(ObservedPlayMemoryItem.id).filter(
+                ObservedPlayMemoryItem.actor_resolution_status == "ambiguous"
+            ).label("amb_cnt"),
+            func.count(ObservedPlayMemoryItem.id).filter(
+                ObservedPlayMemoryItem.actor_resolution_status == "unresolved"
+            ).label("unr_cnt"),
+        )
+        .where(group_by_col.isnot(None))
+        .group_by(group_by_col)
+        .order_by(func.count(ObservedPlayMemoryItem.id).desc())
+        .limit(limit)
+    )
+    if extra_filter is not None:
+        q = q.where(extra_filter)
+
+    rows = (await db.execute(q)).all()
+    groups = []
+    for row in rows:
+        grp_val = row.grp
+        if not grp_val:
+            continue
+        label = f"{label_prefix}:{grp_val}" if label_prefix else grp_val
+
+        sample_q = (
+            select(ObservedPlayMemoryItem.id, ObservedPlayMemoryItem.source_raw_line)
+            .where(group_by_col == grp_val)
+            .limit(3)
+        )
+        if extra_filter is not None:
+            sample_q = sample_q.where(extra_filter)
+        samples = (await db.execute(sample_q)).all()
+
+        groups.append(
+            MemoryAnalyticsGroup(
+                label=label,
+                memory_type=memory_type_label,
+                count=row.cnt,
+                average_confidence=float(row.avg_conf) if row.avg_conf is not None else None,
+                resolved_count=row.res_cnt or 0,
+                ambiguous_count=row.amb_cnt or 0,
+                unresolved_count=row.unr_cnt or 0,
+                sample_memory_item_ids=[str(s.id) for s in samples],
+                sample_source_lines=[s.source_raw_line for s in samples if s.source_raw_line],
+            )
+        )
+    return groups
+
+
+@router.get("/memory-analytics")
+async def get_memory_analytics(
+    limit: int = Query(10, ge=1, le=50),
+    memory_type: Optional[str] = Query(None),
+    min_confidence: Optional[float] = Query(None),
+    db: AsyncSession = Depends(get_db),
+) -> MemoryAnalyticsResponse:
+    """Read-only analytics aggregates over ingested observed play memory items."""
+
+    def _base_filter():
+        filters = []
+        if memory_type:
+            filters.append(ObservedPlayMemoryItem.memory_type == memory_type)
+        if min_confidence is not None:
+            filters.append(ObservedPlayMemoryItem.confidence_score >= min_confidence)
+        return and_(*filters) if filters else None
+
+    base = _base_filter()
+
+    mt_q = (
+        select(
+            ObservedPlayMemoryItem.memory_type.label("grp"),
+            func.count(ObservedPlayMemoryItem.id).label("cnt"),
+            func.avg(ObservedPlayMemoryItem.confidence_score).label("avg_conf"),
+            func.count(ObservedPlayMemoryItem.id).filter(
+                ObservedPlayMemoryItem.actor_resolution_status == "resolved"
+            ).label("res_cnt"),
+            func.count(ObservedPlayMemoryItem.id).filter(
+                ObservedPlayMemoryItem.actor_resolution_status == "ambiguous"
+            ).label("amb_cnt"),
+            func.count(ObservedPlayMemoryItem.id).filter(
+                ObservedPlayMemoryItem.actor_resolution_status == "unresolved"
+            ).label("unr_cnt"),
+        )
+        .group_by(ObservedPlayMemoryItem.memory_type)
+        .order_by(func.count(ObservedPlayMemoryItem.id).desc())
+        .limit(limit)
+    )
+    if base is not None:
+        mt_q = mt_q.where(base)
+    mt_rows = (await db.execute(mt_q)).all()
+
+    async def _samples(extra_where, limit_n: int = 3):
+        sq = select(ObservedPlayMemoryItem.id, ObservedPlayMemoryItem.source_raw_line).where(extra_where).limit(limit_n)
+        return (await db.execute(sq)).all()
+
+    top_memory_types = []
+    for row in mt_rows:
+        s = await _samples(ObservedPlayMemoryItem.memory_type == row.grp)
+        top_memory_types.append(MemoryAnalyticsGroup(
+            label=row.grp,
+            memory_type=row.grp,
+            count=row.cnt,
+            average_confidence=float(row.avg_conf) if row.avg_conf is not None else None,
+            resolved_count=row.res_cnt or 0,
+            ambiguous_count=row.amb_cnt or 0,
+            unresolved_count=row.unr_cnt or 0,
+            sample_memory_item_ids=[str(r.id) for r in s],
+            sample_source_lines=[r.source_raw_line for r in s if r.source_raw_line],
+        ))
+
+    top_actor_cards = await _fetch_analytics_groups(
+        db, ObservedPlayMemoryItem.actor_card_raw, "actor_card", limit,
+        extra_filter=base,
+    )
+
+    top_target_cards = await _fetch_analytics_groups(
+        db, ObservedPlayMemoryItem.target_card_raw, "target_card", limit,
+        extra_filter=base,
+    )
+
+    action_q = (
+        select(
+            ObservedPlayMemoryItem.memory_type.label("mtype"),
+            ObservedPlayMemoryItem.action_name.label("aname"),
+            func.count(ObservedPlayMemoryItem.id).label("cnt"),
+            func.avg(ObservedPlayMemoryItem.confidence_score).label("avg_conf"),
+            func.count(ObservedPlayMemoryItem.id).filter(
+                ObservedPlayMemoryItem.actor_resolution_status == "resolved"
+            ).label("res_cnt"),
+            func.count(ObservedPlayMemoryItem.id).filter(
+                ObservedPlayMemoryItem.actor_resolution_status == "ambiguous"
+            ).label("amb_cnt"),
+            func.count(ObservedPlayMemoryItem.id).filter(
+                ObservedPlayMemoryItem.actor_resolution_status == "unresolved"
+            ).label("unr_cnt"),
+        )
+        .where(ObservedPlayMemoryItem.action_name.isnot(None))
+        .group_by(ObservedPlayMemoryItem.memory_type, ObservedPlayMemoryItem.action_name)
+        .order_by(func.count(ObservedPlayMemoryItem.id).desc())
+        .limit(limit)
+    )
+    if base is not None:
+        action_q = action_q.where(base)
+    action_rows = (await db.execute(action_q)).all()
+    top_actions = []
+    for row in action_rows:
+        label = f"{row.mtype}:{row.aname}"
+        s = await _samples(
+            and_(ObservedPlayMemoryItem.memory_type == row.mtype, ObservedPlayMemoryItem.action_name == row.aname)
+        )
+        top_actions.append(MemoryAnalyticsGroup(
+            label=label,
+            memory_type=row.mtype,
+            count=row.cnt,
+            average_confidence=float(row.avg_conf) if row.avg_conf is not None else None,
+            resolved_count=row.res_cnt or 0,
+            ambiguous_count=row.amb_cnt or 0,
+            unresolved_count=row.unr_cnt or 0,
+            sample_memory_item_ids=[str(r.id) for r in s],
+            sample_source_lines=[r.source_raw_line for r in s if r.source_raw_line],
+        ))
+
+    atk_filter = and_(
+        ObservedPlayMemoryItem.memory_type == "attack_used",
+        ObservedPlayMemoryItem.actor_card_raw.isnot(None),
+        ObservedPlayMemoryItem.action_name.isnot(None),
+        *([] if base is None else [base]),
+    )
+    atk_q = (
+        select(
+            ObservedPlayMemoryItem.actor_card_raw.label("actor"),
+            ObservedPlayMemoryItem.action_name.label("aname"),
+            func.count(ObservedPlayMemoryItem.id).label("cnt"),
+            func.avg(ObservedPlayMemoryItem.confidence_score).label("avg_conf"),
+            func.count(ObservedPlayMemoryItem.id).filter(ObservedPlayMemoryItem.actor_resolution_status == "resolved").label("res_cnt"),
+            func.count(ObservedPlayMemoryItem.id).filter(ObservedPlayMemoryItem.actor_resolution_status == "ambiguous").label("amb_cnt"),
+            func.count(ObservedPlayMemoryItem.id).filter(ObservedPlayMemoryItem.actor_resolution_status == "unresolved").label("unr_cnt"),
+        )
+        .where(atk_filter)
+        .group_by(ObservedPlayMemoryItem.actor_card_raw, ObservedPlayMemoryItem.action_name)
+        .order_by(func.count(ObservedPlayMemoryItem.id).desc())
+        .limit(limit)
+    )
+    atk_rows = (await db.execute(atk_q)).all()
+    top_attacks = []
+    for row in atk_rows:
+        label = f"{row.actor}:{row.aname}"
+        s = await _samples(
+            and_(ObservedPlayMemoryItem.memory_type == "attack_used",
+                 ObservedPlayMemoryItem.actor_card_raw == row.actor,
+                 ObservedPlayMemoryItem.action_name == row.aname)
+        )
+        top_attacks.append(MemoryAnalyticsGroup(
+            label=label, memory_type="attack_used", count=row.cnt,
+            average_confidence=float(row.avg_conf) if row.avg_conf is not None else None,
+            resolved_count=row.res_cnt or 0, ambiguous_count=row.amb_cnt or 0, unresolved_count=row.unr_cnt or 0,
+            sample_memory_item_ids=[str(r.id) for r in s],
+            sample_source_lines=[r.source_raw_line for r in s if r.source_raw_line],
+        ))
+
+    abl_filter = and_(
+        ObservedPlayMemoryItem.memory_type == "ability_used",
+        ObservedPlayMemoryItem.actor_card_raw.isnot(None),
+        ObservedPlayMemoryItem.action_name.isnot(None),
+        *([] if base is None else [base]),
+    )
+    abl_q = (
+        select(
+            ObservedPlayMemoryItem.actor_card_raw.label("actor"),
+            ObservedPlayMemoryItem.action_name.label("aname"),
+            func.count(ObservedPlayMemoryItem.id).label("cnt"),
+            func.avg(ObservedPlayMemoryItem.confidence_score).label("avg_conf"),
+            func.count(ObservedPlayMemoryItem.id).filter(ObservedPlayMemoryItem.actor_resolution_status == "resolved").label("res_cnt"),
+            func.count(ObservedPlayMemoryItem.id).filter(ObservedPlayMemoryItem.actor_resolution_status == "ambiguous").label("amb_cnt"),
+            func.count(ObservedPlayMemoryItem.id).filter(ObservedPlayMemoryItem.actor_resolution_status == "unresolved").label("unr_cnt"),
+        )
+        .where(abl_filter)
+        .group_by(ObservedPlayMemoryItem.actor_card_raw, ObservedPlayMemoryItem.action_name)
+        .order_by(func.count(ObservedPlayMemoryItem.id).desc())
+        .limit(limit)
+    )
+    abl_rows = (await db.execute(abl_q)).all()
+    top_abilities = []
+    for row in abl_rows:
+        label = f"{row.actor}:{row.aname}"
+        s = await _samples(
+            and_(ObservedPlayMemoryItem.memory_type == "ability_used",
+                 ObservedPlayMemoryItem.actor_card_raw == row.actor,
+                 ObservedPlayMemoryItem.action_name == row.aname)
+        )
+        top_abilities.append(MemoryAnalyticsGroup(
+            label=label, memory_type="ability_used", count=row.cnt,
+            average_confidence=float(row.avg_conf) if row.avg_conf is not None else None,
+            resolved_count=row.res_cnt or 0, ambiguous_count=row.amb_cnt or 0, unresolved_count=row.unr_cnt or 0,
+            sample_memory_item_ids=[str(r.id) for r in s],
+            sample_source_lines=[r.source_raw_line for r in s if r.source_raw_line],
+        ))
+
+    top_attachments = await _fetch_analytics_groups(
+        db, ObservedPlayMemoryItem.target_card_raw, "card_attached", limit,
+        extra_filter=and_(ObservedPlayMemoryItem.memory_type == "card_attached", *([] if base is None else [base])),
+    )
+
+    top_evolutions = await _fetch_analytics_groups(
+        db, ObservedPlayMemoryItem.actor_card_raw, "card_evolved", limit,
+        extra_filter=and_(ObservedPlayMemoryItem.memory_type == "card_evolved", *([] if base is None else [base])),
+    )
+
+    top_knockouts = await _fetch_analytics_groups(
+        db, ObservedPlayMemoryItem.target_card_raw, "knockout", limit,
+        extra_filter=and_(ObservedPlayMemoryItem.memory_type == "knockout", *([] if base is None else [base])),
+    )
+
+    quality_flags = []
+    qf_defs = [
+        ("low_confidence", ObservedPlayMemoryItem.confidence_score < LOW_CONFIDENCE_THRESHOLD),
+        ("ambiguous_actor", ObservedPlayMemoryItem.actor_resolution_status == "ambiguous"),
+        ("ambiguous_target", ObservedPlayMemoryItem.target_resolution_status == "ambiguous"),
+        ("unresolved_actor", ObservedPlayMemoryItem.actor_resolution_status == "unresolved"),
+        ("unresolved_target", ObservedPlayMemoryItem.target_resolution_status == "unresolved"),
+    ]
+    for qf_label, qf_filter in qf_defs:
+        cnt_r = await db.execute(select(func.count(ObservedPlayMemoryItem.id)).where(qf_filter))
+        cnt = cnt_r.scalar() or 0
+        s = await _samples(qf_filter)
+        quality_flags.append(MemoryAnalyticsGroup(
+            label=qf_label, memory_type="quality", count=cnt,
+            average_confidence=None, resolved_count=0, ambiguous_count=0, unresolved_count=0,
+            sample_memory_item_ids=[str(r.id) for r in s],
+            sample_source_lines=[r.source_raw_line for r in s if r.source_raw_line],
+        ))
+
+    return MemoryAnalyticsResponse(
+        top_memory_types=top_memory_types,
+        top_actor_cards=top_actor_cards,
+        top_target_cards=top_target_cards,
+        top_actions=top_actions,
+        top_attacks=top_attacks,
+        top_abilities=top_abilities,
+        top_attachments=top_attachments,
+        top_evolutions=top_evolutions,
+        top_knockouts=top_knockouts,
+        quality_flags=quality_flags,
+    )
+
+
+@router.get("/memory-analytics/source-items")
+async def get_memory_analytics_source_items(
+    memory_type: Optional[str] = Query(None),
+    actor_card_raw: Optional[str] = Query(None),
+    actor_card_def_id: Optional[str] = Query(None),
+    target_card_raw: Optional[str] = Query(None),
+    target_card_def_id: Optional[str] = Query(None),
+    action_name: Optional[str] = Query(None),
+    quality_flag: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+) -> PaginatedMemoryItems:
+    """Drill-down: list memory items matching analytics filter criteria (read-only)."""
+    q = select(ObservedPlayMemoryItem)
+    if memory_type:
+        q = q.where(ObservedPlayMemoryItem.memory_type == memory_type)
+    if actor_card_raw:
+        q = q.where(ObservedPlayMemoryItem.actor_card_raw == actor_card_raw)
+    if actor_card_def_id:
+        q = q.where(ObservedPlayMemoryItem.actor_card_def_id == actor_card_def_id)
+    if target_card_raw:
+        q = q.where(ObservedPlayMemoryItem.target_card_raw == target_card_raw)
+    if target_card_def_id:
+        q = q.where(ObservedPlayMemoryItem.target_card_def_id == target_card_def_id)
+    if action_name:
+        q = q.where(ObservedPlayMemoryItem.action_name == action_name)
+    if quality_flag == "low_confidence":
+        q = q.where(ObservedPlayMemoryItem.confidence_score < LOW_CONFIDENCE_THRESHOLD)
+    elif quality_flag == "ambiguous_actor":
+        q = q.where(ObservedPlayMemoryItem.actor_resolution_status == "ambiguous")
+    elif quality_flag == "ambiguous_target":
+        q = q.where(ObservedPlayMemoryItem.target_resolution_status == "ambiguous")
+    elif quality_flag == "unresolved_actor":
+        q = q.where(ObservedPlayMemoryItem.actor_resolution_status == "unresolved")
+    elif quality_flag == "unresolved_target":
+        q = q.where(ObservedPlayMemoryItem.target_resolution_status == "unresolved")
+    q = q.order_by(ObservedPlayMemoryItem.created_at.desc())
+
+    total_result = await db.execute(select(func.count()).select_from(q.subquery()))
+    total = total_result.scalar() or 0
     rows_result = await db.execute(q.offset((page - 1) * per_page).limit(per_page))
     rows = rows_result.scalars().all()
 
