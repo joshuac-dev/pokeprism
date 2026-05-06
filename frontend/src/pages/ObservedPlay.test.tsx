@@ -1604,3 +1604,85 @@ describe('Phase 3.2 — Unresolved/Ambiguous Cards section', () => {
     expect(screen.queryByText('3?')).not.toBeInTheDocument();
   });
 });
+
+// ── Dark mode styling tests ───────────────────────────────────────────────────
+
+describe('Dark mode styling', () => {
+  it('Raw Logs section panel has dark:bg-slate-900 class', async () => {
+    setup();
+    await waitFor(() => screen.getByText('Raw Logs'));
+    const section = screen.getByText('Raw Logs').closest('section');
+    expect(section?.className).toContain('dark:bg-slate-900');
+  });
+
+  it('Import History section panel has dark:bg-slate-900 class', async () => {
+    setup();
+    await waitFor(() => screen.getByText('Import History'));
+    const section = screen.getByText('Import History').closest('section');
+    expect(section?.className).toContain('dark:bg-slate-900');
+  });
+
+  it('Unresolved section has dark amber border class when items present', async () => {
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [sampleUnresolvedItem], total: 1, page: 1, per_page: 20,
+    });
+    setup();
+    await waitFor(() => screen.getByText(/unresolved \/ ambiguous cards/i));
+    const section = screen.getByText(/unresolved \/ ambiguous cards/i).closest('section');
+    expect(section?.className).toContain('dark:border-amber-800');
+    expect(section?.className).toContain('dark:bg-amber-950/50');
+  });
+
+  it('RawLogModal has dark:bg-slate-900 on the panel', async () => {
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [sampleLog], total: 1, page: 1, per_page: 25,
+    });
+    (getObservedPlayLog as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...sampleLog,
+      raw_content: '# Game',
+      player_1_name_raw: null, player_2_name_raw: null,
+      player_1_alias: null, player_2_alias: null,
+      winner_raw: null, win_condition: null,
+      turn_count: 0, event_count: 0, confidence_score: null,
+      errors_json: [], warnings_json: [], metadata_json: {},
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /view raw/i }));
+    await userEvent.click(screen.getByRole('button', { name: /view raw/i }));
+    await waitFor(() => screen.getByRole('dialog'));
+
+    const panel = screen.getByRole('dialog').querySelector('.dark\\:bg-slate-900');
+    expect(panel).toBeTruthy();
+  });
+
+  it('MemoryPreviewModal has dark:bg-slate-900 on the panel', async () => {
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [{ ...sampleLog, parse_status: 'parsed' }],
+      total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /preview memory/i }));
+    await userEvent.click(screen.getByRole('button', { name: /preview memory/i }));
+    await waitFor(() => screen.getByRole('dialog', { name: /memory preview/i }));
+
+    const panel = screen.getByRole('dialog', { name: /memory preview/i })
+      .querySelector('.dark\\:bg-slate-900');
+    expect(panel).toBeTruthy();
+  });
+
+  it('ResolutionRuleModal has dark:bg-slate-900 on the panel', async () => {
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [sampleUnresolvedItem], total: 1, page: 1, per_page: 20,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /review dragapult ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review dragapult ex/i }));
+    await waitFor(() => screen.getByText(/resolve card mention/i));
+
+    const panel = document.querySelector('.dark\\:bg-slate-900');
+    expect(panel).toBeTruthy();
+  });
+});

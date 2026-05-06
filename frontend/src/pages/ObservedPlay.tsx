@@ -56,21 +56,21 @@ function fmtBytes(n: number): string {
 
 function StatusChip({ status }: { status: string }) {
   const palette: Record<string, string> = {
-    completed: 'bg-green-100 text-green-800',
-    completed_with_warnings: 'bg-yellow-100 text-yellow-800',
-    failed: 'bg-red-100 text-red-800',
-    running: 'bg-blue-100 text-blue-800',
-    pending: 'bg-gray-100 text-gray-600',
-    imported: 'bg-green-100 text-green-800',
-    duplicate: 'bg-yellow-100 text-yellow-700',
-    skipped: 'bg-gray-100 text-gray-500',
-    raw_archived: 'bg-blue-100 text-blue-700',
-    not_ingested: 'bg-gray-100 text-gray-500',
-    ingested: 'bg-green-100 text-green-800',
-    ingestion_failed: 'bg-red-100 text-red-700',
-    ingestion_skipped: 'bg-yellow-100 text-yellow-700',
+    completed: 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300',
+    completed_with_warnings: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200',
+    failed: 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300',
+    running: 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300',
+    pending: 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300',
+    imported: 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300',
+    duplicate: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300',
+    skipped: 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400',
+    raw_archived: 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300',
+    not_ingested: 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400',
+    ingested: 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300',
+    ingestion_failed: 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300',
+    ingestion_skipped: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300',
   };
-  const cls = palette[status] ?? 'bg-gray-100 text-gray-600';
+  const cls = palette[status] ?? 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300';
   return (
     <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${cls}`}>
       {status}
@@ -115,36 +115,36 @@ function RawLogModal({
       onClick={onClose}
     >
       <div
-        className="relative mx-4 max-h-[85vh] w-full max-w-3xl overflow-auto rounded-lg bg-white p-6 shadow-xl"
+        className="relative mx-4 max-h-[85vh] w-full max-w-3xl overflow-auto rounded-lg bg-white dark:bg-slate-900 p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-gray-500 hover:text-gray-800"
+          className="absolute right-4 top-4 text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-100"
           aria-label="Close"
         >
           <X size={20} />
         </button>
-        <h2 className="mb-3 text-lg font-semibold">Raw Log</h2>
-        {loading && <p className="text-sm text-gray-500">Loading…</p>}
+        <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-white">Raw Log</h2>
+        {loading && <p className="text-sm text-gray-500 dark:text-slate-400">Loading…</p>}
         {error && <p className="text-sm text-red-600">{error}</p>}
         {detail && (
           <>
             <div className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-              <span className="font-medium text-gray-600">File</span>
+              <span className="font-medium text-gray-600 dark:text-slate-300">File</span>
               <span>{detail.original_filename}</span>
-              <span className="font-medium text-gray-600">SHA-256</span>
+              <span className="font-medium text-gray-600 dark:text-slate-300">SHA-256</span>
               <span className="font-mono text-xs">{detail.sha256_hash}</span>
-              <span className="font-medium text-gray-600">Size</span>
+              <span className="font-medium text-gray-600 dark:text-slate-300">Size</span>
               <span>{fmtBytes(detail.file_size_bytes)}</span>
-              <span className="font-medium text-gray-600">Parse status</span>
+              <span className="font-medium text-gray-600 dark:text-slate-300">Parse status</span>
               <StatusChip status={detail.parse_status} />
-              <span className="font-medium text-gray-600">Memory status</span>
+              <span className="font-medium text-gray-600 dark:text-slate-300">Memory status</span>
               <StatusChip status={detail.memory_status} />
-              <span className="font-medium text-gray-600">Imported</span>
+              <span className="font-medium text-gray-600 dark:text-slate-300">Imported</span>
               <span>{fmtDate(detail.created_at)}</span>
             </div>
-            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded border border-gray-200 bg-gray-50 p-3 text-xs font-mono">
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 dark:text-slate-300 p-3 text-xs font-mono">
               {detail.raw_content ?? '(no raw content stored)'}
             </pre>
           </>
@@ -155,14 +155,14 @@ function RawLogModal({
 }
 
 function ConfidenceBadge({ score }: { score: number | null | undefined }) {
-  if (score == null) return <span className="text-xs text-gray-400">—</span>;
+  if (score == null) return <span className="text-xs text-gray-400 dark:text-slate-500">—</span>;
   const pct = Math.round(score * 100);
   const cls =
     pct >= 80
-      ? 'bg-green-100 text-green-800'
+      ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300'
       : pct >= 50
-        ? 'bg-yellow-100 text-yellow-800'
-        : 'bg-red-100 text-red-700';
+        ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
+        : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300';
   return (
     <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${cls}`}>
       {pct}%
@@ -174,16 +174,16 @@ function ConfidenceBadge({ score }: { score: number | null | undefined }) {
 
 function ParserDiagnosticsPanel({ diag }: { diag: ParserDiagnostics }) {
   return (
-    <div className="mb-4 rounded border border-gray-100 bg-gray-50 p-3 text-xs">
-      <p className="mb-1 font-medium text-gray-600">Parser diagnostics</p>
+    <div className="mb-4 rounded border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 p-3 text-xs">
+      <p className="mb-1 font-medium text-gray-600 dark:text-slate-300">Parser diagnostics</p>
       <p>Unknown: {diag.unknown_count} ({(diag.unknown_ratio * 100).toFixed(1)}%)</p>
       <p>Low confidence: {diag.low_confidence_count}</p>
       {diag.top_unknown_raw_lines.length > 0 && (
         <div className="mt-1">
-          <p className="font-medium text-gray-600">Top unknown lines:</p>
+          <p className="font-medium text-gray-600 dark:text-slate-300">Top unknown lines:</p>
           <ul className="mt-0.5 space-y-0.5">
             {diag.top_unknown_raw_lines.slice(0, 5).map((line, i) => (
-              <li key={i} className="truncate font-mono text-gray-500">{line}</li>
+              <li key={i} className="truncate font-mono text-gray-500 dark:text-slate-400">{line}</li>
             ))}
           </ul>
         </div>
@@ -255,18 +255,18 @@ function EventsModal({
       onClick={onClose}
     >
       <div
-        className="relative mx-4 max-h-[90vh] w-full max-w-5xl overflow-auto rounded-lg bg-white p-6 shadow-xl"
+        className="relative mx-4 max-h-[90vh] w-full max-w-5xl overflow-auto rounded-lg bg-white dark:bg-slate-900 p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-gray-500 hover:text-gray-800"
+          className="absolute right-4 top-4 text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-100"
           aria-label="Close"
         >
           <X size={20} />
         </button>
         <div className="mb-4 flex items-center gap-4">
-          <h2 className="text-lg font-semibold">Parsed Events</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Parsed Events</h2>
           <button
             onClick={handleReparse}
             disabled={reparsing}
@@ -274,13 +274,13 @@ function EventsModal({
           >
             {reparsing ? 'Reparsing…' : 'Reparse'}
           </button>
-          {reparseMsg && <span className="text-xs text-gray-600">{reparseMsg}</span>}
+          {reparseMsg && <span className="text-xs text-gray-600 dark:text-slate-300">{reparseMsg}</span>}
         </div>
-        {loading && <p className="text-sm text-gray-500">Loading…</p>}
+        {loading && <p className="text-sm text-gray-500 dark:text-slate-400">Loading…</p>}
         {error && <p className="text-sm text-red-600">{error}</p>}
         {diagnostics && <ParserDiagnosticsPanel diag={diagnostics} />}
         {data && data.total === 0 && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-slate-400">
             No parsed events found. Try{' '}
             <button
               onClick={handleReparse}
@@ -294,11 +294,11 @@ function EventsModal({
         )}
         {data && data.total > 0 && (
           <>
-            <p className="mb-3 text-xs text-gray-500">{data.total} events total</p>
+            <p className="mb-3 text-xs text-gray-500 dark:text-slate-400">{data.total} events total</p>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-gray-200 text-left text-gray-500">
+                  <tr className="border-b border-gray-200 dark:border-slate-700 text-left text-gray-500 dark:text-slate-400">
                     <th className="pb-1 pr-2">#</th>
                     <th className="pb-1 pr-2">Turn</th>
                     <th className="pb-1 pr-2">Phase</th>
@@ -312,8 +312,8 @@ function EventsModal({
                 </thead>
                 <tbody>
                   {(data.items as EventSummary[]).map((evt) => (
-                    <tr key={evt.id} className="border-b border-gray-100 last:border-0">
-                      <td className="py-0.5 pr-2 text-gray-400">{evt.event_index}</td>
+                    <tr key={evt.id} className="border-b border-gray-100 dark:border-slate-800 last:border-0">
+                      <td className="py-0.5 pr-2 text-gray-400 dark:text-slate-500">{evt.event_index}</td>
                       <td className="py-0.5 pr-2">{evt.turn_number ?? '—'}</td>
                       <td className="py-0.5 pr-2">{evt.phase}</td>
                       <td className="py-0.5 pr-2">{evt.player_alias ?? evt.player_raw ?? '—'}</td>
@@ -321,14 +321,14 @@ function EventsModal({
                       <td className="py-0.5 pr-2">{evt.card_name_raw ?? '—'}</td>
                       <td className="py-0.5 pr-2">{evt.damage ?? '—'}</td>
                       <td className="py-0.5 pr-2"><ConfidenceBadge score={evt.confidence_score} /></td>
-                      <td className="max-w-xs truncate py-0.5 font-mono text-gray-500">{evt.raw_line}</td>
+                      <td className="max-w-xs truncate py-0.5 font-mono text-gray-500 dark:text-slate-400">{evt.raw_line}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
             {totalPages > 1 && (
-              <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+              <div className="mt-3 flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
@@ -357,21 +357,21 @@ function EventsModal({
 
 function CardResolutionBadges({ log }: { log: ObservedPlayLog }) {
   const total = log.card_mention_count ?? 0;
-  if (total === 0) return <span className="text-xs text-gray-400">—</span>;
+  if (total === 0) return <span className="text-xs text-gray-400 dark:text-slate-500">—</span>;
   const resolved = log.resolved_card_count ?? 0;
   const ambiguous = log.ambiguous_card_count ?? 0;
   const unresolved = log.unresolved_card_count ?? 0;
   return (
     <span className="flex items-center gap-1 text-xs">
-      <span className="text-gray-500">{total}</span>
+      <span className="text-gray-500 dark:text-slate-400">{total}</span>
       {resolved > 0 && (
-        <span className="rounded bg-green-100 px-1 text-green-700">{resolved}✓</span>
+        <span className="rounded bg-green-100 dark:bg-green-900 px-1 text-green-700 dark:text-green-300">{resolved}✓</span>
       )}
       {ambiguous > 0 && (
-        <span className="rounded bg-yellow-100 px-1 text-yellow-700">{ambiguous}?</span>
+        <span className="rounded bg-yellow-100 dark:bg-yellow-900 px-1 text-yellow-700 dark:text-yellow-300">{ambiguous}?</span>
       )}
       {unresolved > 0 && (
-        <span className="rounded bg-red-100 px-1 text-red-700">{unresolved}✗</span>
+        <span className="rounded bg-red-100 dark:bg-red-900 px-1 text-red-700 dark:text-red-300">{unresolved}✗</span>
       )}
     </span>
   );
@@ -418,10 +418,10 @@ function CardMentionsModal({
 
   const statusBadge = (status: string) => {
     const palette: Record<string, string> = {
-      resolved: 'bg-green-100 text-green-700',
-      ambiguous: 'bg-yellow-100 text-yellow-700',
-      unresolved: 'bg-red-100 text-red-700',
-      ignored: 'bg-gray-100 text-gray-500',
+      resolved: 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300',
+      ambiguous: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300',
+      unresolved: 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300',
+      ignored: 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400',
     };
     return (
       <span className={`rounded px-1 py-0.5 text-xs font-medium ${palette[status] ?? 'bg-gray-100'}`}>
@@ -439,22 +439,22 @@ function CardMentionsModal({
       onClick={onClose}
     >
       <div
-        className="relative mx-4 max-h-[90vh] w-full max-w-5xl overflow-auto rounded-lg bg-white p-6 shadow-xl"
+        className="relative mx-4 max-h-[90vh] w-full max-w-5xl overflow-auto rounded-lg bg-white dark:bg-slate-900 p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-gray-500 hover:text-gray-800"
+          className="absolute right-4 top-4 text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-100"
           aria-label="Close"
         >
           <X size={20} />
         </button>
         <div className="mb-4 flex items-center gap-4 flex-wrap">
-          <h2 className="text-lg font-semibold">Card Mentions</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Card Mentions</h2>
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="rounded border border-gray-300 px-2 py-1 text-xs"
+            className="rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 px-2 py-1 text-xs"
           >
             <option value="">All statuses</option>
             <option value="resolved">Resolved</option>
@@ -462,19 +462,19 @@ function CardMentionsModal({
             <option value="unresolved">Unresolved</option>
             <option value="ignored">Ignored</option>
           </select>
-          <span className="text-xs text-gray-500">{total} mentions</span>
+          <span className="text-xs text-gray-500 dark:text-slate-400">{total} mentions</span>
         </div>
-        {loading && <p className="text-sm text-gray-500">Loading…</p>}
+        {loading && <p className="text-sm text-gray-500 dark:text-slate-400">Loading…</p>}
         {error && <p className="text-sm text-red-600">{error}</p>}
         {!loading && items.length === 0 && (
-          <p className="text-sm text-gray-400">No card mentions found.</p>
+          <p className="text-sm text-gray-400 dark:text-slate-500">No card mentions found.</p>
         )}
         {items.length > 0 && (
           <>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-gray-200 text-left text-gray-500">
+                  <tr className="border-b border-gray-200 dark:border-slate-700 text-left text-gray-500 dark:text-slate-400">
                     <th className="pb-1 pr-2">Role</th>
                     <th className="pb-1 pr-2">Raw name</th>
                     <th className="pb-1 pr-2">Status</th>
@@ -485,8 +485,8 @@ function CardMentionsModal({
                 </thead>
                 <tbody>
                   {items.map((m) => (
-                    <tr key={m.id} className="border-b border-gray-100 last:border-0">
-                      <td className="py-0.5 pr-2 text-gray-500">{m.mention_role}</td>
+                    <tr key={m.id} className="border-b border-gray-100 dark:border-slate-800 last:border-0">
+                      <td className="py-0.5 pr-2 text-gray-500 dark:text-slate-400">{m.mention_role}</td>
                       <td className="py-0.5 pr-2 font-medium">{m.raw_name}</td>
                       <td className="py-0.5 pr-2">{statusBadge(m.resolution_status)}</td>
                       <td className="py-0.5 pr-2">{m.resolved_card_name ?? '—'}</td>
@@ -495,14 +495,14 @@ function CardMentionsModal({
                           ? `${Math.round(m.resolution_confidence * 100)}%`
                           : '—'}
                       </td>
-                      <td className="py-0.5 text-gray-400">{m.resolution_method ?? '—'}</td>
+                      <td className="py-0.5 text-gray-400 dark:text-slate-500">{m.resolution_method ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
             {totalPages > 1 && (
-              <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+              <div className="mt-3 flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
@@ -613,24 +613,24 @@ function ResolutionRuleModal({
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 pt-16"
       onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
     >
-      <div className="relative mx-4 w-full max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-xl">
+      <div className="relative mx-4 w-full max-w-2xl rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-xl">
         <button
-          className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+          className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300"
           onClick={handleClose}
           aria-label="Close"
         >
           <X size={18} />
         </button>
-        <h2 className="mb-1 text-lg font-semibold text-gray-800">Resolve Card Mention</h2>
+        <h2 className="mb-1 text-lg font-semibold text-gray-800 dark:text-white">Resolve Card Mention</h2>
 
         {/* Summary */}
-        <div className="mb-4 rounded bg-gray-50 px-4 py-3 text-sm">
+        <div className="mb-4 rounded bg-gray-50 dark:bg-slate-800 px-4 py-3 text-sm">
           <div className="flex flex-wrap gap-x-6 gap-y-1">
             <span><span className="font-medium">Raw name:</span> {item.raw_name}</span>
             <span><span className="font-medium">Normalized:</span> {item.normalized_name}</span>
             <span>
               <span className="font-medium">Status:</span>{' '}
-              <span className={`rounded px-1 font-medium ${item.status === 'ambiguous' ? 'bg-yellow-200 text-yellow-800' : 'bg-red-100 text-red-700'}`}>
+              <span className={`rounded px-1 font-medium ${item.status === 'ambiguous' ? 'bg-yellow-200 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300'}`}>
                 {item.status}
               </span>
             </span>
@@ -640,12 +640,12 @@ function ResolutionRuleModal({
         </div>
 
         {/* Error / success messages */}
-        {error && <div className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        {error && <div className="mb-3 rounded bg-red-50 dark:bg-red-950 px-3 py-2 text-sm text-red-700 dark:text-red-300">{error}</div>}
         {success && (
-          <div className="mb-3 rounded bg-green-50 px-3 py-2 text-sm text-green-700">
+          <div className="mb-3 rounded bg-green-50 dark:bg-green-950 px-3 py-2 text-sm text-green-700 dark:text-green-300">
             {success}
             {(item.affected_log_ids?.length ?? 0) > 0 && (
-              <span className="ml-2 text-green-600">
+              <span className="ml-2 text-green-600 dark:text-green-400">
                 ({item.affected_log_ids!.length} affected log{item.affected_log_ids!.length > 1 ? 's' : ''} re-resolved)
               </span>
             )}
@@ -655,11 +655,11 @@ function ResolutionRuleModal({
         {/* Candidates */}
         {item.candidates && item.candidates.length > 0 ? (
           <>
-            <h3 className="mb-2 text-sm font-semibold text-gray-700">Candidates</h3>
-            <div className="mb-4 overflow-x-auto rounded border border-gray-200">
+            <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-slate-200">Candidates</h3>
+            <div className="mb-4 overflow-x-auto rounded border border-gray-200 dark:border-slate-700">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b bg-gray-50 text-left text-gray-600">
+                  <tr className="border-b bg-gray-50 dark:bg-slate-800 text-left text-gray-600 dark:text-slate-300">
                     <th className="px-2 py-1.5"></th>
                     <th className="px-2 py-1.5">Name</th>
                     <th className="px-2 py-1.5">Set</th>
@@ -673,7 +673,7 @@ function ResolutionRuleModal({
                   {item.candidates.map((c) => {
                     const imgUrl = c.image_url ? normalizeTcgdexImageUrl(c.image_url, 'low') : null;
                     return (
-                      <tr key={c.card_def_id} className="border-b last:border-0 hover:bg-gray-50">
+                      <tr key={c.card_def_id} className="border-b last:border-0 hover:bg-gray-50 dark:hover:bg-slate-800/60">
                         <td className="px-2 py-1.5">
                           {imgUrl ? (
                             <img
@@ -683,14 +683,14 @@ function ResolutionRuleModal({
                               onClick={() => setPreviewImg(imgUrl)}
                             />
                           ) : (
-                            <div className="h-10 w-7 rounded bg-gray-100" />
+                            <div className="h-10 w-7 rounded bg-gray-100 dark:bg-slate-700" />
                           )}
                         </td>
                         <td className="px-2 py-1.5 font-medium">{c.name}</td>
-                        <td className="px-2 py-1.5 text-gray-500">{c.set_abbrev ?? '—'}</td>
-                        <td className="px-2 py-1.5 text-gray-500">{c.set_number ?? '—'}</td>
-                        <td className="px-2 py-1.5 font-mono text-gray-500">{c.card_def_id}</td>
-                        <td className="px-2 py-1.5 text-gray-400">{c.reason ?? '—'}</td>
+                        <td className="px-2 py-1.5 text-gray-500 dark:text-slate-400">{c.set_abbrev ?? '—'}</td>
+                        <td className="px-2 py-1.5 text-gray-500 dark:text-slate-400">{c.set_number ?? '—'}</td>
+                        <td className="px-2 py-1.5 font-mono text-gray-500 dark:text-slate-400">{c.card_def_id}</td>
+                        <td className="px-2 py-1.5 text-gray-400 dark:text-slate-500">{c.reason ?? '—'}</td>
                         <td className="px-2 py-1.5">
                           <button
                             className="rounded bg-blue-600 px-2 py-0.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
@@ -708,17 +708,17 @@ function ResolutionRuleModal({
             </div>
           </>
         ) : (
-          <p className="mb-4 text-sm text-gray-500">No candidates available for this name.</p>
+          <p className="mb-4 text-sm text-gray-500 dark:text-slate-400">No candidates available for this name.</p>
         )}
 
         {/* Sample mentions */}
         {item.sample_mentions && item.sample_mentions.length > 0 && (
           <>
-            <h3 className="mb-2 text-sm font-semibold text-gray-700">Sample mentions</h3>
-            <div className="mb-4 overflow-x-auto rounded border border-gray-200">
+            <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-slate-200">Sample mentions</h3>
+            <div className="mb-4 overflow-x-auto rounded border border-gray-200 dark:border-slate-700">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b bg-gray-50 text-left text-gray-600">
+                  <tr className="border-b bg-gray-50 dark:bg-slate-800 text-left text-gray-600 dark:text-slate-300">
                     <th className="px-2 py-1.5">Role</th>
                     <th className="px-2 py-1.5">Event type</th>
                     <th className="px-2 py-1.5">Turn</th>
@@ -729,11 +729,11 @@ function ResolutionRuleModal({
                 <tbody>
                   {item.sample_mentions.map((sm) => (
                     <tr key={sm.event_id} className="border-b last:border-0">
-                      <td className="px-2 py-1 font-mono text-gray-500">{sm.mention_role}</td>
-                      <td className="px-2 py-1 text-gray-500">{sm.source_event_type ?? '—'}</td>
+                      <td className="px-2 py-1 font-mono text-gray-500 dark:text-slate-400">{sm.mention_role}</td>
+                      <td className="px-2 py-1 text-gray-500 dark:text-slate-400">{sm.source_event_type ?? '—'}</td>
                       <td className="px-2 py-1 text-center">{sm.turn_number ?? '—'}</td>
-                      <td className="px-2 py-1 text-gray-500">{sm.player_alias ?? '—'}</td>
-                      <td className="px-2 py-1 font-mono text-gray-400 truncate max-w-xs" title={sm.raw_line ?? ''}>{sm.raw_line ?? '—'}</td>
+                      <td className="px-2 py-1 text-gray-500 dark:text-slate-400">{sm.player_alias ?? '—'}</td>
+                      <td className="px-2 py-1 font-mono text-gray-400 dark:text-slate-500 truncate max-w-xs" title={sm.raw_line ?? ''}>{sm.raw_line ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -745,14 +745,14 @@ function ResolutionRuleModal({
         {/* Actions */}
         <div className="flex items-center gap-3 border-t pt-3">
           <button
-            className="rounded bg-red-100 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-200 disabled:opacity-50"
+            className="rounded bg-red-100 dark:bg-red-900/50 px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900 disabled:opacity-50"
             disabled={submitting || !!success}
             onClick={handleIgnore}
           >
             Ignore this name
           </button>
           <button
-            className="ml-auto rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200"
+            className="ml-auto rounded bg-gray-100 dark:bg-slate-800 px-3 py-1.5 text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700"
             onClick={handleClose}
           >
             Close
@@ -800,15 +800,15 @@ function UnresolvedCardsSection({ onRefreshLogs }: { onRefreshLogs?: () => void 
 
   return (
     <>
-      <section className="mb-8 rounded-lg border border-yellow-200 bg-yellow-50 p-6 shadow-sm">
-        <h2 className="mb-3 text-base font-semibold text-yellow-800">
+      <section className="mb-8 rounded-lg border border-yellow-200 dark:border-amber-800 bg-yellow-50 dark:bg-amber-950/50 p-6 shadow-sm">
+        <h2 className="mb-3 text-base font-semibold text-yellow-800 dark:text-amber-200">
           Unresolved / Ambiguous Cards
-          <span className="ml-2 text-sm font-normal text-yellow-700">({total} unique names)</span>
+          <span className="ml-2 text-sm font-normal text-yellow-700 dark:text-amber-300">({total} unique names)</span>
         </h2>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-yellow-200 text-left text-yellow-700">
+              <tr className="border-b border-yellow-200 dark:border-amber-800 text-left text-yellow-700 dark:text-amber-300">
                 <th className="pb-1 pr-3">Raw name</th>
                 <th className="pb-1 pr-3">Status</th>
                 <th className="pb-1 pr-3">Mentions</th>
@@ -819,20 +819,20 @@ function UnresolvedCardsSection({ onRefreshLogs }: { onRefreshLogs?: () => void 
             </thead>
             <tbody>
               {items.map((item) => (
-                <tr key={`${item.normalized_name}-${item.status}`} className="border-b border-yellow-100 last:border-0">
+                <tr key={`${item.normalized_name}-${item.status}`} className="border-b border-yellow-100 dark:border-amber-900 last:border-0">
                   <td className="py-0.5 pr-3 font-medium">{item.raw_name}</td>
                   <td className="py-0.5 pr-3">
                     <span className={`rounded px-1 text-xs font-medium ${
                       item.status === 'ambiguous'
-                        ? 'bg-yellow-200 text-yellow-800'
-                        : 'bg-red-100 text-red-700'
+                        ? 'bg-yellow-200 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
+                        : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300'
                     }`}>
                       {item.status}
                     </span>
                   </td>
                   <td className="py-0.5 pr-3 text-center">{item.mention_count}</td>
                   <td className="py-0.5 pr-3 text-center">{item.log_count}</td>
-                  <td className="py-0.5 pr-3 text-gray-500">
+                  <td className="py-0.5 pr-3 text-gray-500 dark:text-slate-400">
                     {item.candidate_count > 0
                       ? `${item.candidate_count} candidate${item.candidate_count > 1 ? 's' : ''}`
                       : '—'}
@@ -934,28 +934,28 @@ function MemoryPreviewModal({
       onClick={onClose}
     >
       <div
-        className="relative mx-4 max-h-[90vh] w-full max-w-2xl overflow-auto rounded-lg bg-white p-6 shadow-xl"
+        className="relative mx-4 max-h-[90vh] w-full max-w-2xl overflow-auto rounded-lg bg-white dark:bg-slate-900 p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-gray-500 hover:text-gray-800"
+          className="absolute right-4 top-4 text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-100"
           aria-label="Close"
         >
           <X size={20} />
         </button>
 
-        <h2 className="mb-1 text-lg font-semibold">Memory Preview</h2>
-        <p className="mb-4 text-xs text-gray-500">
+        <h2 className="mb-1 text-lg font-semibold text-slate-900 dark:text-white">Memory Preview</h2>
+        <p className="mb-4 text-xs text-gray-500 dark:text-slate-400">
           Observed memories are stored for review only. They are not used by Coach or AI Player yet.
         </p>
 
-        {loading && <p className="text-sm text-gray-500">Loading preview…</p>}
+        {loading && <p className="text-sm text-gray-500 dark:text-slate-400">Loading preview…</p>}
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         {preview && !ingestResult && (
           <>
-            <div className={`mb-4 rounded border px-3 py-2 text-sm ${preview.eligible ? 'border-green-200 bg-green-50 text-green-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
+            <div className={`mb-4 rounded border px-3 py-2 text-sm ${preview.eligible ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 text-green-800 dark:text-green-300' : 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 text-red-800 dark:text-red-300'}`}>
               {preview.eligible
                 ? `✓ Eligible — estimated ${preview.estimated_memory_item_count} memory items`
                 : '✗ Not eligible for ingestion'}
@@ -963,11 +963,11 @@ function MemoryPreviewModal({
 
             {preview.reasons.length > 0 && (
               <div className="mb-4">
-                <p className="mb-1 text-xs font-medium text-gray-600">Eligibility reasons:</p>
-                <ul className="space-y-0.5 text-xs text-gray-600">
+                <p className="mb-1 text-xs font-medium text-gray-600 dark:text-slate-300">Eligibility reasons:</p>
+                <ul className="space-y-0.5 text-xs text-gray-600 dark:text-slate-300">
                   {preview.reasons.map((r: EligibilityReason) => (
                     <li key={r.code}>
-                      <span className="font-mono text-red-700">{r.code}</span>: {r.detail}
+                      <span className="font-mono text-red-700 dark:text-red-400">{r.code}</span>: {r.detail}
                     </li>
                   ))}
                 </ul>
@@ -976,11 +976,11 @@ function MemoryPreviewModal({
 
             {preview.blockers && preview.blockers.length > 0 && (
               <div className="mb-4">
-                <p className="mb-1 text-xs font-medium text-gray-600">Blocking unresolved mentions:</p>
+                <p className="mb-1 text-xs font-medium text-gray-600 dark:text-slate-300">Blocking unresolved mentions:</p>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b text-left text-gray-500">
+                      <tr className="border-b text-left text-gray-500 dark:text-slate-400">
                         <th className="pb-0.5 pr-2">Raw name</th>
                         <th className="pb-0.5 pr-2">Role</th>
                         <th className="pb-0.5 pr-2">Turn</th>
@@ -991,26 +991,26 @@ function MemoryPreviewModal({
                     </thead>
                     <tbody>
                       {preview.blockers.map((b, i) => (
-                        <tr key={i} className="border-b border-gray-100 last:border-0">
-                          <td className="py-0.5 pr-2 font-medium text-red-700">{b.raw_name ?? '—'}</td>
-                          <td className="py-0.5 pr-2 font-mono text-gray-600">{b.mention_role ?? '—'}</td>
+                        <tr key={i} className="border-b border-gray-100 dark:border-slate-800 last:border-0">
+                          <td className="py-0.5 pr-2 font-medium text-red-700 dark:text-red-400">{b.raw_name ?? '—'}</td>
+                          <td className="py-0.5 pr-2 font-mono text-gray-600 dark:text-slate-300">{b.mention_role ?? '—'}</td>
                           <td className="py-0.5 pr-2">{b.turn_number ?? '—'}</td>
                           <td className="py-0.5 pr-2">{b.player_alias ?? '—'}</td>
-                          <td className="py-0.5 pr-2 text-gray-500">{b.source_event_type ?? '—'}</td>
-                          <td className="py-0.5 max-w-[200px] truncate text-gray-500" title={b.raw_line ?? undefined}>{b.raw_line ?? '—'}</td>
+                          <td className="py-0.5 pr-2 text-gray-500 dark:text-slate-400">{b.source_event_type ?? '—'}</td>
+                          <td className="py-0.5 max-w-[200px] truncate text-gray-500 dark:text-slate-400" title={b.raw_line ?? undefined}>{b.raw_line ?? '—'}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
                 {preview.blockers_truncated && (
-                  <p className="mt-1 text-xs text-gray-500">Showing first {preview.blockers.length} blockers.</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">Showing first {preview.blockers.length} blockers.</p>
                 )}
               </div>
             )}
 
             {preview.metrics && (
-              <div className="mb-4 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-gray-600">
+              <div className="mb-4 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-gray-600 dark:text-slate-300">
                 <span className="font-medium">Confidence</span>
                 <span>{(preview.metrics.confidence_score * 100).toFixed(1)}%</span>
                 <span className="font-medium">Events</span>
@@ -1026,10 +1026,10 @@ function MemoryPreviewModal({
 
             {preview.event_type_counts && Object.keys(preview.event_type_counts).length > 0 && (
               <div className="mb-4">
-                <p className="mb-1 text-xs font-medium text-gray-600">Memory types to be created:</p>
+                <p className="mb-1 text-xs font-medium text-gray-600 dark:text-slate-300">Memory types to be created:</p>
                 <div className="flex flex-wrap gap-1">
                   {Object.entries(preview.event_type_counts).map(([k, v]) => (
-                    <span key={k} className="rounded bg-gray-100 px-2 py-0.5 text-xs">
+                    <span key={k} className="rounded bg-gray-100 dark:bg-slate-700 px-2 py-0.5 text-xs">
                       {k}: {v}
                     </span>
                   ))}
@@ -1039,11 +1039,11 @@ function MemoryPreviewModal({
 
             {preview.sample_items && preview.sample_items.length > 0 && (
               <div className="mb-4">
-                <p className="mb-1 text-xs font-medium text-gray-600">Sample items (first {preview.sample_items.length}):</p>
+                <p className="mb-1 text-xs font-medium text-gray-600 dark:text-slate-300">Sample items (first {preview.sample_items.length}):</p>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b text-left text-gray-500">
+                      <tr className="border-b text-left text-gray-500 dark:text-slate-400">
                         <th className="pb-0.5 pr-2">Turn</th>
                         <th className="pb-0.5 pr-2">Type</th>
                         <th className="pb-0.5 pr-2">Actor</th>
@@ -1054,9 +1054,9 @@ function MemoryPreviewModal({
                     </thead>
                     <tbody>
                       {preview.sample_items.map((item) => (
-                        <tr key={item.event_id} className="border-b border-gray-100 last:border-0">
+                        <tr key={item.event_id} className="border-b border-gray-100 dark:border-slate-800 last:border-0">
                           <td className="py-0.5 pr-2">{item.turn_number ?? '—'}</td>
-                          <td className="py-0.5 pr-2 text-gray-500">{item.memory_type}</td>
+                          <td className="py-0.5 pr-2 text-gray-500 dark:text-slate-400">{item.memory_type}</td>
                           <td className="py-0.5 pr-2 font-medium">{item.actor_card_raw ?? '—'}</td>
                           <td className="py-0.5 pr-2">{item.action_name ?? '—'}</td>
                           <td className="py-0.5 pr-2">{item.damage ?? '—'}</td>
@@ -1074,10 +1074,10 @@ function MemoryPreviewModal({
                 <p className="text-sm text-red-600" role="alert">{ingestError}</p>
                 {ingestBlockers.length > 0 && (
                   <div className="mt-2 overflow-x-auto">
-                    <p className="mb-1 text-xs font-medium text-gray-600">Blocking unresolved mentions:</p>
+                    <p className="mb-1 text-xs font-medium text-gray-600 dark:text-slate-300">Blocking unresolved mentions:</p>
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="border-b text-left text-gray-500">
+                        <tr className="border-b text-left text-gray-500 dark:text-slate-400">
                           <th className="pb-0.5 pr-2">Raw name</th>
                           <th className="pb-0.5 pr-2">Role</th>
                           <th className="pb-0.5 pr-2">Turn</th>
@@ -1087,18 +1087,18 @@ function MemoryPreviewModal({
                       </thead>
                       <tbody>
                         {ingestBlockers.map((b, i) => (
-                          <tr key={i} className="border-b border-gray-100 last:border-0">
-                            <td className="py-0.5 pr-2 font-medium text-red-700">{b.raw_name ?? '—'}</td>
-                            <td className="py-0.5 pr-2 font-mono text-gray-600">{b.mention_role ?? '—'}</td>
+                          <tr key={i} className="border-b border-gray-100 dark:border-slate-800 last:border-0">
+                            <td className="py-0.5 pr-2 font-medium text-red-700 dark:text-red-400">{b.raw_name ?? '—'}</td>
+                            <td className="py-0.5 pr-2 font-mono text-gray-600 dark:text-slate-300">{b.mention_role ?? '—'}</td>
                             <td className="py-0.5 pr-2">{b.turn_number ?? '—'}</td>
                             <td className="py-0.5 pr-2">{b.player_alias ?? '—'}</td>
-                            <td className="py-0.5 text-gray-500">{b.source_event_type ?? '—'}</td>
+                            <td className="py-0.5 text-gray-500 dark:text-slate-400">{b.source_event_type ?? '—'}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                     {ingestBlockersTruncated && (
-                      <p className="mt-1 text-xs text-gray-500">Showing first {ingestBlockers.length} blockers.</p>
+                      <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">Showing first {ingestBlockers.length} blockers.</p>
                     )}
                   </div>
                 )}
@@ -1126,7 +1126,7 @@ function MemoryPreviewModal({
               )}
               <button
                 onClick={onClose}
-                className="rounded border border-gray-300 px-4 py-1.5 text-sm hover:bg-gray-50"
+                className="rounded border border-gray-300 dark:border-slate-600 dark:text-slate-200 px-4 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
               >
                 Cancel
               </button>
@@ -1136,12 +1136,12 @@ function MemoryPreviewModal({
 
         {ingestResult && (
           <div className="text-sm">
-            <p className="mb-2 font-medium text-green-700">
+            <p className="mb-2 font-medium text-green-700 dark:text-green-300">
               ✓ Ingestion {ingestResult.status} — {ingestResult.memory_item_count ?? 0} memory items created
             </p>
             <button
               onClick={onClose}
-              className="rounded bg-gray-100 px-4 py-1.5 text-sm hover:bg-gray-200"
+              className="rounded bg-gray-100 dark:bg-slate-800 dark:text-slate-200 px-4 py-1.5 text-sm hover:bg-gray-200 dark:hover:bg-slate-700"
             >
               Close
             </button>
@@ -1210,42 +1210,42 @@ function MemoryItemsModal({
       onClick={onClose}
     >
       <div
-        className="relative mx-4 max-h-[90vh] w-full max-w-5xl overflow-auto rounded-lg bg-white p-6 shadow-xl"
+        className="relative mx-4 max-h-[90vh] w-full max-w-5xl overflow-auto rounded-lg bg-white dark:bg-slate-900 p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-gray-500 hover:text-gray-800"
+          className="absolute right-4 top-4 text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-100"
           aria-label="Close"
         >
           <X size={20} />
         </button>
 
-        <h2 className="mb-1 text-lg font-semibold">Memory Items</h2>
-        <p className="mb-3 text-xs text-gray-500">
+        <h2 className="mb-1 text-lg font-semibold text-slate-900 dark:text-white">Memory Items</h2>
+        <p className="mb-3 text-xs text-gray-500 dark:text-slate-400">
           Observed memories are stored for review only. They are not used by Coach or AI Player yet.
         </p>
 
         <div className="mb-3 flex items-center gap-3">
-          <label className="text-xs text-gray-600">Filter by type:</label>
+          <label className="text-xs text-gray-600 dark:text-slate-300">Filter by type:</label>
           <input
             type="text"
             value={memoryTypeFilter}
             onChange={(e) => setMemoryTypeFilter(e.target.value)}
             placeholder="e.g. attack_used"
-            className="rounded border border-gray-300 px-2 py-0.5 text-xs w-36"
+            className="rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 px-2 py-0.5 text-xs w-36"
           />
-          {data && <span className="text-xs text-gray-500">{data.total} total</span>}
+          {data && <span className="text-xs text-gray-500 dark:text-slate-400">{data.total} total</span>}
         </div>
 
-        {loading && <p className="text-sm text-gray-500">Loading…</p>}
+        {loading && <p className="text-sm text-gray-500 dark:text-slate-400">Loading…</p>}
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         {data && data.items.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-gray-200 text-left text-gray-500">
+                <tr className="border-b border-gray-200 dark:border-slate-700 text-left text-gray-500 dark:text-slate-400">
                   <th className="pb-1 pr-2">Turn</th>
                   <th className="pb-1 pr-2">Type</th>
                   <th className="pb-1 pr-2">Player</th>
@@ -1259,9 +1259,9 @@ function MemoryItemsModal({
               </thead>
               <tbody>
                 {data.items.map((item: MemoryItemSummary) => (
-                  <tr key={item.id} className="border-b border-gray-100 last:border-0">
+                  <tr key={item.id} className="border-b border-gray-100 dark:border-slate-800 last:border-0">
                     <td className="py-0.5 pr-2">{item.turn_number ?? '—'}</td>
-                    <td className="py-0.5 pr-2 text-gray-500">{item.memory_type}</td>
+                    <td className="py-0.5 pr-2 text-gray-500 dark:text-slate-400">{item.memory_type}</td>
                     <td className="py-0.5 pr-2">{item.player_alias ?? item.player_raw ?? '—'}</td>
                     <td className="py-0.5 pr-2 font-medium">{item.actor_card_raw ?? '—'}</td>
                     <td className="py-0.5 pr-2">{item.action_name ?? '—'}</td>
@@ -1272,7 +1272,7 @@ function MemoryItemsModal({
                     <td className="py-0.5 pr-2">
                       <ConfidenceBadge score={item.confidence_score} />
                     </td>
-                    <td className="py-0.5 max-w-xs truncate text-gray-400" title={item.source_raw_line ?? ''}>
+                    <td className="py-0.5 max-w-xs truncate text-gray-400 dark:text-slate-500" title={item.source_raw_line ?? ''}>
                       {item.source_raw_line ?? '—'}
                     </td>
                   </tr>
@@ -1280,7 +1280,7 @@ function MemoryItemsModal({
               </tbody>
             </table>
             {pages > 1 && (
-              <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+              <div className="mt-3 flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
@@ -1301,7 +1301,7 @@ function MemoryItemsModal({
           </div>
         )}
         {data && data.items.length === 0 && !loading && (
-          <p className="text-sm text-gray-400">No memory items found.</p>
+          <p className="text-sm text-gray-400 dark:text-slate-500">No memory items found.</p>
         )}
       </div>
     </div>
@@ -1388,16 +1388,16 @@ export default function ObservedPlay() {
   return (
     <PageShell title="Observed Play">
       {/* Phase banner */}
-      <div className="mb-6 rounded border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
+      <div className="mb-6 rounded border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/50 px-4 py-2 text-sm text-blue-700 dark:text-blue-300">
         Phase 4 active — memory ingestion enabled. Observed memories are stored for review only.
         They are not used by Coach or AI Player yet.
       </div>
 
       {/* ── Upload panel ─────────────────────────────────────────────────── */}
-      <section className="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-base font-semibold">Upload Battle Log</h2>
+      <section className="mb-8 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
+        <h2 className="mb-4 text-base font-semibold text-slate-900 dark:text-white">Upload Battle Log</h2>
         <div className="flex items-center gap-4">
-          <label className="flex cursor-pointer items-center gap-2 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm hover:bg-gray-100">
+          <label className="flex cursor-pointer items-center gap-2 rounded border border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-800 dark:text-slate-200 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-slate-700">
             <Upload size={16} />
             <span>{file ? file.name : 'Choose file…'}</span>
             <input
@@ -1424,8 +1424,8 @@ export default function ObservedPlay() {
 
       {/* ── Last import report ────────────────────────────────────────────── */}
       {uploadResult && (
-        <section className="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-base font-semibold">Import Report</h2>
+        <section className="mb-8 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
+          <h2 className="mb-4 text-base font-semibold text-slate-900 dark:text-white">Import Report</h2>
           <div className="mb-3 flex flex-wrap gap-4 text-sm">
             <span><strong>Batch:</strong> <span className="font-mono text-xs">{uploadResult.batch_id}</span></span>
             <StatusChip status={uploadResult.status} />
@@ -1439,8 +1439,8 @@ export default function ObservedPlay() {
               ['Skipped', uploadResult.skipped_file_count],
               ['Failed', uploadResult.failed_file_count],
             ].map(([label, val]) => (
-              <div key={label as string} className="rounded border border-gray-100 bg-gray-50 p-2 text-center">
-                <div className="text-xs text-gray-500">{label}</div>
+              <div key={label as string} className="rounded border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 p-2 text-center">
+                <div className="text-xs text-gray-500 dark:text-slate-400">{label}</div>
                 <div className="text-xl font-bold">{val}</div>
               </div>
             ))}
@@ -1455,7 +1455,7 @@ export default function ObservedPlay() {
           {uploadResult.warnings.length > 0 && (
             <div className="mt-2 space-y-1">
               {uploadResult.warnings.map((w, i) => (
-                <p key={i} className="text-xs text-yellow-700">⚑ {w}</p>
+                <p key={i} className="text-xs text-yellow-700 dark:text-amber-300">⚑ {w}</p>
               ))}
             </div>
           )}
@@ -1463,7 +1463,7 @@ export default function ObservedPlay() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
+                  <tr className="border-b border-gray-200 dark:border-slate-700 text-left text-xs text-gray-500 dark:text-slate-400">
                     <th className="pb-1 pr-3">File</th>
                     <th className="pb-1 pr-3">Status</th>
                     <th className="pb-1 pr-3">Parse</th>
@@ -1473,7 +1473,7 @@ export default function ObservedPlay() {
                 </thead>
                 <tbody>
                   {uploadResult.logs.map((l) => (
-                    <tr key={l.sha256_hash || l.original_filename} className="border-b border-gray-100 last:border-0">
+                    <tr key={l.sha256_hash || l.original_filename} className="border-b border-gray-100 dark:border-slate-800 last:border-0">
                       <td className="py-1 pr-3 font-mono text-xs">{l.original_filename}</td>
                       <td className="py-1 pr-3"><StatusChip status={l.status} /></td>
                       <td className="py-1 pr-3"><StatusChip status={l.parse_status} /></td>
@@ -1489,17 +1489,17 @@ export default function ObservedPlay() {
       )}
 
       {/* ── Import history ────────────────────────────────────────────────── */}
-      <section className="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-base font-semibold">Import History</h2>
+      <section className="mb-8 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
+        <h2 className="mb-4 text-base font-semibold text-slate-900 dark:text-white">Import History</h2>
         {batchLoading ? (
-          <p className="text-sm text-gray-500">Loading…</p>
+          <p className="text-sm text-gray-500 dark:text-slate-400">Loading…</p>
         ) : batches.length === 0 ? (
-          <p className="text-sm text-gray-400">No import batches yet.</p>
+          <p className="text-sm text-gray-400 dark:text-slate-500">No import batches yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
+                <tr className="border-b border-gray-200 dark:border-slate-700 text-left text-xs text-gray-500 dark:text-slate-400">
                   <th className="pb-1 pr-3">Imported at</th>
                   <th className="pb-1 pr-3">Filename</th>
                   <th className="pb-1 pr-3">Status</th>
@@ -1511,7 +1511,7 @@ export default function ObservedPlay() {
               </thead>
               <tbody>
                 {batches.map((b) => (
-                  <tr key={b.id} className="border-b border-gray-100 last:border-0">
+                  <tr key={b.id} className="border-b border-gray-100 dark:border-slate-800 last:border-0">
                     <td className="py-1 pr-3 text-xs">{fmtDate(b.created_at)}</td>
                     <td className="py-1 pr-3 font-mono text-xs">{b.uploaded_filename ?? '—'}</td>
                     <td className="py-1 pr-3"><StatusChip status={b.status} /></td>
@@ -1523,7 +1523,7 @@ export default function ObservedPlay() {
                 ))}
               </tbody>
             </table>
-            <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+            <div className="mt-3 flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
               <button
                 onClick={() => setBatchPage((p) => Math.max(1, p - 1))}
                 disabled={batchPage <= 1}
@@ -1545,17 +1545,17 @@ export default function ObservedPlay() {
       </section>
 
       {/* ── Raw logs table ────────────────────────────────────────────────── */}
-      <section className="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-base font-semibold">Raw Logs</h2>
+      <section className="mb-8 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
+        <h2 className="mb-4 text-base font-semibold text-slate-900 dark:text-white">Raw Logs</h2>
         {logLoading ? (
-          <p className="text-sm text-gray-500">Loading…</p>
+          <p className="text-sm text-gray-500 dark:text-slate-400">Loading…</p>
         ) : logs.length === 0 ? (
-          <p className="text-sm text-gray-400">No logs imported yet.</p>
+          <p className="text-sm text-gray-400 dark:text-slate-500">No logs imported yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
+                <tr className="border-b border-gray-200 dark:border-slate-700 text-left text-xs text-gray-500 dark:text-slate-400">
                   <th className="pb-1 pr-3">Filename</th>
                   <th className="pb-1 pr-3">Parse</th>
                   <th className="pb-1 pr-3">Memory</th>
@@ -1571,7 +1571,7 @@ export default function ObservedPlay() {
               </thead>
               <tbody>
                 {logs.map((log) => (
-                  <tr key={log.id} className="border-b border-gray-100 last:border-0">
+                  <tr key={log.id} className="border-b border-gray-100 dark:border-slate-800 last:border-0">
                     <td className="py-1 pr-3 font-mono text-xs">{log.original_filename}</td>
                     <td className="py-1 pr-3"><StatusChip status={log.parse_status} /></td>
                     <td className="py-1 pr-3"><StatusChip status={log.memory_status} /></td>
@@ -1580,7 +1580,7 @@ export default function ObservedPlay() {
                     <td className="py-1 pr-3"><CardResolutionBadges log={log} /></td>
                     <td className="py-1 pr-3 text-center text-xs">
                       {(log.memory_item_count ?? 0) > 0
-                        ? <span className="font-medium text-green-700">{log.memory_item_count}</span>
+                        ? <span className="font-medium text-green-700 dark:text-green-400">{log.memory_item_count}</span>
                         : '—'}
                     </td>
                     <td className="py-1 pr-3 text-xs">{fmtBytes(log.file_size_bytes)}</td>
@@ -1589,7 +1589,7 @@ export default function ObservedPlay() {
                     <td className="py-1 flex flex-wrap gap-1">
                       <button
                         onClick={() => setViewLogId(log.id)}
-                        className="rounded border border-gray-300 px-2 py-0.5 text-xs hover:bg-gray-50"
+                        className="rounded border border-gray-300 dark:border-slate-600 dark:text-slate-200 px-2 py-0.5 text-xs hover:bg-gray-50 dark:hover:bg-slate-800"
                       >
                         View raw
                       </button>
@@ -1618,7 +1618,7 @@ export default function ObservedPlay() {
                       {(log.memory_item_count ?? 0) > 0 && (
                         <button
                           onClick={() => setMemoryItemsLogId(log.id)}
-                          className="rounded border border-green-300 px-2 py-0.5 text-xs text-green-700 hover:bg-green-50"
+                          className="rounded border border-green-300 dark:border-green-700 px-2 py-0.5 text-xs text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950"
                         >
                           View memory
                         </button>
@@ -1628,7 +1628,7 @@ export default function ObservedPlay() {
                 ))}
               </tbody>
             </table>
-            <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+            <div className="mt-3 flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
               <button
                 onClick={() => setLogPage((p) => Math.max(1, p - 1))}
                 disabled={logPage <= 1}
