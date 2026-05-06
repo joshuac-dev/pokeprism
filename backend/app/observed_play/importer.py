@@ -216,6 +216,15 @@ async def _import_single_file(
         log.parse_status = "parse_failed"
         log.errors_json = [{"error": str(parse_exc), "type": "parse_exception"}]
 
+    # Phase 3: extract and resolve card mentions (non-destructive if it fails)
+    if log.parse_status in ("parsed", "parsed_with_warnings"):
+        try:
+            await db.flush()  # ensure event rows have IDs before resolution
+            from app.observed_play.card_resolution import extract_and_resolve_mentions_for_log
+            await extract_and_resolve_mentions_for_log(db, log.id)
+        except Exception as res_exc:
+            logger.error("Card resolution failed for %s: %s", original_filename, res_exc)
+
     batch.imported_file_count = (batch.imported_file_count or 0) + 1
     return {
         "log_id": str(log.id),

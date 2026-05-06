@@ -1,6 +1,7 @@
 """Observed Play parser constants and event type registry."""
 
 PARSER_VERSION = "1.0"
+RESOLVER_VERSION = "1.0"
 
 # Event phases
 PHASE_SETUP = "setup"

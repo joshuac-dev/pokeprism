@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 27 — Observed Play Phase 2.3: Top Unknown Pattern Hardening)
+Last updated: 2026-05-06 (session 28 — Observed Play Phase 3: Card Mention Extraction and Conservative Card Resolution)
 
 ## Current Workstream
 
@@ -18,8 +18,8 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1, Phase 2, Phase 2.1, Phase 2.2, and Phase 2.3 are complete.**
-Phase 3+ (card resolution, memory ingestion) not yet started.
+**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, and Phase 3 are complete.**
+Phase 4+ (memory ingestion) not yet started.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
@@ -38,8 +38,8 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **767 passed, 1 skipped** — 2026-05-06 session 27. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 747/1 (session 26). |
-| Frontend unit tests | **163 passed (15 files)** — 2026-05-06 session 26. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **804 passed, 1 skipped** — 2026-05-06 session 28. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 767/1 (session 27). |
+| Frontend unit tests | **173 passed (15 files)** — 2026-05-06 session 28. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
 
@@ -125,6 +125,95 @@ Known patterns still producing `unknown` events in real logs:
 - Deck search confirmations without explicit card names
 - "Looked at top N cards" observation lines
 These are candidates for Phase 2.3 if needed before Phase 3.
+
+## Session 28 Work (2026-05-06)
+
+### Goal
+
+Phase 3: Card Mention Extraction and Conservative Card Resolution. Extract
+structured card mentions from parsed events, resolve them against the card DB,
+report resolution status per log, and expose review UI for unresolved/ambiguous
+cards.
+
+### New DB Tables
+
+- `observed_card_mentions` — one row per card mention extracted from a parsed
+  event. Columns: `id`, `observed_play_log_id`, `observed_play_event_id`,
+  `mention_index`, `mention_role`, `raw_name`, `normalized_name`,
+  `resolved_card_def_id` (FK → `cards.tcgdex_id`), `resolved_card_name`,
+  `resolution_status`, `resolution_confidence`, `resolution_method`,
+  `candidate_count`, `candidates_json`, `source_event_type`, `source_field`,
+  `source_payload_path`, `resolver_version`.
+- `observed_card_resolution_rules` — manual ignore/override rules. Columns:
+  `id`, `normalized_name`, `rule_type` (`ignore`/`resolve`), `resolved_card_def_id`,
+  `notes`, `created_at`, `updated_at`.
+- Alembic migration `f2a3b4c5d6e7` applied. DB now at `f2a3b4c5d6e7 (head)`.
+
+### New Columns on `observed_play_logs`
+
+- `card_mention_count INT` — total mentions extracted.
+- `card_resolution_status TEXT` — `null` / `"not_resolved"` / `"resolved"` / `"has_unresolved"` / `"has_ambiguous"`.
+- `resolver_version TEXT` — version of resolver used (`"1.0"`).
+
+### New Backend Modules
+
+- `backend/app/observed_play/card_mentions.py` — `normalize_card_name()`,
+  `_is_meaningful()`, `extract_mentions_from_event()` with per-event-type dispatch
+  and dedup by `(role, normalized_name, source_field)`.
+- `backend/app/observed_play/card_resolution.py` — `_resolve_one()` (pure, no DB),
+  `extract_and_resolve_mentions_for_log(db, log_id)` (async, idempotent delete+insert),
+  energy alias table (11 types, bidirectional), `CardResolutionSummary` dataclass,
+  log-level status derivation.
+
+### Resolution Logic
+
+1. Manual ignore/resolve rules (from `observed_card_resolution_rules`).
+2. Exact normalized name match — unique → `resolved` / 0.98; multiple → `ambiguous` / 0.60.
+3. Basic energy alias match — unique → `resolved` / 0.95.
+4. Fallback → `unresolved` / 0.0.
+
+Hidden card names (`"a card"`, `""`, etc.) excluded via `_IGNORED_NORMALIZED` frozenset.
+Attack/ability names not extracted as mentions.
+
+### New API Routes
+
+- `GET /api/observed-play/logs/{id}/card-mentions` — paginated list of mentions, filterable by status.
+- `POST /api/observed-play/logs/{id}/resolve-cards` — trigger resolution for a log; returns `CardResolutionSummaryResponse`.
+- `GET /api/observed-play/unresolved-cards` — aggregate list of unresolved/ambiguous raw names across all logs.
+- `POST /api/observed-play/resolution-rules` — create a manual ignore/resolve rule.
+
+### Updated API Routes
+
+- `GET /api/observed-play/logs` and `GET /api/observed-play/logs/{id}` — now return `card_mention_count`, `resolved_card_count`, `ambiguous_card_count`, `unresolved_card_count`, `card_resolution_status` in `LogSummary`.
+- `POST /api/observed-play/logs/{id}/reparse` — now runs extraction+resolution after parse; returns the 5 new resolution fields in `ReparseSummary`.
+
+### Frontend Changes
+
+- `ObservedPlayLog` type: 5 optional resolution fields added.
+- New types: `CardMentionItem`, `CardMentionListResponse`, `CardResolutionSummaryResponse`, `UnresolvedCardItem`, `UnresolvedCardsResponse`, `ResolutionRuleCreate`, `ResolutionRuleResponse`, `CardCandidateItem`.
+- New API functions: `getCardMentions()`, `resolveCards()`, `getUnresolvedCards()`, `createResolutionRule()`.
+- `ObservedPlay.tsx`: `CardResolutionBadges` — resolved/ambiguous/unresolved pill badges in log table "Cards" column. `CardMentionsModal` — dialog showing paginated mentions with status filter, raw name, resolved name, method, confidence. `UnresolvedCardsSection` — section above import history listing unresolved/ambiguous card names across all logs. Phase banner updated to "Phase 3 active".
+
+### Tests Added
+
+- **37 new backend tests** in `backend/tests/test_observed_play/test_card_mentions.py` covering extraction, resolution, dedup, energy alias, manual rules, edge cases. (All passing.)
+- **~12 new frontend tests** in `Phase 3 card resolution` describe block: badges render, dash for no mentions, View cards button presence, modal open/close, empty modal state, unresolved section shows/hides, phase banner.
+
+### Validation (session 28)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **804 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **173 passed (15 files)** ✓
+- `cd frontend && npm run build`: ✓ built in ~4s
+- `docs/AUDIT_STATE.md`: not modified ✓
+- `frontend/node_modules`: not committed ✓
+- No real battle-log corpus committed ✓
+- No Coach / AI / Neo4j / pgvector / memory ingestion added ✓
+
+### Phase 3 Limitations / Next Steps
+
+- Resolution rules UI (ignore/resolve buttons) is backend-only; frontend create-rule flow not yet wired.
+- No memory ingestion (Phase 4+).
+- No Coach or AI Player integration (Phase 6/8).
 
 ## Session 27 Work (2026-05-06)
 

@@ -392,9 +392,12 @@ class ObservedPlayLog(Base):
     game_date_detected    = Column(Text)  # ISO date string; set by parser in Phase 2
     turn_count            = Column(Integer, default=0)
     event_count           = Column(Integer, default=0)
-    recognized_card_count = Column(Integer, default=0)
-    unresolved_card_count = Column(Integer, default=0)
-    ambiguous_card_count  = Column(Integer, default=0)
+    recognized_card_count  = Column(Integer, default=0)
+    unresolved_card_count  = Column(Integer, default=0)
+    ambiguous_card_count   = Column(Integer, default=0)
+    card_mention_count     = Column(Integer, default=0)
+    card_resolution_status = Column(Text, nullable=True)
+    resolver_version       = Column(Text, nullable=True)
     confidence_score      = Column(Float)
     errors_json           = Column(JSONB, default=list)
     warnings_json         = Column(JSONB, default=list)
@@ -404,6 +407,7 @@ class ObservedPlayLog(Base):
                                    onupdate=func.now())
 
     events = relationship("ObservedPlayEvent", back_populates="log", cascade="all, delete-orphan")
+    card_mentions = relationship("ObservedCardMention", back_populates="log", cascade="all, delete-orphan")
     import_batch = relationship("ObservedPlayImportBatch", back_populates="logs")
 
 class ObservedPlayEvent(Base):
@@ -454,3 +458,76 @@ class ObservedPlayEvent(Base):
     created_at              = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
     log = relationship("ObservedPlayLog", back_populates="events")
+
+
+# ── Observed Card Mentions (Phase 3) ──────────────────────────────────────────
+
+class ObservedCardMention(Base):
+    """One raw card mention extracted from a parsed observed event."""
+    __tablename__ = "observed_card_mentions"
+    __table_args__ = (
+        UniqueConstraint("observed_play_event_id", "mention_index",
+                         name="uq_ocm_event_mention_index"),
+        Index("idx_ocm_log_id", "observed_play_log_id"),
+        Index("idx_ocm_event_id", "observed_play_event_id"),
+        Index("idx_ocm_normalized_name", "normalized_name"),
+        Index("idx_ocm_resolution_status", "resolution_status"),
+        Index("idx_ocm_resolved_card_def_id", "resolved_card_def_id"),
+        Index("idx_ocm_created_at", "created_at"),
+    )
+
+    id                      = Column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    observed_play_log_id    = Column(UUID(as_uuid=True),
+                                     ForeignKey("observed_play_logs.id", ondelete="CASCADE"),
+                                     nullable=False)
+    observed_play_event_id  = Column(BigInteger,
+                                     ForeignKey("observed_play_events.id", ondelete="CASCADE"),
+                                     nullable=False)
+    import_batch_id         = Column(UUID(as_uuid=True), nullable=True)
+
+    mention_index           = Column(Integer, nullable=False)
+    mention_role            = Column(Text, nullable=False)
+    raw_name                = Column(Text, nullable=False)
+    normalized_name         = Column(Text, nullable=False)
+
+    resolved_card_def_id    = Column(Text, ForeignKey("cards.tcgdex_id"), nullable=True)
+    resolved_card_name      = Column(Text, nullable=True)
+    resolution_status       = Column(Text, nullable=False, default="unresolved")
+    resolution_confidence   = Column(Float, nullable=True)
+    resolution_method       = Column(Text, nullable=True)
+    resolution_reason       = Column(Text, nullable=True)
+    candidate_count         = Column(Integer, default=0)
+    candidates_json         = Column(JSONB, default=list)
+
+    source_event_type       = Column(Text, nullable=False)
+    source_field            = Column(Text, nullable=False)
+    source_payload_path     = Column(Text, nullable=True)
+    parser_version          = Column(Text, nullable=True)
+    resolver_version        = Column(Text, nullable=False, default="1.0")
+
+    created_at              = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at              = Column(TIMESTAMP(timezone=True), server_default=func.now(),
+                                     onupdate=func.now())
+
+    log  = relationship("ObservedPlayLog", back_populates="card_mentions")
+
+
+class ObservedCardResolutionRule(Base):
+    """Manual override rule for card name resolution."""
+    __tablename__ = "observed_card_resolution_rules"
+    __table_args__ = (
+        Index("idx_ocrr_normalized_name", "normalized_name"),
+        Index("idx_ocrr_action", "action"),
+    )
+
+    id                  = Column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    raw_name            = Column(Text, nullable=False)
+    normalized_name     = Column(Text, nullable=False)
+    target_card_def_id  = Column(Text, ForeignKey("cards.tcgdex_id"), nullable=True)
+    target_card_name    = Column(Text, nullable=True)
+    action              = Column(Text, nullable=False)   # resolve | ignore
+    scope               = Column(Text, nullable=False, default="global")
+    notes               = Column(Text, nullable=True)
+    created_at          = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at          = Column(TIMESTAMP(timezone=True), server_default=func.now(),
+                                 onupdate=func.now())

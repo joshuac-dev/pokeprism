@@ -1,5 +1,5 @@
 /**
- * Types for Observed Play Memory API (Phase 1 + Phase 2: parser v1).
+ * Types for Observed Play Memory API (Phase 1 + Phase 2: parser v1 + Phase 3: card resolution).
  */
 
 export interface ParserDiagnostics {
@@ -76,6 +76,12 @@ export interface ObservedPlayLog {
   winner_raw: string | null;
   win_condition: string | null;
   parser_diagnostics?: ParserDiagnostics | null;
+  // Phase 3: card resolution
+  card_mention_count?: number;
+  resolved_card_count?: number;
+  ambiguous_card_count?: number;
+  unresolved_card_count?: number;
+  card_resolution_status?: string | null;
 }
 
 export interface EventSummary {
@@ -136,4 +142,93 @@ export interface PaginatedObservedPlayLogs {
   total: number;
   page: number;
   per_page: number;
+}
+
+// ── Phase 3: Card resolution types ──────────────────────────────────────────
+
+export interface CardCandidateItem {
+  card_def_id: string;
+  name: string;
+  set_abbrev: string;
+  set_number: string;
+  image_url: string | null;
+  confidence: number;
+  reason: string;
+}
+
+export interface CardMentionItem {
+  id: string;
+  observed_play_log_id: string;
+  observed_play_event_id: number | null;
+  mention_index: number;
+  mention_role: string;
+  raw_name: string;
+  normalized_name: string;
+  resolved_card_def_id: string | null;
+  resolved_card_name: string | null;
+  resolution_status: "resolved" | "ambiguous" | "unresolved" | "ignored";
+  resolution_confidence: number | null;
+  resolution_method: string | null;
+  candidate_count: number;
+  candidates_json: CardCandidateItem[];
+  source_event_type: string | null;
+  source_field: string | null;
+  source_payload_path: string | null;
+  resolver_version: string;
+}
+
+export interface CardMentionListResponse {
+  items: CardMentionItem[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
+export interface CardResolutionSummaryResponse {
+  log_id: string;
+  card_mention_count: number;
+  resolved_card_count: number;
+  ambiguous_card_count: number;
+  unresolved_card_count: number;
+  ignored_card_count: number;
+  card_resolution_status: string;
+  resolver_version: string;
+  errors: string[];
+}
+
+export interface UnresolvedCardItem {
+  raw_name: string;
+  normalized_name: string;
+  status: "unresolved" | "ambiguous";
+  mention_count: number;
+  log_count: number;
+  candidate_count: number;
+  candidates: CardCandidateItem[];
+}
+
+export interface UnresolvedCardsResponse {
+  items: UnresolvedCardItem[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
+export interface ResolutionRuleCreate {
+  raw_name: string;
+  action: "resolve" | "ignore";
+  target_card_def_id?: string | null;
+  target_card_name?: string | null;
+  notes?: string | null;
+}
+
+export interface ResolutionRuleResponse {
+  id: string;
+  raw_name: string;
+  normalized_name: string;
+  action: "resolve" | "ignore";
+  target_card_def_id: string | null;
+  target_card_name: string | null;
+  scope: string;
+  notes: string | null;
+  created_at: string | null;
 }

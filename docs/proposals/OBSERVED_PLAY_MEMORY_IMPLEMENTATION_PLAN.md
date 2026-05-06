@@ -1669,31 +1669,33 @@ and card-added-to-hand lines.
 9. All Phase 2.1/2.2 behaviors preserved.
 10. No card DB resolution / Coach / Player / pgvector / Neo4j / memory ingestion added.
 
----
+## 22.4 Phase 3 — Card Mention Extraction and Conservative Card Resolution
 
+**Status:** COMPLETE (session 28).
 
+**Problem:** After Phase 2.3, parser events captured raw card names but no structured
+DB-backed resolution existed. Card mentions were buried in unstructured payload JSON.
+There was no way to see which cards appeared in a log or whether they could be
+identified in the card DB.
 
-The next session prompt (Phase 1) will be titled:
+**Changes:** See `docs/STATUS.md` session 28 and `docs/CHANGELOG.md` for detail.
 
-**Observed Play Memory Phase 1 — Raw Archive and Import Foundation**
-
-It will instruct the agent to:
-
-1. Add `data/ptcgl_logs/` to `.gitignore` (already done in Phase 0).
-2. Add `ptcgl_logs_data` named Docker volume in `docker-compose.yml` for both `backend` and `celery-worker`.
-3. Create the `backend/app/observed_play/` module with `__init__.py`, `constants.py`, `storage.py`, `schemas.py`, `importer.py`.
-4. Add `ObservedPlayImportBatch` and `ObservedPlayLog` SQLAlchemy models to `backend/app/db/models.py`.
-5. Write an Alembic migration creating both tables with all indexes and the `sha256_hash` unique constraint.
-6. Add `POST /api/observed-play/upload`, `GET /api/observed-play/batches`, `GET /api/observed-play/batches/{batch_id}`, `GET /api/observed-play/logs`, `GET /api/observed-play/logs/{log_id}` to a new `backend/app/api/observed_play.py`.
-7. Register the router in `backend/app/api/router.py`.
-8. Write the Celery task stub for ZIP import.
-9. Write Phase 1 tests.
-10. Run `python3 -m pytest tests/ -x -q` and verify existing baseline is unaffected.
-11. Rebuild backend/celery containers and verify volume mounts.
-12. Commit on feature branch with `feat(observed-play): phase-1 raw archive foundation`.
-
-The prompt will specify not to implement the parser, card resolution, or any
-frontend in Phase 1.
+**Acceptance criteria met:**
+1. `observed_card_mentions` table created via migration `f2a3b4c5d6e7`.
+2. `observed_card_resolution_rules` table created (manual override rules).
+3. 3 new columns on `observed_play_logs`: `card_mention_count`, `card_resolution_status`, `resolver_version`.
+4. `card_mentions.py` — extraction by event type with normalized dedup.
+5. `card_resolution.py` — resolution via exact match → energy alias → manual rules → unresolved. Idempotent.
+6. Resolution runs automatically on import and reparse (non-destructive try/except guard).
+7. `GET /logs/{id}/card-mentions` — paginated, filterable by status.
+8. `POST /logs/{id}/resolve-cards` — trigger resolution, return summary.
+9. `GET /unresolved-cards` — aggregate unresolved/ambiguous names across all logs.
+10. `POST /resolution-rules` — create manual ignore/resolve rule.
+11. Log list/detail responses include 5 resolution summary fields.
+12. Reparse response includes resolution summary.
+13. Frontend: `CardResolutionBadges`, `CardMentionsModal`, `UnresolvedCardsSection`.
+14. 37 new backend tests + ~12 new frontend tests; 804 backend / 173 frontend passing.
+15. No Coach / AI Player / pgvector / Neo4j / memory ingestion added.
 
 ---
 

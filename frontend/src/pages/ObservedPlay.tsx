@@ -8,8 +8,11 @@ import {
   getObservedPlayLog,
   getObservedPlayLogEvents,
   reparseObservedPlayLog,
+  getCardMentions,
+  getUnresolvedCards,
 } from '../api/observedPlay';
 import type {
+  CardMentionItem,
   EventSummary,
   ObservedPlayBatch,
   ObservedPlayLog,
@@ -17,6 +20,7 @@ import type {
   ObservedPlayUploadResult,
   PaginatedEvents,
   ParserDiagnostics,
+  UnresolvedCardItem,
 } from '../types/observedPlay';
 
 const ACCEPTED_EXTS = '.md,.markdown,.txt,.zip';
@@ -331,7 +335,242 @@ function EventsModal({
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Card resolution badge ─────────────────────────────────────────────────────
+
+function CardResolutionBadges({ log }: { log: ObservedPlayLog }) {
+  const total = log.card_mention_count ?? 0;
+  if (total === 0) return <span className="text-xs text-gray-400">—</span>;
+  const resolved = log.resolved_card_count ?? 0;
+  const ambiguous = log.ambiguous_card_count ?? 0;
+  const unresolved = log.unresolved_card_count ?? 0;
+  return (
+    <span className="flex items-center gap-1 text-xs">
+      <span className="text-gray-500">{total}</span>
+      {resolved > 0 && (
+        <span className="rounded bg-green-100 px-1 text-green-700">{resolved}✓</span>
+      )}
+      {ambiguous > 0 && (
+        <span className="rounded bg-yellow-100 px-1 text-yellow-700">{ambiguous}?</span>
+      )}
+      {unresolved > 0 && (
+        <span className="rounded bg-red-100 px-1 text-red-700">{unresolved}✗</span>
+      )}
+    </span>
+  );
+}
+
+// ── Card mentions modal ───────────────────────────────────────────────────────
+
+function CardMentionsModal({
+  logId,
+  onClose,
+}: {
+  logId: string;
+  onClose: () => void;
+}) {
+  const [items, setItems] = useState<CardMentionItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState('');
+  const PER_PAGE = 50;
+
+  const load = useCallback(
+    (p: number, status: string) => {
+      setLoading(true);
+      setError(null);
+      getCardMentions(logId, { page: p, per_page: PER_PAGE, resolution_status: status || undefined })
+        .then((data) => { setItems(data.items); setTotal(data.total); })
+        .catch(() => setError('Failed to load card mentions.'))
+        .finally(() => setLoading(false));
+    },
+    [logId],
+  );
+
+  useEffect(() => { load(page, statusFilter); }, [page, statusFilter, load]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+
+  const statusBadge = (status: string) => {
+    const palette: Record<string, string> = {
+      resolved: 'bg-green-100 text-green-700',
+      ambiguous: 'bg-yellow-100 text-yellow-700',
+      unresolved: 'bg-red-100 text-red-700',
+      ignored: 'bg-gray-100 text-gray-500',
+    };
+    return (
+      <span className={`rounded px-1 py-0.5 text-xs font-medium ${palette[status] ?? 'bg-gray-100'}`}>
+        {status}
+      </span>
+    );
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Card mentions"
+      onClick={onClose}
+    >
+      <div
+        className="relative mx-4 max-h-[90vh] w-full max-w-5xl overflow-auto rounded-lg bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 text-gray-500 hover:text-gray-800"
+          aria-label="Close"
+        >
+          <X size={20} />
+        </button>
+        <div className="mb-4 flex items-center gap-4 flex-wrap">
+          <h2 className="text-lg font-semibold">Card Mentions</h2>
+          <select
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+            className="rounded border border-gray-300 px-2 py-1 text-xs"
+          >
+            <option value="">All statuses</option>
+            <option value="resolved">Resolved</option>
+            <option value="ambiguous">Ambiguous</option>
+            <option value="unresolved">Unresolved</option>
+            <option value="ignored">Ignored</option>
+          </select>
+          <span className="text-xs text-gray-500">{total} mentions</span>
+        </div>
+        {loading && <p className="text-sm text-gray-500">Loading…</p>}
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        {!loading && items.length === 0 && (
+          <p className="text-sm text-gray-400">No card mentions found.</p>
+        )}
+        {items.length > 0 && (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-200 text-left text-gray-500">
+                    <th className="pb-1 pr-2">Role</th>
+                    <th className="pb-1 pr-2">Raw name</th>
+                    <th className="pb-1 pr-2">Status</th>
+                    <th className="pb-1 pr-2">Resolved as</th>
+                    <th className="pb-1 pr-2">Confidence</th>
+                    <th className="pb-1">Method</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((m) => (
+                    <tr key={m.id} className="border-b border-gray-100 last:border-0">
+                      <td className="py-0.5 pr-2 text-gray-500">{m.mention_role}</td>
+                      <td className="py-0.5 pr-2 font-medium">{m.raw_name}</td>
+                      <td className="py-0.5 pr-2">{statusBadge(m.resolution_status)}</td>
+                      <td className="py-0.5 pr-2">{m.resolved_card_name ?? '—'}</td>
+                      <td className="py-0.5 pr-2">
+                        {m.resolution_confidence != null
+                          ? `${Math.round(m.resolution_confidence * 100)}%`
+                          : '—'}
+                      </td>
+                      <td className="py-0.5 text-gray-400">{m.resolution_method ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {totalPages > 1 && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="rounded border px-2 py-0.5 disabled:opacity-40"
+                >
+                  ‹ Prev
+                </button>
+                <span>Page {page} / {totalPages}</span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="rounded border px-2 py-0.5 disabled:opacity-40"
+                >
+                  Next ›
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Unresolved cards section ──────────────────────────────────────────────────
+
+function UnresolvedCardsSection() {
+  const [items, setItems] = useState<UnresolvedCardItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getUnresolvedCards({ per_page: 20 })
+      .then((data) => { setItems(data.items); setTotal(data.total); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return null;
+  if (items.length === 0) return null;
+
+  return (
+    <section className="mb-8 rounded-lg border border-yellow-200 bg-yellow-50 p-6 shadow-sm">
+      <h2 className="mb-3 text-base font-semibold text-yellow-800">
+        Unresolved / Ambiguous Cards
+        <span className="ml-2 text-sm font-normal text-yellow-700">({total} unique names)</span>
+      </h2>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-yellow-200 text-left text-yellow-700">
+              <th className="pb-1 pr-3">Raw name</th>
+              <th className="pb-1 pr-3">Status</th>
+              <th className="pb-1 pr-3">Mentions</th>
+              <th className="pb-1 pr-3">Logs</th>
+              <th className="pb-1">Candidates</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={`${item.normalized_name}-${item.status}`} className="border-b border-yellow-100 last:border-0">
+                <td className="py-0.5 pr-3 font-medium">{item.raw_name}</td>
+                <td className="py-0.5 pr-3">
+                  <span className={`rounded px-1 text-xs font-medium ${
+                    item.status === 'ambiguous'
+                      ? 'bg-yellow-200 text-yellow-800'
+                      : 'bg-red-100 text-red-700'
+                  }`}>
+                    {item.status}
+                  </span>
+                </td>
+                <td className="py-0.5 pr-3 text-center">{item.mention_count}</td>
+                <td className="py-0.5 pr-3 text-center">{item.log_count}</td>
+                <td className="py-0.5 text-gray-500">
+                  {item.candidate_count > 0
+                    ? `${item.candidate_count} candidate${item.candidate_count > 1 ? 's' : ''}`
+                    : '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
 
 export default function ObservedPlay() {
   const [file, setFile] = useState<File | null>(null);
@@ -351,6 +590,7 @@ export default function ObservedPlay() {
 
   const [viewLogId, setViewLogId] = useState<string | null>(null);
   const [viewEventsLogId, setViewEventsLogId] = useState<string | null>(null);
+  const [viewCardMentionsLogId, setViewCardMentionsLogId] = useState<string | null>(null);
 
   const PER_PAGE = 25;
 
@@ -411,7 +651,7 @@ export default function ObservedPlay() {
     <PageShell title="Observed Play">
       {/* Phase banner */}
       <div className="mb-6 rounded border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
-        Phase 2 active — parser running. Memory ingestion not yet active.
+        Phase 3 active — parser running, card resolution enabled. Memory ingestion not yet active.
       </div>
 
       {/* ── Upload panel ─────────────────────────────────────────────────── */}
@@ -582,6 +822,7 @@ export default function ObservedPlay() {
                   <th className="pb-1 pr-3">Memory</th>
                   <th className="pb-1 pr-3">Events</th>
                   <th className="pb-1 pr-3">Confidence</th>
+                  <th className="pb-1 pr-3">Cards</th>
                   <th className="pb-1 pr-3">Size</th>
                   <th className="pb-1 pr-3">Imported at</th>
                   <th className="pb-1 pr-3">Hash prefix</th>
@@ -596,6 +837,7 @@ export default function ObservedPlay() {
                     <td className="py-1 pr-3"><StatusChip status={log.memory_status} /></td>
                     <td className="py-1 pr-3 text-center text-xs">{(log.event_count ?? 0) || '—'}</td>
                     <td className="py-1 pr-3"><ConfidenceBadge score={log.confidence_score} /></td>
+                    <td className="py-1 pr-3"><CardResolutionBadges log={log} /></td>
                     <td className="py-1 pr-3 text-xs">{fmtBytes(log.file_size_bytes)}</td>
                     <td className="py-1 pr-3 text-xs">{fmtDate(log.created_at)}</td>
                     <td className="py-1 pr-3 font-mono text-xs">{log.sha256_hash.slice(0, 8)}</td>
@@ -612,6 +854,14 @@ export default function ObservedPlay() {
                       >
                         View events
                       </button>
+                      {(log.card_mention_count ?? 0) > 0 && (
+                        <button
+                          onClick={() => setViewCardMentionsLogId(log.id)}
+                          className="rounded border border-purple-300 px-2 py-0.5 text-xs text-purple-700 hover:bg-purple-50"
+                        >
+                          View cards
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -638,6 +888,9 @@ export default function ObservedPlay() {
         )}
       </section>
 
+      {/* ── Unresolved cards section ──────────────────────────────────────── */}
+      <UnresolvedCardsSection />
+
       {viewLogId && (
         <RawLogModal logId={viewLogId} onClose={() => setViewLogId(null)} />
       )}
@@ -646,6 +899,12 @@ export default function ObservedPlay() {
           logId={viewEventsLogId}
           onClose={() => setViewEventsLogId(null)}
           initialDiagnostics={logs.find((l) => l.id === viewEventsLogId)?.parser_diagnostics}
+        />
+      )}
+      {viewCardMentionsLogId && (
+        <CardMentionsModal
+          logId={viewCardMentionsLogId}
+          onClose={() => setViewCardMentionsLogId(null)}
         />
       )}
     </PageShell>

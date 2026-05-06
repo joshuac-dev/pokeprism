@@ -1,4 +1,4 @@
-"""Pydantic schemas for the Observed Play Memory API (Phase 1)."""
+"""Pydantic schemas for the Observed Play Memory API (Phase 1–3)."""
 
 from __future__ import annotations
 
@@ -64,6 +64,12 @@ class LogSummary(BaseModel):
     winner_raw: str | None = None
     win_condition: str | None = None
     parser_diagnostics: ParserDiagnostics | None = None
+    # Phase 3 card resolution counters
+    card_mention_count: int = 0
+    resolved_card_count: int = 0
+    ambiguous_card_count: int = 0
+    unresolved_card_count: int = 0
+    card_resolution_status: str | None = None
 
 
 class LogDetail(LogSummary):
@@ -163,3 +169,98 @@ class ReparseSummary(BaseModel):
     warnings: list[Any]
     errors: list[Any]
     parser_diagnostics: ParserDiagnostics | None = None
+    # Phase 3: resolution summary after reparse
+    card_mention_count: int = 0
+    resolved_card_count: int = 0
+    ambiguous_card_count: int = 0
+    unresolved_card_count: int = 0
+    card_resolution_status: str | None = None
+
+
+# ── Phase 3: Card mention schemas ─────────────────────────────────────────────
+
+class CardCandidateItem(BaseModel):
+    card_def_id: str
+    name: str
+    set_abbrev: str
+    set_number: str
+    image_url: str | None = None
+    confidence: float
+    reason: str
+
+
+class CardMentionItem(BaseModel):
+    id: str
+    observed_play_log_id: str
+    observed_play_event_id: int
+    mention_index: int
+    mention_role: str
+    raw_name: str
+    normalized_name: str
+    resolved_card_def_id: str | None
+    resolved_card_name: str | None
+    resolution_status: str
+    resolution_confidence: float | None
+    resolution_method: str | None
+    candidate_count: int
+    candidates_json: list[Any]
+    source_event_type: str
+    source_field: str
+    source_payload_path: str | None
+    resolver_version: str
+
+
+class PaginatedCardMentions(BaseModel):
+    items: list[CardMentionItem]
+    total: int
+    page: int
+    per_page: int
+
+
+class CardResolutionSummaryResponse(BaseModel):
+    log_id: str
+    card_mention_count: int
+    resolved_card_count: int
+    ambiguous_card_count: int
+    unresolved_card_count: int
+    ignored_card_count: int
+    card_resolution_status: str
+    resolver_version: str
+    errors: list[str]
+
+
+class UnresolvedCardItem(BaseModel):
+    raw_name: str
+    normalized_name: str
+    status: str
+    mention_count: int
+    log_count: int
+    candidate_count: int
+    candidates: list[Any]
+
+
+class UnresolvedCardsResponse(BaseModel):
+    items: list[UnresolvedCardItem]
+    total: int
+    page: int
+    per_page: int
+
+
+class ResolutionRuleCreate(BaseModel):
+    raw_name: str
+    action: str  # resolve | ignore
+    target_card_def_id: str | None = None
+    target_card_name: str | None = None
+    notes: str | None = None
+
+
+class ResolutionRuleResponse(BaseModel):
+    id: str
+    raw_name: str
+    normalized_name: str
+    action: str
+    target_card_def_id: str | None
+    target_card_name: str | None
+    scope: str
+    notes: str | None
+    created_at: str | None

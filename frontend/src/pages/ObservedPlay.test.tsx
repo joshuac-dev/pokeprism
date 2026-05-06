@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -13,6 +13,10 @@ vi.mock('../api/observedPlay', () => ({
   getObservedPlayLog: vi.fn(),
   getObservedPlayLogEvents: vi.fn(),
   reparseObservedPlayLog: vi.fn(),
+  getCardMentions: vi.fn(),
+  getUnresolvedCards: vi.fn(),
+  resolveCards: vi.fn(),
+  createResolutionRule: vi.fn(),
 }));
 
 import {
@@ -22,6 +26,8 @@ import {
   getObservedPlayLog,
   getObservedPlayLogEvents,
   reparseObservedPlayLog,
+  getCardMentions,
+  getUnresolvedCards,
 } from '../api/observedPlay';
 
 const emptyBatches = { items: [], total: 0, page: 1, per_page: 25 };
@@ -104,6 +110,14 @@ beforeEach(() => {
     log_id: 'log-001', parse_status: 'parsed', event_count: 0,
     turn_count: 0, confidence_score: null, parser_version: null,
     warnings: [], errors: [], parser_diagnostics: null,
+    card_mention_count: 0, resolved_card_count: 0, ambiguous_card_count: 0,
+    unresolved_card_count: 0, card_resolution_status: null,
+  });
+  (getCardMentions as ReturnType<typeof vi.fn>).mockResolvedValue({
+    items: [], total: 0, page: 1, per_page: 50,
+  });
+  (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValue({
+    items: [], total: 0, page: 1, per_page: 20,
   });
 });
 
@@ -117,11 +131,11 @@ describe('ObservedPlay page', () => {
     expect(screen.getByRole('button', { name: /upload/i })).toBeInTheDocument();
   });
 
-  it('shows phase 2 active banner', async () => {
+  it('shows phase 3 active banner', async () => {
     setup();
     await waitFor(() => {
       expect(
-        screen.getByText(/phase 2 active/i),
+        screen.getByText(/phase 3 active/i),
       ).toBeInTheDocument();
     });
   });
@@ -683,6 +697,204 @@ describe('ObservedPlay page', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/unknown: 2/i)).toBeInTheDocument();
+    });
+  });
+});
+
+// ── Phase 3: Card resolution tests ───────────────────────────────────────────
+
+describe('Phase 3 card resolution', () => {
+  it('shows card resolution badges when log has card mentions', async () => {
+    const logWithCards = {
+      ...sampleLog,
+      card_mention_count: 10,
+      resolved_card_count: 7,
+      ambiguous_card_count: 2,
+      unresolved_card_count: 1,
+      card_resolution_status: 'has_unresolved',
+    };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [logWithCards],
+      total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText('7✓')).toBeInTheDocument();
+      expect(screen.getByText('2?')).toBeInTheDocument();
+      expect(screen.getByText('1✗')).toBeInTheDocument();
+    });
+  });
+
+  it('shows dash for logs with no card mentions', async () => {
+    const logNoCards = {
+      ...sampleLog,
+      card_mention_count: 0,
+      resolved_card_count: 0,
+      ambiguous_card_count: 0,
+      unresolved_card_count: 0,
+      card_resolution_status: 'not_resolved',
+    };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [logNoCards],
+      total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => {
+      // The dash from CardResolutionBadges
+      expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+    });
+  });
+
+  it('shows View cards button only when card_mention_count > 0', async () => {
+    const logWithCards = {
+      ...sampleLog,
+      card_mention_count: 5,
+      resolved_card_count: 5,
+      ambiguous_card_count: 0,
+      unresolved_card_count: 0,
+      card_resolution_status: 'resolved',
+    };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [logWithCards],
+      total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /view cards/i })).toBeInTheDocument();
+    });
+  });
+
+  it('does not show View cards button when no mentions', async () => {
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [sampleLog],
+      total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => screen.getByText('Raw Logs'));
+    expect(screen.queryByRole('button', { name: /view cards/i })).not.toBeInTheDocument();
+  });
+
+  it('opens card mentions modal when View cards is clicked', async () => {
+    const logWithCards = {
+      ...sampleLog,
+      card_mention_count: 3,
+      resolved_card_count: 2,
+      ambiguous_card_count: 1,
+      unresolved_card_count: 0,
+      card_resolution_status: 'has_ambiguous',
+    };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [logWithCards],
+      total: 1, page: 1, per_page: 25,
+    });
+    (getCardMentions as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [
+        {
+          id: 'cm-001', observed_play_log_id: 'log-001', observed_play_event_id: 1,
+          mention_index: 0, mention_role: 'trainer_card',
+          raw_name: 'Buddy-Buddy Poffin', normalized_name: 'buddy-buddy poffin',
+          resolved_card_def_id: 'sv04-223', resolved_card_name: 'Buddy-Buddy Poffin',
+          resolution_status: 'resolved', resolution_confidence: 0.98,
+          resolution_method: 'exact_name_unique', candidate_count: 1,
+          candidates_json: [], source_event_type: 'play_item',
+          source_field: 'card_name_raw', source_payload_path: null,
+          resolver_version: '1.0',
+        },
+      ],
+      total: 1, page: 1, per_page: 50,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /view cards/i }));
+    await userEvent.click(screen.getByRole('button', { name: /view cards/i }));
+
+    await waitFor(() => {
+      const dialog = screen.getByRole('dialog', { name: /card mentions/i });
+      expect(dialog).toBeInTheDocument();
+      expect(within(dialog).getAllByText('Buddy-Buddy Poffin').length).toBeGreaterThan(0);
+    });
+  });
+
+  it('card mentions modal renders no-mentions message when empty', async () => {
+    const logWithCards = {
+      ...sampleLog,
+      card_mention_count: 5,
+    };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [logWithCards],
+      total: 1, page: 1, per_page: 25,
+    });
+    (getCardMentions as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [], total: 0, page: 1, per_page: 50,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /view cards/i }));
+    await userEvent.click(screen.getByRole('button', { name: /view cards/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/no card mentions found/i)).toBeInTheDocument();
+    });
+  });
+
+  it('card mentions modal can be closed with close button', async () => {
+    const logWithCards = { ...sampleLog, card_mention_count: 3 };
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [logWithCards], total: 1, page: 1, per_page: 25,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /view cards/i }));
+    await userEvent.click(screen.getByRole('button', { name: /view cards/i }));
+    await waitFor(() => screen.getByRole('dialog', { name: /card mentions/i }));
+
+    await userEvent.click(screen.getByRole('button', { name: /close/i }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /card mentions/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('unresolved cards section does not render when list is empty', async () => {
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [], total: 0, page: 1, per_page: 20,
+    });
+
+    setup();
+    await waitFor(() => screen.getByText('Import History'));
+    expect(screen.queryByText(/unresolved.*cards/i)).not.toBeInTheDocument();
+  });
+
+  it('unresolved cards section renders when there are unresolved cards', async () => {
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [
+        {
+          raw_name: 'Spiky Energy',
+          normalized_name: 'spiky energy',
+          status: 'unresolved',
+          mention_count: 3,
+          log_count: 1,
+          candidate_count: 0,
+          candidates: [],
+        },
+      ],
+      total: 1, page: 1, per_page: 20,
+    });
+
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText(/unresolved.*ambiguous.*cards/i)).toBeInTheDocument();
+      expect(screen.getByText('Spiky Energy')).toBeInTheDocument();
+    });
+  });
+
+  it('phase banner reflects Phase 3', async () => {
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText(/phase 3 active/i)).toBeInTheDocument();
     });
   });
 });

@@ -103,6 +103,12 @@ def _make_log_model(
     log.warnings_json = []
     log.metadata_json = {}
     log.updated_at = None
+    log.recognized_card_count = 0
+    log.ambiguous_card_count = 0
+    log.unresolved_card_count = 0
+    log.card_mention_count = 0
+    log.card_resolution_status = None
+    log.resolver_version = None
     return log
 
 
@@ -710,10 +716,25 @@ class TestReparseLog:
 
         from app.api.observed_play import get_db
         client.app.fastapi_app.dependency_overrides[get_db] = override_db
-        try:
-            resp = client.post(f"/api/observed-play/logs/{log.id}/reparse")
-        finally:
-            client.app.fastapi_app.dependency_overrides.clear()
+        with patch(
+            "app.api.observed_play.extract_and_resolve_mentions_for_log",
+            new_callable=AsyncMock,
+        ) as mock_resolve:
+            mock_resolve.return_value = MagicMock(
+                log_id=str(log.id),
+                card_mention_count=0,
+                resolved_card_count=0,
+                ambiguous_card_count=0,
+                unresolved_card_count=0,
+                ignored_card_count=0,
+                card_resolution_status="not_resolved",
+                resolver_version="1.0",
+                errors=[],
+            )
+            try:
+                resp = client.post(f"/api/observed-play/logs/{log.id}/reparse")
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
 
         assert resp.status_code == 200
         data = resp.json()
@@ -760,10 +781,25 @@ class TestParserDiagnosticsInApi:
 
         from app.api.observed_play import get_db
         client.app.fastapi_app.dependency_overrides[get_db] = override_db
-        try:
-            resp = client.post(f"/api/observed-play/logs/{log.id}/reparse")
-        finally:
-            client.app.fastapi_app.dependency_overrides.clear()
+        with patch(
+            "app.api.observed_play.extract_and_resolve_mentions_for_log",
+            new_callable=AsyncMock,
+        ) as mock_resolve:
+            mock_resolve.return_value = MagicMock(
+                log_id=str(log.id),
+                card_mention_count=0,
+                resolved_card_count=0,
+                ambiguous_card_count=0,
+                unresolved_card_count=0,
+                ignored_card_count=0,
+                card_resolution_status="not_resolved",
+                resolver_version="1.0",
+                errors=[],
+            )
+            try:
+                resp = client.post(f"/api/observed-play/logs/{log.id}/reparse")
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
 
         assert resp.status_code == 200
         # Diagnostics are stored in the log model's metadata_json during reparse
@@ -787,10 +823,25 @@ class TestParserDiagnosticsInApi:
 
         from app.api.observed_play import get_db
         client.app.fastapi_app.dependency_overrides[get_db] = override_db
-        try:
-            resp = client.post(f"/api/observed-play/logs/{log.id}/reparse")
-        finally:
-            client.app.fastapi_app.dependency_overrides.clear()
+        with patch(
+            "app.api.observed_play.extract_and_resolve_mentions_for_log",
+            new_callable=AsyncMock,
+        ) as mock_resolve:
+            mock_resolve.return_value = MagicMock(
+                log_id=str(log.id),
+                card_mention_count=0,
+                resolved_card_count=0,
+                ambiguous_card_count=0,
+                unresolved_card_count=0,
+                ignored_card_count=0,
+                card_resolution_status="not_resolved",
+                resolver_version="1.0",
+                errors=[],
+            )
+            try:
+                resp = client.post(f"/api/observed-play/logs/{log.id}/reparse")
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
 
         assert resp.status_code == 200
         diag = log.metadata_json.get("parser_diagnostics", {})
@@ -877,10 +928,25 @@ class TestParserDiagnosticsInApi:
 
         from app.api.observed_play import get_db
         client.app.fastapi_app.dependency_overrides[get_db] = override_db
-        try:
-            resp = client.post(f"/api/observed-play/logs/{log.id}/reparse")
-        finally:
-            client.app.fastapi_app.dependency_overrides.clear()
+        with patch(
+            "app.api.observed_play.extract_and_resolve_mentions_for_log",
+            new_callable=AsyncMock,
+        ) as mock_resolve:
+            mock_resolve.return_value = MagicMock(
+                log_id=str(log.id),
+                card_mention_count=0,
+                resolved_card_count=0,
+                ambiguous_card_count=0,
+                unresolved_card_count=0,
+                ignored_card_count=0,
+                card_resolution_status="not_resolved",
+                resolver_version="1.0",
+                errors=[],
+            )
+            try:
+                resp = client.post(f"/api/observed-play/logs/{log.id}/reparse")
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
 
         assert resp.status_code == 200
         data = resp.json()

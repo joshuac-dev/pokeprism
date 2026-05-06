@@ -1,4 +1,4 @@
-"""Observed Play Memory API — Phase 1: upload, batch listing, log listing."""
+"""Observed Play Memory API — Phase 1–3: upload, batch listing, log listing, card resolution."""
 
 from __future__ import annotations
 
@@ -9,8 +9,16 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import ObservedPlayEvent, ObservedPlayImportBatch, ObservedPlayLog
+from app.db.models import (
+    ObservedCardMention,
+    ObservedCardResolutionRule,
+    ObservedPlayEvent,
+    ObservedPlayImportBatch,
+    ObservedPlayLog,
+)
 from app.db.session import AsyncSessionLocal
+from app.observed_play.card_mentions import normalize_card_name
+from app.observed_play.card_resolution import RESOLVER_VERSION, extract_and_resolve_mentions_for_log
 from app.observed_play.constants import PARSER_VERSION
 from app.observed_play.importer import run_import
 from app.observed_play.parser import parse_log
@@ -18,15 +26,22 @@ from app.observed_play.schemas import (
     BatchDetail,
     BatchImportResponse,
     BatchSummary,
+    CardMentionItem,
+    CardResolutionSummaryResponse,
     EventSummary,
     LogDetail,
     LogImportResult,
     LogSummary,
     PaginatedBatches,
+    PaginatedCardMentions,
     PaginatedEvents,
     PaginatedLogs,
     ParserDiagnostics,
     ReparseSummary,
+    ResolutionRuleCreate,
+    ResolutionRuleResponse,
+    UnresolvedCardItem,
+    UnresolvedCardsResponse,
 )
 from app.observed_play.storage import SUPPORTED_EXTENSIONS
 
@@ -89,6 +104,11 @@ def _log_to_summary(log: ObservedPlayLog) -> LogSummary:
         winner_raw=log.winner_raw,
         win_condition=log.win_condition,
         parser_diagnostics=diag,
+        card_mention_count=getattr(log, "card_mention_count", None) or 0,
+        resolved_card_count=getattr(log, "recognized_card_count", None) or 0,
+        ambiguous_card_count=getattr(log, "ambiguous_card_count", None) or 0,
+        unresolved_card_count=getattr(log, "unresolved_card_count", None) or 0,
+        card_resolution_status=getattr(log, "card_resolution_status", None),
     )
 
 
@@ -431,6 +451,15 @@ async def reparse_log(
     await db.commit()
     await db.refresh(log)
 
+    # Phase 3: run card mention extraction/resolution after reparse
+    resolution_summary = None
+    try:
+        resolution_summary = await extract_and_resolve_mentions_for_log(db, log.id)
+        await db.commit()
+        await db.refresh(log)
+    except Exception as exc:
+        logger.error("Card resolution failed for log %s: %s", log_id, exc)
+
     diag_raw = (log.metadata_json or {}).get("parser_diagnostics")
     diag: Optional[ParserDiagnostics] = None
     if diag_raw and isinstance(diag_raw, dict):
@@ -449,4 +478,205 @@ async def reparse_log(
         warnings=log.warnings_json or [],
         errors=log.errors_json or [],
         parser_diagnostics=diag,
+        card_mention_count=getattr(log, "card_mention_count", None) or 0,
+        resolved_card_count=getattr(log, "recognized_card_count", None) or 0,
+        ambiguous_card_count=getattr(log, "ambiguous_card_count", None) or 0,
+        unresolved_card_count=getattr(log, "unresolved_card_count", None) or 0,
+        card_resolution_status=getattr(log, "card_resolution_status", None),
+    )
+
+
+# ── Card mentions ─────────────────────────────────────────────────────────────
+
+@router.get("/logs/{log_id}/card-mentions")
+async def get_card_mentions(
+    log_id: str,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+    resolution_status: Optional[str] = Query(None),
+    mention_role: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+) -> PaginatedCardMentions:
+    """List card mentions for a log, with optional filters."""
+    log_result = await db.execute(
+        select(ObservedPlayLog).where(ObservedPlayLog.id == log_id)
+    )
+    if log_result.scalars().first() is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+
+    q = select(ObservedCardMention).where(
+        ObservedCardMention.observed_play_log_id == log_id
+    )
+    if resolution_status:
+        q = q.where(ObservedCardMention.resolution_status == resolution_status)
+    if mention_role:
+        q = q.where(ObservedCardMention.mention_role == mention_role)
+    if search:
+        q = q.where(ObservedCardMention.normalized_name.ilike(f"%{search.lower()}%"))
+    q = q.order_by(ObservedCardMention.observed_play_event_id, ObservedCardMention.mention_index)
+
+    total_result = await db.execute(
+        select(func.count()).select_from(q.subquery())
+    )
+    total = total_result.scalar() or 0
+
+    rows_result = await db.execute(q.offset((page - 1) * per_page).limit(per_page))
+    rows = rows_result.scalars().all()
+
+    items = [
+        CardMentionItem(
+            id=str(row.id),
+            observed_play_log_id=str(row.observed_play_log_id),
+            observed_play_event_id=row.observed_play_event_id,
+            mention_index=row.mention_index,
+            mention_role=row.mention_role,
+            raw_name=row.raw_name,
+            normalized_name=row.normalized_name,
+            resolved_card_def_id=row.resolved_card_def_id,
+            resolved_card_name=row.resolved_card_name,
+            resolution_status=row.resolution_status,
+            resolution_confidence=row.resolution_confidence,
+            resolution_method=row.resolution_method,
+            candidate_count=row.candidate_count or 0,
+            candidates_json=row.candidates_json or [],
+            source_event_type=row.source_event_type,
+            source_field=row.source_field,
+            source_payload_path=row.source_payload_path,
+            resolver_version=row.resolver_version or RESOLVER_VERSION,
+        )
+        for row in rows
+    ]
+    return PaginatedCardMentions(items=items, total=total, page=page, per_page=per_page)
+
+
+# ── Resolve cards for a log ───────────────────────────────────────────────────
+
+@router.post("/logs/{log_id}/resolve-cards")
+async def resolve_cards(
+    log_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> CardResolutionSummaryResponse:
+    """Re-extract and re-resolve all card mentions for a log."""
+    log_result = await db.execute(
+        select(ObservedPlayLog).where(ObservedPlayLog.id == log_id)
+    )
+    if log_result.scalars().first() is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+
+    summary = await extract_and_resolve_mentions_for_log(db, log_id)
+    await db.commit()
+
+    return CardResolutionSummaryResponse(
+        log_id=summary.log_id,
+        card_mention_count=summary.card_mention_count,
+        resolved_card_count=summary.resolved_card_count,
+        ambiguous_card_count=summary.ambiguous_card_count,
+        unresolved_card_count=summary.unresolved_card_count,
+        ignored_card_count=summary.ignored_card_count,
+        card_resolution_status=summary.card_resolution_status,
+        resolver_version=summary.resolver_version,
+        errors=summary.errors,
+    )
+
+
+# ── Unresolved / ambiguous card review ───────────────────────────────────────
+
+@router.get("/unresolved-cards")
+async def get_unresolved_cards(
+    status: Optional[str] = Query(None, description="unresolved | ambiguous"),
+    search: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+) -> UnresolvedCardsResponse:
+    """Return grouped unresolved/ambiguous card mentions across all logs."""
+    from sqlalchemy import Integer, cast, literal_column, text
+
+    q = (
+        select(
+            ObservedCardMention.normalized_name,
+            ObservedCardMention.raw_name,
+            ObservedCardMention.resolution_status,
+            ObservedCardMention.candidate_count,
+            ObservedCardMention.candidates_json,
+            func.count(ObservedCardMention.id).label("mention_count"),
+            func.count(func.distinct(ObservedCardMention.observed_play_log_id)).label("log_count"),
+        )
+        .where(
+            ObservedCardMention.resolution_status.in_(["unresolved", "ambiguous"])
+        )
+        .group_by(
+            ObservedCardMention.normalized_name,
+            ObservedCardMention.raw_name,
+            ObservedCardMention.resolution_status,
+            ObservedCardMention.candidate_count,
+            ObservedCardMention.candidates_json,
+        )
+        .order_by(func.count(ObservedCardMention.id).desc())
+    )
+    if status:
+        q = q.where(ObservedCardMention.resolution_status == status)
+    if search:
+        q = q.where(ObservedCardMention.normalized_name.ilike(f"%{search.lower()}%"))
+
+    total_q = select(func.count()).select_from(q.subquery())
+    total = (await db.execute(total_q)).scalar() or 0
+
+    rows_result = await db.execute(q.offset((page - 1) * per_page).limit(per_page))
+    rows = rows_result.all()
+
+    items = [
+        UnresolvedCardItem(
+            raw_name=row.raw_name,
+            normalized_name=row.normalized_name,
+            status=row.resolution_status,
+            mention_count=row.mention_count,
+            log_count=row.log_count,
+            candidate_count=row.candidate_count or 0,
+            candidates=row.candidates_json or [],
+        )
+        for row in rows
+    ]
+    return UnresolvedCardsResponse(items=items, total=total, page=page, per_page=per_page)
+
+
+# ── Resolution rules ──────────────────────────────────────────────────────────
+
+@router.post("/resolution-rules", status_code=201)
+async def create_resolution_rule(
+    body: ResolutionRuleCreate,
+    db: AsyncSession = Depends(get_db),
+) -> ResolutionRuleResponse:
+    """Create a manual resolution/ignore rule for a raw card name."""
+    if body.action not in ("resolve", "ignore"):
+        raise HTTPException(status_code=422, detail="action must be 'resolve' or 'ignore'")
+    if body.action == "resolve" and not body.target_card_def_id:
+        raise HTTPException(
+            status_code=422,
+            detail="target_card_def_id is required for action='resolve'",
+        )
+    norm = normalize_card_name(body.raw_name)
+    rule = ObservedCardResolutionRule(
+        raw_name=body.raw_name,
+        normalized_name=norm,
+        target_card_def_id=body.target_card_def_id,
+        target_card_name=body.target_card_name,
+        action=body.action,
+        scope="global",
+        notes=body.notes,
+    )
+    db.add(rule)
+    await db.commit()
+    await db.refresh(rule)
+    return ResolutionRuleResponse(
+        id=str(rule.id),
+        raw_name=rule.raw_name,
+        normalized_name=rule.normalized_name,
+        action=rule.action,
+        target_card_def_id=rule.target_card_def_id,
+        target_card_name=rule.target_card_name,
+        scope=rule.scope,
+        notes=rule.notes,
+        created_at=rule.created_at.isoformat() if rule.created_at else None,
     )
