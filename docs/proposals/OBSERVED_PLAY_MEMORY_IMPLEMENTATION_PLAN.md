@@ -1813,5 +1813,60 @@ into whether a blocker was a real unresolved card, a parser artifact, or somethi
 
 ---
 
+## 22.8 Phase 3.2 — Manual Card Resolution Rule UI
+
+**Status:** COMPLETE (session 31).
+
+**Problem:** Phase 3 added the backend rule API and the `UnresolvedCardsSection` UI table, but there
+was no workflow to inspect candidate cards, choose the correct one, create a manual rule, or trigger
+resolution rerun. Users could see unresolved/ambiguous names but couldn't act on them.
+
+**Changes:**
+
+Backend:
+- New `SampleMentionItem` Pydantic model in `schemas.py` (8 fields: `log_id`, `filename`, `event_id`,
+  `turn_number`, `player_alias`, `mention_role`, `source_event_type`, `raw_line`).
+- `UnresolvedCardItem` extended with `sample_mentions: list[SampleMentionItem]` and
+  `affected_log_ids: list[str]` (both default empty).
+- `get_unresolved_cards`: after main grouped query, a second joined query fetches sample mentions
+  (≤5 per group) and collects affected log IDs (≤25 per group) in Python — single query, no N+1.
+- `create_resolution_rule`: added validation — empty `raw_name` → 422; unknown `action` → 422;
+  `resolve` without `target_card_def_id` → 422; nonexistent `target_card_def_id` → 422 (Card table
+  lookup); duplicate normalized name → 409 with clear message.
+- `Card` model imported in `api/observed_play.py` for target card existence check.
+
+Frontend:
+- `SampleMentionItem` interface added to `types/observedPlay.ts`; `UnresolvedCardItem` extended
+  with optional `sample_mentions` and `affected_log_ids`.
+- New `ResolutionRuleModal` component in `ObservedPlay.tsx`:
+  - Summary panel (raw name, normalized, status, mention count, log count).
+  - Candidates table (thumbnail via `normalizeTcgdexImageUrl`, name, set, number, card_def_id,
+    reason, Select button). Clicking thumbnail shows inline lightbox.
+  - Sample mentions table (role, event type, turn, player, source line).
+  - "Ignore this name" button with confirmation dialog.
+  - After successful rule creation: reruns `resolveCards()` for all affected log IDs; shows
+    success message with rerun count; modal stays open until user clicks Close (triggering refresh).
+  - API errors shown inline.
+- `UnresolvedCardsSection`: added `Action` column and `Review` button per row; clicking opens
+  `ResolutionRuleModal`; closing after success triggers refresh of the section and raw logs table.
+- New imports in `ObservedPlay.tsx`: `createResolutionRule`, `resolveCards`, `CardCandidateItem`,
+  `ResolutionRuleCreate`, `normalizeTcgdexImageUrl`.
+
+**Acceptance criteria met:**
+1. Review button visible for each unresolved/ambiguous row.
+2. Clicking Review opens resolution modal with raw name, candidates, and sample mentions.
+3. Selecting a candidate calls `createResolutionRule` with `action=resolve`.
+4. Ignore calls `createResolutionRule` with `action=ignore` after confirmation.
+5. After rule creation, `resolveCards` called for affected logs.
+6. Success message shown; modal stays open for user to dismiss.
+7. API error shown inline in modal.
+8. Empty candidates state shows fallback message.
+9. 11 new backend tests (935 total, up from 924).
+10. 10 new frontend tests (198 total, up from 188); build passes.
+11. No Coach/AI, pgvector, Neo4j, simulator match_events, card-performance integration added.
+12. No DB migration required.
+
+---
+
 *End of Observed Play Memory Implementation Plan.*
 *Feature branch: `feature/observed-play-memory`. No production code in this document.*

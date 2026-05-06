@@ -232,6 +232,17 @@ class CardResolutionSummaryResponse(BaseModel):
     errors: list[str]
 
 
+class SampleMentionItem(BaseModel):
+    log_id: str
+    filename: str | None = None
+    event_id: int
+    turn_number: int | None = None
+    player_alias: str | None = None
+    mention_role: str
+    source_event_type: str | None = None
+    raw_line: str | None = None
+
+
 class UnresolvedCardItem(BaseModel):
     raw_name: str
     normalized_name: str
@@ -240,6 +251,8 @@ class UnresolvedCardItem(BaseModel):
     log_count: int
     candidate_count: int
     candidates: list[Any]
+    sample_mentions: list[SampleMentionItem] = Field(default_factory=list)
+    affected_log_ids: list[str] = Field(default_factory=list)
 
 
 class UnresolvedCardsResponse(BaseModel):

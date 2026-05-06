@@ -1282,3 +1282,253 @@ describe('Phase 3 card resolution', () => {
     });
   });
 });
+
+
+// ── Phase 3.2: Resolution rule UI tests ──────────────────────────────────────
+
+import { createResolutionRule, resolveCards } from '../api/observedPlay';
+
+const sampleUnresolvedItem = {
+  raw_name: 'Dragapult ex',
+  normalized_name: 'dragapult ex',
+  status: 'ambiguous' as const,
+  mention_count: 8,
+  log_count: 2,
+  candidate_count: 1,
+  candidates: [
+    {
+      card_def_id: 'sv08-164',
+      name: 'Dragapult ex',
+      set_abbrev: 'sv08',
+      set_number: '164',
+      image_url: null,
+      confidence: 1.0,
+      reason: 'exact normalized name',
+    },
+  ],
+  sample_mentions: [
+    {
+      log_id: 'log-001',
+      filename: 'game.md',
+      event_id: 100,
+      turn_number: 3,
+      player_alias: 'player_1',
+      mention_role: 'actor_card',
+      source_event_type: 'attack_used',
+      raw_line: 'Dragapult ex used Phantom Dive',
+    },
+  ],
+  affected_log_ids: ['log-001'],
+};
+
+describe('Phase 3.2 — Unresolved/Ambiguous Cards section', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (listObservedPlayBatches as ReturnType<typeof vi.fn>).mockResolvedValue(emptyBatches);
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue(emptyLogs);
+    (getObservedPlayLogEvents as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [], total: 0, page: 1, per_page: 50,
+    });
+    (reparseObservedPlayLog as ReturnType<typeof vi.fn>).mockResolvedValue({
+      log_id: 'log-001', parse_status: 'parsed', event_count: 0,
+      turn_count: 0, confidence_score: null, parser_version: null,
+      warnings: [], errors: [], parser_diagnostics: null,
+      card_mention_count: 0, resolved_card_count: 0, ambiguous_card_count: 0,
+      unresolved_card_count: 0, card_resolution_status: null,
+    });
+    (getCardMentions as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [], total: 0, page: 1, per_page: 50,
+    });
+    (previewMemoryIngestion as ReturnType<typeof vi.fn>).mockResolvedValue({
+      eligible: true, eligibility_status: 'eligible', reasons: [],
+      estimated_memory_item_count: 5, event_type_counts: {}, sample_items: [],
+    });
+    (ingestMemory as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ingestion_id: 'ing-001', log_id: 'log-001', status: 'completed',
+      eligibility_status: 'eligible', reasons: [], memory_item_count: 5, ingestion_version: '1.0',
+    });
+    (getMemoryItems as ReturnType<typeof vi.fn>).mockResolvedValue({ items: [], total: 0, page: 1, per_page: 25 });
+    (createResolutionRule as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'rule-001', raw_name: 'Dragapult ex', normalized_name: 'dragapult ex',
+      action: 'resolve', target_card_def_id: 'sv08-164', target_card_name: 'Dragapult ex',
+      scope: 'global', notes: null, created_at: null,
+    });
+    (resolveCards as ReturnType<typeof vi.fn>).mockResolvedValue({
+      log_id: 'log-001', resolved_count: 1, ambiguous_count: 0, unresolved_count: 0,
+    });
+  });
+
+  it('renders Review action button for each unresolved item', async () => {
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [sampleUnresolvedItem], total: 1, page: 1, per_page: 20,
+    });
+
+    setup();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /review dragapult ex/i })).toBeInTheDocument();
+    });
+  });
+
+  it('clicking Review opens resolution modal', async () => {
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [sampleUnresolvedItem], total: 1, page: 1, per_page: 20,
+    });
+
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review dragapult ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review dragapult ex/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/resolve card mention/i)).toBeInTheDocument();
+    });
+  });
+
+  it('modal renders raw name and candidate list', async () => {
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [sampleUnresolvedItem], total: 1, page: 1, per_page: 20,
+    });
+
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review dragapult ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review dragapult ex/i }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Dragapult ex').length).toBeGreaterThan(0);
+      expect(screen.getByText('sv08-164')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^select$/i })).toBeInTheDocument();
+    });
+  });
+
+  it('modal renders sample mentions table', async () => {
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [sampleUnresolvedItem], total: 1, page: 1, per_page: 20,
+    });
+
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review dragapult ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review dragapult ex/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/sample mentions/i)).toBeInTheDocument();
+      expect(screen.getByText('Dragapult ex used Phantom Dive')).toBeInTheDocument();
+      expect(screen.getByText('actor_card')).toBeInTheDocument();
+    });
+  });
+
+  it('selecting a candidate calls createResolutionRule with action=resolve', async () => {
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      items: [sampleUnresolvedItem], total: 1, page: 1, per_page: 20,
+    }).mockResolvedValue({ items: [], total: 0, page: 1, per_page: 20 });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review dragapult ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review dragapult ex/i }));
+    await waitFor(() => screen.getByRole('button', { name: /^select$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
+
+    await waitFor(() => {
+      expect(createResolutionRule).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'resolve', target_card_def_id: 'sv08-164' })
+      );
+    });
+  });
+
+  it('after successful resolve, reruns resolution for affected logs', async () => {
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      items: [sampleUnresolvedItem], total: 1, page: 1, per_page: 20,
+    }).mockResolvedValue({ items: [], total: 0, page: 1, per_page: 20 });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review dragapult ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review dragapult ex/i }));
+    await waitFor(() => screen.getByRole('button', { name: /^select$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
+
+    await waitFor(() => {
+      expect(resolveCards).toHaveBeenCalledWith('log-001');
+    });
+  });
+
+  it('after successful resolve, shows success message', async () => {
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [sampleUnresolvedItem], total: 1, page: 1, per_page: 20,
+    });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review dragapult ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review dragapult ex/i }));
+    await waitFor(() => screen.getByRole('button', { name: /^select$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/rule created/i)).toBeInTheDocument();
+    });
+  });
+
+  it('ignore action calls createResolutionRule with action=ignore', async () => {
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      items: [sampleUnresolvedItem], total: 1, page: 1, per_page: 20,
+    }).mockResolvedValue({ items: [], total: 0, page: 1, per_page: 20 });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review dragapult ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review dragapult ex/i }));
+    await waitFor(() => screen.getByRole('button', { name: /ignore this name/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ignore this name/i }));
+
+    await waitFor(() => {
+      expect(createResolutionRule).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'ignore' })
+      );
+    });
+  });
+
+  it('API error in rule creation shows error message in modal', async () => {
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [sampleUnresolvedItem], total: 1, page: 1, per_page: 20,
+    });
+    (createResolutionRule as ReturnType<typeof vi.fn>).mockRejectedValue({
+      response: { data: { detail: 'A rule already exists for this name' } },
+    });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review dragapult ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review dragapult ex/i }));
+    await waitFor(() => screen.getByRole('button', { name: /^select$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/a rule already exists/i)).toBeInTheDocument();
+    });
+  });
+
+  it('empty candidates state renders fallback message', async () => {
+    const noCandsItem = { ...sampleUnresolvedItem, candidates: [], candidate_count: 0 };
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [noCandsItem], total: 1, page: 1, per_page: 20,
+    });
+
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review dragapult ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review dragapult ex/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/no candidates available/i)).toBeInTheDocument();
+    });
+  });
+});

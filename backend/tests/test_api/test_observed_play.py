@@ -1449,3 +1449,382 @@ class TestMemoryItems:
         item = resp.json()["items"][0]
         assert "memory_item_count" in item
         assert item["memory_item_count"] == 7
+
+
+# ── Phase 3.2: Resolution rule and unresolved-card tests ──────────────────────
+
+def _make_rule_model(
+    rule_id="rule-001",
+    raw_name="Dragapult ex",
+    normalized_name="dragapult ex",
+    action="resolve",
+    target_card_def_id="sv08-164",
+    target_card_name="Dragapult ex",
+    scope="global",
+    notes=None,
+):
+    r = MagicMock()
+    r.id = rule_id
+    r.raw_name = raw_name
+    r.normalized_name = normalized_name
+    r.action = action
+    r.target_card_def_id = target_card_def_id
+    r.target_card_name = target_card_name
+    r.scope = scope
+    r.notes = notes
+    r.created_at = None
+    return r
+
+
+def _make_unresolved_mention_row(
+    normalized_name="dragapult ex",
+    raw_name="Dragapult ex",
+    resolution_status="ambiguous",
+    candidate_count=2,
+    candidates_json=None,
+    mention_count=5,
+    log_count=2,
+):
+    r = MagicMock()
+    r.normalized_name = normalized_name
+    r.raw_name = raw_name
+    r.resolution_status = resolution_status
+    r.candidate_count = candidate_count
+    r.candidates_json = candidates_json or [
+        {
+            "card_id": "c1",
+            "card_def_id": "sv08-164",
+            "name": "Dragapult ex",
+            "set_id": "sv08",
+            "number": "164",
+            "image_url": "https://cdn.example.com/sv08-164.png",
+            "reason": "exact normalized name",
+        }
+    ]
+    r.mention_count = mention_count
+    r.log_count = log_count
+    return r
+
+
+class TestResolutionRules:
+    """Tests for POST /api/observed-play/resolution-rules (Phase 3.2)."""
+
+    def test_resolve_rule_success(self, client):
+        """Create a resolve rule returns 201 with rule data."""
+        card_result = MagicMock()
+        card_result.scalar.return_value = "sv08-164"
+        existing_result = MagicMock()
+        existing_result.scalars.return_value.first.return_value = None
+        rule = _make_rule_model()
+
+        async def refresh_side(obj):
+            obj.id = rule.id
+            obj.raw_name = rule.raw_name
+            obj.normalized_name = rule.normalized_name
+            obj.action = rule.action
+            obj.target_card_def_id = rule.target_card_def_id
+            obj.target_card_name = rule.target_card_name
+            obj.scope = rule.scope
+            obj.notes = rule.notes
+            obj.created_at = None
+
+        from app.api.observed_play import get_db
+
+        async def override_db():
+            session = AsyncMock()
+            session.add = MagicMock()
+            session.commit = AsyncMock()
+            session.refresh = AsyncMock(side_effect=refresh_side)
+            session.execute = AsyncMock(side_effect=[card_result, existing_result])
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post(
+                "/api/observed-play/resolution-rules",
+                json={
+                    "raw_name": "Dragapult ex",
+                    "action": "resolve",
+                    "target_card_def_id": "sv08-164",
+                    "target_card_name": "Dragapult ex",
+                },
+            )
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["action"] == "resolve"
+        assert data["target_card_def_id"] == "sv08-164"
+
+    def test_ignore_rule_success(self, client):
+        """Create an ignore rule succeeds without target_card_def_id."""
+        existing_result = MagicMock()
+        existing_result.scalars.return_value.first.return_value = None
+        rule = _make_rule_model(action="ignore", target_card_def_id=None, target_card_name=None)
+
+        async def refresh_side(obj):
+            obj.id = rule.id
+            obj.raw_name = rule.raw_name
+            obj.normalized_name = rule.normalized_name
+            obj.action = "ignore"
+            obj.target_card_def_id = None
+            obj.target_card_name = None
+            obj.scope = "global"
+            obj.notes = None
+            obj.created_at = None
+
+        from app.api.observed_play import get_db
+
+        async def override_db():
+            session = AsyncMock()
+            session.add = MagicMock()
+            session.commit = AsyncMock()
+            session.refresh = AsyncMock(side_effect=refresh_side)
+            session.execute = AsyncMock(side_effect=[existing_result])
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post(
+                "/api/observed-play/resolution-rules",
+                json={"raw_name": "it", "action": "ignore"},
+            )
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["action"] == "ignore"
+        assert data["target_card_def_id"] is None
+
+    def test_resolve_without_target_returns_422(self, client):
+        """resolve action without target_card_def_id returns 422."""
+        resp = client.post(
+            "/api/observed-play/resolution-rules",
+            json={"raw_name": "Dragapult ex", "action": "resolve"},
+        )
+        assert resp.status_code == 422
+
+    def test_invalid_action_returns_422(self, client):
+        """Unknown action string returns 422."""
+        resp = client.post(
+            "/api/observed-play/resolution-rules",
+            json={"raw_name": "Dragapult ex", "action": "fixup"},
+        )
+        assert resp.status_code == 422
+
+    def test_nonexistent_target_card_returns_422(self, client):
+        """Nonexistent target_card_def_id returns 422, not 500."""
+        card_result = MagicMock()
+        card_result.scalar.return_value = None
+        existing_result = MagicMock()
+        existing_result.scalars.return_value.first.return_value = None
+
+        from app.api.observed_play import get_db
+
+        async def override_db():
+            session = AsyncMock()
+            session.add = MagicMock()
+            session.commit = AsyncMock()
+            session.refresh = AsyncMock()
+            session.execute = AsyncMock(side_effect=[card_result, existing_result])
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post(
+                "/api/observed-play/resolution-rules",
+                json={
+                    "raw_name": "Fake Card",
+                    "action": "resolve",
+                    "target_card_def_id": "xx00-000",
+                },
+            )
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 422
+        assert "not found" in resp.json()["detail"]
+
+    def test_duplicate_rule_returns_409(self, client):
+        """Duplicate normalized name returns 409."""
+        card_result = MagicMock()
+        card_result.scalar.return_value = "sv08-164"
+        existing_rule = _make_rule_model()
+        existing_result = MagicMock()
+        existing_result.scalars.return_value.first.return_value = existing_rule
+
+        from app.api.observed_play import get_db
+
+        async def override_db():
+            session = AsyncMock()
+            session.add = MagicMock()
+            session.commit = AsyncMock()
+            session.refresh = AsyncMock()
+            session.execute = AsyncMock(side_effect=[card_result, existing_result])
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post(
+                "/api/observed-play/resolution-rules",
+                json={
+                    "raw_name": "Dragapult ex",
+                    "action": "resolve",
+                    "target_card_def_id": "sv08-164",
+                },
+            )
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 409
+        assert "already exists" in resp.json()["detail"]
+
+    def test_empty_raw_name_returns_422(self, client):
+        """Empty raw_name returns 422."""
+        resp = client.post(
+            "/api/observed-play/resolution-rules",
+            json={"raw_name": "  ", "action": "ignore"},
+        )
+        assert resp.status_code == 422
+
+
+class TestUnresolvedCardsPhase32:
+    """Tests for GET /api/observed-play/unresolved-cards Phase 3.2 extensions."""
+
+    def _make_sample_mention_row(
+        self,
+        normalized_name="dragapult ex",
+        log_id="log-001",
+        event_id=100,
+    ):
+        r = MagicMock()
+        r.normalized_name = normalized_name
+        r.observed_play_log_id = log_id
+        r.observed_play_event_id = event_id
+        r.mention_role = "actor_card"
+        r.source_event_type = "attack_used"
+        r.original_filename = "game.md"
+        r.turn_number = 3
+        r.player_alias = "player_1"
+        r.raw_line = "Dragapult ex used Phantom Dive"
+        return r
+
+    def test_response_includes_candidates(self, client):
+        """Response includes candidates list."""
+        mention_row = _make_unresolved_mention_row()
+        count_result = MagicMock()
+        count_result.scalar.return_value = 1
+        rows_result = MagicMock()
+        rows_result.all.return_value = [mention_row]
+        samples_result = MagicMock()
+        samples_result.all.return_value = []
+
+        from app.api.observed_play import get_db
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(side_effect=[count_result, rows_result, samples_result])
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/unresolved-cards")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        item = resp.json()["items"][0]
+        assert "candidates" in item
+        assert len(item["candidates"]) == 1
+        assert item["candidates"][0]["card_def_id"] == "sv08-164"
+
+    def test_response_includes_sample_mentions(self, client):
+        """Response includes sample_mentions with source line info."""
+        mention_row = _make_unresolved_mention_row()
+        sample_row = self._make_sample_mention_row()
+
+        count_result = MagicMock()
+        count_result.scalar.return_value = 1
+        rows_result = MagicMock()
+        rows_result.all.return_value = [mention_row]
+        samples_result = MagicMock()
+        samples_result.all.return_value = [sample_row]
+
+        from app.api.observed_play import get_db
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(side_effect=[count_result, rows_result, samples_result])
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/unresolved-cards")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        item = resp.json()["items"][0]
+        assert "sample_mentions" in item
+        assert len(item["sample_mentions"]) == 1
+        sm = item["sample_mentions"][0]
+        assert sm["log_id"] == "log-001"
+        assert sm["mention_role"] == "actor_card"
+        assert sm["raw_line"] == "Dragapult ex used Phantom Dive"
+
+    def test_response_includes_affected_log_ids(self, client):
+        """Response includes affected_log_ids."""
+        mention_row = _make_unresolved_mention_row()
+        sample_row = self._make_sample_mention_row()
+
+        count_result = MagicMock()
+        count_result.scalar.return_value = 1
+        rows_result = MagicMock()
+        rows_result.all.return_value = [mention_row]
+        samples_result = MagicMock()
+        samples_result.all.return_value = [sample_row]
+
+        from app.api.observed_play import get_db
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(side_effect=[count_result, rows_result, samples_result])
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/unresolved-cards")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        item = resp.json()["items"][0]
+        assert "affected_log_ids" in item
+        assert "log-001" in item["affected_log_ids"]
+
+    def test_empty_result(self, client):
+        """Empty unresolved-cards returns empty items list."""
+        count_result = MagicMock()
+        count_result.scalar.return_value = 0
+        rows_result = MagicMock()
+        rows_result.all.return_value = []
+
+        from app.api.observed_play import get_db
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(side_effect=[count_result, rows_result])
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/unresolved-cards")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["items"] == []
+        assert data["total"] == 0

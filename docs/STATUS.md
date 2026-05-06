@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 30 — Observed Play Phase 4.1: Memory Preview Blocker Details)
+Last updated: 2026-05-06 (session 31 — Observed Play Phase 3.2: Manual Card Resolution UI)
 
 ## Current Workstream
 
@@ -18,7 +18,7 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 4, and Phase 4.1 are complete.**
+**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, and Phase 4.1 are complete.**
 Phase 5+ (Coach/AI integration) not yet started.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
@@ -43,7 +43,93 @@ Re-check them before making claims in user-facing docs.
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
 
-## Session 26 Work (2026-05-06)
+## Session 31 Work (2026-05-06)
+
+### Goal
+
+Phase 3.2: Manual Card Resolution Rule UI. Wire the existing backend resolution
+rule API into the Observed Play UI so users can review unresolved/ambiguous raw
+card names, inspect candidates and source examples, create resolve/ignore rules,
+and rerun card resolution for affected logs.
+
+### Changes Applied
+
+#### Backend (`backend/app/observed_play/schemas.py`)
+
+- Added `SampleMentionItem` model with fields: `log_id`, `filename`, `event_id`,
+  `turn_number`, `player_alias`, `mention_role`, `source_event_type`, `raw_line`.
+- Extended `UnresolvedCardItem` with `sample_mentions: list[SampleMentionItem]`
+  and `affected_log_ids: list[str]` (both default empty).
+
+#### Backend (`backend/app/api/observed_play.py`)
+
+- `get_unresolved_cards`: after main query, fetches sample mentions (≤5 per group)
+  and affected log IDs (≤25 per group) via a single joined query; groups in Python.
+- `create_resolution_rule`: added validation — empty `raw_name` → 422; unknown
+  `action` → 422; `resolve` without target → 422; nonexistent `target_card_def_id`
+  → 422; duplicate normalized name (any action) → 409 with clear message.
+- Added `Card` import to support target card existence checks.
+
+#### Frontend (`frontend/src/types/observedPlay.ts`)
+
+- Added `SampleMentionItem` interface matching backend.
+- Extended `UnresolvedCardItem` with optional `sample_mentions` and `affected_log_ids`.
+
+#### Frontend (`frontend/src/pages/ObservedPlay.tsx`)
+
+- New imports: `createResolutionRule`, `resolveCards`, `CardCandidateItem`,
+  `ResolutionRuleCreate`, `SampleMentionItem`, `normalizeTcgdexImageUrl`.
+- New `ResolutionRuleModal` component: shows raw name, status, candidate table
+  (with thumbnail, name, set, number, card_def_id, reason, Select button), sample
+  mentions table (role, event type, turn, player, source line), Ignore action.
+  After successful rule creation, shows success message and re-resolved log count.
+  Closing modal after success triggers refresh of unresolved section and raw logs.
+- `UnresolvedCardsSection`: added `Action` column with `Review` button per row;
+  clicking opens `ResolutionRuleModal`. Refresh triggered after rule creation.
+
+### Tests Added
+
+- **11 new backend tests** (`TestResolutionRules` × 7, `TestUnresolvedCardsPhase32` × 4)
+  in `backend/tests/test_api/test_observed_play.py`:
+  - resolve rule success, ignore rule success, resolve without target 422, invalid
+    action 422, nonexistent target 422, duplicate 409, empty raw_name 422.
+  - unresolved response includes candidates, sample_mentions, affected_log_ids, empty result.
+- **10 new frontend tests** in `Phase 3.2 — Unresolved/Ambiguous Cards section` describe block:
+  Review button renders, clicking Review opens modal, modal renders raw name + candidates,
+  modal renders sample mentions, candidate select calls createResolutionRule, rerun called,
+  success message shown, ignore calls createResolutionRule, API error shown, empty candidates.
+
+### Scope Boundary
+
+- Rules affect observed-play card resolution only.
+- No Coach/AI integration, pgvector, Neo4j, simulator match_events, card_performance,
+  deck-builder influence, or runtime recommendations.
+- No automatic ingestion after rule creation.
+
+### Validation (session 31)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **935 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **198 passed (15 files)** ✓
+- `cd frontend && npm run build`: **passed** ✓
+- `docs/AUDIT_STATE.md` not touched ✓
+- `frontend/node_modules` not committed ✓
+- No real battle logs committed ✓
+
+### Files Changed (session 31)
+
+| File | Change |
+|---|---|
+| `backend/app/observed_play/schemas.py` | Added `SampleMentionItem`; extended `UnresolvedCardItem` |
+| `backend/app/api/observed_play.py` | `get_unresolved_cards` sample/log expansion; `create_resolution_rule` validation/409 |
+| `backend/tests/test_api/test_observed_play.py` | +11 tests (TestResolutionRules, TestUnresolvedCardsPhase32) |
+| `frontend/src/types/observedPlay.ts` | `SampleMentionItem`; extended `UnresolvedCardItem` |
+| `frontend/src/pages/ObservedPlay.tsx` | `ResolutionRuleModal`; enhanced `UnresolvedCardsSection` |
+| `frontend/src/pages/ObservedPlay.test.tsx` | +10 Phase 3.2 tests |
+| `docs/STATUS.md` | This file |
+| `docs/CHANGELOG.md` | Phase 3.2 entry |
+| `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md` | Phase 3.2 section |
+
+
 
 ### Goal
 

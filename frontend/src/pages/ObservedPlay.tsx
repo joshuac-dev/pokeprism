@@ -13,8 +13,11 @@ import {
   previewMemoryIngestion,
   ingestMemory,
   getMemoryItems,
+  createResolutionRule,
+  resolveCards,
 } from '../api/observedPlay';
 import type {
+  CardCandidateItem,
   CardMentionItem,
   EligibilityReason,
   EventSummary,
@@ -30,8 +33,10 @@ import type {
   PaginatedEvents,
   PaginatedMemoryItems,
   ParserDiagnostics,
+  ResolutionRuleCreate,
   UnresolvedCardItem,
 } from '../types/observedPlay';
+import { normalizeTcgdexImageUrl } from '../utils/imageUrl';
 
 const ACCEPTED_EXTS = '.md,.markdown,.txt,.zip';
 
@@ -524,64 +529,337 @@ function CardMentionsModal({
 
 // ── Unresolved cards section ──────────────────────────────────────────────────
 
+// ── Resolution rule modal ─────────────────────────────────────────────────────
+
+function ResolutionRuleModal({
+  item,
+  onClose,
+  onResolved,
+}: {
+  item: UnresolvedCardItem;
+  onClose: () => void;
+  onResolved: (affectedLogIds: string[]) => void;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [previewImg, setPreviewImg] = useState<string | null>(null);
+  const [affectedAfterRule, setAffectedAfterRule] = useState<string[]>([]);
+
+  const handleClose = () => {
+    if (affectedAfterRule.length > 0) {
+      onResolved(affectedAfterRule);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleResolve = async (candidate: CardCandidateItem) => {
+    if (!confirm(`Resolve "${item.raw_name}" as "${candidate.name}"?`)) return;
+    setSubmitting(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const body: ResolutionRuleCreate = {
+        raw_name: item.raw_name,
+        action: 'resolve',
+        target_card_def_id: candidate.card_def_id,
+        target_card_name: candidate.name,
+        notes: 'Manual selected from observed-play review',
+      };
+      await createResolutionRule(body);
+      const affected = item.affected_log_ids ?? [];
+      for (const logId of affected) {
+        try { await resolveCards(logId); } catch { /* continue on partial failure */ }
+      }
+      setAffectedAfterRule(affected);
+      setSuccess(`Rule created: "${item.raw_name}" → "${candidate.name}"`);
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(msg ?? 'Failed to create rule');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleIgnore = async () => {
+    if (!confirm(`Ignore "${item.raw_name}" in future card resolution? This will suppress it as a non-card/noise name.`)) return;
+    setSubmitting(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const body: ResolutionRuleCreate = {
+        raw_name: item.raw_name,
+        action: 'ignore',
+        notes: 'Manual ignore from observed-play review',
+      };
+      await createResolutionRule(body);
+      const affected = item.affected_log_ids ?? [];
+      for (const logId of affected) {
+        try { await resolveCards(logId); } catch { /* continue */ }
+      }
+      setAffectedAfterRule(affected);
+      setSuccess(`Ignore rule created for "${item.raw_name}"`);
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(msg ?? 'Failed to create ignore rule');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 pt-16"
+      onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
+    >
+      <div className="relative mx-4 w-full max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-xl">
+        <button
+          className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+          onClick={handleClose}
+          aria-label="Close"
+        >
+          <X size={18} />
+        </button>
+        <h2 className="mb-1 text-lg font-semibold text-gray-800">Resolve Card Mention</h2>
+
+        {/* Summary */}
+        <div className="mb-4 rounded bg-gray-50 px-4 py-3 text-sm">
+          <div className="flex flex-wrap gap-x-6 gap-y-1">
+            <span><span className="font-medium">Raw name:</span> {item.raw_name}</span>
+            <span><span className="font-medium">Normalized:</span> {item.normalized_name}</span>
+            <span>
+              <span className="font-medium">Status:</span>{' '}
+              <span className={`rounded px-1 font-medium ${item.status === 'ambiguous' ? 'bg-yellow-200 text-yellow-800' : 'bg-red-100 text-red-700'}`}>
+                {item.status}
+              </span>
+            </span>
+            <span><span className="font-medium">Mentions:</span> {item.mention_count}</span>
+            <span><span className="font-medium">Logs:</span> {item.log_count}</span>
+          </div>
+        </div>
+
+        {/* Error / success messages */}
+        {error && <div className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        {success && (
+          <div className="mb-3 rounded bg-green-50 px-3 py-2 text-sm text-green-700">
+            {success}
+            {(item.affected_log_ids?.length ?? 0) > 0 && (
+              <span className="ml-2 text-green-600">
+                ({item.affected_log_ids!.length} affected log{item.affected_log_ids!.length > 1 ? 's' : ''} re-resolved)
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Candidates */}
+        {item.candidates && item.candidates.length > 0 ? (
+          <>
+            <h3 className="mb-2 text-sm font-semibold text-gray-700">Candidates</h3>
+            <div className="mb-4 overflow-x-auto rounded border border-gray-200">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b bg-gray-50 text-left text-gray-600">
+                    <th className="px-2 py-1.5"></th>
+                    <th className="px-2 py-1.5">Name</th>
+                    <th className="px-2 py-1.5">Set</th>
+                    <th className="px-2 py-1.5">Number</th>
+                    <th className="px-2 py-1.5">Card def ID</th>
+                    <th className="px-2 py-1.5">Reason</th>
+                    <th className="px-2 py-1.5"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {item.candidates.map((c) => {
+                    const imgUrl = c.image_url ? normalizeTcgdexImageUrl(c.image_url, 'low') : null;
+                    return (
+                      <tr key={c.card_def_id} className="border-b last:border-0 hover:bg-gray-50">
+                        <td className="px-2 py-1.5">
+                          {imgUrl ? (
+                            <img
+                              src={imgUrl}
+                              alt={c.name}
+                              className="h-10 w-7 cursor-pointer rounded object-cover"
+                              onClick={() => setPreviewImg(imgUrl)}
+                            />
+                          ) : (
+                            <div className="h-10 w-7 rounded bg-gray-100" />
+                          )}
+                        </td>
+                        <td className="px-2 py-1.5 font-medium">{c.name}</td>
+                        <td className="px-2 py-1.5 text-gray-500">{c.set_abbrev ?? '—'}</td>
+                        <td className="px-2 py-1.5 text-gray-500">{c.set_number ?? '—'}</td>
+                        <td className="px-2 py-1.5 font-mono text-gray-500">{c.card_def_id}</td>
+                        <td className="px-2 py-1.5 text-gray-400">{c.reason ?? '—'}</td>
+                        <td className="px-2 py-1.5">
+                          <button
+                            className="rounded bg-blue-600 px-2 py-0.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                            disabled={submitting || !!success}
+                            onClick={() => handleResolve(c)}
+                          >
+                            Select
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <p className="mb-4 text-sm text-gray-500">No candidates available for this name.</p>
+        )}
+
+        {/* Sample mentions */}
+        {item.sample_mentions && item.sample_mentions.length > 0 && (
+          <>
+            <h3 className="mb-2 text-sm font-semibold text-gray-700">Sample mentions</h3>
+            <div className="mb-4 overflow-x-auto rounded border border-gray-200">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b bg-gray-50 text-left text-gray-600">
+                    <th className="px-2 py-1.5">Role</th>
+                    <th className="px-2 py-1.5">Event type</th>
+                    <th className="px-2 py-1.5">Turn</th>
+                    <th className="px-2 py-1.5">Player</th>
+                    <th className="px-2 py-1.5">Source line</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {item.sample_mentions.map((sm) => (
+                    <tr key={sm.event_id} className="border-b last:border-0">
+                      <td className="px-2 py-1 font-mono text-gray-500">{sm.mention_role}</td>
+                      <td className="px-2 py-1 text-gray-500">{sm.source_event_type ?? '—'}</td>
+                      <td className="px-2 py-1 text-center">{sm.turn_number ?? '—'}</td>
+                      <td className="px-2 py-1 text-gray-500">{sm.player_alias ?? '—'}</td>
+                      <td className="px-2 py-1 font-mono text-gray-400 truncate max-w-xs" title={sm.raw_line ?? ''}>{sm.raw_line ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center gap-3 border-t pt-3">
+          <button
+            className="rounded bg-red-100 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-200 disabled:opacity-50"
+            disabled={submitting || !!success}
+            onClick={handleIgnore}
+          >
+            Ignore this name
+          </button>
+          <button
+            className="ml-auto rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200"
+            onClick={handleClose}
+          >
+            Close
+          </button>
+        </div>
+
+        {/* Image lightbox */}
+        {previewImg && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+            onClick={() => setPreviewImg(null)}
+          >
+            <img src={previewImg} alt="Card preview" className="max-h-[80vh] rounded shadow-xl" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function UnresolvedCardsSection() {
   const [items, setItems] = useState<UnresolvedCardItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [modalItem, setModalItem] = useState<UnresolvedCardItem | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     getUnresolvedCards({ per_page: 20 })
       .then((data) => { setItems(data.items); setTotal(data.total); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => { load(); }, [load]);
+
+  const handleResolved = () => {
+    setModalItem(null);
+    setLoading(true);
+    load();
+  };
+
   if (loading) return null;
   if (items.length === 0) return null;
 
   return (
-    <section className="mb-8 rounded-lg border border-yellow-200 bg-yellow-50 p-6 shadow-sm">
-      <h2 className="mb-3 text-base font-semibold text-yellow-800">
-        Unresolved / Ambiguous Cards
-        <span className="ml-2 text-sm font-normal text-yellow-700">({total} unique names)</span>
-      </h2>
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-yellow-200 text-left text-yellow-700">
-              <th className="pb-1 pr-3">Raw name</th>
-              <th className="pb-1 pr-3">Status</th>
-              <th className="pb-1 pr-3">Mentions</th>
-              <th className="pb-1 pr-3">Logs</th>
-              <th className="pb-1">Candidates</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={`${item.normalized_name}-${item.status}`} className="border-b border-yellow-100 last:border-0">
-                <td className="py-0.5 pr-3 font-medium">{item.raw_name}</td>
-                <td className="py-0.5 pr-3">
-                  <span className={`rounded px-1 text-xs font-medium ${
-                    item.status === 'ambiguous'
-                      ? 'bg-yellow-200 text-yellow-800'
-                      : 'bg-red-100 text-red-700'
-                  }`}>
-                    {item.status}
-                  </span>
-                </td>
-                <td className="py-0.5 pr-3 text-center">{item.mention_count}</td>
-                <td className="py-0.5 pr-3 text-center">{item.log_count}</td>
-                <td className="py-0.5 text-gray-500">
-                  {item.candidate_count > 0
-                    ? `${item.candidate_count} candidate${item.candidate_count > 1 ? 's' : ''}`
-                    : '—'}
-                </td>
+    <>
+      <section className="mb-8 rounded-lg border border-yellow-200 bg-yellow-50 p-6 shadow-sm">
+        <h2 className="mb-3 text-base font-semibold text-yellow-800">
+          Unresolved / Ambiguous Cards
+          <span className="ml-2 text-sm font-normal text-yellow-700">({total} unique names)</span>
+        </h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-yellow-200 text-left text-yellow-700">
+                <th className="pb-1 pr-3">Raw name</th>
+                <th className="pb-1 pr-3">Status</th>
+                <th className="pb-1 pr-3">Mentions</th>
+                <th className="pb-1 pr-3">Logs</th>
+                <th className="pb-1 pr-3">Candidates</th>
+                <th className="pb-1">Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={`${item.normalized_name}-${item.status}`} className="border-b border-yellow-100 last:border-0">
+                  <td className="py-0.5 pr-3 font-medium">{item.raw_name}</td>
+                  <td className="py-0.5 pr-3">
+                    <span className={`rounded px-1 text-xs font-medium ${
+                      item.status === 'ambiguous'
+                        ? 'bg-yellow-200 text-yellow-800'
+                        : 'bg-red-100 text-red-700'
+                    }`}>
+                      {item.status}
+                    </span>
+                  </td>
+                  <td className="py-0.5 pr-3 text-center">{item.mention_count}</td>
+                  <td className="py-0.5 pr-3 text-center">{item.log_count}</td>
+                  <td className="py-0.5 pr-3 text-gray-500">
+                    {item.candidate_count > 0
+                      ? `${item.candidate_count} candidate${item.candidate_count > 1 ? 's' : ''}`
+                      : '—'}
+                  </td>
+                  <td className="py-0.5">
+                    <button
+                      className="rounded bg-blue-600 px-2 py-0.5 text-xs font-medium text-white hover:bg-blue-700"
+                      onClick={() => setModalItem(item)}
+                      aria-label={`Review ${item.raw_name}`}
+                    >
+                      Review
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {modalItem && (
+        <ResolutionRuleModal
+          item={modalItem}
+          onClose={() => setModalItem(null)}
+          onResolved={handleResolved}
+        />
+      )}
+    </>
   );
 }
 

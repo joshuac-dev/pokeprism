@@ -10,6 +10,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import (
+    Card,
     ObservedCardMention,
     ObservedCardResolutionRule,
     ObservedPlayEvent,
@@ -53,6 +54,7 @@ from app.observed_play.schemas import (
     ReparseSummary,
     ResolutionRuleCreate,
     ResolutionRuleResponse,
+    SampleMentionItem,
     UnresolvedCardItem,
     UnresolvedCardsResponse,
 )
@@ -645,6 +647,64 @@ async def get_unresolved_cards(
     rows_result = await db.execute(q.offset((page - 1) * per_page).limit(per_page))
     rows = rows_result.all()
 
+    if not rows:
+        return UnresolvedCardsResponse(items=[], total=total, page=page, per_page=per_page)
+
+    # Fetch sample mentions (up to 5 per normalized_name) and affected log IDs in one query
+    _MAX_SAMPLES = 5
+    _MAX_AFFECTED = 25
+    norm_names = [row.normalized_name for row in rows]
+
+    samples_q = (
+        select(
+            ObservedCardMention.normalized_name,
+            ObservedCardMention.observed_play_log_id,
+            ObservedCardMention.observed_play_event_id,
+            ObservedCardMention.mention_role,
+            ObservedCardMention.source_event_type,
+            ObservedPlayLog.original_filename,
+            ObservedPlayEvent.turn_number,
+            ObservedPlayEvent.player_alias,
+            ObservedPlayEvent.raw_line,
+        )
+        .join(
+            ObservedPlayLog,
+            ObservedCardMention.observed_play_log_id == ObservedPlayLog.id,
+        )
+        .join(
+            ObservedPlayEvent,
+            ObservedCardMention.observed_play_event_id == ObservedPlayEvent.id,
+        )
+        .where(
+            ObservedCardMention.normalized_name.in_(norm_names),
+            ObservedCardMention.resolution_status.in_(["unresolved", "ambiguous"]),
+        )
+        .order_by(ObservedCardMention.normalized_name, ObservedCardMention.observed_play_event_id)
+    )
+    samples_result = await db.execute(samples_q)
+    sample_rows = samples_result.all()
+
+    # Group samples and affected_log_ids by normalized_name
+    from collections import defaultdict
+    sample_by_norm: dict[str, list] = defaultdict(list)
+    log_ids_by_norm: dict[str, list] = defaultdict(list)
+    for sr in sample_rows:
+        n = sr.normalized_name
+        if len(sample_by_norm[n]) < _MAX_SAMPLES:
+            sample_by_norm[n].append(SampleMentionItem(
+                log_id=str(sr.observed_play_log_id),
+                filename=sr.original_filename,
+                event_id=int(sr.observed_play_event_id),
+                turn_number=sr.turn_number,
+                player_alias=sr.player_alias,
+                mention_role=sr.mention_role,
+                source_event_type=sr.source_event_type,
+                raw_line=sr.raw_line,
+            ))
+        log_id_str = str(sr.observed_play_log_id)
+        if log_id_str not in log_ids_by_norm[n] and len(log_ids_by_norm[n]) < _MAX_AFFECTED:
+            log_ids_by_norm[n].append(log_id_str)
+
     items = [
         UnresolvedCardItem(
             raw_name=row.raw_name,
@@ -654,6 +714,8 @@ async def get_unresolved_cards(
             log_count=row.log_count,
             candidate_count=row.candidate_count or 0,
             candidates=row.candidates_json or [],
+            sample_mentions=sample_by_norm.get(row.normalized_name, []),
+            affected_log_ids=log_ids_by_norm.get(row.normalized_name, []),
         )
         for row in rows
     ]
@@ -668,6 +730,8 @@ async def create_resolution_rule(
     db: AsyncSession = Depends(get_db),
 ) -> ResolutionRuleResponse:
     """Create a manual resolution/ignore rule for a raw card name."""
+    if not body.raw_name or not body.raw_name.strip():
+        raise HTTPException(status_code=422, detail="raw_name is required and must not be empty")
     if body.action not in ("resolve", "ignore"):
         raise HTTPException(status_code=422, detail="action must be 'resolve' or 'ignore'")
     if body.action == "resolve" and not body.target_card_def_id:
@@ -676,6 +740,32 @@ async def create_resolution_rule(
             detail="target_card_def_id is required for action='resolve'",
         )
     norm = normalize_card_name(body.raw_name)
+
+    # Check target card exists for resolve actions
+    if body.action == "resolve" and body.target_card_def_id:
+        card_result = await db.execute(
+            select(Card.tcgdex_id).where(Card.tcgdex_id == body.target_card_def_id)
+        )
+        if card_result.scalar() is None:
+            raise HTTPException(
+                status_code=422,
+                detail=f"target_card_def_id '{body.target_card_def_id}' not found in card database",
+            )
+
+    # Check for existing rule with same normalized name and action
+    existing_result = await db.execute(
+        select(ObservedCardResolutionRule).where(
+            ObservedCardResolutionRule.normalized_name == norm,
+            ObservedCardResolutionRule.scope == "global",
+        )
+    )
+    existing = existing_result.scalars().first()
+    if existing is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=f"A resolution rule already exists for normalized name '{norm}' (action='{existing.action}'). Delete it first to create a new one.",
+        )
+
     rule = ObservedCardResolutionRule(
         raw_name=body.raw_name,
         normalized_name=norm,

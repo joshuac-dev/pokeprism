@@ -199,6 +199,17 @@ export interface CardResolutionSummaryResponse {
   errors: string[];
 }
 
+export interface SampleMentionItem {
+  log_id: string;
+  filename: string | null;
+  event_id: number;
+  turn_number: number | null;
+  player_alias: string | null;
+  mention_role: string;
+  source_event_type: string | null;
+  raw_line: string | null;
+}
+
 export interface UnresolvedCardItem {
   raw_name: string;
   normalized_name: string;
@@ -207,6 +218,8 @@ export interface UnresolvedCardItem {
   log_count: number;
   candidate_count: number;
   candidates: CardCandidateItem[];
+  sample_mentions?: SampleMentionItem[];
+  affected_log_ids?: string[];
 }
 
 export interface UnresolvedCardsResponse {
