@@ -34,6 +34,12 @@ from app.observed_play.schemas import (
     BatchDetail,
     BatchImportResponse,
     BatchSummary,
+    BulkIngestEligiblePreview,
+    BulkIngestEligibleSummary,
+    BulkIngestLogResult,
+    BulkIngestPreviewLog,
+    BulkReparseLogResult,
+    BulkReparseSummary,
     CardMentionItem,
     CardResolutionSummaryResponse,
     EligibilityResult,
@@ -1557,3 +1563,315 @@ async def get_memory_analytics_source_items(
         for row in rows
     ]
     return PaginatedMemoryItems(items=items, total=total, page=page, per_page=per_page)
+
+
+# ── Bulk actions ───────────────────────────────────────────────────────────────
+
+@router.post("/logs/reparse-all")
+async def reparse_all_logs(
+    db: AsyncSession = Depends(get_db),
+) -> BulkReparseSummary:
+    """Reparse all non-ingested observed-play logs with the current parser.
+
+    Already-ingested logs are skipped to avoid desync between parsed events
+    and existing memory items.  No memory items are created.
+    """
+    logs_result = await db.execute(
+        select(ObservedPlayLog).order_by(ObservedPlayLog.created_at.asc())
+    )
+    logs = logs_result.scalars().all()
+
+    reparsed: list[BulkReparseLogResult] = []
+    skipped: list[BulkReparseLogResult] = []
+    failed: list[BulkReparseLogResult] = []
+
+    for log in logs:
+        log_id = str(log.id)
+        filename = log.original_filename or log_id
+
+        if log.memory_status == "ingested":
+            skipped.append(BulkReparseLogResult(
+                log_id=log_id, filename=filename,
+                status="skipped", reason="already_ingested",
+            ))
+            continue
+
+        try:
+            raw_content = log.raw_content or ""
+
+            await db.execute(
+                delete(ObservedPlayEvent).where(
+                    ObservedPlayEvent.observed_play_log_id == log.id
+                )
+            )
+
+            parsed_log = parse_log(raw_content)
+
+            for evt in parsed_log.events:
+                db.add(ObservedPlayEvent(
+                    observed_play_log_id=log.id,
+                    import_batch_id=log.import_batch_id,
+                    event_index=evt.event_index,
+                    turn_number=evt.turn_number,
+                    phase=evt.phase,
+                    player_raw=evt.player_raw,
+                    player_alias=evt.player_alias,
+                    actor_type=evt.actor_type,
+                    event_type=evt.event_type,
+                    raw_line=evt.raw_line,
+                    raw_block=evt.raw_block,
+                    card_name_raw=evt.card_name_raw,
+                    target_card_name_raw=evt.target_card_name_raw,
+                    zone=evt.zone,
+                    target_zone=evt.target_zone,
+                    amount=evt.amount,
+                    damage=evt.damage,
+                    base_damage=evt.base_damage,
+                    weakness_damage=evt.weakness_damage,
+                    resistance_delta=evt.resistance_delta,
+                    healing_amount=evt.healing_amount,
+                    energy_type=evt.energy_type,
+                    prize_count_delta=evt.prize_count_delta,
+                    deck_count_delta=evt.deck_count_delta,
+                    hand_count_delta=evt.hand_count_delta,
+                    discard_count_delta=evt.discard_count_delta,
+                    event_payload_json=evt.event_payload,
+                    confidence_score=evt.confidence_score,
+                    confidence_reasons_json=evt.confidence_reasons,
+                    parser_version=PARSER_VERSION,
+                ))
+
+            log.parser_version = parsed_log.parser_version
+            log.parse_status = "parsed" if not parsed_log.warnings else "parsed_with_warnings"
+            log.player_1_name_raw = parsed_log.player_1_name_raw
+            log.player_2_name_raw = parsed_log.player_2_name_raw
+            log.player_1_alias = parsed_log.player_1_alias
+            log.player_2_alias = parsed_log.player_2_alias
+            log.winner_raw = parsed_log.winner_raw
+            log.winner_alias = parsed_log.winner_alias
+            log.win_condition = parsed_log.win_condition
+            log.turn_count = parsed_log.turn_count
+            log.event_count = parsed_log.event_count
+            log.confidence_score = parsed_log.confidence_score
+            log.warnings_json = parsed_log.warnings
+            log.errors_json = parsed_log.errors
+            log.metadata_json = parsed_log.metadata
+
+            await db.commit()
+            await db.refresh(log)
+
+            try:
+                await extract_and_resolve_mentions_for_log(db, log.id)
+                await db.commit()
+                await db.refresh(log)
+            except Exception as exc:
+                logger.warning("Card resolution failed for log %s during bulk reparse: %s", log_id, exc)
+
+            reparsed.append(BulkReparseLogResult(
+                log_id=log_id, filename=filename,
+                status="reparsed",
+                parse_status=log.parse_status,
+                confidence_score=log.confidence_score,
+                event_count=log.event_count or 0,
+            ))
+
+        except Exception as exc:
+            logger.error("Bulk reparse failed for log %s: %s", log_id, exc)
+            await db.rollback()
+            failed.append(BulkReparseLogResult(
+                log_id=log_id, filename=filename,
+                status="failed", error=str(exc),
+            ))
+
+    total_event_count = sum(r.event_count or 0 for r in reparsed)
+    confidences = [r.confidence_score for r in reparsed if r.confidence_score is not None]
+    avg_confidence = sum(confidences) / len(confidences) if confidences else None
+
+    return BulkReparseSummary(
+        considered_count=len(logs),
+        reparsed_count=len(reparsed),
+        skipped_count=len(skipped),
+        failed_count=len(failed),
+        reparsed=reparsed,
+        skipped=skipped,
+        failed=failed,
+        average_confidence=avg_confidence,
+        total_event_count=total_event_count,
+    )
+
+
+@router.post("/memory-ingestion/preview-eligible")
+async def preview_ingest_eligible(
+    db: AsyncSession = Depends(get_db),
+) -> BulkIngestEligiblePreview:
+    """Preview which logs are eligible for bulk memory ingestion.
+
+    Logs that are already ingested or not yet parsed are reported as skipped.
+    This is a read-only endpoint; no memory items are created.
+    """
+    config = IngestionConfig()
+
+    logs_result = await db.execute(
+        select(ObservedPlayLog).order_by(ObservedPlayLog.created_at.asc())
+    )
+    logs = logs_result.scalars().all()
+
+    eligible_logs: list[BulkIngestPreviewLog] = []
+    skipped_logs: list[BulkIngestPreviewLog] = []
+    blocker_tally: dict[str, int] = {}
+
+    for log in logs:
+        log_id = str(log.id)
+        filename = log.original_filename or log_id
+
+        if log.memory_status == "ingested":
+            skipped_logs.append(BulkIngestPreviewLog(
+                log_id=log_id, filename=filename,
+                status="already_ingested",
+                confidence_score=log.confidence_score,
+                event_count=log.event_count or 0,
+            ))
+            continue
+
+        parse_status = log.parse_status or ""
+        if parse_status not in ("parsed", "parsed_with_warnings"):
+            skipped_logs.append(BulkIngestPreviewLog(
+                log_id=log_id, filename=filename,
+                status="not_ready",
+                confidence_score=log.confidence_score,
+                event_count=log.event_count or 0,
+                blocker_reasons=["not_parsed"],
+            ))
+            continue
+
+        eligibility = await evaluate_log_ingestion_eligibility(db, log.id, config)
+
+        if eligibility.eligible:
+            # Estimate memory item count using preview (but skip writing)
+            preview = await preview_observed_play_ingestion(db, log.id, config)
+            eligible_logs.append(BulkIngestPreviewLog(
+                log_id=log_id, filename=filename,
+                status="eligible",
+                confidence_score=log.confidence_score,
+                event_count=log.event_count or 0,
+                estimated_memory_item_count=preview.estimated_memory_item_count,
+            ))
+        else:
+            reasons = [r.code for r in eligibility.reasons]
+            for r in reasons:
+                blocker_tally[r] = blocker_tally.get(r, 0) + 1
+            skipped_logs.append(BulkIngestPreviewLog(
+                log_id=log_id, filename=filename,
+                status="ineligible",
+                confidence_score=log.confidence_score,
+                event_count=log.event_count or 0,
+                blocker_reasons=reasons,
+            ))
+
+    ineligible_count = sum(1 for s in skipped_logs if s.status == "ineligible")
+    already_ingested_count = sum(1 for s in skipped_logs if s.status == "already_ingested")
+    not_ready_count = sum(1 for s in skipped_logs if s.status == "not_ready")
+    estimated_total = sum(e.estimated_memory_item_count or 0 for e in eligible_logs)
+
+    top_blockers = [
+        {"reason": k, "count": v}
+        for k, v in sorted(blocker_tally.items(), key=lambda x: x[1], reverse=True)
+    ]
+
+    return BulkIngestEligiblePreview(
+        considered_count=len(logs),
+        eligible_count=len(eligible_logs),
+        ineligible_count=ineligible_count,
+        already_ingested_count=already_ingested_count,
+        not_ready_count=not_ready_count,
+        estimated_memory_item_count=estimated_total,
+        eligible_logs=eligible_logs,
+        skipped_logs=skipped_logs,
+        top_blocker_reasons=top_blockers,
+    )
+
+
+@router.post("/memory-ingestion/ingest-eligible")
+async def ingest_all_eligible(
+    db: AsyncSession = Depends(get_db),
+) -> BulkIngestEligibleSummary:
+    """Ingest all eligible parsed/not-yet-ingested logs into observed-play memory.
+
+    Uses the same eligibility gates as single-log ingestion.
+    Already-ingested logs are skipped (idempotent).
+    No force ingest; ineligible logs are skipped and reported.
+    Each log is committed individually so a failure on one log
+    does not roll back previously successful ingestions.
+    """
+    config = IngestionConfig()
+
+    logs_result = await db.execute(
+        select(ObservedPlayLog).order_by(ObservedPlayLog.created_at.asc())
+    )
+    logs = logs_result.scalars().all()
+
+    ingested: list[BulkIngestLogResult] = []
+    skipped: list[BulkIngestLogResult] = []
+    failed: list[BulkIngestLogResult] = []
+
+    for log in logs:
+        log_id = str(log.id)
+        filename = log.original_filename or log_id
+
+        if log.memory_status == "ingested":
+            skipped.append(BulkIngestLogResult(
+                log_id=log_id, filename=filename,
+                status="skipped", reason="already_ingested",
+            ))
+            continue
+
+        parse_status = log.parse_status or ""
+        if parse_status not in ("parsed", "parsed_with_warnings"):
+            skipped.append(BulkIngestLogResult(
+                log_id=log_id, filename=filename,
+                status="skipped", reason="not_parsed",
+            ))
+            continue
+
+        try:
+            summary = await ingest_observed_play_log(db, log.id, config)
+
+            if summary.status == "skipped":
+                reason_codes = [r.code for r in summary.reasons]
+                skipped.append(BulkIngestLogResult(
+                    log_id=log_id, filename=filename,
+                    status="skipped", reason=",".join(reason_codes) if reason_codes else "ineligible",
+                ))
+                await db.rollback()
+            else:
+                await db.commit()
+                ingested.append(BulkIngestLogResult(
+                    log_id=log_id, filename=filename,
+                    status="ingested",
+                    memory_item_count=summary.memory_item_count,
+                ))
+
+        except Exception as exc:
+            logger.error("Bulk ingest failed for log %s: %s", log_id, exc)
+            await db.rollback()
+            failed.append(BulkIngestLogResult(
+                log_id=log_id, filename=filename,
+                status="failed", error=str(exc),
+            ))
+
+    eligible_count = len(ingested) + len(failed) + sum(
+        1 for s in skipped if s.reason not in ("already_ingested", "not_parsed")
+    )
+    memory_items_created = sum(r.memory_item_count for r in ingested)
+
+    return BulkIngestEligibleSummary(
+        considered_count=len(logs),
+        eligible_count=eligible_count,
+        ingested_count=len(ingested),
+        skipped_count=len(skipped),
+        failed_count=len(failed),
+        memory_items_created=memory_items_created,
+        ingested_logs=ingested,
+        skipped_logs=skipped,
+        failed_logs=failed,
+    )

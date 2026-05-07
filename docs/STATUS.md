@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-07 (session 42 — Observed Play parser hardening: special conditions, damage counters, checkup, concession)
+Last updated: 2026-05-08 (session 43 — Observed Play bulk parse/ingest actions)
 
 ## Current Workstream
 
@@ -40,10 +40,38 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **1047 passed, 1 skipped** — 2026-05-07 session 42. `cd backend && python3 -m pytest tests/ -x -q`. |
-| Frontend unit tests | **246 passed (15 files)** — 2026-05-07 session 42. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **1065 passed, 1 skipped** — 2026-05-08 session 43. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Frontend unit tests | **259 passed (15 files)** — 2026-05-08 session 43. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 43 Work (2026-05-08) — Bulk Parse / Ingest Actions
+
+### Goal
+
+Add safe bulk workflow actions to `/observed-play` to avoid manually reparsing and ingesting 49 uploaded battle logs one at a time.
+
+### Changes
+
+**Backend:**
+- `schemas.py`: Added `BulkReparseLogResult`, `BulkReparseSummary`, `BulkIngestPreviewLog`, `BulkIngestEligiblePreview`, `BulkIngestLogResult`, `BulkIngestEligibleSummary` Pydantic models.
+- `api/observed_play.py`: Added three endpoints:
+  - `POST /logs/reparse-all` — reparses all non-ingested logs, commits per-log, skips `memory_status=ingested`.
+  - `POST /memory-ingestion/preview-eligible` — read-only eligibility preview using same gates as single-log.
+  - `POST /memory-ingestion/ingest-eligible` — ingests all eligible logs, commits per-log, idempotent.
+- `tests/test_api/test_observed_play.py`: +18 backend tests covering all three endpoints.
+
+**Frontend:**
+- `types/observedPlay.ts`: Added bulk TypeScript interfaces.
+- `api/observedPlay.ts`: Added `bulkReparseAll`, `bulkPreviewEligible`, `bulkIngestEligible` functions.
+- `pages/ObservedPlay.tsx`: Added "Bulk Actions" panel between import report and Raw Logs sections with two buttons. Added inline `BulkParseModal` (confirm → run → show counts/confidence) and `BulkIngestEligibleModal` (preview eligibility → confirm ingest → show results). Post-action refreshes raw logs, memory analytics, and unresolved cards.
+- `pages/ObservedPlay.test.tsx`: +13 frontend tests for bulk actions.
+
+### Validation
+
+- Backend: 1065 passed, 1 skipped
+- Frontend: 259 passed (15 files), build clean
+- No data reset, Phase 5.2, Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, or runtime integration.
 
 ## Session 42 Work (2026-05-07) — Parser Hardening: Special Conditions, Damage Counters, Checkup, Concession
 

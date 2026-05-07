@@ -30,6 +30,9 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+### Added
+- **Observed Play bulk parse / ingest actions** — frontend + backend. Added "Bulk Actions" panel to `/observed-play` with "Parse / Reparse all" and "Ingest all eligible" buttons. Three new API endpoints (`POST /logs/reparse-all`, `POST /memory-ingestion/preview-eligible`, `POST /memory-ingestion/ingest-eligible`) backed by new Pydantic schemas. Endpoints are idempotent: already-ingested logs are skipped in both reparse and ingest, preventing memory desyncs. Ingest endpoint applies the same eligibility gates as single-log ingestion. Preview is read-only. +18 backend tests, +13 frontend tests (1065 backend, 259 frontend). No Phase 5.2, Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, data reset, or runtime integration.
+
 ### Fixed
 - **Observed Play parser hardening: special conditions, damage counters, checkup, concession** — backend only. Hardened the PTCGL log parser for 12 real-corpus line types that produced `unknown` events in a Dragapult ex vs Salazzle ex log: Pokémon Checkup, Burned/Poisoned condition damage counters (singular/plural), special condition applied/removed, checkup coin flip, damage counter placement/movement by ability, discarded card counts (with known-card bullet sub-lines), cards moved to hand, cards shuffled into deck, and opponent concession. Added 11 new event type constants, 13 new patterns, confidence entries, parser dispatch blocks, and card-mention extraction/filtering. New fixture `special_conditions_and_concession.md`. +77 backend tests (1047 total). No Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, runtime integration, or data reset.
 

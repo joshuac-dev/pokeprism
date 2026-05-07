@@ -1,5 +1,8 @@
 import api from './client';
 import type {
+  BulkIngestEligiblePreview,
+  BulkIngestEligibleSummary,
+  BulkReparseSummary,
   CardMentionListResponse,
   CardResolutionSummaryResponse,
   IngestionConfig,
@@ -202,4 +205,21 @@ export async function getMemoryAnalyticsSourceItems(
 ): Promise<PaginatedMemoryItems> {
   const resp = await api.get('/api/observed-play/memory-analytics/source-items', { params });
   return resp.data as PaginatedMemoryItems;
+}
+
+// ── Bulk actions ───────────────────────────────────────────────────────────────
+
+export async function bulkReparseAll(): Promise<BulkReparseSummary> {
+  const resp = await api.post('/api/observed-play/logs/reparse-all');
+  return resp.data as BulkReparseSummary;
+}
+
+export async function bulkPreviewEligible(): Promise<BulkIngestEligiblePreview> {
+  const resp = await api.post('/api/observed-play/memory-ingestion/preview-eligible');
+  return resp.data as BulkIngestEligiblePreview;
+}
+
+export async function bulkIngestEligible(): Promise<BulkIngestEligibleSummary> {
+  const resp = await api.post('/api/observed-play/memory-ingestion/ingest-eligible');
+  return resp.data as BulkIngestEligibleSummary;
 }

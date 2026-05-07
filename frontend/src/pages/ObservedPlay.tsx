@@ -18,8 +18,14 @@ import {
   getMemorySummary,
   getMemoryAnalytics,
   getMemoryAnalyticsSourceItems,
+  bulkReparseAll,
+  bulkPreviewEligible,
+  bulkIngestEligible,
 } from '../api/observedPlay';
 import type {
+  BulkReparseSummary,
+  BulkIngestEligiblePreview,
+  BulkIngestEligibleSummary,
   CardCandidateItem,
   CardMentionItem,
   EligibilityReason,
@@ -1813,6 +1819,19 @@ export default function ObservedPlay() {
   const [memoryPreviewLogId, setMemoryPreviewLogId] = useState<string | null>(null);
   const [memoryItemsLogId, setMemoryItemsLogId] = useState<string | null>(null);
 
+  // Bulk action state
+  const [bulkParseOpen, setBulkParseOpen] = useState(false);
+  const [bulkParseRunning, setBulkParseRunning] = useState(false);
+  const [bulkParseResult, setBulkParseResult] = useState<BulkReparseSummary | null>(null);
+  const [bulkParseError, setBulkParseError] = useState<string | null>(null);
+
+  const [bulkIngestOpen, setBulkIngestOpen] = useState(false);
+  const [bulkIngestPreviewLoading, setBulkIngestPreviewLoading] = useState(false);
+  const [bulkIngestPreview, setBulkIngestPreview] = useState<BulkIngestEligiblePreview | null>(null);
+  const [bulkIngestRunning, setBulkIngestRunning] = useState(false);
+  const [bulkIngestResult, setBulkIngestResult] = useState<BulkIngestEligibleSummary | null>(null);
+  const [bulkIngestError, setBulkIngestError] = useState<string | null>(null);
+
   const PER_PAGE = 25;
   const analyticsRefreshRef = useRef<(() => void) | null>(null);
   const unresolvedRefreshRef = useRef<(() => void) | null>(null);
@@ -1878,6 +1897,61 @@ export default function ObservedPlay() {
       setLogSortDir(defaultDir);
     }
     setLogPage(1);
+  }
+
+  async function handleBulkParseRun() {
+    setBulkParseRunning(true);
+    setBulkParseResult(null);
+    setBulkParseError(null);
+    try {
+      const result = await bulkReparseAll();
+      setBulkParseResult(result);
+      await fetchLogs(logPage);
+      unresolvedRefreshRef.current?.();
+      analyticsRefreshRef.current?.();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+        || (err instanceof Error ? err.message : 'Reparse failed');
+      setBulkParseError(msg);
+    } finally {
+      setBulkParseRunning(false);
+    }
+  }
+
+  async function openBulkIngestModal() {
+    setBulkIngestOpen(true);
+    setBulkIngestPreview(null);
+    setBulkIngestResult(null);
+    setBulkIngestError(null);
+    setBulkIngestPreviewLoading(true);
+    try {
+      const preview = await bulkPreviewEligible();
+      setBulkIngestPreview(preview);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+        || (err instanceof Error ? err.message : 'Preview failed');
+      setBulkIngestError(msg);
+    } finally {
+      setBulkIngestPreviewLoading(false);
+    }
+  }
+
+  async function handleBulkIngestRun() {
+    setBulkIngestRunning(true);
+    setBulkIngestResult(null);
+    setBulkIngestError(null);
+    try {
+      const result = await bulkIngestEligible();
+      setBulkIngestResult(result);
+      await fetchLogs(logPage);
+      analyticsRefreshRef.current?.();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+        || (err instanceof Error ? err.message : 'Ingest failed');
+      setBulkIngestError(msg);
+    } finally {
+      setBulkIngestRunning(false);
+    }
   }
 
   return (
@@ -2038,6 +2112,178 @@ export default function ObservedPlay() {
           </div>
         )}
       </section>
+
+      {/* ── Bulk actions panel ───────────────────────────────────────────── */}
+      <section className="mb-8 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
+        <h2 className="mb-1 text-base font-semibold text-slate-900 dark:text-white">Bulk Actions</h2>
+        <p className="mb-4 text-xs text-gray-500 dark:text-slate-400">
+          Bulk actions only operate on Observed Play logs. Ingest all eligible skips ineligible logs and does not force ingest.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={() => { setBulkParseOpen(true); setBulkParseResult(null); setBulkParseError(null); }}
+            disabled={bulkParseRunning || bulkIngestRunning}
+            className="rounded bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 dark:bg-slate-600 dark:hover:bg-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Parse / Reparse all
+          </button>
+          <button
+            onClick={openBulkIngestModal}
+            disabled={bulkParseRunning || bulkIngestRunning}
+            className="rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Ingest all eligible
+          </button>
+        </div>
+      </section>
+
+      {/* ── Bulk parse modal ─────────────────────────────────────────────── */}
+      {bulkParseOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" aria-label="Bulk parse modal">
+          <div className="w-full max-w-lg rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white">Parse / Reparse all</h3>
+              <button onClick={() => setBulkParseOpen(false)} className="text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200" aria-label="Close"><X size={18} /></button>
+            </div>
+            {!bulkParseResult && (
+              <div className="mb-4 rounded border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+                <p>This will reparse observed logs with the current parser and refresh parsed events and card mentions.</p>
+                <ul className="mt-2 ml-4 list-disc space-y-1">
+                  <li>Logs that already have ingested memory are <strong>skipped</strong> to avoid stale memory items.</li>
+                  <li>No memory will be ingested.</li>
+                </ul>
+              </div>
+            )}
+            {bulkParseError && (
+              <p className="mb-3 text-sm text-red-600 dark:text-red-400" role="alert">{bulkParseError}</p>
+            )}
+            {bulkParseResult && (
+              <div className="mb-4">
+                <div className="grid grid-cols-4 gap-2 text-center text-sm mb-3">
+                  {([
+                    ['Considered', bulkParseResult.considered_count],
+                    ['Reparsed', bulkParseResult.reparsed_count],
+                    ['Skipped', bulkParseResult.skipped_count],
+                    ['Failed', bulkParseResult.failed_count],
+                  ] as [string, number][]).map(([label, val]) => (
+                    <div key={label} className="rounded border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 p-2">
+                      <div className="text-xs text-gray-500 dark:text-slate-400">{label}</div>
+                      <div className="text-xl font-bold">{val}</div>
+                    </div>
+                  ))}
+                </div>
+                {bulkParseResult.average_confidence != null && (
+                  <p className="text-xs text-gray-500 dark:text-slate-400">Avg confidence (reparsed): {(bulkParseResult.average_confidence * 100).toFixed(1)}%</p>
+                )}
+                {bulkParseResult.failed.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs font-medium text-red-600 dark:text-red-400">Failed logs:</p>
+                    {bulkParseResult.failed.map(f => (
+                      <p key={f.log_id} className="text-xs text-red-500">{f.filename}: {f.error}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setBulkParseOpen(false)} className="rounded border border-gray-300 dark:border-slate-600 px-4 py-2 text-sm dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800">Close</button>
+              {!bulkParseResult && (
+                <button
+                  onClick={handleBulkParseRun}
+                  disabled={bulkParseRunning}
+                  className="rounded bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 dark:bg-slate-600 dark:hover:bg-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {bulkParseRunning ? 'Parsing…' : 'Run parse / reparse'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Bulk ingest eligible modal ────────────────────────────────────── */}
+      {bulkIngestOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" aria-label="Bulk ingest eligible modal">
+          <div className="w-full max-w-lg rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white">Ingest all eligible</h3>
+              <button onClick={() => setBulkIngestOpen(false)} className="text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200" aria-label="Close"><X size={18} /></button>
+            </div>
+            {bulkIngestPreviewLoading && (
+              <p className="mb-4 text-sm text-gray-500 dark:text-slate-400">Computing eligibility…</p>
+            )}
+            {bulkIngestError && (
+              <p className="mb-3 text-sm text-red-600 dark:text-red-400" role="alert">{bulkIngestError}</p>
+            )}
+            {bulkIngestPreview && !bulkIngestResult && (
+              <div className="mb-4">
+                <div className="grid grid-cols-4 gap-2 text-center text-sm mb-3">
+                  {([
+                    ['Eligible', bulkIngestPreview.eligible_count],
+                    ['Ineligible', bulkIngestPreview.ineligible_count],
+                    ['Already\ningested', bulkIngestPreview.already_ingested_count],
+                    ['Not ready', bulkIngestPreview.not_ready_count],
+                  ] as [string, number][]).map(([label, val]) => (
+                    <div key={label} className="rounded border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 p-2">
+                      <div className="text-xs text-gray-500 dark:text-slate-400 whitespace-pre-line">{label}</div>
+                      <div className="text-xl font-bold">{val}</div>
+                    </div>
+                  ))}
+                </div>
+                {bulkIngestPreview.estimated_memory_item_count > 0 && (
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mb-2">Estimated memory items: {bulkIngestPreview.estimated_memory_item_count}</p>
+                )}
+                {bulkIngestPreview.top_blocker_reasons.length > 0 && (
+                  <div className="text-xs text-gray-500 dark:text-slate-400">
+                    <span className="font-medium">Top blockers: </span>
+                    {bulkIngestPreview.top_blocker_reasons.slice(0, 3).map(b => `${b.reason} (${b.count})`).join(', ')}
+                  </div>
+                )}
+              </div>
+            )}
+            {bulkIngestResult && (
+              <div className="mb-4">
+                <div className="grid grid-cols-4 gap-2 text-center text-sm mb-3">
+                  {([
+                    ['Ingested', bulkIngestResult.ingested_count],
+                    ['Skipped', bulkIngestResult.skipped_count],
+                    ['Failed', bulkIngestResult.failed_count],
+                    ['Mem items', bulkIngestResult.memory_items_created],
+                  ] as [string, number][]).map(([label, val]) => (
+                    <div key={label} className="rounded border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 p-2">
+                      <div className="text-xs text-gray-500 dark:text-slate-400">{label}</div>
+                      <div className="text-xl font-bold">{val}</div>
+                    </div>
+                  ))}
+                </div>
+                {bulkIngestResult.failed_logs.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs font-medium text-red-600 dark:text-red-400">Failed logs:</p>
+                    {bulkIngestResult.failed_logs.map(f => (
+                      <p key={f.log_id} className="text-xs text-red-500">{f.filename}: {f.error}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setBulkIngestOpen(false)} className="rounded border border-gray-300 dark:border-slate-600 px-4 py-2 text-sm dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800">Close</button>
+              {!bulkIngestResult && bulkIngestPreview && bulkIngestPreview.eligible_count > 0 && (
+                <button
+                  onClick={handleBulkIngestRun}
+                  disabled={bulkIngestRunning || bulkIngestPreviewLoading}
+                  className="rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {bulkIngestRunning ? 'Ingesting eligible logs…' : `Ingest ${bulkIngestPreview.eligible_count} eligible log${bulkIngestPreview.eligible_count !== 1 ? 's' : ''}`}
+                </button>
+              )}
+              {!bulkIngestResult && bulkIngestPreview && bulkIngestPreview.eligible_count === 0 && (
+                <span className="text-sm text-gray-500 dark:text-slate-400 self-center">No eligible logs to ingest</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Raw logs table ────────────────────────────────────────────────── */}
       <section className="mb-8 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">

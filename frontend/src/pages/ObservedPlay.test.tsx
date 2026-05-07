@@ -23,6 +23,9 @@ vi.mock('../api/observedPlay', () => ({
   getMemorySummary: vi.fn(),
   getMemoryAnalytics: vi.fn(),
   getMemoryAnalyticsSourceItems: vi.fn(),
+  bulkReparseAll: vi.fn(),
+  bulkPreviewEligible: vi.fn(),
+  bulkIngestEligible: vi.fn(),
 }));
 
 import {
@@ -40,6 +43,9 @@ import {
   getMemorySummary,
   getMemoryAnalytics,
   getMemoryAnalyticsSourceItems,
+  bulkReparseAll,
+  bulkPreviewEligible,
+  bulkIngestEligible,
 } from '../api/observedPlay';
 
 const emptyBatches = { items: [], total: 0, page: 1, per_page: 25 };
@@ -190,6 +196,21 @@ beforeEach(() => {
   (getMemoryAnalytics as ReturnType<typeof vi.fn>).mockResolvedValue(emptyAnalytics);
   (getMemoryAnalyticsSourceItems as ReturnType<typeof vi.fn>).mockResolvedValue({
     items: [], total: 0, page: 1, per_page: 20,
+  });
+  (bulkReparseAll as ReturnType<typeof vi.fn>).mockResolvedValue({
+    considered_count: 0, reparsed_count: 0, skipped_count: 0, failed_count: 0,
+    reparsed: [], skipped: [], failed: [], average_confidence: null, total_event_count: 0,
+  });
+  const emptyBulkPreview = {
+    considered_count: 0, eligible_count: 0, ineligible_count: 0,
+    already_ingested_count: 0, not_ready_count: 0, estimated_memory_item_count: 0,
+    eligible_logs: [], skipped_logs: [], top_blocker_reasons: [],
+  };
+  (bulkPreviewEligible as ReturnType<typeof vi.fn>).mockResolvedValue(emptyBulkPreview);
+  (bulkIngestEligible as ReturnType<typeof vi.fn>).mockResolvedValue({
+    considered_count: 0, eligible_count: 0, ingested_count: 0, skipped_count: 0,
+    failed_count: 0, memory_items_created: 0,
+    ingested_logs: [], skipped_logs: [], failed_logs: [],
   });
 });
 
@@ -765,7 +786,7 @@ describe('ObservedPlay page', () => {
       expect(screen.getByText(/unknown: 10/i)).toBeInTheDocument();
     });
 
-    await userEvent.click(screen.getAllByRole('button', { name: /reparse/i })[0]);
+    await userEvent.click(screen.getAllByRole('button', { name: /^reparse$/i })[0]);
 
     await waitFor(() => {
       expect(screen.getByText(/unknown: 2/i)).toBeInTheDocument();
@@ -2455,5 +2476,181 @@ describe('Raw Logs — sorting', () => {
     await waitFor(() => screen.getByRole('button', { name: /sort by parse/i }));
     const parseBtn = screen.getByRole('button', { name: /sort by parse/i });
     expect(parseBtn.title).toContain('parse status');
+  });
+});
+
+// ── Bulk actions ──────────────────────────────────────────────────────────────
+
+describe('Bulk actions panel', () => {
+  it('renders Parse / Reparse all and Ingest all eligible buttons', async () => {
+    setup();
+    await waitFor(() => expect(screen.getByText('Bulk Actions')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /parse \/ reparse all/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /ingest all eligible/i })).toBeInTheDocument();
+  });
+
+  it('clicking Parse / Reparse all opens the confirm modal', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    await userEvent.click(screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    expect(screen.getByRole('dialog', { name: /bulk parse modal/i })).toBeInTheDocument();
+  });
+
+  it('bulk parse modal has Run button', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    await userEvent.click(screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    expect(screen.getByRole('button', { name: /run parse \/ reparse/i })).toBeInTheDocument();
+  });
+
+  it('bulk parse modal close button dismisses modal', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    await userEvent.click(screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    const dialog = screen.getByRole('dialog', { name: /bulk parse modal/i });
+    const closeBtns = within(dialog).getAllByRole('button', { name: /^close$/i });
+    await userEvent.click(closeBtns[closeBtns.length - 1]); // footer Close button
+    expect(screen.queryByRole('dialog', { name: /bulk parse modal/i })).not.toBeInTheDocument();
+  });
+
+  it('running bulk parse calls bulkReparseAll and shows result counts', async () => {
+    (bulkReparseAll as ReturnType<typeof vi.fn>).mockResolvedValue({
+      considered_count: 5, reparsed_count: 4, skipped_count: 1, failed_count: 0,
+      reparsed: [], skipped: [], failed: [], average_confidence: 0.88, total_event_count: 120,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    await userEvent.click(screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    await userEvent.click(screen.getByRole('button', { name: /run parse \/ reparse/i }));
+
+    await waitFor(() => {
+      expect(bulkReparseAll as ReturnType<typeof vi.fn>).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(screen.getByText('4')).toBeInTheDocument(); // reparsed_count
+    });
+  });
+
+  it('bulk parse shows average confidence after run', async () => {
+    (bulkReparseAll as ReturnType<typeof vi.fn>).mockResolvedValue({
+      considered_count: 3, reparsed_count: 3, skipped_count: 0, failed_count: 0,
+      reparsed: [], skipped: [], failed: [], average_confidence: 0.92, total_event_count: 60,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    await userEvent.click(screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    await userEvent.click(screen.getByRole('button', { name: /run parse \/ reparse/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/avg confidence/i)).toBeInTheDocument();
+      expect(screen.getByText(/92\.0%/)).toBeInTheDocument();
+    });
+  });
+
+  it('bulk parse error displays message', async () => {
+    (bulkReparseAll as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('server error'));
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    await userEvent.click(screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    await userEvent.click(screen.getByRole('button', { name: /run parse \/ reparse/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+  });
+
+  it('clicking Ingest all eligible opens modal and calls bulkPreviewEligible', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /ingest all eligible/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest all eligible/i }));
+
+    await waitFor(() => {
+      expect(bulkPreviewEligible as ReturnType<typeof vi.fn>).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByRole('dialog', { name: /bulk ingest eligible modal/i })).toBeInTheDocument();
+  });
+
+  it('ingest modal shows eligible count from preview', async () => {
+    (bulkPreviewEligible as ReturnType<typeof vi.fn>).mockResolvedValue({
+      considered_count: 5, eligible_count: 3, ineligible_count: 1,
+      already_ingested_count: 1, not_ready_count: 0, estimated_memory_item_count: 15,
+      eligible_logs: [], skipped_logs: [], top_blocker_reasons: [],
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /ingest all eligible/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest all eligible/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /ingest 3 eligible log/i })).toBeInTheDocument();
+    });
+  });
+
+  it('ingest modal shows no eligible message when count is 0', async () => {
+    (bulkPreviewEligible as ReturnType<typeof vi.fn>).mockResolvedValue({
+      considered_count: 2, eligible_count: 0, ineligible_count: 2,
+      already_ingested_count: 0, not_ready_count: 0, estimated_memory_item_count: 0,
+      eligible_logs: [], skipped_logs: [], top_blocker_reasons: [],
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /ingest all eligible/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest all eligible/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/no eligible logs to ingest/i)).toBeInTheDocument();
+    });
+  });
+
+  it('bulk ingest run calls bulkIngestEligible and shows result', async () => {
+    (bulkPreviewEligible as ReturnType<typeof vi.fn>).mockResolvedValue({
+      considered_count: 3, eligible_count: 2, ineligible_count: 1,
+      already_ingested_count: 0, not_ready_count: 0, estimated_memory_item_count: 10,
+      eligible_logs: [], skipped_logs: [], top_blocker_reasons: [],
+    });
+    (bulkIngestEligible as ReturnType<typeof vi.fn>).mockResolvedValue({
+      considered_count: 3, eligible_count: 2, ingested_count: 2, skipped_count: 1,
+      failed_count: 0, memory_items_created: 10,
+      ingested_logs: [], skipped_logs: [], failed_logs: [],
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /ingest all eligible/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest all eligible/i }));
+    await waitFor(() => screen.getByRole('button', { name: /ingest 2 eligible log/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest 2 eligible log/i }));
+
+    await waitFor(() => {
+      expect(bulkIngestEligible as ReturnType<typeof vi.fn>).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(screen.getByText('10')).toBeInTheDocument(); // memory_items_created
+    });
+  });
+
+  it('ingest modal close button dismisses modal', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /ingest all eligible/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest all eligible/i }));
+    await waitFor(() => screen.getByRole('dialog', { name: /bulk ingest eligible modal/i }));
+    const dialog = screen.getByRole('dialog', { name: /bulk ingest eligible modal/i });
+    const closeBtns = within(dialog).getAllByRole('button', { name: /^close$/i });
+    await userEvent.click(closeBtns[closeBtns.length - 1]); // footer Close button
+    expect(screen.queryByRole('dialog', { name: /bulk ingest eligible modal/i })).not.toBeInTheDocument();
+  });
+
+  it('ingest preview error displays message', async () => {
+    (bulkPreviewEligible as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('preview failed'));
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /ingest all eligible/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest all eligible/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
   });
 });
