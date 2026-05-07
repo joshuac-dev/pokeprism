@@ -2496,6 +2496,128 @@ class TestBulkReparseAll:
                       "reparsed", "skipped", "failed", "average_confidence", "total_event_count"):
             assert field in data, f"Missing field: {field}"
 
+    def test_default_skips_ingested_logs(self, client):
+        """Default behavior (include_ingested=false) skips ingested logs."""
+        log_ingested = _make_log_model(log_id="log-ri-1", memory_status="ingested",
+                                       raw_content="Alice's Turn 1\n")
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(return_value=self._make_scalars_result([log_ingested]))
+            session.commit = AsyncMock()
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post("/api/observed-play/logs/reparse-all", json={})
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert data["skipped_count"] == 1
+        assert data["reparsed_count"] == 0
+
+    def test_include_ingested_true_reparses_ingested_log(self, client):
+        """include_ingested=true causes ingested logs to be reparsed."""
+        log_ingested = _make_log_model(log_id="log-ri-2", memory_status="ingested",
+                                       raw_content="Alice's Turn 1\nAlice drew 1 card.\n")
+
+        call_count = [0]
+
+        async def override_db():
+            session = AsyncMock()
+
+            async def execute_side_effect(*args, **kwargs):
+                idx = call_count[0]
+                call_count[0] += 1
+                if idx == 0:
+                    return self._make_scalars_result([log_ingested])
+                return self._make_delete_result()
+
+            session.execute = AsyncMock(side_effect=execute_side_effect)
+            session.add = MagicMock()
+            session.commit = AsyncMock()
+            session.refresh = AsyncMock(side_effect=lambda obj: None)
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        with patch("app.api.observed_play.extract_and_resolve_mentions_for_log", new_callable=AsyncMock) as mock_resolve:
+            mock_resolve.return_value = MagicMock(
+                log_id="log-ri-2", card_mention_count=0, resolved_card_count=0,
+                ambiguous_card_count=0, unresolved_card_count=0, ignored_card_count=0,
+                card_resolution_status="not_resolved", resolver_version="1.0", errors=[],
+            )
+            try:
+                resp = client.post("/api/observed-play/logs/reparse-all",
+                                   json={"include_ingested": True})
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["reparsed_count"] == 1
+        assert data["skipped_count"] == 0
+        assert data["ingested_reparsed_count"] == 1
+
+    def test_include_ingested_marks_had_existing_memory(self, client):
+        """Reparsed ingested logs have had_existing_memory=true and memory_warning set."""
+        log_ingested = _make_log_model(log_id="log-ri-3", memory_status="ingested",
+                                       raw_content="Alice's Turn 1\nAlice drew 1 card.\n")
+
+        call_count = [0]
+
+        async def override_db():
+            session = AsyncMock()
+
+            async def execute_side_effect(*args, **kwargs):
+                idx = call_count[0]
+                call_count[0] += 1
+                if idx == 0:
+                    return self._make_scalars_result([log_ingested])
+                return self._make_delete_result()
+
+            session.execute = AsyncMock(side_effect=execute_side_effect)
+            session.add = MagicMock()
+            session.commit = AsyncMock()
+            session.refresh = AsyncMock(side_effect=lambda obj: None)
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        with patch("app.api.observed_play.extract_and_resolve_mentions_for_log", new_callable=AsyncMock) as mock_resolve:
+            mock_resolve.return_value = MagicMock(
+                log_id="log-ri-3", card_mention_count=0, resolved_card_count=0,
+                ambiguous_card_count=0, unresolved_card_count=0, ignored_card_count=0,
+                card_resolution_status="not_resolved", resolver_version="1.0", errors=[],
+            )
+            try:
+                resp = client.post("/api/observed-play/logs/reparse-all",
+                                   json={"include_ingested": True})
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert len(data["reparsed"]) == 1
+        reparsed_log = data["reparsed"][0]
+        assert reparsed_log["had_existing_memory"] is True
+        assert reparsed_log["memory_warning"] is not None
+        assert "re-ingest" in reparsed_log["memory_warning"]
+
+    def test_response_includes_ingested_reparsed_count(self, client):
+        """Response includes ingested_reparsed_count field."""
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(return_value=self._make_scalars_result([]))
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post("/api/observed-play/logs/reparse-all")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert "ingested_reparsed_count" in data
+
 
 # ── Bulk preview eligible ─────────────────────────────────────────────────────
 
@@ -2618,6 +2740,72 @@ class TestBulkPreviewEligible:
                 client.app.fastapi_app.dependency_overrides.clear()
         assert resp.status_code == 200
         assert not commit_called, "Preview endpoint must not commit"
+
+    def test_default_skips_ingested_logs(self, client):
+        """Default include_already_ingested=false skips already-ingested logs."""
+        log = _make_log_model(log_id="log-pi-1", memory_status="ingested", parse_status="parsed")
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(return_value=self._make_scalars_result([log]))
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post("/api/observed-play/memory-ingestion/preview-eligible", json={})
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert data["already_ingested_count"] == 1
+        assert data["eligible_count"] == 0
+        assert data["eligible_for_reingest_count"] == 0
+
+    def test_include_already_ingested_evaluates_ingested_logs(self, client):
+        """include_already_ingested=true evaluates already-ingested parsed eligible logs."""
+        log = _make_log_model(log_id="log-pi-2", memory_status="ingested", parse_status="parsed")
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(return_value=self._make_scalars_result([log]))
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        with patch("app.api.observed_play.evaluate_log_ingestion_eligibility", new_callable=AsyncMock) as mock_eval, \
+             patch("app.api.observed_play.preview_observed_play_ingestion", new_callable=AsyncMock) as mock_preview:
+            from app.observed_play.schemas import EligibilityResult, MemoryIngestionPreview
+            mock_eval.return_value = EligibilityResult(eligible=True, status="eligible", reasons=[], blockers=[])
+            mock_preview.return_value = MemoryIngestionPreview(
+                eligible=True, eligibility_status="eligible",
+                estimated_memory_item_count=5,
+            )
+            try:
+                resp = client.post("/api/observed-play/memory-ingestion/preview-eligible",
+                                   json={"include_already_ingested": True})
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert data["eligible_for_reingest_count"] == 1
+        assert data["eligible_count"] == 0
+        assert data["already_ingested_count"] == 0
+
+    def test_preview_response_has_eligible_for_reingest_count(self, client):
+        """Response includes eligible_for_reingest_count field."""
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(return_value=self._make_scalars_result([]))
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post("/api/observed-play/memory-ingestion/preview-eligible")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert "eligible_for_reingest_count" in data
+        assert "include_already_ingested" in data
 
 
 # ── Bulk ingest eligible ──────────────────────────────────────────────────────
@@ -2772,3 +2960,148 @@ class TestBulkIngestEligible:
                       "failed_count", "memory_items_created",
                       "ingested_logs", "skipped_logs", "failed_logs"):
             assert field in data, f"Missing field: {field}"
+
+    def test_default_skips_ingested_logs(self, client):
+        """Default include_already_ingested=false skips already-ingested logs."""
+        log = _make_log_model(log_id="log-ii-1", memory_status="ingested", parse_status="parsed")
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(return_value=self._make_scalars_result([log]))
+            session.commit = AsyncMock()
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post("/api/observed-play/memory-ingestion/ingest-eligible", json={})
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert data["skipped_count"] == 1
+        assert data["ingested_count"] == 0
+        assert data["reingested_count"] == 0
+
+    def test_include_already_ingested_reingests_eligible_log(self, client):
+        """include_already_ingested=true re-ingests already-ingested eligible logs."""
+        log = _make_log_model(log_id="log-ii-2", memory_status="ingested", parse_status="parsed",
+                              raw_content="Alice's Turn 1\n")
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(return_value=self._make_scalars_result([log]))
+            session.commit = AsyncMock()
+            session.rollback = AsyncMock()
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        with patch("app.api.observed_play.ingest_observed_play_log", new_callable=AsyncMock) as mock_ingest:
+            from app.observed_play.schemas import MemoryIngestionSummary
+            mock_ingest.return_value = MemoryIngestionSummary(
+                ingestion_id="iid-ri-1", log_id="log-ii-2", status="success",
+                eligibility_status="eligible", ingestion_version="1.0",
+                memory_item_count=5, source_event_count=10, skipped_event_count=0,
+                blocked_reason_count=0,
+            )
+            try:
+                resp = client.post("/api/observed-play/memory-ingestion/ingest-eligible",
+                                   json={"include_already_ingested": True})
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert data["reingested_count"] == 1
+        assert data["ingested_count"] == 0
+        assert data["memory_items_created"] == 5
+        assert len(data["ingested_logs"]) == 1
+        assert data["ingested_logs"][0]["status"] == "reingested"
+
+    def test_reingest_result_status_is_reingested(self, client):
+        """Re-ingested logs appear in ingested_logs with status=reingested."""
+        log = _make_log_model(log_id="log-ii-3", memory_status="ingested", parse_status="parsed",
+                              raw_content="Alice's Turn 1\n")
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(return_value=self._make_scalars_result([log]))
+            session.commit = AsyncMock()
+            session.rollback = AsyncMock()
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        with patch("app.api.observed_play.ingest_observed_play_log", new_callable=AsyncMock) as mock_ingest:
+            from app.observed_play.schemas import MemoryIngestionSummary
+            mock_ingest.return_value = MemoryIngestionSummary(
+                ingestion_id="iid-ri-2", log_id="log-ii-3", status="success",
+                eligibility_status="eligible", ingestion_version="1.0",
+                memory_item_count=3, source_event_count=5, skipped_event_count=0,
+                blocked_reason_count=0,
+            )
+            try:
+                resp = client.post("/api/observed-play/memory-ingestion/ingest-eligible",
+                                   json={"include_already_ingested": True})
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        ingested_logs = data["ingested_logs"]
+        assert len(ingested_logs) == 1
+        assert ingested_logs[0]["status"] == "reingested"
+        assert ingested_logs[0]["log_id"] == "log-ii-3"
+
+    def test_response_has_reingested_count_field(self, client):
+        """Response includes reingested_count and include_already_ingested fields."""
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(return_value=self._make_scalars_result([]))
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.post("/api/observed-play/memory-ingestion/ingest-eligible")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert "reingested_count" in data
+        assert "include_already_ingested" in data
+        assert data["reingested_count"] == 0
+
+    def test_new_and_reingested_both_in_ingested_logs(self, client):
+        """Both newly ingested and re-ingested logs appear in ingested_logs."""
+        log_new = _make_log_model(log_id="log-ii-4", memory_status="not_ingested", parse_status="parsed",
+                                  raw_content="Alice's Turn 1\n")
+        log_reingest = _make_log_model(log_id="log-ii-5", memory_status="ingested", parse_status="parsed",
+                                       raw_content="Alice's Turn 1\n")
+
+        def make_results():
+            return self._make_scalars_result([log_new, log_reingest])
+
+        async def override_db():
+            session = AsyncMock()
+            session.execute = AsyncMock(return_value=make_results())
+            session.commit = AsyncMock()
+            session.rollback = AsyncMock()
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        with patch("app.api.observed_play.ingest_observed_play_log", new_callable=AsyncMock) as mock_ingest:
+            from app.observed_play.schemas import MemoryIngestionSummary
+            mock_ingest.return_value = MemoryIngestionSummary(
+                ingestion_id="iid-combo", log_id="", status="success",
+                eligibility_status="eligible", ingestion_version="1.0",
+                memory_item_count=4, source_event_count=8, skipped_event_count=0,
+                blocked_reason_count=0,
+            )
+            try:
+                resp = client.post("/api/observed-play/memory-ingestion/ingest-eligible",
+                                   json={"include_already_ingested": True})
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert data["ingested_count"] == 1
+        assert data["reingested_count"] == 1
+        statuses = {l["status"] for l in data["ingested_logs"]}
+        assert "ingested" in statuses
+        assert "reingested" in statuses

@@ -30,6 +30,11 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+### Changed
+- **Bulk reparse opt-in flag** — `POST /logs/reparse-all` now accepts optional `include_ingested` (default false). When true, already-ingested logs are reparsed and their parsed events/card mentions refreshed without changing memory items. Response includes `ingested_reparsed_count` and per-log `had_existing_memory`/`memory_warning` fields.
+- **Bulk ingest opt-in flag** — `POST /memory-ingestion/ingest-eligible` and `POST /memory-ingestion/preview-eligible` now accept optional `include_already_ingested` (default false). When true, already-ingested eligible logs are re-ingested by replacing existing observed memory items rather than being skipped. Response includes `reingested_count` and `include_already_ingested` fields. Preview includes `eligible_for_reingest_count`.
+- Frontend bulk action modals updated with opt-in checkboxes, conditional warning text, and updated result display.
+
 ### Added
 - **Observed Play bulk parse / ingest actions** — frontend + backend. Added "Bulk Actions" panel to `/observed-play` with "Parse / Reparse all" and "Ingest all eligible" buttons. Three new API endpoints (`POST /logs/reparse-all`, `POST /memory-ingestion/preview-eligible`, `POST /memory-ingestion/ingest-eligible`) backed by new Pydantic schemas. Endpoints are idempotent: already-ingested logs are skipped in both reparse and ingest, preventing memory desyncs. Ingest endpoint applies the same eligibility gates as single-log ingestion. Preview is read-only. +18 backend tests, +13 frontend tests (1065 backend, 259 frontend). No Phase 5.2, Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, data reset, or runtime integration.
 

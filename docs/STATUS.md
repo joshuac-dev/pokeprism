@@ -45,6 +45,30 @@ Re-check them before making claims in user-facing docs.
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
 
+## Session 44 Work (2026-05-09) — Bulk Action Opt-in Flags
+
+### Goal
+
+Revise Observed Play bulk actions for testing/debugging workflows. Both defaults remain production-safe (already-ingested logs are skipped unless user opts in).
+
+### Changes
+
+**Backend:**
+- `schemas.py`: Added `BulkReparseRequest` and `BulkIngestEligibleRequest` request schemas. Extended `BulkReparseLogResult` (`had_existing_memory`, `memory_warning`), `BulkReparseSummary` (`ingested_reparsed_count`), `BulkIngestPreviewLog` (`eligible_for_reingest` status), `BulkIngestEligiblePreview` (`eligible_for_reingest_count`, `include_already_ingested`), `BulkIngestLogResult` (`reingested` status), `BulkIngestEligibleSummary` (`reingested_count`, `include_already_ingested`).
+- `api/observed_play.py`: Updated `reparse_all_logs`, `preview_ingest_eligible`, and `ingest_all_eligible` to accept optional request bodies. Reparse: opt-in `include_ingested` flag (default false) — reparsed ingested logs get `had_existing_memory=true` and `memory_warning`. Ingest: opt-in `include_already_ingested` flag (default false) — re-ingested logs use `status=reingested` and appear in `ingested_logs`.
+- `tests/test_api/test_observed_play.py`: +16 backend tests.
+
+**Frontend:**
+- `types/observedPlay.ts`: Added `BulkReparseRequest`, `BulkIngestEligibleRequest` interfaces. Extended existing bulk interfaces with new fields.
+- `api/observedPlay.ts`: Updated `bulkReparseAll`, `bulkPreviewEligible`, `bulkIngestEligible` to accept options objects.
+- `pages/ObservedPlay.tsx`: Added `bulkIncludeIngested` and `bulkIncludeAlreadyIngested` state. Parse modal: checkbox to opt in to reparsing ingested logs with conditional warning text; result shows `ingested_reparsed_count` when non-zero. Ingest modal: checkbox to opt in to re-ingesting already-ingested eligible logs with replacement warning; preview refreshes on toggle; result shows `reingested_count` as separate column when non-zero.
+- `pages/ObservedPlay.test.tsx`: +9 frontend tests.
+
+### Validation
+
+- Bulk actions now support explicit testing/debugging overrides. Parse/Reparse all can include already-ingested logs when the user opts in (default: skip); reparsing refreshes parse/card-mention data without changing memory. Ingest all eligible can re-ingest already-ingested eligible logs when the user opts in (default: skip); existing observed memory items for those logs are replaced rather than duplicated.
+- No Phase 5.2, data reset, automatic ingestion, Coach/AI integration, pgvector, Neo4j writes, simulator match_events, card_performance writes, deck-builder usage, or runtime memory usage added.
+
 ## Session 43 Work (2026-05-08) — Bulk Parse / Ingest Actions
 
 ### Goal

@@ -427,6 +427,14 @@ export interface MemoryAnalyticsSourceItemsParams {
 
 // ── Bulk actions ───────────────────────────────────────────────────────────────
 
+export interface BulkReparseRequest {
+  include_ingested?: boolean;
+}
+
+export interface BulkIngestEligibleRequest {
+  include_already_ingested?: boolean;
+}
+
 export interface BulkReparseLogResult {
   log_id: string;
   filename: string | null;
@@ -436,6 +444,8 @@ export interface BulkReparseLogResult {
   parse_status?: string;
   confidence_score?: number;
   event_count?: number;
+  had_existing_memory?: boolean;
+  memory_warning?: string | null;
 }
 
 export interface BulkReparseSummary {
@@ -443,6 +453,7 @@ export interface BulkReparseSummary {
   reparsed_count: number;
   skipped_count: number;
   failed_count: number;
+  ingested_reparsed_count?: number;
   reparsed: BulkReparseLogResult[];
   skipped: BulkReparseLogResult[];
   failed: BulkReparseLogResult[];
@@ -453,7 +464,7 @@ export interface BulkReparseSummary {
 export interface BulkIngestPreviewLog {
   log_id: string;
   filename: string | null;
-  status: 'eligible' | 'ineligible' | 'already_ingested' | 'not_ready';
+  status: 'eligible' | 'eligible_for_reingest' | 'ineligible' | 'already_ingested' | 'not_ready';
   confidence_score?: number;
   event_count?: number;
   estimated_memory_item_count?: number;
@@ -463,10 +474,12 @@ export interface BulkIngestPreviewLog {
 export interface BulkIngestEligiblePreview {
   considered_count: number;
   eligible_count: number;
+  eligible_for_reingest_count?: number;
   ineligible_count: number;
   already_ingested_count: number;
   not_ready_count: number;
   estimated_memory_item_count: number;
+  include_already_ingested?: boolean;
   eligible_logs: BulkIngestPreviewLog[];
   skipped_logs: BulkIngestPreviewLog[];
   top_blocker_reasons: { reason: string; count: number }[];
@@ -475,7 +488,7 @@ export interface BulkIngestEligiblePreview {
 export interface BulkIngestLogResult {
   log_id: string;
   filename: string | null;
-  status: 'ingested' | 'skipped' | 'failed';
+  status: 'ingested' | 'reingested' | 'skipped' | 'failed';
   reason?: string;
   memory_item_count: number;
   error?: string;
@@ -485,9 +498,11 @@ export interface BulkIngestEligibleSummary {
   considered_count: number;
   eligible_count: number;
   ingested_count: number;
+  reingested_count?: number;
   skipped_count: number;
   failed_count: number;
   memory_items_created: number;
+  include_already_ingested?: boolean;
   ingested_logs: BulkIngestLogResult[];
   skipped_logs: BulkIngestLogResult[];
   failed_logs: BulkIngestLogResult[];

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import AsyncGenerator, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy import and_, asc, case, delete, desc, distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,10 +35,12 @@ from app.observed_play.schemas import (
     BatchImportResponse,
     BatchSummary,
     BulkIngestEligiblePreview,
+    BulkIngestEligibleRequest,
     BulkIngestEligibleSummary,
     BulkIngestLogResult,
     BulkIngestPreviewLog,
     BulkReparseLogResult,
+    BulkReparseRequest,
     BulkReparseSummary,
     CardMentionItem,
     CardResolutionSummaryResponse,
@@ -1569,13 +1571,17 @@ async def get_memory_analytics_source_items(
 
 @router.post("/logs/reparse-all")
 async def reparse_all_logs(
+    request: BulkReparseRequest | None = Body(default=None),
     db: AsyncSession = Depends(get_db),
 ) -> BulkReparseSummary:
-    """Reparse all non-ingested observed-play logs with the current parser.
+    """Reparse all observed-play logs with the current parser.
 
-    Already-ingested logs are skipped to avoid desync between parsed events
-    and existing memory items.  No memory items are created.
+    By default, already-ingested logs are skipped to avoid desync between
+    parsed events and existing memory items.  Set include_ingested=true to
+    opt in to reparsing ingested logs (refreshes parse data only; memory items
+    are unchanged).  No memory items are created in either case.
     """
+    req = request if request is not None else BulkReparseRequest()
     logs_result = await db.execute(
         select(ObservedPlayLog).order_by(ObservedPlayLog.created_at.asc())
     )
@@ -1584,12 +1590,14 @@ async def reparse_all_logs(
     reparsed: list[BulkReparseLogResult] = []
     skipped: list[BulkReparseLogResult] = []
     failed: list[BulkReparseLogResult] = []
+    ingested_reparsed_count = 0
 
     for log in logs:
         log_id = str(log.id)
         filename = log.original_filename or log_id
 
-        if log.memory_status == "ingested":
+        had_existing_memory = log.memory_status == "ingested"
+        if had_existing_memory and not req.include_ingested:
             skipped.append(BulkReparseLogResult(
                 log_id=log_id, filename=filename,
                 status="skipped", reason="already_ingested",
@@ -1667,12 +1675,19 @@ async def reparse_all_logs(
             except Exception as exc:
                 logger.warning("Card resolution failed for log %s during bulk reparse: %s", log_id, exc)
 
+            memory_warning = None
+            if had_existing_memory:
+                memory_warning = "existing memory was not changed; re-ingest this log to refresh memory items"
+                ingested_reparsed_count += 1
+
             reparsed.append(BulkReparseLogResult(
                 log_id=log_id, filename=filename,
                 status="reparsed",
                 parse_status=log.parse_status,
                 confidence_score=log.confidence_score,
                 event_count=log.event_count or 0,
+                had_existing_memory=had_existing_memory,
+                memory_warning=memory_warning,
             ))
 
         except Exception as exc:
@@ -1692,6 +1707,7 @@ async def reparse_all_logs(
         reparsed_count=len(reparsed),
         skipped_count=len(skipped),
         failed_count=len(failed),
+        ingested_reparsed_count=ingested_reparsed_count,
         reparsed=reparsed,
         skipped=skipped,
         failed=failed,
@@ -1702,13 +1718,17 @@ async def reparse_all_logs(
 
 @router.post("/memory-ingestion/preview-eligible")
 async def preview_ingest_eligible(
+    request: BulkIngestEligibleRequest | None = Body(default=None),
     db: AsyncSession = Depends(get_db),
 ) -> BulkIngestEligiblePreview:
     """Preview which logs are eligible for bulk memory ingestion.
 
-    Logs that are already ingested or not yet parsed are reported as skipped.
+    By default, already-ingested logs are reported as skipped.  Set
+    include_already_ingested=true to opt in to evaluating them as
+    re-ingest candidates.
     This is a read-only endpoint; no memory items are created.
     """
+    req = request if request is not None else BulkIngestEligibleRequest()
     config = IngestionConfig()
 
     logs_result = await db.execute(
@@ -1724,7 +1744,8 @@ async def preview_ingest_eligible(
         log_id = str(log.id)
         filename = log.original_filename or log_id
 
-        if log.memory_status == "ingested":
+        is_reingest_candidate = log.memory_status == "ingested"
+        if is_reingest_candidate and not req.include_already_ingested:
             skipped_logs.append(BulkIngestPreviewLog(
                 log_id=log_id, filename=filename,
                 status="already_ingested",
@@ -1751,7 +1772,7 @@ async def preview_ingest_eligible(
             preview = await preview_observed_play_ingestion(db, log.id, config)
             eligible_logs.append(BulkIngestPreviewLog(
                 log_id=log_id, filename=filename,
-                status="eligible",
+                status="eligible_for_reingest" if is_reingest_candidate else "eligible",
                 confidence_score=log.confidence_score,
                 event_count=log.event_count or 0,
                 estimated_memory_item_count=preview.estimated_memory_item_count,
@@ -1768,6 +1789,7 @@ async def preview_ingest_eligible(
                 blocker_reasons=reasons,
             ))
 
+    eligible_for_reingest_count = sum(1 for e in eligible_logs if e.status == "eligible_for_reingest")
     ineligible_count = sum(1 for s in skipped_logs if s.status == "ineligible")
     already_ingested_count = sum(1 for s in skipped_logs if s.status == "already_ingested")
     not_ready_count = sum(1 for s in skipped_logs if s.status == "not_ready")
@@ -1780,11 +1802,13 @@ async def preview_ingest_eligible(
 
     return BulkIngestEligiblePreview(
         considered_count=len(logs),
-        eligible_count=len(eligible_logs),
+        eligible_count=sum(1 for e in eligible_logs if e.status == "eligible"),
+        eligible_for_reingest_count=eligible_for_reingest_count,
         ineligible_count=ineligible_count,
         already_ingested_count=already_ingested_count,
         not_ready_count=not_ready_count,
         estimated_memory_item_count=estimated_total,
+        include_already_ingested=req.include_already_ingested,
         eligible_logs=eligible_logs,
         skipped_logs=skipped_logs,
         top_blocker_reasons=top_blockers,
@@ -1793,16 +1817,19 @@ async def preview_ingest_eligible(
 
 @router.post("/memory-ingestion/ingest-eligible")
 async def ingest_all_eligible(
+    request: BulkIngestEligibleRequest | None = Body(default=None),
     db: AsyncSession = Depends(get_db),
 ) -> BulkIngestEligibleSummary:
     """Ingest all eligible parsed/not-yet-ingested logs into observed-play memory.
 
     Uses the same eligibility gates as single-log ingestion.
-    Already-ingested logs are skipped (idempotent).
-    No force ingest; ineligible logs are skipped and reported.
+    By default, already-ingested logs are skipped.  Set include_already_ingested=true
+    to opt in to re-ingesting them (existing memory items are replaced).
+    No force ingest; ineligible logs are always skipped and reported.
     Each log is committed individually so a failure on one log
     does not roll back previously successful ingestions.
     """
+    req = request if request is not None else BulkIngestEligibleRequest()
     config = IngestionConfig()
 
     logs_result = await db.execute(
@@ -1811,6 +1838,7 @@ async def ingest_all_eligible(
     logs = logs_result.scalars().all()
 
     ingested: list[BulkIngestLogResult] = []
+    reingested: list[BulkIngestLogResult] = []
     skipped: list[BulkIngestLogResult] = []
     failed: list[BulkIngestLogResult] = []
 
@@ -1818,7 +1846,8 @@ async def ingest_all_eligible(
         log_id = str(log.id)
         filename = log.original_filename or log_id
 
-        if log.memory_status == "ingested":
+        is_reingest = log.memory_status == "ingested"
+        if is_reingest and not req.include_already_ingested:
             skipped.append(BulkIngestLogResult(
                 log_id=log_id, filename=filename,
                 status="skipped", reason="already_ingested",
@@ -1845,11 +1874,15 @@ async def ingest_all_eligible(
                 await db.rollback()
             else:
                 await db.commit()
-                ingested.append(BulkIngestLogResult(
+                result_entry = BulkIngestLogResult(
                     log_id=log_id, filename=filename,
-                    status="ingested",
+                    status="reingested" if is_reingest else "ingested",
                     memory_item_count=summary.memory_item_count,
-                ))
+                )
+                if is_reingest:
+                    reingested.append(result_entry)
+                else:
+                    ingested.append(result_entry)
 
         except Exception as exc:
             logger.error("Bulk ingest failed for log %s: %s", log_id, exc)
@@ -1859,19 +1892,22 @@ async def ingest_all_eligible(
                 status="failed", error=str(exc),
             ))
 
-    eligible_count = len(ingested) + len(failed) + sum(
+    all_successful = ingested + reingested
+    eligible_count = len(all_successful) + len(failed) + sum(
         1 for s in skipped if s.reason not in ("already_ingested", "not_parsed")
     )
-    memory_items_created = sum(r.memory_item_count for r in ingested)
+    memory_items_created = sum(r.memory_item_count for r in all_successful)
 
     return BulkIngestEligibleSummary(
         considered_count=len(logs),
         eligible_count=eligible_count,
         ingested_count=len(ingested),
+        reingested_count=len(reingested),
         skipped_count=len(skipped),
         failed_count=len(failed),
         memory_items_created=memory_items_created,
-        ingested_logs=ingested,
+        include_already_ingested=req.include_already_ingested,
+        ingested_logs=ingested + reingested,
         skipped_logs=skipped,
         failed_logs=failed,
     )

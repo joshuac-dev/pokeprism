@@ -464,6 +464,14 @@ class MemoryAnalyticsResponse(BaseModel):
 
 # ── Bulk actions ───────────────────────────────────────────────────────────────
 
+class BulkReparseRequest(BaseModel):
+    include_ingested: bool = False
+
+
+class BulkIngestEligibleRequest(BaseModel):
+    include_already_ingested: bool = False
+
+
 class BulkReparseLogResult(BaseModel):
     log_id: str
     filename: str | None = None
@@ -473,6 +481,8 @@ class BulkReparseLogResult(BaseModel):
     parse_status: str | None = None
     confidence_score: float | None = None
     event_count: int | None = None
+    had_existing_memory: bool = False
+    memory_warning: str | None = None
 
 
 class BulkReparseSummary(BaseModel):
@@ -480,6 +490,7 @@ class BulkReparseSummary(BaseModel):
     reparsed_count: int = 0
     skipped_count: int = 0
     failed_count: int = 0
+    ingested_reparsed_count: int = 0
     reparsed: list[BulkReparseLogResult] = Field(default_factory=list)
     skipped: list[BulkReparseLogResult] = Field(default_factory=list)
     failed: list[BulkReparseLogResult] = Field(default_factory=list)
@@ -490,7 +501,7 @@ class BulkReparseSummary(BaseModel):
 class BulkIngestPreviewLog(BaseModel):
     log_id: str
     filename: str | None = None
-    status: str  # eligible / ineligible / already_ingested / not_ready
+    status: str  # eligible / eligible_for_reingest / ineligible / already_ingested / not_ready
     confidence_score: float | None = None
     event_count: int | None = None
     estimated_memory_item_count: int | None = None
@@ -500,10 +511,12 @@ class BulkIngestPreviewLog(BaseModel):
 class BulkIngestEligiblePreview(BaseModel):
     considered_count: int = 0
     eligible_count: int = 0
+    eligible_for_reingest_count: int = 0
     ineligible_count: int = 0
     already_ingested_count: int = 0
     not_ready_count: int = 0
     estimated_memory_item_count: int = 0
+    include_already_ingested: bool = False
     eligible_logs: list[BulkIngestPreviewLog] = Field(default_factory=list)
     skipped_logs: list[BulkIngestPreviewLog] = Field(default_factory=list)
     top_blocker_reasons: list[dict] = Field(default_factory=list)
@@ -512,7 +525,7 @@ class BulkIngestEligiblePreview(BaseModel):
 class BulkIngestLogResult(BaseModel):
     log_id: str
     filename: str | None = None
-    status: str  # ingested / skipped / failed
+    status: str  # ingested / reingested / skipped / failed
     reason: str | None = None
     memory_item_count: int = 0
     error: str | None = None
@@ -522,9 +535,11 @@ class BulkIngestEligibleSummary(BaseModel):
     considered_count: int = 0
     eligible_count: int = 0
     ingested_count: int = 0
+    reingested_count: int = 0
     skipped_count: int = 0
     failed_count: int = 0
     memory_items_created: int = 0
+    include_already_ingested: bool = False
     ingested_logs: list[BulkIngestLogResult] = Field(default_factory=list)
     skipped_logs: list[BulkIngestLogResult] = Field(default_factory=list)
     failed_logs: list[BulkIngestLogResult] = Field(default_factory=list)

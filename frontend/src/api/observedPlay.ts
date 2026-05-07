@@ -1,7 +1,9 @@
 import api from './client';
 import type {
   BulkIngestEligiblePreview,
+  BulkIngestEligibleRequest,
   BulkIngestEligibleSummary,
+  BulkReparseRequest,
   BulkReparseSummary,
   CardMentionListResponse,
   CardResolutionSummaryResponse,
@@ -209,17 +211,17 @@ export async function getMemoryAnalyticsSourceItems(
 
 // ── Bulk actions ───────────────────────────────────────────────────────────────
 
-export async function bulkReparseAll(): Promise<BulkReparseSummary> {
-  const resp = await api.post('/api/observed-play/logs/reparse-all');
+export async function bulkReparseAll(opts: BulkReparseRequest = {}): Promise<BulkReparseSummary> {
+  const resp = await api.post('/api/observed-play/logs/reparse-all', opts);
   return resp.data as BulkReparseSummary;
 }
 
-export async function bulkPreviewEligible(): Promise<BulkIngestEligiblePreview> {
-  const resp = await api.post('/api/observed-play/memory-ingestion/preview-eligible');
+export async function bulkPreviewEligible(opts: BulkIngestEligibleRequest = {}): Promise<BulkIngestEligiblePreview> {
+  const resp = await api.post('/api/observed-play/memory-ingestion/preview-eligible', opts);
   return resp.data as BulkIngestEligiblePreview;
 }
 
-export async function bulkIngestEligible(): Promise<BulkIngestEligibleSummary> {
-  const resp = await api.post('/api/observed-play/memory-ingestion/ingest-eligible');
+export async function bulkIngestEligible(opts: BulkIngestEligibleRequest = {}): Promise<BulkIngestEligibleSummary> {
+  const resp = await api.post('/api/observed-play/memory-ingestion/ingest-eligible', opts);
   return resp.data as BulkIngestEligibleSummary;
 }

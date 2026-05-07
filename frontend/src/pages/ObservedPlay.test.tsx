@@ -2653,4 +2653,163 @@ describe('Bulk actions panel', () => {
       expect(screen.getByRole('alert')).toBeInTheDocument();
     });
   });
+
+  it('parse modal has unchecked "Include already-ingested logs" checkbox by default', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    await userEvent.click(screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    const checkbox = screen.getByRole('checkbox', { name: /include already-ingested logs/i });
+    expect(checkbox).toBeInTheDocument();
+    expect(checkbox).not.toBeChecked();
+  });
+
+  it('checking "Include already-ingested logs" sends include_ingested=true', async () => {
+    (bulkReparseAll as ReturnType<typeof vi.fn>).mockResolvedValue({
+      considered_count: 3, reparsed_count: 3, skipped_count: 0, failed_count: 0,
+      ingested_reparsed_count: 2,
+      reparsed: [], skipped: [], failed: [], average_confidence: 0.85, total_event_count: 60,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    await userEvent.click(screen.getByRole('button', { name: /parse \/ reparse all/i }));
+
+    const checkbox = screen.getByRole('checkbox', { name: /include already-ingested logs/i });
+    await userEvent.click(checkbox);
+    expect(checkbox).toBeChecked();
+
+    await userEvent.click(screen.getByRole('button', { name: /run parse \/ reparse/i }));
+
+    await waitFor(() => {
+      expect(bulkReparseAll as ReturnType<typeof vi.fn>).toHaveBeenCalledWith({ include_ingested: true });
+    });
+  });
+
+  it('checking include-ingested shows warning copy', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    await userEvent.click(screen.getByRole('button', { name: /parse \/ reparse all/i }));
+
+    const checkbox = screen.getByRole('checkbox', { name: /include already-ingested logs/i });
+    await userEvent.click(checkbox);
+
+    expect(screen.getByText(/already-ingested logs will be reparsed/i)).toBeInTheDocument();
+  });
+
+  it('parse result shows ingested_reparsed_count when non-zero', async () => {
+    (bulkReparseAll as ReturnType<typeof vi.fn>).mockResolvedValue({
+      considered_count: 5, reparsed_count: 5, skipped_count: 0, failed_count: 0,
+      ingested_reparsed_count: 3,
+      reparsed: [], skipped: [], failed: [], average_confidence: 0.90, total_event_count: 100,
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /parse \/ reparse all/i }));
+    await userEvent.click(screen.getByRole('button', { name: /parse \/ reparse all/i }));
+
+    const checkbox = screen.getByRole('checkbox', { name: /include already-ingested logs/i });
+    await userEvent.click(checkbox);
+    await userEvent.click(screen.getByRole('button', { name: /run parse \/ reparse/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/already-ingested logs reparsed: 3/i)).toBeInTheDocument();
+    });
+  });
+
+  it('ingest modal has unchecked "Re-ingest already-ingested eligible logs" checkbox by default', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /ingest all eligible/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest all eligible/i }));
+
+    await waitFor(() => {
+      const checkbox = screen.getByRole('checkbox', { name: /re-ingest already-ingested eligible logs/i });
+      expect(checkbox).toBeInTheDocument();
+      expect(checkbox).not.toBeChecked();
+    });
+  });
+
+  it('checking re-ingest checkbox shows replacement warning', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /ingest all eligible/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest all eligible/i }));
+
+    await waitFor(() => screen.getByRole('checkbox', { name: /re-ingest already-ingested eligible logs/i }));
+    const checkbox = screen.getByRole('checkbox', { name: /re-ingest already-ingested eligible logs/i });
+    await userEvent.click(checkbox);
+
+    await waitFor(() => {
+      expect(screen.getByText(/existing observed memory items.*will be replaced/i)).toBeInTheDocument();
+    });
+  });
+
+  it('checking re-ingest sends include_already_ingested=true for preview', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /ingest all eligible/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest all eligible/i }));
+
+    await waitFor(() => screen.getByRole('checkbox', { name: /re-ingest already-ingested eligible logs/i }));
+    const checkbox = screen.getByRole('checkbox', { name: /re-ingest already-ingested eligible logs/i });
+    await userEvent.click(checkbox);
+
+    await waitFor(() => {
+      expect(bulkPreviewEligible as ReturnType<typeof vi.fn>).toHaveBeenLastCalledWith({ include_already_ingested: true });
+    });
+  });
+
+  it('ingest run sends include_already_ingested=true when checkbox is checked', async () => {
+    (bulkPreviewEligible as ReturnType<typeof vi.fn>).mockResolvedValue({
+      considered_count: 2, eligible_count: 0, eligible_for_reingest_count: 1,
+      ineligible_count: 0, already_ingested_count: 0, not_ready_count: 0,
+      estimated_memory_item_count: 5,
+      eligible_logs: [{ log_id: 'x1', filename: 'x1.txt', status: 'eligible_for_reingest', blocker_reasons: [] }],
+      skipped_logs: [], top_blocker_reasons: [],
+    });
+    (bulkIngestEligible as ReturnType<typeof vi.fn>).mockResolvedValue({
+      considered_count: 2, eligible_count: 1, ingested_count: 0, reingested_count: 1,
+      skipped_count: 1, failed_count: 0, memory_items_created: 5,
+      ingested_logs: [{ log_id: 'x1', filename: 'x1.txt', status: 'reingested', memory_item_count: 5 }],
+      skipped_logs: [], failed_logs: [],
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /ingest all eligible/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest all eligible/i }));
+
+    await waitFor(() => screen.getByRole('checkbox', { name: /re-ingest already-ingested eligible logs/i }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /re-ingest already-ingested eligible logs/i }));
+
+    await waitFor(() => screen.getByRole('button', { name: /ingest\/re-ingest/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest\/re-ingest/i }));
+
+    await waitFor(() => {
+      expect(bulkIngestEligible as ReturnType<typeof vi.fn>).toHaveBeenCalledWith({ include_already_ingested: true });
+    });
+  });
+
+  it('ingest result shows reingested count separately when non-zero', async () => {
+    (bulkPreviewEligible as ReturnType<typeof vi.fn>).mockResolvedValue({
+      considered_count: 3, eligible_count: 1, eligible_for_reingest_count: 1,
+      ineligible_count: 0, already_ingested_count: 0, not_ready_count: 0,
+      estimated_memory_item_count: 10,
+      eligible_logs: [], skipped_logs: [], top_blocker_reasons: [],
+    });
+    (bulkIngestEligible as ReturnType<typeof vi.fn>).mockResolvedValue({
+      considered_count: 3, eligible_count: 2, ingested_count: 1, reingested_count: 1,
+      skipped_count: 1, failed_count: 0, memory_items_created: 10,
+      ingested_logs: [], skipped_logs: [], failed_logs: [],
+    });
+
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /ingest all eligible/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest all eligible/i }));
+
+    await waitFor(() => screen.getByRole('checkbox', { name: /re-ingest already-ingested eligible logs/i }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /re-ingest already-ingested eligible logs/i }));
+    await waitFor(() => screen.getByRole('button', { name: /ingest\/re-ingest/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ingest\/re-ingest/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Re-ingested')).toBeInTheDocument();
+    });
+  });
 });

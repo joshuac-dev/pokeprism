@@ -1824,6 +1824,7 @@ export default function ObservedPlay() {
   const [bulkParseRunning, setBulkParseRunning] = useState(false);
   const [bulkParseResult, setBulkParseResult] = useState<BulkReparseSummary | null>(null);
   const [bulkParseError, setBulkParseError] = useState<string | null>(null);
+  const [bulkIncludeIngested, setBulkIncludeIngested] = useState(false);
 
   const [bulkIngestOpen, setBulkIngestOpen] = useState(false);
   const [bulkIngestPreviewLoading, setBulkIngestPreviewLoading] = useState(false);
@@ -1831,6 +1832,7 @@ export default function ObservedPlay() {
   const [bulkIngestRunning, setBulkIngestRunning] = useState(false);
   const [bulkIngestResult, setBulkIngestResult] = useState<BulkIngestEligibleSummary | null>(null);
   const [bulkIngestError, setBulkIngestError] = useState<string | null>(null);
+  const [bulkIncludeAlreadyIngested, setBulkIncludeAlreadyIngested] = useState(false);
 
   const PER_PAGE = 25;
   const analyticsRefreshRef = useRef<(() => void) | null>(null);
@@ -1904,7 +1906,7 @@ export default function ObservedPlay() {
     setBulkParseResult(null);
     setBulkParseError(null);
     try {
-      const result = await bulkReparseAll();
+      const result = await bulkReparseAll({ include_ingested: bulkIncludeIngested });
       setBulkParseResult(result);
       await fetchLogs(logPage);
       unresolvedRefreshRef.current?.();
@@ -1918,14 +1920,12 @@ export default function ObservedPlay() {
     }
   }
 
-  async function openBulkIngestModal() {
-    setBulkIngestOpen(true);
-    setBulkIngestPreview(null);
-    setBulkIngestResult(null);
-    setBulkIngestError(null);
+  async function refreshBulkIngestPreview(includeAlreadyIngested: boolean) {
     setBulkIngestPreviewLoading(true);
+    setBulkIngestPreview(null);
+    setBulkIngestError(null);
     try {
-      const preview = await bulkPreviewEligible();
+      const preview = await bulkPreviewEligible({ include_already_ingested: includeAlreadyIngested });
       setBulkIngestPreview(preview);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
@@ -1936,14 +1936,24 @@ export default function ObservedPlay() {
     }
   }
 
+  async function openBulkIngestModal() {
+    setBulkIngestOpen(true);
+    setBulkIngestPreview(null);
+    setBulkIngestResult(null);
+    setBulkIngestError(null);
+    setBulkIncludeAlreadyIngested(false);
+    await refreshBulkIngestPreview(false);
+  }
+
   async function handleBulkIngestRun() {
     setBulkIngestRunning(true);
     setBulkIngestResult(null);
     setBulkIngestError(null);
     try {
-      const result = await bulkIngestEligible();
+      const result = await bulkIngestEligible({ include_already_ingested: bulkIncludeAlreadyIngested });
       setBulkIngestResult(result);
       await fetchLogs(logPage);
+      unresolvedRefreshRef.current?.();
       analyticsRefreshRef.current?.();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
@@ -2146,13 +2156,25 @@ export default function ObservedPlay() {
               <button onClick={() => setBulkParseOpen(false)} className="text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200" aria-label="Close"><X size={18} /></button>
             </div>
             {!bulkParseResult && (
-              <div className="mb-4 rounded border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
-                <p>This will reparse observed logs with the current parser and refresh parsed events and card mentions.</p>
-                <ul className="mt-2 ml-4 list-disc space-y-1">
-                  <li>Logs that already have ingested memory are <strong>skipped</strong> to avoid stale memory items.</li>
-                  <li>No memory will be ingested.</li>
-                </ul>
-              </div>
+              <>
+                <div className="mb-4 rounded border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+                  <p>This will reparse observed logs with the current parser and refresh parsed events and card mentions.</p>
+                  <ul className="mt-2 ml-4 list-disc space-y-1">
+                    <li>No memory will be ingested.</li>
+                    {!bulkIncludeIngested && <li>Logs that already have ingested memory are <strong>skipped</strong> to avoid stale memory items.</li>}
+                    {bulkIncludeIngested && <li className="text-amber-900 dark:text-amber-200">Already-ingested logs will be reparsed, but existing memory items will not be changed. Use Re-ingest already-ingested eligible logs afterward to refresh memory items.</li>}
+                  </ul>
+                </div>
+                <label className="mb-4 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="rounded"
+                    checked={bulkIncludeIngested}
+                    onChange={(e) => setBulkIncludeIngested(e.target.checked)}
+                  />
+                  Include already-ingested logs
+                </label>
+              </>
             )}
             {bulkParseError && (
               <p className="mb-3 text-sm text-red-600 dark:text-red-400" role="alert">{bulkParseError}</p>
@@ -2174,6 +2196,11 @@ export default function ObservedPlay() {
                 </div>
                 {bulkParseResult.average_confidence != null && (
                   <p className="text-xs text-gray-500 dark:text-slate-400">Avg confidence (reparsed): {(bulkParseResult.average_confidence * 100).toFixed(1)}%</p>
+                )}
+                {(bulkParseResult.ingested_reparsed_count ?? 0) > 0 && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                    Already-ingested logs reparsed: {bulkParseResult.ingested_reparsed_count} — re-ingest to refresh memory items.
+                  </p>
                 )}
                 {bulkParseResult.failed.length > 0 && (
                   <div className="mt-2">
@@ -2212,6 +2239,25 @@ export default function ObservedPlay() {
             {bulkIngestPreviewLoading && (
               <p className="mb-4 text-sm text-gray-500 dark:text-slate-400">Computing eligibility…</p>
             )}
+            <label className="mb-3 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+              <input
+                type="checkbox"
+                className="rounded"
+                checked={bulkIncludeAlreadyIngested}
+                disabled={bulkIngestPreviewLoading || !!bulkIngestResult}
+                onChange={(e) => {
+                  setBulkIncludeAlreadyIngested(e.target.checked);
+                  setBulkIngestResult(null);
+                  refreshBulkIngestPreview(e.target.checked);
+                }}
+              />
+              Re-ingest already-ingested eligible logs
+            </label>
+            {bulkIncludeAlreadyIngested && !bulkIngestResult && (
+              <p className="mb-3 text-xs text-amber-700 dark:text-amber-400 rounded border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-3 py-2">
+                Existing observed memory items for eligible already-ingested logs will be replaced, not duplicated.
+              </p>
+            )}
             {bulkIngestError && (
               <p className="mb-3 text-sm text-red-600 dark:text-red-400" role="alert">{bulkIngestError}</p>
             )}
@@ -2230,6 +2276,9 @@ export default function ObservedPlay() {
                     </div>
                   ))}
                 </div>
+                {(bulkIngestPreview.eligible_for_reingest_count ?? 0) > 0 && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mb-1">Eligible for re-ingest: {bulkIngestPreview.eligible_for_reingest_count}</p>
+                )}
                 {bulkIngestPreview.estimated_memory_item_count > 0 && (
                   <p className="text-xs text-gray-500 dark:text-slate-400 mb-2">Estimated memory items: {bulkIngestPreview.estimated_memory_item_count}</p>
                 )}
@@ -2243,9 +2292,10 @@ export default function ObservedPlay() {
             )}
             {bulkIngestResult && (
               <div className="mb-4">
-                <div className="grid grid-cols-4 gap-2 text-center text-sm mb-3">
+                <div className={`grid gap-2 text-center text-sm mb-3 ${(bulkIngestResult.reingested_count ?? 0) > 0 ? 'grid-cols-5' : 'grid-cols-4'}`}>
                   {([
                     ['Ingested', bulkIngestResult.ingested_count],
+                    ...((bulkIngestResult.reingested_count ?? 0) > 0 ? [['Re-ingested', bulkIngestResult.reingested_count] as [string, number]] : []),
                     ['Skipped', bulkIngestResult.skipped_count],
                     ['Failed', bulkIngestResult.failed_count],
                     ['Mem items', bulkIngestResult.memory_items_created],
@@ -2268,16 +2318,21 @@ export default function ObservedPlay() {
             )}
             <div className="flex justify-end gap-3">
               <button onClick={() => setBulkIngestOpen(false)} className="rounded border border-gray-300 dark:border-slate-600 px-4 py-2 text-sm dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800">Close</button>
-              {!bulkIngestResult && bulkIngestPreview && bulkIngestPreview.eligible_count > 0 && (
+              {!bulkIngestResult && bulkIngestPreview && (bulkIngestPreview.eligible_count > 0 || (bulkIngestPreview.eligible_for_reingest_count ?? 0) > 0) && (
                 <button
                   onClick={handleBulkIngestRun}
                   disabled={bulkIngestRunning || bulkIngestPreviewLoading}
                   className="rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {bulkIngestRunning ? 'Ingesting eligible logs…' : `Ingest ${bulkIngestPreview.eligible_count} eligible log${bulkIngestPreview.eligible_count !== 1 ? 's' : ''}`}
+                  {bulkIngestRunning
+                    ? 'Ingesting eligible logs…'
+                    : bulkIncludeAlreadyIngested
+                      ? `Ingest/re-ingest ${bulkIngestPreview.eligible_count + (bulkIngestPreview.eligible_for_reingest_count ?? 0)} eligible log${(bulkIngestPreview.eligible_count + (bulkIngestPreview.eligible_for_reingest_count ?? 0)) !== 1 ? 's' : ''}`
+                      : `Ingest ${bulkIngestPreview.eligible_count} eligible log${bulkIngestPreview.eligible_count !== 1 ? 's' : ''}`
+                  }
                 </button>
               )}
-              {!bulkIngestResult && bulkIngestPreview && bulkIngestPreview.eligible_count === 0 && (
+              {!bulkIngestResult && bulkIngestPreview && bulkIngestPreview.eligible_count === 0 && (bulkIngestPreview.eligible_for_reingest_count ?? 0) === 0 && (
                 <span className="text-sm text-gray-500 dark:text-slate-400 self-center">No eligible logs to ingest</span>
               )}
             </div>
