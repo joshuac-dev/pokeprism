@@ -2063,5 +2063,39 @@ Added `scripts/reset_observed_play_data.sh` — a guarded local maintenance scri
 
 ---
 
+## Real-Corpus Bugfix: Parse and Cards Sorting (Session 41)
+
+**Date:** 2026-05-07
+
+**Context:** Real-corpus manual validation with 49 uploaded logs showed Parse and Cards columns did not visibly reorder rows.
+
+**Root causes:**
+- **Parse**: Lexicographic string sort on `parse_status`. With all logs at `"parsed"`, every sort was a no-op.
+- **Cards**: `sort_by=ambiguous_card_count` was a single-column sort; similar values across logs made it appear broken. Also `sort_by=cards` (the intended composite key) was not whitelisted — would return 422.
+
+**Fix (backend `backend/app/api/observed_play.py`):**
+- Removed `parse_status` from `LOG_SORT_FIELDS`
+- Added `_COMPOSITE_SORT_KEYS = {"parse_status", "cards"}` and `_ALL_SORT_KEYS` for whitelisting
+- Extracted `_apply_log_sort(q, sort_by, sort_dir)` helper:
+  - `parse_status`: `case()` rank (failed=0, raw_archived=1, parsed=2, parsed_with_warnings=3) + `confidence_score asc` + stable tie-breaker
+  - `cards`: `unresolved_card_count → ambiguous_card_count → card_mention_count → confidence_score` composite sort
+
+**Fix (frontend `frontend/src/pages/ObservedPlay.tsx`):**
+- Added `'cards'` to `LogSortKey` type
+- Cards header: `sortKey="cards"` (was `"ambiguous_card_count"`)
+- Updated tooltips for Cards and Parse headers
+
+**Tests:**
+- `TestApplyLogSort` class: 6 SQL unit tests (compile + inspect ORDER BY clause)
+- `TestLogListSort`: +4 HTTP tests for `sort_by=cards` and `sort_by=parse_status`
+- Frontend: updated Cards test expectations, +3 Parse tests
+
+**Validation:**
+- `cd frontend && npm test -- --run`: **246 passed (15 files)**
+- `cd frontend && npm run build`: clean
+- `cd backend && python3 -m pytest tests/ -x -q`: **970 passed, 1 skipped**
+
+---
+
 *End of Observed Play Memory Implementation Plan.*
 *Feature branch: `feature/observed-play-memory`. No production code in this document.*

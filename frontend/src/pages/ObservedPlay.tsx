@@ -50,7 +50,7 @@ const ACCEPTED_EXTS = '.md,.markdown,.txt,.zip';
 type LogSortKey =
   | 'created_at' | 'filename' | 'parse_status' | 'memory_status'
   | 'event_count' | 'confidence_score' | 'card_mention_count'
-  | 'ambiguous_card_count' | 'unresolved_card_count' | 'resolved_card_count'
+  | 'cards' | 'ambiguous_card_count' | 'unresolved_card_count' | 'resolved_card_count'
   | 'memory_item_count' | 'file_size_bytes' | 'sha256_hash';
 
 function SortableTh({
@@ -2052,11 +2052,11 @@ export default function ObservedPlay() {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-slate-700 text-left text-xs text-gray-500 dark:text-slate-400">
                   <SortableTh label="Filename" sortKey="filename" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="asc" />
-                  <SortableTh label="Parse" sortKey="parse_status" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="asc" />
+                  <SortableTh label="Parse" sortKey="parse_status" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="asc" title="Sorts by parse status, then lower-confidence parsed logs." />
                   <SortableTh label="Memory" sortKey="memory_status" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="asc" />
                   <SortableTh label="Events" sortKey="event_count" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="desc" />
                   <SortableTh label="Confidence" sortKey="confidence_score" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="desc" />
-                  <SortableTh label="Cards" sortKey="ambiguous_card_count" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="desc" title="Sorts by ambiguous card count." />
+                  <SortableTh label="Cards" sortKey="cards" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="desc" title="Sorts by unresolved, ambiguous, then total card mentions." />
                   <SortableTh label="Mem items" sortKey="memory_item_count" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="desc" />
                   <SortableTh label="Size" sortKey="file_size_bytes" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="desc" />
                   <SortableTh label="Imported at" sortKey="created_at" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="desc" />

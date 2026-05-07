@@ -2339,7 +2339,7 @@ describe('Raw Logs — sorting', () => {
     });
   });
 
-  it('clicking Cards sorts by ambiguous_card_count desc', async () => {
+  it('clicking Cards sends sort_by=cards desc (composite sort)', async () => {
     setup();
     await waitFor(() => screen.getByRole('button', { name: /sort by cards/i }));
 
@@ -2348,15 +2348,35 @@ describe('Raw Logs — sorting', () => {
     await waitFor(() => {
       const calls = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls;
       const lastParams = calls[calls.length - 1][0];
-      expect(lastParams.sort_by).toBe('ambiguous_card_count');
+      expect(lastParams.sort_by).toBe('cards');
       expect(lastParams.sort_dir).toBe('desc');
     });
   });
 
-  it('Cards header has tooltip about sort behavior', async () => {
+  it('clicking Cards again toggles to asc', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /sort by cards/i }));
+
+    await userEvent.click(screen.getByRole('button', { name: /sort by cards/i }));
+    await waitFor(() => {
+      const calls = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls[calls.length - 1][0].sort_by).toBe('cards');
+      expect(calls[calls.length - 1][0].sort_dir).toBe('desc');
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /sort by cards/i }));
+    await waitFor(() => {
+      const calls = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls[calls.length - 1][0].sort_by).toBe('cards');
+      expect(calls[calls.length - 1][0].sort_dir).toBe('asc');
+    });
+  });
+
+  it('Cards header has tooltip about unresolved/ambiguous/card mention sort', async () => {
     setup();
     await waitFor(() => screen.getByRole('button', { name: /sort by cards/i }));
     const cardsBtn = screen.getByRole('button', { name: /sort by cards/i });
+    expect(cardsBtn.title).toContain('unresolved');
     expect(cardsBtn.title).toContain('ambiguous');
   });
 
@@ -2395,5 +2415,45 @@ describe('Raw Logs — sorting', () => {
       expect(lastParams.sort_by).toBe('filename');
       expect(lastParams.sort_dir).toBe('asc');
     });
+  });
+
+  it('clicking Parse sends sort_by=parse_status asc', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /sort by parse/i }));
+
+    await userEvent.click(screen.getByRole('button', { name: /sort by parse/i }));
+
+    await waitFor(() => {
+      const calls = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls;
+      const lastParams = calls[calls.length - 1][0];
+      expect(lastParams.sort_by).toBe('parse_status');
+      expect(lastParams.sort_dir).toBe('asc');
+    });
+  });
+
+  it('clicking active Parse toggles to desc', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /sort by parse/i }));
+
+    await userEvent.click(screen.getByRole('button', { name: /sort by parse/i }));
+    await waitFor(() => {
+      const calls = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls[calls.length - 1][0].sort_by).toBe('parse_status');
+      expect(calls[calls.length - 1][0].sort_dir).toBe('asc');
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /sort by parse/i }));
+    await waitFor(() => {
+      const calls = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls[calls.length - 1][0].sort_by).toBe('parse_status');
+      expect(calls[calls.length - 1][0].sort_dir).toBe('desc');
+    });
+  });
+
+  it('Parse header has tooltip about status/quality ordering', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /sort by parse/i }));
+    const parseBtn = screen.getByRole('button', { name: /sort by parse/i });
+    expect(parseBtn.title).toContain('parse status');
   });
 });

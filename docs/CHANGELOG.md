@@ -30,6 +30,9 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+### Fixed
+- **Observed Play real-corpus bugfix: Parse and Cards sorting** — frontend + backend. Fixed Raw Logs sorting for Parse and Cards columns. Parse now uses a `case()` rank expression (failed→raw_archived→parsed→parsed_with_warnings) with `confidence_score asc` tie-breaker, making sorting useful even when all logs share one status. Cards now uses `sort_by=cards` composite sort (unresolved_card_count→ambiguous_card_count→card_mention_count→confidence_score) so logs needing card-resolution review surface correctly. The `cards` key was not in the whitelist before (would have 422'd). Extracted `_apply_log_sort()` helper. +10 backend tests / +4 frontend tests (970 backend, 246 frontend). No Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, or runtime integration.
+
 ### Added
 - **Observed Play real-corpus polish: sortable Raw Logs columns** — server-side sorting for 13 column keys (`filename`, `parse_status`, `memory_status`, `event_count`, `confidence_score`, `card_mention_count`, `resolved_card_count`, `ambiguous_card_count`, `unresolved_card_count`, `memory_item_count`, `file_size_bytes`, `created_at`, `sha256_hash`). `GET /api/observed-play/logs` accepts `sort_by`/`sort_dir` query params with whitelist validation (HTTP 422 on invalid values). Frontend `SortableTh` component renders accessible sort buttons (▲/▼/↕) with `aria-label`. Cards column sorts by `ambiguous_card_count desc` with tooltip. Default sort preserved (`created_at desc`). +10 frontend sort tests (242 total), +11 backend sort tests (960 total). No Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, or runtime integration.
 

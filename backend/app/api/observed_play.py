@@ -282,9 +282,9 @@ async def get_batch(
 
 # ── Log list ──────────────────────────────────────────────────────────────────
 
+# Single-column sort fields. parse_status and cards use composite logic below.
 LOG_SORT_FIELDS: dict[str, object] = {
     "filename": ObservedPlayLog.original_filename,
-    "parse_status": ObservedPlayLog.parse_status,
     "memory_status": ObservedPlayLog.memory_status,
     "event_count": ObservedPlayLog.event_count,
     "confidence_score": ObservedPlayLog.confidence_score,
@@ -298,6 +298,58 @@ LOG_SORT_FIELDS: dict[str, object] = {
     "sha256_hash": ObservedPlayLog.sha256_hash,
 }
 
+# Composite/special sort keys handled by _apply_log_sort.
+_COMPOSITE_SORT_KEYS: frozenset[str] = frozenset({"parse_status", "cards"})
+_ALL_SORT_KEYS: frozenset[str] = frozenset(LOG_SORT_FIELDS.keys()) | _COMPOSITE_SORT_KEYS
+
+
+def _apply_log_sort(q, sort_by: str, sort_dir: str):
+    """Apply composite-aware sort to the log list query."""
+    is_asc = sort_dir == "asc"
+    order_fn = asc if is_asc else desc
+
+    if sort_by == "parse_status":
+        # Rank statuses so sort is useful even when many rows share one value.
+        # Tie-break with confidence_score asc so lower-confidence logs surface
+        # for review within the same status group.
+        parse_rank = case(
+            (ObservedPlayLog.parse_status == "failed", 0),
+            (ObservedPlayLog.parse_status == "raw_archived", 1),
+            (ObservedPlayLog.parse_status == "parsed", 2),
+            (ObservedPlayLog.parse_status == "parsed_with_warnings", 3),
+            else_=4,
+        )
+        return q.order_by(
+            order_fn(parse_rank),
+            asc(func.coalesce(ObservedPlayLog.confidence_score, 0)),
+            ObservedPlayLog.created_at.desc(),
+            ObservedPlayLog.id.desc(),
+        )
+
+    if sort_by == "cards":
+        # Composite: surface logs most needing card-resolution review.
+        if is_asc:
+            return q.order_by(
+                asc(func.coalesce(ObservedPlayLog.unresolved_card_count, 0)),
+                asc(func.coalesce(ObservedPlayLog.ambiguous_card_count, 0)),
+                asc(func.coalesce(ObservedPlayLog.card_mention_count, 0)),
+                desc(func.coalesce(ObservedPlayLog.confidence_score, 0)),
+                ObservedPlayLog.created_at.desc(),
+                ObservedPlayLog.id.desc(),
+            )
+        return q.order_by(
+            desc(func.coalesce(ObservedPlayLog.unresolved_card_count, 0)),
+            desc(func.coalesce(ObservedPlayLog.ambiguous_card_count, 0)),
+            desc(func.coalesce(ObservedPlayLog.card_mention_count, 0)),
+            asc(func.coalesce(ObservedPlayLog.confidence_score, 1)),
+            ObservedPlayLog.created_at.desc(),
+            ObservedPlayLog.id.desc(),
+        )
+
+    sort_col = LOG_SORT_FIELDS.get(sort_by, ObservedPlayLog.created_at)
+    return q.order_by(order_fn(sort_col), ObservedPlayLog.created_at.desc(), ObservedPlayLog.id.desc())
+
+
 @router.get("/logs")
 async def list_logs(
     page: int = Query(1, ge=1),
@@ -310,10 +362,10 @@ async def list_logs(
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedLogs:
     """List raw observed play logs."""
-    if sort_by and sort_by not in LOG_SORT_FIELDS:
+    if sort_by and sort_by not in _ALL_SORT_KEYS:
         raise HTTPException(
             status_code=422,
-            detail=f"Invalid sort_by: {sort_by!r}. Allowed: {sorted(LOG_SORT_FIELDS)}",
+            detail=f"Invalid sort_by: {sort_by!r}. Allowed: {sorted(_ALL_SORT_KEYS)}",
         )
     if sort_dir and sort_dir not in ("asc", "desc"):
         raise HTTPException(
@@ -332,9 +384,7 @@ async def list_logs(
             | ObservedPlayLog.sha256_hash.ilike(f"{search}%")
         )
 
-    sort_col = LOG_SORT_FIELDS.get(sort_by or "created_at", ObservedPlayLog.created_at)
-    order_fn = asc if sort_dir == "asc" else desc
-    q = q.order_by(order_fn(sort_col), ObservedPlayLog.created_at.desc(), ObservedPlayLog.id.desc())
+    q = _apply_log_sort(q, sort_by or "created_at", sort_dir or "desc")
 
     count_q = select(func.count()).select_from(q.subquery())
     total_result = await db.execute(count_q)

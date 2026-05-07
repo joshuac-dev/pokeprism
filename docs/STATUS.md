@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 40 — Observed Play real-corpus polish: sortable Raw Logs columns)
+Last updated: 2026-05-07 (session 41 — Observed Play real-corpus bugfix: Parse and Cards sorting)
 
 ## Current Workstream
 
@@ -40,10 +40,57 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **960 passed, 1 skipped** — 2026-05-06 session 40. `cd backend && python3 -m pytest tests/ -x -q`. |
-| Frontend unit tests | **242 passed (15 files)** — 2026-05-06 session 40. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **970 passed, 1 skipped** — 2026-05-07 session 41. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Frontend unit tests | **246 passed (15 files)** — 2026-05-07 session 41. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 41 Work (2026-05-07) — Parse and Cards Sorting Bugfix
+
+### Goal
+
+Fix Raw Logs sorting for Parse and Cards columns discovered during real-corpus manual validation.
+
+### Root causes
+
+- **Parse**: `parse_status` sorted lexicographically on the raw string. With all 49 real logs at `parse_status="parsed"`, sorting appeared to do nothing. Fix: rank statuses with a `case()` expression (failed=0, raw_archived=1, parsed=2, parsed_with_warnings=3), tie-break with `confidence_score asc` so lower-confidence parsed logs surface for review within the same status group.
+- **Cards**: `sort_by=ambiguous_card_count` was a single-column sort that didn't capture triage priority, and card counts may be similar across logs. Fix: add `sort_by=cards` as a new composite sort key (`unresolved_card_count → ambiguous_card_count → card_mention_count → confidence_score`). Frontend Cards header changed to use `sort_by=cards`. The `sort_by=cards` key was not in `LOG_SORT_FIELDS` (would have returned 422), making it unusable.
+
+### Backend changes
+
+- `LOG_SORT_FIELDS`: removed `parse_status` (now handled as composite)
+- `_COMPOSITE_SORT_KEYS = {"parse_status", "cards"}` added
+- `_ALL_SORT_KEYS = LOG_SORT_FIELDS.keys() | _COMPOSITE_SORT_KEYS` — used for whitelist validation
+- `_apply_log_sort(q, sort_by, sort_dir)` extracted function:
+  - `parse_status`: `case()` rank + `confidence_score asc` + stable tie-breaker
+  - `cards`: composite multi-column sort (unresolved/ambiguous/total/confidence)
+  - other: single-column + stable tie-breaker (unchanged)
+
+### Frontend changes
+
+- `LogSortKey` type: added `'cards'`
+- Cards header: `sortKey="cards"` (was `"ambiguous_card_count"`), tooltip updated to mention unresolved/ambiguous/card mentions
+- Parse header: tooltip added ("Sorts by parse status, then lower-confidence parsed logs.")
+
+### Files changed
+
+- `backend/app/api/observed_play.py` — composite sort logic
+- `backend/tests/test_api/test_observed_play.py` — +4 HTTP tests (cards/parse), +6 `TestApplyLogSort` SQL unit tests (970 total)
+- `frontend/src/pages/ObservedPlay.tsx` — `LogSortKey`, Cards header, Parse tooltip
+- `frontend/src/pages/ObservedPlay.test.tsx` — updated Cards tests, +3 Parse tests (246 total)
+- `docs/STATUS.md`, `docs/CHANGELOG.md`, `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`
+
+### Test results
+
+- Frontend: **246 passed (15 files)** (+4 new tests)
+- Backend: **970 passed, 1 skipped** (+10 new tests)
+- Frontend build: **clean**
+
+### Scope
+
+Real-corpus sorting bugfix only. No Coach/AI, pgvector, Neo4j, simulator match_events, card_performance, deck-builder, runtime memory, data reset, or ingestion changes. No new DB migrations.
+
+---
 
 ## Session 40 Work (2026-05-06) — Raw Logs Sorting
 

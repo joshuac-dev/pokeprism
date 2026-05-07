@@ -620,6 +620,46 @@ class TestLogListSort:
         data = resp.json()
         assert data["items"][0]["id"] == "log-001"
 
+    def test_valid_sort_by_cards_desc(self, client):
+        log = _make_log_model()
+        override_db, get_db = self._make_session([log])
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs?sort_by=cards&sort_dir=desc")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+
+    def test_valid_sort_by_cards_asc(self, client):
+        log = _make_log_model()
+        override_db, get_db = self._make_session([log])
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs?sort_by=cards&sort_dir=asc")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+
+    def test_valid_sort_by_parse_status_asc(self, client):
+        log = _make_log_model()
+        override_db, get_db = self._make_session([log])
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs?sort_by=parse_status&sort_dir=asc")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+
+    def test_valid_sort_by_parse_status_desc(self, client):
+        log = _make_log_model()
+        override_db, get_db = self._make_session([log])
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs?sort_by=parse_status&sort_dir=desc")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+
     def test_invalid_sort_by_returns_422(self, client):
         override_db, get_db = self._make_session([])
         client.app.fastapi_app.dependency_overrides[get_db] = override_db
@@ -675,6 +715,84 @@ class TestLogListSort:
             client.app.fastapi_app.dependency_overrides.clear()
         assert resp.status_code == 200
         assert resp.json()["items"][0]["parse_status"] == "raw_archived"
+
+
+# ── Log sort expression unit tests ────────────────────────────────────────────
+
+class TestApplyLogSort:
+    """Unit tests for _apply_log_sort composite sort expressions."""
+
+    def _compile_sql(self, q) -> str:
+        from sqlalchemy.dialects import postgresql
+        return str(q.compile(dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}))
+
+    def test_cards_desc_includes_unresolved_and_ambiguous(self):
+        from sqlalchemy import select
+        from app.db.models import ObservedPlayLog
+        from app.api.observed_play import _apply_log_sort
+
+        q = _apply_log_sort(select(ObservedPlayLog), "cards", "desc")
+        sql = self._compile_sql(q)
+        assert "unresolved_card_count" in sql
+        assert "ambiguous_card_count" in sql
+        assert "card_mention_count" in sql
+
+    def test_cards_asc_includes_unresolved_and_ambiguous(self):
+        from sqlalchemy import select
+        from app.db.models import ObservedPlayLog
+        from app.api.observed_play import _apply_log_sort
+
+        q = _apply_log_sort(select(ObservedPlayLog), "cards", "asc")
+        sql = self._compile_sql(q)
+        assert "unresolved_card_count" in sql
+        assert "ambiguous_card_count" in sql
+        assert "card_mention_count" in sql
+
+    def test_parse_status_asc_uses_case_expression(self):
+        from sqlalchemy import select
+        from app.db.models import ObservedPlayLog
+        from app.api.observed_play import _apply_log_sort
+
+        q = _apply_log_sort(select(ObservedPlayLog), "parse_status", "asc")
+        sql = self._compile_sql(q)
+        # CASE expression should reference all relevant status values
+        assert "failed" in sql
+        assert "parsed" in sql
+        assert "raw_archived" in sql
+        # confidence_score tie-breaker present
+        assert "confidence_score" in sql
+
+    def test_parse_status_desc_uses_case_expression(self):
+        from sqlalchemy import select
+        from app.db.models import ObservedPlayLog
+        from app.api.observed_play import _apply_log_sort
+
+        q = _apply_log_sort(select(ObservedPlayLog), "parse_status", "desc")
+        sql = self._compile_sql(q)
+        assert "failed" in sql
+        assert "parsed" in sql
+
+    def test_confidence_score_simple_sort(self):
+        from sqlalchemy import select
+        from app.db.models import ObservedPlayLog
+        from app.api.observed_play import _apply_log_sort
+
+        q = _apply_log_sort(select(ObservedPlayLog), "confidence_score", "asc")
+        sql = self._compile_sql(q)
+        # ORDER BY should be at end — confidence_score should appear in ORDER BY
+        order_by_part = sql[sql.find("ORDER BY"):]
+        assert "confidence_score" in order_by_part
+        # unresolved_card_count should NOT be in ORDER BY (not composite)
+        assert "unresolved_card_count" not in order_by_part
+
+    def test_default_sort_uses_created_at(self):
+        from sqlalchemy import select
+        from app.db.models import ObservedPlayLog
+        from app.api.observed_play import _apply_log_sort
+
+        q = _apply_log_sort(select(ObservedPlayLog), "created_at", "desc")
+        sql = self._compile_sql(q)
+        assert "created_at" in sql
 
 
 # ── Log detail ────────────────────────────────────────────────────────────────
