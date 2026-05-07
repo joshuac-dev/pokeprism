@@ -29,6 +29,19 @@ from app.observed_play.constants import (
     PHASE_SETUP,
     PHASE_TURN,
     PHASE_COMBAT,
+    ET_POKEMON_CHECKUP,
+    ET_SPECIAL_CONDITION_APPLIED,
+    ET_SPECIAL_CONDITION_REMOVED,
+    ET_SPECIAL_CONDITION_DAMAGE,
+    ET_DAMAGE_COUNTERS_PLACED,
+    ET_DAMAGE_COUNTERS_MOVED,
+    ET_POKEMON_SWITCHED,
+    ET_CARDS_DISCARDED,
+    ET_CARDS_DISCARDED_FROM_POKEMON,
+    ET_CARDS_MOVED_TO_HAND,
+    ET_CARDS_SHUFFLED_INTO_DECK,
+    ET_GAME_END,
+    ET_COIN_FLIP_RESULT,
 )
 
 
@@ -891,3 +904,405 @@ class TestPhase23TopUnknowns:
         result = parse_log(content)
         assert result is not None
         assert len(result.events) > 0
+
+
+# ── Phase 2.4: Special conditions, damage counters, checkup, concession ───────
+
+SPECIAL_CONDITIONS_FIXTURE = "special_conditions_and_concession.md"
+
+
+class TestPokemonCheckup:
+    def test_pokemon_checkup_parsed(self):
+        result = parse_log("DropmanArt's Turn 1\nPokémon Checkup\n")
+        events = [e for e in result.events if e.event_type == ET_POKEMON_CHECKUP]
+        assert len(events) == 1
+
+    def test_pokemon_checkup_confidence(self):
+        result = parse_log("DropmanArt's Turn 1\nPokémon Checkup\n")
+        events = [e for e in result.events if e.event_type == ET_POKEMON_CHECKUP]
+        assert events[0].confidence_score >= 0.90
+
+    def test_pokemon_checkup_no_player(self):
+        result = parse_log("DropmanArt's Turn 1\nPokémon Checkup\n")
+        events = [e for e in result.events if e.event_type == ET_POKEMON_CHECKUP]
+        assert events[0].player_raw is None
+
+    def test_fixture_has_three_checkups(self):
+        result = parse_log(_read_fixture(SPECIAL_CONDITIONS_FIXTURE))
+        events = [e for e in result.events if e.event_type == ET_POKEMON_CHECKUP]
+        assert len(events) == 3
+
+
+class TestSpecialConditionDamage:
+    def test_burned_plural(self):
+        line = "5 damage counters were placed on gehejo's Dragapult ex for the Special Condition Burned."
+        result = parse_log(f"gehejo's Turn 1\n{line}\n")
+        events = [e for e in result.events if e.event_type == ET_SPECIAL_CONDITION_DAMAGE]
+        assert len(events) == 1
+        e = events[0]
+        assert e.amount == 5
+        assert e.event_payload["condition"] == "Burned"
+        assert e.card_name_raw == "Dragapult ex"
+        assert e.player_alias == "player_1"
+
+    def test_poisoned_plural(self):
+        line = "6 damage counters were placed on gehejo's Dragapult ex for the Special Condition Poisoned."
+        result = parse_log(f"gehejo's Turn 1\n{line}\n")
+        events = [e for e in result.events if e.event_type == ET_SPECIAL_CONDITION_DAMAGE]
+        assert len(events) == 1
+        assert events[0].amount == 6
+        assert events[0].event_payload["condition"] == "Poisoned"
+
+    def test_poisoned_singular(self):
+        line = "1 damage counter was placed on gehejo's Dragapult ex for the Special Condition Poisoned."
+        result = parse_log(f"gehejo's Turn 1\n{line}\n")
+        events = [e for e in result.events if e.event_type == ET_SPECIAL_CONDITION_DAMAGE]
+        assert len(events) == 1
+        assert events[0].amount == 1
+
+    def test_confidence_high(self):
+        line = "5 damage counters were placed on gehejo's Dragapult ex for the Special Condition Burned."
+        result = parse_log(f"gehejo's Turn 1\n{line}\n")
+        events = [e for e in result.events if e.event_type == ET_SPECIAL_CONDITION_DAMAGE]
+        assert events[0].confidence_score >= 0.88
+
+    def test_not_unknown(self):
+        line = "5 damage counters were placed on gehejo's Dragapult ex for the Special Condition Burned."
+        result = parse_log(f"gehejo's Turn 1\n{line}\n")
+        unknowns = [e for e in result.events if e.event_type == EVENT_UNKNOWN]
+        assert not any(e.raw_line == line for e in unknowns)
+
+
+class TestSpecialConditionAppliedRemoved:
+    def test_burned_applied(self):
+        line = "gehejo's Dragapult ex is now Burned."
+        result = parse_log(f"gehejo's Turn 1\n- {line}\n")
+        events = [e for e in result.events if e.event_type == ET_SPECIAL_CONDITION_APPLIED]
+        assert len(events) == 1
+        assert events[0].card_name_raw == "Dragapult ex"
+        assert events[0].event_payload["condition"] == "Burned"
+
+    def test_poisoned_applied(self):
+        line = "gehejo's Dragapult ex is now Poisoned."
+        result = parse_log(f"gehejo's Turn 1\n- {line}\n")
+        events = [e for e in result.events if e.event_type == ET_SPECIAL_CONDITION_APPLIED]
+        assert len(events) == 1
+        assert events[0].event_payload["condition"] == "Poisoned"
+
+    def test_burned_removed(self):
+        line = "gehejo's Dragapult ex is no longer Burned."
+        result = parse_log(f"gehejo's Turn 1\n{line}\n")
+        events = [e for e in result.events if e.event_type == ET_SPECIAL_CONDITION_REMOVED]
+        assert len(events) == 1
+        assert events[0].card_name_raw == "Dragapult ex"
+        assert events[0].event_payload["condition"] == "Burned"
+
+    def test_confidence_applied(self):
+        result = parse_log("gehejo's Turn 1\n- gehejo's Dragapult ex is now Burned.\n")
+        events = [e for e in result.events if e.event_type == ET_SPECIAL_CONDITION_APPLIED]
+        assert events[0].confidence_score >= 0.88
+
+    def test_confidence_removed(self):
+        result = parse_log("gehejo's Turn 1\ngehejo's Dragapult ex is no longer Burned.\n")
+        events = [e for e in result.events if e.event_type == ET_SPECIAL_CONDITION_REMOVED]
+        assert events[0].confidence_score >= 0.88
+
+
+class TestCheckupCoinFlip:
+    def test_coin_flip_heads(self):
+        result = parse_log("gehejo's Turn 1\ngehejo flipped a coin and it landed on heads.\n")
+        events = [e for e in result.events if e.event_type == ET_COIN_FLIP_RESULT]
+        # Filter to the checkup context one
+        checkup_flips = [e for e in events if e.event_payload.get("context") == "checkup"]
+        assert len(checkup_flips) == 1
+        assert checkup_flips[0].event_payload["result"] == "heads"
+        assert checkup_flips[0].player_alias == "player_1"
+
+    def test_coin_flip_confidence(self):
+        result = parse_log("gehejo's Turn 1\ngehejo flipped a coin and it landed on heads.\n")
+        events = [e for e in result.events if e.event_type == ET_COIN_FLIP_RESULT
+                  and e.event_payload.get("context") == "checkup"]
+        assert events[0].confidence_score >= 0.90
+
+    def test_not_unknown(self):
+        line = "gehejo flipped a coin and it landed on heads."
+        result = parse_log(f"gehejo's Turn 1\n{line}\n")
+        unknowns = [e for e in result.events if e.event_type == EVENT_UNKNOWN]
+        assert not any(e.raw_line == line for e in unknowns)
+
+
+class TestDamageCountersPlaced:
+    def test_placed_four(self):
+        result = parse_log("gehejo's Turn 1\n- gehejo put 4 damage counters on gehejo's Magmar.\n")
+        events = [e for e in result.events if e.event_type == ET_DAMAGE_COUNTERS_PLACED]
+        assert len(events) == 1
+        assert events[0].amount == 4
+        assert events[0].target_card_name_raw == "Magmar"
+        assert events[0].player_alias == "player_1"
+
+    def test_placed_two(self):
+        result = parse_log("gehejo's Turn 1\n- gehejo put 2 damage counters on gehejo's Salandit.\n")
+        events = [e for e in result.events if e.event_type == ET_DAMAGE_COUNTERS_PLACED]
+        assert events[0].amount == 2
+        assert events[0].target_card_name_raw == "Salandit"
+
+    def test_placed_six_ex(self):
+        result = parse_log("gehejo's Turn 1\n- gehejo put 6 damage counters on gehejo's Salazzle ex.\n")
+        events = [e for e in result.events if e.event_type == ET_DAMAGE_COUNTERS_PLACED]
+        assert events[0].amount == 6
+        assert events[0].target_card_name_raw == "Salazzle ex"
+
+    def test_confidence(self):
+        result = parse_log("gehejo's Turn 1\n- gehejo put 4 damage counters on gehejo's Magmar.\n")
+        events = [e for e in result.events if e.event_type == ET_DAMAGE_COUNTERS_PLACED]
+        assert events[0].confidence_score >= 0.88
+
+
+class TestDamageCountersMoved:
+    def test_moved_three(self):
+        result = parse_log(
+            "gehejo's Turn 1\n"
+            "- gehejo moved 3 damage counters from gehejo's Dragapult ex to gehejo's Salazzle ex.\n"
+        )
+        events = [e for e in result.events if e.event_type == ET_DAMAGE_COUNTERS_MOVED]
+        assert len(events) == 1
+        e = events[0]
+        assert e.amount == 3
+        assert e.card_name_raw == "Dragapult ex"
+        assert e.target_card_name_raw == "Salazzle ex"
+
+    def test_confidence(self):
+        result = parse_log(
+            "gehejo's Turn 1\n"
+            "- gehejo moved 3 damage counters from gehejo's Dragapult ex to gehejo's Salazzle ex.\n"
+        )
+        events = [e for e in result.events if e.event_type == ET_DAMAGE_COUNTERS_MOVED]
+        assert events[0].confidence_score >= 0.88
+
+
+class TestPokemonSwitched:
+    def test_switched_line_parsed(self):
+        result = parse_log(
+            "DropmanArt's Turn 1\n"
+            "- DropmanArt's Pecharunt was switched with DropmanArt's Salazzle ex to become the Active Pokémon.\n"
+        )
+        events = [e for e in result.events if e.event_type == ET_POKEMON_SWITCHED]
+        assert len(events) == 1
+        e = events[0]
+        assert e.card_name_raw == "Pecharunt"
+        assert e.target_card_name_raw == "Salazzle ex"
+
+    def test_confidence(self):
+        result = parse_log(
+            "DropmanArt's Turn 1\n"
+            "- DropmanArt's Pecharunt was switched with DropmanArt's Salazzle ex to become the Active Pokémon.\n"
+        )
+        events = [e for e in result.events if e.event_type == ET_POKEMON_SWITCHED]
+        assert events[0].confidence_score >= 0.88
+
+
+class TestCardsDiscarded:
+    def test_parent_line_parsed(self):
+        result = parse_log("gehejo's Turn 1\n- gehejo discarded 2 cards.\n")
+        events = [e for e in result.events if e.event_type == ET_CARDS_DISCARDED]
+        assert len(events) == 1
+        assert events[0].amount == 2
+        assert events[0].player_alias == "player_1"
+
+    def test_bullet_cards_captured(self):
+        content = "gehejo's Turn 1\n- gehejo discarded 2 cards.\n   • Buddy-Buddy Poffin, Budew\n"
+        result = parse_log(content)
+        events = [e for e in result.events if e.event_type == ET_CARDS_DISCARDED]
+        assert len(events) == 1
+        cards = events[0].event_payload.get("cards", [])
+        assert "Buddy-Buddy Poffin" in cards
+        assert "Budew" in cards
+
+    def test_confidence(self):
+        result = parse_log("gehejo's Turn 1\n- gehejo discarded 2 cards.\n")
+        events = [e for e in result.events if e.event_type == ET_CARDS_DISCARDED]
+        assert events[0].confidence_score >= 0.82
+
+
+class TestCardsDiscardedFromPokemon:
+    def test_parent_parsed(self):
+        result = parse_log(
+            "DropmanArt's Turn 1\n"
+            "- 3 cards were discarded from DropmanArt's Salazzle ex.\n"
+        )
+        events = [e for e in result.events if e.event_type == ET_CARDS_DISCARDED_FROM_POKEMON]
+        assert len(events) == 1
+        e = events[0]
+        assert e.amount == 3
+        assert e.target_card_name_raw == "Salazzle ex"
+
+    def test_bullet_captured(self):
+        content = (
+            "DropmanArt's Turn 1\n"
+            "- 3 cards were discarded from DropmanArt's Salazzle ex.\n"
+            "   • Basic Fire Energy, Basic Fire Energy, Salandit\n"
+        )
+        result = parse_log(content)
+        events = [e for e in result.events if e.event_type == ET_CARDS_DISCARDED_FROM_POKEMON]
+        cards = events[0].event_payload.get("cards", [])
+        assert "Salandit" in cards
+        assert cards.count("Basic Fire Energy") == 2
+
+    def test_confidence(self):
+        result = parse_log(
+            "DropmanArt's Turn 1\n"
+            "- 3 cards were discarded from DropmanArt's Salazzle ex.\n"
+        )
+        events = [e for e in result.events if e.event_type == ET_CARDS_DISCARDED_FROM_POKEMON]
+        assert events[0].confidence_score >= 0.88
+
+
+class TestCardsMovedToHand:
+    def test_parent_parsed(self):
+        result = parse_log(
+            "DropmanArt's Turn 1\n"
+            "- DropmanArt moved DropmanArt's 2 cards to their hand.\n"
+        )
+        events = [e for e in result.events if e.event_type == ET_CARDS_MOVED_TO_HAND]
+        assert len(events) == 1
+        assert events[0].amount == 2
+        assert events[0].player_alias == "player_1"
+
+    def test_bullet_captured(self):
+        content = (
+            "DropmanArt's Turn 1\n"
+            "- DropmanArt moved DropmanArt's 2 cards to their hand.\n"
+            "   • Basic Fire Energy, Basic Fire Energy\n"
+        )
+        result = parse_log(content)
+        events = [e for e in result.events if e.event_type == ET_CARDS_MOVED_TO_HAND]
+        cards = events[0].event_payload.get("cards", [])
+        assert cards.count("Basic Fire Energy") == 2
+
+    def test_confidence(self):
+        result = parse_log(
+            "DropmanArt's Turn 1\n"
+            "- DropmanArt moved DropmanArt's 2 cards to their hand.\n"
+        )
+        events = [e for e in result.events if e.event_type == ET_CARDS_MOVED_TO_HAND]
+        assert events[0].confidence_score >= 0.82
+
+
+class TestCardsShuffledIntoDeck:
+    def test_with_bullets(self):
+        content = (
+            "DropmanArt's Turn 1\n"
+            "- DropmanArt shuffled 7 cards into their deck.\n"
+            "   • Unfair Stamp, Meowth ex, Fezandipiti ex, Drakloak, Boss's Orders, Budew, Crispin\n"
+        )
+        result = parse_log(content)
+        events = [e for e in result.events if e.event_type == ET_CARDS_SHUFFLED_INTO_DECK]
+        assert len(events) == 1
+        e = events[0]
+        assert e.amount == 7
+        assert "Meowth ex" in e.event_payload.get("cards", [])
+
+    def test_without_bullets(self):
+        result = parse_log("DropmanArt's Turn 1\n- DropmanArt shuffled 3 cards into their deck.\n")
+        events = [e for e in result.events if e.event_type == ET_CARDS_SHUFFLED_INTO_DECK]
+        assert len(events) == 1
+        assert events[0].amount == 3
+
+    def test_confidence(self):
+        result = parse_log("DropmanArt's Turn 1\n- DropmanArt shuffled 3 cards into their deck.\n")
+        events = [e for e in result.events if e.event_type == ET_CARDS_SHUFFLED_INTO_DECK]
+        assert events[0].confidence_score >= 0.82
+
+
+class TestOpponentConceded:
+    def test_game_end_parsed(self):
+        result = parse_log(
+            "DropmanArt's Turn 1\nDropmanArt drew a card.\nOpponent conceded. gehejo wins.\n"
+        )
+        events = [e for e in result.events if e.event_type == ET_GAME_END]
+        assert len(events) == 1
+        e = events[0]
+        assert e.event_payload.get("win_condition") == "opponent_conceded"
+        assert e.event_payload.get("winner") == "gehejo"
+
+    def test_winner_alias(self):
+        result = parse_log(
+            "gehejo's Turn 1\ngehejo drew a card.\nOpponent conceded. gehejo wins.\n"
+        )
+        assert result.win_condition == "opponent_conceded"
+        assert result.winner_raw == "gehejo"
+
+    def test_confidence(self):
+        result = parse_log("gehejo's Turn 1\nOpponent conceded. gehejo wins.\n")
+        events = [e for e in result.events if e.event_type == ET_GAME_END]
+        assert events[0].confidence_score >= 0.95
+
+    def test_not_unknown(self):
+        line = "Opponent conceded. gehejo wins."
+        result = parse_log(f"gehejo's Turn 1\n{line}\n")
+        unknowns = [e for e in result.events if e.event_type == EVENT_UNKNOWN]
+        assert not any(e.raw_line == line for e in unknowns)
+
+
+class TestSpecialConditionsFixtureNoUnknowns:
+    """The special_conditions_and_concession fixture must have zero unknown events
+    for the lines it was designed to test."""
+
+    @pytest.fixture(autouse=True)
+    def parsed(self):
+        content = _read_fixture(SPECIAL_CONDITIONS_FIXTURE)
+        self.result = parse_log(content)
+
+    def test_no_errors(self):
+        assert self.result.errors == []
+
+    def test_zero_unknowns_for_target_lines(self):
+        target_lines = {
+            "Pokémon Checkup",
+            "5 damage counters were placed on gehejo's Dragapult ex for the Special Condition Burned.",
+            "6 damage counters were placed on gehejo's Dragapult ex for the Special Condition Poisoned.",
+            "1 damage counter was placed on gehejo's Dragapult ex for the Special Condition Poisoned.",
+            "gehejo flipped a coin and it landed on heads.",
+            "gehejo's Dragapult ex is no longer Burned.",
+            "Opponent conceded. gehejo wins.",
+        }
+        unknown_lines = {
+            e.raw_line for e in self.result.events if e.event_type == EVENT_UNKNOWN
+        }
+        overlap = target_lines & unknown_lines
+        assert not overlap, f"These lines were still unknown: {overlap}"
+
+    def test_game_end_opponent_conceded(self):
+        events = [e for e in self.result.events if e.event_type == ET_GAME_END]
+        assert any(e.event_payload.get("win_condition") == "opponent_conceded" for e in events)
+
+    def test_three_checkup_markers(self):
+        events = [e for e in self.result.events if e.event_type == ET_POKEMON_CHECKUP]
+        assert len(events) == 3
+
+    def test_special_condition_damage_events(self):
+        events = [e for e in self.result.events if e.event_type == ET_SPECIAL_CONDITION_DAMAGE]
+        assert len(events) >= 4
+
+    def test_damage_counters_placed_events(self):
+        events = [e for e in self.result.events if e.event_type == ET_DAMAGE_COUNTERS_PLACED]
+        assert len(events) >= 3
+
+    def test_damage_counters_moved_events(self):
+        events = [e for e in self.result.events if e.event_type == ET_DAMAGE_COUNTERS_MOVED]
+        assert len(events) >= 1
+
+    def test_pokemon_switched_events(self):
+        events = [e for e in self.result.events if e.event_type == ET_POKEMON_SWITCHED]
+        assert len(events) >= 1
+
+    def test_cards_shuffled_into_deck(self):
+        events = [e for e in self.result.events if e.event_type == ET_CARDS_SHUFFLED_INTO_DECK]
+        assert len(events) >= 3
+
+    def test_cards_discarded_events(self):
+        events = [e for e in self.result.events if e.event_type == ET_CARDS_DISCARDED]
+        assert len(events) >= 1
+
+    def test_overall_confidence_high(self):
+        assert self.result.confidence_score >= 0.85

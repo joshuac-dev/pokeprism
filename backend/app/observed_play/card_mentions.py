@@ -37,6 +37,16 @@ from app.observed_play.constants import (
     ET_RETREAT,
     ET_ATTACK_USED,
     ET_SWITCH_ACTIVE,
+    ET_SPECIAL_CONDITION_APPLIED,
+    ET_SPECIAL_CONDITION_REMOVED,
+    ET_SPECIAL_CONDITION_DAMAGE,
+    ET_DAMAGE_COUNTERS_PLACED,
+    ET_DAMAGE_COUNTERS_MOVED,
+    ET_POKEMON_SWITCHED,
+    ET_CARDS_DISCARDED,
+    ET_CARDS_DISCARDED_FROM_POKEMON,
+    ET_CARDS_MOVED_TO_HAND,
+    ET_CARDS_SHUFFLED_INTO_DECK,
 )
 
 _RE_WHITESPACE = re.compile(r"\s+")
@@ -63,6 +73,18 @@ _IGNORED_NORMALIZED = frozenset({
     # Misc non-name tokens
     "",
     "unknown",
+    # Special condition names — must not be extracted as card names
+    "burned",
+    "poisoned",
+    "paralyzed",
+    "confused",
+    "asleep",
+    # Coin flip results
+    "heads",
+    "tails",
+    # Damage counter phrases
+    "damage counters",
+    "damage counter",
 })
 
 # Matches "2 cards", "3 cards", "10 cards", etc. — never a card name.
@@ -233,6 +255,34 @@ def extract_mentions_from_event(event: Any) -> list[dict[str, Any]]:
     elif et == ET_SWITCH_ACTIVE:
         _add("actor_card", card, "card_name_raw")
 
+    elif et == ET_POKEMON_SWITCHED:
+        _add("actor_card", card, "card_name_raw")
+        _add("target_card", target, "target_card_name_raw")
+
+    elif et in (ET_SPECIAL_CONDITION_APPLIED, ET_SPECIAL_CONDITION_REMOVED,
+                ET_SPECIAL_CONDITION_DAMAGE):
+        # card_name_raw holds the affected Pokémon name — extract it
+        _add("actor_card", card, "card_name_raw")
+        # condition string is in payload, not a card name — do not extract
+
+    elif et == ET_DAMAGE_COUNTERS_PLACED:
+        # target_card_name_raw holds the Pokémon that received counters
+        _add("target_card", target, "target_card_name_raw")
+
+    elif et == ET_DAMAGE_COUNTERS_MOVED:
+        # card_name_raw = source Pokémon, target_card_name_raw = destination Pokémon
+        _add("actor_card", card, "card_name_raw")
+        _add("target_card", target, "target_card_name_raw")
+
+    elif et == ET_CARDS_DISCARDED_FROM_POKEMON:
+        # target_card_name_raw = the Pokémon the cards were discarded from
+        _add("target_card", target, "target_card_name_raw")
+        # named cards from bullet sub-lines are in payload["cards"]
+
+    elif et in (ET_CARDS_DISCARDED, ET_CARDS_MOVED_TO_HAND, ET_CARDS_SHUFFLED_INTO_DECK):
+        # No card names in the primary fields; named cards may be in payload["cards"]
+        pass
+
     elif et == ET_OPENING_HAND_DRAW_KNOWN:
         _add("revealed_card", card, "card_name_raw")
 
@@ -249,6 +299,20 @@ def extract_mentions_from_event(event: Any) -> list[dict[str, Any]]:
                 if _is_meaningful(cleaned_c):
                     mentions.append({
                         "mention_role": "revealed_card",
+                        "raw_name": cleaned_c,
+                        "source_field": "event_payload_json",
+                        "source_payload_path": f"cards[{i}]",
+                    })
+
+    # Named cards from bullet sub-lines for discard/move/shuffle events
+    if et in (ET_CARDS_DISCARDED, ET_CARDS_DISCARDED_FROM_POKEMON,
+              ET_CARDS_MOVED_TO_HAND, ET_CARDS_SHUFFLED_INTO_DECK):
+        for i, c in enumerate(payload.get("cards", [])):
+            if isinstance(c, str):
+                cleaned_c = clean_extracted_card_name(c)
+                if _is_meaningful(cleaned_c):
+                    mentions.append({
+                        "mention_role": "discarded_card",
                         "raw_name": cleaned_c,
                         "source_field": "event_payload_json",
                         "source_payload_path": f"cards[{i}]",

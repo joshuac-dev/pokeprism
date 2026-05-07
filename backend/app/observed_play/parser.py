@@ -27,6 +27,12 @@ from .constants import (
     ET_ATTACK_USED, ET_DAMAGE_BREAKDOWN, ET_KNOCKOUT, ET_PRIZE_TAKEN,
     ET_PRIZE_CARD_ADDED, ET_GAME_END,
     ET_CARD_EFFECT_ACTIVATED, ET_DISCARD_FROM_POKEMON, ET_CARD_ADDED_TO_HAND,
+    ET_POKEMON_CHECKUP,
+    ET_SPECIAL_CONDITION_APPLIED, ET_SPECIAL_CONDITION_REMOVED, ET_SPECIAL_CONDITION_DAMAGE,
+    ET_DAMAGE_COUNTERS_PLACED, ET_DAMAGE_COUNTERS_MOVED,
+    ET_POKEMON_SWITCHED,
+    ET_CARDS_DISCARDED, ET_CARDS_DISCARDED_FROM_POKEMON,
+    ET_CARDS_MOVED_TO_HAND, ET_CARDS_SHUFFLED_INTO_DECK,
     ET_UNKNOWN,
 )
 from .patterns import (
@@ -51,6 +57,13 @@ from .patterns import (
     RE_GAME_END_PRIZES, RE_GAME_END_DECK, RE_GAME_END_KO,
     RE_BULLET_LINE, RE_DASH_LINE, RE_BENCH_FROM_DECK_HIDDEN,
     RE_SEARCH, RE_RECOVER,
+    RE_POKEMON_CHECKUP, RE_CHECKUP_COIN_FLIP,
+    RE_SPECIAL_CONDITION_DAMAGE, RE_SPECIAL_CONDITION_APPLIED, RE_SPECIAL_CONDITION_REMOVED,
+    RE_DAMAGE_COUNTERS_PLACED, RE_DAMAGE_COUNTERS_MOVED,
+    RE_POKEMON_SWITCHED,
+    RE_CARDS_DISCARDED, RE_CARDS_DISCARDED_FROM_POKEMON,
+    RE_CARDS_MOVED_TO_HAND, RE_CARDS_SHUFFLED_INTO_DECK,
+    RE_GAME_END_CONCEDED,
 )
 from .confidence import event_confidence, log_confidence
 
@@ -276,11 +289,40 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             i += 1
             continue
 
+        m = RE_GAME_END_CONCEDED.match(match_line)
+        if m:
+            winner_raw = m.group("winner").strip()
+            win_condition = "opponent_conceded"
+            alias, actor = get_alias(winner_raw)
+            winner_alias = alias
+            score, reasons = event_confidence(ET_GAME_END, ["winner_raw"])
+            current_phase = PHASE_GAME_END
+            events.append(_make_event(
+                event_idx, current_turn, PHASE_GAME_END, ET_GAME_END, stripped,
+                player_raw=winner_raw, player_alias=alias, actor_type=actor,
+                event_payload={"winner": winner_raw, "win_condition": "opponent_conceded"},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
         # ── Setup header ──────────────────────────────────────────────────────
         if RE_SETUP_HEADER.match(match_line):
             score, reasons = event_confidence(ET_SETUP_START, [])
             events.append(_make_event(
                 event_idx, None, PHASE_SETUP, ET_SETUP_START, stripped,
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
+        # ── Pokémon Checkup phase marker ──────────────────────────────────────
+        if RE_POKEMON_CHECKUP.match(match_line):
+            score, reasons = event_confidence(ET_POKEMON_CHECKUP, [])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_POKEMON_CHECKUP, stripped,
                 confidence_score=score, confidence_reasons=reasons,
             ))
             event_idx += 1
@@ -313,6 +355,23 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             events.append(_make_event(
                 event_idx, current_turn, current_phase, ET_COIN_FLIP_RESULT, stripped,
                 player_raw=player, player_alias=alias, actor_type=actor,
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
+        # ── Checkup coin flip: "PLAYER flipped a coin and it landed on heads/tails." ──
+        m = RE_CHECKUP_COIN_FLIP.match(match_line)
+        if m:
+            player = m.group("player").strip()
+            result = m.group("result").lower()
+            alias, actor = get_alias(player)
+            score, reasons = event_confidence(ET_COIN_FLIP_RESULT, ["player_raw"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_COIN_FLIP_RESULT, stripped,
+                player_raw=player, player_alias=alias, actor_type=actor,
+                event_payload={"result": result, "context": "checkup"},
                 confidence_score=score, confidence_reasons=reasons,
             ))
             event_idx += 1
@@ -1038,6 +1097,134 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             i += 1
             continue
 
+        # ── Special condition damage: "N damage counter(s) were placed on PLAYER's CARD for the Special Condition COND." ──
+        m = RE_SPECIAL_CONDITION_DAMAGE.match(match_line)
+        if m:
+            n = int(m.group("n"))
+            player = m.group("player").strip()
+            card = m.group("card").strip()
+            condition = m.group("condition").capitalize()
+            alias, actor = get_alias(player)
+            score, reasons = event_confidence(ET_SPECIAL_CONDITION_DAMAGE, ["card_name_raw", "amount"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_SPECIAL_CONDITION_DAMAGE, stripped,
+                player_raw=player, player_alias=alias, actor_type=actor,
+                card_name_raw=card, amount=n,
+                event_payload={"condition": condition, "n": n},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
+        # ── Special condition applied: "PLAYER's CARD is now COND." ──────────
+        m = RE_SPECIAL_CONDITION_APPLIED.match(match_line)
+        if m:
+            player = m.group("player").strip()
+            card = m.group("card").strip()
+            condition = m.group("condition").capitalize()
+            alias, actor = get_alias(player)
+            score, reasons = event_confidence(ET_SPECIAL_CONDITION_APPLIED, ["card_name_raw"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_SPECIAL_CONDITION_APPLIED, stripped,
+                player_raw=player, player_alias=alias, actor_type=actor,
+                card_name_raw=card,
+                event_payload={"condition": condition},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
+        # ── Special condition removed: "PLAYER's CARD is no longer COND." ────
+        m = RE_SPECIAL_CONDITION_REMOVED.match(match_line)
+        if m:
+            player = m.group("player").strip()
+            card = m.group("card").strip()
+            condition = m.group("condition").capitalize()
+            alias, actor = get_alias(player)
+            score, reasons = event_confidence(ET_SPECIAL_CONDITION_REMOVED, ["card_name_raw"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_SPECIAL_CONDITION_REMOVED, stripped,
+                player_raw=player, player_alias=alias, actor_type=actor,
+                card_name_raw=card,
+                event_payload={"condition": condition},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
+        # ── Damage counters placed: "ACTOR put N damage counter(s) on PLAYER's CARD." ──
+        m = RE_DAMAGE_COUNTERS_PLACED.match(match_line)
+        if m:
+            actor_name = m.group("actor").strip()
+            n = int(m.group("n"))
+            target_player = m.group("target_player").strip()
+            target_card = m.group("target_card").strip()
+            alias, actor = get_alias(actor_name)
+            target_alias, _ = get_alias(target_player)
+            score, reasons = event_confidence(ET_DAMAGE_COUNTERS_PLACED, ["target_card_name_raw", "amount"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_DAMAGE_COUNTERS_PLACED, stripped,
+                player_raw=actor_name, player_alias=alias, actor_type=actor,
+                target_card_name_raw=target_card, amount=n,
+                event_payload={"target_player_raw": target_player, "target_player_alias": target_alias, "n": n},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
+        # ── Damage counters moved: "ACTOR moved N damage counter(s) from PLAYER's CARD to PLAYER2's CARD2." ──
+        m = RE_DAMAGE_COUNTERS_MOVED.match(match_line)
+        if m:
+            actor_name = m.group("actor").strip()
+            n = int(m.group("n"))
+            source_player = m.group("source_player").strip()
+            source_card = m.group("source_card").strip()
+            target_player = m.group("target_player").strip()
+            target_card = m.group("target_card").strip()
+            alias, actor = get_alias(actor_name)
+            source_alias, _ = get_alias(source_player)
+            target_alias, _ = get_alias(target_player)
+            score, reasons = event_confidence(ET_DAMAGE_COUNTERS_MOVED, ["target_card_name_raw", "amount"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_DAMAGE_COUNTERS_MOVED, stripped,
+                player_raw=actor_name, player_alias=alias, actor_type=actor,
+                card_name_raw=source_card, target_card_name_raw=target_card, amount=n,
+                event_payload={
+                    "source_player_raw": source_player, "source_player_alias": source_alias,
+                    "target_player_raw": target_player, "target_player_alias": target_alias,
+                    "n": n,
+                },
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
+        # ── Pokémon switched: "PLAYER's CARD was switched with PLAYER2's CARD2 to become the Active Pokémon." ──
+        m = RE_POKEMON_SWITCHED.match(match_line)
+        if m:
+            player = m.group("player").strip()
+            card = m.group("card").strip()
+            target_player = m.group("target_player").strip()
+            target_card = m.group("target_card").strip()
+            alias, actor = get_alias(player)
+            target_alias, _ = get_alias(target_player)
+            score, reasons = event_confidence(ET_POKEMON_SWITCHED, ["card_name_raw", "target_card_name_raw"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_POKEMON_SWITCHED, stripped,
+                player_raw=player, player_alias=alias, actor_type=actor,
+                card_name_raw=card, target_card_name_raw=target_card, zone="active",
+                event_payload={"target_player_raw": target_player, "target_player_alias": target_alias},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
         # ── Switch active ─────────────────────────────────────────────────────
         m = RE_SWITCH_ACTIVE.match(match_line)
         if m:
@@ -1072,6 +1259,81 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             i += 1
             continue
 
+        # ── Cards shuffled into deck: "PLAYER shuffled N cards into their deck." ──
+        # (Must precede generic shuffle: "PLAYER shuffled their deck")
+        m = RE_CARDS_SHUFFLED_INTO_DECK.match(match_line)
+        if m:
+            player = m.group("player").strip()
+            n = int(m.group("n"))
+            alias, actor = get_alias(player)
+            # Collect optional bullet sub-lines listing the shuffled cards
+            cards_list: list[str] = []
+            block_lines = [stripped]
+            j = i + 1
+            while j < len(lines):
+                bm = RE_BULLET_LINE.match(lines[j])
+                if bm:
+                    content = bm.group("content").strip()
+                    block_lines.append(lines[j].strip())
+                    for c in content.split(","):
+                        c = c.strip()
+                        if c:
+                            cards_list.append(c)
+                    j += 1
+                else:
+                    break
+            raw_block = "\n".join(block_lines) if len(block_lines) > 1 else None
+            i = j
+            payload: dict = {"n": n}
+            if cards_list:
+                payload["cards"] = cards_list
+            score, reasons = event_confidence(ET_CARDS_SHUFFLED_INTO_DECK, ["amount"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_CARDS_SHUFFLED_INTO_DECK, stripped,
+                player_raw=player, player_alias=alias, actor_type=actor,
+                amount=n, raw_block=raw_block, event_payload=payload,
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            continue
+
+        # ── Cards moved to hand: "PLAYER moved OWNER's N cards to their hand." ──
+        m = RE_CARDS_MOVED_TO_HAND.match(match_line)
+        if m:
+            player = m.group("player").strip()
+            n = int(m.group("n"))
+            alias, actor = get_alias(player)
+            # Collect optional bullet sub-lines
+            cards_list2: list[str] = []
+            block_lines2 = [stripped]
+            j = i + 1
+            while j < len(lines):
+                bm = RE_BULLET_LINE.match(lines[j])
+                if bm:
+                    content = bm.group("content").strip()
+                    block_lines2.append(lines[j].strip())
+                    for c in content.split(","):
+                        c = c.strip()
+                        if c:
+                            cards_list2.append(c)
+                    j += 1
+                else:
+                    break
+            raw_block2 = "\n".join(block_lines2) if len(block_lines2) > 1 else None
+            i = j
+            payload2: dict = {"n": n}
+            if cards_list2:
+                payload2["cards"] = cards_list2
+            score, reasons = event_confidence(ET_CARDS_MOVED_TO_HAND, ["amount"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_CARDS_MOVED_TO_HAND, stripped,
+                player_raw=player, player_alias=alias, actor_type=actor,
+                amount=n, zone="hand", raw_block=raw_block2, event_payload=payload2,
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            continue
+
         # ── Shuffle deck ──────────────────────────────────────────────────────
         m = RE_SHUFFLE.match(match_line)
         if m:
@@ -1085,6 +1347,46 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             ))
             event_idx += 1
             i += 1
+            continue
+
+        # ── Cards discarded from Pokémon: "N card(s) were/was discarded from PLAYER's TARGET." ──
+        # Must precede RE_DISCARD_FROM_POKEMON ("CARD was discarded from PLAYER's TARGET.")
+        m = RE_CARDS_DISCARDED_FROM_POKEMON.match(match_line)
+        if m:
+            n = int(m.group("n"))
+            player = m.group("player").strip()
+            target = m.group("target").strip()
+            alias, actor = get_alias(player)
+            # Collect optional bullet sub-lines
+            cards_list3: list[str] = []
+            block_lines3 = [stripped]
+            j = i + 1
+            while j < len(lines):
+                bm = RE_BULLET_LINE.match(lines[j])
+                if bm:
+                    content = bm.group("content").strip()
+                    block_lines3.append(lines[j].strip())
+                    for c in content.split(","):
+                        c = c.strip()
+                        if c:
+                            cards_list3.append(c)
+                    j += 1
+                else:
+                    break
+            raw_block3 = "\n".join(block_lines3) if len(block_lines3) > 1 else None
+            i = j
+            payload3: dict = {"n": n}
+            if cards_list3:
+                payload3["cards"] = cards_list3
+            score, reasons = event_confidence(ET_CARDS_DISCARDED_FROM_POKEMON, ["target_card_name_raw", "amount"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_CARDS_DISCARDED_FROM_POKEMON, stripped,
+                player_raw=player, player_alias=alias, actor_type=actor,
+                target_card_name_raw=target, amount=n,
+                zone="discard", raw_block=raw_block3, event_payload=payload3,
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
             continue
 
         # ── Discard from Pokémon (passive: CARD was discarded from PLAYER's TARGET.) ──
@@ -1104,6 +1406,44 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             ))
             event_idx += 1
             i += 1
+            continue
+
+        # ── Cards discarded (cost/effect): "PLAYER discarded N cards." ─────────
+        # Must precede RE_DISCARD ("PLAYER discarded CARD from their...")
+        m = RE_CARDS_DISCARDED.match(match_line)
+        if m:
+            player = m.group("player").strip()
+            n = int(m.group("n"))
+            alias, actor = get_alias(player)
+            # Collect optional bullet sub-lines
+            cards_list4: list[str] = []
+            block_lines4 = [stripped]
+            j = i + 1
+            while j < len(lines):
+                bm = RE_BULLET_LINE.match(lines[j])
+                if bm:
+                    content = bm.group("content").strip()
+                    block_lines4.append(lines[j].strip())
+                    for c in content.split(","):
+                        c = c.strip()
+                        if c:
+                            cards_list4.append(c)
+                    j += 1
+                else:
+                    break
+            raw_block4 = "\n".join(block_lines4) if len(block_lines4) > 1 else None
+            i = j
+            payload4: dict = {"n": n}
+            if cards_list4:
+                payload4["cards"] = cards_list4
+            score, reasons = event_confidence(ET_CARDS_DISCARDED, ["amount"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_CARDS_DISCARDED, stripped,
+                player_raw=player, player_alias=alias, actor_type=actor,
+                amount=n, zone="discard", raw_block=raw_block4, event_payload=payload4,
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
             continue
 
         # ── Discard ───────────────────────────────────────────────────────────

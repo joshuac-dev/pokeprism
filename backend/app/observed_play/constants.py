@@ -52,6 +52,19 @@ ET_CARD_EFFECT_ACTIVATED = "card_effect_activated"
 ET_DISCARD_FROM_POKEMON = "discard_from_pokemon"
 ET_CARD_ADDED_TO_HAND = "card_added_to_hand"
 
+# Event types (turn/combat — Phase 2.4: special conditions, counters, checkup, concession)
+ET_POKEMON_CHECKUP = "pokemon_checkup"
+ET_SPECIAL_CONDITION_APPLIED = "special_condition_applied"
+ET_SPECIAL_CONDITION_REMOVED = "special_condition_removed"
+ET_SPECIAL_CONDITION_DAMAGE = "special_condition_damage"
+ET_DAMAGE_COUNTERS_PLACED = "damage_counters_placed"
+ET_DAMAGE_COUNTERS_MOVED = "damage_counters_moved"
+ET_CARDS_DISCARDED = "cards_discarded"
+ET_CARDS_DISCARDED_FROM_POKEMON = "cards_discarded_from_pokemon"
+ET_CARDS_MOVED_TO_HAND = "cards_moved_to_hand"
+ET_CARDS_SHUFFLED_INTO_DECK = "cards_shuffled_into_deck"
+ET_POKEMON_SWITCHED = "pokemon_switched"
+
 # Event types (combat/game end)
 ET_ATTACK_USED = "attack_used"
 ET_DAMAGE_BREAKDOWN = "damage_breakdown"

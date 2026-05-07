@@ -49,6 +49,15 @@ from app.observed_play.constants import (
     ET_PLAY_TRAINER,
     ET_RETREAT,
     ET_SWITCH_ACTIVE,
+    ET_SPECIAL_CONDITION_APPLIED,
+    ET_SPECIAL_CONDITION_REMOVED,
+    ET_SPECIAL_CONDITION_DAMAGE,
+    ET_DAMAGE_COUNTERS_PLACED,
+    ET_DAMAGE_COUNTERS_MOVED,
+    ET_CARDS_DISCARDED,
+    ET_CARDS_DISCARDED_FROM_POKEMON,
+    ET_CARDS_MOVED_TO_HAND,
+    ET_CARDS_SHUFFLED_INTO_DECK,
 )
 
 
@@ -639,3 +648,121 @@ class TestPronounPlaceholderFiltering:
             mentions = extract_mentions_from_event(evt)
             assert len(mentions) == 1
             assert mentions[0]["raw_name"] == name
+
+
+# ── Phase 2.4: Special conditions, damage counters, discard/move/shuffle ───────
+
+class TestSpecialConditionMentions:
+    """Special condition strings must never be extracted as card names."""
+
+    def test_burned_not_extracted(self):
+        evt = _event(ET_SPECIAL_CONDITION_APPLIED, card_name_raw="Dragapult ex",
+                     event_payload_json={"condition": "Burned"})
+        mentions = extract_mentions_from_event(evt)
+        names = [m["raw_name"] for m in mentions]
+        assert "Burned" not in names
+
+    def test_poisoned_not_extracted(self):
+        evt = _event(ET_SPECIAL_CONDITION_REMOVED, card_name_raw="Dragapult ex",
+                     event_payload_json={"condition": "Poisoned"})
+        mentions = extract_mentions_from_event(evt)
+        names = [m["raw_name"] for m in mentions]
+        assert "Poisoned" not in names
+
+    def test_pokemon_name_extracted(self):
+        evt = _event(ET_SPECIAL_CONDITION_APPLIED, card_name_raw="Dragapult ex",
+                     event_payload_json={"condition": "Burned"})
+        mentions = extract_mentions_from_event(evt)
+        names = [m["raw_name"] for m in mentions]
+        assert "Dragapult ex" in names
+
+    def test_condition_damage_pokemon_extracted(self):
+        evt = _event(ET_SPECIAL_CONDITION_DAMAGE, card_name_raw="Dragapult ex",
+                     event_payload_json={"condition": "Burned", "amount": 5})
+        mentions = extract_mentions_from_event(evt)
+        names = [m["raw_name"] for m in mentions]
+        assert "Dragapult ex" in names
+        assert "Burned" not in names
+
+
+class TestDamageCounterMentions:
+    """Damage counter numeric placeholders must not be extracted as card names."""
+
+    def test_target_card_extracted(self):
+        evt = _event(ET_DAMAGE_COUNTERS_PLACED, target_card_name_raw="Magmar",
+                     event_payload_json={"amount": 4})
+        mentions = extract_mentions_from_event(evt)
+        names = [m["raw_name"] for m in mentions]
+        assert "Magmar" in names
+
+    def test_source_and_target_extracted_for_moved(self):
+        evt = _event(ET_DAMAGE_COUNTERS_MOVED,
+                     card_name_raw="Dragapult ex",
+                     target_card_name_raw="Salazzle ex",
+                     event_payload_json={"amount": 3})
+        mentions = extract_mentions_from_event(evt)
+        names = [m["raw_name"] for m in mentions]
+        assert "Dragapult ex" in names
+        assert "Salazzle ex" in names
+
+    def test_damage_counters_string_not_extracted(self):
+        for et in (ET_DAMAGE_COUNTERS_PLACED, ET_DAMAGE_COUNTERS_MOVED):
+            evt = _event(et, card_name_raw="Magmar", event_payload_json={"amount": 3})
+            mentions = extract_mentions_from_event(evt)
+            names = [m["raw_name"] for m in mentions]
+            assert "damage counters" not in names
+            assert "damage counter" not in names
+
+
+class TestDiscardMoveShuffle:
+    """Bullet sub-line card names must be extracted; numeric placeholders ignored."""
+
+    def test_discard_bullet_cards(self):
+        evt = _event(ET_CARDS_DISCARDED,
+                     event_payload_json={"amount": 2, "cards": ["Buddy-Buddy Poffin", "Budew"]})
+        mentions = extract_mentions_from_event(evt)
+        names = [m["raw_name"] for m in mentions]
+        assert "Buddy-Buddy Poffin" in names
+        assert "Budew" in names
+
+    def test_discard_no_primary_card_field(self):
+        evt = _event(ET_CARDS_DISCARDED, event_payload_json={"amount": 2})
+        mentions = extract_mentions_from_event(evt)
+        # No card_name_raw set — no primary mention
+        assert all(m.get("source_payload_path", "").startswith("cards[") for m in mentions)
+
+    def test_discard_from_pokemon_target_extracted(self):
+        evt = _event(ET_CARDS_DISCARDED_FROM_POKEMON, target_card_name_raw="Salazzle ex",
+                     event_payload_json={"amount": 3, "cards": ["Basic Fire Energy", "Salandit"]})
+        mentions = extract_mentions_from_event(evt)
+        names = [m["raw_name"] for m in mentions]
+        assert "Salazzle ex" in names
+        assert "Salandit" in names
+
+    def test_numeric_cards_not_extracted(self):
+        for et in (ET_CARDS_DISCARDED, ET_CARDS_MOVED_TO_HAND, ET_CARDS_SHUFFLED_INTO_DECK):
+            evt = _event(et, event_payload_json={"amount": 3})
+            mentions = extract_mentions_from_event(evt)
+            names = [m["raw_name"] for m in mentions]
+            assert "3 cards" not in names
+            assert "2 cards" not in names
+
+    def test_moved_to_hand_bullet_extracted(self):
+        evt = _event(ET_CARDS_MOVED_TO_HAND,
+                     event_payload_json={"amount": 2, "cards": ["Basic Fire Energy", "Basic Fire Energy"]})
+        mentions = extract_mentions_from_event(evt)
+        names = [m["raw_name"] for m in mentions]
+        assert "Basic Fire Energy" in names
+
+    def test_shuffled_into_deck_bullet_extracted(self):
+        evt = _event(ET_CARDS_SHUFFLED_INTO_DECK,
+                     event_payload_json={"amount": 7, "cards": ["Meowth ex", "Boss's Orders"]})
+        mentions = extract_mentions_from_event(evt)
+        names = [m["raw_name"] for m in mentions]
+        assert "Meowth ex" in names
+        assert "Boss's Orders" in names
+
+    def test_heads_tails_not_extracted(self):
+        from app.observed_play.card_mentions import _IGNORED_NORMALIZED, normalize_card_name
+        assert normalize_card_name("heads") in _IGNORED_NORMALIZED
+        assert normalize_card_name("tails") in _IGNORED_NORMALIZED

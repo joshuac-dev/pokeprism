@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-07 (session 41 — Observed Play real-corpus bugfix: Parse and Cards sorting)
+Last updated: 2026-05-07 (session 42 — Observed Play parser hardening: special conditions, damage counters, checkup, concession)
 
 ## Current Workstream
 
@@ -40,12 +40,38 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **970 passed, 1 skipped** — 2026-05-07 session 41. `cd backend && python3 -m pytest tests/ -x -q`. |
-| Frontend unit tests | **246 passed (15 files)** — 2026-05-07 session 41. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **1047 passed, 1 skipped** — 2026-05-07 session 42. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Frontend unit tests | **246 passed (15 files)** — 2026-05-07 session 42. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
 
-## Session 41 Work (2026-05-07) — Parse and Cards Sorting Bugfix
+## Session 42 Work (2026-05-07) — Parser Hardening: Special Conditions, Damage Counters, Checkup, Concession
+
+### Goal
+
+Harden the PTCGL log parser for real-corpus lines from a Dragapult ex vs Salazzle ex log that produced `unknown` events, lowering the log's ingestion eligibility score.
+
+### Root causes
+
+Parser had no patterns for: Pokémon Checkup markers, Burned/Poisoned condition damage counters, special condition applied/removed lines, checkup coin flips, ability-driven damage counter placement/movement, discarded card counts, cards moved to hand, cards shuffled into deck (with known-card sub-lines), and opponent concession game-end lines.
+
+### Backend changes
+
+- `constants.py`: Added 11 new event type constants: `ET_POKEMON_CHECKUP`, `ET_SPECIAL_CONDITION_APPLIED`, `ET_SPECIAL_CONDITION_REMOVED`, `ET_SPECIAL_CONDITION_DAMAGE`, `ET_DAMAGE_COUNTERS_PLACED`, `ET_DAMAGE_COUNTERS_MOVED`, `ET_POKEMON_SWITCHED`, `ET_CARDS_DISCARDED`, `ET_CARDS_DISCARDED_FROM_POKEMON`, `ET_CARDS_MOVED_TO_HAND`, `ET_CARDS_SHUFFLED_INTO_DECK`.
+- `patterns.py`: Added 13 new compiled regexes covering all new event types including singular/plural variants and curly-apostrophe support.
+- `confidence.py`: Added scoring entries for all new event types (0.82–0.97).
+- `parser.py`: Added dispatch blocks for all new patterns; bullet sub-line capture for card lists in discard/move/shuffle events.
+- `card_mentions.py`: Extended `_IGNORED_NORMALIZED` (burned, poisoned, paralyzed, confused, asleep, heads, tails, damage counters); added extraction branches for new event types; added payload card list extraction for discard/move/shuffle events.
+- New fixture: `backend/tests/fixtures/observed_play/special_conditions_and_concession.md`
+- New tests: 52 parser tests, 20 card-mention tests, 11 memory-ingestion tests (1047 backend total).
+
+### Validation
+
+- Backend: 1047 passed, 1 skipped
+- Frontend: 246 passed (15 files), build clean
+- No data reset, ingestion, Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, or runtime integration.
+
+
 
 ### Goal
 

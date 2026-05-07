@@ -1669,6 +1669,35 @@ and card-added-to-hand lines.
 9. All Phase 2.1/2.2 behaviors preserved.
 10. No card DB resolution / Coach / Player / pgvector / Neo4j / memory ingestion added.
 
+## 22.3.1 Phase 2.4 — Real-Corpus Parser Hardening (Special Conditions, Damage Counters, Checkup, Concession)
+
+**Status:** COMPLETE (session 42).
+
+**Problem:** A real Dragapult ex vs Salazzle ex battle log produced `unknown` events for lines the parser had no patterns for: Pokémon Checkup markers, Burned/Poisoned condition damage counters, special condition applied/removed lines, checkup coin flips, ability-driven damage counter placement/movement, discarded card counts (with known-card bullet sub-lines), cards moved to hand, cards shuffled into deck, and opponent concession.
+
+**Changes:** See `docs/STATUS.md` session 42 and `docs/CHANGELOG.md` for detail.
+
+**Acceptance criteria met:**
+1. `Pokémon Checkup` → `pokemon_checkup`, confidence ≥ 0.95, no player.
+2. `N damage counters were placed on PLAYER's CARD for the Special Condition COND.` → `special_condition_damage`, amount/condition/card extracted.
+3. Singular form (`1 damage counter was placed`) → same event type, amount 1.
+4. `PLAYER's CARD is now Burned/Poisoned.` → `special_condition_applied`, condition in payload.
+5. `PLAYER's CARD is no longer Burned.` → `special_condition_removed`, condition in payload.
+6. `PLAYER flipped a coin and it landed on heads.` → `coin_flip_result` with `context="checkup"`.
+7. `PLAYER put N damage counters on PLAYER's CARD.` → `damage_counters_placed`.
+8. `PLAYER moved N damage counters from PLAYER's CARD to PLAYER's CARD.` → `damage_counters_moved`.
+9. `PLAYER's CARD was switched with PLAYER's CARD to become the Active Pokémon.` → `pokemon_switched`.
+10. `PLAYER discarded N cards.` → `cards_discarded`, bullet sub-line cards captured in payload.
+11. `N cards were discarded from PLAYER's CARD.` → `cards_discarded_from_pokemon`, bullet sub-line cards captured.
+12. `PLAYER moved PLAYER's N cards to their hand.` → `cards_moved_to_hand`, bullet sub-line cards captured.
+13. `PLAYER shuffled N cards into their deck.` → `cards_shuffled_into_deck`, bullet sub-line cards captured (or hidden if no bullets).
+14. `Opponent conceded. WINNER wins.` → `game_end` with `win_condition="opponent_conceded"`.
+15. Special conditions, `heads`, `tails`, `damage counters` not extracted as card names.
+16. Named cards from bullet sub-lines extracted as `discarded_card` mentions.
+17. All new event types produce no memory items (not yet mapped).
+18. 77 new backend tests (1047 total). Frontend unchanged (246 total).
+19. No Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, runtime integration, or data reset.
+
 ## 22.4 Phase 3 — Card Mention Extraction and Conservative Card Resolution
 
 **Status:** COMPLETE (session 28).

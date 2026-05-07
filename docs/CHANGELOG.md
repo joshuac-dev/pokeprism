@@ -31,6 +31,9 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Fixed
+- **Observed Play parser hardening: special conditions, damage counters, checkup, concession** — backend only. Hardened the PTCGL log parser for 12 real-corpus line types that produced `unknown` events in a Dragapult ex vs Salazzle ex log: Pokémon Checkup, Burned/Poisoned condition damage counters (singular/plural), special condition applied/removed, checkup coin flip, damage counter placement/movement by ability, discarded card counts (with known-card bullet sub-lines), cards moved to hand, cards shuffled into deck, and opponent concession. Added 11 new event type constants, 13 new patterns, confidence entries, parser dispatch blocks, and card-mention extraction/filtering. New fixture `special_conditions_and_concession.md`. +77 backend tests (1047 total). No Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, runtime integration, or data reset.
+
+### Fixed
 - **Observed Play real-corpus bugfix: Parse and Cards sorting** — frontend + backend. Fixed Raw Logs sorting for Parse and Cards columns. Parse now uses a `case()` rank expression (failed→raw_archived→parsed→parsed_with_warnings) with `confidence_score asc` tie-breaker, making sorting useful even when all logs share one status. Cards now uses `sort_by=cards` composite sort (unresolved_card_count→ambiguous_card_count→card_mention_count→confidence_score) so logs needing card-resolution review surface correctly. The `cards` key was not in the whitelist before (would have 422'd). Extracted `_apply_log_sort()` helper. +10 backend tests / +4 frontend tests (970 backend, 246 frontend). No Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, or runtime integration.
 
 ### Added

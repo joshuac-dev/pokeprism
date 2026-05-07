@@ -979,3 +979,48 @@ async def test_preview_eligible_log_has_empty_blockers_in_preview():
     assert result.blockers == []
     assert result.blocker_count == 0
     assert result.blockers_truncated is False
+
+
+# ── Phase 2.4: New event types do not produce junk memory items ───────────────
+
+from app.observed_play.constants import (
+    ET_POKEMON_CHECKUP,
+    ET_SPECIAL_CONDITION_APPLIED,
+    ET_SPECIAL_CONDITION_REMOVED,
+    ET_SPECIAL_CONDITION_DAMAGE,
+    ET_DAMAGE_COUNTERS_PLACED,
+    ET_DAMAGE_COUNTERS_MOVED,
+    ET_POKEMON_SWITCHED,
+    ET_CARDS_DISCARDED,
+    ET_CARDS_DISCARDED_FROM_POKEMON,
+    ET_CARDS_MOVED_TO_HAND,
+    ET_CARDS_SHUFFLED_INTO_DECK,
+)
+
+
+@pytest.mark.parametrize("skip_type", [
+    ET_POKEMON_CHECKUP,
+    ET_SPECIAL_CONDITION_APPLIED,
+    ET_SPECIAL_CONDITION_REMOVED,
+    ET_SPECIAL_CONDITION_DAMAGE,
+    ET_DAMAGE_COUNTERS_PLACED,
+    ET_DAMAGE_COUNTERS_MOVED,
+    ET_CARDS_DISCARDED,
+    ET_CARDS_DISCARDED_FROM_POKEMON,
+    ET_CARDS_MOVED_TO_HAND,
+    ET_CARDS_SHUFFLED_INTO_DECK,
+])
+def test_phase24_new_event_types_produce_no_memory_item(skip_type):
+    """Phase 2.4 parser events not yet memory-mapped must not create any item."""
+    event = _event(skip_type, card_name_raw="Dragapult ex")
+    data = _build_memory_item_data(event, {}, allow_unresolved=False)
+    assert data is None, (
+        f"Expected {skip_type!r} to produce no memory item, but got: {data}"
+    )
+
+
+def test_pokemon_switched_produces_no_memory_item():
+    event = _event(ET_POKEMON_SWITCHED, card_name_raw="Pecharunt",
+                   target_card_name_raw="Salazzle ex")
+    data = _build_memory_item_data(event, {}, allow_unresolved=False)
+    assert data is None

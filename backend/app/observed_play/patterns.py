@@ -116,6 +116,84 @@ RE_RECOVER = re.compile(r"^(?P<player>.+?) recovered (?P<card>.+?) from the disc
 # Play basic to bench (generic; RE_PLAY_TO_BENCH will also match)
 RE_PLAY_BASIC = re.compile(r"^(?P<player>.+?) played (?P<card>.+?) to the Bench", re.IGNORECASE)
 
+# Phase 2.4 — Special conditions, damage counters, checkup, concession
+
+# Pokémon Checkup phase marker
+RE_POKEMON_CHECKUP = re.compile(r"^Pok[e\u00e9]mon Checkup\s*$", re.IGNORECASE)
+
+# Coin flip during Pokémon Checkup (Burned): "PLAYER flipped a coin and it landed on heads/tails."
+RE_CHECKUP_COIN_FLIP = re.compile(
+    r"^(?P<player>.+?) flipped a coin and it landed on (?P<result>heads|tails)\.",
+    re.IGNORECASE,
+)
+
+# Special condition damage from checkup:
+# "N damage counter(s) were/was placed on PLAYER's CARD for the Special Condition COND."
+RE_SPECIAL_CONDITION_DAMAGE = re.compile(
+    r"^(?P<n>\d+) damage counters? (?:was|were) placed on (?P<player>.+?)[\u2019']s (?P<card>.+?) for the Special Condition (?P<condition>Burned|Poisoned|Paralyzed|Confused|Asleep)\.",
+    re.IGNORECASE,
+)
+
+# Special condition applied: "PLAYER's CARD is now COND."
+RE_SPECIAL_CONDITION_APPLIED = re.compile(
+    r"^(?P<player>.+?)[\u2019']s (?P<card>.+?) is now (?P<condition>Burned|Poisoned|Paralyzed|Confused|Asleep)\.",
+    re.IGNORECASE,
+)
+
+# Special condition removed: "PLAYER's CARD is no longer COND."
+RE_SPECIAL_CONDITION_REMOVED = re.compile(
+    r"^(?P<player>.+?)[\u2019']s (?P<card>.+?) is no longer (?P<condition>Burned|Poisoned|Paralyzed|Confused|Asleep)\.",
+    re.IGNORECASE,
+)
+
+# Damage counters placed by effect: "ACTOR put N damage counter(s) on PLAYER's CARD."
+RE_DAMAGE_COUNTERS_PLACED = re.compile(
+    r"^(?P<actor>.+?) put (?P<n>\d+) damage counters? on (?P<target_player>.+?)[\u2019']s (?P<target_card>.+?)\.",
+    re.IGNORECASE,
+)
+
+# Damage counters moved by ability: "ACTOR moved N damage counter(s) from PLAYER's CARD to PLAYER2's CARD2."
+RE_DAMAGE_COUNTERS_MOVED = re.compile(
+    r"^(?P<actor>.+?) moved (?P<n>\d+) damage counters? from (?P<source_player>.+?)[\u2019']s (?P<source_card>.+?) to (?P<target_player>.+?)[\u2019']s (?P<target_card>.+?)\.",
+    re.IGNORECASE,
+)
+
+# Pokémon switched: "PLAYER's CARD was switched with PLAYER2's CARD2 to become the Active Pokémon."
+RE_POKEMON_SWITCHED = re.compile(
+    r"^(?P<player>.+?)[\u2019']s (?P<card>.+?) was switched with (?P<target_player>.+?)[\u2019']s (?P<target_card>.+?) to become the Active Pok[e\u00e9]mon\.",
+    re.IGNORECASE,
+)
+
+# Cards discarded (cost/effect): "PLAYER discarded N cards."
+RE_CARDS_DISCARDED = re.compile(
+    r"^(?P<player>.+?) discarded (?P<n>\d+) cards?\.",
+    re.IGNORECASE,
+)
+
+# Cards discarded from Pokémon: "N card(s) were/was discarded from PLAYER's TARGET."
+RE_CARDS_DISCARDED_FROM_POKEMON = re.compile(
+    r"^(?P<n>\d+) cards? (?:was|were) discarded from (?P<player>.+?)[\u2019']s (?P<target>.+?)\.",
+    re.IGNORECASE,
+)
+
+# Cards moved to hand: "PLAYER moved OWNER's N cards to their hand."
+RE_CARDS_MOVED_TO_HAND = re.compile(
+    r"^(?P<player>.+?) moved (?P<owner>.+?)[\u2019']s (?P<n>\d+) cards? to their hand\.",
+    re.IGNORECASE,
+)
+
+# Cards shuffled into deck: "PLAYER shuffled N cards into their deck."
+RE_CARDS_SHUFFLED_INTO_DECK = re.compile(
+    r"^(?P<player>.+?) shuffled (?P<n>\d+) cards? into their deck\.",
+    re.IGNORECASE,
+)
+
+# Opponent conceded: "Opponent conceded. WINNER wins."
+RE_GAME_END_CONCEDED = re.compile(
+    r"^Opponent conceded\.\s*(?P<winner>.+?) wins\.",
+    re.IGNORECASE,
+)
+
 # Phase 2.3 patterns
 # Card/effect activation: "CARD was activated."
 RE_CARD_EFFECT_ACTIVATED = re.compile(

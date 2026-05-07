@@ -32,6 +32,49 @@ def event_confidence(event_type: str, fields_captured: list[str]) -> tuple[float
     if event_type in ("knockout", "game_end"):
         return 0.97, ["exact structural pattern"]
 
+    if event_type == "pokemon_checkup":
+        return 0.95, ["exact checkup phase marker"]
+
+    if event_type in ("special_condition_applied", "special_condition_removed"):
+        if "card_name_raw" in fields_captured:
+            return 0.90, ["special condition with player/card captured"]
+        return 0.85, ["special condition pattern matched"]
+
+    if event_type == "special_condition_damage":
+        if "card_name_raw" in fields_captured and "amount" in fields_captured:
+            return 0.92, ["condition damage with card/amount captured"]
+        return 0.85, ["condition damage pattern matched"]
+
+    if event_type in ("damage_counters_placed", "damage_counters_moved"):
+        if "target_card_name_raw" in fields_captured and "amount" in fields_captured:
+            return 0.88, ["damage counter event with target/amount captured"]
+        return 0.80, ["damage counter pattern matched"]
+
+    if event_type == "pokemon_switched":
+        if "card_name_raw" in fields_captured and "target_card_name_raw" in fields_captured:
+            return 0.90, ["pokemon switched with both cards captured"]
+        return 0.83, ["pokemon switched pattern matched"]
+
+    if event_type == "cards_discarded":
+        if "amount" in fields_captured:
+            return 0.85, ["cards discarded with player/amount captured"]
+        return 0.80, ["cards discarded pattern matched"]
+
+    if event_type == "cards_discarded_from_pokemon":
+        if "target_card_name_raw" in fields_captured and "amount" in fields_captured:
+            return 0.88, ["discarded from pokemon with target/amount captured"]
+        return 0.80, ["discarded from pokemon pattern matched"]
+
+    if event_type == "cards_moved_to_hand":
+        if "amount" in fields_captured:
+            return 0.85, ["cards moved to hand with player/amount captured"]
+        return 0.80, ["cards moved to hand pattern matched"]
+
+    if event_type == "cards_shuffled_into_deck":
+        if "amount" in fields_captured:
+            return 0.85, ["cards shuffled with player/amount captured"]
+        return 0.80, ["cards shuffled pattern matched"]
+
     if event_type in ("prize_taken",):
         return 0.97, ["exact prize count captured"]
 
