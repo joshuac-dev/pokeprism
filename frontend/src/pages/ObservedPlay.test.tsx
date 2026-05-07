@@ -1586,7 +1586,7 @@ describe('Phase 3.2 — Unresolved/Ambiguous Cards section', () => {
     });
   });
 
-  it('after closing modal following successful resolve, listObservedPlayLogs is called again', async () => {
+  it('after successful resolve, listObservedPlayLogs is called again without waiting for Close', async () => {
     (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       items: [sampleUnresolvedItem], total: 1, page: 1, per_page: 20,
     }).mockResolvedValue({ items: [], total: 0, page: 1, per_page: 20 });
@@ -1597,21 +1597,16 @@ describe('Phase 3.2 — Unresolved/Ambiguous Cards section', () => {
     await waitFor(() => screen.getByRole('button', { name: /review dragapult ex/i }));
     await userEvent.click(screen.getByRole('button', { name: /review dragapult ex/i }));
     await waitFor(() => screen.getByRole('button', { name: /^select$/i }));
-    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
-
-    await waitFor(() => screen.getByText(/rule created/i));
 
     const callsBefore = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls.length;
-
-    // close the modal via the text "Close" button
-    await userEvent.click(screen.getByText('Close'));
+    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
 
     await waitFor(() => {
       expect((listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(callsBefore);
     });
   });
 
-  it('after ignore rule and close, listObservedPlayLogs is called again', async () => {
+  it('after ignore rule, listObservedPlayLogs is called again without waiting for Close', async () => {
     (getUnresolvedCards as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       items: [sampleUnresolvedItem], total: 1, page: 1, per_page: 20,
     }).mockResolvedValue({ items: [], total: 0, page: 1, per_page: 20 });
@@ -1622,13 +1617,9 @@ describe('Phase 3.2 — Unresolved/Ambiguous Cards section', () => {
     await waitFor(() => screen.getByRole('button', { name: /review dragapult ex/i }));
     await userEvent.click(screen.getByRole('button', { name: /review dragapult ex/i }));
     await waitFor(() => screen.getByRole('button', { name: /ignore this name/i }));
-    await userEvent.click(screen.getByRole('button', { name: /ignore this name/i }));
-
-    await waitFor(() => screen.getByText(/ignore rule created/i));
 
     const callsBefore = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls.length;
-
-    await userEvent.click(screen.getByText('Close'));
+    await userEvent.click(screen.getByRole('button', { name: /ignore this name/i }));
 
     await waitFor(() => {
       expect((listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(callsBefore);
@@ -1672,6 +1663,224 @@ describe('Phase 3.2 — Unresolved/Ambiguous Cards section', () => {
     // after refresh: resolved=10✓, no ambiguous badge
     await waitFor(() => expect(screen.getByText('10✓')).toBeInTheDocument());
     expect(screen.queryByText('3?')).not.toBeInTheDocument();
+  });
+});
+
+// ── Bugfix: sequential resolution refresh ────────────────────────────────────
+
+describe('Bugfix — sequential resolution refresh', () => {
+  const cardA = {
+    raw_name: 'Pikachu ex',
+    normalized_name: 'pikachu ex',
+    status: 'ambiguous' as const,
+    mention_count: 3,
+    log_count: 1,
+    candidate_count: 1,
+    candidates: [{
+      card_def_id: 'sv01-100',
+      name: 'Pikachu ex',
+      set_abbrev: 'sv01',
+      set_number: '100',
+      image_url: null,
+      confidence: 1.0,
+      reason: 'exact',
+    }],
+    sample_mentions: [],
+    affected_log_ids: ['log-001'],
+  };
+  const cardB = {
+    ...cardA,
+    raw_name: 'Charizard ex',
+    normalized_name: 'charizard ex',
+    candidates: [{ ...cardA.candidates[0], card_def_id: 'sv03-200', name: 'Charizard ex' }],
+    affected_log_ids: ['log-002'],
+  };
+  const cardC = {
+    ...cardA,
+    raw_name: 'Mewtwo V',
+    normalized_name: 'mewtwo v',
+    candidates: [{ ...cardA.candidates[0], card_def_id: 'sv02-150', name: 'Mewtwo V' }],
+    affected_log_ids: ['log-003'],
+  };
+  const allCards = [cardA, cardB, cardC];
+  let resolvedCount = 0;
+
+  beforeEach(() => {
+    resolvedCount = 0;
+    (resolveCards as ReturnType<typeof vi.fn>).mockResolvedValue({
+      log_id: 'log-001', resolved_count: 1, ambiguous_count: 0, unresolved_count: 0,
+    });
+    (createResolutionRule as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      resolvedCount++;
+      const card = allCards[resolvedCount - 1] ?? cardA;
+      return Promise.resolve({
+        id: `rule-${resolvedCount}`,
+        raw_name: card.raw_name,
+        normalized_name: card.normalized_name,
+        action: 'resolve',
+        target_card_def_id: card.candidates[0].card_def_id,
+        target_card_name: card.candidates[0].name,
+        scope: 'global',
+        notes: null,
+        created_at: null,
+      });
+    });
+    (getUnresolvedCards as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve({
+        items: allCards.slice(resolvedCount),
+        total: allCards.length - resolvedCount,
+        page: 1,
+        per_page: 20,
+      })
+    );
+  });
+
+  it('resolving one ambiguous row removes it from the list immediately', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review pikachu ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review pikachu ex/i }));
+    await waitFor(() => screen.getByRole('button', { name: /^select$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
+    await waitFor(() => screen.getByText(/rule created/i));
+    await userEvent.click(screen.getByText('Close'));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /review pikachu ex/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('resolving three rows sequentially removes each row without page refresh — regression case', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review pikachu ex/i }));
+
+    // Resolution 1
+    await userEvent.click(screen.getByRole('button', { name: /review pikachu ex/i }));
+    await waitFor(() => screen.getByRole('button', { name: /^select$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
+    await waitFor(() => screen.getByText(/rule created/i));
+    await userEvent.click(screen.getByText('Close'));
+    await waitFor(() => expect(screen.queryByRole('button', { name: /review pikachu ex/i })).not.toBeInTheDocument());
+
+    // Resolution 2
+    await waitFor(() => screen.getByRole('button', { name: /review charizard ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review charizard ex/i }));
+    await waitFor(() => screen.getByRole('button', { name: /^select$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
+    await waitFor(() => screen.getByText(/rule created/i));
+    await userEvent.click(screen.getByText('Close'));
+    await waitFor(() => expect(screen.queryByRole('button', { name: /review charizard ex/i })).not.toBeInTheDocument());
+
+    // Resolution 3 — this is the regression case that was broken before the fix
+    await waitFor(() => screen.getByRole('button', { name: /review mewtwo v/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review mewtwo v/i }));
+    await waitFor(() => screen.getByRole('button', { name: /^select$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
+    await waitFor(() => screen.getByText(/rule created/i));
+    await userEvent.click(screen.getByText('Close'));
+    await waitFor(() => expect(screen.queryByRole('button', { name: /review mewtwo v/i })).not.toBeInTheDocument());
+  });
+
+  it('ignore rule path removes row without page refresh', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review pikachu ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review pikachu ex/i }));
+    await waitFor(() => screen.getByRole('button', { name: /ignore this name/i }));
+    await userEvent.click(screen.getByRole('button', { name: /ignore this name/i }));
+    await waitFor(() => screen.getByText(/ignore rule created/i));
+    await userEvent.click(screen.getByText('Close'));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /review pikachu ex/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('after resolution, getUnresolvedCards is called again', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review pikachu ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review pikachu ex/i }));
+    await waitFor(() => screen.getByRole('button', { name: /^select$/i }));
+
+    const callsBefore = (getUnresolvedCards as ReturnType<typeof vi.fn>).mock.calls.length;
+    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
+
+    await waitFor(() => {
+      expect((getUnresolvedCards as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+  });
+
+  it('after resolution, listObservedPlayLogs is called again', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review pikachu ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review pikachu ex/i }));
+    await waitFor(() => screen.getByRole('button', { name: /^select$/i }));
+
+    const callsBefore = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls.length;
+    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
+
+    await waitFor(() => {
+      expect((listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+  });
+
+  it('after resolution, getMemoryAnalytics is called again', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review pikachu ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review pikachu ex/i }));
+    await waitFor(() => screen.getByRole('button', { name: /^select$/i }));
+
+    const callsBefore = (getMemoryAnalytics as ReturnType<typeof vi.fn>).mock.calls.length;
+    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
+
+    await waitFor(() => {
+      expect((getMemoryAnalytics as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+  });
+
+  it('when all rows are resolved, the unresolved section disappears', async () => {
+    resolvedCount = 2; // only cardC remains
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review mewtwo v/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review mewtwo v/i }));
+    await waitFor(() => screen.getByRole('button', { name: /^select$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
+    await waitFor(() => screen.getByText(/rule created/i));
+    await userEvent.click(screen.getByText('Close'));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/unresolved \/ ambiguous cards/i)).not.toBeInTheDocument();
+    });
+  });
+
+  it('API error does not remove the row from the list', async () => {
+    (createResolutionRule as ReturnType<typeof vi.fn>).mockRejectedValue({
+      response: { data: { detail: 'Duplicate: rule already exists' } },
+    });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    setup();
+
+    await waitFor(() => screen.getByRole('button', { name: /review pikachu ex/i }));
+    await userEvent.click(screen.getByRole('button', { name: /review pikachu ex/i }));
+    await waitFor(() => screen.getByRole('button', { name: /^select$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^select$/i }));
+
+    await waitFor(() => screen.getByText(/duplicate: rule already exists/i));
+
+    // Row remains in the list — error path must not remove it
+    expect(screen.getByRole('button', { name: /review pikachu ex/i })).toBeInTheDocument();
   });
 });
 

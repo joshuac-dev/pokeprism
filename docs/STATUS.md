@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 38 — Observed Play real corpus intake: 49 logs uploaded, manual validation pending)
+Last updated: 2026-05-06 (session 39 — Observed Play real-corpus bugfix: ambiguous rows now refresh on every sequential resolution)
 
 ## Current Workstream
 
@@ -40,10 +40,45 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **949 passed, 1 skipped** — 2026-05-06 session 36. `cd backend && python3 -m pytest tests/ -x -q`. |
-| Frontend unit tests | **224 passed (15 files)** — 2026-05-06 session 36. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **949 passed, 1 skipped** — 2026-05-06 session 39. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Frontend unit tests | **232 passed (15 files)** — 2026-05-06 session 39. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 39 Work (2026-05-06) — Real-Corpus Bugfix
+
+### Goal
+
+Fix real-corpus manual testing bug: ambiguous card rows stopped disappearing from the Unresolved / Ambiguous Cards section after the first two sequential resolutions, requiring a manual browser refresh.
+
+### Root cause
+
+`ResolutionRuleModal` deferred the parent refresh until the user explicitly clicked "Close" and only if `affected_log_ids` was non-empty. After several resolutions the React closure over `onResolved` was stale or the condition was not met, so the refresh never fired. Additionally, `MemoryAnalyticsSection` fetched the unresolved lookup only once on mount, so analytics Review buttons stopped working after resolutions.
+
+### Fix
+
+- `ResolutionRuleModal`: call `onResolved()` immediately after `createResolutionRule` + `resolveCards` succeed, not conditionally on Close click. Removed `affectedAfterRule` state; simplified `handleClose`.
+- `UnresolvedCardsSection`: added `onRefreshAnalytics` prop; `handleResolved` calls `load()`, `onRefreshLogs?.()`, and `onRefreshAnalytics?.()` every time. Guard `return null` so the section stays mounted while the modal is open (prevents premature unmount during the same render cycle).
+- `MemoryAnalyticsSection.load()`: includes `getUnresolvedCards` in the Promise.all so the lookup is always current after any analytics refresh. `handleReviewResolved` unconditionally calls all refresh callbacks.
+- Parent `ObservedPlay`: passes `onRefreshAnalytics={() => analyticsRefreshRef.current?.()}` to `<UnresolvedCardsSection>`.
+
+### Files changed
+
+- `frontend/src/pages/ObservedPlay.tsx` — all component changes
+- `frontend/src/pages/ObservedPlay.test.tsx` — 2 existing tests updated + 8 new regression tests (232 total)
+- `docs/STATUS.md`, `docs/CHANGELOG.md`, `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`
+
+### Test results
+
+- Frontend: **232 passed (15 files)** (+8 new regression tests)
+- Backend: **949 passed, 1 skipped** (no changes)
+- Frontend build: **clean**
+
+### Scope
+
+Frontend state-refresh bugfix only. No Coach/AI, pgvector, Neo4j, simulator match_events, card_performance, deck-builder, runtime memory, data reset, or ingestion changes.
+
+---
 
 ## Session 38 Work (2026-05-06) — End-of-Session Checkpoint
 

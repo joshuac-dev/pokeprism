@@ -545,21 +545,14 @@ function ResolutionRuleModal({
 }: {
   item: UnresolvedCardItem;
   onClose: () => void;
-  onResolved: (affectedLogIds: string[]) => void;
+  onResolved: () => void;
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
-  const [affectedAfterRule, setAffectedAfterRule] = useState<string[]>([]);
 
-  const handleClose = () => {
-    if (affectedAfterRule.length > 0) {
-      onResolved(affectedAfterRule);
-    } else {
-      onClose();
-    }
-  };
+  const handleClose = () => { onClose(); };
 
   const handleResolve = async (candidate: CardCandidateItem) => {
     if (!confirm(`Resolve "${item.raw_name}" as "${candidate.name}"?`)) return;
@@ -579,8 +572,8 @@ function ResolutionRuleModal({
       for (const logId of affected) {
         try { await resolveCards(logId); } catch { /* continue on partial failure */ }
       }
-      setAffectedAfterRule(affected);
       setSuccess(`Rule created: "${item.raw_name}" → "${candidate.name}"`);
+      onResolved();
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       setError(msg ?? 'Failed to create rule');
@@ -605,8 +598,8 @@ function ResolutionRuleModal({
       for (const logId of affected) {
         try { await resolveCards(logId); } catch { /* continue */ }
       }
-      setAffectedAfterRule(affected);
       setSuccess(`Ignore rule created for "${item.raw_name}"`);
+      onResolved();
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       setError(msg ?? 'Failed to create ignore rule');
@@ -782,9 +775,11 @@ function ResolutionRuleModal({
 
 function UnresolvedCardsSection({
   onRefreshLogs,
+  onRefreshAnalytics,
   refreshRef,
 }: {
   onRefreshLogs?: () => void;
+  onRefreshAnalytics?: () => void;
   refreshRef?: { current: (() => void) | null };
 }) {
   const [items, setItems] = useState<UnresolvedCardItem[]>([]);
@@ -806,14 +801,13 @@ function UnresolvedCardsSection({
   });
 
   const handleResolved = () => {
-    setModalItem(null);
-    setLoading(true);
     load();
     onRefreshLogs?.();
+    onRefreshAnalytics?.();
   };
 
   if (loading) return null;
-  if (items.length === 0) return null;
+  if (items.length === 0 && !modalItem) return null;
 
   return (
     <>
@@ -1521,9 +1515,18 @@ function MemoryAnalyticsSection({
     setError(null);
     try {
       const analyticsParams = qualityFilter !== 'all' ? { quality_filter: qualityFilter } : {};
-      const [s, a] = await Promise.all([getMemorySummary(), getMemoryAnalytics(analyticsParams)]);
+      const [s, a, unresolvedData] = await Promise.all([
+        getMemorySummary(),
+        getMemoryAnalytics(analyticsParams),
+        getUnresolvedCards({ per_page: 100 }),
+      ]);
       setSummary(s);
       setAnalytics(a);
+      const lookup: Record<string, UnresolvedCardItem> = {};
+      for (const item of unresolvedData.items) {
+        lookup[item.raw_name] = item;
+      }
+      setUnresolvedLookup(lookup);
     } catch {
       setError('Failed to load memory analytics.');
     } finally {
@@ -1536,18 +1539,6 @@ function MemoryAnalyticsSection({
   useEffect(() => {
     if (refreshRef) refreshRef.current = load;
   });
-
-  useEffect(() => {
-    getUnresolvedCards({ per_page: 100 })
-      .then((data) => {
-        const lookup: Record<string, UnresolvedCardItem> = {};
-        for (const item of data.items) {
-          lookup[item.raw_name] = item;
-        }
-        setUnresolvedLookup(lookup);
-      })
-      .catch(() => {});
-  }, []);
 
   async function openExamples(filter: MemoryAnalyticsSourceItemsParams, label?: string) {
     setExamplesFilter(filter);
@@ -1574,13 +1565,10 @@ function MemoryAnalyticsSection({
     }
   }
 
-  function handleReviewResolved(affectedLogIds: string[]) {
-    setReviewItem(null);
+  function handleReviewResolved() {
     load();
-    if (affectedLogIds.length > 0) {
-      onRefreshLogs?.();
-      onRefreshUnresolved?.();
-    }
+    onRefreshLogs?.();
+    onRefreshUnresolved?.();
   }
 
   return (
@@ -2112,6 +2100,7 @@ export default function ObservedPlay() {
       {/* ── Unresolved cards section ──────────────────────────────────────── */}
       <UnresolvedCardsSection
         onRefreshLogs={() => fetchLogs(logPage)}
+        onRefreshAnalytics={() => analyticsRefreshRef.current?.()}
         refreshRef={unresolvedRefreshRef}
       />
 

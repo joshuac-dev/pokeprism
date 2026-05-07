@@ -2012,5 +2012,23 @@ Added `scripts/reset_observed_play_data.sh` — a guarded local maintenance scri
 
 ---
 
+## Real-Corpus Bugfix: Ambiguous Row Refresh Regression (Session 39)
+
+**Date:** 2026-05-06
+
+**Context:** Manual real-corpus validation with 49 uploaded logs revealed that ambiguous card rows stopped disappearing from the Unresolved / Ambiguous Cards section after the first two sequential resolutions, requiring a manual browser refresh.
+
+**Root cause:**
+- `ResolutionRuleModal` called `onResolved(affectedAfterRule)` only on explicit Close click and only if `affected_log_ids` was non-empty. Stale closure + condition failure after several modals meant refresh never fired.
+- `MemoryAnalyticsSection` fetched the unresolved lookup only once on mount (`useEffect([], [])`), so analytics Review buttons used stale data after resolutions.
+
+**Fix (frontend only):**
+- `onResolved()` fires immediately after `createResolutionRule` + `resolveCards` succeed; `handleClose` simplified.
+- `UnresolvedCardsSection` guards `return null` to stay mounted while modal is open; calls `onRefreshAnalytics?.()` after every resolution.
+- `MemoryAnalyticsSection.load()` includes `getUnresolvedCards` in Promise.all; `handleReviewResolved` calls all callbacks unconditionally.
+- +8 frontend regression tests (232 total). Backend unchanged (949 passed, 1 skipped).
+
+---
+
 *End of Observed Play Memory Implementation Plan.*
 *Feature branch: `feature/observed-play-memory`. No production code in this document.*
