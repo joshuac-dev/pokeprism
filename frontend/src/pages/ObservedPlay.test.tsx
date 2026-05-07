@@ -2231,3 +2231,169 @@ describe('Phase 5.1 — Analytics Table Column Alignment', () => {
     expect(cell).toBeInTheDocument();
   });
 });
+
+// ── Raw Logs — sorting ────────────────────────────────────────────────────────
+
+describe('Raw Logs — sorting', () => {
+  const logsResponse = {
+    items: [{
+      id: 'log-001',
+      import_batch_id: 'batch-001',
+      source: 'ptcgl_export',
+      original_filename: 'alpha.md',
+      sha256_hash: 'aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd11223344',
+      file_size_bytes: 2048,
+      parse_status: 'parsed',
+      memory_status: 'not_ingested',
+      stored_path: 'archive/aa/aa.md',
+      created_at: '2026-01-01T00:00:00Z',
+      parser_version: null,
+      event_count: 120,
+      confidence_score: 0.92,
+      winner_raw: null,
+      win_condition: null,
+      card_mention_count: 50,
+      resolved_card_count: 45,
+      ambiguous_card_count: 5,
+      unresolved_card_count: 0,
+      memory_item_count: 0,
+    }],
+    total: 1,
+    page: 1,
+    per_page: 25,
+  };
+
+  beforeEach(() => {
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue(logsResponse);
+  });
+
+  it('renders sortable column header buttons', async () => {
+    setup();
+    await waitFor(() => screen.getByText('Raw Logs'));
+    await waitFor(() => screen.getByRole('button', { name: /sort by confidence/i }));
+    expect(screen.getByRole('button', { name: /sort by events/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sort by filename/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sort by imported at/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sort by cards/i })).toBeInTheDocument();
+  });
+
+  it('default sort direction indicator shows active ▼ on Imported at (default sort)', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /sort by imported at/i }));
+    // "Imported at" is default sort (created_at desc) — should show ▼
+    const importedAtBtn = screen.getByRole('button', { name: /sort by imported at/i });
+    expect(importedAtBtn.textContent).toContain('▼');
+  });
+
+  it('clicking Confidence calls listObservedPlayLogs with sort_by=confidence_score', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /sort by confidence/i }));
+    const callsBefore = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls.length;
+
+    await userEvent.click(screen.getByRole('button', { name: /sort by confidence/i }));
+
+    await waitFor(() => {
+      const calls = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls.length).toBeGreaterThan(callsBefore);
+      const lastParams = calls[calls.length - 1][0];
+      expect(lastParams.sort_by).toBe('confidence_score');
+      expect(lastParams.sort_dir).toBe('desc');
+    });
+  });
+
+  it('clicking active Confidence column toggles direction to asc', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /sort by confidence/i }));
+
+    // First click: set confidence desc
+    await userEvent.click(screen.getByRole('button', { name: /sort by confidence/i }));
+    await waitFor(() => {
+      const calls = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls;
+      const lastParams = calls[calls.length - 1][0];
+      expect(lastParams.sort_by).toBe('confidence_score');
+      expect(lastParams.sort_dir).toBe('desc');
+    });
+
+    // Second click on same column: toggles to asc
+    await userEvent.click(screen.getByRole('button', { name: /sort by confidence/i }));
+    await waitFor(() => {
+      const calls = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls;
+      const lastParams = calls[calls.length - 1][0];
+      expect(lastParams.sort_by).toBe('confidence_score');
+      expect(lastParams.sort_dir).toBe('asc');
+    });
+  });
+
+  it('clicking Events resets to page 1 and sorts by event_count', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /sort by events/i }));
+
+    await userEvent.click(screen.getByRole('button', { name: /sort by events/i }));
+
+    await waitFor(() => {
+      const calls = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls;
+      const lastParams = calls[calls.length - 1][0];
+      expect(lastParams.sort_by).toBe('event_count');
+      expect(lastParams.sort_dir).toBe('desc');
+      expect(lastParams.page).toBe(1);
+    });
+  });
+
+  it('clicking Cards sorts by ambiguous_card_count desc', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /sort by cards/i }));
+
+    await userEvent.click(screen.getByRole('button', { name: /sort by cards/i }));
+
+    await waitFor(() => {
+      const calls = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls;
+      const lastParams = calls[calls.length - 1][0];
+      expect(lastParams.sort_by).toBe('ambiguous_card_count');
+      expect(lastParams.sort_dir).toBe('desc');
+    });
+  });
+
+  it('Cards header has tooltip about sort behavior', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /sort by cards/i }));
+    const cardsBtn = screen.getByRole('button', { name: /sort by cards/i });
+    expect(cardsBtn.title).toContain('ambiguous');
+  });
+
+  it('active sort column shows directional arrow, inactive columns show muted ↕', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /sort by confidence/i }));
+    await userEvent.click(screen.getByRole('button', { name: /sort by confidence/i }));
+
+    await waitFor(() => {
+      const confidenceBtn = screen.getByRole('button', { name: /sort by confidence/i });
+      expect(confidenceBtn.textContent).toContain('▼');
+    });
+    // Events (inactive) should show ↕
+    const eventsBtn = screen.getByRole('button', { name: /sort by events/i });
+    expect(eventsBtn.textContent).toContain('↕');
+  });
+
+  it('sorting preserves table row actions (View raw, View events)', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /sort by confidence/i }));
+    await userEvent.click(screen.getByRole('button', { name: /sort by confidence/i }));
+
+    await waitFor(() => screen.getByRole('button', { name: /view raw/i }));
+    expect(screen.getByRole('button', { name: /view events/i })).toBeInTheDocument();
+  });
+
+  it('clicking Filename sorts alphabetically (asc)', async () => {
+    setup();
+    await waitFor(() => screen.getByRole('button', { name: /sort by filename/i }));
+
+    await userEvent.click(screen.getByRole('button', { name: /sort by filename/i }));
+
+    await waitFor(() => {
+      const calls = (listObservedPlayLogs as ReturnType<typeof vi.fn>).mock.calls;
+      const lastParams = calls[calls.length - 1][0];
+      expect(lastParams.sort_by).toBe('filename');
+      expect(lastParams.sort_dir).toBe('asc');
+    });
+  });
+});

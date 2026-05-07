@@ -47,6 +47,41 @@ import { normalizeTcgdexImageUrl } from '../utils/imageUrl';
 
 const ACCEPTED_EXTS = '.md,.markdown,.txt,.zip';
 
+type LogSortKey =
+  | 'created_at' | 'filename' | 'parse_status' | 'memory_status'
+  | 'event_count' | 'confidence_score' | 'card_mention_count'
+  | 'ambiguous_card_count' | 'unresolved_card_count' | 'resolved_card_count'
+  | 'memory_item_count' | 'file_size_bytes' | 'sha256_hash';
+
+function SortableTh({
+  label, sortKey, currentSortBy, currentSortDir, onSort, defaultDir = 'asc', title,
+}: {
+  label: string;
+  sortKey: LogSortKey;
+  currentSortBy: LogSortKey;
+  currentSortDir: 'asc' | 'desc';
+  onSort: (key: LogSortKey, defaultDir: 'asc' | 'desc') => void;
+  defaultDir?: 'asc' | 'desc';
+  title?: string;
+}) {
+  const isActive = sortKey === currentSortBy;
+  const icon = isActive ? (currentSortDir === 'asc' ? '▲' : '▼') : '↕';
+  const nextDir = isActive ? (currentSortDir === 'asc' ? 'desc' : 'asc') : defaultDir;
+  return (
+    <th className="pb-1 pr-3">
+      <button
+        onClick={() => onSort(sortKey, defaultDir)}
+        className="flex items-center gap-0.5 text-xs text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 whitespace-nowrap"
+        aria-label={`Sort by ${label} ${nextDir}ending`}
+        title={title}
+      >
+        {label}
+        <span className={`ml-0.5 ${isActive ? 'text-blue-500 dark:text-blue-400' : 'opacity-40'}`}>{icon}</span>
+      </button>
+    </th>
+  );
+}
+
 function fmtDate(iso: string | null): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleString(undefined, {
@@ -1769,6 +1804,8 @@ export default function ObservedPlay() {
   const [logTotal, setLogTotal] = useState(0);
   const [logPage, setLogPage] = useState(1);
   const [logLoading, setLogLoading] = useState(true);
+  const [logSortBy, setLogSortBy] = useState<LogSortKey>('created_at');
+  const [logSortDir, setLogSortDir] = useState<'asc' | 'desc'>('desc');
 
   const [viewLogId, setViewLogId] = useState<string | null>(null);
   const [viewEventsLogId, setViewEventsLogId] = useState<string | null>(null);
@@ -1796,7 +1833,7 @@ export default function ObservedPlay() {
   const fetchLogs = useCallback(async (p: number) => {
     setLogLoading(true);
     try {
-      const res = await listObservedPlayLogs({ page: p, per_page: PER_PAGE });
+      const res = await listObservedPlayLogs({ page: p, per_page: PER_PAGE, sort_by: logSortBy, sort_dir: logSortDir });
       setLogs(res.items);
       setLogTotal(res.total);
     } catch {
@@ -1804,7 +1841,7 @@ export default function ObservedPlay() {
     } finally {
       setLogLoading(false);
     }
-  }, []);
+  }, [logSortBy, logSortDir]);
 
   useEffect(() => { fetchBatches(batchPage); }, [batchPage, fetchBatches]);
   useEffect(() => { fetchLogs(logPage); }, [logPage, fetchLogs]);
@@ -1832,6 +1869,16 @@ export default function ObservedPlay() {
 
   const batchPages = Math.max(1, Math.ceil(batchTotal / PER_PAGE));
   const logPages = Math.max(1, Math.ceil(logTotal / PER_PAGE));
+
+  function handleLogSort(key: LogSortKey, defaultDir: 'asc' | 'desc') {
+    if (logSortBy === key) {
+      setLogSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setLogSortBy(key);
+      setLogSortDir(defaultDir);
+    }
+    setLogPage(1);
+  }
 
   return (
     <PageShell title="Observed Play">
@@ -2004,16 +2051,16 @@ export default function ObservedPlay() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-slate-700 text-left text-xs text-gray-500 dark:text-slate-400">
-                  <th className="pb-1 pr-3">Filename</th>
-                  <th className="pb-1 pr-3">Parse</th>
-                  <th className="pb-1 pr-3">Memory</th>
-                  <th className="pb-1 pr-3">Events</th>
-                  <th className="pb-1 pr-3">Confidence</th>
-                  <th className="pb-1 pr-3">Cards</th>
-                  <th className="pb-1 pr-3">Mem items</th>
-                  <th className="pb-1 pr-3">Size</th>
-                  <th className="pb-1 pr-3">Imported at</th>
-                  <th className="pb-1 pr-3">Hash prefix</th>
+                  <SortableTh label="Filename" sortKey="filename" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="asc" />
+                  <SortableTh label="Parse" sortKey="parse_status" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="asc" />
+                  <SortableTh label="Memory" sortKey="memory_status" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="asc" />
+                  <SortableTh label="Events" sortKey="event_count" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="desc" />
+                  <SortableTh label="Confidence" sortKey="confidence_score" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="desc" />
+                  <SortableTh label="Cards" sortKey="ambiguous_card_count" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="desc" title="Sorts by ambiguous card count." />
+                  <SortableTh label="Mem items" sortKey="memory_item_count" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="desc" />
+                  <SortableTh label="Size" sortKey="file_size_bytes" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="desc" />
+                  <SortableTh label="Imported at" sortKey="created_at" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="desc" />
+                  <SortableTh label="Hash prefix" sortKey="sha256_hash" currentSortBy={logSortBy} currentSortDir={logSortDir} onSort={handleLogSort} defaultDir="asc" />
                   <th className="pb-1"></th>
                 </tr>
               </thead>

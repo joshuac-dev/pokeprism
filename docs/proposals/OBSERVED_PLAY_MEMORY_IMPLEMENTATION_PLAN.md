@@ -2030,5 +2030,38 @@ Added `scripts/reset_observed_play_data.sh` — a guarded local maintenance scri
 
 ---
 
+## Real-Corpus Polish: Sortable Raw Logs Columns (Session 40)
+
+**Date:** 2026-05-06
+
+**Context:** Real-corpus validation with 49 uploaded logs. Raw Logs table had no sortable columns, making it inefficient to triage logs by confidence, ambiguous card count, event count, size, etc.
+
+**Implementation: server-side sorting** (pagination is server-side; client-side sorting would only apply to the current page).
+
+**Backend (`backend/app/api/observed_play.py`):**
+- `GET /api/observed-play/logs` now accepts `sort_by?: str` and `sort_dir?: str` optional query params
+- `LOG_SORT_FIELDS` dict maps 13 whitelisted keys to ORM columns: `filename`, `parse_status`, `memory_status`, `event_count`, `confidence_score`, `card_mention_count`, `resolved_card_count`, `ambiguous_card_count`, `unresolved_card_count`, `memory_item_count`, `file_size_bytes`, `created_at`, `sha256_hash`
+- Invalid `sort_by` → HTTP 422; invalid `sort_dir` → HTTP 422
+- Stable tie-breaker: `created_at desc, id desc`
+- Default: `created_at desc` (behavior preserved)
+
+**Frontend:**
+- `LogSortKey` union type, `SortableTh` component: accessible `<button>` inside `<th>` with `▲`/`▼`/`↕` icons and `aria-label="Sort by <col> <dir>ending"`
+- `logSortBy`/`logSortDir` state; `handleLogSort` toggles dir on active col, sets default dir on new col, resets page to 1
+- All 10 Raw Logs table `<th>` headers use `<SortableTh>`
+- Cards column → `sort_by=ambiguous_card_count` with tooltip
+- Default directions: desc for numeric/date; asc for text/status
+
+**Tests:**
+- `TestLogListSort` class: 11 backend tests (valid sort keys, invalid sort_by 422, invalid sort_dir 422, pagination+sort, read-only)
+- Frontend "Raw Logs — sorting" describe: 10 tests (headers render, Confidence click, toggle, Events resets page, Cards sort key, tooltip, arrow indicator, inactive ↕, action buttons preserved, Filename asc)
+
+**Validation:**
+- `cd frontend && npm test -- --run`: **242 passed (15 files)**
+- `cd frontend && npm run build`: clean
+- `cd backend && python3 -m pytest tests/ -x -q`: **960 passed, 1 skipped**
+
+---
+
 *End of Observed Play Memory Implementation Plan.*
 *Feature branch: `feature/observed-play-memory`. No production code in this document.*

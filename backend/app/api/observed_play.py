@@ -6,7 +6,7 @@ import logging
 from typing import AsyncGenerator, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from sqlalchemy import and_, case, delete, distinct, func, select
+from sqlalchemy import and_, asc, case, delete, desc, distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import (
@@ -282,6 +282,22 @@ async def get_batch(
 
 # ── Log list ──────────────────────────────────────────────────────────────────
 
+LOG_SORT_FIELDS: dict[str, object] = {
+    "filename": ObservedPlayLog.original_filename,
+    "parse_status": ObservedPlayLog.parse_status,
+    "memory_status": ObservedPlayLog.memory_status,
+    "event_count": ObservedPlayLog.event_count,
+    "confidence_score": ObservedPlayLog.confidence_score,
+    "card_mention_count": ObservedPlayLog.card_mention_count,
+    "resolved_card_count": ObservedPlayLog.recognized_card_count,
+    "ambiguous_card_count": ObservedPlayLog.ambiguous_card_count,
+    "unresolved_card_count": ObservedPlayLog.unresolved_card_count,
+    "memory_item_count": ObservedPlayLog.memory_item_count,
+    "file_size_bytes": ObservedPlayLog.file_size_bytes,
+    "created_at": ObservedPlayLog.created_at,
+    "sha256_hash": ObservedPlayLog.sha256_hash,
+}
+
 @router.get("/logs")
 async def list_logs(
     page: int = Query(1, ge=1),
@@ -289,9 +305,22 @@ async def list_logs(
     parse_status: Optional[str] = Query(None),
     memory_status: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
+    sort_by: Optional[str] = Query(None),
+    sort_dir: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedLogs:
     """List raw observed play logs."""
+    if sort_by and sort_by not in LOG_SORT_FIELDS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid sort_by: {sort_by!r}. Allowed: {sorted(LOG_SORT_FIELDS)}",
+        )
+    if sort_dir and sort_dir not in ("asc", "desc"):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid sort_dir: {sort_dir!r}. Must be 'asc' or 'desc'.",
+        )
+
     q = select(ObservedPlayLog)
     if parse_status:
         q = q.where(ObservedPlayLog.parse_status == parse_status)
@@ -302,7 +331,10 @@ async def list_logs(
             ObservedPlayLog.original_filename.ilike(f"%{search}%")
             | ObservedPlayLog.sha256_hash.ilike(f"{search}%")
         )
-    q = q.order_by(ObservedPlayLog.created_at.desc())
+
+    sort_col = LOG_SORT_FIELDS.get(sort_by or "created_at", ObservedPlayLog.created_at)
+    order_fn = asc if sort_dir == "asc" else desc
+    q = q.order_by(order_fn(sort_col), ObservedPlayLog.created_at.desc(), ObservedPlayLog.id.desc())
 
     count_q = select(func.count()).select_from(q.subquery())
     total_result = await db.execute(count_q)

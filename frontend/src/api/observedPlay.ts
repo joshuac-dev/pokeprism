@@ -33,6 +33,8 @@ export interface ListLogsParams {
   parse_status?: string;
   memory_status?: string;
   search?: string;
+  sort_by?: string;
+  sort_dir?: 'asc' | 'desc';
 }
 
 export interface ListEventsParams {

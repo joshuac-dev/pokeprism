@@ -30,6 +30,9 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+### Added
+- **Observed Play real-corpus polish: sortable Raw Logs columns** — server-side sorting for 13 column keys (`filename`, `parse_status`, `memory_status`, `event_count`, `confidence_score`, `card_mention_count`, `resolved_card_count`, `ambiguous_card_count`, `unresolved_card_count`, `memory_item_count`, `file_size_bytes`, `created_at`, `sha256_hash`). `GET /api/observed-play/logs` accepts `sort_by`/`sort_dir` query params with whitelist validation (HTTP 422 on invalid values). Frontend `SortableTh` component renders accessible sort buttons (▲/▼/↕) with `aria-label`. Cards column sorts by `ambiguous_card_count desc` with tooltip. Default sort preserved (`created_at desc`). +10 frontend sort tests (242 total), +11 backend sort tests (960 total). No Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, or runtime integration.
+
 ### Fixed
 - **Observed Play real-corpus bugfix: ambiguous card rows refresh on every sequential resolution** — frontend only. Fixed a bug discovered during real-corpus manual testing where ambiguous card rows stopped disappearing from the Unresolved / Ambiguous Cards section after the first two sequential resolutions, requiring a manual browser refresh. Root cause: `ResolutionRuleModal` only called the parent refresh on explicit Close click and only if `affected_log_ids` was non-empty; `MemoryAnalyticsSection` fetched the unresolved lookup only once on mount. Fix: `onResolved()` fires immediately after `createResolutionRule` + `resolveCards` succeed; `UnresolvedCardsSection` keeps the section mounted while the modal is open; `MemoryAnalyticsSection.load()` always refreshes the unresolved lookup; all callbacks are unconditional. +8 frontend regression tests (232 total). No backend changes. No Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, or runtime integration.
 

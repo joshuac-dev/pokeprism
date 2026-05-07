@@ -532,6 +532,151 @@ class TestLogList:
             assert item["parse_status"] == "raw_archived"
 
 
+# ── Log list — sorting ────────────────────────────────────────────────────────
+
+class TestLogListSort:
+    def _make_session(self, logs):
+        async def override_db():
+            session = AsyncMock()
+            count_result = MagicMock()
+            count_result.scalar_one.return_value = len(logs)
+            list_result = MagicMock()
+            list_result.scalars.return_value.all.return_value = logs
+            session.execute = AsyncMock(side_effect=[count_result, list_result])
+            yield session
+        from app.api.observed_play import get_db
+        return override_db, get_db
+
+    def test_valid_sort_by_confidence_desc(self, client):
+        log = _make_log_model()
+        override_db, get_db = self._make_session([log])
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs?sort_by=confidence_score&sort_dir=desc")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+        assert resp.json()["total"] == 1
+
+    def test_valid_sort_by_confidence_asc(self, client):
+        log = _make_log_model()
+        override_db, get_db = self._make_session([log])
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs?sort_by=confidence_score&sort_dir=asc")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+
+    def test_valid_sort_by_event_count(self, client):
+        log = _make_log_model()
+        override_db, get_db = self._make_session([log])
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs?sort_by=event_count&sort_dir=desc")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+
+    def test_valid_sort_by_ambiguous_card_count(self, client):
+        log = _make_log_model()
+        override_db, get_db = self._make_session([log])
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs?sort_by=ambiguous_card_count")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+
+    def test_valid_sort_by_created_at(self, client):
+        log = _make_log_model()
+        override_db, get_db = self._make_session([log])
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs?sort_by=created_at&sort_dir=asc")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+
+    def test_valid_sort_by_filename(self, client):
+        log = _make_log_model()
+        override_db, get_db = self._make_session([log])
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs?sort_by=filename&sort_dir=asc")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+
+    def test_default_sort_no_params(self, client):
+        log = _make_log_model()
+        override_db, get_db = self._make_session([log])
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["items"][0]["id"] == "log-001"
+
+    def test_invalid_sort_by_returns_422(self, client):
+        override_db, get_db = self._make_session([])
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs?sort_by=not_a_field")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 422
+        assert "Invalid sort_by" in resp.json()["detail"]
+
+    def test_invalid_sort_dir_returns_422(self, client):
+        override_db, get_db = self._make_session([])
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs?sort_by=event_count&sort_dir=sideways")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 422
+        assert "Invalid sort_dir" in resp.json()["detail"]
+
+    def test_sort_with_pagination(self, client):
+        logs = [_make_log_model(log_id=f"log-{i:03d}") for i in range(3)]
+        override_db, get_db = self._make_session(logs[:2])
+        # Override count to 3 to simulate page 1 of 2
+        async def override_db_paged():
+            session = AsyncMock()
+            count_result = MagicMock()
+            count_result.scalar_one.return_value = 3
+            list_result = MagicMock()
+            list_result.scalars.return_value.all.return_value = logs[:2]
+            session.execute = AsyncMock(side_effect=[count_result, list_result])
+            yield session
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db_paged
+        try:
+            resp = client.get("/api/observed-play/logs?sort_by=event_count&sort_dir=desc&page=1&per_page=2")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 3
+        assert len(data["items"]) == 2
+        assert data["page"] == 1
+        assert data["per_page"] == 2
+
+    def test_sort_is_read_only(self, client):
+        log = _make_log_model()
+        override_db, get_db = self._make_session([log])
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/logs?sort_by=confidence_score&sort_dir=asc")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+        assert resp.json()["items"][0]["parse_status"] == "raw_archived"
+
+
 # ── Log detail ────────────────────────────────────────────────────────────────
 
 class TestLogDetail:

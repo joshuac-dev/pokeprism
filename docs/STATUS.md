@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-06 (session 39 — Observed Play real-corpus bugfix: ambiguous rows now refresh on every sequential resolution)
+Last updated: 2026-05-06 (session 40 — Observed Play real-corpus polish: sortable Raw Logs columns)
 
 ## Current Workstream
 
@@ -40,10 +40,59 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **949 passed, 1 skipped** — 2026-05-06 session 39. `cd backend && python3 -m pytest tests/ -x -q`. |
-| Frontend unit tests | **232 passed (15 files)** — 2026-05-06 session 39. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **960 passed, 1 skipped** — 2026-05-06 session 40. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Frontend unit tests | **242 passed (15 files)** — 2026-05-06 session 40. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 40 Work (2026-05-06) — Raw Logs Sorting
+
+### Goal
+
+Add sortable columns to the Raw Logs table for efficient real-corpus validation (49 uploaded logs).
+
+### Implementation
+
+Server-side sorting via `sort_by`/`sort_dir` query params (pagination is server-side). Backend whitelist validates 13 sort keys; invalid values return HTTP 422.
+
+### Backend changes
+
+- `GET /api/observed-play/logs`: added optional `sort_by` and `sort_dir` query params
+- `LOG_SORT_FIELDS` dict maps 13 string keys to ORM columns (whitelisted; no SQL injection possible)
+- Sort order: primary sort + stable tie-breaker (`created_at desc, id desc`)
+- Default: `created_at desc` (preserves prior behavior)
+- Invalid `sort_by`: HTTP 422 `"Invalid sort_by: ..."`
+- Invalid `sort_dir`: HTTP 422 `"Invalid sort_dir: ..."`
+
+Sort keys: `filename`, `parse_status`, `memory_status`, `event_count`, `confidence_score`, `card_mention_count`, `resolved_card_count`, `ambiguous_card_count`, `unresolved_card_count`, `memory_item_count`, `file_size_bytes`, `created_at`, `sha256_hash`
+
+### Frontend changes
+
+- `LogSortKey` union type + `SortableTh` component (accessible `<button>` with `▲`/`▼`/`↕` indicators and `aria-label`)
+- `logSortBy`/`logSortDir` state; `fetchLogs` closes over sort state (dep array updated); `handleLogSort` toggles direction on active column, sets default dir on new column, resets page to 1
+- All 10 Raw Logs table headers replaced with `<SortableTh>` components
+- Cards column sorts by `ambiguous_card_count desc` with tooltip
+
+### Files changed
+
+- `backend/app/api/observed_play.py` — sort params + LOG_SORT_FIELDS
+- `backend/tests/test_api/test_observed_play.py` — 11 new `TestLogListSort` tests (960 total)
+- `frontend/src/api/observedPlay.ts` — `sort_by`/`sort_dir` in `ListLogsParams`
+- `frontend/src/pages/ObservedPlay.tsx` — `SortableTh`, `LogSortKey`, sort state, `handleLogSort`, table headers
+- `frontend/src/pages/ObservedPlay.test.tsx` — 10 new sorting tests (242 total)
+- `docs/STATUS.md`, `docs/CHANGELOG.md`, `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`
+
+### Test results
+
+- Frontend: **242 passed (15 files)** (+10 new sort tests)
+- Backend: **960 passed, 1 skipped** (+11 new sort tests)
+- Frontend build: **clean**
+
+### Scope
+
+Real-corpus review UI polish only. No Coach/AI, pgvector, Neo4j, simulator match_events, card_performance, deck-builder, runtime memory, data reset, or ingestion changes. No new DB migrations.
+
+---
 
 ## Session 39 Work (2026-05-06) — Real-Corpus Bugfix
 
