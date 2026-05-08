@@ -27,7 +27,9 @@ See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 - User Check 3 ✅ — Flag-on Coach: block injected, LLM acknowledges (or fallback `not_used_reason`)
 - User Check 4 ✅ — Immutability: all observed-play memory tables unchanged after flag-on simulation
 
-**Next feature step:** Phase 6.2+ (future). Observed memory remains advisory only.
+**Next feature step:** Phase 6.2 — Observed-Play Evidence Relevance / Retrieval Quality.
+Plan: `docs/proposals/OBSERVED_PLAY_EVIDENCE_RELEVANCE_PLAN.md`. Not yet implemented.
+Observed memory remains advisory only.
 
 **Known caveat:** The LLM (Gemma) may fail to acknowledge observed-play evidence even after a repair retry. This is now visible and non-silent through the fallback `not_used_reason` (`"LLM failed to acknowledge injected observed-play evidence after retries."`) and `coach-debug` metadata. `any_acknowledgment_missing=true` is a valid outcome when this occurs; the goal is that failure is always explicit, never silent.
 
