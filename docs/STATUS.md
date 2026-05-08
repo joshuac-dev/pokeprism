@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-09 (session 48 — Phase 6.1 Feature-Flagged Coach Prompt Evidence)
+Last updated: 2026-05-08 (session 49 — Phase 6.1 end-session checkpoint; manual verification pending)
 
 ## Current Workstream
 
@@ -21,7 +21,8 @@ post-phase development:
 **Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, Phase 5.1, pre-Phase-5.2 workflow hardening, Phase 5.2, Phase 6.0, and Phase 6.1 are complete.**
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
-**Next step:** Phase 6.2+ — Further Coach advisory features (future). Observed memory remains advisory only.
+**Next step (immediate):** Manual verification of Phase 6.1 flag-off/flag-on behavior before any new Phase 6 increment.
+**Next feature step:** Phase 6.2+ — Further Coach advisory features (future). Observed memory remains advisory only.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
 workflow. `docs/CARDLIST.md`, `docs/POKEMON_MASTER_LIST.md`, and
@@ -43,6 +44,42 @@ Re-check them before making claims in user-facing docs.
 | Frontend unit tests | **313 passed (15 files)** — 2026-05-09 session 48. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 49 Work (2026-05-08) — Phase 6.1 End-Session Checkpoint
+
+### Status
+
+Phase 6.1 is **complete** at commit `e44681a`. This session records the
+end-of-session checkpoint only. No new feature work was performed.
+
+### Manual verification pending (next session)
+
+The following must be confirmed before starting Phase 6.2:
+
+1. **Flag-off:** `GET /api/observed-play/coach-context-preview` returns `enabled=false`, `would_inject=false`, `prompt_block=""` with default config.
+2. **Flag-off Coach prompt:** Coach prompts are byte-for-byte identical to pre-6.1 behavior.
+3. **Flag-on:** With `OBSERVED_PLAY_MEMORY_ENABLED=true` (local only), preview returns `would_inject=true`, bounded evidence block, readiness verdict, source-linked IDs, citation instructions. Test with `Dragapult ex`, `Salazzle ex`, `Dreepy`.
+4. **No mutation:** `observed_play_logs`, `observed_play_events`, `observed_card_mentions`, `observed_play_memory_ingestions`, `observed_play_memory_items` row counts unchanged after preview calls.
+5. **Reset flag:** Return to `OBSERVED_PLAY_MEMORY_ENABLED=false` after validation.
+
+### Confirmed state at checkpoint
+
+```text
+Branch:    feature/observed-play-memory
+HEAD:      e44681a25e3cdb8a4e59510dd6f1ee1782c4ed2f
+DB:        g3h4i5j6k7l8 (head)
+Backend:   1151 passed, 1 skipped
+Frontend:  313 passed (15 files)
+Build:     clean
+Flag default: OBSERVED_PLAY_MEMORY_ENABLED=false
+```
+
+No AI Player, simulator runtime, deck builder, pgvector, Neo4j,
+`match_events`, `card_performance`, or gameplay integration added.
+No data reset, force ingest, automatic ingestion, or DB mutations.
+`docs/AUDIT_STATE.md` not touched.
+
+---
 
 ## Session 48 Work (2026-05-09) — Phase 6.1 Feature-Flagged Coach Prompt Evidence
 
