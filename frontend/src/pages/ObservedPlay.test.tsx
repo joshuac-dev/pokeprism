@@ -28,6 +28,7 @@ vi.mock('../api/observedPlay', () => ({
   bulkIngestEligible: vi.fn(),
   getCorpusReadiness: vi.fn(),
   getCoachEvidence: vi.fn(),
+  getCoachContextPreview: vi.fn(),
 }));
 
 import {
@@ -50,6 +51,7 @@ import {
   bulkIngestEligible,
   getCorpusReadiness,
   getCoachEvidence,
+  getCoachContextPreview,
 } from '../api/observedPlay';
 
 const emptyBatches = { items: [], total: 0, page: 1, per_page: 25 };
@@ -258,6 +260,18 @@ beforeEach(() => {
     },
     evidence: [],
     warnings: [],
+  });
+  (getCoachContextPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+    enabled: false,
+    readiness_verdict: null,
+    readiness_score: null,
+    would_inject: false,
+    reason: 'OBSERVED_PLAY_MEMORY_ENABLED is false',
+    prompt_block: '',
+    evidence_count: 0,
+    evidence_ids: [],
+    warnings: [],
+    filters_applied: { min_confidence: 0.85, limit: 8 },
   });
 });
 
@@ -3304,6 +3318,210 @@ describe('Phase 5.2 — Corpus Readiness Scorecard', () => {
       setup();
       await waitFor(() => {
         expect(screen.getByText('Memory Analytics')).toBeInTheDocument();
+      });
+    });
+  });
+
+  // ── Phase 6.1: Coach Context Preview ────────────────────────────────────────
+
+  describe('CoachContextPreviewSection', () => {
+    it('renders the Coach Context Preview panel', async () => {
+      setup();
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Observed Play Coach Context Preview/i })).toBeInTheDocument();
+      });
+    });
+
+    it('shows safety copy about advisory-only nature', async () => {
+      setup();
+      await waitFor(() => {
+        expect(screen.getByText(/advisory only/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows disabled state when flag is off and Preview Context clicked', async () => {
+      (getCoachContextPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+        enabled: false,
+        readiness_verdict: null,
+        readiness_score: null,
+        would_inject: false,
+        reason: 'OBSERVED_PLAY_MEMORY_ENABLED is false',
+        prompt_block: '',
+        evidence_count: 0,
+        evidence_ids: [],
+        warnings: [],
+        filters_applied: { min_confidence: 0.85, limit: 8 },
+      });
+      setup();
+      const btn = await screen.findByRole('button', { name: /preview context/i });
+      await userEvent.click(btn);
+      await waitFor(() => {
+        expect(screen.getByText(/OBSERVED_PLAY_MEMORY_ENABLED=false/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows disabled message when flag is off', async () => {
+      (getCoachContextPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+        enabled: false,
+        readiness_verdict: null,
+        readiness_score: null,
+        would_inject: false,
+        reason: 'OBSERVED_PLAY_MEMORY_ENABLED is false',
+        prompt_block: '',
+        evidence_count: 0,
+        evidence_ids: [],
+        warnings: [],
+        filters_applied: {},
+      });
+      setup();
+      const btn = await screen.findByRole('button', { name: /preview context/i });
+      await userEvent.click(btn);
+      await waitFor(() => {
+        expect(screen.getByText(/disabled for Coach prompts/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows prompt block when enabled and corpus is ready', async () => {
+      (getCoachContextPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+        enabled: true,
+        readiness_verdict: 'ready',
+        readiness_score: 97.0,
+        would_inject: true,
+        reason: 'OBSERVED_PLAY_MEMORY_ENABLED is true; corpus is ready',
+        prompt_block: 'OBSERVED PLAY EVIDENCE — REVIEW ONLY\nEvidence:\n1. ...',
+        evidence_count: 1,
+        evidence_ids: ['abc-123'],
+        warnings: [],
+        filters_applied: { min_confidence: 0.85, limit: 8 },
+      });
+      setup();
+      const btn = await screen.findByRole('button', { name: /preview context/i });
+      await userEvent.click(btn);
+      await waitFor(() => {
+        expect(screen.getByText(/OBSERVED PLAY EVIDENCE/)).toBeInTheDocument();
+      });
+    });
+
+    it('shows readiness verdict when enabled', async () => {
+      (getCoachContextPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+        enabled: true,
+        readiness_verdict: 'ready',
+        readiness_score: 97.0,
+        would_inject: true,
+        reason: 'OBSERVED_PLAY_MEMORY_ENABLED is true; corpus is ready',
+        prompt_block: 'OBSERVED PLAY EVIDENCE — REVIEW ONLY\nEvidence:\n1. ...',
+        evidence_count: 1,
+        evidence_ids: ['abc-123'],
+        warnings: [],
+        filters_applied: { min_confidence: 0.85, limit: 8 },
+      });
+      setup();
+      const btn = await screen.findByRole('button', { name: /preview context/i });
+      await userEvent.click(btn);
+      await waitFor(() => {
+        const section = screen.getByRole('region', { name: /Coach Context Preview/i });
+        expect(within(section).getByText(/Corpus readiness:/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows not-ready blockers and no injection when not_ready', async () => {
+      (getCoachContextPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+        enabled: true,
+        readiness_verdict: 'not_ready',
+        readiness_score: 10.0,
+        would_inject: false,
+        reason: 'Corpus is not_ready',
+        prompt_block: '',
+        evidence_count: 0,
+        evidence_ids: [],
+        warnings: ['Critical unresolved cards exceed threshold.'],
+        filters_applied: {},
+      });
+      setup();
+      const btn = await screen.findByRole('button', { name: /preview context/i });
+      await userEvent.click(btn);
+      await waitFor(() => {
+        const section = screen.getByRole('region', { name: /Coach Context Preview/i });
+        // The section renders the verdict badge with not_ready (there may be multiple matches)
+        const allNotReady = within(section).getAllByText(/not_ready/i);
+        expect(allNotReady.length).toBeGreaterThan(0);
+        expect(within(section).getByText(/Critical unresolved cards exceed threshold/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows needs_review warnings', async () => {
+      (getCoachContextPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+        enabled: true,
+        readiness_verdict: 'needs_review',
+        readiness_score: 70.0,
+        would_inject: true,
+        reason: 'OBSERVED_PLAY_MEMORY_ENABLED is true; corpus is needs_review',
+        prompt_block: 'OBSERVED PLAY EVIDENCE — REVIEW ONLY\n...',
+        evidence_count: 2,
+        evidence_ids: ['x1', 'x2'],
+        warnings: ['Low parse coverage for some logs.'],
+        filters_applied: { min_confidence: 0.85, limit: 8 },
+      });
+      setup();
+      const btn = await screen.findByRole('button', { name: /preview context/i });
+      await userEvent.click(btn);
+      await waitFor(() => {
+        expect(screen.getByText(/Low parse coverage for some logs/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows evidence count and IDs when would_inject', async () => {
+      (getCoachContextPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+        enabled: true,
+        readiness_verdict: 'ready',
+        readiness_score: 97.0,
+        would_inject: true,
+        reason: 'enabled',
+        prompt_block: 'OBSERVED PLAY EVIDENCE — REVIEW ONLY\n...',
+        evidence_count: 3,
+        evidence_ids: ['id-a', 'id-b', 'id-c'],
+        warnings: [],
+        filters_applied: {},
+      });
+      setup();
+      const btn = await screen.findByRole('button', { name: /preview context/i });
+      await userEvent.click(btn);
+      await waitFor(() => {
+        expect(screen.getByText(/Evidence count:/i)).toBeInTheDocument();
+        expect(screen.getByText(/id-a/)).toBeInTheDocument();
+      });
+    });
+
+    it('calls getCoachContextPreview with filter params', async () => {
+      setup();
+      const btn = await screen.findByRole('button', { name: /preview context/i });
+      await userEvent.click(btn);
+      await waitFor(() => {
+        expect(getCoachContextPreview).toHaveBeenCalledWith(
+          expect.objectContaining({ min_confidence: expect.any(Number), limit: expect.any(Number) }),
+        );
+      });
+    });
+
+    it('renders dark-mode classes on the panel', async () => {
+      setup();
+      await waitFor(() => {
+        const section = screen.getByRole('region', { name: /Coach Context Preview/i });
+        expect(section.className).toMatch(/dark:/);
+      });
+    });
+
+    it('existing Coach Evidence section still passes after Phase 6.1', async () => {
+      setup();
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Coach Evidence Preview/i })).toBeInTheDocument();
+      });
+    });
+
+    it('existing Corpus Readiness section still passes after Phase 6.1', async () => {
+      setup();
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Corpus Quality.*Readiness Scorecard/i })).toBeInTheDocument();
       });
     });
   });

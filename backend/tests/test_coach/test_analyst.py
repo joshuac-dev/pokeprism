@@ -893,3 +893,135 @@ class TestPromptInjectionHardening:
         assert analyst._call_ollama.call_count == 2
         repair_user_content = analyst._call_ollama.call_args_list[1].args[0][1]["content"]
         assert self._HOSTILE_CARD not in repair_user_content
+
+
+# ---------------------------------------------------------------------------
+# TestCoachAnalystObservedPlay (Phase 6.1)
+# ---------------------------------------------------------------------------
+
+class TestCoachAnalystObservedPlay:
+    """Tests for the OBSERVED_PLAY_MEMORY_ENABLED flag wired into CoachAnalyst."""
+
+    def _base_kwargs(self):
+        return {
+            "round_results": [_match_result()],
+            "card_stats": {},
+            "top_cards": [],
+            "synergies": {"top": [], "weak": []},
+            "similar": [],
+            "excluded_ids": [],
+            "tiers": {"tier1": set(), "tier2": {}, "tier3": set()},
+            "regression_info": None,
+        }
+
+    def test_flag_off_prompt_unchanged(self):
+        """With OBSERVED_PLAY_MEMORY_ENABLED=false, prompt contains no observed-play block."""
+        analyst = _make_analyst()
+        messages = analyst._build_prompt_messages(
+            deck=[_trainer("sv05-001", "Prof Research")],
+            observed_play_block="",
+            **self._base_kwargs(),
+        )
+        user = messages[1]["content"]
+        assert "OBSERVED PLAY EVIDENCE" not in user
+
+    def test_flag_on_prompt_contains_evidence_block(self):
+        """With observed_play_block supplied, the user prompt includes it."""
+        analyst = _make_analyst()
+        fake_block = "OBSERVED PLAY EVIDENCE — REVIEW ONLY\nEvidence:\n1. ..."
+        messages = analyst._build_prompt_messages(
+            deck=[_trainer("sv05-001", "Prof Research")],
+            observed_play_block=fake_block,
+            **self._base_kwargs(),
+        )
+        user = messages[1]["content"]
+        assert "OBSERVED PLAY EVIDENCE" in user
+
+    def test_observed_play_block_appended_after_instructions(self):
+        """The observed-play block is appended after the main instructions section."""
+        analyst = _make_analyst()
+        fake_block = "OBSERVED PLAY EVIDENCE — REVIEW ONLY\ntest"
+        messages = analyst._build_prompt_messages(
+            deck=[_trainer("sv05-001", "Prof Research")],
+            observed_play_block=fake_block,
+            **self._base_kwargs(),
+        )
+        user = messages[1]["content"]
+        # Evidence block must come after Instructions section
+        instructions_pos = user.index("## Instructions")
+        evidence_pos = user.index("OBSERVED PLAY EVIDENCE")
+        assert evidence_pos > instructions_pos
+
+    @pytest.mark.asyncio
+    async def test_fetch_observed_play_block_returns_empty_when_disabled(self):
+        """_fetch_observed_play_block returns '' when flag is off."""
+        analyst = _make_analyst()
+        with patch("app.coach.analyst.settings") as mock_settings:
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = False
+            result = await analyst._fetch_observed_play_block()
+        assert result == ""
+
+    @pytest.mark.asyncio
+    async def test_fetch_observed_play_block_returns_block_when_enabled(self):
+        """_fetch_observed_play_block returns prompt_block when flag is on and injection is OK."""
+        from app.observed_play.schemas import ObservedPlayCoachContextPreview
+        analyst = _make_analyst()
+        fake_preview = ObservedPlayCoachContextPreview(
+            enabled=True,
+            readiness_verdict="ready",
+            readiness_score=97.0,
+            would_inject=True,
+            reason="enabled",
+            prompt_block="OBSERVED PLAY EVIDENCE — REVIEW ONLY\nEvidence:\n1. ...",
+            evidence_count=1,
+            evidence_ids=["some-uuid"],
+            warnings=[],
+            filters_applied={},
+        )
+        with patch("app.coach.analyst.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.build_coach_context_preview",
+                 new=AsyncMock(return_value=fake_preview),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            result = await analyst._fetch_observed_play_block()
+        assert "OBSERVED PLAY EVIDENCE" in result
+
+    @pytest.mark.asyncio
+    async def test_fetch_observed_play_block_returns_empty_when_not_ready(self):
+        """_fetch_observed_play_block returns '' when corpus is not_ready."""
+        from app.observed_play.schemas import ObservedPlayCoachContextPreview
+        analyst = _make_analyst()
+        not_ready_preview = ObservedPlayCoachContextPreview(
+            enabled=True,
+            readiness_verdict="not_ready",
+            readiness_score=10.0,
+            would_inject=False,
+            reason="not_ready",
+            prompt_block="",
+            evidence_count=0,
+            evidence_ids=[],
+            warnings=["Corpus is not ready."],
+            filters_applied={},
+        )
+        with patch("app.coach.analyst.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.build_coach_context_preview",
+                 new=AsyncMock(return_value=not_ready_preview),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            result = await analyst._fetch_observed_play_block()
+        assert result == ""
+
+    @pytest.mark.asyncio
+    async def test_fetch_observed_play_block_silent_on_exception(self):
+        """_fetch_observed_play_block swallows exceptions and returns ''."""
+        analyst = _make_analyst()
+        with patch("app.coach.analyst.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.build_coach_context_preview",
+                 side_effect=Exception("db error"),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            result = await analyst._fetch_observed_play_block()
+        assert result == ""

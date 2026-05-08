@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-09 (session 47 — Phase 6.0 Coach-Only Advisory Evidence)
+Last updated: 2026-05-09 (session 48 — Phase 6.1 Feature-Flagged Coach Prompt Evidence)
 
 ## Current Workstream
 
@@ -18,10 +18,10 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, Phase 5.1, pre-Phase-5.2 workflow hardening, Phase 5.2, and Phase 6.0 are complete.**
+**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, Phase 5.1, pre-Phase-5.2 workflow hardening, Phase 5.2, Phase 6.0, and Phase 6.1 are complete.**
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
-**Next step:** Phase 6.1+ — Broader Coach advisory features (future). Observed memory remains advisory only.
+**Next step:** Phase 6.2+ — Further Coach advisory features (future). Observed memory remains advisory only.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
 workflow. `docs/CARDLIST.md`, `docs/POKEMON_MASTER_LIST.md`, and
@@ -39,10 +39,84 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **1129 passed, 1 skipped** — 2026-05-09 session 47. `cd backend && python3 -m pytest tests/ -x -q`. |
-| Frontend unit tests | **300 passed (15 files)** — 2026-05-09 session 47. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **1151 passed, 1 skipped** — 2026-05-09 session 48. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Frontend unit tests | **313 passed (15 files)** — 2026-05-09 session 48. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 48 Work (2026-05-09) — Phase 6.1 Feature-Flagged Coach Prompt Evidence
+
+### Goal
+
+Wire the Phase 6.0 observed-play evidence layer into the Coach prompt/context
+path behind `OBSERVED_PLAY_MEMORY_ENABLED=false` (default off). When enabled,
+Coach can receive a bounded, source-linked observed-play evidence block with
+review-only instructions and evidence IDs, gated by corpus readiness. Observed
+memory remains advisory only and does not affect AI Player, simulator runtime,
+deck builder, pgvector, Neo4j, match_events, card_performance, or gameplay decisions.
+
+### Changes
+
+**Backend (`backend/app/config.py`):**
+- Added `OBSERVED_PLAY_MEMORY_ENABLED: bool = False`, `OBSERVED_PLAY_MEMORY_MAX_EVIDENCE: int = 8`, `OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE: float = 0.85`.
+
+**Backend (`backend/app/observed_play/readiness_service.py`)** (NEW):
+- Extracted `compute_corpus_readiness()` and `build_coach_evidence_filter()` from `api/observed_play.py` into shared importable module to prevent circular imports.
+
+**Backend (`backend/app/observed_play/schemas.py`):**
+- Appended Phase 6.1 schemas: `ObservedPlayCoachContextQuery`, `ObservedPlayEvidencePromptItem`, `ObservedPlayCoachContextPreview`.
+
+**Backend (`backend/app/observed_play/coach_context.py`)** (NEW):
+- Feature flag check, readiness gate, evidence fetch (re-using `build_coach_evidence_filter`), prompt block formatter, preview builder.
+- `build_coach_context_preview(db, ...)` is the main entry point.
+- `_REVIEW_ONLY_HEADER` defines prompt preamble with citation instructions.
+
+**Backend (`backend/app/api/observed_play.py`):**
+- Added `GET /api/observed-play/coach-context-preview` read-only endpoint.
+- Refactored: readiness functions now imported from `readiness_service`.
+
+**Backend (`backend/app/coach/analyst.py`):**
+- Added `observed_play_block=""` param to `_build_prompt_messages` (no-op when empty).
+- Added `_fetch_observed_play_block()` async helper: returns `""` when flag is off; calls `build_coach_context_preview`; returns `preview.prompt_block` if `would_inject`; catches all exceptions (safe fallback).
+- Updated `analyze_and_mutate` to call `_fetch_observed_play_block()` before building prompt. With default-off flag, Coach prompts are byte-for-byte identical to pre-6.1.
+
+**Backend tests (`backend/tests/test_api/test_observed_play.py`):**
+- Appended `TestCoachContextPreview` class with 14 tests.
+
+**Backend tests (`backend/tests/test_coach/test_analyst.py`):**
+- Appended `TestCoachAnalystObservedPlay` class with 8 tests covering flag-off/on, prompt position, `_fetch_observed_play_block` behavior, and exception safety.
+
+**Frontend (`frontend/src/types/observedPlay.ts`):**
+- Added `ObservedPlayCoachContextPreview` and `GetCoachContextPreviewParams` interfaces.
+
+**Frontend (`frontend/src/api/observedPlay.ts`):**
+- Added `getCoachContextPreview(params?)` function calling `GET /api/observed-play/coach-context-preview`.
+
+**Frontend (`frontend/src/pages/ObservedPlay.tsx`):**
+- Added `CoachContextPreviewSection` component: shows flag status, readiness verdict, would_inject, reason, warnings, evidence count/IDs, prompt block preview.
+- Wired into page after `CoachEvidenceSection`.
+
+**Frontend tests (`frontend/src/pages/ObservedPlay.test.tsx`):**
+- Added `getCoachContextPreview: vi.fn()` to mock and default `beforeEach` return.
+- Added `CoachContextPreviewSection` describe block with 11 tests.
+
+### Validation
+
+```text
+Backend: 1151 passed, 1 skipped
+Frontend: 313 passed (15 files)
+Frontend build: clean
+No DB mutations. No writes to Neo4j, pgvector, match_events, card_performance.
+OBSERVED_PLAY_MEMORY_ENABLED defaults to false.
+```
+
+### Scope adherence
+
+- No AI Player, simulator runtime, deck builder, pgvector, Neo4j, match_events, card_performance, or gameplay integration.
+- No data reset, force ingest, automatic ingestion.
+- No new DB migrations.
+- `docs/AUDIT_STATE.md` not touched.
+- No real logs, screenshots, database dumps, or .env secrets committed.
 
 ## Session 47 Work (2026-05-09) — Phase 6.0 Coach-Only Advisory Evidence
 

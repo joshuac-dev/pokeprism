@@ -1576,15 +1576,24 @@ unresolved cards table, card resolution modal, failed logs table.
 
 ### Phase 6 — Coach-Only Advisory Integration
 
-**Status: Phase 6.0 COMPLETE — read-only advisory evidence layer implemented.**
+**Status: Phase 6.0 and Phase 6.1 COMPLETE.**
 
 Phase 6.0 adds `GET /api/observed-play/coach-evidence`: a read-only endpoint
 that returns source-linked observed memory examples and aggregate summaries for
 advisory review. Evidence is gated by corpus readiness (HTTP 409 if `not_ready`),
 filtered to high-confidence/resolved items, and displayed in the frontend
-`CoachEvidenceSection` panel. Observed memory is **not** wired into Coach/AI
-runtime decisions, simulator, pgvector, Neo4j, match_events, card_performance,
-or deck-builder logic.
+`CoachEvidenceSection` panel.
+
+Phase 6.1 adds feature-flagged Coach prompt wiring. `OBSERVED_PLAY_MEMORY_ENABLED`
+defaults to `false`. When enabled, `CoachAnalyst.analyze_and_mutate` receives a
+bounded observed-play evidence block via `_fetch_observed_play_block()`, gated by
+`compute_corpus_readiness()`. A debug preview endpoint (`GET /api/observed-play/coach-context-preview`)
+exposes exactly what would be injected. The prompt block includes a review-only header,
+readiness verdict, numbered evidence with source IDs, and a citation instruction for Coach.
+With the default-off flag, Coach prompts are byte-for-byte identical to pre-6.1.
+
+Observed memory is **not** wired into AI Player, simulator, pgvector, Neo4j,
+match_events, card_performance, or deck-builder logic in either Phase 6.0 or 6.1.
 
 **Files added/changed (Phase 6.0):**
 - `backend/app/observed_play/schemas.py` — `CoachEvidenceQuery`, `CoachEvidenceSummary`, `CoachEvidenceItem`, `CoachEvidenceResponse` + 3 constants
@@ -1593,12 +1602,27 @@ or deck-builder logic.
 - `frontend/src/api/observedPlay.ts` — `getCoachEvidence()`
 - `frontend/src/pages/ObservedPlay.tsx` — `CoachEvidenceSection` component
 
-**Phase 6.1+ acceptance criteria (still pending):**
-1. Coach prompt includes `[Observed Play Memory (advisory)]` section when enabled.
-2. Only logs with `confidence_score ≥ 0.80` contribute.
-3. Existing Coach safety systems (primary evo protection, regression detection) are unaffected.
-4. A/B test framework in place.
-5. Tests confirm no observed-play content when flag is off.
+**Files added/changed (Phase 6.1):**
+- `backend/app/config.py` — `OBSERVED_PLAY_MEMORY_ENABLED`, `OBSERVED_PLAY_MEMORY_MAX_EVIDENCE`, `OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE`
+- `backend/app/observed_play/readiness_service.py` (NEW) — `compute_corpus_readiness()`, `build_coach_evidence_filter()`
+- `backend/app/observed_play/schemas.py` — `ObservedPlayCoachContextQuery`, `ObservedPlayEvidencePromptItem`, `ObservedPlayCoachContextPreview`
+- `backend/app/observed_play/coach_context.py` (NEW) — `build_coach_context_preview()`, `_format_evidence_prompt_block()`
+- `backend/app/api/observed_play.py` — `GET /coach-context-preview` endpoint; imports refactored to `readiness_service`
+- `backend/app/coach/analyst.py` — `observed_play_block` param, `_fetch_observed_play_block()`, wired in `analyze_and_mutate`
+- `frontend/src/types/observedPlay.ts` — Phase 6.1 interfaces
+- `frontend/src/api/observedPlay.ts` — `getCoachContextPreview()`
+- `frontend/src/pages/ObservedPlay.tsx` — `CoachContextPreviewSection` component
+
+**Phase 6.1 acceptance criteria — MET:**
+1. ✅ Coach prompt includes observed-play evidence section when `OBSERVED_PLAY_MEMORY_ENABLED=true`.
+2. ✅ Only items with `confidence_score ≥ OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE` (default 0.85) contribute.
+3. ✅ Existing Coach safety systems (primary evo protection, regression detection) are unaffected.
+4. ✅ Tests confirm no observed-play content when flag is off (byte-for-byte identical prompt).
+5. ✅ Corpus readiness gate blocks injection when `not_ready`; warns when `needs_review`.
+
+**Phase 6.2+ acceptance criteria (future):**
+- A/B test framework for measuring Coach quality with/without observed evidence.
+- Evidence citation tracking (which evidence IDs were used per Coach response).
 
 ---
 

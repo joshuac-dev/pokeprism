@@ -708,3 +708,52 @@ class CoachEvidenceResponse(BaseModel):
     summary: CoachEvidenceSummary = Field(default_factory=CoachEvidenceSummary)
     evidence: list[CoachEvidenceItem] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Phase 6.1 — Coach context preview (feature-flagged)
+# ---------------------------------------------------------------------------
+
+class ObservedPlayCoachContextQuery(BaseModel):
+    """Optional filter parameters for the Coach context preview endpoint."""
+    card_name: str | None = None
+    action_name: str | None = None
+    memory_type: str | None = None
+    player_alias: str | None = None
+    min_confidence: float | None = None  # defaults to OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE
+    limit: int | None = None             # defaults to OBSERVED_PLAY_MEMORY_MAX_EVIDENCE
+
+
+class ObservedPlayEvidencePromptItem(BaseModel):
+    """One evidence item formatted for inclusion in a Coach prompt block."""
+    memory_item_id: str
+    log_id: str
+    turn_number: int | None = None
+    confidence_score: float
+    memory_type: str
+    actor_card_raw: str | None = None
+    target_card_raw: str | None = None
+    action_name: str | None = None
+    damage: int | None = None
+    source_raw_line: str
+
+
+class ObservedPlayCoachContextPreview(BaseModel):
+    """
+    Preview of the observed-play evidence block that would be injected into a
+    Coach prompt when OBSERVED_PLAY_MEMORY_ENABLED=true.
+
+    This response is read-only and does not modify any data.
+    The prompt_block is advisory only and must not override card rules, game
+    state, simulator results, or card database facts.
+    """
+    enabled: bool
+    readiness_verdict: str | None = None
+    readiness_score: float | None = None
+    would_inject: bool
+    reason: str
+    prompt_block: str
+    evidence_count: int
+    evidence_ids: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    filters_applied: dict = Field(default_factory=dict)

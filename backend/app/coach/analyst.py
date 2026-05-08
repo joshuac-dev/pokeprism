@@ -121,6 +121,7 @@ class CoachAnalyst:
             similar=similar,
             tiers=tiers,
             regression_info=regression_info,
+            observed_play_block=await self._fetch_observed_play_block(),
         )
 
         raw_swaps = await self._get_swap_decisions(prompt_messages)
@@ -181,6 +182,7 @@ class CoachAnalyst:
         excluded_ids: list[str] | None = None,
         tiers: dict | None = None,
         regression_info: dict | None = None,
+        observed_play_block: str = "",
     ) -> str:
         wins = sum(1 for r in round_results if r.winner == "p1")
         total = len(round_results)
@@ -227,6 +229,8 @@ class CoachAnalyst:
             card_tiers=card_tiers_text,
             performance_history=performance_history_text,
         )
+        if observed_play_block:
+            user_prompt = user_prompt + "\n\n" + observed_play_block
         return [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -235,6 +239,28 @@ class CoachAnalyst:
     def _build_prompt(self, *args, **kwargs) -> str:
         """Compatibility helper for tests/callers that inspect the user prompt."""
         return self._build_prompt_messages(*args, **kwargs)[1]["content"]
+
+    async def _fetch_observed_play_block(self) -> str:
+        """Return the observed-play evidence prompt block if the feature flag is on.
+
+        Returns an empty string when OBSERVED_PLAY_MEMORY_ENABLED is false (the
+        default), keeping Coach prompts byte-for-byte identical to pre-6.1.
+        Advisory only — never affects swap decisions or game logic directly.
+        """
+        if not settings.OBSERVED_PLAY_MEMORY_ENABLED:
+            return ""
+        try:
+            from app.observed_play.coach_context import build_coach_context_preview
+            preview = await build_coach_context_preview(self._db)
+            if preview.would_inject:
+                return preview.prompt_block
+        except Exception:
+            logger.warning(
+                "Failed to fetch observed-play context for Coach prompt; "
+                "proceeding without it.",
+                exc_info=True,
+            )
+        return ""
 
     async def _get_swap_decisions(self, messages: list[dict] | str, retries: int = 2) -> list[dict]:
         if isinstance(messages, str):

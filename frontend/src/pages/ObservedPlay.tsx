@@ -23,6 +23,7 @@ import {
   bulkIngestEligible,
   getCorpusReadiness,
   getCoachEvidence,
+  getCoachContextPreview,
 } from '../api/observedPlay';
 import type {
   BulkReparseSummary,
@@ -53,6 +54,8 @@ import type {
   CorpusReadinessReport,
   CoachEvidenceResponse,
   CoachEvidenceItem,
+  ObservedPlayCoachContextPreview,
+  GetCoachContextPreviewParams,
 } from '../types/observedPlay';
 import { normalizeTcgdexImageUrl } from '../utils/imageUrl';
 
@@ -2020,6 +2023,210 @@ function CoachEvidenceSection() {
   );
 }
 
+// ── Phase 6.1: Coach Context Preview ─────────────────────────────────────────
+
+function CoachContextPreviewSection() {
+  const [cardName, setCardName] = useState('');
+  const [actionName, setActionName] = useState('');
+  const [memoryType, setMemoryType] = useState('');
+  const [minConfidence, setMinConfidence] = useState(0.85);
+  const [limit, setLimit] = useState(8);
+
+  const [preview, setPreview] = useState<ObservedPlayCoachContextPreview | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params: GetCoachContextPreviewParams = {};
+      if (cardName) params.card_name = cardName;
+      if (actionName) params.action_name = actionName;
+      if (memoryType) params.memory_type = memoryType;
+      params.min_confidence = minConfidence;
+      params.limit = limit;
+      const data = await getCoachContextPreview(params);
+      setPreview(data);
+    } catch {
+      setError('Failed to load context preview.');
+      setPreview(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [cardName, actionName, memoryType, minConfidence, limit]);
+
+  return (
+    <section
+      aria-label="Coach Context Preview"
+      className="mt-8 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 p-6"
+    >
+      <h2 className="text-xl font-bold text-violet-900 dark:text-violet-200 mb-1">
+        Observed Play Coach Context Preview
+      </h2>
+      <p className="text-sm text-violet-700 dark:text-violet-400 mb-4">
+        Preview the observed-play evidence block that would be injected into a Coach prompt when{' '}
+        <code className="font-mono bg-violet-100 dark:bg-violet-900 px-1 rounded">
+          OBSERVED_PLAY_MEMORY_ENABLED=true
+        </code>.{' '}
+        Observed memory is advisory only and does not affect AI Player, simulator runtime,
+        deck builder, pgvector, Neo4j, match_events, or card_performance.
+      </p>
+
+      {/* Filters */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+        <input
+          type="text"
+          placeholder="Filter by card name"
+          value={cardName}
+          onChange={(e) => setCardName(e.target.value)}
+          className="rounded border border-violet-300 dark:border-violet-700 px-3 py-2 text-sm bg-white dark:bg-violet-900/30 text-violet-900 dark:text-violet-100 placeholder-violet-400"
+        />
+        <input
+          type="text"
+          placeholder="Filter by action"
+          value={actionName}
+          onChange={(e) => setActionName(e.target.value)}
+          className="rounded border border-violet-300 dark:border-violet-700 px-3 py-2 text-sm bg-white dark:bg-violet-900/30 text-violet-900 dark:text-violet-100 placeholder-violet-400"
+        />
+        <input
+          type="text"
+          placeholder="Filter by memory type"
+          value={memoryType}
+          onChange={(e) => setMemoryType(e.target.value)}
+          className="rounded border border-violet-300 dark:border-violet-700 px-3 py-2 text-sm bg-white dark:bg-violet-900/30 text-violet-900 dark:text-violet-100 placeholder-violet-400"
+        />
+        <label className="flex items-center gap-2 text-sm text-violet-800 dark:text-violet-300">
+          Min confidence
+          <input
+            type="number"
+            step="0.01"
+            min={0}
+            max={1}
+            value={minConfidence}
+            onChange={(e) => setMinConfidence(parseFloat(e.target.value))}
+            className="w-20 rounded border border-violet-300 dark:border-violet-700 px-2 py-1 text-sm bg-white dark:bg-violet-900/30 text-violet-900 dark:text-violet-100"
+          />
+        </label>
+        <label className="flex items-center gap-2 text-sm text-violet-800 dark:text-violet-300">
+          Limit
+          <input
+            type="number"
+            min={1}
+            max={50}
+            value={limit}
+            onChange={(e) => setLimit(parseInt(e.target.value, 10))}
+            className="w-16 rounded border border-violet-300 dark:border-violet-700 px-2 py-1 text-sm bg-white dark:bg-violet-900/30 text-violet-900 dark:text-violet-100"
+          />
+        </label>
+      </div>
+
+      <button
+        onClick={load}
+        disabled={loading}
+        className="mb-4 px-4 py-2 rounded bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-medium"
+      >
+        {loading ? 'Loading…' : 'Preview Context'}
+      </button>
+
+      {error && (
+        <p className="text-sm text-red-600 dark:text-red-400 mb-3">{error}</p>
+      )}
+
+      {preview && (
+        <div className="space-y-3 text-sm">
+          {/* Feature flag status */}
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-violet-800 dark:text-violet-300">Feature flag:</span>
+            {preview.enabled ? (
+              <span className="px-2 py-0.5 rounded bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs font-mono">
+                OBSERVED_PLAY_MEMORY_ENABLED=true
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-mono">
+                OBSERVED_PLAY_MEMORY_ENABLED=false
+              </span>
+            )}
+          </div>
+
+          {/* Readiness */}
+          {preview.readiness_verdict && (
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-violet-800 dark:text-violet-300">Corpus readiness:</span>
+              <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                preview.readiness_verdict === 'ready'
+                  ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                  : preview.readiness_verdict === 'needs_review'
+                  ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
+                  : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+              }`}>
+                {preview.readiness_verdict}
+                {preview.readiness_score != null && ` (${preview.readiness_score.toFixed(2)}/100)`}
+              </span>
+            </div>
+          )}
+
+          {/* Would inject */}
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-violet-800 dark:text-violet-300">Would inject:</span>
+            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+              preview.would_inject
+                ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+            }`}>
+              {preview.would_inject ? 'Yes' : 'No'}
+            </span>
+            <span className="text-violet-600 dark:text-violet-400">{preview.reason}</span>
+          </div>
+
+          {/* Disabled state message */}
+          {!preview.enabled && (
+            <p className="text-violet-600 dark:text-violet-400 italic">
+              Observed-play memory is disabled for Coach prompts.
+              Set <code className="font-mono">OBSERVED_PLAY_MEMORY_ENABLED=true</code> to preview injection.
+            </p>
+          )}
+
+          {/* Warnings */}
+          {preview.warnings.length > 0 && (
+            <div className="rounded border border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/30 p-3">
+              <p className="font-semibold text-yellow-800 dark:text-yellow-300 mb-1">Warnings</p>
+              <ul className="list-disc list-inside space-y-0.5 text-yellow-700 dark:text-yellow-400">
+                {preview.warnings.map((w, i) => <li key={i}>{w}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {/* Evidence count & IDs */}
+          {preview.would_inject && (
+            <div>
+              <span className="font-semibold text-violet-800 dark:text-violet-300">
+                Evidence count:{' '}
+              </span>
+              <span className="text-violet-900 dark:text-violet-100">{preview.evidence_count}</span>
+              {preview.evidence_ids.length > 0 && (
+                <div className="mt-1 text-xs text-violet-600 dark:text-violet-400 font-mono break-all">
+                  IDs: {preview.evidence_ids.join(', ')}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Prompt block */}
+          {preview.prompt_block && (
+            <div>
+              <p className="font-semibold text-violet-800 dark:text-violet-300 mb-1">Prompt block preview</p>
+              <pre className="text-xs font-mono whitespace-pre-wrap bg-white dark:bg-violet-900/20 border border-violet-200 dark:border-violet-700 rounded p-3 text-violet-900 dark:text-violet-100 max-h-96 overflow-y-auto">
+                {preview.prompt_block}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function MemoryAnalyticsSection({
   refreshRef,
   onRefreshLogs,
@@ -2952,6 +3159,8 @@ export default function ObservedPlay() {
       <CorpusScorecardSection />
 
       <CoachEvidenceSection />
+
+      <CoachContextPreviewSection />
 
       {viewLogId && (
         <RawLogModal logId={viewLogId} onClose={() => setViewLogId(null)} />

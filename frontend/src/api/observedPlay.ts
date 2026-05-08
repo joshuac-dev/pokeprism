@@ -27,6 +27,8 @@ import type {
   UnresolvedCardsResponse,
   CoachEvidenceResponse,
   GetCoachEvidenceParams,
+  ObservedPlayCoachContextPreview,
+  GetCoachContextPreviewParams,
 } from '../types/observedPlay';
 
 export interface ListBatchesParams {
@@ -237,4 +239,11 @@ export async function getCorpusReadiness(): Promise<CorpusReadinessReport> {
 export async function getCoachEvidence(params: GetCoachEvidenceParams = {}): Promise<CoachEvidenceResponse> {
   const resp = await api.get('/api/observed-play/coach-evidence', { params });
   return resp.data as CoachEvidenceResponse;
+}
+
+export async function getCoachContextPreview(
+  params: GetCoachContextPreviewParams = {},
+): Promise<ObservedPlayCoachContextPreview> {
+  const resp = await api.get('/api/observed-play/coach-context-preview', { params });
+  return resp.data as ObservedPlayCoachContextPreview;
 }

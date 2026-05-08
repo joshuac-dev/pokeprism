@@ -3970,3 +3970,460 @@ class TestCoachEvidence:
             assert resp.status_code == 200
         finally:
             client.app.fastapi_app.dependency_overrides.clear()
+
+
+class TestCoachContextPreview:
+    """Tests for GET /api/observed-play/coach-context-preview (Phase 6.1)."""
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _ready_readiness(self):
+        from app.observed_play.schemas import (
+            CorpusStats, ParserQualityStats, CardResolutionStats,
+            MemoryQualityStats, CorpusReadinessReport,
+        )
+        return CorpusReadinessReport(
+            verdict="ready",
+            readiness_score=97.0,
+            generated_at="2024-01-01T00:00:00+00:00",
+            review_only=True,
+            corpus=CorpusStats(
+                log_count=1, parsed_log_count=1, ingested_log_count=1,
+                failed_log_count=0, parse_coverage_pct=100.0,
+                ingestion_coverage_pct=100.0, total_events=10, total_memory_items=5,
+            ),
+            parser_quality=ParserQualityStats(
+                avg_event_confidence=0.90, events_below_threshold=0,
+                low_confidence_pct=0.0, unknown_event_count=0,
+                confidence_threshold_used=0.80,
+            ),
+            card_resolution=CardResolutionStats(
+                total_card_mentions=10, resolved_mentions=10, ambiguous_mentions=0,
+                unresolved_mentions=0, critical_unresolved_mentions=0,
+                resolution_rate_pct=100.0,
+            ),
+            memory_quality=MemoryQualityStats(
+                avg_memory_confidence=0.90, memory_items_below_threshold=0,
+                low_confidence_memory_pct=0.0, memory_confidence_threshold_used=0.80,
+                top_memory_types=[],
+            ),
+            blockers=[], warnings=[], recommendations=[],
+        )
+
+    def _needs_review_readiness(self):
+        from app.observed_play.schemas import (
+            CorpusStats, ParserQualityStats, CardResolutionStats,
+            MemoryQualityStats, CorpusReadinessReport,
+        )
+        return CorpusReadinessReport(
+            verdict="needs_review",
+            readiness_score=65.0,
+            generated_at="2024-01-01T00:00:00+00:00",
+            review_only=True,
+            corpus=CorpusStats(
+                log_count=2, parsed_log_count=1, ingested_log_count=1,
+                failed_log_count=1, parse_coverage_pct=50.0,
+                ingestion_coverage_pct=50.0, total_events=5, total_memory_items=2,
+            ),
+            parser_quality=ParserQualityStats(
+                avg_event_confidence=0.75, events_below_threshold=2,
+                low_confidence_pct=40.0, unknown_event_count=0,
+                confidence_threshold_used=0.80,
+            ),
+            card_resolution=CardResolutionStats(
+                total_card_mentions=5, resolved_mentions=4, ambiguous_mentions=1,
+                unresolved_mentions=0, critical_unresolved_mentions=0,
+                resolution_rate_pct=80.0,
+            ),
+            memory_quality=MemoryQualityStats(
+                avg_memory_confidence=0.78, memory_items_below_threshold=1,
+                low_confidence_memory_pct=20.0, memory_confidence_threshold_used=0.80,
+                top_memory_types=[],
+            ),
+            blockers=[], warnings=["Low parser coverage."], recommendations=[],
+        )
+
+    def _not_ready_readiness(self):
+        from app.observed_play.schemas import (
+            CorpusStats, ParserQualityStats, CardResolutionStats,
+            MemoryQualityStats, CorpusReadinessReport,
+        )
+        return CorpusReadinessReport(
+            verdict="not_ready",
+            readiness_score=10.0,
+            generated_at="2024-01-01T00:00:00+00:00",
+            review_only=True,
+            corpus=CorpusStats(
+                log_count=0, parsed_log_count=0, ingested_log_count=0,
+                failed_log_count=0, parse_coverage_pct=0.0,
+                ingestion_coverage_pct=0.0, total_events=0, total_memory_items=0,
+            ),
+            parser_quality=ParserQualityStats(
+                avg_event_confidence=0.0, events_below_threshold=0,
+                low_confidence_pct=0.0, unknown_event_count=0,
+                confidence_threshold_used=0.80,
+            ),
+            card_resolution=CardResolutionStats(
+                total_card_mentions=0, resolved_mentions=0, ambiguous_mentions=0,
+                unresolved_mentions=0, critical_unresolved_mentions=0,
+                resolution_rate_pct=0.0,
+            ),
+            memory_quality=MemoryQualityStats(
+                avg_memory_confidence=0.0, memory_items_below_threshold=0,
+                low_confidence_memory_pct=0.0, memory_confidence_threshold_used=0.80,
+                top_memory_types=[],
+            ),
+            blockers=["No logs ingested."], warnings=[], recommendations=[],
+        )
+
+    def _empty_evidence_db_override(self):
+        """DB override that returns no evidence rows (used after readiness is patched out)."""
+        async def override_db():
+            session = AsyncMock()
+
+            async def execute_side_effect(query, *args, **kwargs):
+                r = MagicMock()
+                r.all.return_value = []
+                r.scalar.return_value = 0
+                return r
+
+            session.execute = AsyncMock(side_effect=execute_side_effect)
+            yield session
+
+        return override_db
+
+    def _evidence_row(self, memory_item_id=None, log_id=None):
+        """Build a minimal fake (ObservedPlayMemoryItem, log_uuid) row tuple."""
+        import uuid as _uuid
+        item = MagicMock()
+        item.id = memory_item_id or _uuid.uuid4()
+        item.observed_play_log_id = log_id or _uuid.uuid4()
+        item.turn_number = 5
+        item.confidence_score = 0.95
+        item.memory_type = "attack_used"
+        item.actor_card_raw = "Dragapult ex"
+        item.target_card_raw = "Salazzle ex"
+        item.action_name = "Phantom Dive"
+        item.damage = 200
+        item.source_raw_line = "Dragapult ex used Phantom Dive on Salazzle ex."
+        item.created_at = MagicMock()
+        return (item, _uuid.uuid4())
+
+    def _one_row_db_override(self, row):
+        """DB override that returns exactly one evidence row."""
+        async def override_db():
+            session = AsyncMock()
+
+            async def execute_side_effect(query, *args, **kwargs):
+                r = MagicMock()
+                r.all.return_value = [row]
+                r.scalar.return_value = 1
+                return r
+
+            session.execute = AsyncMock(side_effect=execute_side_effect)
+            yield session
+
+        return override_db
+
+    # ------------------------------------------------------------------
+    # Tests
+    # ------------------------------------------------------------------
+
+    def test_endpoint_exists_and_is_get_only(self, client):
+        """Endpoint exists, accepts GET, rejects POST."""
+        with patch(
+            "app.observed_play.coach_context.compute_corpus_readiness",
+            new=AsyncMock(return_value=self._ready_readiness()),
+        ):
+            override = self._empty_evidence_db_override()
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override
+            try:
+                resp = client.get("/api/observed-play/coach-context-preview")
+                assert resp.status_code == 200
+                resp_post = client.post("/api/observed-play/coach-context-preview")
+                assert resp_post.status_code == 405
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+    def test_default_config_flag_is_false(self):
+        """Config default is OBSERVED_PLAY_MEMORY_ENABLED=False."""
+        from app.config import settings
+        # Verify the default without any env override
+        import pydantic_settings
+        fresh = type(settings)(_env_file=None)
+        assert fresh.OBSERVED_PLAY_MEMORY_ENABLED is False
+
+    def test_disabled_returns_enabled_false_no_injection(self, client):
+        """When flag is false, endpoint returns enabled=false and empty prompt_block."""
+        with patch("app.observed_play.coach_context.settings") as mock_settings:
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = False
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            override = self._empty_evidence_db_override()
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override
+            try:
+                resp = client.get("/api/observed-play/coach-context-preview")
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["enabled"] is False
+                assert data["would_inject"] is False
+                assert data["prompt_block"] == ""
+                assert data["evidence_count"] == 0
+                assert data["evidence_ids"] == []
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+    def test_disabled_reason_mentions_flag(self, client):
+        """When disabled, the reason field mentions the flag name."""
+        with patch("app.observed_play.coach_context.settings") as mock_settings:
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = False
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            override = self._empty_evidence_db_override()
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override
+            try:
+                resp = client.get("/api/observed-play/coach-context-preview")
+                data = resp.json()
+                assert "OBSERVED_PLAY_MEMORY_ENABLED" in data["reason"]
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+    def test_enabled_ready_returns_would_inject_true(self, client):
+        """When flag is on and corpus is ready, would_inject is True."""
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=self._ready_readiness()),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            override = self._empty_evidence_db_override()
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override
+            try:
+                resp = client.get("/api/observed-play/coach-context-preview")
+                data = resp.json()
+                assert data["enabled"] is True
+                assert data["would_inject"] is True
+                assert data["readiness_verdict"] == "ready"
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+    def test_enabled_not_ready_blocks_injection(self, client):
+        """When flag is on but corpus is not_ready, would_inject is False."""
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=self._not_ready_readiness()),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            override = self._empty_evidence_db_override()
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override
+            try:
+                resp = client.get("/api/observed-play/coach-context-preview")
+                data = resp.json()
+                assert data["enabled"] is True
+                assert data["would_inject"] is False
+                assert data["readiness_verdict"] == "not_ready"
+                assert data["prompt_block"] == ""
+                assert len(data["warnings"]) > 0
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+    def test_enabled_needs_review_injects_with_warnings(self, client):
+        """When flag is on and corpus needs_review, evidence is injected with warnings."""
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=self._needs_review_readiness()),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            override = self._empty_evidence_db_override()
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override
+            try:
+                resp = client.get("/api/observed-play/coach-context-preview")
+                data = resp.json()
+                assert data["enabled"] is True
+                assert data["would_inject"] is True
+                assert data["readiness_verdict"] == "needs_review"
+                assert len(data["warnings"]) > 0
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+    def test_evidence_count_bounded_by_max_evidence(self, client):
+        """Evidence count never exceeds OBSERVED_PLAY_MEMORY_MAX_EVIDENCE."""
+        import uuid as _uuid
+        rows = [self._evidence_row() for _ in range(3)]
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=self._ready_readiness()),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 3
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            override = self._one_row_db_override(rows[0])
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override
+            try:
+                resp = client.get("/api/observed-play/coach-context-preview", params={"limit": 10})
+                data = resp.json()
+                # limit=10 should be capped down to OBSERVED_PLAY_MEMORY_MAX_EVIDENCE=3
+                assert resp.status_code == 200, resp.text
+                assert data["filters_applied"]["limit"] <= 3
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+    def test_min_confidence_default_is_conservative(self, client):
+        """Default min_confidence uses OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE (0.85)."""
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=self._ready_readiness()),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            override = self._empty_evidence_db_override()
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override
+            try:
+                resp = client.get("/api/observed-play/coach-context-preview")
+                data = resp.json()
+                assert data["filters_applied"]["min_confidence"] == 0.85
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+    def test_prompt_block_includes_review_only_language(self, client):
+        """Prompt block contains the review-only advisory note."""
+        row = self._evidence_row()
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=self._ready_readiness()),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            override = self._one_row_db_override(row)
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override
+            try:
+                resp = client.get("/api/observed-play/coach-context-preview")
+                data = resp.json()
+                block = data["prompt_block"]
+                assert "REVIEW ONLY" in block
+                assert "advisory" in block.lower()
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+    def test_prompt_block_includes_source_ids(self, client):
+        """Prompt block includes log_id and memory_item_id references."""
+        import uuid as _uuid
+        item_id = _uuid.uuid4()
+        log_id = _uuid.uuid4()
+        row = self._evidence_row(memory_item_id=item_id, log_id=log_id)
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=self._ready_readiness()),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            override = self._one_row_db_override(row)
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override
+            try:
+                resp = client.get("/api/observed-play/coach-context-preview")
+                data = resp.json()
+                block = data["prompt_block"]
+                assert str(log_id) in block or str(item_id) in block
+                assert data["evidence_ids"] == [str(item_id)]
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+    def test_prompt_block_includes_citation_instruction(self, client):
+        """Prompt block instructs the Coach to cite observed evidence IDs."""
+        row = self._evidence_row()
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=self._ready_readiness()),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            override = self._one_row_db_override(row)
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override
+            try:
+                resp = client.get("/api/observed-play/coach-context-preview")
+                data = resp.json()
+                block = data["prompt_block"]
+                assert "cite" in block.lower()
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+    def test_endpoint_is_read_only(self, client):
+        """Verify the endpoint issues no db.add() or db.commit() calls."""
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=self._ready_readiness()),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            override = self._empty_evidence_db_override()
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override
+            with patch("sqlalchemy.ext.asyncio.AsyncSession.add") as mock_add, \
+                 patch("sqlalchemy.ext.asyncio.AsyncSession.commit") as mock_commit:
+                try:
+                    resp = client.get("/api/observed-play/coach-context-preview")
+                    assert resp.status_code == 200
+                    mock_add.assert_not_called()
+                    mock_commit.assert_not_called()
+                finally:
+                    client.app.fastapi_app.dependency_overrides.clear()
+
+    def test_existing_coach_evidence_tests_unaffected(self, client):
+        """Smoke test: the coach-evidence endpoint still works after Phase 6.1."""
+        with patch(
+            "app.api.observed_play._compute_corpus_readiness",
+            new=AsyncMock(return_value=TestCoachEvidence()._ready_readiness()),
+        ):
+            override = TestCoachEvidence()._evidence_db_override()
+            from app.api.observed_play import get_db
+            client.app.fastapi_app.dependency_overrides[get_db] = override
+            try:
+                resp = client.get("/api/observed-play/coach-evidence")
+                assert resp.status_code == 200
+            finally:
+                client.app.fastapi_app.dependency_overrides.clear()
+
+    def test_existing_corpus_readiness_tests_unaffected(self, client):
+        """Smoke test: corpus-readiness endpoint still works after Phase 6.1."""
+        override = TestCorpusReadiness()._simple_override(
+            [0, 0, 0, 0, 0, 0, None, None, None, 0, 0, 0, 0, 0, 0, None, 0, 0, 0],
+        )
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override
+        try:
+            resp = client.get("/api/observed-play/corpus-readiness")
+            assert resp.status_code == 200
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()

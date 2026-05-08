@@ -621,3 +621,27 @@ export interface GetCoachEvidenceParams {
   min_confidence?: number;
   limit?: number;
 }
+
+// ── Phase 6.1: Coach Context Preview ──────────────────────────────────────────
+
+export interface ObservedPlayCoachContextPreview {
+  enabled: boolean;
+  readiness_verdict: string | null;
+  readiness_score: number | null;
+  would_inject: boolean;
+  reason: string;
+  prompt_block: string;
+  evidence_count: number;
+  evidence_ids: string[];
+  warnings: string[];
+  filters_applied: Record<string, string | number | null>;
+}
+
+export interface GetCoachContextPreviewParams {
+  card_name?: string;
+  action_name?: string;
+  memory_type?: string;
+  player_alias?: string;
+  min_confidence?: number;
+  limit?: number;
+}
