@@ -132,16 +132,27 @@ class CoachAnalyst:
         primary_ids = self._identify_primary_line(round_results, current_deck)
         tiers = self._classify_deck_tiers(current_deck, primary_ids)
 
+        # Build card ID → name lookup for richer retrieval debug metadata
+        card_id_to_name: dict[str, str] = {}
+        for c in current_deck:
+            if c.tcgdex_id and c.name:
+                card_id_to_name.setdefault(c.tcgdex_id, c.name)
+        for c in top_cards:
+            cid, cname = c.get("tcgdex_id"), c.get("name")
+            if cid and cname:
+                card_id_to_name.setdefault(cid, cname)
+
         observed_play_block, observed_play_ids, observed_play_retrieval_meta = (
             await self._fetch_observed_play_block(
                 deck_card_ids=deck_ids,
-                deck_card_names=[c.name for c in current_deck if c.name],
+                deck_card_names=list(dict.fromkeys(c.name for c in current_deck if c.name)),
                 candidate_card_ids=[
                     c.get("tcgdex_id") for c in top_cards if c.get("tcgdex_id")
                 ],
                 candidate_card_names=[
                     c.get("name") for c in top_cards if c.get("name")
                 ],
+                card_id_to_name=card_id_to_name,
             )
         )
 
@@ -162,13 +173,17 @@ class CoachAnalyst:
             prompt_messages, observed_play_ids=observed_play_ids
         )
         op_meta: dict | None = None
-        if observed_play_ids or observed_play_block:
+        if observed_play_ids or observed_play_block or observed_play_retrieval_meta:
             op_meta = {
                 "block_injected": bool(observed_play_block),
                 "evidence_ids_available": observed_play_ids,
                 "acknowledgment": op_acknowledgment,
                 "llm_analysis": op_analysis,
                 "retrieval_metadata": observed_play_retrieval_meta,
+                "no_relevant_evidence": (
+                    observed_play_retrieval_meta.get("no_relevant_evidence", False)
+                    if observed_play_retrieval_meta else not bool(observed_play_block)
+                ),
             }
 
         # Enforce tier protection rules (blocks tier1; requires full-line for tier2)
@@ -299,6 +314,7 @@ class CoachAnalyst:
         deck_card_names: list[str] | None = None,
         candidate_card_ids: list[str] | None = None,
         candidate_card_names: list[str] | None = None,
+        card_id_to_name: dict[str, str] | None = None,
     ) -> tuple[str, list[str], dict | None]:
         """Return (prompt_block, evidence_ids, retrieval_metadata) if the feature flag is on.
 
@@ -324,6 +340,7 @@ class CoachAnalyst:
                 candidate_card_names=candidate_card_names,
                 allow_fallback=False,
                 include_relevance_hints=True,
+                card_id_to_name=card_id_to_name,
             )
             retrieval_meta: dict | None = None
             if preview.retrieval_metadata is not None:
@@ -1214,6 +1231,7 @@ class CoachAnalyst:
         round_entry: dict = {
             "round_number": round_number,
             "block_injected": op_meta.get("block_injected", False),
+            "no_relevant_evidence": op_meta.get("no_relevant_evidence", False),
             "evidence_ids_available": op_meta.get("evidence_ids_available") or [],
             "acknowledgment": op_meta.get("acknowledgment"),
             "llm_analysis": op_meta.get("llm_analysis"),

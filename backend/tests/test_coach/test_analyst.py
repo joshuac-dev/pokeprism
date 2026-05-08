@@ -1052,8 +1052,8 @@ class TestCoachAnalystObservedPlay:
             filters_applied={},
             retrieval_metadata=ObservedPlayRetrievalMetadata(
                 strategy="deck_overlap_v1",
-                query_card_ids=["sv06-123"],
-                query_card_names=["Dragapult ex"],
+                deck_card_ids=["sv06-123"],
+                deck_card_names=["Dragapult ex"],
             ),
         )
         mock_preview_fn = AsyncMock(return_value=fake_preview)

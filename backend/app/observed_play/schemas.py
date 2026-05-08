@@ -743,6 +743,7 @@ class EvidenceSelectionDetail(BaseModel):
     memory_item_id: str
     relevance_score: float
     tier: int
+    match_source: str | None = None  # "deck_card" | "candidate_card" | "name_fallback_deck" | "name_fallback_candidate" | "global_fallback"
     matched_card_ids: list[str] = Field(default_factory=list)
     matched_card_names: list[str] = Field(default_factory=list)
     matched_field: str | None = None
@@ -752,9 +753,14 @@ class EvidenceSelectionDetail(BaseModel):
 
 
 class EvidenceExclusionSummary(BaseModel):
-    """Count of candidates excluded during tiered evidence selection (Phase 6.2a)."""
+    """Count of candidates excluded during tiered evidence selection (Phase 6.2a).
+
+    Note: wrong_archetype is always 0 — tiered queries use targeted IN/ILIKE
+    filters so non-matching items are never fetched and cannot be counted as
+    excluded. It is intentionally not computed.
+    """
     low_confidence: int = 0
-    wrong_archetype: int = 0
+    wrong_archetype: int = 0   # not computed; see docstring
     source_cap_excluded: int = 0
     unresolved_reference: int = 0
 
@@ -762,12 +768,13 @@ class EvidenceExclusionSummary(BaseModel):
 class ObservedPlayRetrievalMetadata(BaseModel):
     """Metadata describing the tiered evidence retrieval decision (Phase 6.2a)."""
     strategy: str = "deck_overlap_v1"
-    query_card_ids: list[str] = Field(default_factory=list)
-    query_card_names: list[str] = Field(default_factory=list)
+    deck_card_ids: list[str] = Field(default_factory=list)
+    deck_card_names: list[str] = Field(default_factory=list)
     candidate_card_ids: list[str] = Field(default_factory=list)
     candidate_card_names: list[str] = Field(default_factory=list)
     allow_fallback: bool = False
     max_items_per_log: int = 2
+    no_relevant_evidence: bool = False
     evidence_selected: list[EvidenceSelectionDetail] = Field(default_factory=list)
     excluded_summary: EvidenceExclusionSummary = Field(default_factory=EvidenceExclusionSummary)
 

@@ -63,6 +63,8 @@ class _RawCandidate:
     matched_card_ids: list[str] = dc_field(default_factory=list)
     matched_card_names: list[str] = dc_field(default_factory=list)
     matched_field: str | None = None
+    is_deck_match: bool = False
+    match_source: str | None = None
     from_winning_game: bool | None = None
     base_score: float = 0.0
 
@@ -159,6 +161,7 @@ async def _select_tiered_evidence(
     min_confidence: float,
     effective_limit: int,
     allow_fallback: bool,
+    card_id_to_name: dict[str, str] | None = None,
 ) -> tuple[list[_RawCandidate], EvidenceExclusionSummary]:
     """Tiered evidence retrieval.
 
@@ -168,9 +171,15 @@ async def _select_tiered_evidence(
 
     Source diversity cap: max _MAX_ITEMS_PER_LOG per observed_play_log_id.
     Win/loss: +0.05 tiebreaker bonus, never a hard gate.
+    Deck-card matches sorted before candidate-card matches at equal tier/score.
 
     Does not write to any observed-play tables.
     """
+    id_to_name = card_id_to_name or {}
+    deck_id_set = set(deck_card_ids)
+    candidate_id_set = set(candidate_card_ids)
+    deck_name_set = {n.lower() for n in deck_card_names if n}
+    candidate_name_set = {n.lower() for n in candidate_card_names if n}
     all_card_ids = list(dict.fromkeys(deck_card_ids + candidate_card_ids))
     all_names_raw = list(dict.fromkeys(deck_card_names + candidate_card_names))
     valid_names = [n for n in all_names_raw if n and len(n.strip()) > 2]
@@ -220,20 +229,24 @@ async def _select_tiered_evidence(
             tier1_item_ids.append(item.id)
 
             matched_ids: list[str] = []
+            matched_names: list[str] = []
             matched_field: str | None = None
             for fld, val in [
                 ("actor_card_def_id", item.actor_card_def_id),
                 ("target_card_def_id", item.target_card_def_id),
                 ("related_card_def_id", item.related_card_def_id),
             ]:
-                if val and val in all_card_ids:
+                if val and val in deck_id_set or (val and val in candidate_id_set):
                     if val not in matched_ids:
                         matched_ids.append(val)
+                    name = id_to_name.get(val)
+                    if name and name not in matched_names:
+                        matched_names.append(name)
                     if matched_field is None:
                         matched_field = fld
 
-            is_deck_match = any(cid in deck_card_ids for cid in matched_ids)
-            match_context = "current deck card" if is_deck_match else "candidate card"
+            is_deck_match = any(cid in deck_id_set for cid in matched_ids)
+            match_source = "deck_card" if is_deck_match else "candidate_card"
 
             from_win = _determine_winning_game(winner_alias, self_idx, p1, p2)
             outcome_bonus = _OUTCOME_BONUS if from_win else 0.0
@@ -244,7 +257,10 @@ async def _select_tiered_evidence(
                 log_id=str(item.observed_play_log_id),
                 tier=1,
                 matched_card_ids=matched_ids,
+                matched_card_names=matched_names,
                 matched_field=matched_field,
+                is_deck_match=is_deck_match,
+                match_source=match_source,
                 from_winning_game=from_win,
                 base_score=base_score,
             ))
@@ -269,6 +285,7 @@ async def _select_tiered_evidence(
 
             matched_names: list[str] = []
             matched_field: str | None = None
+            is_deck_name_match = False
             for n in valid_names:
                 n_lower = n.lower()
                 for fld, raw in [
@@ -281,6 +298,10 @@ async def _select_tiered_evidence(
                             matched_names.append(n)
                         if matched_field is None:
                             matched_field = fld
+                        if n_lower in deck_name_set:
+                            is_deck_name_match = True
+
+            match_source = "name_fallback_deck" if is_deck_name_match else "name_fallback_candidate"
 
             from_win = _determine_winning_game(winner_alias, self_idx, p1, p2)
             outcome_bonus = _OUTCOME_BONUS if from_win else 0.0
@@ -292,6 +313,8 @@ async def _select_tiered_evidence(
                 tier=2,
                 matched_card_names=matched_names[:3],
                 matched_field=matched_field,
+                is_deck_match=is_deck_name_match,
+                match_source=match_source,
                 from_winning_game=from_win,
                 base_score=base_score,
             ))
@@ -316,12 +339,13 @@ async def _select_tiered_evidence(
                 item=item,
                 log_id=str(item.observed_play_log_id),
                 tier=3,
+                match_source="global_fallback",
                 from_winning_game=from_win,
                 base_score=base_score,
             ))
 
-    # ── Sort by base_score descending ─────────────────────────────────────────
-    raw_candidates.sort(key=lambda c: c.base_score, reverse=True)
+    # ── Sort: deck matches first, then by base_score descending ───────────────
+    raw_candidates.sort(key=lambda c: (c.is_deck_match, c.base_score), reverse=True)
 
     # ── Source diversity cap ───────────────────────────────────────────────────
     log_counts: dict[str, int] = defaultdict(int)
@@ -361,6 +385,7 @@ async def build_coach_context_preview(
     candidate_card_names: list[str] | None = None,
     allow_fallback: bool = False,
     include_relevance_hints: bool = True,
+    card_id_to_name: dict[str, str] | None = None,
 ) -> ObservedPlayCoachContextPreview:
     """Build and return the Coach context preview for observed-play evidence.
 
@@ -450,6 +475,7 @@ async def build_coach_context_preview(
             effective_limit=effective_limit,
             allow_fallback=allow_fallback,
             include_relevance_hints=include_relevance_hints,
+            card_id_to_name=card_id_to_name or {},
         )
 
     # ── Legacy Phase 6.1 path ────────────────────────────────────────────────
@@ -526,18 +552,30 @@ async def _build_tiered_preview(
     effective_limit: int,
     allow_fallback: bool,
     include_relevance_hints: bool,
+    card_id_to_name: dict[str, str] | None = None,
 ) -> ObservedPlayCoachContextPreview:
     """Tiered retrieval path for Phase 6.2a."""
+    id_to_name = card_id_to_name or {}
+
+    # Deduplicate before storage and retrieval
+    unique_deck_ids = list(dict.fromkeys(deck_card_ids))
+    unique_deck_names = list(dict.fromkeys(deck_card_names))
+    unique_candidate_ids = list(dict.fromkeys(candidate_card_ids))
+    unique_candidate_names = list(dict.fromkeys(candidate_card_names))
+
     selected_candidates, exclusion = await _select_tiered_evidence(
         db,
-        deck_card_ids=deck_card_ids,
-        deck_card_names=deck_card_names,
-        candidate_card_ids=candidate_card_ids,
-        candidate_card_names=candidate_card_names,
+        deck_card_ids=unique_deck_ids,
+        deck_card_names=unique_deck_names,
+        candidate_card_ids=unique_candidate_ids,
+        candidate_card_names=unique_candidate_names,
         min_confidence=effective_min_conf,
         effective_limit=effective_limit,
         allow_fallback=allow_fallback,
+        card_id_to_name=id_to_name,
     )
+
+    no_evidence = not selected_candidates and not allow_fallback
 
     prompt_items: list[ObservedPlayEvidencePromptItem] = []
     evidence_ids: list[str] = []
@@ -561,12 +599,18 @@ async def _build_tiered_preview(
             source_raw_line=item.source_raw_line,
         ))
 
+        # Build matched_reason: "<match_source> <card_name> matched <field>"
         if cand.matched_card_ids:
-            card_label = ", ".join(cand.matched_card_ids[:2])
-            matched_reason = f"{cand.matched_field} matches {card_label}"
+            cid = cand.matched_card_ids[0]
+            card_label = id_to_name.get(cid, cid)
+            matched_reason = (
+                f"{cand.match_source or 'card'} {card_label} matched {cand.matched_field}"
+            )
         elif cand.matched_card_names:
-            card_label = ", ".join(cand.matched_card_names[:2])
-            matched_reason = f"{cand.matched_field} matches {card_label}"
+            card_label = cand.matched_card_names[0]
+            matched_reason = (
+                f"{cand.match_source or 'card'} {card_label} matched {cand.matched_field}"
+            )
         elif cand.tier == 3:
             matched_reason = "global fallback (no deck overlap)"
         else:
@@ -576,6 +620,7 @@ async def _build_tiered_preview(
             memory_item_id=mid,
             relevance_score=round(cand.base_score, 4),
             tier=cand.tier,
+            match_source=cand.match_source,
             matched_card_ids=cand.matched_card_ids,
             matched_card_names=cand.matched_card_names,
             matched_field=cand.matched_field,
@@ -588,17 +633,18 @@ async def _build_tiered_preview(
 
     retrieval_metadata = ObservedPlayRetrievalMetadata(
         strategy="deck_overlap_v1",
-        query_card_ids=deck_card_ids,
-        query_card_names=deck_card_names,
-        candidate_card_ids=candidate_card_ids,
-        candidate_card_names=candidate_card_names,
+        deck_card_ids=unique_deck_ids,
+        deck_card_names=unique_deck_names,
+        candidate_card_ids=unique_candidate_ids,
+        candidate_card_names=unique_candidate_names,
         allow_fallback=allow_fallback,
         max_items_per_log=_MAX_ITEMS_PER_LOG,
+        no_relevant_evidence=no_evidence,
         evidence_selected=evidence_details,
         excluded_summary=exclusion,
     )
 
-    if not prompt_items and not allow_fallback:
+    if no_evidence:
         return ObservedPlayCoachContextPreview(
             enabled=True,
             readiness_verdict=readiness.verdict,
