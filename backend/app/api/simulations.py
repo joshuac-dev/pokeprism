@@ -982,6 +982,85 @@ async def get_simulation_final_deck(
 
 
 # ---------------------------------------------------------------------------
+# GET /api/simulations/{id}/coach-debug
+# ---------------------------------------------------------------------------
+
+@router.get("/{simulation_id}/coach-debug")
+async def get_simulation_coach_debug(
+    simulation_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Read-only debug endpoint: surfaces Coach observed-play injection state.
+
+    Returns per-simulation:
+    - flag_enabled: current OBSERVED_PLAY_MEMORY_ENABLED value
+    - mutations: all DeckMutations with their evidence JSONB
+    - observed_play_citations: evidence entries where kind="observed_play"
+    - current_context_preview: what the block would contain if requested now
+
+    Never mutates observed-play memory, ingestion counts, or simulation data.
+    """
+    try:
+        sim_uuid = uuid.UUID(simulation_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid simulation_id format")
+
+    sim = (await db.execute(
+        select(Simulation).where(Simulation.id == sim_uuid)
+    )).scalar_one_or_none()
+    if sim is None:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+
+    mutation_rows = (await db.execute(
+        select(DeckMutation)
+        .where(DeckMutation.simulation_id == sim_uuid)
+        .order_by(DeckMutation.round_number)
+    )).scalars().all()
+
+    mutations_data = []
+    all_op_citations: list[dict] = []
+    for m in mutation_rows:
+        evidence = m.evidence or []
+        op_cites = [e for e in evidence if isinstance(e, dict) and e.get("kind") == "observed_play"]
+        mutations_data.append({
+            "id": str(m.id),
+            "round_number": m.round_number,
+            "card_removed": m.card_removed,
+            "card_added": m.card_added,
+            "reasoning": m.reasoning,
+            "evidence": evidence,
+            "observed_play_citations": op_cites,
+        })
+        all_op_citations.extend(op_cites)
+
+    # Current preview (what the block would contain if fetched now)
+    current_preview: dict | None = None
+    if settings.OBSERVED_PLAY_MEMORY_ENABLED:
+        try:
+            from app.observed_play.coach_context import build_coach_context_preview
+            preview = await build_coach_context_preview(db)
+            current_preview = {
+                "would_inject": preview.would_inject,
+                "evidence_count": preview.evidence_count,
+                "evidence_ids": preview.evidence_ids,
+                "prompt_block_excerpt": preview.prompt_block[:600] if preview.prompt_block else "",
+                "reason": preview.reason,
+            }
+        except Exception as exc:
+            current_preview = {"error": str(exc)}
+
+    return {
+        "simulation_id": str(sim_uuid),
+        "simulation_status": sim.status,
+        "flag_enabled": settings.OBSERVED_PLAY_MEMORY_ENABLED,
+        "mutations": mutations_data,
+        "observed_play_citations_found": all_op_citations,
+        "any_observed_play_cited": len(all_op_citations) > 0,
+        "current_context_preview": current_preview,
+    }
+
+
+# ---------------------------------------------------------------------------
 # PATCH /api/simulations/{id}/star
 # ---------------------------------------------------------------------------
 

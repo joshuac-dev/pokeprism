@@ -2093,3 +2093,183 @@ class TestSimulationCreateDeckNames:
             opponent_deck_names=["Named", None],
         ))
         assert obj.opponent_deck_names == ["Named", None]
+
+
+# ---------------------------------------------------------------------------
+# GET /api/simulations/{id}/coach-debug
+# ---------------------------------------------------------------------------
+
+class TestGetSimulationCoachDebug:
+    """Tests for GET /api/simulations/:id/coach-debug."""
+
+    def _make_sim(self, status="completed"):
+        sim = MagicMock()
+        sim.id = uuid.uuid4()
+        sim.status = status
+        return sim
+
+    def _make_mutation(self, round_number=1, evidence=None):
+        m = MagicMock()
+        m.id = uuid.uuid4()
+        m.round_number = round_number
+        m.card_removed = "sv06-128"
+        m.card_added = "sv05-144"
+        m.reasoning = "Better draw support [Evidence: card_performance:sv06-128=0.3]"
+        m.evidence = evidence or [{"kind": "card_performance", "ref": "sv06-128", "value": "win_rate=0.3"}]
+        return m
+
+    def _make_session(self, sim, mutations):
+        session = AsyncMock()
+        call_count = {"n": 0}
+
+        def make_sim_result(val):
+            r = MagicMock()
+            r.scalar_one_or_none.return_value = val
+            return r
+
+        def make_mutations_result(rows):
+            r = MagicMock()
+            r.scalars.return_value.all.return_value = rows
+            return r
+
+        async def _execute(query, *a, **kw):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                return make_sim_result(sim)
+            else:
+                return make_mutations_result(mutations)
+
+        session.execute = AsyncMock(side_effect=_execute)
+        return session
+
+    def test_invalid_uuid_returns_422(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = (lambda: (yield AsyncMock()))
+        with TestClient(app) as c:
+            resp = c.get("/api/simulations/not-a-uuid/coach-debug")
+        app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 422
+
+    def test_missing_simulation_returns_404(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        async def override_db():
+            session = AsyncMock()
+            m = MagicMock()
+            m.scalar_one_or_none.return_value = None
+            session.execute = AsyncMock(return_value=m)
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get(f"/api/simulations/{uuid.uuid4()}/coach-debug")
+        app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 404
+
+    def test_returns_mutations_and_flag_state(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim = self._make_sim()
+        mut = self._make_mutation()
+
+        async def override_db():
+            yield self._make_session(sim, [mut])
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with patch("app.api.simulations.settings") as mock_settings:
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = False
+            with TestClient(app) as c:
+                resp = c.get(f"/api/simulations/{sim.id}/coach-debug")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["simulation_id"] == str(sim.id)
+        assert data["flag_enabled"] is False
+        assert len(data["mutations"]) == 1
+        assert data["mutations"][0]["round_number"] == 1
+        assert data["current_context_preview"] is None
+
+    def test_no_observed_play_citations_when_none_in_evidence(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim = self._make_sim()
+        # mutation evidence uses card_performance kind only
+        mut = self._make_mutation(evidence=[{"kind": "card_performance", "ref": "x", "value": "y"}])
+
+        async def override_db():
+            yield self._make_session(sim, [mut])
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with patch("app.api.simulations.settings") as mock_settings:
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = False
+            with TestClient(app) as c:
+                resp = c.get(f"/api/simulations/{sim.id}/coach-debug")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["any_observed_play_cited"] is False
+        assert data["observed_play_citations_found"] == []
+
+    def test_observed_play_citation_extracted(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim = self._make_sim()
+        op_cite = {"kind": "observed_play", "ref": "some-event-uuid", "value": "Dragapult KO'd on turn 6"}
+        mut = self._make_mutation(evidence=[op_cite])
+
+        async def override_db():
+            yield self._make_session(sim, [mut])
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with patch("app.api.simulations.settings") as mock_settings:
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = False
+            with TestClient(app) as c:
+                resp = c.get(f"/api/simulations/{sim.id}/coach-debug")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["any_observed_play_cited"] is True
+        assert len(data["observed_play_citations_found"]) == 1
+        assert data["observed_play_citations_found"][0]["ref"] == "some-event-uuid"
+
+    def test_simulation_with_no_mutations(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim = self._make_sim(status="completed")
+
+        async def override_db():
+            yield self._make_session(sim, [])
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with patch("app.api.simulations.settings") as mock_settings:
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = False
+            with TestClient(app) as c:
+                resp = c.get(f"/api/simulations/{sim.id}/coach-debug")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["mutations"] == []
+        assert data["any_observed_play_cited"] is False

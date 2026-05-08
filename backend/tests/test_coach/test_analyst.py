@@ -915,7 +915,7 @@ class TestCoachAnalystObservedPlay:
         }
 
     def test_flag_off_prompt_unchanged(self):
-        """With OBSERVED_PLAY_MEMORY_ENABLED=false, prompt contains no observed-play block."""
+        """With OBSERVED_PLAY_MEMORY_ENABLED=false, prompt contains no observed-play evidence block."""
         analyst = _make_analyst()
         messages = analyst._build_prompt_messages(
             deck=[_trainer("sv05-001", "Prof Research")],
@@ -923,7 +923,9 @@ class TestCoachAnalystObservedPlay:
             **self._base_kwargs(),
         )
         user = messages[1]["content"]
-        assert "OBSERVED PLAY EVIDENCE" not in user
+        # The instruction text mentions "OBSERVED PLAY EVIDENCE" in passing,
+        # but the actual injected block always starts with "— REVIEW ONLY".
+        assert "OBSERVED PLAY EVIDENCE — REVIEW ONLY" not in user
 
     def test_flag_on_prompt_contains_evidence_block(self):
         """With observed_play_block supplied, the user prompt includes it."""
@@ -935,7 +937,7 @@ class TestCoachAnalystObservedPlay:
             **self._base_kwargs(),
         )
         user = messages[1]["content"]
-        assert "OBSERVED PLAY EVIDENCE" in user
+        assert "OBSERVED PLAY EVIDENCE — REVIEW ONLY" in user
 
     def test_observed_play_block_appended_after_instructions(self):
         """The observed-play block is appended after the main instructions section."""
@@ -949,7 +951,7 @@ class TestCoachAnalystObservedPlay:
         user = messages[1]["content"]
         # Evidence block must come after Instructions section
         instructions_pos = user.index("## Instructions")
-        evidence_pos = user.index("OBSERVED PLAY EVIDENCE")
+        evidence_pos = user.index("OBSERVED PLAY EVIDENCE — REVIEW ONLY")
         assert evidence_pos > instructions_pos
 
     @pytest.mark.asyncio
@@ -1025,6 +1027,28 @@ class TestCoachAnalystObservedPlay:
             mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
             result = await analyst._fetch_observed_play_block()
         assert result == ""
+
+    def test_observed_play_is_valid_evidence_kind(self):
+        """_validate_swap_response accepts kind='observed_play' without error."""
+        analyst = _make_analyst()
+        response = {
+            "swaps": [{
+                "remove": "sv06-128",
+                "add": "sv05-144",
+                "reasoning": "Observed play shows repeated KOs on turn 6.",
+                "evidence": [{
+                    "kind": "observed_play",
+                    "ref": "31a06ad8-5443-4255-a559-29d3fa3792ed",
+                    "value": "Dragapult ex KO on turn 6 (confidence 0.97)",
+                }],
+            }],
+            "analysis": "Observed play data informed this swap.",
+        }
+        swaps, error = analyst._validate_swap_response(response)
+        assert error is None
+        assert len(swaps) == 1
+        assert swaps[0]["evidence"][0]["kind"] == "observed_play"
+        assert "31a06ad8" in swaps[0]["evidence"][0]["ref"]
 
 
 # ---------------------------------------------------------------------------

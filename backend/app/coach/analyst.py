@@ -248,12 +248,26 @@ class CoachAnalyst:
         Advisory only — never affects swap decisions or game logic directly.
         """
         if not settings.OBSERVED_PLAY_MEMORY_ENABLED:
+            logger.debug("OBSERVED_PLAY_MEMORY_ENABLED=false; skipping observed-play block.")
             return ""
         try:
             from app.observed_play.coach_context import build_coach_context_preview
             preview = await build_coach_context_preview(self._db)
+            logger.info(
+                "OBSERVED_PLAY evidence fetch: would_inject=%s evidence_count=%d ids=%s",
+                preview.would_inject,
+                preview.evidence_count,
+                preview.evidence_ids[:3],
+            )
             if preview.would_inject:
+                logger.info(
+                    "OBSERVED_PLAY block injected into Coach prompt (%d chars, %d items).",
+                    len(preview.prompt_block),
+                    preview.evidence_count,
+                )
                 return preview.prompt_block
+            else:
+                logger.info("OBSERVED_PLAY would_inject=false; reason: %s", preview.reason)
         except Exception:
             logger.warning(
                 "Failed to fetch observed-play context for Coach prompt; "
@@ -389,7 +403,7 @@ class CoachAnalyst:
                 kind = item.get("kind")
                 ref = item.get("ref")
                 value = item.get("value")
-                if kind not in {"card_performance", "synergy", "round_result", "candidate_metric"}:
+                if kind not in {"card_performance", "synergy", "round_result", "candidate_metric", "observed_play"}:
                     return None, "invalid evidence kind"
                 if not isinstance(ref, str) or not isinstance(value, str):
                     return None, "evidence ref/value must be strings"

@@ -70,6 +70,7 @@ Weak synergies (candidates for removal): {weak_synergies}
 - Preserve the UNPROTECTED cards that contribute positively to draw/search.
 - Each swap must maintain a 60-card deck.
 - If the deck is performing well (win_rate > 60%), propose 0 swaps.
+- If an OBSERVED PLAY EVIDENCE block is provided at the end of this prompt, treat it as advisory context only. Cite relevant entries using kind "observed_play", ref = <event_id UUID>, value = <one-phrase description of what the evidence shows>.
 - Respond ONLY with valid JSON in this exact format:
 
 {{
@@ -80,8 +81,8 @@ Weak synergies (candidates for removal): {weak_synergies}
       "reasoning": "<one sentence>",
       "evidence": [
         {{
-          "kind": "card_performance|synergy|round_result|candidate_metric",
-          "ref": "<card id, metric name, or round number>",
+          "kind": "card_performance|synergy|round_result|candidate_metric|observed_play",
+          "ref": "<card id, metric name, round number, or event_id UUID>",
           "value": "<short factual value copied from supplied data>"
         }}
       ]

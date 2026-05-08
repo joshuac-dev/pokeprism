@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-10 (session 53 — PTCGL format deck export)
+Last updated: 2026-05-10 (session 54 — Coach observed-play injection fix + debug visibility)
 
 ## Current Workstream
 
@@ -21,7 +21,7 @@ post-phase development:
 **Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, Phase 5.1, pre-Phase-5.2 workflow hardening, Phase 5.2, Phase 6.0, and Phase 6.1 are complete.**
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
-**Next step (immediate):** Resume Phase 6.1 manual verification (User Check 2 — flag-off Coach prompt). Final Candidate Deck PTCGL export now complete.
+**Next step (immediate):** Re-run User Check 3 with celery-worker flag fixed — run H/H simulation, check backend logs for OBSERVED_PLAY lines, check `/api/simulations/{id}/coach-debug` for evidence injection.
 **Next feature step:** Phase 6.2+ — Further Coach advisory features (future). Observed memory remains advisory only.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
@@ -40,10 +40,42 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **1176 passed, 1 skipped** — 2026-05-10 session 53. `cd backend && python3 -m pytest tests/ -x -q`. |
-| Frontend unit tests | **339 passed (17 files)** — 2026-05-10 session 53. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **1183 passed, 1 skipped** — 2026-05-10 session 54. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Frontend unit tests | **339 passed (17 files)** — 2026-05-10 session 54. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 54 Work (2026-05-10) — Coach observed-play injection fix + debug visibility
+
+### Root cause
+
+`OBSERVED_PLAY_MEMORY_ENABLED=true` was set only on the backend API container; the celery-worker container (which actually runs H/H simulation tasks) did not have it. `settings.OBSERVED_PLAY_MEMORY_ENABLED` evaluated `False` in the worker, so `_fetch_observed_play_block` returned `""` immediately without fetching any evidence. The preview API endpoint worked because it ran in the backend container.
+
+Additional issue: the evidence kind validator only allowed `card_performance|synergy|round_result|candidate_metric`; `observed_play` was absent. Even after the env fix, the LLM would be unable to cite observed-play evidence IDs in the structured `evidence` field.
+
+### What was changed
+
+- **`docker-compose.override.yml`** — Added `OBSERVED_PLAY_MEMORY_ENABLED: "true"` to celery-worker environment
+- **`backend/app/coach/analyst.py`** — Added INFO-level logging in `_fetch_observed_play_block`: logs evidence_count, evidence_ids[:3], would_inject, and injection char count. Added `"observed_play"` to valid evidence kinds in `_validate_swap_response`
+- **`backend/app/coach/prompts.py`** — Added `observed_play` to the evidence kind schema; added instruction to cite observed-play event IDs using kind `observed_play` when OBSERVED PLAY EVIDENCE block is present
+- **`backend/app/api/simulations.py`** — Added read-only `GET /api/simulations/{id}/coach-debug` endpoint: returns flag state, all DeckMutations with evidence JSONB, extracted observed_play citations, and current context preview excerpt
+- **Tests** — Added `TestGetSimulationCoachDebug` (6 tests) in test_simulations.py; added `test_observed_play_is_valid_evidence_kind` in TestCoachAnalystObservedPlay; updated 3 prompt-content assertions to use `"— REVIEW ONLY"` suffix (distinguishing the actual block from the instruction reference)
+
+### Files changed
+
+- `docker-compose.override.yml`
+- `backend/app/coach/analyst.py`
+- `backend/app/coach/prompts.py`
+- `backend/app/api/simulations.py`
+- `backend/tests/test_api/test_simulations.py`
+- `backend/tests/test_coach/test_analyst.py`
+- `docs/STATUS.md`, `docs/CHANGELOG.md`
+
+### Validation
+
+- Backend: **1183 passed, 1 skipped**
+- Frontend: **339 passed (17 files)**
+- No observed-play memory behavior, simulation mutation logic, AI Player, pgvector, Neo4j, match_events, card_performance, or deck-builder changed.
 
 ## Session 53 Work (2026-05-10) — PTCGL Format Deck Export
 

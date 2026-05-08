@@ -3,12 +3,14 @@ services:
   backend:
     environment:
       LOG_LEVEL: DEBUG
+      OBSERVED_PLAY_MEMORY_ENABLED: "true"
     volumes:
       - ./backend:/app  # Full source mount for hot-reload
 
   celery-worker:
     environment:
       LOG_LEVEL: DEBUG
+      OBSERVED_PLAY_MEMORY_ENABLED: "true"
     volumes:
       - ./backend:/app  # Full source mount so workers use latest code
 
