@@ -34,6 +34,26 @@ logger = logging.getLogger(__name__)
 
 _TCGDEX_ID_RE = re.compile(r"^[a-z][a-z0-9.]*-[0-9]+[a-z]*$")
 
+_ACK_FALLBACK_REASON = (
+    "LLM failed to acknowledge injected observed-play evidence after retries."
+)
+
+
+def _inject_ack_fallback(op_ack: dict | None) -> dict | None:
+    """Ensure a non-null not_used_reason when acknowledgment_missing=True.
+
+    Every injected round must have either used_evidence_ids (non-empty) or
+    not_used_reason (non-null) so users can distinguish a genuine no-evidence
+    decision from a repair failure.
+    """
+    if op_ack is None:
+        return None
+    if op_ack.get("acknowledgment_missing") and not op_ack.get("not_used_reason"):
+        return {**op_ack, "not_used_reason": _ACK_FALLBACK_REASON}
+    return op_ack
+
+
+
 
 class CoachAnalyst:
     """Post-round Coach that queries memory and proposes 0–N card swaps.
@@ -366,7 +386,9 @@ class CoachAnalyst:
                         "Coach recommended 0 swaps. Analysis: %.300s",
                         analysis_text or "(none)",
                     )
-                op_ack = self._extract_op_acknowledgment(parsed, observed_play_ids or [])
+                op_ack = _inject_ack_fallback(
+                    self._extract_op_acknowledgment(parsed, observed_play_ids or [])
+                )
                 return swaps, op_ack, analysis_text
 
             error = parse_error or validation_error or "unknown schema failure"
@@ -395,7 +417,9 @@ class CoachAnalyst:
                 raw_analysis = last_valid_parsed.get("analysis")
                 if isinstance(raw_analysis, str) and raw_analysis.strip():
                     analysis_text = raw_analysis.strip()[:800]
-            op_ack = self._extract_op_acknowledgment(last_valid_parsed, observed_play_ids or [])
+            op_ack = _inject_ack_fallback(
+                self._extract_op_acknowledgment(last_valid_parsed, observed_play_ids or [])
+            )
             return last_valid_swaps, op_ack, analysis_text
 
         logger.error(

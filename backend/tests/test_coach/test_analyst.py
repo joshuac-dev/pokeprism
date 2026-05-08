@@ -1299,6 +1299,9 @@ class TestObservedPlayAckRepair:
         assert swaps == []
         assert op_ack is not None
         assert op_ack["acknowledgment_missing"] is True
+        assert op_ack["not_used_reason"] == (
+            "LLM failed to acknowledge injected observed-play evidence after retries."
+        )
         error_msgs = [r.message for r in caplog.records if r.levelno >= logging.ERROR]
         assert any("acknowledgment_missing" in m or "failed to include" in m for m in error_msgs)
 
@@ -1325,8 +1328,31 @@ class TestObservedPlayAckRepair:
         assert swaps == []
         assert op_ack is not None
         assert op_ack["acknowledgment_missing"] is True
+        assert op_ack["not_used_reason"] == (
+            "LLM failed to acknowledge injected observed-play evidence after retries."
+        )
         error_msgs = [r.message for r in caplog.records if r.levelno >= logging.ERROR]
         assert any("last valid swaps" in m or "Ack repair" in m for m in error_msgs)
+
+    @pytest.mark.asyncio
+    async def test_missing_ack_on_final_attempt_has_fallback_not_used_reason(self, caplog):
+        """acknowledgment_missing=True always has a non-null not_used_reason (fallback string)."""
+        import logging
+        analyst = _make_analyst()
+        observed_play_ids = ["ev-001"]
+        analyst._call_ollama = AsyncMock(side_effect=[
+            self._valid_swap_response(with_ack=False),
+            self._valid_swap_response(with_ack=False),
+        ])
+        messages = [{"role": "system", "content": "sys"}, {"role": "user", "content": "user"}]
+        with caplog.at_level(logging.ERROR, logger="app.coach.analyst"):
+            _, op_ack, _ = await analyst._get_swap_decisions(
+                messages, observed_play_ids=observed_play_ids
+            )
+        assert op_ack is not None
+        assert op_ack["acknowledgment_missing"] is True
+        assert op_ack["not_used_reason"] is not None
+        assert "retries" in op_ack["not_used_reason"]
 
     @pytest.mark.asyncio
     async def test_no_ack_repair_when_no_observed_play_ids(self):
