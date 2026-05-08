@@ -563,3 +563,61 @@ export interface CorpusReadinessReport {
   warnings: string[];
   recommendations: string[];
 }
+
+// ── Phase 6.0: Coach Advisory Evidence ──────────────────────────────────────
+
+export interface CoachEvidenceQuery {
+  card_name?: string | null;
+  memory_type?: string | null;
+  action_name?: string | null;
+  player_alias?: string | null;
+  min_confidence: number;
+  limit: number;
+}
+
+export interface CoachEvidenceSummary {
+  matching_item_count: number;
+  avg_confidence: number | null;
+  memory_type_counts: { memory_type: string; count: number }[];
+  top_actors: { card_raw: string; count: number }[];
+  top_targets: { card_raw: string; count: number }[];
+  top_actions: { action_name: string; count: number }[];
+}
+
+export interface CoachEvidenceItem {
+  memory_item_id: string;
+  log_id: string;
+  filename: string;
+  turn_number?: number | null;
+  player_alias?: string | null;
+  memory_type: string;
+  actor_card_raw?: string | null;
+  actor_card_def_id?: string | null;
+  target_card_raw?: string | null;
+  target_card_def_id?: string | null;
+  related_card_raw?: string | null;
+  action_name?: string | null;
+  damage?: number | null;
+  amount?: number | null;
+  confidence_score: number;
+  source_event_type?: string | null;
+  source_raw_line?: string | null;
+  source_link: { log_id: string; event_id: number | null };
+}
+
+export interface CoachEvidenceResponse {
+  review_only: boolean;
+  query: CoachEvidenceQuery;
+  summary: CoachEvidenceSummary;
+  evidence: CoachEvidenceItem[];
+  warnings: string[];
+}
+
+export interface GetCoachEvidenceParams {
+  card_name?: string;
+  memory_type?: string;
+  action_name?: string;
+  player_alias?: string;
+  min_confidence?: number;
+  limit?: number;
+}

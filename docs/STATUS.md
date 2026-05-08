@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-09 (session 46 — Phase 5.2 Corpus Quality / Readiness Scorecard)
+Last updated: 2026-05-09 (session 47 — Phase 6.0 Coach-Only Advisory Evidence)
 
 ## Current Workstream
 
@@ -18,11 +18,10 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, Phase 5.1, pre-Phase-5.2 workflow hardening, and Phase 5.2 are complete.**
-**Phase 6+ (Coach/AI integration) has NOT started.**
+**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, Phase 5.1, pre-Phase-5.2 workflow hardening, Phase 5.2, and Phase 6.0 are complete.**
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
-**Next step:** Phase 6 — Coach-Only Advisory Integration (future). Requires Phase 5.2 scorecard verdict ≥ "ready".
+**Next step:** Phase 6.1+ — Broader Coach advisory features (future). Observed memory remains advisory only.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
 workflow. `docs/CARDLIST.md`, `docs/POKEMON_MASTER_LIST.md`, and
@@ -40,10 +39,58 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **1108 passed, 5 skipped** — 2026-05-09 session 46. `cd backend && python3 -m pytest tests/ -x -q`. |
-| Frontend unit tests | **285 passed (15 files)** — 2026-05-09 session 46. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **1129 passed, 1 skipped** — 2026-05-09 session 47. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Frontend unit tests | **300 passed (15 files)** — 2026-05-09 session 47. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 47 Work (2026-05-09) — Phase 6.0 Coach-Only Advisory Evidence
+
+### Goal
+
+Add a read-only Coach advisory evidence layer that lets the Coach inspect
+observed-play memory items as source-linked evidence. The integration is
+advisory only — observed memory is not used by AI Player, simulator runtime,
+deck builder, pgvector, Neo4j, match_events, card_performance, or gameplay decisions.
+
+### Changes
+
+**Backend (`backend/app/observed_play/schemas.py`):**
+- Added Phase 6.0 constants: `COACH_EVIDENCE_DEFAULT_MIN_CONFIDENCE = 0.80`, `COACH_EVIDENCE_DEFAULT_LIMIT = 25`, `COACH_EVIDENCE_MAX_LIMIT = 100`.
+- Added 4 new Pydantic schemas: `CoachEvidenceQuery`, `CoachEvidenceSummary`, `CoachEvidenceItem`, `CoachEvidenceResponse`.
+
+**Backend (`backend/app/api/observed_play.py`):**
+- Refactored `get_corpus_readiness` body into `async def _compute_corpus_readiness(db)` helper (shared by scorecard endpoint and coach-evidence readiness gate).
+- `GET /api/observed-play/corpus-readiness` now delegates to `_compute_corpus_readiness`.
+- Added `_build_coach_evidence_filter()` helper for reusable evidence WHERE clauses.
+- Appended `GET /api/observed-play/coach-evidence` endpoint: readiness gate (HTTP 409 for `not_ready`), 7 aggregate queries (count, avg, memory_type distribution, top actors/targets/actions, evidence JOIN with log filename). Excludes unresolved card references and items below min_confidence by default.
+
+**Frontend (`frontend/src/types/observedPlay.ts`):**
+- Appended Phase 6.0 interfaces: `CoachEvidenceQuery`, `CoachEvidenceSummary`, `CoachEvidenceItem`, `CoachEvidenceResponse`, `GetCoachEvidenceParams`.
+
+**Frontend (`frontend/src/api/observedPlay.ts`):**
+- Added `CoachEvidenceResponse`, `GetCoachEvidenceParams` to imports.
+- Appended `getCoachEvidence(params)` function.
+
+**Frontend (`frontend/src/pages/ObservedPlay.tsx`):**
+- Added `getCoachEvidence` import and `CoachEvidenceResponse`, `CoachEvidenceItem` type imports.
+- Added `CoachEvidenceSection` component: search form (card name, memory type, action name, min confidence, limit), summary badges, evidence table with source raw line, 409 error state with blockers, needs-review warning display, dark mode.
+- Added `<CoachEvidenceSection />` after `<CorpusScorecardSection />`.
+
+**Tests:**
+- `backend/tests/test_api/test_observed_play.py`: +16 backend tests (`TestCoachEvidence` class, patches `_compute_corpus_readiness`).
+- `frontend/src/pages/ObservedPlay.test.tsx`: +14 frontend tests (Phase 6.0 `CoachEvidenceSection` describe block), added `getCoachEvidence: vi.fn()` to mock and `beforeEach` default.
+
+### Validation
+
+- Backend: **1129 passed, 1 skipped** (was 1108, +21 net new).
+- Frontend: **300 passed** (was 285, +15 new).
+- Frontend build: clean.
+- No data reset, force ingest, automatic ingestion, AI Player, pgvector, Neo4j, simulator match_events, card_performance writes, deck-builder usage, or runtime memory usage added.
+- `docs/AUDIT_STATE.md` not touched.
+- No real logs, screenshots, database dumps, or raw audit reports committed.
+
+---
 
 ## Session 46 Work (2026-05-09) — Phase 5.2 Corpus Quality / Readiness Scorecard
 

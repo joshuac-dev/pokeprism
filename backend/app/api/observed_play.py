@@ -79,6 +79,13 @@ from app.observed_play.schemas import (
     READINESS_INGESTION_COVERAGE_THRESHOLD,
     READINESS_LOW_CONFIDENCE_EVENT_THRESHOLD,
     READINESS_TOP_N_LIMIT,
+    COACH_EVIDENCE_DEFAULT_MIN_CONFIDENCE,
+    COACH_EVIDENCE_DEFAULT_LIMIT,
+    COACH_EVIDENCE_MAX_LIMIT,
+    CoachEvidenceItem,
+    CoachEvidenceQuery,
+    CoachEvidenceResponse,
+    CoachEvidenceSummary,
 )
 from app.observed_play.storage import SUPPORTED_EXTENSIONS
 
@@ -1932,20 +1939,17 @@ _READINESS_CRITICAL_ROLES: frozenset[str] = frozenset({
 })
 
 
-@router.get("/corpus-readiness")
-async def get_corpus_readiness(
-    db: AsyncSession = Depends(get_db),
-) -> CorpusReadinessReport:
-    """Read-only Corpus Quality / Readiness Scorecard for the observed-play memory corpus.
+async def _compute_corpus_readiness(db: AsyncSession) -> CorpusReadinessReport:
+    """Compute and return the full corpus readiness report.
 
-    Aggregates corpus coverage, parser quality, card-resolution burden, and memory
-    quality into a deterministic verdict (ready / needs_review / not_ready) and a
-    0–100 readiness score.  This endpoint never mutates the database.
+    Shared by GET /corpus-readiness and the Phase 6.0 GET /coach-evidence
+    readiness gate.  Never mutates the database.
     """
     from datetime import datetime, timezone
 
     # ── Corpus coverage ───────────────────────────────────────────────────────
     log_count = (await db.execute(select(func.count(ObservedPlayLog.id)))).scalar() or 0
+
     parsed_log_count = (await db.execute(
         select(func.count(ObservedPlayLog.id)).where(ObservedPlayLog.parse_status == "parsed")
     )).scalar() or 0
@@ -2246,4 +2250,231 @@ async def get_corpus_readiness(
         blockers=blockers,
         warnings=warnings,
         recommendations=recommendations,
+    )
+
+
+@router.get("/corpus-readiness")
+async def get_corpus_readiness(
+    db: AsyncSession = Depends(get_db),
+) -> CorpusReadinessReport:
+    """Read-only Corpus Quality / Readiness Scorecard for the observed-play memory corpus.
+
+    Aggregates corpus coverage, parser quality, card-resolution burden, and memory
+    quality into a deterministic verdict (ready / needs_review / not_ready) and a
+    0–100 readiness score.  This endpoint never mutates the database.
+    """
+    return await _compute_corpus_readiness(db)
+
+
+# ── Phase 6.0: Coach Advisory Evidence ───────────────────────────────────────
+
+
+def _build_coach_evidence_filter(
+    q,
+    *,
+    card_name: Optional[str],
+    memory_type: Optional[str],
+    action_name: Optional[str],
+    player_alias: Optional[str],
+    min_confidence: float,
+) :
+    """Apply standard coach-evidence WHERE clauses to *q* and return the filtered query.
+
+    Always excludes items whose actor or target card reference is unresolved,
+    and items whose confidence falls below *min_confidence*.
+    """
+    q = q.where(ObservedPlayMemoryItem.confidence_score >= min_confidence)
+    # Exclude unresolved actor references (null status is acceptable — it means
+    # no card was mentioned in that slot, not that resolution failed).
+    q = q.where(
+        or_(
+            ObservedPlayMemoryItem.actor_resolution_status.is_(None),
+            ObservedPlayMemoryItem.actor_resolution_status != "unresolved",
+        )
+    )
+    q = q.where(
+        or_(
+            ObservedPlayMemoryItem.target_resolution_status.is_(None),
+            ObservedPlayMemoryItem.target_resolution_status != "unresolved",
+        )
+    )
+    if memory_type:
+        q = q.where(ObservedPlayMemoryItem.memory_type == memory_type)
+    if action_name:
+        q = q.where(ObservedPlayMemoryItem.action_name.ilike(f"%{action_name}%"))
+    if player_alias:
+        q = q.where(ObservedPlayMemoryItem.player_alias == player_alias)
+    if card_name:
+        ilike_val = f"%{card_name}%"
+        q = q.where(
+            ObservedPlayMemoryItem.actor_card_raw.ilike(ilike_val)
+            | ObservedPlayMemoryItem.target_card_raw.ilike(ilike_val)
+            | ObservedPlayMemoryItem.related_card_raw.ilike(ilike_val)
+        )
+    return q
+
+
+@router.get("/coach-evidence")
+async def get_coach_evidence(
+    card_name: Optional[str] = Query(None),
+    memory_type: Optional[str] = Query(None),
+    action_name: Optional[str] = Query(None),
+    player_alias: Optional[str] = Query(None),
+    min_confidence: float = Query(COACH_EVIDENCE_DEFAULT_MIN_CONFIDENCE, ge=0.0, le=1.0),
+    limit: int = Query(COACH_EVIDENCE_DEFAULT_LIMIT, ge=1, le=COACH_EVIDENCE_MAX_LIMIT),
+    db: AsyncSession = Depends(get_db),
+) -> CoachEvidenceResponse:
+    """Read-only Coach advisory evidence retrieval.
+
+    Returns source-linked observed memory examples and aggregate summaries for
+    advisory review.  Evidence is filtered to high-confidence, resolved items only.
+    Unresolved card references are excluded unless the item has no card slot at all.
+
+    Gated by corpus readiness: HTTP 409 if the corpus is not_ready.
+    If the corpus is needs_review, evidence is returned with warnings.
+    This endpoint never mutates the database.
+    """
+    # ── Readiness gate ────────────────────────────────────────────────────────
+    readiness = await _compute_corpus_readiness(db)
+    if readiness.verdict == "not_ready":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "Corpus is not ready for coach evidence retrieval.",
+                "verdict": readiness.verdict,
+                "blockers": readiness.blockers,
+            },
+        )
+    warnings = list(readiness.warnings) if readiness.verdict == "needs_review" else []
+
+    query_record = CoachEvidenceQuery(
+        card_name=card_name,
+        memory_type=memory_type,
+        action_name=action_name,
+        player_alias=player_alias,
+        min_confidence=min_confidence,
+        limit=limit,
+    )
+
+    # ── Base filter (reused for count, aggregates, evidence fetch) ────────────
+    base_item_q = _build_coach_evidence_filter(
+        select(ObservedPlayMemoryItem),
+        card_name=card_name, memory_type=memory_type,
+        action_name=action_name, player_alias=player_alias,
+        min_confidence=min_confidence,
+    )
+
+    # ── Count ─────────────────────────────────────────────────────────────────
+    count_q = select(func.count()).select_from(base_item_q.subquery())
+    matching_count: int = (await db.execute(count_q)).scalar() or 0
+
+    # ── Avg confidence ────────────────────────────────────────────────────────
+    avg_q = select(func.avg(ObservedPlayMemoryItem.confidence_score)).select_from(
+        base_item_q.subquery()
+    )
+    avg_conf: float | None = (await db.execute(avg_q)).scalar()
+
+    # ── Memory type distribution ──────────────────────────────────────────────
+    sub = base_item_q.subquery()
+    type_q = (
+        select(sub.c.memory_type, func.count().label("cnt"))
+        .group_by(sub.c.memory_type)
+        .order_by(desc("cnt"))
+        .limit(10)
+    )
+    type_rows = (await db.execute(type_q)).all()
+    memory_type_counts = [{"memory_type": r[0], "count": r[1]} for r in type_rows]
+
+    # ── Top actors ────────────────────────────────────────────────────────────
+    actor_q = (
+        select(sub.c.actor_card_raw, func.count().label("cnt"))
+        .where(sub.c.actor_card_raw.isnot(None))
+        .group_by(sub.c.actor_card_raw)
+        .order_by(desc("cnt"))
+        .limit(5)
+    )
+    actor_rows = (await db.execute(actor_q)).all()
+    top_actors = [{"card_raw": r[0], "count": r[1]} for r in actor_rows]
+
+    # ── Top targets ───────────────────────────────────────────────────────────
+    target_q = (
+        select(sub.c.target_card_raw, func.count().label("cnt"))
+        .where(sub.c.target_card_raw.isnot(None))
+        .group_by(sub.c.target_card_raw)
+        .order_by(desc("cnt"))
+        .limit(5)
+    )
+    target_rows = (await db.execute(target_q)).all()
+    top_targets = [{"card_raw": r[0], "count": r[1]} for r in target_rows]
+
+    # ── Top actions ───────────────────────────────────────────────────────────
+    action_q = (
+        select(sub.c.action_name, func.count().label("cnt"))
+        .where(sub.c.action_name.isnot(None))
+        .group_by(sub.c.action_name)
+        .order_by(desc("cnt"))
+        .limit(5)
+    )
+    action_rows = (await db.execute(action_q)).all()
+    top_actions = [{"action_name": r[0], "count": r[1]} for r in action_rows]
+
+    summary = CoachEvidenceSummary(
+        matching_item_count=matching_count,
+        avg_confidence=round(avg_conf, 4) if avg_conf is not None else None,
+        memory_type_counts=memory_type_counts,
+        top_actors=top_actors,
+        top_targets=top_targets,
+        top_actions=top_actions,
+    )
+
+    # ── Evidence items (join with log for filename) ───────────────────────────
+    evidence_join_q = _build_coach_evidence_filter(
+        select(ObservedPlayMemoryItem, ObservedPlayLog.original_filename).join(
+            ObservedPlayLog,
+            ObservedPlayMemoryItem.observed_play_log_id == ObservedPlayLog.id,
+        ),
+        card_name=card_name, memory_type=memory_type,
+        action_name=action_name, player_alias=player_alias,
+        min_confidence=min_confidence,
+    ).order_by(
+        ObservedPlayMemoryItem.confidence_score.desc(),
+        ObservedPlayMemoryItem.created_at.desc(),
+    ).limit(limit)
+
+    evidence_rows = (await db.execute(evidence_join_q)).all()
+
+    evidence: list[CoachEvidenceItem] = []
+    for row in evidence_rows:
+        item: ObservedPlayMemoryItem = row[0]
+        filename: str = row[1]
+        evidence.append(CoachEvidenceItem(
+            memory_item_id=str(item.id),
+            log_id=str(item.observed_play_log_id),
+            filename=filename,
+            turn_number=item.turn_number,
+            player_alias=item.player_alias,
+            memory_type=item.memory_type,
+            actor_card_raw=item.actor_card_raw,
+            actor_card_def_id=item.actor_card_def_id,
+            target_card_raw=item.target_card_raw,
+            target_card_def_id=item.target_card_def_id,
+            related_card_raw=item.related_card_raw,
+            action_name=item.action_name,
+            damage=item.damage,
+            amount=item.amount,
+            confidence_score=item.confidence_score,
+            source_event_type=item.source_event_type,
+            source_raw_line=item.source_raw_line,
+            source_link={
+                "log_id": str(item.observed_play_log_id),
+                "event_id": item.observed_play_event_id,
+            },
+        ))
+
+    return CoachEvidenceResponse(
+        review_only=True,
+        query=query_record,
+        summary=summary,
+        evidence=evidence,
+        warnings=warnings,
     )

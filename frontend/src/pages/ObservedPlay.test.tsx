@@ -27,6 +27,7 @@ vi.mock('../api/observedPlay', () => ({
   bulkPreviewEligible: vi.fn(),
   bulkIngestEligible: vi.fn(),
   getCorpusReadiness: vi.fn(),
+  getCoachEvidence: vi.fn(),
 }));
 
 import {
@@ -48,6 +49,7 @@ import {
   bulkPreviewEligible,
   bulkIngestEligible,
   getCorpusReadiness,
+  getCoachEvidence,
 } from '../api/observedPlay';
 
 const emptyBatches = { items: [], total: 0, page: 1, per_page: 25 };
@@ -242,6 +244,20 @@ beforeEach(() => {
       top_quality_flags: [],
     },
     blockers: [], warnings: [], recommendations: [],
+  });
+  (getCoachEvidence as ReturnType<typeof vi.fn>).mockResolvedValue({
+    review_only: true,
+    query: { card_name: null, memory_type: null, action_name: null, player_alias: null, min_confidence: 0.80, limit: 25 },
+    summary: {
+      matching_item_count: 0,
+      avg_confidence: null,
+      memory_type_counts: [],
+      top_actors: [],
+      top_targets: [],
+      top_actions: [],
+    },
+    evidence: [],
+    warnings: [],
   });
 });
 
@@ -3059,6 +3075,236 @@ describe('Phase 5.2 — Corpus Readiness Scorecard', () => {
     setup();
     await waitFor(() => {
       expect(screen.getByText('Memory Analytics')).toBeInTheDocument();
+    });
+  });
+
+  // ── Phase 6.0: Coach Evidence Preview ──────────────────────────────────────
+
+  describe('CoachEvidenceSection', () => {
+    it('renders the Coach Evidence Preview panel', async () => {
+      setup();
+      await waitFor(() => {
+        expect(screen.getByText('Coach Evidence Preview')).toBeInTheDocument();
+      });
+    });
+
+    it('renders the review-only safety note', async () => {
+      setup();
+      await waitFor(() => {
+        expect(screen.getByText(/review-only advisory evidence/i)).toBeInTheDocument();
+      });
+    });
+
+    it('renders the search form fields', async () => {
+      setup();
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/dragapult ex/i)).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(/attack_used/i)).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(/phantom dive/i)).toBeInTheDocument();
+      });
+    });
+
+    it('renders the Search / Refresh button', async () => {
+      setup();
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /search.*refresh/i })).toBeInTheDocument();
+      });
+    });
+
+    it('renders empty state after default load', async () => {
+      setup();
+      const user = userEvent.setup();
+      await waitFor(() => expect(screen.getByRole('button', { name: /search.*refresh/i })).toBeInTheDocument());
+      await user.click(screen.getByRole('button', { name: /search.*refresh/i }));
+      await waitFor(() => {
+        expect(screen.getByText(/no matching evidence found/i)).toBeInTheDocument();
+      });
+    });
+
+    it('calls getCoachEvidence with card_name filter on search', async () => {
+      const user = userEvent.setup();
+      setup();
+      await waitFor(() => expect(screen.getByPlaceholderText(/dragapult ex/i)).toBeInTheDocument());
+
+      const input = screen.getByPlaceholderText(/dragapult ex/i);
+      await user.clear(input);
+      await user.type(input, 'Charizard ex');
+
+      await user.click(screen.getByRole('button', { name: /search.*refresh/i }));
+      await waitFor(() => {
+        expect(getCoachEvidence).toHaveBeenCalledWith(expect.objectContaining({
+          card_name: 'Charizard ex',
+        }));
+      });
+    });
+
+    it('renders evidence summary when items are returned', async () => {
+      (getCoachEvidence as ReturnType<typeof vi.fn>).mockResolvedValue({
+        review_only: true,
+        query: { card_name: 'Dragapult ex', memory_type: null, action_name: null, player_alias: null, min_confidence: 0.80, limit: 25 },
+        summary: {
+          matching_item_count: 42,
+          avg_confidence: 0.91,
+          memory_type_counts: [{ memory_type: 'attack_used', count: 12 }],
+          top_actors: [],
+          top_targets: [],
+          top_actions: [],
+        },
+        evidence: [],
+        warnings: [],
+      });
+
+      setup();
+      const user = userEvent.setup();
+      await waitFor(() => expect(screen.getByPlaceholderText(/dragapult ex/i)).toBeInTheDocument());
+      await user.click(screen.getByRole('button', { name: /search.*refresh/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/42 matching items/i)).toBeInTheDocument();
+      });
+    });
+
+    it('renders evidence rows with source details', async () => {
+      (getCoachEvidence as ReturnType<typeof vi.fn>).mockResolvedValue({
+        review_only: true,
+        query: { card_name: null, memory_type: null, action_name: null, player_alias: null, min_confidence: 0.80, limit: 25 },
+        summary: {
+          matching_item_count: 1,
+          avg_confidence: 0.95,
+          memory_type_counts: [],
+          top_actors: [],
+          top_targets: [],
+          top_actions: [],
+        },
+        evidence: [{
+          memory_item_id: 'mem-001',
+          log_id: 'log-001',
+          filename: 'battle_log.md',
+          turn_number: 5,
+          player_alias: 'player_1',
+          memory_type: 'attack_used',
+          actor_card_raw: 'Dragapult ex',
+          actor_card_def_id: null,
+          target_card_raw: 'Salazzle ex',
+          target_card_def_id: null,
+          related_card_raw: null,
+          action_name: 'Phantom Dive',
+          damage: 130,
+          amount: null,
+          confidence_score: 0.95,
+          source_event_type: 'attack_used',
+          source_raw_line: "Player used Phantom Dive",
+          source_link: { log_id: 'log-001', event_id: 68 },
+        }],
+        warnings: [],
+      });
+
+      setup();
+      const user = userEvent.setup();
+      await waitFor(() => expect(screen.getByRole('button', { name: /search.*refresh/i })).toBeInTheDocument());
+      await user.click(screen.getByRole('button', { name: /search.*refresh/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('attack_used')).toBeInTheDocument();
+        expect(screen.getByText('Dragapult ex')).toBeInTheDocument();
+        expect(screen.getByText('Phantom Dive')).toBeInTheDocument();
+        expect(screen.getByText('battle_log.md')).toBeInTheDocument();
+      });
+    });
+
+    it('renders needs-review warning from response', async () => {
+      (getCoachEvidence as ReturnType<typeof vi.fn>).mockResolvedValue({
+        review_only: true,
+        query: { card_name: null, memory_type: null, action_name: null, player_alias: null, min_confidence: 0.80, limit: 25 },
+        summary: {
+          matching_item_count: 0, avg_confidence: null,
+          memory_type_counts: [], top_actors: [], top_targets: [], top_actions: [],
+        },
+        evidence: [],
+        warnings: ['Corpus has low parser coverage. Evidence may be incomplete.'],
+      });
+
+      setup();
+      const user = userEvent.setup();
+      await waitFor(() => expect(screen.getByRole('button', { name: /search.*refresh/i })).toBeInTheDocument());
+      await user.click(screen.getByRole('button', { name: /search.*refresh/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/low parser coverage/i)).toBeInTheDocument();
+      });
+    });
+
+    it('renders error state on HTTP 409 (corpus not ready)', async () => {
+      const err = Object.assign(new Error('Not ready'), {
+        response: {
+          status: 409,
+          data: { message: 'Corpus not ready for evidence retrieval.', blockers: ['No logs ingested.'] },
+        },
+      });
+      (getCoachEvidence as ReturnType<typeof vi.fn>).mockRejectedValue(err);
+
+      setup();
+      const user = userEvent.setup();
+      await waitFor(() => expect(screen.getByRole('button', { name: /search.*refresh/i })).toBeInTheDocument());
+      await user.click(screen.getByRole('button', { name: /search.*refresh/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/corpus not ready/i)).toBeInTheDocument();
+        expect(screen.getByText(/no logs ingested/i)).toBeInTheDocument();
+      });
+    });
+
+    it('renders generic error state on non-409 failure', async () => {
+      (getCoachEvidence as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network error'));
+
+      setup();
+      const user = userEvent.setup();
+      await waitFor(() => expect(screen.getByRole('button', { name: /search.*refresh/i })).toBeInTheDocument());
+      await user.click(screen.getByRole('button', { name: /search.*refresh/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/failed to load coach evidence/i)).toBeInTheDocument();
+      });
+    });
+
+    it('min confidence input updates query on search', async () => {
+      const user = userEvent.setup();
+      setup();
+      await waitFor(() => expect(screen.getByRole('button', { name: /search.*refresh/i })).toBeInTheDocument());
+
+      const confInput = screen.getByDisplayValue('0.8');
+      await user.clear(confInput);
+      await user.type(confInput, '0.95');
+
+      await user.click(screen.getByRole('button', { name: /search.*refresh/i }));
+      await waitFor(() => {
+        expect(getCoachEvidence).toHaveBeenCalledWith(expect.objectContaining({
+          min_confidence: 0.95,
+        }));
+      });
+    });
+
+    it('dark mode classes are present on the section', async () => {
+      const { container } = setup();
+      await waitFor(() => {
+        expect(screen.getByText('Coach Evidence Preview')).toBeInTheDocument();
+      });
+      const section = container.querySelector('section.mt-8');
+      expect(section?.className).toContain('dark:');
+    });
+
+    it('existing corpus scorecard tests still pass after Phase 6.0', async () => {
+      setup();
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Corpus Quality.*Readiness Scorecard/i })).toBeInTheDocument();
+      });
+    });
+
+    it('existing memory analytics section still passes after Phase 6.0', async () => {
+      setup();
+      await waitFor(() => {
+        expect(screen.getByText('Memory Analytics')).toBeInTheDocument();
+      });
     });
   });
 });

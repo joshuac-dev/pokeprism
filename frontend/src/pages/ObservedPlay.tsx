@@ -22,6 +22,7 @@ import {
   bulkPreviewEligible,
   bulkIngestEligible,
   getCorpusReadiness,
+  getCoachEvidence,
 } from '../api/observedPlay';
 import type {
   BulkReparseSummary,
@@ -50,6 +51,8 @@ import type {
   MemoryAnalyticsSourceItemsParams,
   UnresolvedCardItem,
   CorpusReadinessReport,
+  CoachEvidenceResponse,
+  CoachEvidenceItem,
 } from '../types/observedPlay';
 import { normalizeTcgdexImageUrl } from '../utils/imageUrl';
 
@@ -1808,6 +1811,215 @@ function CorpusScorecardSection() {
   );
 }
 
+// ── Phase 6.0: Coach Advisory Evidence ───────────────────────────────────────
+
+const COACH_EVIDENCE_DEFAULT_MIN_CONFIDENCE = 0.80;
+const COACH_EVIDENCE_DEFAULT_LIMIT = 25;
+const COACH_EVIDENCE_MAX_LIMIT = 100;
+
+function CoachEvidenceSection() {
+  const [cardName, setCardName] = useState('');
+  const [memoryType, setMemoryType] = useState('');
+  const [actionName, setActionName] = useState('');
+  const [minConfidence, setMinConfidence] = useState(COACH_EVIDENCE_DEFAULT_MIN_CONFIDENCE);
+  const [limit, setLimit] = useState(COACH_EVIDENCE_DEFAULT_LIMIT);
+
+  const [response, setResponse] = useState<CoachEvidenceResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [blockers, setBlockers] = useState<string[]>([]);
+
+  const search = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setBlockers([]);
+    try {
+      const data = await getCoachEvidence({
+        card_name: cardName || undefined,
+        memory_type: memoryType || undefined,
+        action_name: actionName || undefined,
+        min_confidence: minConfidence,
+        limit,
+      });
+      setResponse(data);
+    } catch (e: unknown) {
+      const err = e as { response?: { status?: number; data?: { message?: string; blockers?: string[] } } };
+      if (err?.response?.status === 409) {
+        const detail = err?.response?.data;
+        setError(detail?.message ?? 'Corpus not ready for evidence retrieval.');
+        setBlockers(detail?.blockers ?? []);
+      } else {
+        setError('Failed to load coach evidence.');
+      }
+      setResponse(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [cardName, memoryType, actionName, minConfidence, limit]);
+
+  return (
+    <section className="mt-8 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/30 p-6">
+      <h2 className="text-xl font-bold text-indigo-900 dark:text-indigo-200 mb-1">
+        Coach Evidence Preview
+      </h2>
+      <p className="text-sm text-indigo-700 dark:text-indigo-400 mb-4">
+        Review-only advisory evidence. Not used by Coach/AI runtime decisions yet.
+      </p>
+
+      {/* Search controls */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Card name</label>
+          <input
+            className="w-full rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-2 py-1.5 text-sm"
+            type="text"
+            placeholder="e.g. Dragapult ex"
+            value={cardName}
+            onChange={(e) => setCardName(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Memory type</label>
+          <input
+            className="w-full rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-2 py-1.5 text-sm"
+            type="text"
+            placeholder="e.g. attack_used"
+            value={memoryType}
+            onChange={(e) => setMemoryType(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Action / attack name</label>
+          <input
+            className="w-full rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-2 py-1.5 text-sm"
+            type="text"
+            placeholder="e.g. Phantom Dive"
+            value={actionName}
+            onChange={(e) => setActionName(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Min confidence</label>
+          <input
+            className="w-full rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-2 py-1.5 text-sm"
+            type="number"
+            min="0"
+            max="1"
+            step="0.05"
+            value={minConfidence}
+            onChange={(e) => setMinConfidence(parseFloat(e.target.value) || 0)}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Limit (max {COACH_EVIDENCE_MAX_LIMIT})</label>
+          <input
+            className="w-full rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-2 py-1.5 text-sm"
+            type="number"
+            min="1"
+            max={COACH_EVIDENCE_MAX_LIMIT}
+            value={limit}
+            onChange={(e) => setLimit(parseInt(e.target.value) || COACH_EVIDENCE_DEFAULT_LIMIT)}
+          />
+        </div>
+        <div className="flex items-end">
+          <button
+            onClick={search}
+            disabled={loading}
+            className="w-full rounded bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 text-sm font-medium disabled:opacity-50"
+          >
+            {loading ? 'Searching…' : 'Search / Refresh'}
+          </button>
+        </div>
+      </div>
+
+      {/* Error / blockers */}
+      {error && (
+        <div className="rounded bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-700 p-3 mb-4 text-sm text-red-800 dark:text-red-300">
+          <strong>Error:</strong> {error}
+          {blockers.length > 0 && (
+            <ul className="mt-1 list-disc list-inside">
+              {blockers.map((b, i) => <li key={i}>{b}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Warnings */}
+      {response && response.warnings.length > 0 && (
+        <div className="rounded bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-700 p-3 mb-4 text-sm text-yellow-800 dark:text-yellow-300">
+          {response.warnings.map((w, i) => <div key={i}>{w}</div>)}
+        </div>
+      )}
+
+      {/* Summary */}
+      {response && (
+        <div className="mb-4">
+          <div className="flex flex-wrap gap-3 text-sm">
+            <span className="rounded bg-indigo-100 dark:bg-indigo-900/50 px-3 py-1 text-indigo-900 dark:text-indigo-200">
+              {response.summary.matching_item_count} matching items
+            </span>
+            {response.summary.avg_confidence != null && (
+              <span className="rounded bg-indigo-100 dark:bg-indigo-900/50 px-3 py-1 text-indigo-900 dark:text-indigo-200">
+                avg confidence {(response.summary.avg_confidence * 100).toFixed(1)}%
+              </span>
+            )}
+            {response.summary.memory_type_counts.slice(0, 3).map((t) => (
+              <span key={t.memory_type} className="rounded bg-slate-100 dark:bg-slate-800 px-3 py-1 text-gray-700 dark:text-slate-300">
+                {t.memory_type}: {t.count}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Evidence table */}
+      {response && response.evidence.length === 0 && (
+        <p className="text-sm text-gray-500 dark:text-slate-400">No matching evidence found.</p>
+      )}
+
+      {response && response.evidence.length > 0 && (
+        <div className="overflow-x-auto rounded border border-gray-200 dark:border-slate-700">
+          <table className="w-full text-xs">
+            <thead className="bg-gray-50 dark:bg-slate-800">
+              <tr>
+                <th className="text-left px-2 py-1.5 text-gray-600 dark:text-slate-300 font-medium">Type</th>
+                <th className="text-left px-2 py-1.5 text-gray-600 dark:text-slate-300 font-medium">Actor</th>
+                <th className="text-left px-2 py-1.5 text-gray-600 dark:text-slate-300 font-medium">Target</th>
+                <th className="text-left px-2 py-1.5 text-gray-600 dark:text-slate-300 font-medium">Action</th>
+                <th className="text-right px-2 py-1.5 text-gray-600 dark:text-slate-300 font-medium">Conf.</th>
+                <th className="text-left px-2 py-1.5 text-gray-600 dark:text-slate-300 font-medium">Turn</th>
+                <th className="text-left px-2 py-1.5 text-gray-600 dark:text-slate-300 font-medium">Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              {response.evidence.map((item: CoachEvidenceItem, i: number) => (
+                <tr key={item.memory_item_id} className={i % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-gray-50 dark:bg-slate-800/50'}>
+                  <td className="px-2 py-1.5 text-gray-700 dark:text-slate-300 whitespace-nowrap">{item.memory_type}</td>
+                  <td className="px-2 py-1.5 text-gray-900 dark:text-white">{item.actor_card_raw ?? '—'}</td>
+                  <td className="px-2 py-1.5 text-gray-700 dark:text-slate-300">{item.target_card_raw ?? '—'}</td>
+                  <td className="px-2 py-1.5 text-gray-700 dark:text-slate-300">{item.action_name ?? '—'}</td>
+                  <td className="px-2 py-1.5 text-right font-mono">
+                    <span className={item.confidence_score >= 0.9 ? 'text-green-700 dark:text-green-400' : item.confidence_score >= 0.8 ? 'text-yellow-700 dark:text-yellow-400' : 'text-red-700 dark:text-red-400'}>
+                      {(item.confidence_score * 100).toFixed(0)}%
+                    </span>
+                  </td>
+                  <td className="px-2 py-1.5 text-gray-500 dark:text-slate-400">{item.turn_number ?? '—'}</td>
+                  <td className="px-2 py-1.5 max-w-xs">
+                    <div className="text-gray-500 dark:text-slate-500 truncate" title={item.filename}>{item.filename}</div>
+                    {item.source_raw_line && (
+                      <div className="text-gray-400 dark:text-slate-600 font-mono truncate text-xs mt-0.5" title={item.source_raw_line}>{item.source_raw_line}</div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function MemoryAnalyticsSection({
   refreshRef,
   onRefreshLogs,
@@ -2738,6 +2950,8 @@ export default function ObservedPlay() {
       />
 
       <CorpusScorecardSection />
+
+      <CoachEvidenceSection />
 
       {viewLogId && (
         <RawLogModal logId={viewLogId} onClose={() => setViewLogId(null)} />

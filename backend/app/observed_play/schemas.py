@@ -636,3 +636,75 @@ class CorpusReadinessReport(BaseModel):
     blockers: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     recommendations: list[str] = Field(default_factory=list)
+
+
+# ── Phase 6.0: Coach Advisory Evidence ───────────────────────────────────────
+
+# Default minimum confidence for coach evidence retrieval (matches ingestion gate).
+COACH_EVIDENCE_DEFAULT_MIN_CONFIDENCE = 0.80
+# Default number of evidence items returned per request.
+COACH_EVIDENCE_DEFAULT_LIMIT = 25
+# Hard cap on evidence items per request.
+COACH_EVIDENCE_MAX_LIMIT = 100
+
+
+class CoachEvidenceQuery(BaseModel):
+    """Parameters used to retrieve coach advisory evidence."""
+    card_name: str | None = None
+    memory_type: str | None = None
+    action_name: str | None = None
+    player_alias: str | None = None
+    min_confidence: float = COACH_EVIDENCE_DEFAULT_MIN_CONFIDENCE
+    limit: int = COACH_EVIDENCE_DEFAULT_LIMIT
+
+
+class CoachEvidenceSummary(BaseModel):
+    """Aggregate summary over the full set of matching evidence items."""
+    matching_item_count: int = 0
+    avg_confidence: float | None = None
+    memory_type_counts: list[dict] = Field(default_factory=list)
+    top_actors: list[dict] = Field(default_factory=list)
+    top_targets: list[dict] = Field(default_factory=list)
+    top_actions: list[dict] = Field(default_factory=list)
+
+
+class CoachEvidenceItem(BaseModel):
+    """One source-linked observed memory item formatted for Coach advisory review."""
+    memory_item_id: str
+    log_id: str
+    filename: str
+    turn_number: int | None = None
+    player_alias: str | None = None
+    memory_type: str
+    actor_card_raw: str | None = None
+    actor_card_def_id: str | None = None
+    target_card_raw: str | None = None
+    target_card_def_id: str | None = None
+    related_card_raw: str | None = None
+    action_name: str | None = None
+    damage: int | None = None
+    amount: int | None = None
+    confidence_score: float
+    source_event_type: str
+    source_raw_line: str
+    source_link: dict = Field(default_factory=dict)
+
+
+class CoachEvidenceResponse(BaseModel):
+    """
+    Read-only Coach advisory evidence response.
+
+    Evidence is filtered to high-confidence, resolved memory items only.
+    Unresolved card references are excluded by default.
+    This response is advisory only and must not drive gameplay decisions.
+    """
+    review_only: bool = True
+    safety_note: str = (
+        "Observed-play evidence is advisory only and is not used by Coach/AI "
+        "runtime decisions, simulator, deck builder, pgvector, Neo4j, "
+        "match_events, or card_performance."
+    )
+    query: CoachEvidenceQuery = Field(default_factory=CoachEvidenceQuery)
+    summary: CoachEvidenceSummary = Field(default_factory=CoachEvidenceSummary)
+    evidence: list[CoachEvidenceItem] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
