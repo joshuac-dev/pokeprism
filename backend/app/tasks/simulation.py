@@ -833,6 +833,13 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
         win_rate_history: list[int] = []       # one entry per completed round
         last_mutations_summary: list[dict] = []  # mutations applied after the last round
 
+        # Run-specific working deck versioning: after each Coach mutation, a new
+        # simulation-owned Deck clone is created so the original user deck is never
+        # overwritten. current_p1_deck_id starts as the user deck and advances to
+        # the latest working clone after each successful mutation.
+        current_p1_deck_id: uuid.UUID | None = user_deck_id
+        best_p1_deck_id: uuid.UUID | None = user_deck_id
+
         # ── 5. Round loop ───────────────────────────────────────────────────
         for round_number in range(1, num_rounds + 1):
             # Check if simulation was cancelled between rounds
@@ -876,12 +883,17 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                 existing_row = existing.scalar_one_or_none()
                 if existing_row is not None:
                     round_id = existing_row.id
-                    snapshot_cards = (existing_row.deck_snapshot or {}).get("cards", [])
+                    snapshot_data = existing_row.deck_snapshot or {}
+                    snapshot_cards = snapshot_data.get("cards", [])
                     if snapshot_cards:
                         current_deck_cards = await _card_defs_from_snapshot(
                             snapshot_cards, SessionFactory
                         )
                         current_deck_text = _deck_text_from_cards(current_deck_cards)
+                    # Restore working deck ID so retries use the correct versioned clone
+                    working_deck_id_str = snapshot_data.get("working_deck_id")
+                    if working_deck_id_str:
+                        current_p1_deck_id = uuid.UUID(working_deck_id_str)
                     logger.info(
                         "Simulation %s round %d already exists (retry) — reusing id %s",
                         simulation_id, round_number, round_id,
@@ -891,7 +903,10 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                         id=round_id,
                         simulation_id=sim_uuid,
                         round_number=round_number,
-                        deck_snapshot={"cards": deck_snapshot},
+                        deck_snapshot={
+                            "cards": deck_snapshot,
+                            "working_deck_id": str(current_p1_deck_id) if current_p1_deck_id else None,
+                        },
                         started_at=datetime.now(timezone.utc),
                         total_matches=0,
                     )
@@ -1007,9 +1022,9 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                         {c.tcgdex_id: c for c in current_deck_cards + opp_cards}.values()
                     )
                     await writer.ensure_cards(all_card_defs, db)
-                    if user_deck_id:
+                    if current_p1_deck_id:
                         p1_deck_db_id = await writer.ensure_deck_cards_for_id(
-                            user_deck_id, user_deck_name, current_deck_cards, db
+                            current_p1_deck_id, user_deck_name, current_deck_cards, db
                         )
                     else:
                         p1_deck_db_id = await writer.ensure_deck(
@@ -1106,6 +1121,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                 best_win_rate = win_rate_pct
                 best_deck_text = current_deck_text
                 best_deck_cards = list(current_deck_cards)
+                best_p1_deck_id = current_p1_deck_id
                 best_snap = [
                     {"tcgdex_id": c.tcgdex_id, "name": c.name}
                     for c in current_deck_cards
@@ -1162,6 +1178,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                         )
                         current_deck_cards = list(best_deck_cards)
                         current_deck_text = best_deck_text
+                        current_p1_deck_id = best_p1_deck_id
                         consecutive_regressions = 0
                         was_reverted = True
                         _publish({
@@ -1194,6 +1211,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                             )
                             await db.commit()
 
+                        prev_deck_text = current_deck_text
                         current_deck_cards, current_deck_text = _apply_mutations(
                             current_deck_cards, current_deck_text, mutations
                         )
@@ -1206,6 +1224,33 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                             }
                             for m in mutations
                         ]
+                        # If mutations actually changed the deck, create a run-specific
+                        # working deck clone so the original user deck remains immutable.
+                        if current_deck_text != prev_deck_text:
+                            next_round = round_number + 1
+                            working_deck_name = (
+                                f"{user_deck_name} — sim {simulation_id[:8]} r{next_round}"
+                            )
+                            new_deck_id = uuid.uuid4()
+                            try:
+                                async with SessionFactory() as db:
+                                    await writer.ensure_deck_cards_for_id(
+                                        new_deck_id, working_deck_name,
+                                        current_deck_cards, db,
+                                    )
+                                    await db.commit()
+                                current_p1_deck_id = new_deck_id
+                                logger.info(
+                                    "Simulation %s round %d: working deck clone %s "
+                                    "created for round %d",
+                                    simulation_id, round_number, new_deck_id, next_round,
+                                )
+                            except Exception as clone_exc:
+                                logger.warning(
+                                    "Failed to create working deck clone after mutation "
+                                    "(round %d): %s — continuing with existing deck id",
+                                    round_number, clone_exc,
+                                )
                         for mut in mutations_for_event:
                             _publish({
                                 "type": "deck_mutation",
@@ -1252,15 +1297,26 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
 
         # ── 6. Mark complete ────────────────────────────────────────────────
         async with SessionFactory() as db:
+            completion_vals: dict = {
+                "status": "complete",
+                "final_win_rate": final_win_rate,
+                "error_message": None,
+                "completed_at": datetime.now(timezone.utc),
+            }
+            # Persist the final working deck ID so the API can expose the candidate deck.
+            if current_p1_deck_id and current_p1_deck_id != user_deck_id:
+                snap_row = (await db.execute(
+                    select(Simulation.best_deck_snapshot).where(Simulation.id == sim_uuid)
+                )).scalar_one_or_none()
+                existing_snap: dict = snap_row if isinstance(snap_row, dict) else {}
+                completion_vals["best_deck_snapshot"] = {
+                    **existing_snap,
+                    "final_working_deck_id": str(current_p1_deck_id),
+                }
             await db.execute(
                 update(Simulation)
                 .where(Simulation.id == sim_uuid)
-                .values(
-                    status="complete",
-                    final_win_rate=final_win_rate,
-                    error_message=None,
-                    completed_at=datetime.now(timezone.utc),
-                )
+                .values(**completion_vals)
             )
             await db.commit()
 

@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-09 (session 50 — Coach LLM/UI fix; Phase 6.1 verification partial)
+Last updated: 2026-05-09 (session 51 — multi-round Coach simulation deck versioning fix)
 
 ## Current Workstream
 
@@ -21,7 +21,7 @@ post-phase development:
 **Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, Phase 5.1, pre-Phase-5.2 workflow hardening, Phase 5.2, Phase 6.0, and Phase 6.1 are complete.**
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
-**Next step (immediate):** Resume Phase 6.1 manual verification (User Check 2 — flag-off Coach prompt). Simulator and Coach LLM are now fixed.
+**Next step (immediate):** Resume Phase 6.1 manual verification (User Check 2 — flag-off Coach prompt). Simulator deck versioning bug is now fixed.
 **Next feature step:** Phase 6.2+ — Further Coach advisory features (future). Observed memory remains advisory only.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
@@ -40,10 +40,58 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **1155 passed, 1 skipped** — 2026-05-09 session 50. `cd backend && python3 -m pytest tests/ -x -q`. |
-| Frontend unit tests | **323 passed (16 files)** — 2026-05-09 session 50. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **1160 passed, 1 skipped** — 2026-05-09 session 51. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Frontend unit tests | **323 passed (16 files)** — 2026-05-09 session 51. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 51 Work (2026-05-09) — Multi-round Coach Simulation Deck Versioning Fix
+
+### Root cause
+
+After round 1 of a multi-round H/H simulation, Coach applied card swaps and
+`_apply_mutations` updated `current_deck_cards` in memory. Round 2 then called
+`ensure_deck_cards_for_id(user_deck_id, ..., current_deck_cards)` — passing the
+original user deck UUID but now-mutated card contents. The guard in
+`MatchMemoryWriter.ensure_deck_cards_for_id` saw that existing `DeckCard` rows
+for `user_deck_id` (original contents) didn't match the mutated `current_deck_cards`
+and raised `ValueError`. Original user deck rows were never modified — the mismatch
+was caused by reusing `user_deck_id` with mutated contents.
+
+### Fix (Option 2 — run-specific working deck versioning)
+
+- `simulation.py`: Track `current_p1_deck_id` (starts as `user_deck_id`). After
+  each Coach mutation where the deck text actually changes, create a new
+  `Deck` row (`source="simulation"`, name `"<deck> — sim <id8> r<N>"`) via
+  `ensure_deck_cards_for_id` with a fresh UUID and update `current_p1_deck_id`.
+  Subsequent rounds use `current_p1_deck_id` (the working clone), leaving the
+  original user deck and its `DeckCard` rows immutable.
+- `best_p1_deck_id` mirrors `best_deck_cards` for regression-revert correctness.
+- Round `deck_snapshot` stores `working_deck_id` so Celery retries restore the
+  correct working deck UUID.
+- At completion, `final_working_deck_id` is stored in `best_deck_snapshot` JSONB
+  (no migration required).
+- `memory/postgres.py`: Improved `ensure_deck_cards_for_id` error to include
+  expected/actual count maps and per-card diffs.
+- `api/simulations.py`: `GET /{id}` now returns `user_deck_id` and
+  `final_working_deck_id`.
+- 5 new backend checkpointing tests covering: original deck immutability, mutated
+  working deck acceptance, mismatch error details, `source="simulation"` attribute,
+  and round snapshot `working_deck_id` persistence.
+
+### Files changed
+
+- `backend/app/tasks/simulation.py`
+- `backend/app/memory/postgres.py`
+- `backend/app/api/simulations.py`
+- `backend/tests/test_tasks/test_simulation_checkpointing.py`
+
+### Validation
+
+- Backend: **1160 passed, 1 skipped**
+- Frontend: **323 passed (16 files)**, build clean
+- No AI Player, pgvector, Neo4j, observed-play memory, match_events,
+  card_performance, deck-builder, data reset, or runtime integration changed.
 
 ## Session 50 Work (2026-05-09) — Coach LLM + UI Triage & Fix
 

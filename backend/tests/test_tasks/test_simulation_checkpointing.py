@@ -601,3 +601,163 @@ def test_checkpoint_model_declares_expected_constraints_and_indexes():
         "status",
     )
     assert indexes["idx_sim_opp_results_sim_status"] == ("simulation_id", "status")
+
+
+# ---------------------------------------------------------------------------
+# Deck versioning tests: working deck clone / original immutability
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_working_deck_clone_does_not_alter_original_deck_cards(db_session):
+    """Creating a new working deck clone must leave the original DeckCard rows intact."""
+    writer = MatchMemoryWriter()
+    suffix = uuid.uuid4().hex[:8]
+    card_a = _card(f"wdv-{suffix}-a", "Card A")
+    card_b = _card(f"wdv-{suffix}-b", "Card B")
+    await writer.ensure_cards([card_a, card_b], db_session)
+
+    # Original user deck: 4×A + 56×B
+    original_deck_id = uuid.uuid4()
+    original_cards = [card_a] * 4 + [card_b] * 56
+    await writer.ensure_deck_cards_for_id(
+        original_deck_id, "Original Deck", original_cards, db_session
+    )
+    await db_session.commit()
+
+    # Simulate mutation: 3×A + 57×B (one A removed, one B added)
+    mutated_cards = [card_a] * 3 + [card_b] * 57
+    working_deck_id = uuid.uuid4()
+    await writer.ensure_deck_cards_for_id(
+        working_deck_id, f"Original Deck — sim {suffix[:8]} r2", mutated_cards, db_session
+    )
+    await db_session.commit()
+
+    # Original deck rows must be unchanged
+    original_rows = (await db_session.execute(
+        select(DeckCard).where(DeckCard.deck_id == original_deck_id)
+    )).scalars().all()
+    original_counts = {row.card_tcgdex_id: row.quantity for row in original_rows}
+    assert original_counts == {card_a.tcgdex_id: 4, card_b.tcgdex_id: 56}
+
+    # Working deck has the mutated contents
+    working_rows = (await db_session.execute(
+        select(DeckCard).where(DeckCard.deck_id == working_deck_id)
+    )).scalars().all()
+    working_counts = {row.card_tcgdex_id: row.quantity for row in working_rows}
+    assert working_counts == {card_a.tcgdex_id: 3, card_b.tcgdex_id: 57}
+
+
+@pytest.mark.asyncio
+async def test_ensure_deck_cards_for_id_accepts_mutated_contents_with_new_id(db_session):
+    """After a mutation, ensure_deck_cards_for_id with a brand-new UUID must succeed."""
+    writer = MatchMemoryWriter()
+    suffix = uuid.uuid4().hex[:8]
+    card_a = _card(f"mut-{suffix}-a", "Card A")
+    card_b = _card(f"mut-{suffix}-b", "Card B")
+    await writer.ensure_cards([card_a, card_b], db_session)
+
+    original_id = uuid.uuid4()
+    original_cards = [card_a] * 30 + [card_b] * 30
+    await writer.ensure_deck_cards_for_id(original_id, "Deck v0", original_cards, db_session)
+    await db_session.commit()
+
+    # Mutated deck: 29×A + 31×B
+    mutated_cards = [card_a] * 29 + [card_b] * 31
+    working_id = uuid.uuid4()
+    returned = await writer.ensure_deck_cards_for_id(
+        working_id, "Deck v0 — sim abc12345 r2", mutated_cards, db_session
+    )
+    await db_session.commit()
+
+    assert returned == working_id
+    deck_row = (await db_session.execute(
+        select(Deck).where(Deck.id == working_id)
+    )).scalar_one()
+    assert deck_row.source == "simulation"
+
+
+@pytest.mark.asyncio
+async def test_mismatch_error_includes_diff_details(db_session):
+    """ensure_deck_cards_for_id mismatch error must describe expected vs actual differences."""
+    writer = MatchMemoryWriter()
+    suffix = uuid.uuid4().hex[:8]
+    card_a = _card(f"diff-{suffix}-a", "Card A")
+    card_b = _card(f"diff-{suffix}-b", "Card B")
+    await writer.ensure_cards([card_a, card_b], db_session)
+
+    deck_id = uuid.uuid4()
+    # Seed the deck with one set of contents
+    original_cards = [card_a] * 30 + [card_b] * 30
+    await writer.ensure_deck_cards_for_id(deck_id, "Mismatch Test", original_cards, db_session)
+    await db_session.commit()
+
+    # Try to call again with different contents using the same deck_id → should raise
+    mutated_cards = [card_a] * 29 + [card_b] * 31
+    with pytest.raises(ValueError) as exc_info:
+        await writer.ensure_deck_cards_for_id(
+            deck_id, "Mismatch Test", mutated_cards, db_session
+        )
+
+    error_msg = str(exc_info.value)
+    assert str(deck_id) in error_msg
+    assert "Expected" in error_msg or "expected" in error_msg
+    # Diff details should be present
+    assert card_a.tcgdex_id in error_msg or card_b.tcgdex_id in error_msg
+
+
+@pytest.mark.asyncio
+async def test_working_deck_has_source_simulation(db_session):
+    """Working deck clones created by ensure_deck_cards_for_id must have source='simulation'."""
+    writer = MatchMemoryWriter()
+    suffix = uuid.uuid4().hex[:8]
+    card = _card(f"src-{suffix}-x", "Card X")
+    await writer.ensure_cards([card], db_session)
+
+    working_id = uuid.uuid4()
+    await writer.ensure_deck_cards_for_id(
+        working_id, f"User Deck — sim {suffix[:8]} r2", [card] * 60, db_session
+    )
+    await db_session.commit()
+
+    deck_row = (await db_session.execute(
+        select(Deck).where(Deck.id == working_id)
+    )).scalar_one()
+    assert deck_row.source == "simulation"
+
+
+@pytest.mark.asyncio
+async def test_round_snapshot_stores_working_deck_id(db_session):
+    """Round rows created with working_deck_id in deck_snapshot are retrievable."""
+    suffix = uuid.uuid4().hex[:8]
+    working_deck_id = uuid.uuid4()
+    sim = Simulation(
+        status="running",
+        game_mode="hh",
+        deck_mode="full",
+        deck_locked=False,
+        user_deck_id=None,
+        matches_per_opponent=1,
+        num_rounds=2,
+        target_win_rate=60,
+    )
+    db_session.add(sim)
+    await db_session.flush()
+
+    rnd = Round(
+        simulation_id=sim.id,
+        round_number=2,
+        deck_snapshot={
+            "cards": [{"tcgdex_id": f"snap-{suffix}-x", "name": "Card X"}],
+            "working_deck_id": str(working_deck_id),
+        },
+        total_matches=0,
+    )
+    db_session.add(rnd)
+    await db_session.commit()
+
+    fetched = (await db_session.execute(
+        select(Round).where(Round.simulation_id == sim.id, Round.round_number == 2)
+    )).scalar_one()
+    snapshot = fetched.deck_snapshot or {}
+    assert snapshot.get("working_deck_id") == str(working_deck_id)
+    assert snapshot.get("cards") == [{"tcgdex_id": f"snap-{suffix}-x", "name": "Card X"}]

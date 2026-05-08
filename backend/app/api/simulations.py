@@ -718,6 +718,10 @@ async def get_simulation(
         "target_win_rate": row.target_win_rate / 100.0 if row.target_win_rate is not None else None,
         "final_win_rate": row.final_win_rate / 100.0 if row.final_win_rate is not None else None,
         "user_deck_name": row.user_deck_name,
+        "user_deck_id": str(row.user_deck_id) if row.user_deck_id else None,
+        "final_working_deck_id": (
+            (row.best_deck_snapshot or {}).get("final_working_deck_id")
+        ),
         "starred": row.starred,
         "error_message": row.error_message,
         "started_at": row.started_at.isoformat() if row.started_at else None,
