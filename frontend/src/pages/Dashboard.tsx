@@ -7,8 +7,9 @@ import {
   getSimulationMatches,
   getSimulationPrizeRace,
   getSimulationMutations,
+  getSimulationFinalDeck,
 } from '../api/simulations';
-import type { SimulationDetail } from '../types/simulation';
+import type { SimulationDetail, FinalDeckResponse } from '../types/simulation';
 import type { MatchRow, RoundRow, PrizeRaceData, MutationRow, OpponentStat } from '../types/dashboard';
 import SummaryCards from '../components/dashboard/SummaryCards';
 import WinRateDonut from '../components/dashboard/WinRateDonut';
@@ -20,6 +21,7 @@ import PrizeRaceGraph from '../components/dashboard/PrizeRaceGraph';
 import DecisionMap from '../components/dashboard/DecisionMap';
 import CardSwapHeatMap from '../components/dashboard/CardSwapHeatMap';
 import MutationDiffLog from '../components/dashboard/MutationDiffLog';
+import DeckEvolutionPanel from '../components/simulation/DeckEvolutionPanel';
 
 function DashboardTile({
   title,
@@ -70,6 +72,7 @@ export default function Dashboard() {
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [prizeRace, setPrizeRace] = useState<PrizeRaceData>({ matches: [], average: [] });
   const [mutations, setMutations] = useState<MutationRow[]>([]);
+  const [finalDeck, setFinalDeck] = useState<FinalDeckResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,13 +85,15 @@ export default function Dashboard() {
       getSimulationMatches(id),
       getSimulationPrizeRace(id),
       getSimulationMutations(id),
+      getSimulationFinalDeck(id),
     ])
-      .then(([sim, r, m, pr, mut]) => {
+      .then(([sim, r, m, pr, mut, fd]) => {
         setDetail(sim);
         setRounds(r);
         setMatches(m);
         setPrizeRace(pr);
         setMutations(mut);
+        setFinalDeck(fd);
       })
       .catch((err) => {
         setError(err?.response?.status === 404 ? 'Simulation not found.' : 'Failed to load dashboard data.');
@@ -190,6 +195,15 @@ export default function Dashboard() {
           {/* Tile 12: Mutation Diff Log */}
           <DashboardTile title="Deck Mutation Log" className="col-span-1 md:col-span-2 xl:col-span-3">
             <MutationDiffLog mutations={mutations} />
+          </DashboardTile>
+
+          {/* Tile 13: Final Candidate Deck / Deck Evolution */}
+          <DashboardTile
+            title="Final Candidate Deck"
+            className="col-span-1 md:col-span-2 xl:col-span-3"
+            testId="dashboard-deck-evolution"
+          >
+            <DeckEvolutionPanel data={finalDeck} />
           </DashboardTile>
         </div>
       )}

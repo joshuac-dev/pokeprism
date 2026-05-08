@@ -89,6 +89,8 @@ export interface SimulationDetail {
   id: string;
   status: 'pending' | 'running' | 'complete' | 'failed' | 'cancelled' | 'queued';
   user_deck_name: string | null;
+  user_deck_id: string | null;
+  final_working_deck_id: string | null;
   game_mode: string;
   deck_mode: string;
   num_rounds: number;
@@ -113,4 +115,32 @@ export interface DeckMutation {
   reasoning: string | null;
   win_rate_before: number | null;
   win_rate_after: number | null;
+}
+
+// ----- Final candidate deck --------------------------------------------------
+
+export interface DeckCardEntry {
+  tcgdex_id: string;
+  name: string;
+  quantity: number;
+}
+
+export interface ChangedCard {
+  tcgdex_id: string;
+  name: string;
+  original_count: number;
+  final_count: number;
+}
+
+export interface FinalDeckResponse {
+  original_deck_id: string | null;
+  original_deck_name: string;
+  original_cards: DeckCardEntry[];
+  original_deck_text: string;
+  final_working_deck_id: string | null;
+  final_deck_name: string;
+  final_cards: DeckCardEntry[];
+  final_deck_text: string;
+  changed_cards: ChangedCard[];
+  has_mutations: boolean;
 }

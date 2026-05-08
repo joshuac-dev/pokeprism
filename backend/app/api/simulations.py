@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import uuid
 from typing import AsyncGenerator, Optional
 
 import httpx
@@ -813,6 +814,99 @@ async def get_simulation_mutations(
         }
         for m in rows
     ]
+
+
+# ---------------------------------------------------------------------------
+# GET /api/simulations/{id}/final-deck
+# ---------------------------------------------------------------------------
+
+@router.get("/{simulation_id}/final-deck")
+async def get_simulation_final_deck(
+    simulation_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Return original and final candidate deck contents after Coach mutations.
+
+    - ``original_cards``: DeckCard rows for the user's submitted deck.
+    - ``final_cards``: DeckCard rows for the final simulation working deck
+      (i.e. after all Coach mutations).  Equal to ``original_cards`` when no
+      mutations changed the deck.
+    - ``changed_cards``: list of cards whose quantity differed between original
+      and final deck, with ``original_count`` and ``final_count``.
+    - ``has_mutations``: True when the final deck differs from the original.
+    """
+    try:
+        sim_uuid = __import__("uuid").UUID(simulation_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid simulation_id format")
+
+    sim = (await db.execute(
+        select(Simulation).where(Simulation.id == sim_uuid)
+    )).scalar_one_or_none()
+    if sim is None:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+
+    original_deck_id: uuid.UUID | None = sim.user_deck_id
+    snap = sim.best_deck_snapshot or {}
+    final_working_deck_id_str: str | None = snap.get("final_working_deck_id")
+    final_deck_id: uuid.UUID | None = (
+        uuid.UUID(final_working_deck_id_str) if final_working_deck_id_str else original_deck_id
+    )
+
+    async def _fetch_deck_cards(deck_id: uuid.UUID | None) -> tuple[str, str, list[dict]]:
+        """Return (deck_name, deck_text, card_rows) for a deck UUID or empty defaults."""
+        if deck_id is None:
+            return ("", "", [])
+        deck_row = (await db.execute(
+            select(Deck).where(Deck.id == deck_id)
+        )).scalar_one_or_none()
+        if deck_row is None:
+            return ("", "", [])
+        card_rows = (await db.execute(
+            select(DeckCard, Card.name)
+            .join(Card, DeckCard.card_tcgdex_id == Card.tcgdex_id, isouter=True)
+            .where(DeckCard.deck_id == deck_id)
+            .order_by(Card.name)
+        )).all()
+        cards = [
+            {"tcgdex_id": dc.card_tcgdex_id, "name": name or dc.card_tcgdex_id, "quantity": dc.quantity}
+            for dc, name in card_rows
+        ]
+        return (deck_row.name or "", deck_row.deck_text or "", cards)
+
+    orig_name, orig_text, orig_cards = await _fetch_deck_cards(original_deck_id)
+    final_name, final_text, final_cards = await _fetch_deck_cards(final_deck_id)
+
+    # Compute changed-cards summary
+    orig_counts = {c["tcgdex_id"]: (c["name"], c["quantity"]) for c in orig_cards}
+    final_counts = {c["tcgdex_id"]: (c["name"], c["quantity"]) for c in final_cards}
+    all_ids = set(orig_counts) | set(final_counts)
+    changed_cards = []
+    for tid in sorted(all_ids):
+        o_name, o_qty = orig_counts.get(tid, (tid, 0))
+        f_name, f_qty = final_counts.get(tid, (o_name, 0))
+        if o_qty != f_qty:
+            changed_cards.append({
+                "tcgdex_id": tid,
+                "name": f_name or o_name or tid,
+                "original_count": o_qty,
+                "final_count": f_qty,
+            })
+
+    has_mutations = bool(final_working_deck_id_str and final_deck_id != original_deck_id)
+
+    return {
+        "original_deck_id": str(original_deck_id) if original_deck_id else None,
+        "original_deck_name": orig_name,
+        "original_cards": orig_cards,
+        "original_deck_text": orig_text,
+        "final_working_deck_id": final_working_deck_id_str,
+        "final_deck_name": final_name,
+        "final_cards": final_cards,
+        "final_deck_text": final_text,
+        "changed_cards": changed_cards,
+        "has_mutations": has_mutations,
+    }
 
 
 # ---------------------------------------------------------------------------

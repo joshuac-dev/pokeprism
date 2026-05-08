@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-09 (session 51 — multi-round Coach simulation deck versioning fix)
+Last updated: 2026-05-09 (session 52 — Final Candidate Deck panel)
 
 ## Current Workstream
 
@@ -21,7 +21,7 @@ post-phase development:
 **Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, Phase 5.1, pre-Phase-5.2 workflow hardening, Phase 5.2, Phase 6.0, and Phase 6.1 are complete.**
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
-**Next step (immediate):** Resume Phase 6.1 manual verification (User Check 2 — flag-off Coach prompt). Simulator deck versioning bug is now fixed.
+**Next step (immediate):** Resume Phase 6.1 manual verification (User Check 2 — flag-off Coach prompt). Final Candidate Deck panel now complete.
 **Next feature step:** Phase 6.2+ — Further Coach advisory features (future). Observed memory remains advisory only.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
@@ -40,10 +40,51 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **1160 passed, 1 skipped** — 2026-05-09 session 51. `cd backend && python3 -m pytest tests/ -x -q`. |
-| Frontend unit tests | **323 passed (16 files)** — 2026-05-09 session 51. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **1165 passed, 1 skipped** — 2026-05-09 session 52. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Frontend unit tests | **336 passed (17 files)** — 2026-05-09 session 52. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 52 Work (2026-05-09) — Final Candidate Deck / Deck Evolution Panel
+
+### What was added
+
+After multi-round H/H simulations, users can now see the full deck evolution:
+
+- **`GET /api/simulations/{id}/final-deck`** — returns original deck cards,
+  final working deck cards, changed-card summary (original count → final count),
+  `has_mutations` flag, and deck text for copy/export.
+- **`DeckEvolutionPanel`** React component — read-only tile showing:
+  - Safety note: "Original deck was not overwritten"
+  - Changed-cards table (before → after counts, green/red)
+  - Collapsible final candidate decklist + Copy button
+  - Collapsible original decklist
+  - "No mutations applied" state when deck unchanged
+- **Dashboard** integration: "Final Candidate Deck" tile added as full-width
+  tile after the Deck Mutation Log tile.
+- 5 new backend tests for `/final-deck` endpoint (404, 422, has_mutations
+  false, has_mutations true, changed_cards shape).
+- 13 new frontend tests for `DeckEvolutionPanel`.
+- TODO: save-as-new path deferred — panel is read-only.
+
+### Files changed
+
+- `backend/app/api/simulations.py` — new `GET /{id}/final-deck` endpoint
+- `backend/tests/test_api/test_simulations.py` — 5 new endpoint tests
+- `frontend/src/components/simulation/DeckEvolutionPanel.tsx` — new component
+- `frontend/src/components/simulation/DeckEvolutionPanel.test.tsx` — 13 tests
+- `frontend/src/pages/Dashboard.tsx` — imports + finalDeck state + new tile
+- `frontend/src/api/simulations.ts` — `getSimulationFinalDeck()` added
+- `frontend/src/types/simulation.ts` — `FinalDeckResponse`, `DeckCardEntry`, `ChangedCard` types
+- `docs/STATUS.md`, `docs/CHANGELOG.md`
+
+### Validation
+
+- Backend: **1165 passed, 1 skipped**
+- Frontend: **336 passed (17 files)**, build clean
+- No Coach logic, observed-play memory, AI Player, pgvector, Neo4j,
+  match_events, card_performance, deck-builder, data reset, or runtime
+  integration changed.
 
 ## Session 51 Work (2026-05-09) — Multi-round Coach Simulation Deck Versioning Fix
 

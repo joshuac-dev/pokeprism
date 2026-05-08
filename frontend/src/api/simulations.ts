@@ -126,3 +126,8 @@ export async function getSimulationMutations(id: string): Promise<MutationRow[]>
   const resp = await api.get(`/api/simulations/${id}/mutations`);
   return resp.data as MutationRow[];
 }
+
+export async function getSimulationFinalDeck(id: string): Promise<import('../types/simulation').FinalDeckResponse> {
+  const resp = await api.get(`/api/simulations/${id}/final-deck`);
+  return resp.data;
+}

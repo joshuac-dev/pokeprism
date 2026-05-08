@@ -1474,6 +1474,218 @@ class TestGetSimulationMutations:
 
 
 # ---------------------------------------------------------------------------
+# GET /api/simulations/{id}/final-deck
+# ---------------------------------------------------------------------------
+
+class TestGetSimulationFinalDeck:
+    """Tests for GET /api/simulations/:id/final-deck."""
+
+    def _make_sim(self, *, user_deck_id=None, best_deck_snapshot=None):
+        sim = MagicMock()
+        sim.id = uuid.uuid4()
+        sim.user_deck_id = user_deck_id or uuid.uuid4()
+        sim.best_deck_snapshot = best_deck_snapshot or {}
+        return sim
+
+    def _make_deck_row(self, name="Test Deck", deck_text="4 Dreepy sv06-128", deck_id=None):
+        d = MagicMock()
+        d.id = deck_id or uuid.uuid4()
+        d.name = name
+        d.deck_text = deck_text
+        return d
+
+    def _make_session(self, sim, deck_row=None, card_rows=None):
+        """Build a session that returns sim for Simulation query and deck/cards for subsequent calls."""
+        session = AsyncMock()
+        call_count = {"n": 0}
+
+        def make_scalar_result(val):
+            m = MagicMock()
+            m.scalar_one_or_none.return_value = val
+            m.all.return_value = card_rows or []
+            return m
+
+        async def _execute(query, *a, **kw):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                # Simulation lookup
+                return make_scalar_result(sim)
+            elif call_count["n"] in (2, 3, 4):
+                # Deck row lookups
+                return make_scalar_result(deck_row)
+            else:
+                # DeckCard join queries
+                m = MagicMock()
+                m.all.return_value = card_rows or []
+                return m
+
+        session.execute = AsyncMock(side_effect=_execute)
+        return session
+
+    def test_invalid_uuid_returns_422(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = (lambda: (yield AsyncMock()))
+        with TestClient(app) as c:
+            resp = c.get("/api/simulations/not-a-uuid/final-deck")
+        app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 422
+
+    def test_unknown_simulation_returns_404(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        session = AsyncMock()
+        m = MagicMock()
+        m.scalar_one_or_none.return_value = None
+        session.execute = AsyncMock(return_value=m)
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get(f"/api/simulations/{uuid.uuid4()}/final-deck")
+        app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 404
+
+    def test_no_mutations_returns_has_mutations_false(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        orig_id = uuid.uuid4()
+        sim = self._make_sim(user_deck_id=orig_id, best_deck_snapshot={})
+        deck_row = self._make_deck_row(deck_id=orig_id)
+
+        session = self._make_session(sim, deck_row=deck_row, card_rows=[])
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get(f"/api/simulations/{uuid.uuid4()}/final-deck")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["has_mutations"] is False
+
+    def test_with_final_working_deck_id_returns_has_mutations_true(self):
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        orig_id = uuid.uuid4()
+        working_id = uuid.uuid4()
+        sim = self._make_sim(
+            user_deck_id=orig_id,
+            best_deck_snapshot={"final_working_deck_id": str(working_id)},
+        )
+        deck_row = self._make_deck_row()
+
+        session = self._make_session(sim, deck_row=deck_row, card_rows=[])
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get(f"/api/simulations/{uuid.uuid4()}/final-deck")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["has_mutations"] is True
+        assert data["final_working_deck_id"] == str(working_id)
+        assert data["original_deck_id"] == str(orig_id)
+
+    def test_changed_cards_shape(self):
+        """changed_cards must contain tcgdex_id, name, original_count, final_count."""
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        orig_id = uuid.uuid4()
+        working_id = uuid.uuid4()
+        sim = self._make_sim(
+            user_deck_id=orig_id,
+            best_deck_snapshot={"final_working_deck_id": str(working_id)},
+        )
+
+        # Build mock card tuples: (DeckCard mock, name)
+        def make_dc(card_id, name, qty):
+            dc = MagicMock()
+            dc.card_tcgdex_id = card_id
+            dc.quantity = qty
+            return (dc, name)
+
+        orig_cards = [make_dc("sv06-001", "Dragapult ex", 4)]
+        final_cards = [make_dc("sv06-001", "Dragapult ex", 4), make_dc("sv06-002", "Iron Hands ex", 2)]
+
+        session = AsyncMock()
+        call_count = {"n": 0}
+
+        def make_scalar(val):
+            m = MagicMock()
+            m.scalar_one_or_none.return_value = val
+            return m
+
+        deck_row_orig = self._make_deck_row(deck_id=orig_id)
+        deck_row_final = self._make_deck_row(deck_id=working_id)
+
+        async def _execute(query, *a, **kw):
+            call_count["n"] += 1
+            n = call_count["n"]
+            if n == 1:
+                return make_scalar(sim)
+            elif n == 2:
+                return make_scalar(deck_row_orig)
+            elif n == 3:
+                m = MagicMock()
+                m.all.return_value = orig_cards
+                return m
+            elif n == 4:
+                return make_scalar(deck_row_final)
+            else:
+                m = MagicMock()
+                m.all.return_value = final_cards
+                return m
+
+        session.execute = AsyncMock(side_effect=_execute)
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get(f"/api/simulations/{uuid.uuid4()}/final-deck")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        changed = data["changed_cards"]
+        assert len(changed) == 1
+        c0 = changed[0]
+        assert c0["tcgdex_id"] == "sv06-002"
+        assert c0["name"] == "Iron Hands ex"
+        assert c0["original_count"] == 0
+        assert c0["final_count"] == 2
+        assert "has_mutations" in data
+        assert "original_cards" in data
+        assert "final_cards" in data
+
+
+# ---------------------------------------------------------------------------
 # PATCH /api/simulations/{id}/star
 # ---------------------------------------------------------------------------
 
