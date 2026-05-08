@@ -338,9 +338,13 @@ New schema:
 ```python
 class ObservedPlayRetrievalMetadata(BaseModel):
     strategy: str                          # e.g. "deck_overlap_v1"
-    query_card_ids: list[str]              # deck card IDs used as query terms
-    query_card_names: list[str]            # deck card names used
+    deck_card_ids: list[str]               # deck card IDs used as query terms
+    deck_card_names: list[str]             # deck card names used
     candidate_card_ids: list[str]          # candidate add cards
+    candidate_card_names: list[str]        # candidate add card names
+    allow_fallback: bool
+    max_items_per_log: int
+    no_relevant_evidence: bool
     evidence_selected: list[EvidenceSelectionDetail]
     excluded_summary: EvidenceExclusionSummary
 
@@ -406,16 +410,23 @@ metadata:
       "evidence_ids_available": [...],
       "retrieval_metadata": {
         "strategy": "deck_overlap_v1",
-        "query_card_ids": ["sv06-130", "sv06-127"],
-        "query_card_names": ["Dragapult ex", "Dreepy"],
+        "deck_card_ids": ["sv06-130", "sv06-127"],
+        "deck_card_names": ["Dragapult ex", "Dreepy"],
+        "candidate_card_ids": ["sv06-131"],
+        "candidate_card_names": ["Drakloak"],
+        "allow_fallback": false,
+        "max_items_per_log": 2,
+        "no_relevant_evidence": false,
         "evidence_selected": [
           {
             "memory_item_id": "...",
             "relevance_score": 0.97,
             "tier": 1,
+            "match_source": "deck_card",
             "matched_card_ids": ["sv06-130"],
             "matched_card_names": ["Dragapult ex"],
             "matched_field": "actor_card_def_id",
+            "matched_reason": "deck_card Dragapult ex matched actor_card_def_id",
             "source_log_id": "...",
             "from_winning_game": true
           }
@@ -594,7 +605,7 @@ Phase 6.2 must not:
 
 1. Run a simulation.
 2. Check celery logs: "OBSERVED_PLAY evidence fetch: would_inject=True"
-3. Check `coach-debug.retrieval_metadata.query_card_ids` includes Dragapult ex IDs.
+3. Check `coach-debug.retrieval_metadata.deck_card_ids` includes Dragapult ex IDs.
 4. Check at least one `evidence_selected` item has `tier=1` and `matched_card_names`
    containing a deck card.
 5. Check `excluded_summary.wrong_archetype > 0` if corpus has off-archetype items.
@@ -612,7 +623,7 @@ Phase 6.2 is complete when:
    when such items exist in the corpus.
 2. ✅ If no deck-relevant evidence exists, `would_inject=False` with `reason="no relevant
    observed-play evidence found"` and Coach prompt is unmodified.
-3. ✅ `coach-debug` exposes `retrieval_metadata` per round: strategy, query cards,
+3. ✅ `coach-debug` exposes `retrieval_metadata` per round: strategy, deck cards,
    selected item tiers/scores/matched fields, exclusion summary.
 4. ✅ Source diversity: no more than 2 items from the same log in a single retrieval.
 5. ✅ Win/loss weighting is applied as a tiebreaker; losing-game evidence not excluded.
