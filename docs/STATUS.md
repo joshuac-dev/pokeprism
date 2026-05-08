@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-08 (session 58 — Phase 6.2a implemented: tiered observed-play evidence retrieval)
+Last updated: 2026-05-08 (session 59 — Phase 6.2b complete: UI/debug polish for evidence retrieval metadata)
 
 ## Current Workstream
 
@@ -18,7 +18,7 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1 through Phase 6.2a are COMPLETE.** Phase 6.1 verified 2026-05-08.
+**Phase 1 through Phase 6.2b are COMPLETE.** Phase 6.2a validated 2026-05-08.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
 **Phase 6.1 verification summary:**
@@ -27,17 +27,24 @@ See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 - User Check 3 ✅ — Flag-on Coach: block injected, LLM acknowledges (or fallback `not_used_reason`)
 - User Check 4 ✅ — Immutability: all observed-play memory tables unchanged after flag-on simulation
 
-**Phase 6.2a — Evidence relevance retrieval (COMPLETE):**
+**Phase 6.2a — Evidence relevance retrieval (COMPLETE, validated 2026-05-08):**
 - Tiered retrieval: Tier 1 (exact card-ID match) → Tier 2 (ILIKE name match) → Tier 3 (global fallback, opt-in only).
 - Source diversity cap: max 2 items per `observed_play_log_id`.
 - Win/loss outcome weighting: +0.05 tiebreaker bonus, never a hard gate.
 - No relevant evidence (flag-on, no deck match): `would_inject=false`, `no_relevant_evidence=true`, empty prompt block.
 - `CoachAnalyst` now passes deck/candidate card context to `_fetch_observed_play_block()`.
-- `coach-debug` endpoint surfaces `retrieval_metadata` (strategy, query IDs/names, per-item tier/score/matched field).
+- `coach-debug` endpoint surfaces `retrieval_metadata` (strategy, deck/candidate IDs, per-item tier/score/match_source/matched_card_names/matched_reason).
+- Debug refinements (17b6999): `deck_card_ids`/`candidate_card_ids` separated; `match_source` field; `matched_card_names` resolved; `matched_reason` human-readable; `no_relevant_evidence` explicit bool; deck matches sorted before candidate matches.
 - No migration required. Observed-play memory remains read-only and advisory.
 - Backend: 1223 passed, 1 skipped.
 
-**Next feature step:** Phase 6.2b — UI/debug polish for evidence retrieval metadata.
+**Phase 6.2b — UI/debug polish (COMPLETE, 2026-05-08):**
+- `ObservedPlayCoachContextPreview` TypeScript type extended with `retrieval_metadata` and `no_relevant_evidence`.
+- New TS interfaces: `EvidenceSelectionDetail`, `EvidenceExclusionSummary`, `ObservedPlayRetrievalMetadata`.
+- `CoachContextPreviewSection` now shows: no-relevant-evidence banner, deck context pills, candidate card pills, evidence selected table (Tier badge / Score / Match source / Matched cards / Reason), exclusion summary row.
+- 7 new frontend tests (346 total). Build clean.
+
+**Next feature step:** Phase 6.2c (if needed) — further manual validation or Phase 7 planning.
 Plan: `docs/proposals/OBSERVED_PLAY_EVIDENCE_RELEVANCE_PLAN.md`.
 Observed memory remains advisory only.
 

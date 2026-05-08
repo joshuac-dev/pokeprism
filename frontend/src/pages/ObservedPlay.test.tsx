@@ -3524,5 +3524,252 @@ describe('Phase 5.2 — Corpus Readiness Scorecard', () => {
         expect(screen.getByRole('heading', { name: /Corpus Quality.*Readiness Scorecard/i })).toBeInTheDocument();
       });
     });
+
+    // ── Phase 6.2b: Retrieval metadata UI ─────────────────────────────────────
+
+    it('shows no-relevant-evidence banner when no_relevant_evidence=true', async () => {
+      (getCoachContextPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+        enabled: true,
+        readiness_verdict: 'ready',
+        readiness_score: 97.0,
+        would_inject: false,
+        reason: 'no relevant observed-play evidence found for current deck',
+        prompt_block: '',
+        evidence_count: 0,
+        evidence_ids: [],
+        warnings: [],
+        filters_applied: {},
+        no_relevant_evidence: true,
+        retrieval_metadata: null,
+      });
+      setup();
+      const btn = await screen.findByRole('button', { name: /preview context/i });
+      await userEvent.click(btn);
+      await waitFor(() => {
+        expect(screen.getByText(/No deck-relevant observed-play evidence found/i)).toBeInTheDocument();
+        expect(screen.getByText(/No evidence block will be injected/i)).toBeInTheDocument();
+      });
+    });
+
+    it('does not show no-relevant-evidence banner when evidence is selected', async () => {
+      (getCoachContextPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+        enabled: true,
+        readiness_verdict: 'ready',
+        readiness_score: 97.0,
+        would_inject: true,
+        reason: 'enabled',
+        prompt_block: 'OBSERVED PLAY EVIDENCE — REVIEW ONLY\nEvidence:\n1. ...',
+        evidence_count: 1,
+        evidence_ids: ['abc-123'],
+        warnings: [],
+        filters_applied: {},
+        no_relevant_evidence: false,
+        retrieval_metadata: null,
+      });
+      setup();
+      const btn = await screen.findByRole('button', { name: /preview context/i });
+      await userEvent.click(btn);
+      await waitFor(() => {
+        expect(screen.queryByText(/No deck-relevant observed-play evidence found/i)).not.toBeInTheDocument();
+      });
+    });
+
+    it('shows retrieval metadata panel with strategy when retrieval_metadata is present', async () => {
+      (getCoachContextPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+        enabled: true,
+        readiness_verdict: 'ready',
+        readiness_score: 97.0,
+        would_inject: true,
+        reason: 'enabled',
+        prompt_block: 'OBSERVED PLAY EVIDENCE — REVIEW ONLY\n...',
+        evidence_count: 1,
+        evidence_ids: ['ev-1'],
+        warnings: [],
+        filters_applied: {},
+        no_relevant_evidence: false,
+        retrieval_metadata: {
+          strategy: 'deck_overlap_v1',
+          deck_card_ids: ['sv06-123'],
+          deck_card_names: ['Dragapult ex'],
+          candidate_card_ids: ['sv05-144'],
+          candidate_card_names: ['Pidgeot ex'],
+          allow_fallback: false,
+          max_items_per_log: 2,
+          no_relevant_evidence: false,
+          evidence_selected: [],
+          excluded_summary: { low_confidence: 0, wrong_archetype: 0, source_cap_excluded: 0, unresolved_reference: 0 },
+        },
+      });
+      setup();
+      const btn = await screen.findByRole('button', { name: /preview context/i });
+      await userEvent.click(btn);
+      await waitFor(() => {
+        expect(screen.getByText(/Retrieval metadata/i)).toBeInTheDocument();
+        expect(screen.getByText(/deck_overlap_v1/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows deck context pills from retrieval_metadata.deck_card_names', async () => {
+      (getCoachContextPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+        enabled: true,
+        readiness_verdict: 'ready',
+        readiness_score: 97.0,
+        would_inject: true,
+        reason: 'enabled',
+        prompt_block: 'OBSERVED PLAY EVIDENCE — REVIEW ONLY\n...',
+        evidence_count: 1,
+        evidence_ids: ['ev-1'],
+        warnings: [],
+        filters_applied: {},
+        no_relevant_evidence: false,
+        retrieval_metadata: {
+          strategy: 'deck_overlap_v1',
+          deck_card_ids: ['sv06-123', 'sv06-456'],
+          deck_card_names: ['Dragapult ex', 'Dreepy'],
+          candidate_card_ids: [],
+          candidate_card_names: [],
+          allow_fallback: false,
+          max_items_per_log: 2,
+          no_relevant_evidence: false,
+          evidence_selected: [],
+          excluded_summary: { low_confidence: 0, wrong_archetype: 0, source_cap_excluded: 0, unresolved_reference: 0 },
+        },
+      });
+      setup();
+      const btn = await screen.findByRole('button', { name: /preview context/i });
+      await userEvent.click(btn);
+      await waitFor(() => {
+        expect(screen.getByText('Dragapult ex')).toBeInTheDocument();
+        expect(screen.getByText('Dreepy')).toBeInTheDocument();
+        expect(screen.getByText(/Deck context/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows evidence selected table with Tier, Score, Match source, Reason columns', async () => {
+      (getCoachContextPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+        enabled: true,
+        readiness_verdict: 'ready',
+        readiness_score: 97.0,
+        would_inject: true,
+        reason: 'enabled',
+        prompt_block: 'OBSERVED PLAY EVIDENCE — REVIEW ONLY\n...',
+        evidence_count: 1,
+        evidence_ids: ['ev-1'],
+        warnings: [],
+        filters_applied: {},
+        no_relevant_evidence: false,
+        retrieval_metadata: {
+          strategy: 'deck_overlap_v1',
+          deck_card_ids: ['sv06-123'],
+          deck_card_names: ['Dragapult ex'],
+          candidate_card_ids: [],
+          candidate_card_names: [],
+          allow_fallback: false,
+          max_items_per_log: 2,
+          no_relevant_evidence: false,
+          evidence_selected: [
+            {
+              memory_item_id: 'ev-1',
+              relevance_score: 1.0,
+              tier: 1,
+              matched_card_ids: ['sv06-123'],
+              matched_card_names: ['Dragapult ex'],
+              matched_field: 'actor_card_def_id',
+              matched_reason: 'deck_card Dragapult ex matched actor_card_def_id sv06-123',
+              match_source: 'deck_card',
+              source_log_id: 'log-abc',
+              from_winning_game: true,
+            },
+          ],
+          excluded_summary: { low_confidence: 0, wrong_archetype: 0, source_cap_excluded: 0, unresolved_reference: 0 },
+        },
+      });
+      setup();
+      const btn = await screen.findByRole('button', { name: /preview context/i });
+      await userEvent.click(btn);
+      await waitFor(() => {
+        expect(screen.getByText(/Evidence selected/i)).toBeInTheDocument();
+        expect(screen.getByText('T1')).toBeInTheDocument();
+        expect(screen.getByText(/1\.000/)).toBeInTheDocument();
+        expect(screen.getByText(/Deck card/i)).toBeInTheDocument();
+        const section = screen.getByRole('region', { name: /Coach Context Preview/i });
+        expect(within(section).getAllByText(/Dragapult ex/).length).toBeGreaterThan(0);
+        expect(within(section).getByText(/deck_card Dragapult ex matched actor_card_def_id sv06-123/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows exclusion summary row when source_cap_excluded is non-zero', async () => {
+      (getCoachContextPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+        enabled: true,
+        readiness_verdict: 'ready',
+        readiness_score: 97.0,
+        would_inject: true,
+        reason: 'enabled',
+        prompt_block: 'OBSERVED PLAY EVIDENCE — REVIEW ONLY\n...',
+        evidence_count: 2,
+        evidence_ids: ['ev-1', 'ev-2'],
+        warnings: [],
+        filters_applied: {},
+        no_relevant_evidence: false,
+        retrieval_metadata: {
+          strategy: 'deck_overlap_v1',
+          deck_card_ids: ['sv06-123'],
+          deck_card_names: ['Dragapult ex'],
+          candidate_card_ids: [],
+          candidate_card_names: [],
+          allow_fallback: false,
+          max_items_per_log: 2,
+          no_relevant_evidence: false,
+          evidence_selected: [],
+          excluded_summary: { low_confidence: 1, wrong_archetype: 0, source_cap_excluded: 3, unresolved_reference: 0 },
+        },
+      });
+      setup();
+      const btn = await screen.findByRole('button', { name: /preview context/i });
+      await userEvent.click(btn);
+      await waitFor(() => {
+        const section = screen.getByRole('region', { name: /Coach Context Preview/i });
+        expect(within(section).getByText(/Excluded:/i)).toBeInTheDocument();
+        expect(within(section).getByText(/source-cap/i)).toBeInTheDocument();
+        expect(within(section).getByText(/low-confidence/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows candidate card pills separately from deck card pills', async () => {
+      (getCoachContextPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+        enabled: true,
+        readiness_verdict: 'ready',
+        readiness_score: 97.0,
+        would_inject: true,
+        reason: 'enabled',
+        prompt_block: 'OBSERVED PLAY EVIDENCE — REVIEW ONLY\n...',
+        evidence_count: 1,
+        evidence_ids: ['ev-1'],
+        warnings: [],
+        filters_applied: {},
+        no_relevant_evidence: false,
+        retrieval_metadata: {
+          strategy: 'deck_overlap_v1',
+          deck_card_ids: ['sv06-123'],
+          deck_card_names: ['Dragapult ex'],
+          candidate_card_ids: ['sv10-012'],
+          candidate_card_names: ['Crustle'],
+          allow_fallback: false,
+          max_items_per_log: 2,
+          no_relevant_evidence: false,
+          evidence_selected: [],
+          excluded_summary: { low_confidence: 0, wrong_archetype: 0, source_cap_excluded: 0, unresolved_reference: 0 },
+        },
+      });
+      setup();
+      const btn = await screen.findByRole('button', { name: /preview context/i });
+      await userEvent.click(btn);
+      await waitFor(() => {
+        expect(screen.getByText(/Deck context/i)).toBeInTheDocument();
+        expect(screen.getByText(/Candidate cards/i)).toBeInTheDocument();
+        expect(screen.getByText('Dragapult ex')).toBeInTheDocument();
+        expect(screen.getByText('Crustle')).toBeInTheDocument();
+      });
+    });
   });
 });

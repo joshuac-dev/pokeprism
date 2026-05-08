@@ -624,6 +624,40 @@ export interface GetCoachEvidenceParams {
 
 // ── Phase 6.1: Coach Context Preview ──────────────────────────────────────────
 
+// Phase 6.2: Evidence retrieval detail schemas
+export interface EvidenceSelectionDetail {
+  memory_item_id: string;
+  relevance_score: number;
+  tier: number;
+  matched_card_ids: string[];
+  matched_card_names: string[];
+  matched_field: string | null;
+  matched_reason: string | null;
+  match_source: string | null;
+  source_log_id: string;
+  from_winning_game: boolean | null;
+}
+
+export interface EvidenceExclusionSummary {
+  low_confidence: number;
+  wrong_archetype: number;
+  source_cap_excluded: number;
+  unresolved_reference: number;
+}
+
+export interface ObservedPlayRetrievalMetadata {
+  strategy: string;
+  deck_card_ids: string[];
+  deck_card_names: string[];
+  candidate_card_ids: string[];
+  candidate_card_names: string[];
+  allow_fallback: boolean;
+  max_items_per_log: number;
+  evidence_selected: EvidenceSelectionDetail[];
+  excluded_summary: EvidenceExclusionSummary;
+  no_relevant_evidence: boolean;
+}
+
 export interface ObservedPlayCoachContextPreview {
   enabled: boolean;
   readiness_verdict: string | null;
@@ -635,6 +669,8 @@ export interface ObservedPlayCoachContextPreview {
   evidence_ids: string[];
   warnings: string[];
   filters_applied: Record<string, string | number | null>;
+  retrieval_metadata?: ObservedPlayRetrievalMetadata | null;
+  no_relevant_evidence?: boolean;
 }
 
 export interface GetCoachContextPreviewParams {

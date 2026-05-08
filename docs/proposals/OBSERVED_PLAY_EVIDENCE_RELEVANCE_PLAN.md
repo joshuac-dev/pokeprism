@@ -1,7 +1,7 @@
 # Phase 6.2 — Observed-Play Evidence Relevance / Retrieval Quality
 
-> **Phase 6.2a: COMPLETE.** Backend tiered retrieval implemented and tested.
-> Phase 6.2b (UI/debug polish) is the next step.
+> **Phase 6.2a: COMPLETE.** Backend tiered retrieval implemented, debug metadata refined, and validated 2026-05-08.
+> **Phase 6.2b: COMPLETE.** Frontend UI/debug polish implemented 2026-05-08.
 > Phase 6.1 is complete and verified.
 
 ---
