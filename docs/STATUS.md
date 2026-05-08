@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-08 (session 57 — OBSERVED_PLAY_MEMORY_ENABLED flag control fixed)
+Last updated: 2026-05-08 (session 57 — Phase 6.1 manually verified; all User Checks 1–4 complete)
 
 ## Current Workstream
 
@@ -28,6 +28,15 @@ See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 - User Check 4 ✅ — Immutability: all observed-play memory tables unchanged after flag-on simulation
 
 **Next feature step:** Phase 6.2+ (future). Observed memory remains advisory only.
+
+**Known caveat:** The LLM (Gemma) may fail to acknowledge observed-play evidence even after a repair retry. This is now visible and non-silent through the fallback `not_used_reason` (`"LLM failed to acknowledge injected observed-play evidence after retries."`) and `coach-debug` metadata. `any_acknowledgment_missing=true` is a valid outcome when this occurs; the goal is that failure is always explicit, never silent.
+
+**What observed-play injection does and does not do:**
+- ✅ Can inject observed-play evidence into Coach prompts when `OBSERVED_PLAY_MEMORY_ENABLED=true`.
+- ✅ Coach must cite evidence IDs or provide a `not_used_reason`.
+- ✅ Injection is verified read-only for all observed-play memory tables.
+- ❌ Does not affect AI Player, simulator runtime, deck builder, pgvector, Neo4j, `match_events`, `card_performance`, or gameplay decisions.
+- ❌ No claim is made that observed-play evidence improves Coach decisions — the injection is wired and verifiable; impact is not yet measured.
 
 ### Local dev flag control
 
