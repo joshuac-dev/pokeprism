@@ -1,8 +1,13 @@
 # Phase 6.2 — Observed-Play Evidence Relevance / Retrieval Quality
 
-> **Phase 6.2a: COMPLETE.** Backend tiered retrieval implemented, debug metadata refined, and validated 2026-05-08.
-> **Phase 6.2b: COMPLETE.** Frontend UI/debug polish implemented 2026-05-08.
+> **Phase 6.2a: COMPLETE and manually validated 2026-05-08** (commits ac0bc89, 17b6999).
+> **Phase 6.2b: COMPLETE and manually validated 2026-05-08** (commits 97fd0e2, 77e4048).
 > Phase 6.1 is complete and verified.
+>
+> **Implementation note:** The planned phase numbering (6.2a backend, 6.2b Coach wiring, 6.2c UI, 6.2d validation)
+> was compressed in practice. The actual 6.2a commit (ac0bc89) included both the backend tiered retrieval
+> and the Coach analyst wiring. The actual 6.2b commits added UI polish and the Dashboard retrieval debug tile.
+> See Appendix C for the full validation record.
 
 ---
 
@@ -615,11 +620,12 @@ Phase 6.2 is complete when:
 7. ✅ Observed-play memory tables remain read-only.
 8. ✅ No AI Player, simulator mutation, deck builder, pgvector, Neo4j, `match_events`,
    or `card_performance` integration.
-9. ✅ Manual test: Dragapult ex deck retrieves Dragapult/Dreepy/Drakloak evidence
-   when available.
-10. ✅ Manual test: deck with no matching corpus items produces no-evidence state.
+9. ✅ Manual test: Dragapult ex deck retrieved Dragapult ex / Budew / Fezandipiti ex /
+   Munkidori / Lillie's Clefairy ex evidence (all Tier 1, match_source=deck_card).
+10. ✅ Dashboard tile surfaces per-round retrieval metadata without curl. Values match
+    `GET /api/simulations/{id}/coach-debug` output.
 11. ✅ All Phase 6.1 backend tests pass unchanged.
-12. ✅ All new Phase 6.2 backend and frontend tests pass.
+12. ✅ All new Phase 6.2 backend (1223 passed) and frontend (353 passed) tests pass.
 
 ---
 
@@ -682,3 +688,80 @@ Proposed new config keys for Phase 6.2:
 OBSERVED_PLAY_MEMORY_MAX_ITEMS_PER_LOG: int = 2
 OBSERVED_PLAY_MEMORY_ALLOW_FALLBACK: bool = False
 ```
+
+## Appendix C — Manual Validation Record
+
+### Phase 6.2a — Validated 2026-05-08 (commit 17b6999)
+
+**Environment:** `OBSERVED_PLAY_MEMORY_ENABLED=true` in both backend and celery-worker.
+
+**Method:** Ran a flag-on H/H simulation, then called `GET /api/simulations/{id}/coach-debug`.
+
+**Results:**
+
+| Check | Result |
+|---|---|
+| `retrieval_metadata` present for all analysis rounds | ✅ |
+| `strategy=deck_overlap_v1` | ✅ |
+| `allow_fallback=false` | ✅ |
+| `deck_card_ids` and `candidate_card_ids` separate and populated | ✅ |
+| `no_relevant_evidence` explicit `true`/`false` (not null) | ✅ |
+| All selected evidence was Tier 1 | ✅ |
+| All selected evidence had `match_source=deck_card` | ✅ |
+| `matched_card_names` populated | ✅ (Dragapult ex, Budew, Fezandipiti ex, Munkidori, Lillie's Clefairy ex) |
+| `matched_reason` human-readable | ✅ (e.g. "deck_card Dragapult ex matched actor_card_def_id sv06-001") |
+| No global fallback injected by default | ✅ |
+| Source diversity cap working | ✅ |
+| Simulation completed normally | ✅ |
+
+**Concrete observation:** Round summaries showed `match_source=deck_card` for 8 evidence items per round. Selected cards included current deck core cards, not candidate-only or off-archetype cards.
+
+**Verdict:** Phase 6.2a manually validated. Retrieval is deck-contextual, tier-ranked, and advisory-only.
+
+---
+
+### Phase 6.2b — Validated 2026-05-08 (commit 77e4048)
+
+**Environment:** Same flag-on simulation as 6.2a validation. Dashboard opened for completed simulation in browser.
+
+**Method:** Opened completed simulation Dashboard and inspected "Observed-Play Retrieval Debug" tile.
+
+**Results:**
+
+| Check | Result |
+|---|---|
+| Observed-Play Retrieval Debug tile appears after Final Candidate Deck | ✅ |
+| Tile shows flag enabled | ✅ |
+| Tile shows any block injected = yes | ✅ |
+| Tile shows round count summary | ✅ |
+| Tile shows per-round accordion | ✅ |
+| Strategy `deck_overlap_v1` visible in round header | ✅ |
+| Deck context pills visible | ✅ |
+| Candidate card pills visible | ✅ |
+| Evidence Selected table visible | ✅ |
+| Tier / Score / Match source / Matched cards / Reason columns visible | ✅ |
+| Acknowledgment field visible | ✅ |
+| Tile values match `GET /api/simulations/{id}/coach-debug` curl output | ✅ |
+| UI readable for manual validation without curl | ✅ |
+
+**Important data-flow note recorded:** The `/observed-play` Coach Context Preview uses manual card-name filters; it does not have simulation deck context and will not show `retrieval_metadata` in typical use. Real deck-contextual retrieval metadata is in `GET /api/simulations/{id}/coach-debug`. The authoritative UI is the simulation Dashboard tile, not the `/observed-play` preview section.
+
+**Verdict:** Phase 6.2b manually validated. Retrieval debug is visible in the simulation Dashboard without curl.
+
+---
+
+### Scope boundary confirmation (both phases)
+
+- ❌ No observed-play memory tables written during retrieval.
+- ❌ No Coach strategy logic changed.
+- ❌ No simulator mutation logic changed.
+- ❌ No AI Player behavior changed.
+- ❌ No deck-builder behavior changed.
+- ❌ No card-performance writes.
+- ❌ No match_events writes.
+- ❌ No Neo4j or pgvector writes.
+- ❌ No runtime gameplay decisions changed.
+- ❌ No migration added.
+- ❌ No claim that observed-play evidence improves gameplay outcomes.
+
+**Correct claim:** *Observed-play evidence retrieval is now deck-contextual, visible, verifiable, and advisory-only.*

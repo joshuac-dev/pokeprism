@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-08 (session 60 — Phase 6.2b complete: simulation Dashboard retrieval debug tile)
+Last updated: 2026-05-08 (session 61 — Phase 6.2 stabilization sweep: both 6.2a and 6.2b manually validated)
 
 ## Current Workstream
 
@@ -18,7 +18,7 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1 through Phase 6.2b are COMPLETE.** Phase 6.2a validated 2026-05-08.
+**Phase 1 through Phase 6.2b are COMPLETE and manually validated.** Both phases validated 2026-05-08.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
 **Phase 6.1 verification summary:**
@@ -27,31 +27,53 @@ See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 - User Check 3 ✅ — Flag-on Coach: block injected, LLM acknowledges (or fallback `not_used_reason`)
 - User Check 4 ✅ — Immutability: all observed-play memory tables unchanged after flag-on simulation
 
-**Phase 6.2a — Evidence relevance retrieval (COMPLETE, validated 2026-05-08):**
+**Phase 6.2a — Evidence relevance retrieval (COMPLETE, manually validated 2026-05-08):**
 - Tiered retrieval: Tier 1 (exact card-ID match) → Tier 2 (ILIKE name match) → Tier 3 (global fallback, opt-in only).
 - Source diversity cap: max 2 items per `observed_play_log_id`.
 - Win/loss outcome weighting: +0.05 tiebreaker bonus, never a hard gate.
 - No relevant evidence (flag-on, no deck match): `would_inject=false`, `no_relevant_evidence=true`, empty prompt block.
 - `CoachAnalyst` now passes deck/candidate card context to `_fetch_observed_play_block()`.
-- `coach-debug` endpoint surfaces `retrieval_metadata` (strategy, deck/candidate IDs, per-item tier/score/match_source/matched_card_names/matched_reason).
-- Debug refinements (17b6999): `deck_card_ids`/`candidate_card_ids` separated; `match_source` field; `matched_card_names` resolved; `matched_reason` human-readable; `no_relevant_evidence` explicit bool; deck matches sorted before candidate matches.
+- `coach-debug` endpoint surfaces `retrieval_metadata` per round: `strategy`, `deck_card_ids`, `deck_card_names`, `candidate_card_ids`, `candidate_card_names`, `no_relevant_evidence`, and per-item `tier`, `relevance_score`, `match_source`, `matched_card_ids`, `matched_card_names`, `matched_reason`.
+- Debug refinements (17b6999): `deck_card_ids`/`candidate_card_ids` separated; `match_source` field (`deck_card`/`candidate_card`/`name_fallback_deck`/`name_fallback_candidate`/`global_fallback`); `matched_card_names` resolved from `card_id_to_name` dict; `matched_reason` human-readable; `no_relevant_evidence` explicit bool; deck matches sorted before candidate matches.
 - No migration required. Observed-play memory remains read-only and advisory.
 - Backend: 1223 passed, 1 skipped.
 
-**Phase 6.2b — UI/debug polish (COMPLETE, 2026-05-08):**
+**Phase 6.2a manual validation result (2026-05-08, commit 17b6999):**
+- Validated via flag-on H/H simulation + `GET /api/simulations/{id}/coach-debug`.
+- `strategy=deck_overlap_v1`, `allow_fallback=false`, `no_relevant_evidence=false`.
+- `deck_card_ids`/`candidate_card_ids` separate and populated.
+- All selected evidence was Tier 1, `match_source=deck_card`.
+- `matched_card_names` populated (Dragapult ex, Budew, Fezandipiti ex, Munkidori, Lillie's Clefairy ex).
+- `matched_reason` human-readable (e.g. "deck_card Dragapult ex matched actor_card_def_id sv06-001").
+- No global fallback injected by default. Source diversity cap working. Simulation completed normally.
+
+**Phase 6.2b — UI/debug visibility (COMPLETE, manually validated 2026-05-08):**
 - `ObservedPlayCoachContextPreview` TypeScript type extended with `retrieval_metadata` and `no_relevant_evidence`.
 - New TS interfaces: `EvidenceSelectionDetail`, `EvidenceExclusionSummary`, `ObservedPlayRetrievalMetadata`.
-- `CoachContextPreviewSection` now shows: no-relevant-evidence banner, deck context pills, candidate card pills, evidence selected table (Tier badge / Score / Match source / Matched cards / Reason), exclusion summary row.
-- Shared `RetrievalMetadataPanel` component extracted to `frontend/src/components/observedPlay/RetrievalMetadataPanel.tsx`.
-- New `ObservedPlayRetrievalDebugTile` component in `frontend/src/components/simulation/` shows per-round retrieval debug (round accordion, strategy, deck/candidate counts, evidence table, no-relevant-evidence banner) using data from `GET /api/simulations/{id}/coach-debug`.
+- `CoachContextPreviewSection` (on `/observed-play`) shows: no-relevant-evidence banner, deck context pills, candidate card pills, evidence selected table (Tier / Score / Match source / Matched cards / Reason), exclusion summary row.
+- Shared `RetrievalMetadataPanel` component: `frontend/src/components/observedPlay/RetrievalMetadataPanel.tsx`.
+- New `ObservedPlayRetrievalDebugTile` in `frontend/src/components/simulation/` — per-round retrieval accordion using data from `GET /api/simulations/{id}/coach-debug`.
 - `Dashboard.tsx` loads coach-debug in a separate non-fatal effect and renders tile 14 "Observed-Play Retrieval Debug" after the Final Candidate Deck tile.
 - New types `CoachDebugAnalysisRound`, `CoachDebugResponse` in `simulation.ts`; `getSimulationCoachDebug` in `simulations.ts`.
-- Helper copy added to `/observed-play` preview section explaining deck-overlap retrieval metadata is in the simulation Dashboard.
+- Helper copy on `/observed-play` preview explains that deck-overlap retrieval metadata is in the simulation Dashboard.
 - 7 new frontend tests for `ObservedPlayRetrievalDebugTile` (353 total, 18 files). Build clean.
 
-**Next feature step:** Phase 6.2c (if needed) — further manual validation or Phase 7 planning.
+**Phase 6.2b manual validation result (2026-05-08, commit 77e4048):**
+- Validated in the simulation Dashboard after a completed flag-on H/H simulation.
+- Observed-Play Retrieval Debug tile appears after Final Candidate Deck.
+- Tile shows: flag enabled, any block injected, round count summary, per-round accordion.
+- Per-round accordion shows: strategy (`deck_overlap_v1`), deck/candidate card pills, evidence selected table (Tier, Score, Match source, Matched cards, Reason), acknowledgment.
+- Tile values match `GET /api/simulations/{id}/coach-debug` curl output exactly.
+- UI is readable and sufficient for manual validation without curl.
+
+**Important UI/data-flow note:**
+- The `/observed-play` Coach Context Preview uses manual card-name filters with no simulation context; it may not have `retrieval_metadata` unless the endpoint is called with deck IDs.
+- Real deck-contextual retrieval metadata for a simulation lives in `GET /api/simulations/{id}/coach-debug`.
+- The authoritative UI for validating Phase 6.2a retrieval behavior is the simulation Dashboard "Observed-Play Retrieval Debug" tile (not the `/observed-play` preview).
+
+**Next feature step:** Phase 6.2c (if needed) — further validation passes or Phase 7 planning.
 Plan: `docs/proposals/OBSERVED_PLAY_EVIDENCE_RELEVANCE_PLAN.md`.
-Observed memory remains advisory only.
+Observed memory remains advisory only. No claim is made that observed-play evidence improves gameplay — the correct claim is: *observed-play evidence retrieval is deck-contextual, visible, verifiable, and advisory-only.*
 
 **Known caveat:** The LLM (Gemma) may fail to acknowledge observed-play evidence even after a repair retry. This is now visible and non-silent through the fallback `not_used_reason` (`"LLM failed to acknowledge injected observed-play evidence after retries."`) and `coach-debug` metadata. `any_acknowledgment_missing=true` is a valid outcome when this occurs; the goal is that failure is always explicit, never silent.
 
