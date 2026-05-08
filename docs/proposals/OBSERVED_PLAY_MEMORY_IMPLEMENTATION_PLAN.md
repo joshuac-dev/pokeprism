@@ -1613,16 +1613,19 @@ match_events, card_performance, or deck-builder logic in either Phase 6.0 or 6.1
 - `frontend/src/api/observedPlay.ts` — `getCoachContextPreview()`
 - `frontend/src/pages/ObservedPlay.tsx` — `CoachContextPreviewSection` component
 
-**Phase 6.1 acceptance criteria — MET:**
+**Phase 6.1 acceptance criteria — VERIFIED (User Checks 1–4 complete, 2026-05-08):**
 1. ✅ Coach prompt includes observed-play evidence section when `OBSERVED_PLAY_MEMORY_ENABLED=true`.
 2. ✅ Only items with `confidence_score ≥ OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE` (default 0.85) contribute.
 3. ✅ Existing Coach safety systems (primary evo protection, regression detection) are unaffected.
 4. ✅ Tests confirm no observed-play content when flag is off (byte-for-byte identical prompt).
 5. ✅ Corpus readiness gate blocks injection when `not_ready`; warns when `needs_review`.
 
-**Phase 6.2+ acceptance criteria (future):**
-- A/B test framework for measuring Coach quality with/without observed evidence.
-- Evidence citation tracking (which evidence IDs were used per Coach response).
+**Phase 6.1 post-initial-merge hardening (sessions 54–57):**
+- LLM acknowledgment enforcement: `observed_play_acknowledgment` required field in Coach JSON schema; repair retry loop with `COACH_OBSERVED_PLAY_ACK_REPAIR_PROMPT`; `_inject_ack_fallback()` ensures `not_used_reason` is always non-null when `acknowledgment_missing=True`.
+- Simulation-level observed-play meta: `simulations.observed_play_meta JSONB` stores per-round injection state unconditionally (even when no deck mutations produced); `GET /api/simulations/{id}/coach-debug` surfaces `analysis_rounds` and `simulation_observed_play_summary`.
+- Flag control: `docker-compose.override.yml` uses `${OBSERVED_PLAY_MEMORY_ENABLED:-false}`; `.env.example` documents usage.
+
+**User Check 4 (2026-05-08) — immutability confirmed:** observed_play_logs, observed_play_events, observed_card_mentions, observed_play_memory_ingestions, and observed_play_memory_items are all unchanged after a flag-on H/H simulation. Coach injection is read-only with respect to all observed-play memory tables.
 
 ---
 

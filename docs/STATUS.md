@@ -18,11 +18,16 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, Phase 5.1, pre-Phase-5.2 workflow hardening, Phase 5.2, Phase 6.0, and Phase 6.1 are complete.**
+**Phase 1 through Phase 6.1 are COMPLETE and VERIFIED.** User Checks 1–4 all passed 2026-05-08.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
-**Next step (immediate):** User Check 4 — record read-only baseline counts before re-enabling flag, then verify counts are unchanged after a flag-on run.
-**Next feature step:** Phase 6.2+ — Further Coach advisory features (future). Observed memory remains advisory only.
+**Phase 6.1 verification summary:**
+- User Check 1 ✅ — Flag-off context preview: `enabled=false`, `would_inject=false`, no evidence
+- User Check 2 ✅ — Flag-off Coach: no observed-play evidence in prompt or output
+- User Check 3 ✅ — Flag-on Coach: block injected, LLM acknowledges (or fallback `not_used_reason`)
+- User Check 4 ✅ — Immutability: all observed-play memory tables unchanged after flag-on simulation
+
+**Next feature step:** Phase 6.2+ (future). Observed memory remains advisory only.
 
 ### Local dev flag control
 
@@ -36,13 +41,6 @@ To disable (restore default):
 ```bash
 sed -i '/OBSERVED_PLAY_MEMORY_ENABLED/d' .env
 docker compose up -d --no-deps backend celery-worker
-```
-
-Verify with:
-```bash
-docker compose exec backend python3 -c "from app.config import settings; print(settings.OBSERVED_PLAY_MEMORY_ENABLED)"
-docker compose exec celery-worker python3 -c "from app.config import settings; print(settings.OBSERVED_PLAY_MEMORY_ENABLED)"
-curl -s "http://localhost:8000/api/observed-play/coach-context-preview?card_name=Dragapult+ex" | python3 -m json.tool | grep would_inject
 ```
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
