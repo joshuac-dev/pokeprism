@@ -1226,6 +1226,154 @@ class TestCoachAnalystObservedPlay:
         assert sim_mock.observed_play_meta[1]["round_number"] == 2
 
 
+
+# ---------------------------------------------------------------------------
+# Observed-play acknowledgment repair loop (Phase 6.1 — missing ack enforcement)
+# ---------------------------------------------------------------------------
+
+class TestObservedPlayAckRepair:
+    """Tests for observed_play_acknowledgment retry/repair in _get_swap_decisions."""
+
+    def _valid_swap_response(self, with_ack: bool = True, ack_used: bool = False) -> str:
+        ack = {
+            "block_provided": True,
+            "used_evidence_ids": ["ev-001"] if ack_used else [],
+            "not_used_reason": None if ack_used else "Different archetype, not actionable.",
+        }
+        payload = {
+            "swaps": [],
+            "analysis": "Deck performing well.",
+            "observed_play_acknowledgment": ack,
+        }
+        if not with_ack:
+            del payload["observed_play_acknowledgment"]
+        return json.dumps(payload)
+
+    @pytest.mark.asyncio
+    async def test_missing_ack_triggers_repair_and_succeeds(self, caplog):
+        """When attempt 0 has valid swaps but no ack, attempt 1 (repair) should succeed."""
+        import logging
+        analyst = _make_analyst()
+        observed_play_ids = ["ev-001", "ev-002"]
+        analyst._call_ollama = AsyncMock(side_effect=[
+            self._valid_swap_response(with_ack=False),  # attempt 0: missing ack
+            self._valid_swap_response(with_ack=True),   # attempt 1: repair succeeds
+        ])
+        messages = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "user"},
+        ]
+        with caplog.at_level(logging.WARNING, logger="app.coach.analyst"):
+            swaps, op_ack, _ = await analyst._get_swap_decisions(
+                messages, observed_play_ids=observed_play_ids
+            )
+        assert swaps == []
+        assert op_ack is not None
+        assert op_ack["acknowledgment_missing"] is False
+        assert op_ack["not_used_reason"] == "Different archetype, not actionable."
+        warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+        assert any("missing observed_play_acknowledgment" in w for w in warnings)
+        # Verify repair prompt was used on 2nd call
+        second_call_msgs = analyst._call_ollama.call_args_list[1].args[0]
+        assert any("observed_play_acknowledgment" in m["content"] for m in second_call_msgs)
+        assert any("previous_response" not in m["content"] for m in second_call_msgs)
+
+    @pytest.mark.asyncio
+    async def test_missing_ack_on_final_attempt_accepted_with_flag(self, caplog):
+        """When all retries return missing ack, swaps are accepted with acknowledgment_missing=True."""
+        import logging
+        analyst = _make_analyst()
+        observed_play_ids = ["ev-001"]
+        analyst._call_ollama = AsyncMock(side_effect=[
+            self._valid_swap_response(with_ack=False),  # attempt 0: missing ack
+            self._valid_swap_response(with_ack=False),  # attempt 1: still missing
+        ])
+        messages = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "user"},
+        ]
+        with caplog.at_level(logging.ERROR, logger="app.coach.analyst"):
+            swaps, op_ack, _ = await analyst._get_swap_decisions(
+                messages, observed_play_ids=observed_play_ids
+            )
+        assert swaps == []
+        assert op_ack is not None
+        assert op_ack["acknowledgment_missing"] is True
+        error_msgs = [r.message for r in caplog.records if r.levelno >= logging.ERROR]
+        assert any("acknowledgment_missing" in m or "failed to include" in m for m in error_msgs)
+
+    @pytest.mark.asyncio
+    async def test_ack_repair_invalid_swaps_falls_back_to_last_valid(self, caplog):
+        """If ack repair attempt produces invalid swaps, fall back to last valid swaps."""
+        import logging
+        analyst = _make_analyst()
+        observed_play_ids = ["ev-001"]
+        analyst._call_ollama = AsyncMock(side_effect=[
+            self._valid_swap_response(with_ack=False),  # attempt 0: valid swaps, missing ack
+            "invalid json",                              # attempt 1: repair produces garbage
+        ])
+        messages = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "user"},
+        ]
+        with caplog.at_level(logging.ERROR, logger="app.coach.analyst"):
+            swaps, op_ack, analysis = await analyst._get_swap_decisions(
+                messages, observed_play_ids=observed_play_ids
+            )
+        # Should return the saved valid swaps ([] from attempt 0), not []
+        # because last_valid_swaps fallback was used
+        assert swaps == []
+        assert op_ack is not None
+        assert op_ack["acknowledgment_missing"] is True
+        error_msgs = [r.message for r in caplog.records if r.levelno >= logging.ERROR]
+        assert any("last valid swaps" in m or "Ack repair" in m for m in error_msgs)
+
+    @pytest.mark.asyncio
+    async def test_no_ack_repair_when_no_observed_play_ids(self):
+        """When observed_play_ids is empty, missing ack is not treated as failure."""
+        analyst = _make_analyst()
+        analyst._call_ollama = AsyncMock(
+            return_value=self._valid_swap_response(with_ack=False)
+        )
+        messages = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "user"},
+        ]
+        swaps, op_ack, _ = await analyst._get_swap_decisions(
+            messages, observed_play_ids=[]  # no block injected
+        )
+        assert swaps == []
+        assert op_ack is None  # no ack expected when no IDs
+        # Only 1 Ollama call — no repair triggered
+        assert analyst._call_ollama.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_ack_repair_prompt_does_not_resend_deck_context(self):
+        """The ack repair prompt contains observed_play_acknowledgment instruction but not original deck data."""
+        analyst = _make_analyst()
+        observed_play_ids = ["ev-001"]
+        captured_messages = []
+
+        async def capture_and_respond(msgs):
+            captured_messages.append(msgs)
+            if len(captured_messages) == 1:
+                return self._valid_swap_response(with_ack=False)
+            return self._valid_swap_response(with_ack=True)
+
+        analyst._call_ollama = capture_and_respond
+        messages = [
+            {"role": "system", "content": "SYSTEM PROMPT"},
+            {"role": "user", "content": "DECK DATA: sv06-128 win_rate=0.3"},
+        ]
+        await analyst._get_swap_decisions(messages, observed_play_ids=observed_play_ids)
+
+        # Repair call (2nd) should NOT contain original deck data
+        repair_msgs = captured_messages[1]
+        repair_content = " ".join(m["content"] for m in repair_msgs)
+        assert "DECK DATA" not in repair_content
+        assert "observed_play_acknowledgment" in repair_content
+
+
 # ---------------------------------------------------------------------------
 # Coach LLM logging — zero swaps and parse failure visibility (Phase 6.1 triage)
 # ---------------------------------------------------------------------------

@@ -15,6 +15,7 @@ from app.config import settings
 from app.coach.prompts import (
     COACH_EVOLUTION_SYSTEM_PROMPT,
     COACH_EVOLUTION_USER_PROMPT,
+    COACH_OBSERVED_PLAY_ACK_REPAIR_PROMPT,
     COACH_REPAIR_PROMPT,
 )
 from sqlalchemy import select
@@ -308,13 +309,53 @@ class CoachAnalyst:
                 {"role": "user", "content": messages},
             ]
         last_raw = ""
-        last_parsed: dict | None = None
+        # Saved when swaps are valid but ack is missing — used as fallback if ack
+        # repair causes the LLM to produce invalid swaps on the next attempt.
+        last_valid_swaps: list[dict] | None = None
+        last_valid_parsed: dict | None = None
+
         for attempt in range(retries):
             raw = await self._call_ollama(messages)
             last_raw = raw
             parsed, parse_error = self._parse_response(raw)
             swaps, validation_error = self._validate_swap_response(parsed)
+
             if swaps is not None:
+                # Check whether the observed-play acknowledgment is required and present.
+                needs_ack = bool(observed_play_ids)
+                has_ack = (
+                    isinstance(parsed, dict)
+                    and isinstance(parsed.get("observed_play_acknowledgment"), dict)
+                )
+
+                if needs_ack and not has_ack and attempt < retries - 1:
+                    # Save valid swaps as fallback in case the ack repair prompt
+                    # causes the LLM to produce invalid swaps on the next attempt.
+                    last_valid_swaps = swaps
+                    last_valid_parsed = parsed
+                    logger.warning(
+                        "Coach missing observed_play_acknowledgment (attempt %d/%d); "
+                        "retrying with ack repair prompt.",
+                        attempt + 1, retries,
+                    )
+                    messages = [
+                        messages[0],
+                        {
+                            "role": "user",
+                            "content": COACH_OBSERVED_PLAY_ACK_REPAIR_PROMPT.format(
+                                previous_response=raw[:2000],
+                            ),
+                        },
+                    ]
+                    continue
+
+                if needs_ack and not has_ack:
+                    logger.error(
+                        "Coach failed to include observed_play_acknowledgment after %d "
+                        "attempt(s); accepting with acknowledgment_missing=True.",
+                        attempt + 1,
+                    )
+
                 analysis_text: str | None = None
                 if isinstance(parsed, dict):
                     raw_analysis = parsed.get("analysis")
@@ -325,9 +366,9 @@ class CoachAnalyst:
                         "Coach recommended 0 swaps. Analysis: %.300s",
                         analysis_text or "(none)",
                     )
-                last_parsed = parsed
                 op_ack = self._extract_op_acknowledgment(parsed, observed_play_ids or [])
                 return swaps, op_ack, analysis_text
+
             error = parse_error or validation_error or "unknown schema failure"
             logger.warning(
                 "Coach response validation failed (attempt %d/%d): %s | raw=%.200s",
@@ -340,6 +381,23 @@ class CoachAnalyst:
                     "content": COACH_REPAIR_PROMPT.format(validation_error=error),
                 },
             ]
+
+        # All retries exhausted without a clean response.
+        # If the ack repair attempt produced invalid swaps, fall back to the last
+        # valid (swap-validated) response and mark acknowledgment as missing.
+        if last_valid_swaps is not None:
+            logger.error(
+                "Ack repair produced invalid swaps; using last valid swaps with "
+                "acknowledgment_missing=True.",
+            )
+            analysis_text = None
+            if isinstance(last_valid_parsed, dict):
+                raw_analysis = last_valid_parsed.get("analysis")
+                if isinstance(raw_analysis, str) and raw_analysis.strip():
+                    analysis_text = raw_analysis.strip()[:800]
+            op_ack = self._extract_op_acknowledgment(last_valid_parsed, observed_play_ids or [])
+            return last_valid_swaps, op_ack, analysis_text
+
         logger.error(
             "Coach gave invalid response after %d retries. Last raw: %.200s",
             retries, last_raw[:200],

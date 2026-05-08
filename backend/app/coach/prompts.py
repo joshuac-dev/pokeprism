@@ -106,6 +106,27 @@ Return ONLY a JSON object matching the schema. Do not add prose. Do not use
 cards outside the supplied candidate/deck IDs.
 """
 
+COACH_OBSERVED_PLAY_ACK_REPAIR_PROMPT = """\
+Your previous response was accepted for swaps but is missing the required \
+"observed_play_acknowledgment" field.
+
+An OBSERVED PLAY EVIDENCE block was provided in the original prompt. You MUST \
+include "observed_play_acknowledgment" in every response when the block is present.
+
+Re-emit your previous response exactly, adding the missing field. Your previous \
+response was:
+{previous_response}
+
+Return ONLY the corrected complete JSON object. The schema requires:
+  "observed_play_acknowledgment": {{
+    "block_provided": true,
+    "used_evidence_ids": [],
+    "not_used_reason": "<brief explanation of why observed-play evidence was not used, or null if you did use it>"
+  }}
+
+Do not change any swaps. Do not add prose outside the JSON.
+"""
+
 DECK_NAME_PROMPT = """\
 Generate a creative, lore-appropriate name for a Pokémon TCG deck with this composition:
 Main attacker: {main_attacker}

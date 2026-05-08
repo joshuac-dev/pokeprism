@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-08 (session 56 — Coach observed-play no-mutation debug fix)
+Last updated: 2026-05-08 (session 57 — Coach observed-play ack retry enforcement)
 
 ## Current Workstream
 
@@ -21,7 +21,7 @@ post-phase development:
 **Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, Phase 5.1, pre-Phase-5.2 workflow hardening, Phase 5.2, Phase 6.0, and Phase 6.1 are complete.**
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
-**Next step (immediate):** Re-run User Check 3 final retry — new H/H simulation will store per-round observed-play injection state in `simulations.observed_play_meta`. Even if mutations=[], `GET /api/simulations/{id}/coach-debug` will show `any_block_injected=true`, `analysis_rounds` with per-round evidence data, and `simulation_observed_play_summary` with acknowledgment state.
+**Next step (immediate):** Re-run User Check 3 final retry — new H/H simulation will now retry with an ack-specific repair prompt if the LLM omits `observed_play_acknowledgment`. `GET /api/simulations/{id}/coach-debug` should show `any_acknowledgment_missing: false` across all rounds.
 **Next feature step:** Phase 6.2+ — Further Coach advisory features (future). Observed memory remains advisory only.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
@@ -40,12 +40,47 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **1195 passed, 1 skipped** — 2026-05-08 session 56. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Backend test baseline | **1200 passed, 1 skipped** — 2026-05-08 session 57. `cd backend && python3 -m pytest tests/ -x -q`. |
 | Frontend unit tests | **339 passed (17 files)** — 2026-05-10 session 54. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
 
-## Session 55 Work (2026-05-08) — Coach observed-play acknowledgment enforcement
+## Session 57 Work (2026-05-08) — Coach observed-play ack retry enforcement
+
+### Problem
+
+User Check 3 final retry was a near-pass: rounds 1, 2, and 4 acknowledged the observed-play block with `not_used_reason`, but round 3 had `acknowledgment_missing: true` and `not_used_reason: null`. The LLM (Gemma) silently omitted the `observed_play_acknowledgment` field on that round, and the previous code accepted the response without retrying.
+
+### What was changed
+
+- **`backend/app/coach/prompts.py`** — Added `COACH_OBSERVED_PLAY_ACK_REPAIR_PROMPT`: a targeted repair prompt that includes the previous raw LLM response (first 2000 chars) and instructs the LLM to re-emit with `observed_play_acknowledgment` added. Does not resend deck context.
+- **`backend/app/coach/analyst.py`** — Refactored `_get_swap_decisions`:
+  - Imports `COACH_OBSERVED_PLAY_ACK_REPAIR_PROMPT`
+  - Added `last_valid_swaps`/`last_valid_parsed` for fallback tracking
+  - After swap validation, checks if `observed_play_ids` is non-empty and ack is missing; on non-final attempts, saves valid swaps, sends ack repair prompt, and continues
+  - On final attempt still missing ack: logs ERROR, accepts with `acknowledgment_missing=True`
+  - If ack repair attempt produces invalid swaps: loop falls through; uses `last_valid_swaps` fallback, logs ERROR with `acknowledgment_missing=True`
+- **Tests** — Added `TestObservedPlayAckRepair` (5 tests):
+  - `test_missing_ack_triggers_repair_and_succeeds` — attempt 0 missing ack → repair on attempt 1 succeeds → `acknowledgment_missing=False`
+  - `test_missing_ack_on_final_attempt_accepted_with_flag` — both attempts missing → accepted with `acknowledgment_missing=True`
+  - `test_ack_repair_invalid_swaps_falls_back_to_last_valid` — repair causes invalid swaps → fallback to attempt-0 swaps, `acknowledgment_missing=True`
+  - `test_no_ack_repair_when_no_observed_play_ids` — empty IDs → no repair triggered, 1 Ollama call
+  - `test_ack_repair_prompt_does_not_resend_deck_context` — repair prompt contains ack instruction but not original deck data
+
+### Files changed
+
+- `backend/app/coach/prompts.py`
+- `backend/app/coach/analyst.py`
+- `backend/tests/test_coach/test_analyst.py`
+- `docs/STATUS.md`, `docs/CHANGELOG.md`
+
+### Validation
+
+- Backend: **1200 passed, 1 skipped**
+- Frontend: **339 passed (17 files)** (unchanged)
+- No observed-play memory behavior, simulation mutation logic, AI Player, pgvector, Neo4j, match_events, card_performance, or deck-builder changed.
+
+## Session 56 Work (2026-05-08) — Coach observed-play no-mutation debug fix
 
 ### Root cause / Scenario 3
 
