@@ -11,3 +11,7 @@ services:
       LOG_LEVEL: DEBUG
     volumes:
       - ./backend:/app  # Full source mount so workers use latest code
+
+  celery-beat:
+    volumes:
+      - ./backend:/app  # Full source mount so beat sees current schedule
