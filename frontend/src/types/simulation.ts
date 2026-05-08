@@ -107,9 +107,10 @@ export interface SimulationDetail {
 // ----- Deck mutations --------------------------------------------------------
 
 export interface DeckMutation {
-  round: number;
-  card_in: string | null;
-  card_out: string | null;
+  round_number: number;
+  card_removed: string | null;
+  card_added: string | null;
+  reasoning: string | null;
   win_rate_before: number | null;
   win_rate_after: number | null;
 }

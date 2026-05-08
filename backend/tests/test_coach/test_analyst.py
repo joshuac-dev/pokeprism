@@ -1025,3 +1025,90 @@ class TestCoachAnalystObservedPlay:
             mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
             result = await analyst._fetch_observed_play_block()
         assert result == ""
+
+
+# ---------------------------------------------------------------------------
+# Coach LLM logging — zero swaps and parse failure visibility (Phase 6.1 triage)
+# ---------------------------------------------------------------------------
+
+class TestCoachLLMLogging:
+    """Tests for raw-response and analysis-field logging added during Phase 6.1 triage."""
+
+    @pytest.mark.asyncio
+    async def test_zero_swaps_logs_analysis(self, caplog):
+        """When Coach returns 0 swaps, the analysis field is logged at INFO level."""
+        import logging
+        analyst = _make_analyst()
+        analyst._call_ollama = AsyncMock(
+            return_value=json.dumps({"swaps": [], "analysis": "Deck looks solid, no changes needed."})
+        )
+        messages = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "user prompt"},
+        ]
+        with caplog.at_level(logging.INFO, logger="app.coach.analyst"):
+            swaps = await analyst._get_swap_decisions(messages)
+        assert swaps == []
+        assert any("Deck looks solid" in r.message for r in caplog.records)
+
+    @pytest.mark.asyncio
+    async def test_parse_failure_logs_raw_preview(self, caplog):
+        """When both retries fail, the raw response preview is logged at ERROR level."""
+        import logging
+        analyst = _make_analyst()
+        analyst._call_ollama = AsyncMock(return_value="not valid json at all")
+        messages = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "user prompt"},
+        ]
+        with caplog.at_level(logging.ERROR, logger="app.coach.analyst"):
+            swaps = await analyst._get_swap_decisions(messages)
+        assert swaps == []
+        error_msgs = [r.message for r in caplog.records if r.levelno >= logging.ERROR]
+        assert any("not valid json" in m for m in error_msgs)
+
+    @pytest.mark.asyncio
+    async def test_parse_failure_warning_includes_raw_preview(self, caplog):
+        """On each failed attempt, a WARNING with the raw preview is emitted."""
+        import logging
+        analyst = _make_analyst()
+        analyst._call_ollama = AsyncMock(side_effect=[
+            "bad json first attempt",
+            json.dumps({"swaps": [], "analysis": "ok"}),
+        ])
+        messages = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "user prompt"},
+        ]
+        with caplog.at_level(logging.WARNING, logger="app.coach.analyst"):
+            await analyst._get_swap_decisions(messages)
+        warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+        assert any("bad json first attempt" in w for w in warnings)
+
+    @pytest.mark.asyncio
+    async def test_ollama_payload_uses_json_format(self):
+        """_call_ollama sends format=json and num_predict=2048 to Ollama."""
+        import httpx
+        analyst = _make_analyst()
+        captured_payloads = []
+
+        async def fake_post(url, json=None, **kwargs):
+            captured_payloads.append(json)
+            resp = MagicMock()
+            resp.raise_for_status = MagicMock()
+            resp.json.return_value = {"message": {"content": '{"swaps":[],"analysis":"ok"}'}}
+            return resp
+
+        messages = [{"role": "user", "content": "hello"}]
+        with patch("httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_client.post = AsyncMock(side_effect=fake_post)
+            mock_client_cls.return_value = mock_client
+            await analyst._call_ollama(messages)
+
+        assert len(captured_payloads) == 1
+        payload = captured_payloads[0]
+        assert payload.get("format") == "json"
+        assert payload["options"]["num_predict"] == 2048

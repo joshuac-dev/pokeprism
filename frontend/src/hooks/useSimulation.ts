@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { getSimulation, getSimulationEvents } from '../api/simulations';
+import { getSimulation, getSimulationEvents, getSimulationMutations } from '../api/simulations';
 import { useSimulationStore } from '../stores/simulationStore';
 import { normaliseEvent } from '../types/simulation';
 import type { LiveEvent, MatchEventRow } from '../types/simulation';
@@ -24,6 +24,7 @@ export function useSimulation(simulationId: string | null) {
     setSimulation,
     prependEvents,
     appendEvent,
+    setMutations,
     reset,
   } = useSimulationStore();
 
@@ -73,10 +74,24 @@ export function useSimulation(simulationId: string | null) {
       } catch {
         // ignore — console stays empty, not a fatal error
       }
+
+      try {
+        const muts = await getSimulationMutations(simulationId);
+        setMutations(muts.map((m) => ({
+          round_number: m.round_number,
+          card_removed: m.card_removed,
+          card_added: m.card_added,
+          reasoning: m.reasoning,
+          win_rate_before: null,
+          win_rate_after: null,
+        })));
+      } catch {
+        // ignore — deck changes tile will remain empty
+      }
     };
 
     init();
-  }, [simulationId, setSimulation, prependEvents]);
+  }, [simulationId, setSimulation, prependEvents, setMutations]);
 
   // Poll status while not terminal
   useEffect(() => {
@@ -123,11 +138,12 @@ export function useSimulation(simulationId: string | null) {
       const ev = raw as LiveEvent;
       if (ev.type === 'deck_mutation') {
         useSimulationStore.getState().addMutation({
-          round: (ev.round_number as number) ?? 0,
-          card_in: (ev.card_in as string | null) ?? null,
-          card_out: (ev.card_out as string | null) ?? null,
-          win_rate_before: (ev.win_rate_before as number | null) ?? null,
-          win_rate_after: (ev.win_rate_after as number | null) ?? null,
+          round_number: (ev.round_number as number) ?? 0,
+          card_removed: (ev.remove as string | null) ?? null,
+          card_added: (ev.add as string | null) ?? null,
+          reasoning: (ev.reasoning as string | null) ?? null,
+          win_rate_before: null,
+          win_rate_after: null,
         });
       }
       appendEvent(normaliseEvent(ev as MatchEventRow | LiveEvent));

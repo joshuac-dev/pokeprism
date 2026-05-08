@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-08 (session 49 — Phase 6.1 end-session checkpoint; manual verification pending)
+Last updated: 2026-05-09 (session 50 — Coach LLM/UI fix; Phase 6.1 verification partial)
 
 ## Current Workstream
 
@@ -21,7 +21,7 @@ post-phase development:
 **Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, Phase 5.1, pre-Phase-5.2 workflow hardening, Phase 5.2, Phase 6.0, and Phase 6.1 are complete.**
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
-**Next step (immediate):** Manual verification of Phase 6.1 flag-off/flag-on behavior before any new Phase 6 increment.
+**Next step (immediate):** Resume Phase 6.1 manual verification (User Check 2 — flag-off Coach prompt). Simulator and Coach LLM are now fixed.
 **Next feature step:** Phase 6.2+ — Further Coach advisory features (future). Observed memory remains advisory only.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
@@ -40,10 +40,92 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **1151 passed, 1 skipped** — 2026-05-09 session 48. `cd backend && python3 -m pytest tests/ -x -q`. |
-| Frontend unit tests | **313 passed (15 files)** — 2026-05-09 session 48. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **1155 passed, 1 skipped** — 2026-05-09 session 50. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Frontend unit tests | **323 passed (16 files)** — 2026-05-09 session 50. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 50 Work (2026-05-09) — Coach LLM + UI Triage & Fix
+
+### Root cause
+
+A completed H/H simulation produced no visible card swaps and Coach reasoning
+was invisible in the UI. Investigation revealed two separate root causes:
+
+**Coach LLM (backend `analyst.py`):**
+- Ollama payload lacked `"format": "json"` → model returned prose instead of
+  JSON on attempt 1 → `invalid_json` parse error → WARNING emitted.
+- `num_predict: 768` was too small for a full Coach response with evidence.
+- Repair prompt replaced the user message with only the error text — no deck
+  context — so attempt 2 returned `{"swaps": [], "analysis": "..."}` with 0
+  swaps. This is the deliberate security design (prevents hostile context
+  resend); now `"format": "json"` makes attempt 1 succeed, so repair is a
+  last-resort only.
+
+**Frontend (mutation display):**
+- `useSimulation.ts` mapped live WebSocket `deck_mutation` events using
+  `ev.card_in`/`ev.card_out` but backend publishes `ev.add`/`ev.remove`.
+- Mutations were never fetched from REST on init — only from live WS — so
+  navigating to a completed sim showed 0 swaps.
+- `DeckMutation` type used `round`/`card_in`/`card_out`; REST API returns
+  `round_number`/`card_removed`/`card_added`/`reasoning`.
+- `DeckChangesTile` showed no reasoning field.
+
+### Changes
+
+**`backend/app/coach/analyst.py`:**
+- Added `"format": "json"` to Ollama payload — forces JSON output on first attempt.
+- Increased `num_predict: 768 → 2048` — prevents mid-response truncation.
+- `_get_swap_decisions`: logs `analysis` field at INFO when 0 swaps returned.
+- `_get_swap_decisions`: WARNING now includes raw response preview (200 chars).
+- `_get_swap_decisions`: ERROR on all-retries-fail includes last raw preview.
+- `_call_ollama`: logs WARNING when Ollama returns empty content.
+
+**`frontend/src/types/simulation.ts`:**
+- `DeckMutation` updated to `round_number`/`card_removed`/`card_added`/`reasoning`
+  (aligns with REST API and `MutationRow` in `dashboard.ts`).
+
+**`frontend/src/stores/simulationStore.ts`:**
+- Added `setMutations(mutations: DeckMutation[])` action for bulk REST load.
+
+**`frontend/src/hooks/useSimulation.ts`:**
+- Added `getSimulationMutations` import and REST fetch on init; mutations loaded
+  from REST immediately (covers completed sims navigated from History).
+- Fixed WS `deck_mutation` handler: `ev.add`/`ev.remove` → `card_removed`/`card_added`.
+- `reasoning` now passed through from WS events.
+
+**`frontend/src/components/simulation/DeckChangesTile.tsx`:**
+- Updated to use new field names (`round_number`, `card_removed`, `card_added`).
+- Added per-mutation expandable "Show/Hide reasoning" button.
+- Empty state updated: "No deck swaps recommended" + "Coach analysed results but
+  found no valid improvements to suggest".
+
+**`backend/tests/test_coach/test_analyst.py`:**
+- Added `TestCoachLLMLogging` class with 4 new tests:
+  - `test_zero_swaps_logs_analysis` — analysis field logged at INFO.
+  - `test_parse_failure_logs_raw_preview` — raw preview in ERROR on all-retries-fail.
+  - `test_parse_failure_warning_includes_raw_preview` — raw in WARNING per attempt.
+  - `test_ollama_payload_uses_json_format` — `format=json` + `num_predict=2048` verified.
+
+**`frontend/src/components/simulation/DeckChangesTile.test.tsx`** (NEW — 10 tests):
+- Empty state, swap count badge, card name render, round badge, reasoning expand/collapse.
+
+### Validation
+
+```text
+Backend: 1155 passed, 1 skipped
+Frontend: 323 passed (16 files)
+Build: clean
+OBSERVED_PLAY_MEMORY_ENABLED=false (unchanged default)
+docs/AUDIT_STATE.md: not touched
+```
+
+No AI Player, simulator runtime, deck builder, pgvector, Neo4j,
+`match_events`, `card_performance`, observed-play memory runtime, or gameplay
+integration added or changed.
+No data reset, force ingest, automatic ingestion, or DB mutations.
+
+---
 
 ## Session 49 Work (2026-05-08) — Phase 6.1 End-Session Checkpoint
 

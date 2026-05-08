@@ -268,16 +268,23 @@ class CoachAnalyst:
                 {"role": "system", "content": COACH_EVOLUTION_SYSTEM_PROMPT.format(max_swaps=self._max_swaps)},
                 {"role": "user", "content": messages},
             ]
+        last_raw = ""
         for attempt in range(retries):
             raw = await self._call_ollama(messages)
+            last_raw = raw
             parsed, parse_error = self._parse_response(raw)
             swaps, validation_error = self._validate_swap_response(parsed)
             if swaps is not None:
+                if not swaps and parsed:
+                    logger.info(
+                        "Coach recommended 0 swaps. Analysis: %.300s",
+                        parsed.get("analysis", "(none)"),
+                    )
                 return swaps
             error = parse_error or validation_error or "unknown schema failure"
             logger.warning(
-                "Coach response validation failed (attempt %d/%d): %s",
-                attempt + 1, retries, error,
+                "Coach response validation failed (attempt %d/%d): %s | raw=%.200s",
+                attempt + 1, retries, error, raw[:200],
             )
             messages = [
                 messages[0],
@@ -286,7 +293,10 @@ class CoachAnalyst:
                     "content": COACH_REPAIR_PROMPT.format(validation_error=error),
                 },
             ]
-        logger.error("Coach gave invalid response after %d retries", retries)
+        logger.error(
+            "Coach gave invalid response after %d retries. Last raw: %.200s",
+            retries, last_raw[:200],
+        )
         return []
 
     async def _call_ollama(self, messages: list[dict]) -> str:
@@ -297,7 +307,8 @@ class CoachAnalyst:
             "model": self._model,
             "messages": messages,
             "stream": False,
-            "options": {"temperature": 0.2, "num_predict": 768},
+            "format": "json",
+            "options": {"temperature": 0.2, "num_predict": 2048},
         }
         _CONNECT_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout)
         for attempt in range(3):
@@ -308,7 +319,14 @@ class CoachAnalyst:
                         json=payload,
                     )
                     resp.raise_for_status()
-                    return resp.json().get("message", {}).get("content", "")
+                    content = resp.json().get("message", {}).get("content", "")
+                    if not content.strip():
+                        logger.warning(
+                            "Coach Ollama returned empty content (attempt %d/3). "
+                            "Response top-level keys: %s",
+                            attempt + 1, sorted(resp.json().keys()),
+                        )
+                    return content
             except _CONNECT_ERRORS as exc:
                 if attempt == 2:
                     raise
