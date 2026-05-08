@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import uuid
 from typing import AsyncGenerator, Optional
 
 import httpx
@@ -718,6 +719,10 @@ async def get_simulation(
         "target_win_rate": row.target_win_rate / 100.0 if row.target_win_rate is not None else None,
         "final_win_rate": row.final_win_rate / 100.0 if row.final_win_rate is not None else None,
         "user_deck_name": row.user_deck_name,
+        "user_deck_id": str(row.user_deck_id) if row.user_deck_id else None,
+        "final_working_deck_id": (
+            (row.best_deck_snapshot or {}).get("final_working_deck_id")
+        ),
         "starred": row.starred,
         "error_message": row.error_message,
         "started_at": row.started_at.isoformat() if row.started_at else None,
@@ -809,6 +814,290 @@ async def get_simulation_mutations(
         }
         for m in rows
     ]
+
+
+# ---------------------------------------------------------------------------
+# GET /api/simulations/{id}/final-deck
+# ---------------------------------------------------------------------------
+
+_PTCGL_CATEGORY_ORDER = {"Pokemon": 0, "Trainer": 1, "Energy": 2}
+
+
+def _build_ptcgl_text(cards: list[dict]) -> tuple[str, list[str]]:
+    """Format enriched card entries into a PTCGL-style decklist string.
+
+    Returns ``(ptcgl_text, warnings)`` where ``warnings`` lists any cards
+    whose metadata was incomplete and fell back to a TCGdex-ID line.
+    """
+    warnings: list[str] = []
+    by_category: dict[str, list[dict]] = {"Pokemon": [], "Trainer": [], "Energy": [], "Other": []}
+
+    for card in cards:
+        cat = card.get("category") or "Other"
+        bucket = "Other"
+        if cat in by_category:
+            bucket = cat
+        by_category[bucket].append(card)
+
+    sections: list[str] = []
+    for cat in ("Pokemon", "Trainer", "Energy", "Other"):
+        entries = by_category[cat]
+        if not entries:
+            continue
+        entries_sorted = sorted(
+            entries,
+            key=lambda c: (c.get("name") or c["tcgdex_id"], c.get("set_abbrev") or "", c.get("set_number") or ""),
+        )
+        total = sum(c["quantity"] for c in entries_sorted)
+        label = "Pokémon" if cat == "Pokemon" else cat
+        lines = [f"{label}: {total}"]
+        for c in entries_sorted:
+            ptcgl_line = c.get("ptcgl_line")
+            if ptcgl_line:
+                lines.append(ptcgl_line)
+            else:
+                # metadata missing — fall back to TCGdex ID
+                lines.append(f"{c['quantity']} {c['tcgdex_id']}")
+                warnings.append(
+                    f"{c.get('name') or c['tcgdex_id']} — set/number metadata missing, used TCGdex ID"
+                )
+        sections.append("\n".join(lines))
+
+    return ("\n\n".join(sections), warnings)
+
+
+@router.get("/{simulation_id}/final-deck")
+async def get_simulation_final_deck(
+    simulation_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Return original and final candidate deck contents after Coach mutations.
+
+    - ``original_cards`` / ``final_cards``: enriched DeckCard entries with
+      name, set_abbrev, set_number, category, ptcgl_line, quantity.
+    - ``original_ptcgl_text`` / ``final_ptcgl_text``: human-readable
+      PTCGL-style decklist grouped by Pokémon / Trainer / Energy.
+    - ``changed_cards``: cards whose quantity differed between original and
+      final deck.
+    - ``has_mutations``: True when the final deck differs from the original.
+    - ``metadata_warnings``: list of cards whose metadata was incomplete.
+    """
+    try:
+        sim_uuid = __import__("uuid").UUID(simulation_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid simulation_id format")
+
+    sim = (await db.execute(
+        select(Simulation).where(Simulation.id == sim_uuid)
+    )).scalar_one_or_none()
+    if sim is None:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+
+    original_deck_id: uuid.UUID | None = sim.user_deck_id
+    snap = sim.best_deck_snapshot or {}
+    final_working_deck_id_str: str | None = snap.get("final_working_deck_id")
+    final_deck_id: uuid.UUID | None = (
+        uuid.UUID(final_working_deck_id_str) if final_working_deck_id_str else original_deck_id
+    )
+
+    async def _fetch_deck_cards(deck_id: uuid.UUID | None) -> tuple[str, str, list[dict]]:
+        """Return (deck_name, deck_text, card_rows) for a deck UUID or empty defaults.
+
+        card_rows are enriched with name, set_abbrev, set_number, category,
+        and a pre-formatted ptcgl_line.
+        """
+        if deck_id is None:
+            return ("", "", [])
+        deck_row = (await db.execute(
+            select(Deck).where(Deck.id == deck_id)
+        )).scalar_one_or_none()
+        if deck_row is None:
+            return ("", "", [])
+        rows = (await db.execute(
+            select(DeckCard, Card.name, Card.set_abbrev, Card.set_number, Card.category)
+            .join(Card, DeckCard.card_tcgdex_id == Card.tcgdex_id, isouter=True)
+            .where(DeckCard.deck_id == deck_id)
+            .order_by(Card.category, Card.name)
+        )).all()
+        cards = []
+        for dc, name, set_abbrev, set_number, category in rows:
+            display_name = name or dc.card_tcgdex_id
+            has_full_meta = bool(name and set_abbrev and set_number)
+            ptcgl_line = (
+                f"{dc.quantity} {name} {set_abbrev} {set_number}"
+                if has_full_meta
+                else None
+            )
+            cards.append({
+                "tcgdex_id": dc.card_tcgdex_id,
+                "name": display_name,
+                "set_abbrev": set_abbrev or None,
+                "set_number": set_number or None,
+                "category": category or None,
+                "quantity": dc.quantity,
+                "ptcgl_line": ptcgl_line,
+            })
+        return (deck_row.name or "", deck_row.deck_text or "", cards)
+
+    orig_name, orig_text, orig_cards = await _fetch_deck_cards(original_deck_id)
+    final_name, final_text, final_cards = await _fetch_deck_cards(final_deck_id)
+
+    orig_ptcgl_text, orig_warnings = _build_ptcgl_text(orig_cards)
+    final_ptcgl_text, final_warnings = _build_ptcgl_text(final_cards)
+    metadata_warnings = list(dict.fromkeys(orig_warnings + final_warnings))  # deduplicate, preserve order
+
+    # Compute changed-cards summary
+    orig_counts = {c["tcgdex_id"]: (c["name"], c["quantity"]) for c in orig_cards}
+    final_counts = {c["tcgdex_id"]: (c["name"], c["quantity"]) for c in final_cards}
+    all_ids = set(orig_counts) | set(final_counts)
+    changed_cards = []
+    for tid in sorted(all_ids):
+        o_name, o_qty = orig_counts.get(tid, (tid, 0))
+        f_name, f_qty = final_counts.get(tid, (o_name, 0))
+        if o_qty != f_qty:
+            changed_cards.append({
+                "tcgdex_id": tid,
+                "name": f_name or o_name or tid,
+                "original_count": o_qty,
+                "final_count": f_qty,
+            })
+
+    has_mutations = bool(final_working_deck_id_str and final_deck_id != original_deck_id)
+
+    return {
+        "original_deck_id": str(original_deck_id) if original_deck_id else None,
+        "original_deck_name": orig_name,
+        "original_cards": orig_cards,
+        "original_deck_text": orig_text,
+        "original_ptcgl_text": orig_ptcgl_text,
+        "final_working_deck_id": final_working_deck_id_str,
+        "final_deck_name": final_name,
+        "final_cards": final_cards,
+        "final_deck_text": final_text,
+        "final_ptcgl_text": final_ptcgl_text,
+        "changed_cards": changed_cards,
+        "has_mutations": has_mutations,
+        "metadata_warnings": metadata_warnings,
+    }
+
+
+# ---------------------------------------------------------------------------
+# GET /api/simulations/{id}/coach-debug
+# ---------------------------------------------------------------------------
+
+@router.get("/{simulation_id}/coach-debug")
+async def get_simulation_coach_debug(
+    simulation_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Read-only debug endpoint: surfaces Coach observed-play injection state.
+
+    Returns per-simulation:
+    - flag_enabled: current OBSERVED_PLAY_MEMORY_ENABLED value
+    - mutations: all DeckMutations with their evidence JSONB
+    - observed_play_citations: evidence entries where kind="observed_play"
+    - current_context_preview: what the block would contain if requested now
+
+    Never mutates observed-play memory, ingestion counts, or simulation data.
+    """
+    try:
+        sim_uuid = uuid.UUID(simulation_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid simulation_id format")
+
+    sim = (await db.execute(
+        select(Simulation).where(Simulation.id == sim_uuid)
+    )).scalar_one_or_none()
+    if sim is None:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+
+    mutation_rows = (await db.execute(
+        select(DeckMutation)
+        .where(DeckMutation.simulation_id == sim_uuid)
+        .order_by(DeckMutation.round_number)
+    )).scalars().all()
+
+    mutations_data = []
+    all_op_citations: list[dict] = []
+    for m in mutation_rows:
+        evidence = m.evidence or []
+        op_cites = [e for e in evidence if isinstance(e, dict) and e.get("kind") == "observed_play"]
+        op_meta = m.observed_play_meta or {}
+        op_ack = op_meta.get("acknowledgment") or {}
+        mutations_data.append({
+            "id": str(m.id),
+            "round_number": m.round_number,
+            "card_removed": m.card_removed,
+            "card_added": m.card_added,
+            "reasoning": m.reasoning,
+            "evidence": evidence,
+            "observed_play_block_injected": op_meta.get("block_injected", False),
+            "observed_play_evidence_ids_available": op_meta.get("evidence_ids_available", []),
+            "observed_play_citations_used": op_cites,
+            "observed_play_not_used_reason": op_ack.get("not_used_reason"),
+            "observed_play_acknowledgment_missing": op_ack.get("acknowledgment_missing", False),
+        })
+        all_op_citations.extend(op_cites)
+
+    # Simulation-level observed-play meta (persisted per-round, including 0-swap rounds)
+    sim_op_rounds: list[dict] = sim.observed_play_meta or []
+    if not isinstance(sim_op_rounds, list):
+        sim_op_rounds = []
+
+    sim_any_block_injected = any(r.get("block_injected") for r in sim_op_rounds)
+    sim_all_evidence_ids: list[str] = []
+    sim_not_used_reasons: list[str] = []
+    sim_any_ack_missing = False
+    for r in sim_op_rounds:
+        for eid in (r.get("evidence_ids_available") or []):
+            if eid not in sim_all_evidence_ids:
+                sim_all_evidence_ids.append(eid)
+        ack = r.get("acknowledgment") or {}
+        if ack.get("not_used_reason"):
+            sim_not_used_reasons.append(
+                f"Round {r.get('round_number', '?')}: {ack['not_used_reason']}"
+            )
+        if ack.get("acknowledgment_missing"):
+            sim_any_ack_missing = True
+
+    # Current preview (what the block would contain if fetched now)
+    current_preview: dict | None = None
+    if settings.OBSERVED_PLAY_MEMORY_ENABLED:
+        try:
+            from app.observed_play.coach_context import build_coach_context_preview
+            preview = await build_coach_context_preview(db)
+            current_preview = {
+                "would_inject": preview.would_inject,
+                "evidence_count": preview.evidence_count,
+                "evidence_ids": preview.evidence_ids,
+                "prompt_block_excerpt": preview.prompt_block[:600] if preview.prompt_block else "",
+                "reason": preview.reason,
+                "no_relevant_evidence": preview.no_relevant_evidence,
+                "retrieval_metadata": preview.retrieval_metadata.model_dump() if preview.retrieval_metadata else None,
+            }
+        except Exception as exc:
+            current_preview = {"error": str(exc)}
+
+    return {
+        "simulation_id": str(sim_uuid),
+        "simulation_status": sim.status,
+        "flag_enabled": settings.OBSERVED_PLAY_MEMORY_ENABLED,
+        "mutations": mutations_data,
+        "observed_play_citations_found": all_op_citations,
+        "any_observed_play_cited": len(all_op_citations) > 0,
+        "any_block_injected": (
+            any(m.get("observed_play_block_injected") for m in mutations_data)
+            or sim_any_block_injected
+        ),
+        "simulation_observed_play_summary": {
+            "any_block_injected": sim_any_block_injected,
+            "evidence_ids_available": sim_all_evidence_ids,
+            "not_used_reasons": sim_not_used_reasons,
+            "any_acknowledgment_missing": sim_any_ack_missing,
+        },
+        "analysis_rounds": sim_op_rounds,
+        "current_context_preview": current_preview,
+    }
 
 
 # ---------------------------------------------------------------------------

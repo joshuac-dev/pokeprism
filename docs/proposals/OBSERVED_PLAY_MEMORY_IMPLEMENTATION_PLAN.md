@@ -1,0 +1,2283 @@
+# Observed Play Memory — Implementation Plan
+
+> Source material: `docs/proposals/OBSERVED_PLAY_MEMORY_DESIGN_REVIEW.md`
+>
+> This document refines that proposal into an implementation-ready plan for the
+> current PokéPrism codebase. Do not treat it as a replacement for the original
+> proposal — read both.
+>
+> **Phase 0 only.** No production code has been written. No migrations have been
+> added. No routes have been registered. This document is the plan.
+
+---
+
+## 1. Executive Summary
+
+**What is Observed Play Memory?**
+
+Observed Play Memory is a new PokéPrism feature area that imports real Pokémon
+TCG Live (PTCGL) battle logs, archives them, parses them into structured game
+events, and makes high-confidence observed human play patterns available to the
+Coach and eventually the AI Player.
+
+The user copies a PTCGL battle log (exported via an Apple Shortcut into a `.md`
+file), uploads it via a new frontend page, and PokéPrism stores, parses, and
+reports on the resulting game events without polluting the simulator's own event
+tables.
+
+**Why does it belong in PokéPrism?**
+
+PokéPrism already has a memory-first architecture: simulator outcomes flow into
+PostgreSQL card performance, pgvector state-action-outcome snippets, and a Neo4j
+co-play/synergy graph. The AI Player and Coach both retrieve from this memory
+stack. Adding human-observed evidence closes a fundamental gap: the simulator
+only knows what it can discover through its own limited play. Real human games
+contain sequencing patterns, setup priorities, and failure modes the simulator
+may never reproduce on its own.
+
+**Why must imported logs be source-tagged, confidence-scored, and gated?**
+
+PTCGL logs are partial observers. They do not expose hidden hands, full deck
+order, player intent, or whether decisions were correct. A human may misplay.
+The opponent's skill level is unknown. The same card name may refer to different
+prints. The parser may misidentify events. Noisy data that contaminated Coach or
+Player prompts without gating would degrade decision quality instead of improving
+it. Source-tagging and confidence scoring allow every imported memory to be
+audited, excluded, and decayed independently of simulator-truth memory.
+
+**What should the MVP do? What should it not do?**
+
+The MVP ends at a working upload-parse-report cycle with no memory ingestion:
+
+| In MVP | Out of MVP |
+|---|---|
+| Docker log volume + `.gitignore` | Coach/Player memory ingestion |
+| Upload `.md`/`.markdown`/`.txt`/`.zip` | pgvector snippets |
+| Import batch record | Neo4j observed-play edges |
+| Raw log record with SHA-256 dedup | Format-decay/reranking |
+| Raw archive on filesystem + DB | Human-vs-simulator disagreement reports |
+| Parser v1 — high-confidence events only | Tournament-log support |
+| Card mention extraction | User PTCGL username setting |
+| Card resolution v1 — exact + normalized | Failure-mode tagging (deferred) |
+| Unresolved/ambiguous card reporting | Full board-state reconstruction |
+| Import summary report | Replay animation |
+| Parsed event viewer API | |
+| Parser fixture tests | |
+
+---
+
+## 2. Fit with Current Architecture
+
+### PostgreSQL / SQLAlchemy models (`backend/app/db/models.py`)
+
+The current schema has:
+- `cards` — card definitions with `tcgdex_id` PK
+- `decks`, `deck_cards` — user/opponent deck records
+- `simulations`, `simulation_opponents`, `simulation_opponent_results`
+- `rounds`, `matches`, `match_events`, `decisions`
+- `deck_mutations`, `card_performance`
+- `embeddings` — pgvector source-typed rows (source_type field is open text)
+
+**Fit:** good. The new observed-play tables live alongside existing tables. No
+existing table needs modification in the MVP. The `embeddings` table's
+`source_type` text field already supports future `observed_play` source type
+without schema change.
+
+**No conflict with PROJECT.md:** PROJECT.md's Appendix B schema predates this
+feature; it does not conflict because it does not define observed-play tables.
+
+### Alembic migrations (`backend/alembic/versions/`)
+
+Five migrations exist, the latest being `5b7e9c2d4a11`. New migrations for
+observed-play tables will extend this chain cleanly in Phase 1.
+
+### Simulation/match event tables
+
+`match_events` has a `match_id` FK that requires an existing `matches` row.
+Observed-play events have no simulator match. Using `match_events` for observed
+data would require nullable `match_id` and a `source` discriminator column —
+a structural mismatch. **A parallel table is the correct design** (see §6).
+
+### Neo4j graph memory (`backend/app/memory/graph.py`, `backend/db/graph.py`)
+
+`GraphMemoryWriter` currently writes `:Card`, `:Deck`, `:DeckSynergy`, and
+outcome edges from simulator matches. The new feature will eventually add
+source-tagged observed-play edges. No conflict; graph is additive.
+
+### pgvector/embeddings (`backend/app/db/models.py:Embedding`)
+
+`source_type` is already an open text field. Future observed-play embeddings
+use `source_type = "observed_play"` without schema change.
+
+### Coach (`backend/app/coach/`)
+
+Coach currently uses card performance, graph synergy data, and deck mutations.
+Observed Play Memory is **not** wired to Coach in the MVP. Phase 6 adds a
+compact advisory packet.
+
+### AI Player (`backend/app/players/ai_player.py`)
+
+AI Player retrieves memory at decision time. **No change in MVP or Phase 6.**
+Player integration is Phase 8, conditional on Coach validation passing first.
+
+### Frontend pages/API patterns
+
+Current pages: Coverage, Dashboard, History, Memory, SimulationLive,
+SimulationSetup. All use the same pattern: React page → `frontend/src/api/`
+axios module → `/api/…` FastAPI router. The new `/observed-play` page follows
+identical patterns.
+
+Current API modules: `cards.ts`, `decks.ts`, `history.ts`, `memory.ts`,
+`simulations.ts`. A new `observedPlay.ts` module will be added.
+
+### Celery/background work
+
+`run_simulation` is the sole Celery task today, dispatched from
+`backend/app/api/simulations.py` with `run_simulation.delay(str(sim.id))`.
+New import tasks follow the same pattern (task module, delay call, DB status
+polling). No architectural change to Celery infrastructure is needed.
+
+### Docker volumes
+
+`docker-compose.yml` currently defines named volumes for `ollama_data`,
+`postgres_data`, `neo4j_data`, and `redis_data`. The backend container mounts
+`./backend/app:/app/app` (code hot-reload). **No log volume exists yet.**
+Phase 1 adds a `ptcgl_logs_data` named volume mapped to `/data/ptcgl_logs` in
+the backend container.
+
+### Conflicts/mismatches found
+
+- `PROJECT.md` does not describe this feature — it is new, not a conflict.
+- The branch `feature/observed-play-memory` was created from `main` at commit
+  `74a58ab` (same as `origin/main`). The branch is clean and up to date.
+- No existing code or table is modified by the MVP.
+
+---
+
+## 3. Final MVP Boundary
+
+The recommended MVP from §1 is accepted with one clarification:
+
+**Failure-mode tagging** (e.g., `deckout_loss`, `stranded_active`) is
+**deferred to Phase 5**, not Phase 2–3. The parser in v1 should not try to
+classify complex game patterns; it should extract structured events and let
+higher-level analytics infer failure modes later.
+
+**Reparse-on-rule-change** (trigger all unresolved logs to reparse when a
+manual resolution rule is added) is deferred to Phase 3. Phase 2 parser runs
+once at import time; Phase 3 adds the full resolution-rule UI and reparse
+trigger.
+
+---
+
+## 4. Branch and Merge Strategy
+
+- **Feature branch:** `feature/observed-play-memory` (currently at `74a58ab`,
+  identical to `origin/main`).
+- **Development:** all Observed Play Memory code committed to this branch only.
+- **`main` stays stable:** no observed-play production code lands on `main` until
+  the MVP acceptance criteria pass.
+- **Phase commits:** each phase should be committed as a coherent unit with a
+  descriptive commit message (`feat(observed-play): phase-N …`).
+- **Rebase policy:** optionally rebase from `main` when main receives significant
+  changes that affect shared infrastructure (e.g., new card tables, Celery
+  changes). Avoid frequent merge commits.
+- **Merge to `main`:** only after Phase 4 (frontend page) acceptance criteria
+  pass and manual validation confirms the upload-parse-report cycle is stable.
+- **No raw logs committed:** only curated parser fixtures (small, anonymized,
+  purpose-built test inputs) may live under `backend/tests/fixtures/observed_play/`.
+
+---
+
+## 5. Storage and Docker Volume Plan
+
+### Docker volume
+
+Add to `docker-compose.yml` in Phase 1:
+
+```yaml
+volumes:
+  ptcgl_logs_data:   # add to top-level volumes block
+
+services:
+  backend:
+    volumes:
+      - ./backend/app:/app/app           # existing
+      - ptcgl_logs_data:/data/ptcgl_logs # new
+  celery-worker:
+    volumes:
+      - ./backend/app:/app/app           # existing
+      - ptcgl_logs_data:/data/ptcgl_logs # new — worker writes archives too
+```
+
+Both backend and celery-worker need access because ZIP imports are Celery tasks.
+
+### Paths inside the container
+
+```
+/data/ptcgl_logs/inbox/     — optional manual drop location (future)
+/data/ptcgl_logs/archive/   — canonical raw file storage
+/data/ptcgl_logs/failed/    — files that failed import or parse
+/data/ptcgl_logs/tmp/       — upload extraction workspace (ZIP)
+```
+
+### Local dev path and `.gitignore`
+
+```
+data/ptcgl_logs/
+```
+
+Add to `.gitignore` in Phase 0.
+
+### Raw storage: DB and filesystem both
+
+- Store raw markdown content in `observed_play_logs.raw_content` (PostgreSQL).
+  PTCGL logs are typically 5–80 KB; this is manageable. Storing in DB simplifies
+  reparse (no filesystem dependency) and makes debugging easy.
+- Also write canonical file to `/data/ptcgl_logs/archive/{sha256_hash[:2]}/{sha256_hash}.md`.
+  The archive is the long-term backup and enables manual inspection without DB queries.
+- `stored_path` column records the relative archive path.
+
+### Archive filename convention
+
+```
+{sha256_hash[:2]}/{sha256_hash}.{original_extension}
+```
+
+Example: `ab/abcdef1234…789.md`
+
+The first two hex characters form a subdirectory to avoid filesystem flat-directory
+limits on large corpora. This is the same strategy used by Git's object store.
+
+### Duplicate hash behavior
+
+If `sha256_hash` already exists in `observed_play_logs`:
+- Do not re-import.
+- Increment the batch `duplicate_file_count`.
+- Return the existing `log_id` in the batch summary.
+- Log a `"duplicate"` entry in `batch.summary_json`.
+
+### Failed file behavior
+
+- Write the raw file to `/data/ptcgl_logs/failed/{timestamp}_{original_filename}`.
+- Create an `observed_play_logs` row with `parse_status = "failed"`.
+- Store the error in `errors_json`.
+- The failed directory is inspectable manually without needing the database.
+
+### Tmp cleanup
+
+- After a ZIP is extracted and processed, delete the tmp extraction directory.
+- If the Celery task crashes, a periodic cleanup job (Phase 5 or later) can
+  sweep `/data/ptcgl_logs/tmp` for directories older than 24 hours.
+
+---
+
+## 6. Database Model Plan
+
+All new tables are prefixed `observed_play_` or `observed_card_`. No existing
+tables are modified. Alembic migrations added one per phase with downgrade stubs.
+
+---
+
+### `observed_play_import_batches`
+
+**Purpose:** One row per upload operation (single file or ZIP). Powers the
+frontend import report.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | default `uuid4()` |
+| `source` | Text | `"upload_single"`, `"upload_zip"`, `"inbox_scan"` |
+| `uploaded_filename` | Text | original filename as submitted |
+| `celery_task_id` | Text nullable | populated for async ZIP imports |
+| `status` | Text | `pending`, `running`, `completed`, `completed_with_warnings`, `failed`, `cancelled` |
+| `original_file_count` | Integer default 0 | files in ZIP or 1 for single |
+| `accepted_file_count` | Integer default 0 | passed type/size check |
+| `duplicate_file_count` | Integer default 0 | skipped — hash already exists |
+| `failed_file_count` | Integer default 0 | parse/archive failure |
+| `imported_file_count` | Integer default 0 | successfully parsed and archived |
+| `skipped_file_count` | Integer default 0 | unsupported type etc. |
+| `started_at` | TIMESTAMP tz | |
+| `finished_at` | TIMESTAMP tz | |
+| `summary_json` | JSONB | top unresolved cards, warnings list, per-file outcomes |
+| `errors_json` | JSONB | fatal batch errors |
+| `warnings_json` | JSONB | non-fatal batch warnings |
+| `created_at` | TIMESTAMP tz server_default now() | |
+| `updated_at` | TIMESTAMP tz | |
+
+Indexes: `(status)`, `(created_at DESC)`.
+
+No unique constraints beyond PK.
+
+---
+
+### `observed_play_logs`
+
+**Purpose:** One row per raw imported battle log. The authoritative source record.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `import_batch_id` | UUID FK → `observed_play_import_batches.id` | nullable (future inbox imports) |
+| `source` | Text | `"ptcgl_export"`, `"manual_upload"` |
+| `original_filename` | Text | |
+| `stored_path` | Text | relative path in archive volume |
+| `sha256_hash` | Text | hex string |
+| `raw_content` | Text | full raw markdown stored in DB |
+| `file_size_bytes` | Integer | |
+| `parse_status` | Text | `pending`, `parsed`, `parsed_with_warnings`, `failed`, `excluded`, `needs_reparse` |
+| `memory_status` | Text | `not_ingested`, `eligible`, `ingested_postgres`, `ingested_vector`, `ingested_graph`, `excluded_from_memory` |
+| `parser_version` | Text | `"1.0"` etc. |
+| `player_1_name_raw` | Text | exactly as in log |
+| `player_2_name_raw` | Text | |
+| `player_1_alias` | Text | `"self"`, `"opponent_001"`, etc. |
+| `player_2_alias` | Text | |
+| `self_player_index` | Integer nullable | 1 or 2 if self detected |
+| `winner_raw` | Text | player name string from log |
+| `winner_alias` | Text | |
+| `win_condition` | Text nullable | `"prizes"`, `"deck_out"`, `"no_bench"`, `"unknown"` |
+| `game_date_detected` | Date nullable | if extractable from log metadata |
+| `turn_count` | Integer default 0 | |
+| `event_count` | Integer default 0 | parsed events |
+| `recognized_card_count` | Integer default 0 | |
+| `unresolved_card_count` | Integer default 0 | |
+| `ambiguous_card_count` | Integer default 0 | |
+| `confidence_score` | Float | 0.0–1.0 |
+| `errors_json` | JSONB | list of {code, message, line} |
+| `warnings_json` | JSONB | |
+| `metadata_json` | JSONB | parser metadata, detected sets, regulation marks |
+| `created_at` | TIMESTAMP tz server_default now() | |
+| `updated_at` | TIMESTAMP tz | |
+
+Indexes: `(sha256_hash)` UNIQUE, `(import_batch_id)`, `(parse_status)`,
+`(memory_status)`, `(created_at DESC)`.
+
+**Unique constraint:** `sha256_hash` — prevents duplicate imports.
+
+---
+
+### `observed_play_events`
+
+**Purpose:** Structured events parsed from a raw log. Parallel to `match_events`,
+not reusing it. (See rationale below.)
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | BigInteger PK autoincrement | |
+| `observed_play_log_id` | UUID FK → `observed_play_logs.id` ondelete CASCADE | |
+| `import_batch_id` | UUID | denormalized for fast batch queries |
+| `event_index` | Integer | 0-based sequential position within log |
+| `turn_number` | Integer nullable | null during setup phase |
+| `phase` | Text | `"setup"`, `"turn"`, `"game_end"` |
+| `player_raw` | Text nullable | player name string from log |
+| `player_alias` | Text nullable | `"self"`, `"opponent_001"` |
+| `actor_type` | Text nullable | `"self"`, `"opponent"`, `"unknown"` |
+| `event_type` | Text | see taxonomy below |
+| `raw_line` | Text | source line(s) verbatim |
+| `raw_block` | Text nullable | multi-line raw block if applicable |
+| `card_name_raw` | Text nullable | primary card name as in log |
+| `resolved_card_id` | Text nullable FK → `cards.tcgdex_id` | |
+| `resolved_card_name` | Text nullable | |
+| `resolved_card_confidence` | Float nullable | 0.0–1.0 |
+| `target_card_name_raw` | Text nullable | |
+| `target_resolved_card_id` | Text nullable FK → `cards.tcgdex_id` | |
+| `zone` | Text nullable | `"active"`, `"bench"`, `"hand"`, `"deck"`, `"discard"`, `"prizes"` |
+| `target_zone` | Text nullable | |
+| `damage` | Integer nullable | total damage applied |
+| `base_damage` | Integer nullable | |
+| `weakness_damage` | Integer nullable | |
+| `resistance_delta` | Integer nullable | |
+| `healing_amount` | Integer nullable | |
+| `prize_count_delta` | Integer nullable | |
+| `event_payload_json` | JSONB | all other event-specific fields |
+| `confidence_score` | Float | 0.0–1.0 event-level confidence |
+| `confidence_reasons_json` | JSONB | list of reason strings |
+| `parser_version` | Text | |
+| `created_at` | TIMESTAMP tz server_default now() | |
+
+Indexes: `(observed_play_log_id, event_index)` UNIQUE,
+`(observed_play_log_id)`, `(event_type)`, `(resolved_card_id)`,
+`(import_batch_id)`.
+
+**Why parallel table and not `match_events`?**
+
+`match_events` has `match_id NOT NULL FK → matches`. Observed events have no
+simulator match. Adding `match_id` as nullable with a `source` discriminator
+would make every query that joins `match_events` for simulator data filter by
+source — a constant footgun. The observed event schema also needs fields that
+`match_events` doesn't: `raw_line`, `raw_block`, `confidence_score`,
+`resolved_card_confidence`, `player_alias`, `actor_type`. A parallel table is
+cleaner, avoids contaminating simulator analytics, and allows schema evolution
+at independent pace. Future SQL views can union them for cross-source analytics.
+
+---
+
+### `observed_card_mentions`
+
+**Purpose:** Per-card-name resolution record for one log. Tracks every distinct
+raw card name seen in a log and its resolution status.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `observed_play_log_id` | UUID FK → `observed_play_logs.id` ondelete CASCADE | |
+| `raw_card_name` | Text | exactly as in log |
+| `normalized_card_name` | Text | lowercase, stripped |
+| `occurrence_count` | Integer | times seen in this log |
+| `resolution_status` | Text | `resolved_exact`, `resolved_normalized`, `resolved_by_rule`, `ambiguous`, `unresolved`, `ignored` |
+| `resolved_card_id` | Text nullable FK → `cards.tcgdex_id` | |
+| `resolved_card_name` | Text nullable | |
+| `candidate_cards_json` | JSONB | list of {tcgdex_id, name, confidence} candidates |
+| `confidence_score` | Float | 0.0–1.0 |
+| `resolution_rule_id` | UUID nullable FK → `observed_card_resolution_rules.id` | applied rule if any |
+| `manual_override` | Boolean default false | |
+| `override_reason` | Text nullable | |
+| `created_at` | TIMESTAMP tz server_default now() | |
+| `updated_at` | TIMESTAMP tz | |
+
+Indexes: `(observed_play_log_id)`, `(resolution_status)`,
+`(raw_card_name)`, `(resolved_card_id)`.
+
+Unique: `(observed_play_log_id, raw_card_name)` — one resolution record per
+distinct name per log.
+
+---
+
+### `observed_card_resolution_rules`
+
+**Purpose:** Global manual correction rules mapping raw card name patterns to
+resolved card IDs. Applied on import and reparse.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `raw_name_pattern` | Text | exact or normalized pattern to match |
+| `match_mode` | Text | `"exact"`, `"normalized"`, `"prefix"` |
+| `resolved_card_id` | Text nullable FK → `cards.tcgdex_id` | null = mark as ignored |
+| `resolved_card_name` | Text nullable | |
+| `confidence_score` | Float default 1.0 | assigned to matched mentions |
+| `scope` | Text default `"global"` | `"global"`, `"format_specific"`, `"deck_specific"` |
+| `scope_context_json` | JSONB nullable | e.g., `{"format": "E"}` |
+| `created_by` | Text default `"user"` | |
+| `notes` | Text nullable | |
+| `created_at` | TIMESTAMP tz server_default now() | |
+| `updated_at` | TIMESTAMP tz | |
+
+Indexes: `(raw_name_pattern)`, `(scope)`.
+Unique: `(raw_name_pattern, match_mode, scope)`.
+
+---
+
+## 7. Parser Architecture
+
+### Module layout
+
+```
+backend/app/observed_play/
+    __init__.py
+    constants.py        — PARSER_VERSION, event type enums, phase enums
+    patterns.py         — compiled regex patterns for log line matching
+    parser.py           — main ParsedLog dataclass + parse_log() entry point
+    confidence.py       — ConfidenceScorer: event-level and log-level
+    card_resolution.py  — CardResolver: DB-backed card name resolution
+    storage.py          — archive_file(), compute_sha256(), path helpers
+    importer.py         — ImportOrchestrator: coordinates parse + DB write
+    schemas.py          — Pydantic request/response schemas for API layer
+    tasks.py            — Celery import task (ZIP/bulk)
+```
+
+### Parser version constant
+
+```python
+# backend/app/observed_play/constants.py
+PARSER_VERSION = "1.0"
+```
+
+Stored as a string on every `observed_play_logs` row and every
+`observed_play_events` row. On parser improvement, bump to `"1.1"` etc.
+
+### Event type taxonomy
+
+```python
+class ObservedEventType(str, Enum):
+    # Setup phase
+    COIN_FLIP_CHOICE   = "coin_flip_choice"
+    COIN_FLIP_RESULT   = "coin_flip_result"
+    TURN_ORDER_CHOICE  = "turn_order_choice"
+    OPENING_HAND_DRAW  = "opening_hand_draw"    # hand visible in log
+    OPENING_HAND_DRAW_HIDDEN = "opening_hand_draw_hidden"  # only count known
+    MULLIGAN           = "mulligan"
+    PLAY_TO_ACTIVE     = "play_to_active"
+    PLAY_TO_BENCH      = "play_to_bench"
+
+    # Turn events
+    TURN_START         = "turn_start"
+    DRAW               = "draw"                 # card name visible
+    DRAW_HIDDEN        = "draw_hidden"          # count only
+    EVOLVE             = "evolve"
+    ATTACH_ENERGY      = "attach_energy"
+    PLAY_ITEM          = "play_item"
+    PLAY_SUPPORTER     = "play_supporter"
+    PLAY_STADIUM       = "play_stadium"
+    REPLACE_STADIUM    = "replace_stadium"
+    PLAY_TOOL          = "play_tool"
+    ABILITY_USED       = "ability_used"
+    RETREAT            = "retreat"
+    SWITCH_ACTIVE      = "switch_active"
+    SEARCH_DECK        = "search_deck"
+    DISCARD            = "discard"
+    RECOVER_FROM_DISCARD = "recover_from_discard"
+    SHUFFLE_DECK       = "shuffle_deck"
+    HEAL               = "heal"
+    SPECIAL_CONDITION  = "special_condition"
+    END_TURN           = "end_turn"
+
+    # Combat
+    ATTACK_USED        = "attack_used"
+    DAMAGE_DEALT       = "damage_dealt"
+    DAMAGE_BREAKDOWN   = "damage_breakdown"
+    KNOCKOUT           = "knockout"
+    PRIZE_TAKEN        = "prize_taken"
+    PRIZE_CARD_REVEALED = "prize_card_revealed"  # if log reveals it
+
+    # Game end
+    GAME_END           = "game_end"
+
+    # Fallback
+    UNKNOWN            = "unknown"
+```
+
+### Raw line/block preservation
+
+Every event row stores:
+- `raw_line`: the source text line(s) that produced this event.
+- `raw_block`: the full multi-line block when an event spans more than one line
+  (e.g., damage breakdown with sub-bullets).
+
+This is non-negotiable. Raw preservation allows debugging parser mistakes and
+re-parsing without needing the archive file.
+
+### Hidden vs known draws
+
+`DRAW` is emitted when the log reveals the card name (e.g., opening hand, or
+when a card search shows what was found). `DRAW_HIDDEN` is emitted when the log
+says "Player drew a card" without revealing identity. Hidden draws still
+increment `hand_count_delta` in `event_payload_json`.
+
+### Confidence scoring (`confidence.py`)
+
+**Event-level confidence** starts at `1.0` and is reduced by:
+
+| Condition | Reduction |
+|---|---|
+| Card name in event is unresolved | −0.25 |
+| Card name is ambiguous (multiple candidates) | −0.15 |
+| Event type is `UNKNOWN` | −0.40 |
+| Event lacks clear player assignment | −0.10 |
+| Hidden draw (card identity unknown) | −0.05 |
+| Numeric value missing when expected | −0.10 |
+
+Minimum event confidence: `0.0`.
+
+**Log-level confidence** is computed after parsing as the weighted mean of
+all event confidence scores, further penalized by:
+- Proportion of unresolved card names × 0.30
+- Proportion of `UNKNOWN` events × 0.20
+- Missing winner / win condition: −0.10
+- Incomplete log (no `GAME_END` event): −0.10
+
+### Card mention extraction
+
+During parsing, every card name token encountered in a recognized event pattern
+is added to a running `{raw_name: occurrence_count}` dict. After parsing, this
+dict becomes the `observed_card_mentions` rows for the log.
+
+### Card resolution (`card_resolution.py`)
+
+See §8 for the full resolver design.
+
+### Player aliasing
+
+1. At import time, optionally accept a `self_username` parameter in the API.
+2. Parser sets `player_1_alias` / `player_2_alias` by matching raw player names
+   against known self-usernames.
+3. Default aliases: `"self"` (if detected) and `"opponent_001"` / `"unknown"`.
+4. `actor_type` on each event: `"self"`, `"opponent"`, or `"unknown"`.
+
+In MVP, the self-username is not stored globally. It is provided per-upload as
+an optional request field.
+
+### Winner / win condition extraction
+
+Parser looks for end-game markers:
+- `"won the game"` / `"lost the game"` → `winner_raw`
+- `"ran out of cards"` / `"deck out"` → `win_condition = "deck_out"`
+- `"has no Pokémon"` / `"no Pokémon in play"` → `win_condition = "no_bench"`
+- Default: `win_condition = "prizes"` if six prize events detected for winner
+
+If none found: `winner_raw = null`, `win_condition = "unknown"`.
+
+### Error/warning handling
+
+The parser never raises an exception on malformed input. It stores errors in
+`errors_json` (fatal: event block skipped) and `warnings_json` (non-fatal:
+confidence reduced). This ensures partial-parse results are still stored and
+reportable.
+
+### Golden fixture testing
+
+Fixtures live at:
+```
+backend/tests/fixtures/observed_play/
+    sample_crustle_win.md      — anonymized, curated log; self wins
+    sample_crustle_loss.md     — anonymized, curated log; self loses
+    sample_mulligan.md         — log with mulligans
+    sample_missing_winner.md   — truncated log, no game-end marker
+    sample_unknown_cards.md    — log with card names not in DB
+```
+
+Tests in `backend/tests/test_observed_play/test_parser.py` assert:
+- specific event types at specific indexes;
+- confidence scores within expected ranges;
+- card mentions extracted correctly;
+- known draw vs hidden draw classification;
+- win condition extraction.
+
+---
+
+## 8. Card Resolution Architecture
+
+### Resolution strategy (ordered by confidence)
+
+1. **Exact match:** `raw_name == cards.name` (case-insensitive). Confidence = 1.0.
+2. **Normalized match:** strip punctuation, collapse whitespace, compare.
+   Confidence = 0.95 if unique result, lower if multiple.
+3. **Rule match:** check `observed_card_resolution_rules` for matching
+   `raw_name_pattern`. Confidence = rule's `confidence_score`.
+4. **Candidate list:** fuzzy-match top 5 candidates by normalized Levenshtein
+   distance. Store candidates in `candidate_cards_json`. Status = `ambiguous`.
+   Confidence = max candidate similarity × 0.6.
+5. **Unresolved:** no candidates found. Confidence = 0.0.
+
+### Ambiguity detection
+
+A card name is ambiguous if the exact or normalized match returns more than one
+card row (e.g., `"Pikachu"` may match multiple prints). In that case:
+- Store all matches as candidates.
+- Status = `ambiguous`.
+- Do not auto-select based on print popularity — that would be a silent guess.
+
+### Handling basic energy
+
+Basic energy names (`"Basic Fire Energy"`, `"Basic Water Energy"`, etc.) are a
+known special case. They are not in the PTCGL log with set numbers. Resolution
+rules should pre-map them to canonical basic energy `tcgdex_id` values on first
+setup. Include in the fixture test suite.
+
+### Handling same-name multiple prints
+
+When multiple `cards.tcgdex_id` share the same name (different sets):
+- If exactly one is in the current regulation mark window (if detectable from
+  the log), prefer it but mark confidence 0.85.
+- Otherwise mark as `ambiguous` and populate candidates.
+
+### Unresolved card reporting
+
+`GET /api/observed-play/unresolved-cards` returns:
+```json
+[
+  {
+    "raw_card_name": "Gravity Gemstone",
+    "occurrence_count": 47,
+    "resolution_status": "unresolved",
+    "example_log_id": "…",
+    "candidate_cards": []
+  }
+]
+```
+This is the primary queue for manual resolution work.
+
+### Manual resolution rules
+
+A user adds a resolution rule via `POST /api/observed-play/resolution-rules`:
+```json
+{
+  "raw_name_pattern": "Gravity Gemstone",
+  "match_mode": "exact",
+  "resolved_card_id": "sv09-140",
+  "confidence_score": 1.0
+}
+```
+
+The rule is stored in `observed_card_resolution_rules`. On next reparse of
+affected logs, the resolver applies the rule. In Phase 3, the UI exposes a
+"Apply rule & reparse affected logs" button.
+
+### Reparse behavior
+
+When a resolution rule is added, the system marks affected `observed_play_logs`
+rows as `parse_status = "needs_reparse"`. A subsequent `POST /api/observed-play/logs/{log_id}/reparse`
+or a batch reparse task re-runs the parser and resolver, replacing derived rows.
+
+### Never silently guess
+
+The resolver must never auto-select a low-confidence candidate without flagging
+it. Any resolution confidence < 0.80 must be visible in the import report and
+the unresolved cards table.
+
+---
+
+## 9. API Route Plan
+
+All routes live under the `/api/observed-play` prefix, registered in
+`backend/app/api/router.py`. Naming follows the existing project convention
+(kebab-case paths, snake_case schemas, standard 2xx/4xx/5xx).
+
+---
+
+### `POST /api/observed-play/upload`
+
+Upload a single `.md`/`.markdown`/`.txt` or a `.zip` file.
+
+**Request:** `multipart/form-data`
+```
+file: UploadFile
+self_username: str (optional, form field)
+```
+
+**Response (201):**
+```json
+{
+  "batch_id": "uuid",
+  "status": "completed",            // or "running" for zip
+  "imported": 1,
+  "duplicates": 0,
+  "failed": 0,
+  "celery_task_id": null            // populated for async zip
+}
+```
+
+**Sync vs async:**
+- Single `.md`/`.txt`: parse inline, return completed batch immediately.
+- `.zip`: enqueue Celery task, return `status = "running"` + `celery_task_id`.
+
+**Error cases:**
+- Unsupported file type → 422
+- File too large (future limit, e.g., 50 MB) → 413
+- ZIP with no valid files → 422 with details
+
+---
+
+### `POST /api/observed-play/import/inbox` (Phase 3+)
+
+Trigger an import scan of files manually dropped into `/data/ptcgl_logs/inbox`.
+Async Celery task. Not in MVP.
+
+---
+
+### `GET /api/observed-play/batches`
+
+List import batches, most recent first. Paginated.
+
+**Query:** `page=1`, `per_page=20`
+
+**Response:**
+```json
+{
+  "batches": [ { "id", "status", "source", "uploaded_filename",
+                 "imported_file_count", "failed_file_count",
+                 "duplicate_file_count", "created_at", "finished_at" } ],
+  "total": 42,
+  "page": 1
+}
+```
+
+---
+
+### `GET /api/observed-play/batches/{batch_id}`
+
+Full batch detail including `summary_json` and list of log IDs.
+
+---
+
+### `GET /api/observed-play/logs`
+
+List all raw logs with parse summary fields. Paginated, filterable by
+`parse_status`, `memory_status`.
+
+---
+
+### `GET /api/observed-play/logs/{log_id}`
+
+Single log detail: all fields including `errors_json`, `warnings_json`, card
+mention summary.
+
+---
+
+### `GET /api/observed-play/logs/{log_id}/events`
+
+Paginated event list for a log. Response includes `raw_line`, `event_type`,
+`turn_number`, `confidence_score`, `resolved_card_id`.
+
+**Query:** `page`, `per_page`, `turn_number` (optional filter), `min_confidence`.
+
+---
+
+### `POST /api/observed-play/logs/{log_id}/reparse`
+
+Re-run parser on a raw log. Replaces all derived event, card mention rows.
+Inline (not Celery) unless log is very large.
+
+**Response:** updated log summary.
+
+---
+
+### `POST /api/observed-play/logs/{log_id}/exclude`
+
+Set `memory_status = "excluded_from_memory"`. No effect in MVP but wires the
+field for Phase 6.
+
+### `POST /api/observed-play/logs/{log_id}/include`
+
+Reverse exclusion.
+
+---
+
+### `GET /api/observed-play/unresolved-cards`
+
+All unresolved/ambiguous card mentions across all logs, aggregated by raw name.
+Sorted by occurrence count descending.
+
+---
+
+### `POST /api/observed-play/resolution-rules`
+
+Create a manual resolution rule.
+
+**Request:**
+```json
+{
+  "raw_name_pattern": "Gravity Gemstone",
+  "match_mode": "exact",
+  "resolved_card_id": "sv09-140",
+  "confidence_score": 1.0,
+  "notes": "added set number after set released"
+}
+```
+
+**Response (201):** the created rule.
+
+---
+
+## 10. Celery / Background Processing
+
+| Upload type | Parsing strategy | Rationale |
+|---|---|---|
+| Single `.md`/`.txt` | Inline during HTTP request | Logs are small; < 1 second; user expects immediate feedback |
+| `.zip` | Celery task | May contain hundreds of files; must not block the request thread |
+
+### Import progress tracking
+
+- `observed_play_import_batches.status` powers polling.
+- Frontend polls `GET /api/observed-play/batches/{batch_id}` every 2 seconds.
+- Batch record is updated by the Celery task as each file is processed.
+- No WebSocket needed in MVP; polling is consistent with the existing simulation
+  progress pattern.
+
+### Celery task structure
+
+```python
+# backend/app/observed_play/tasks.py
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=10)
+def import_zip_batch(self, batch_id: str, zip_path: str, self_username: str | None):
+    …
+```
+
+Follows the same pattern as `run_simulation` in
+`backend/app/tasks/simulation.py`. Task ID stored in `batch.celery_task_id`.
+
+### Retries
+
+On transient failures (DB connection, filesystem error), Celery retries up to 3
+times with 10-second delay. On exhausted retries, batch status = `"failed"`.
+
+### Idempotency
+
+The SHA-256 unique constraint on `observed_play_logs` is the primary idempotency
+guarantee. If a Celery task is retried after partial completion, already-imported
+files are detected as duplicates and skipped safely.
+
+### Reuse of existing Celery infrastructure
+
+The existing Celery app instance, Redis broker, and worker container are reused
+directly. No new queue is needed in MVP; the default queue is acceptable.
+
+---
+
+## 11. Frontend Page / Component Plan
+
+### Route
+
+`/observed-play` — matches the feature name. Registered in
+`frontend/src/router.tsx` alongside existing page routes.
+
+### Page component
+
+**`ObservedPlayPage`** (`frontend/src/pages/ObservedPlay.tsx`)
+- Top-level page shell using `PageShell`.
+- Renders upload panel + tabs: Import History, Unresolved Cards, Failed Logs.
+- Manages `currentBatchId` state for post-upload report.
+
+---
+
+**`ObservedPlayUploadPanel`** (`frontend/src/components/observed-play/UploadPanel.tsx`)
+- Accepts `.md`, `.markdown`, `.txt`, `.zip` via file picker or drag-and-drop.
+- Optional `selfUsername` text input.
+- Shows upload progress bar.
+- On completion: displays import summary (counts: accepted, duplicates, failed).
+- Error state: file type rejected, server error.
+- Tests: renders, file validation, submit triggers API call, shows results.
+
+---
+
+**`ObservedPlayImportHistoryTable`** (`frontend/src/components/observed-play/ImportHistoryTable.tsx`)
+- Table of past batches: filename, status, imported/failed/duplicate counts, date.
+- Click a row to view the `ObservedPlayBatchReport`.
+- Paginated.
+- Tests: renders empty state, renders rows, pagination.
+
+---
+
+**`ObservedPlayBatchReport`** (`frontend/src/components/observed-play/BatchReport.tsx`)
+- Shows full batch summary after import or when a historical batch is selected.
+- Displays counts, top unresolved cards, warnings list, per-file status list.
+- Link to each parsed log viewer.
+- Tests: renders counts, renders unresolved card list.
+
+---
+
+**`ObservedPlayLogViewer`** (`frontend/src/components/observed-play/LogViewer.tsx`)
+- Shows a single parsed log.
+- Setup section at top.
+- Turn-by-turn event list.
+- Each event shows: raw_line, event_type badge, confidence indicator, card link.
+- Filterable by turn number, event type, min confidence.
+- "Reparse" button.
+- "Exclude from memory" / "Include in memory" toggle.
+- Tests: renders events, confidence filter works, reparse calls API.
+
+---
+
+**`ObservedPlayEventTimeline`** (`frontend/src/components/observed-play/EventTimeline.tsx`)
+- Visual turn-by-turn condensed view within `LogViewer`.
+- Grouping: Setup → Turn 1 → Turn 2 → … → Game End.
+- Not full replay animation. Text-only reconstruction.
+
+---
+
+**`ObservedPlayUnresolvedCardsTable`** (`frontend/src/components/observed-play/UnresolvedCardsTable.tsx`)
+- Table of all unresolved/ambiguous card names across all logs.
+- Columns: raw name, occurrences, status, candidates, actions.
+- "Add Resolution Rule" button per row → `ObservedCardResolutionModal`.
+- Tests: renders table, opens modal.
+
+---
+
+**`ObservedCardResolutionModal`** (`frontend/src/components/observed-play/CardResolutionModal.tsx`)
+- Modal dialog to create a resolution rule for a specific raw card name.
+- Card search input to find the `tcgdex_id`.
+- "Save rule" submits `POST /api/observed-play/resolution-rules`.
+- Option: "Reparse affected logs after saving."
+- Tests: opens, searches, saves, closes.
+
+---
+
+**`ObservedPlayFailedLogsTable`** (`frontend/src/components/observed-play/FailedLogsTable.tsx`)
+- List of logs with `parse_status = "failed"`.
+- Columns: filename, error type, error message, timestamp.
+- "Retry" (triggers reparse), "Download raw" (future).
+- Tests: renders empty state, renders rows.
+
+---
+
+### API module
+
+`frontend/src/api/observedPlay.ts` — mirrors the existing pattern in
+`simulations.ts` / `history.ts`. Exports typed functions:
+`uploadLog`, `listBatches`, `getBatch`, `listLogs`, `getLog`,
+`getLogEvents`, `reparseLog`, `excludeLog`, `includeLog`,
+`listUnresolvedCards`, `createResolutionRule`.
+
+---
+
+## 12. Parsed Log Viewer Plan
+
+The log viewer (`ObservedPlayLogViewer`) reconstructs the game turn-by-turn for
+human review. It is **not** a full animated replay.
+
+### Structure
+
+```
+Setup
+  Coin flip: Player B goes first
+  Player A active: Dwebble
+  Player A bench: Munkidori, Rellor
+
+Turn 1 — Player B (opponent)            [turn badge]
+  [DRAW_HIDDEN] drew a card             [confidence: 0.95]
+  [PLAY_SUPPORTER] played Arven         [confidence: 1.0] [card: sv02-166]
+  [SEARCH_DECK] searched deck for ...   [confidence: 0.90]
+  [END_TURN]
+
+Turn 2 — Player A (self)
+  [DRAW] drew Buddy-Buddy Poffin        [confidence: 1.0] [card: sv05-144]
+  [PLAY_ITEM] played Buddy-Buddy Poffin [confidence: 1.0] [card: sv05-144]
+  [PLAY_TO_BENCH] benched Cleffa        [confidence: 0.90] [card: ⚠ ambiguous]
+  ...
+```
+
+### Display features
+
+- Raw line collapsible per event (click to expand).
+- Confidence badge: green ≥ 0.90, yellow 0.70–0.89, red < 0.70.
+- Card resolution status icon: ✓ resolved, ⚠ ambiguous, ✗ unresolved.
+- Filter bar: by turn, event type, min confidence, unresolved-only.
+- Warnings/errors panel at bottom: parser warnings for this log.
+- "Reparse" button at top of viewer.
+
+### What the viewer is not
+
+- Not a board-state animator.
+- Not a legal-action validator.
+- Not connected to the simulator engine.
+- Not a memory editor.
+
+---
+
+## 13. Confidence Scoring Plan
+
+### Thresholds
+
+| Range | Label | Use |
+|---|---|---|
+| 0.00–0.59 | `low` | Store only. No analytics, Coach, or Player. |
+| 0.60–0.79 | `medium` | Aggregate reports and import summary only. |
+| 0.80–0.89 | `high` | Future Coach advisory retrieval (Phase 6). |
+| 0.90–1.00 | `very_high` | Future Coach memory + Player advisory (Phase 8). |
+
+### Levels
+
+- **Event-level:** computed per event as described in §7.
+- **Log-level:** weighted mean of event confidences, with log-level penalties.
+- **Card-resolution confidence:** per `observed_card_mentions` row (0.0–1.0).
+- **Derived-memory confidence (Phase 6+):** min of (log confidence, card resolution confidence, source weight). A derived memory can never exceed its source log's confidence.
+- **Graph-edge confidence (Phase 7+):** aggregated over N contributing events and logs.
+
+### Why no memory ingestion in MVP
+
+Parser quality is unknown until real logs are imported and reviewed. Premature
+ingestion of low-quality parsed events into Coach or Player memory could degrade
+decision quality in ways that are hard to detect. The MVP's upload-parse-report
+cycle gives a full review window before any memory is consumed downstream.
+
+---
+
+## 14. Reparse / Versioning Plan
+
+### Parser version storage
+
+- `PARSER_VERSION = "1.0"` in `backend/app/observed_play/constants.py`.
+- Stored as text on `observed_play_logs.parser_version` and on every
+  `observed_play_events.parser_version` row.
+- Bump to `"1.1"` when parser behavior changes in any way that affects outputs.
+
+### Parse run behavior
+
+Parsing is idempotent within a parser version. Running the same parser on the
+same raw log twice produces the same events.
+
+### Reparsing old logs
+
+Reparse is triggered by:
+1. User clicks "Reparse" on a log in the UI.
+2. User adds a resolution rule and selects "Reparse affected logs."
+3. Future: admin bulk-reparse all logs at parser version < current.
+
+### Overwrite vs version history
+
+**MVP decision: overwrite.** Derived events for a log are deleted and replaced
+on each reparse. The `parser_version` on the log row is updated. The
+`updated_at` timestamp captures when reparse occurred.
+
+If parse run history is needed later, add an `observed_play_parse_runs` table
+with `(log_id, parser_version, run_at, event_count, confidence_score)`.
+
+### Derived event invalidation
+
+Before writing new events on reparse, delete all `observed_play_events` WHERE
+`observed_play_log_id = log_id`. Same for `observed_card_mentions`. This is
+safe because the raw log row is preserved.
+
+### Future memory invalidation
+
+When Phase 6 (Coach) and Phase 7 (pgvector/Neo4j) land, a reparse must also
+mark associated memory as stale. At that point the reparse flow will need an
+invalidation step. Design this at Phase 6 time; do not build it in Phase 1–5.
+
+### UI warnings for stale parser version
+
+Phase 4 frontend: display a badge on logs where
+`log.parser_version != CURRENT_PARSER_VERSION`:
+> "Parsed with v1.0 — current parser is v1.1. Reparse recommended."
+
+---
+
+## 15. Future Memory Ingestion Plan
+
+**Not implemented until Phase 6/7. Design only.**
+
+### PostgreSQL analytics (Phase 5)
+
+Aggregate queries over `observed_play_events`:
+- Card usage frequency by log win/loss outcome.
+- Average turn of first energy attachment by attacker.
+- Supporter sequencing patterns.
+
+These are SQL queries, no new tables needed beyond Phase 3.
+
+### pgvector snippets (Phase 7)
+
+State-action-outcome text snippets generated from high-confidence event
+subsequences. Stored in `embeddings` table with `source_type = "observed_play"`.
+
+Example snippet:
+> "Turn 3: self played Crispin (sv09-145), attached 2 energy to Crustle in
+> Active, used Superb Scissors, knocked out opponent Dunsparce, took prize.
+> Game eventually won. Confidence: 0.92."
+
+Retrieval uses existing pgvector cosine search infrastructure.
+
+### Neo4j observed-play edges (Phase 7)
+
+New edge types on existing card nodes, tagged `source: "ptcgl_import"`:
+```cypher
+(:Card {tcgdex_id: "sv09-145"})-[:ENABLES_ATTACK {source: "ptcgl_import", games_observed: 8, confidence: 0.88}]->(:Card {tcgdex_id: "crustle-card-id"})
+```
+
+Written by a new `ObservedPlayGraphWriter` class that mirrors `GraphMemoryWriter`
+but reads from `observed_play_events` instead of `MatchResult`.
+
+### Coach retrieval (Phase 6)
+
+`backend/app/coach/` gains a new retrieval step that queries:
+- Top N pgvector observed-play snippets for the current deck/matchup.
+- Summary of confidence-filtered aggregate stats.
+- Formatted as compact advisory packet (< 200 tokens).
+
+The Coach prompt receives this as a new section, clearly labeled `[Observed Play Memory]`.
+
+### AI Player retrieval (Phase 8)
+
+Same mechanism as Coach but at decision time. At-most 3 snippets. Source-tagged.
+Confidence-filtered (≥ 0.90). Advisory only; action validator remains
+authoritative.
+
+---
+
+## 16. Coach Integration Plan (Phase 6)
+
+### First safe integration point
+
+Phase 6 begins only after:
+- Phase 3 card resolution UI is stable.
+- Phase 5 analytics confirm parsed data quality.
+- A manual review of ≥ 20 imported logs has been completed.
+- Log-level confidence distribution is checked: ≥ 60% of logs should score ≥ 0.80.
+
+### Requirements
+
+- Only logs with `confidence_score ≥ 0.80` contribute to Coach memory.
+- Only events with `confidence_score ≥ 0.80` contribute.
+- Prompt packets are compact summaries, not raw log text.
+- Packets are limited to top 5 relevant observations.
+- Packets are clearly labeled `[Observed Play Memory (advisory)]`.
+- Existing Coach safety systems (primary evolution line protection, regression
+  detection, deck rollback) remain fully authoritative.
+- Observed Play Memory is advisory evidence, not a mutation trigger.
+
+### A/B testing plan
+
+Introduce a `OBSERVED_PLAY_MEMORY_ENABLED` environment variable (default off).
+When on, the Coach retrieval includes the advisory packet. Compare simulation
+win rates between runs with and without the packet over ≥ 100 matches.
+
+---
+
+## 17. AI Player Integration Deferral
+
+**Player integration is Phase 8. It must not begin before Phase 7.**
+
+### Why delayed
+
+- Parser quality is unknown until Phase 2–3 review.
+- Coach integration (Phase 6) validates that observed memories improve strategic
+  reasoning before trusting them at the faster tactical (Player) timescale.
+- Local model prompt budgets are tight; adding retrieval at decision time
+  competes with legal-action context.
+- Observed sequences may describe plays that are situationally correct in
+  specific board states but harmful if applied mechanically.
+
+### Prerequisites before Phase 8
+
+1. Parser v1 has been in production for ≥ 3 months with active log imports.
+2. Card resolution coverage ≥ 85% (unresolved rate < 15%).
+3. Log-level confidence ≥ 0.80 for ≥ 70% of imported logs.
+4. Phase 6 (Coach) has been stable for ≥ 1 month with no observed regressions.
+5. Memory retrieval respects the AI Player prompt budget (≤ 200 tokens for
+   observed-play section).
+6. Integration test confirms no illegal actions are produced by observed-play
+   context.
+
+---
+
+## 18. Human-vs-Simulator Disagreement Reports (Phase 5+)
+
+**Deferred analytics, not MVP. Design only.**
+
+Reports compare `observed_play_events` against simulator `card_performance` and
+`match_events` to surface interesting disagreements.
+
+| Report | Description |
+|---|---|
+| Card weak in sim, strong in observed logs | Low `card_performance.win_rate` but high observed usage before wins |
+| Card strong in sim, weak in observed logs | High sim win rate but rarely seen in observed winning lines |
+| Human sequences not found in sim | Event subsequences from logs that never appear in `match_events` |
+| Cards referenced in logs but missing from coverage | Observed card names with no `cards` row → feeds audit priorities |
+
+These reports live on the `/observed-play` page under a "Diagnostics" tab in
+Phase 5.
+
+---
+
+## 19. Privacy / Anonymization Plan
+
+### Raw player names
+
+- `player_1_name_raw` and `player_2_name_raw` store the exact PTCGL usernames
+  from the log.
+- These are stored only in `observed_play_logs` (not in event rows or Neo4j).
+- The DB is local/private to the user; these names do not leave the container.
+
+### Aliases for analytics
+
+- All analytics, Coach prompts, and graph edges use aliases: `"self"`,
+  `"opponent_001"`, `"unknown"`.
+- `player_1_alias` / `player_2_alias` set at parse time.
+- Events reference `player_alias`, not `player_raw`.
+
+### Self-detection
+
+- If the upload request includes `self_username`, the parser sets
+  `self_player_index = 1 or 2` and sets the alias to `"self"`.
+- If not provided, both players are `"unknown_player"`.
+
+### Opponent usernames in graph
+
+- Opponent PTCGL usernames must NOT become Neo4j nodes or pgvector entries.
+- The opponent identity is irrelevant to card strategy learning.
+- Graph edges use `"observed_by: self"` as the actor label.
+
+### Future: user PTCGL username setting
+
+Phase 4 or later: allow the user to save their PTCGL username in a settings
+table so it auto-detects on every upload without requiring the form field.
+
+---
+
+## 20. Testing Strategy
+
+### By phase
+
+#### Phase 0 (this phase)
+- No code tests required. Document only.
+
+#### Phase 1 — Raw archive / import foundation
+- `backend/tests/test_observed_play/test_storage.py`: SHA-256 hash, archive path generation, duplicate detection.
+- `backend/tests/test_observed_play/test_import_api.py`: upload `.md`, upload `.zip`, duplicate skipped, unsupported type rejected, batch record created.
+- `backend/tests/test_observed_play/test_batch_status.py`: GET batches, GET batch/{id}.
+- Migration test: tables created, unique constraint on `sha256_hash`.
+
+#### Phase 2 — Parser v1 + events
+- `backend/tests/test_observed_play/test_parser.py`: golden fixture assertions (event types, counts, confidence, win condition, card mentions).
+- `backend/tests/test_observed_play/test_confidence.py`: event-level reductions, log-level aggregation.
+- `backend/tests/test_observed_play/test_event_api.py`: GET logs/{id}/events pagination, turn filter.
+- `backend/tests/test_observed_play/test_reparse.py`: reparse replaces events, preserves raw log.
+
+#### Phase 3 — Card resolution UI
+- `backend/tests/test_observed_play/test_card_resolver.py`: exact match, normalized match, ambiguous detection, unresolved reporting, resolution rule application.
+- `backend/tests/test_observed_play/test_resolution_rules.py`: create rule, reparse trigger.
+- Frontend: `CardResolutionModal.test.tsx`, `UnresolvedCardsTable.test.tsx`.
+
+#### Phase 4 — Frontend page
+- `frontend/src/pages/ObservedPlay.test.tsx`: upload panel, import history table, failed logs.
+- `frontend/src/components/observed-play/UploadPanel.test.tsx`: file validation, submit, result display.
+- `frontend/src/components/observed-play/LogViewer.test.tsx`: event list, filter, confidence badges.
+- `frontend/src/components/observed-play/BatchReport.test.tsx`: counts, unresolved list.
+
+#### Phase 5+ — Analytics, Coach, Player
+- No-memory-ingestion guard test: assert `memory_status = "not_ingested"` for all logs until Phase 6 enabled.
+- Coach integration: test that Coach prompt includes `[Observed Play Memory]` section only when enabled and data meets threshold.
+- Player integration: integration test that no illegal actions result from observed-play context addition.
+- Celery idempotency: import same ZIP twice, confirm dedup prevents double-write.
+
+---
+
+## 21. Risks and Mitigations
+
+| Risk | Mitigation |
+|---|---|
+| Parser overreach — trying to parse every card effect in v1 | Parser v1 targets turn structure and known event patterns only; unknown lines → `UNKNOWN` event with raw preservation |
+| Noisy human data lowering average confidence | Confidence gating at all ingestion stages; unresolved card reporting makes noise visible |
+| Ambiguous card names causing silent misidentification | Resolver never auto-selects below 0.95 confidence; status clearly flagged as `ambiguous` |
+| Raw log privacy — player names in DB | Names stored only in `observed_play_logs`, not in analytics or graph; aliased in all downstream use |
+| Prompt bloat — observed memories competing with legal action context | Phase 6+ packets capped at top-5 summaries; ≤ 200 tokens; Coach and Player prompts have existing budget constraints |
+| Memory contamination — low-confidence data entering Coach/Player | MVP has zero ingestion; Phase 6 requires ≥ 0.80 log confidence; Phase 8 requires Phase 6 validation first |
+| Long-running ZIP imports blocking the request thread | ZIP imports are Celery tasks; single files are inline; no blocking HTTP handlers |
+| Duplicate/reparse bugs corrupting events | SHA-256 unique constraint prevents duplicate logs; reparse deletes derived rows before writing new ones |
+| Format rotation making old logs less relevant | `game_date_detected`, detected regulation marks stored; Coach retrieval will eventually filter by recency |
+| Frontend complexity from too many new components | Components follow identical patterns to existing pages; no novel UI paradigms |
+| Merging instability — feature branch drifts from main | Periodic rebases from main; keep branch focused on observed-play only; no engine/coach changes on feature branch until Phase 6 |
+
+---
+
+## 22. Phase-by-Phase Implementation Plan
+
+---
+
+### Phase 0 — Documentation / Scaffolding (current)
+
+**Files touched:**
+- `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md` (this file)
+- `.gitignore` (add `data/ptcgl_logs/`)
+- `docs/STATUS.md` (branch note)
+- `docs/CHANGELOG.md` (design-plan entry)
+
+**Acceptance criteria:**
+- Implementation plan committed on feature branch.
+- `.gitignore` updated.
+- No production code added.
+- No migrations added.
+
+**Tests required:** none.
+
+**Rollback:** `git revert` plan commit on feature branch; no code is affected.
+
+---
+
+### Phase 1 — Raw Archive and Import Foundation
+
+**Files likely touched:**
+- `backend/app/observed_play/__init__.py`, `constants.py`, `storage.py`, `schemas.py`, `importer.py`, `tasks.py`
+- `backend/app/db/models.py` (add new ORM models)
+- `backend/alembic/versions/{new_id}_observed_play_foundation.py`
+- `backend/app/api/observed_play.py` (new router)
+- `backend/app/api/router.py` (register new router)
+- `docker-compose.yml` (add `ptcgl_logs_data` volume)
+- `backend/tests/test_observed_play/test_storage.py`
+- `backend/tests/test_observed_play/test_import_api.py`
+- `backend/tests/test_observed_play/test_batch_status.py`
+
+**Acceptance criteria:**
+1. `POST /api/observed-play/upload` with a `.md` file creates an `ObservedPlayImportBatch` and an `ObservedPlayLog` row.
+2. SHA-256 duplicate detection: uploading the same file twice results in one `imported`, one `duplicate`, no second log row.
+3. Unsupported file type returns 422.
+4. Raw content stored in `observed_play_logs.raw_content`.
+5. Archive file written to `/data/ptcgl_logs/archive/`.
+6. `GET /api/observed-play/batches` returns the batch list.
+7. Parse status remains `"pending"` (parser not yet built).
+8. All Phase 1 tests pass. Existing test suite unaffected.
+
+**Tests required:** storage (hash, path, dedup), import API, batch status API.
+
+**Rollback / stop conditions:** if Docker volume mount causes issues on developer machines, defer volume to Phase 2 and store archive paths only in DB.
+
+---
+
+### Phase 2 — Parser v1 + Golden Fixtures
+
+**Status: COMPLETE** (sessions 22–24)
+
+- Parser v1 with 30+ event types, player aliasing, phase tracking.
+- `observed_play_events` table (Alembic `e1f2a3b4c5d6`).
+- Reparse endpoint. Frontend events modal.
+
+---
+
+### Phase 2.1 — Parser Hardening Against Real Logs
+
+**Status: COMPLETE** (session 25)
+
+**Problem:** Real PTCGL logs produce ~56% confidence due to 9 common patterns
+falling into `unknown` or being misclassified.
+
+**Changes:**
+- Fixed 9 parser bugs (see `docs/CHANGELOG.md` and `docs/STATUS.md` session 25 for detail).
+- Added 3 new event types: `play_trainer`, `attach_card`, `play_to_bench_hidden`.
+- Added parser diagnostics stored in `metadata_json["parser_diagnostics"]`.
+- Updated confidence scoring for new event types.
+- 42 new parser tests + 2 new API tests. New `real_log_sample.md` fixture.
+
+**Known remaining parser limitations (pre-Phase 3):**
+- `PLAYER's CARD used X.` (no target) always classified as `ability_used`; cannot
+  distinguish ability from no-target attack without card DB.
+- `PLAYER played CARD.` without `(Item)`/`(Supporter)` subtype tag classified as
+  generic `play_trainer`; subtype not determinable without card DB.
+- Card names are raw text only — no card DB resolution, no `observed_card_mentions`.
+
+**No Phase 3 work in this session.**
+
+---
+
+### Phase 2.2 — Parser Polish & Diagnostics UI
+
+**Status: COMPLETE** (session 26)
+
+**Problem:** Dash-prefixed child lines (e.g. `"- gehejo shuffled their deck."`)
+showed `player_alias = unknown` in the event viewer because the `"- "` prefix was
+included in the captured player name and `get_alias("- gehejo")` registered a
+third unknown player.
+
+**Changes:**
+- Added `_strip_dash_prefix(line)` helper in `parser.py`; `match_line` normalization
+  applied in the main while loop so all patterns match against the dash-stripped line
+  while `raw_line` still records the original with the dash prefix.
+- Removed `^-\s*` from `RE_MULLIGAN_CARDS_LABEL`, `RE_DAMAGE_BREAKDOWN_LABEL`,
+  and `RE_BENCH_FROM_DECK_HIDDEN` in `patterns.py` (now handled by `match_line`).
+- Added `ParserDiagnostics` Pydantic model; exposed `parser_diagnostics` field in
+  `LogSummary` and `ReparseSummary` API responses.
+- Added `ParserDiagnosticsPanel` in frontend `EventsModal` showing unknown
+  count/ratio, low-confidence count, and top unknown lines; updates after reparse.
+- 14 new parser tests + 3 new API tests + 5 new frontend tests.
+
+**Validation:**
+- Backend: 747 passed, 1 skipped.
+- Frontend: 163 passed (15 files).
+- Manual real-log reparse: dash-prefixed child lines now show correct player aliases.
+
+**Real-log metrics after Phase 2.2:**
+- events: 292, confidence: 84%, unknown: 14 (4.8%), low_confidence: 14
+
+**No Phase 3 work in this session.**
+
+---
+
+### Phase 2.3 — Top Unknown Pattern Hardening
+
+**Status: COMPLETE** (session 27)
+
+**Problem:** After Phase 2.2, 14 unknown events remained (4.8%). The top 5 patterns
+were: direct retreat-to-bench, card/effect activation, discard-from-Pokémon, and
+card-added-to-hand lines.
+
+**Changes:**
+- Added 3 new event types: `card_effect_activated`, `discard_from_pokemon`,
+  `card_added_to_hand`.
+- Added 4 new regex patterns: `RE_RETREAT_DIRECT`, `RE_DISCARD_FROM_POKEMON`,
+  `RE_CARD_EFFECT_ACTIVATED`, `RE_CARD_ADDED_TO_HAND_KNOWN`.
+- Supports both straight `'` and curly `\u2019` apostrophes in possessive patterns.
+- `top_unknown_raw_lines` de-duplicated (same list shape, no frontend changes).
+- 20 new parser tests (107 total, up from 87).
+
+**Top unknown lines resolved:**
+- `PLAYER retreated CARD to the Bench.` → `retreat`
+- `Spiky Energy was activated.` → `card_effect_activated`
+- `CARD was discarded from PLAYER's TARGET.` → `discard_from_pokemon`
+- `CARD was added to PLAYER's hand.` → `card_added_to_hand`
+
+**Validation:**
+- Backend: 767 passed, 1 skipped.
+- Frontend: 163 passed (15 files).
+- All Phase 2.1/2.2 behaviors preserved (dash-prefix, Dwebble Ascension, diagnostics).
+
+**Remaining parser limitations (pre-Phase 3):**
+- PTCGL text art separator lines
+- Some conditional ability announcement formats
+- Deck search confirmations without explicit card names
+- "Looked at top N cards" observation lines
+
+**No Phase 3 work in this session.**
+
+---
+
+
+
+**Files likely touched:**
+- `backend/app/observed_play/card_resolution.py` (new)
+- `backend/app/db/models.py` (`ObservedCardMention`, `ObservedCardResolutionRule`)
+- `backend/alembic/versions/{new_id}_observed_card_resolution.py`
+- `backend/app/api/observed_play.py` (unresolved-cards + resolution-rules endpoints)
+- `backend/tests/test_observed_play/test_card_resolver.py`
+- `backend/tests/test_observed_play/test_resolution_rules.py`
+
+**Acceptance criteria:**
+1. Card names from parsed events are stored as `ObservedCardMention` rows.
+2. Exact-match resolution works for all cards in the fixture with standard names.
+3. Basic energy cards resolved correctly.
+4. Unresolved cards appear in `GET /api/observed-play/unresolved-cards`.
+5. `POST /api/observed-play/resolution-rules` creates a rule.
+6. Re-parsing a log applies the rule and updates the mention's `resolution_status`.
+7. Log `unresolved_card_count` updated after reparse.
+
+**Tests required:** card resolver (exact, normalized, ambiguous, unresolved, rule application), resolution rules API.
+
+---
+
+### Phase 4 — Frontend Observed Play Page
+
+**Files likely touched:**
+- `frontend/src/pages/ObservedPlay.tsx` (new)
+- `frontend/src/components/observed-play/*.tsx` (new components)
+- `frontend/src/api/observedPlay.ts` (new)
+- `frontend/src/router.tsx` (add route)
+- `frontend/src/components/layout/Sidebar.tsx` or `NavBar` (add nav link)
+- `frontend/src/pages/ObservedPlay.test.tsx`, component test files
+
+**Acceptance criteria:**
+1. `/observed-play` route renders the upload panel.
+2. Uploading a `.md` file triggers API call and shows import summary.
+3. Import history table shows past batches.
+4. Batch detail shows per-file status.
+5. Log viewer shows turn-by-turn events with confidence badges.
+6. Unresolved cards table shows aggregated names.
+7. Card resolution modal allows creating a rule.
+8. Failed logs table shows parse errors.
+9. All Phase 4 tests pass.
+
+**Tests required:** upload panel, import history, batch report, log viewer,
+unresolved cards table, card resolution modal, failed logs table.
+
+---
+
+### Phase 5 — Analytics Only
+
+**Files likely touched:**
+- `backend/app/api/observed_play.py` (add analytics endpoints)
+- `frontend/src/components/observed-play/DiagnosticsTab.tsx` (new)
+- `frontend/src/components/observed-play/DisagreementReport.tsx` (new)
+- Aggregate SQL queries over `observed_play_events`
+
+**Acceptance criteria:**
+1. Analytics endpoint returns card-usage-by-outcome aggregates.
+2. Disagreement report shows cards weak in sim but frequent in observed wins.
+3. No Coach/Player memory ingestion.
+4. `memory_status = "not_ingested"` for all logs (test this explicitly).
+
+---
+
+### Phase 6 — Coach-Only Advisory Integration
+
+**Status: Phase 6.0 and Phase 6.1 COMPLETE.**
+
+Phase 6.0 adds `GET /api/observed-play/coach-evidence`: a read-only endpoint
+that returns source-linked observed memory examples and aggregate summaries for
+advisory review. Evidence is gated by corpus readiness (HTTP 409 if `not_ready`),
+filtered to high-confidence/resolved items, and displayed in the frontend
+`CoachEvidenceSection` panel.
+
+Phase 6.1 adds feature-flagged Coach prompt wiring. `OBSERVED_PLAY_MEMORY_ENABLED`
+defaults to `false`. When enabled, `CoachAnalyst.analyze_and_mutate` receives a
+bounded observed-play evidence block via `_fetch_observed_play_block()`, gated by
+`compute_corpus_readiness()`. A debug preview endpoint (`GET /api/observed-play/coach-context-preview`)
+exposes exactly what would be injected. The prompt block includes a review-only header,
+readiness verdict, numbered evidence with source IDs, and a citation instruction for Coach.
+With the default-off flag, Coach prompts are byte-for-byte identical to pre-6.1.
+
+Observed memory is **not** wired into AI Player, simulator, pgvector, Neo4j,
+match_events, card_performance, or deck-builder logic in either Phase 6.0 or 6.1.
+
+**Files added/changed (Phase 6.0):**
+- `backend/app/observed_play/schemas.py` — `CoachEvidenceQuery`, `CoachEvidenceSummary`, `CoachEvidenceItem`, `CoachEvidenceResponse` + 3 constants
+- `backend/app/api/observed_play.py` — `_compute_corpus_readiness()` helper, `_build_coach_evidence_filter()`, `GET /coach-evidence` endpoint
+- `frontend/src/types/observedPlay.ts` — Phase 6.0 TypeScript interfaces
+- `frontend/src/api/observedPlay.ts` — `getCoachEvidence()`
+- `frontend/src/pages/ObservedPlay.tsx` — `CoachEvidenceSection` component
+
+**Files added/changed (Phase 6.1):**
+- `backend/app/config.py` — `OBSERVED_PLAY_MEMORY_ENABLED`, `OBSERVED_PLAY_MEMORY_MAX_EVIDENCE`, `OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE`
+- `backend/app/observed_play/readiness_service.py` (NEW) — `compute_corpus_readiness()`, `build_coach_evidence_filter()`
+- `backend/app/observed_play/schemas.py` — `ObservedPlayCoachContextQuery`, `ObservedPlayEvidencePromptItem`, `ObservedPlayCoachContextPreview`
+- `backend/app/observed_play/coach_context.py` (NEW) — `build_coach_context_preview()`, `_format_evidence_prompt_block()`
+- `backend/app/api/observed_play.py` — `GET /coach-context-preview` endpoint; imports refactored to `readiness_service`
+- `backend/app/coach/analyst.py` — `observed_play_block` param, `_fetch_observed_play_block()`, wired in `analyze_and_mutate`
+- `frontend/src/types/observedPlay.ts` — Phase 6.1 interfaces
+- `frontend/src/api/observedPlay.ts` — `getCoachContextPreview()`
+- `frontend/src/pages/ObservedPlay.tsx` — `CoachContextPreviewSection` component
+
+**Phase 6.1 acceptance criteria — VERIFIED (User Checks 1–4 complete, 2026-05-08):**
+1. ✅ Coach prompt includes observed-play evidence section when `OBSERVED_PLAY_MEMORY_ENABLED=true`.
+2. ✅ Only items with `confidence_score ≥ OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE` (default 0.85) contribute.
+3. ✅ Existing Coach safety systems (primary evo protection, regression detection) are unaffected.
+4. ✅ Tests confirm no observed-play content when flag is off (byte-for-byte identical prompt).
+5. ✅ Corpus readiness gate blocks injection when `not_ready`; warns when `needs_review`.
+
+**Phase 6.1 post-initial-merge hardening (sessions 54–57):**
+- LLM acknowledgment enforcement: `observed_play_acknowledgment` required field in Coach JSON schema; repair retry loop with `COACH_OBSERVED_PLAY_ACK_REPAIR_PROMPT`; `_inject_ack_fallback()` ensures `not_used_reason` is always non-null when `acknowledgment_missing=True`.
+- Simulation-level observed-play meta: `simulations.observed_play_meta JSONB` stores per-round injection state unconditionally (even when no deck mutations produced); `GET /api/simulations/{id}/coach-debug` surfaces `analysis_rounds` and `simulation_observed_play_summary`.
+- Flag control: `docker-compose.override.yml` uses `${OBSERVED_PLAY_MEMORY_ENABLED:-false}`; `.env.example` documents usage.
+
+**User Check 4 (2026-05-08) — immutability confirmed:** observed_play_logs, observed_play_events, observed_card_mentions, observed_play_memory_ingestions, and observed_play_memory_items are all unchanged after a flag-on H/H simulation. Coach injection is read-only with respect to all observed-play memory tables.
+
+---
+
+### Phase 7 — pgvector / Neo4j Source-Tagged Memory
+
+**Files likely touched:**
+- `backend/app/observed_play/graph_writer.py` (new: `ObservedPlayGraphWriter`)
+- `backend/app/memory/` (observed-play embedding builder)
+- `backend/app/db/models.py` (no new tables; uses existing `embeddings`)
+
+**Acceptance criteria:**
+1. Observed-play events with confidence ≥ 0.85 produce `Embedding` rows with `source_type = "observed_play"`.
+2. Neo4j contains observed-play edges tagged `source: "ptcgl_import"`.
+3. Reparse invalidates and rebuilds associated embeddings and graph edges.
+4. Disagreement report (Phase 5) uses graph data correctly.
+
+---
+
+### Phase 8 — AI Player Advisory Retrieval
+
+**Prerequisites:** Phase 6 stable for ≥ 1 month, prerequisites in §17 met.
+
+**Files likely touched:**
+- `backend/app/players/ai_player.py`
+- `backend/app/memory/postgres.py` or a new retrieval helper
+
+**Acceptance criteria:**
+1. Player prompt includes observed-play advisory section (≤ 200 tokens, ≥ 0.90 confidence only).
+2. No illegal actions produced by the addition.
+3. Integration test confirms action validator still authoritative.
+
+---
+
+## 22.1 Phase 2.1 — Parser Hardening Against Real Logs
+
+**Status:** COMPLETE (session 25). See `docs/STATUS.md` session 25 and `docs/CHANGELOG.md` for detail.
+
+---
+
+## 22.2 Phase 2.2 — Parser Polish & Diagnostics UI
+
+**Status:** COMPLETE (session 26).
+
+**Problem:** Dash-prefixed child lines (e.g. `"- gehejo shuffled their deck."`) were attributed to
+`player_alias = unknown` because the `"- "` prefix was included in the captured player name.
+Parser diagnostics were stored in `metadata_json` but not exposed in the API or UI.
+
+**Changes:** See `docs/STATUS.md` session 26 and `docs/CHANGELOG.md` for detail.
+
+**Acceptance criteria met:**
+1. Dash-prefixed shuffle, draw, hidden draw, and evolution lines correctly attribute player alias.
+2. `raw_line` still records the original line with leading `"- "`.
+3. `parser_diagnostics` field present in `LogSummary` and `ReparseSummary` API responses.
+4. `EventsModal` in frontend shows `ParserDiagnosticsPanel` when diagnostics are present.
+5. `gehejo's Dwebble used Ascension.` remains `ability_used`.
+6. 14 new parser tests + 3 new API tests + 5 new frontend tests pass.
+7. No card DB resolution / Coach / Player / pgvector / Neo4j / memory ingestion added.
+
+---
+
+## 22.3 Phase 2.3 — Top Unknown Pattern Hardening
+
+**Status:** COMPLETE (session 27).
+
+**Problem:** After Phase 2.2, 14 unknown events (4.8%) remained in the real log.
+Top unknown patterns: direct retreat-to-bench, card/effect activation, discard-from-Pokémon,
+and card-added-to-hand lines.
+
+**Changes:** See `docs/STATUS.md` session 27 and `docs/CHANGELOG.md` for detail.
+
+**Acceptance criteria met:**
+1. `PLAYER retreated CARD to the Bench.` → `retreat` with `target_zone = "bench"`.
+2. `CARD was activated.` → `card_effect_activated`, no unsafe player attribution.
+3. `CARD was discarded from PLAYER's TARGET.` → `discard_from_pokemon`, player/target extracted.
+4. `CARD was added to PLAYER's hand.` → `card_added_to_hand`, known card.
+5. `"A card was added to PLAYER's hand."` still → `prize_card_added_to_hand` (ordering preserved).
+6. Straight and curly apostrophes supported.
+7. `top_unknown_raw_lines` de-duplicated.
+8. 20 new parser tests (107 total).
+9. All Phase 2.1/2.2 behaviors preserved.
+10. No card DB resolution / Coach / Player / pgvector / Neo4j / memory ingestion added.
+
+## 22.3.1 Phase 2.4 — Real-Corpus Parser Hardening (Special Conditions, Damage Counters, Checkup, Concession)
+
+**Status:** COMPLETE (session 42).
+
+**Problem:** A real Dragapult ex vs Salazzle ex battle log produced `unknown` events for lines the parser had no patterns for: Pokémon Checkup markers, Burned/Poisoned condition damage counters, special condition applied/removed lines, checkup coin flips, ability-driven damage counter placement/movement, discarded card counts (with known-card bullet sub-lines), cards moved to hand, cards shuffled into deck, and opponent concession.
+
+**Changes:** See `docs/STATUS.md` session 42 and `docs/CHANGELOG.md` for detail.
+
+**Acceptance criteria met:**
+1. `Pokémon Checkup` → `pokemon_checkup`, confidence ≥ 0.95, no player.
+2. `N damage counters were placed on PLAYER's CARD for the Special Condition COND.` → `special_condition_damage`, amount/condition/card extracted.
+3. Singular form (`1 damage counter was placed`) → same event type, amount 1.
+4. `PLAYER's CARD is now Burned/Poisoned.` → `special_condition_applied`, condition in payload.
+5. `PLAYER's CARD is no longer Burned.` → `special_condition_removed`, condition in payload.
+6. `PLAYER flipped a coin and it landed on heads.` → `coin_flip_result` with `context="checkup"`.
+7. `PLAYER put N damage counters on PLAYER's CARD.` → `damage_counters_placed`.
+8. `PLAYER moved N damage counters from PLAYER's CARD to PLAYER's CARD.` → `damage_counters_moved`.
+9. `PLAYER's CARD was switched with PLAYER's CARD to become the Active Pokémon.` → `pokemon_switched`.
+10. `PLAYER discarded N cards.` → `cards_discarded`, bullet sub-line cards captured in payload.
+11. `N cards were discarded from PLAYER's CARD.` → `cards_discarded_from_pokemon`, bullet sub-line cards captured.
+12. `PLAYER moved PLAYER's N cards to their hand.` → `cards_moved_to_hand`, bullet sub-line cards captured.
+13. `PLAYER shuffled N cards into their deck.` → `cards_shuffled_into_deck`, bullet sub-line cards captured (or hidden if no bullets).
+14. `Opponent conceded. WINNER wins.` → `game_end` with `win_condition="opponent_conceded"`.
+15. Special conditions, `heads`, `tails`, `damage counters` not extracted as card names.
+16. Named cards from bullet sub-lines extracted as `discarded_card` mentions.
+17. All new event types produce no memory items (not yet mapped).
+18. 77 new backend tests (1047 total). Frontend unchanged (246 total).
+19. No Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, runtime integration, or data reset.
+
+## 22.4 Phase 3 — Card Mention Extraction and Conservative Card Resolution
+
+**Status:** COMPLETE (session 28).
+
+**Problem:** After Phase 2.3, parser events captured raw card names but no structured
+DB-backed resolution existed. Card mentions were buried in unstructured payload JSON.
+There was no way to see which cards appeared in a log or whether they could be
+identified in the card DB.
+
+**Changes:** See `docs/STATUS.md` session 28 and `docs/CHANGELOG.md` for detail.
+
+**Acceptance criteria met:**
+1. `observed_card_mentions` table created via migration `f2a3b4c5d6e7`.
+2. `observed_card_resolution_rules` table created (manual override rules).
+3. 3 new columns on `observed_play_logs`: `card_mention_count`, `card_resolution_status`, `resolver_version`.
+4. `card_mentions.py` — extraction by event type with normalized dedup.
+5. `card_resolution.py` — resolution via exact match → energy alias → manual rules → unresolved. Idempotent.
+6. Resolution runs automatically on import and reparse (non-destructive try/except guard).
+7. `GET /logs/{id}/card-mentions` — paginated, filterable by status.
+8. `POST /logs/{id}/resolve-cards` — trigger resolution, return summary.
+9. `GET /unresolved-cards` — aggregate unresolved/ambiguous names across all logs.
+10. `POST /resolution-rules` — create manual ignore/resolve rule.
+11. Log list/detail responses include 5 resolution summary fields.
+12. Reparse response includes resolution summary.
+13. Frontend: `CardResolutionBadges`, `CardMentionsModal`, `UnresolvedCardsSection`.
+14. 37 new backend tests + ~12 new frontend tests; 804 backend / 173 frontend passing.
+15. No Coach / AI Player / pgvector / Neo4j / memory ingestion added.
+
+## 22.5 Phase 3.1 — Card Mention Cleanup and False-Unresolved Reduction
+
+**Status:** COMPLETE (session 29).
+
+**Problem:** Manual validation after Phase 3 showed false unresolved mentions caused
+by zone/location text embedded in extracted mention raw names. Examples:
+`"Dreepy in the Active Spot"`, `"Munkidori on the Bench"`, `"Dunsparce on the Bench"`,
+`"Drakloak on the Bench"`. These did not match any card in the DB and became `unresolved`.
+In addition, `"them"` and `"N cards"` strings could pass `_is_meaningful()`.
+
+**Root cause:** `RE_ATTACK` captures `target_card` group as everything between the
+player prefix and ` for N damage`, which includes PTCGL zone text. Mention extraction
+stored this unstripped text as `raw_name`.
+
+**Changes:** See `docs/STATUS.md` session 29 and `docs/CHANGELOG.md` for detail.
+
+**Acceptance criteria met:**
+1. `clean_extracted_card_name()` helper strips 9 safe zone suffix phrases.
+2. Cleaning applied in `_add()` before `_is_meaningful()` and before DB insert.
+3. Cleaning applied in payload card list loop.
+4. Raw `raw_line` on events unchanged.
+5. `_IGNORED_NORMALIZED` extended: `"cards"`, `"them"`.
+6. `_RE_NUMERIC_CARDS` pattern rejects `"N cards"` strings.
+7. `ET_DRAW → drawn_card` dispatch branch added.
+8. `ET_SWITCH_ACTIVE → actor_card` dispatch branch added.
+9. `ET_OPENING_HAND_DRAW_KNOWN` branch isolated from `ET_PLAY_TO_BENCH`.
+10. 27 new backend tests (64 total in `test_card_mentions.py`); 831 backend passing.
+11. Frontend 173 tests / build unchanged.
+12. No Coach / AI Player / pgvector / Neo4j / memory ingestion added.
+
+## 22.6 Phase 4 — Gated Memory Ingestion Foundation
+
+**Status:** COMPLETE (session 30). Pronoun-placeholder hotfix applied same session.
+
+**Problem:** After Phase 3.1, card mentions were resolved and stored but there was no
+pipeline to convert parsed events into structured memory items for later Coach/AI retrieval.
+Memory ingestion needed eligibility gates (confidence threshold, parse completeness, card
+resolution) to prevent low-quality data from entering the memory store.
+
+**Pronoun hotfix:** After Phase 4 implementation, real-log validation revealed that PTCGL
+emits `"it"` (and similar pronouns) as `card_name_raw` in some event types (e.g. knockouts)
+instead of the actual card name. These created false `actor_card: it (unresolved critical)`
+mentions that blocked otherwise-valid memory ingestion. Fixed by extending `_IGNORED_NORMALIZED`
+in `card_mentions.py` with exact-normalized pronoun/placeholder strings. Exact match only —
+legitimate multi-word card names containing these words as substrings are unaffected.
+
+**Problem:** After Phase 3.1, card mentions were resolved and stored but there was no
+pipeline to convert parsed events into structured memory items for later Coach/AI retrieval.
+Memory ingestion needed eligibility gates (confidence threshold, parse completeness, card
+resolution) to prevent low-quality data from entering the memory store.
+
+**Changes:** See `docs/STATUS.md` session 30 and `docs/CHANGELOG.md` for detail.
+
+**Acceptance criteria met:**
+1. Alembic migration `g3h4i5j6k7l8` adds `memory_item_count` and `last_memory_ingested_at`
+   to `observed_play_logs`; creates `observed_play_memory_ingestions` and
+   `observed_play_memory_items` tables with indexes.
+2. `evaluate_log_ingestion_eligibility` gates: confidence ≥ 0.80, parse_status == parsed,
+   ≥1 event, ≥1 card mention, no partial flag. Returns `eligible`, `ineligible`, or `forced`.
+3. `force=True` + `allow_unresolved=True` bypass gates when other blocking conditions exist,
+   producing `forced` status.
+4. `preview_observed_play_ingestion` dry-run returns eligibility + event_type_counts + sample items.
+5. `ingest_observed_play_log` idempotent delete+insert pipeline; updates log counters.
+6. `MEMORY_INGESTION_VERSION = "1.0"` constant in `constants.py`.
+7. API routes: `POST /logs/{id}/memory-preview`, `POST /logs/{id}/ingest-memory`,
+   `GET /logs/{id}/memory-items`, `GET /memory-items` (global).
+8. `LogSummary` extended with `memory_item_count` and `last_memory_ingested_at`.
+9. 49 new backend tests (880 total, up from 831).
+10. Frontend: Phase 4 types, `previewMemoryIngestion`/`ingestMemory`/`getMemoryItems` API funcs,
+    `MemoryPreviewModal` (title: "Memory Preview") + `MemoryItemsModal` components; row-level
+    button labeled `"Preview memory"` (opens dry-run modal) / `"Re-preview memory"` (already
+    ingested); `"Ingest memory"` write action inside the modal only; "Mem items" column;
+    phase banner updated to "Phase 4 active".
+11. 9 new frontend tests (182 total, up from 173); build passes.
+12. Ingested memories stored for review only — not used by Coach or AI Player.
+13. No Coach / AI Player / pgvector / Neo4j integration added.
+
+---
+
+## 22.7 Phase 4.1 — Memory Preview Blocker Details
+
+**Status:** COMPLETE (session 30).
+
+**Problem:** Phase 4 preview eligibility showed counts (e.g. "2 unresolved critical mentions") but
+not which card names, roles, turns, or source lines were blocking ingestion. Users had no visibility
+into whether a blocker was a real unresolved card, a parser artifact, or something they could ignore.
+
+**Changes:**
+- New `IngestionBlocker` Pydantic model in `schemas.py` (12 fields: `code`, `raw_name`,
+  `normalized_name`, `mention_role`, `resolution_status`, `source_event_type`, `source_field`,
+  `turn_number`, `player_alias`, `raw_line`, `observed_play_event_id`, `observed_card_mention_id`).
+- `EligibilityResult`, `MemoryIngestionPreview`, and `MemoryIngestionSummary` extended with
+  `blockers: list[IngestionBlocker]`, `blocker_count: int`, `blockers_truncated: bool`.
+- `evaluate_log_ingestion_eligibility` does a conditional extra `db.execute` when critical unresolved
+  mentions exist, joining `ObservedPlayEvent` for `turn_number`, `player_alias`, and `raw_line`.
+- Blocker list capped at `_MAX_BLOCKERS = 25`; raw lines truncated to `_MAX_RAW_LINE_LENGTH = 300`.
+- 422 ingest-error detail body now includes `blockers`, `blocker_count`, `blockers_truncated`.
+- No DB migration required — response-only improvement.
+- Frontend `MemoryIngestionPreview` and `MemoryIngestionSummary` types extended with blocker fields;
+  new `IngestionBlocker` interface added to `types/observedPlay.ts`.
+- `MemoryPreviewModal` shows "Blocking unresolved mentions" compact table when `blockers.length > 0`;
+  truncation notice if `blockers_truncated`; 422 ingest error also surfaces blockers in-modal.
+
+**Acceptance criteria met:**
+1. Preview endpoint returns `blockers` list for ineligible logs.
+2. Each blocker includes raw name, role, source event type, turn, player, raw line.
+3. Blockers capped at 25; `blocker_count` reflects full count; `blockers_truncated` when clipped.
+4. Eligible preview returns empty `blockers` list.
+5. 422 ingest response includes blocker details.
+6. No DB migration needed.
+7. 13 new backend tests (924 total, up from 911).
+8. 6 new frontend tests (188 total, up from 182); build passes.
+9. No manual resolution-rule UI, Coach/AI, Neo4j, pgvector, simulator, or card-performance added.
+
+---
+
+## 22.8 Phase 3.2 — Manual Card Resolution Rule UI
+
+**Status:** COMPLETE (session 31).
+
+**Problem:** Phase 3 added the backend rule API and the `UnresolvedCardsSection` UI table, but there
+was no workflow to inspect candidate cards, choose the correct one, create a manual rule, or trigger
+resolution rerun. Users could see unresolved/ambiguous names but couldn't act on them.
+
+**Changes:**
+
+Backend:
+- New `SampleMentionItem` Pydantic model in `schemas.py` (8 fields: `log_id`, `filename`, `event_id`,
+  `turn_number`, `player_alias`, `mention_role`, `source_event_type`, `raw_line`).
+- `UnresolvedCardItem` extended with `sample_mentions: list[SampleMentionItem]` and
+  `affected_log_ids: list[str]` (both default empty).
+- `get_unresolved_cards`: after main grouped query, a second joined query fetches sample mentions
+  (≤5 per group) and collects affected log IDs (≤25 per group) in Python — single query, no N+1.
+- `create_resolution_rule`: added validation — empty `raw_name` → 422; unknown `action` → 422;
+  `resolve` without `target_card_def_id` → 422; nonexistent `target_card_def_id` → 422 (Card table
+  lookup); duplicate normalized name → 409 with clear message.
+- `Card` model imported in `api/observed_play.py` for target card existence check.
+
+Frontend:
+- `SampleMentionItem` interface added to `types/observedPlay.ts`; `UnresolvedCardItem` extended
+  with optional `sample_mentions` and `affected_log_ids`.
+- New `ResolutionRuleModal` component in `ObservedPlay.tsx`:
+  - Summary panel (raw name, normalized, status, mention count, log count).
+  - Candidates table (thumbnail via `normalizeTcgdexImageUrl`, name, set, number, card_def_id,
+    reason, Select button). Clicking thumbnail shows inline lightbox.
+  - Sample mentions table (role, event type, turn, player, source line).
+  - "Ignore this name" button with confirmation dialog.
+  - After successful rule creation: reruns `resolveCards()` for all affected log IDs; shows
+    success message with rerun count; modal stays open until user clicks Close (triggering refresh).
+  - API errors shown inline.
+- `UnresolvedCardsSection`: added `Action` column and `Review` button per row; clicking opens
+  `ResolutionRuleModal`; closing after success triggers refresh of the section and raw logs table.
+- New imports in `ObservedPlay.tsx`: `createResolutionRule`, `resolveCards`, `CardCandidateItem`,
+  `ResolutionRuleCreate`, `normalizeTcgdexImageUrl`.
+
+**Acceptance criteria met:**
+1. Review button visible for each unresolved/ambiguous row.
+2. Clicking Review opens resolution modal with raw name, candidates, and sample mentions.
+3. Selecting a candidate calls `createResolutionRule` with `action=resolve`.
+4. Ignore calls `createResolutionRule` with `action=ignore` after confirmation.
+5. After rule creation, `resolveCards` called for affected logs.
+6. Success message shown; modal stays open for user to dismiss.
+7. API error shown inline in modal.
+8. Empty candidates state shows fallback message.
+9. 11 new backend tests (935 total, up from 924).
+10. 10 new frontend tests (198 total, up from 188); build passes.
+11. No Coach/AI, pgvector, Neo4j, simulator match_events, card-performance integration added.
+12. No DB migration required.
+
+---
+
+## 22.9 Phase 5 — Read-Only Memory Analytics
+
+**Branch:** `feature/observed-play-memory`
+**Status:** ✅ Complete
+
+### Goal
+
+Surface read-only analytics over ingested observed play memory items: summary counts, per-type aggregates, quality flags, and a drill-down examples modal. No Coach/AI integration, pgvector, Neo4j, destructive actions, or new migrations.
+
+### Backend
+
+- `backend/app/observed_play/schemas.py`: Added `LOW_CONFIDENCE_THRESHOLD = 0.75`, `MemorySummary`, `MemoryAnalyticsGroup`, `MemoryAnalyticsResponse`.
+- `backend/app/api/observed_play.py`: Updated sqlalchemy import to add `and_`, `case`, `distinct`. Added schema imports. Three new read-only routes:
+  - `GET /memory-summary` — aggregate counts (ingested logs, memory items, type distribution, avg confidence, low-confidence count, ambiguous/unresolved reference counts, latest ingestion timestamp).
+  - `GET /memory-analytics` — top-N groups for: memory types, actor cards, target cards, actions, attacks (attack_used with actor+action), abilities, attachments, evolutions, knockouts, and quality flags. Each group includes label, count, avg confidence, resolution status counts, and up to 3 sample item IDs/source lines. Filterable by `memory_type` and `min_confidence`.
+  - `GET /memory-analytics/source-items` — paginated drill-down of memory items matching filter params (memory_type, actor_card_raw, actor_card_def_id, target_card_raw, target_card_def_id, action_name, quality_flag) plus standard pagination.
+
+### Frontend
+
+- `frontend/src/types/observedPlay.ts`: Added `MemorySummary`, `MemoryAnalyticsGroup`, `MemoryAnalyticsResponse`, `MemoryAnalyticsSourceItemsParams`.
+- `frontend/src/api/observedPlay.ts`: Added `getMemorySummary`, `getMemoryAnalytics`, `getMemoryAnalyticsSourceItems`.
+- `frontend/src/pages/ObservedPlay.tsx`: Added `useRef`. New components: `StatCard` (small label+value tile), `AnalyticsGroupTable` (sortable mini-table with Examples button per row), `MemoryAnalyticsExamplesModal` (drill-down modal with full memory item table), `MemoryAnalyticsSection` (section with summary cards + analytics tables). Placed after `UnresolvedCardsSection`. `analyticsRefreshRef` auto-refreshes after ingest success.
+
+### Tests
+
+- 5 new backend tests (`TestMemoryAnalytics`): empty summary, empty analytics, empty source items, filter params, read-only assertion.
+- 7 new frontend tests (Phase 5 describe block): renders, empty state, summary cards, type counts, examples modal, refresh button, safety copy, dark mode classes.
+
+### Validation
+
+1. `backend/tests/test_api/test_observed_play.py` Phase 5 tests pass.
+2. `frontend/src/pages/ObservedPlay.test.tsx` Phase 5 tests pass.
+3. Frontend build clean (`npm run build`).
+4. No DB migration required.
+5. No Coach/AI, pgvector, Neo4j, simulator match_events, card-performance, or destructive action added.
+
+---
+
+## 22.10 Phase 5.1 — Analytics Quality Triage Polish
+
+**Branch:** `feature/observed-play-memory`
+**Status:** ✅ Complete
+
+### Goal
+
+Make Memory Analytics actionable for quality triage: quality filter controls, Review action linking analytics rows to the existing manual card-resolution flow, examples modal filter label, re-ingestion note. No Coach/AI integration, pgvector, Neo4j, destructive actions, or new migrations.
+
+### Backend
+
+- `backend/app/observed_play/schemas.py`: Added `review_raw_name: str | None`, `review_status: str | None`, `can_review_resolution: bool = False` to `MemoryAnalyticsGroup`.
+- `backend/app/api/observed_play.py`:
+  - `GET /memory-analytics`: Added `quality_filter` query param (all/ambiguous/low_confidence/unresolved). `_base_filter()` applies OR-conditions on actor/target/related resolution status columns for ambiguous and unresolved filters.
+  - `_fetch_analytics_groups`: Added `is_card_group: bool = False` param. When True, sets `review_raw_name`, `review_status`, `can_review_resolution` on groups with (amb_cnt + unr_cnt) > 0.
+  - Card group calls (`top_actor_cards`, `top_target_cards`, `top_attachments`, `top_evolutions`, `top_knockouts`) pass `is_card_group=True`.
+  - `GET /memory-analytics/source-items`: Added `related_card_raw`, `min_confidence`, `card_name` (ilike across actor/target/related card raw columns) filter params.
+
+### Frontend
+
+- `frontend/src/types/observedPlay.ts`: `MemoryAnalyticsGroup` extended with optional `review_raw_name`, `review_status`, `can_review_resolution`. `GetMemoryAnalyticsParams` gains `quality_filter`. `MemoryAnalyticsSourceItemsParams` gains `related_card_raw`, `min_confidence`, `card_name`.
+- `frontend/src/api/observedPlay.ts`: `GetMemoryAnalyticsParams` gains `quality_filter`.
+- `frontend/src/pages/ObservedPlay.tsx`:
+  - `AnalyticsGroupTable`: Optional `onReview` prop; Review button rendered when `can_review_resolution && (ambiguous_count + unresolved_count) > 0`.
+  - `MemoryAnalyticsExamplesModal`: Optional `filterLabel` prop rendered as "Filter: {label}" below title.
+  - `UnresolvedCardsSection`: Added `refreshRef` prop to expose internal `load`.
+  - `MemoryAnalyticsSection`: Added `qualityFilter` state + filter buttons. `unresolvedLookup` loaded on mount from `getUnresolvedCards({ per_page: 100 })`. `handleReview` looks up `review_raw_name` in lookup and opens `ResolutionRuleModal`. `handleReviewResolved` calls `load()`, `onRefreshLogs`, and `onRefreshUnresolved` after resolution. Re-ingestion note in section footer. Card group tables receive `onReview={handleReview}`. Full set of group tables rendered (added `top_target_cards`, `top_abilities`, `top_attachments`, `top_evolutions`, `top_knockouts` that were missing from Phase 5 render).
+  - Main page: Added `unresolvedRefreshRef`. Passes `onRefreshLogs`, `onRefreshUnresolved` to `MemoryAnalyticsSection`; passes `refreshRef` to `UnresolvedCardsSection`.
+
+### Tests
+
+- 9 new backend tests (`TestMemoryAnalytics`): quality_filter=low_confidence, quality_filter=ambiguous, quality_filter=unresolved, quality_filter=all, quality_filter=invalid (bogus), source-items card_name, source-items min_confidence, source-items related_card_raw, analytics group review fields shape.
+- 5 new frontend tests (Phase 5.1 describe block): quality filter controls render, selecting Ambiguous refs calls API with quality_filter, selecting Low confidence calls API with quality_filter, Review button appears for reviewable rows, re-ingestion note visible, examples modal shows filter label.
+
+### Validation
+
+1. `backend/tests/test_api/test_observed_play.py` Phase 5.1 tests pass.
+2. `frontend/src/pages/ObservedPlay.test.tsx` Phase 5.1 tests pass.
+3. Frontend build clean (`npm run build`).
+4. No DB migration required.
+5. No Coach/AI, pgvector, Neo4j, simulator match_events, card-performance, or destructive action added.
+
+## 22.11 Phase 5.1 UI Polish — Analytics Table Column Alignment
+
+**Status: COMPLETE (session 36, commit 712ba31)**
+
+### Problem
+
+Analytics tables sized columns to their own content independently, causing visible horizontal drift across sections (Memory types, Top actions, Top actor/target cards, Top attacks, Top abilities, Top attachments/evolutions/knockouts, Quality flags). The Examples and Review column headers were empty strings; non-reviewable rows rendered null in the Review cell.
+
+### Fix
+
+Updated `AnalyticsGroupTable` in `frontend/src/pages/ObservedPlay.tsx`:
+
+- `<table className="min-w-full ...">` → `<table className="w-full table-fixed ...">`
+- Added `<colgroup>` with 8 fixed column widths: Label 34% / Count 7% / Avg conf 9% / Resolved 10% / Ambig 8% / Unresolved 11% / Examples 10% / Review 11%.
+- Empty header `<th>` → "Examples" and "Review" text labels.
+- Non-reviewable Review cell: `null` → muted `—` placeholder with `aria-label="Not reviewable"`.
+- Label cell gains `title={g.label}` for truncation safety.
+- Numeric columns aligned consistently (center for Avg conf/Resolved/Ambig/Unresolved/Examples/Review).
+
+No backend changes. Frontend layout-only.
+
+### Tests
+
+3 new tests in `frontend/src/pages/ObservedPlay.test.tsx` (224 total):
+- Table always renders Examples and Review column headers.
+- Non-reviewable rows render `—` placeholder; no Review button present.
+- Label cell has a `title` attribute matching the label text.
+
+### Validation
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **949 passed, 1 skipped** (unchanged)
+- `cd frontend && npm test -- --run`: **224 passed (15 files)**
+- `cd frontend && npm run build`: clean
+
+## Operational: Local Data Reset (session 37)
+
+**Status: COMPLETE (session 37)**
+
+Added `scripts/reset_observed_play_data.sh` — a guarded local maintenance script to clear all Observed Play development/test data before uploading the real battle-log corpus.
+
+**Usage:**
+```bash
+./scripts/reset_observed_play_data.sh --yes
+```
+
+**What it clears:**
+- All 7 observed-play DB tables (TRUNCATE RESTART IDENTITY CASCADE)
+- `/data/ptcgl_logs/archive`, `/data/ptcgl_logs/inbox`, `/data/ptcgl_logs/tmp`, `/data/ptcgl_logs/failed`
+
+**What it does NOT touch:**
+- `cards`, `card_performance`, `matches`, `match_events`, simulator, Coach/AI, Neo4j, pgvector, audit state, deck data, users/settings
+
+**Pre-reset counts cleared:**
+- observed_play_import_batches: 48 → 0
+- observed_play_logs: 45 → 0
+- observed_play_events: 1196 → 0
+- observed_card_mentions: 842 → 0
+- observed_card_resolution_rules: 6 → 0
+- observed_play_memory_ingestions: 6 → 0
+- observed_play_memory_items: 158 → 0
+- Archive files: 4 → 0
+
+---
+
+## Real-Corpus Bugfix: Ambiguous Row Refresh Regression (Session 39)
+
+**Date:** 2026-05-06
+
+**Context:** Manual real-corpus validation with 49 uploaded logs revealed that ambiguous card rows stopped disappearing from the Unresolved / Ambiguous Cards section after the first two sequential resolutions, requiring a manual browser refresh.
+
+**Root cause:**
+- `ResolutionRuleModal` called `onResolved(affectedAfterRule)` only on explicit Close click and only if `affected_log_ids` was non-empty. Stale closure + condition failure after several modals meant refresh never fired.
+- `MemoryAnalyticsSection` fetched the unresolved lookup only once on mount (`useEffect([], [])`), so analytics Review buttons used stale data after resolutions.
+
+**Fix (frontend only):**
+- `onResolved()` fires immediately after `createResolutionRule` + `resolveCards` succeed; `handleClose` simplified.
+- `UnresolvedCardsSection` guards `return null` to stay mounted while modal is open; calls `onRefreshAnalytics?.()` after every resolution.
+- `MemoryAnalyticsSection.load()` includes `getUnresolvedCards` in Promise.all; `handleReviewResolved` calls all callbacks unconditionally.
+- +8 frontend regression tests (232 total). Backend unchanged (949 passed, 1 skipped).
+
+---
+
+## Real-Corpus Polish: Sortable Raw Logs Columns (Session 40)
+
+**Date:** 2026-05-06
+
+**Context:** Real-corpus validation with 49 uploaded logs. Raw Logs table had no sortable columns, making it inefficient to triage logs by confidence, ambiguous card count, event count, size, etc.
+
+**Implementation: server-side sorting** (pagination is server-side; client-side sorting would only apply to the current page).
+
+**Backend (`backend/app/api/observed_play.py`):**
+- `GET /api/observed-play/logs` now accepts `sort_by?: str` and `sort_dir?: str` optional query params
+- `LOG_SORT_FIELDS` dict maps 13 whitelisted keys to ORM columns: `filename`, `parse_status`, `memory_status`, `event_count`, `confidence_score`, `card_mention_count`, `resolved_card_count`, `ambiguous_card_count`, `unresolved_card_count`, `memory_item_count`, `file_size_bytes`, `created_at`, `sha256_hash`
+- Invalid `sort_by` → HTTP 422; invalid `sort_dir` → HTTP 422
+- Stable tie-breaker: `created_at desc, id desc`
+- Default: `created_at desc` (behavior preserved)
+
+**Frontend:**
+- `LogSortKey` union type, `SortableTh` component: accessible `<button>` inside `<th>` with `▲`/`▼`/`↕` icons and `aria-label="Sort by <col> <dir>ending"`
+- `logSortBy`/`logSortDir` state; `handleLogSort` toggles dir on active col, sets default dir on new col, resets page to 1
+- All 10 Raw Logs table `<th>` headers use `<SortableTh>`
+- Cards column → `sort_by=ambiguous_card_count` with tooltip
+- Default directions: desc for numeric/date; asc for text/status
+
+**Tests:**
+- `TestLogListSort` class: 11 backend tests (valid sort keys, invalid sort_by 422, invalid sort_dir 422, pagination+sort, read-only)
+- Frontend "Raw Logs — sorting" describe: 10 tests (headers render, Confidence click, toggle, Events resets page, Cards sort key, tooltip, arrow indicator, inactive ↕, action buttons preserved, Filename asc)
+
+**Validation:**
+- `cd frontend && npm test -- --run`: **242 passed (15 files)**
+- `cd frontend && npm run build`: clean
+- `cd backend && python3 -m pytest tests/ -x -q`: **960 passed, 1 skipped**
+
+---
+
+## Real-Corpus Bugfix: Parse and Cards Sorting (Session 41)
+
+**Date:** 2026-05-07
+
+**Context:** Real-corpus manual validation with 49 uploaded logs showed Parse and Cards columns did not visibly reorder rows.
+
+**Root causes:**
+- **Parse**: Lexicographic string sort on `parse_status`. With all logs at `"parsed"`, every sort was a no-op.
+- **Cards**: `sort_by=ambiguous_card_count` was a single-column sort; similar values across logs made it appear broken. Also `sort_by=cards` (the intended composite key) was not whitelisted — would return 422.
+
+**Fix (backend `backend/app/api/observed_play.py`):**
+- Removed `parse_status` from `LOG_SORT_FIELDS`
+- Added `_COMPOSITE_SORT_KEYS = {"parse_status", "cards"}` and `_ALL_SORT_KEYS` for whitelisting
+- Extracted `_apply_log_sort(q, sort_by, sort_dir)` helper:
+  - `parse_status`: `case()` rank (failed=0, raw_archived=1, parsed=2, parsed_with_warnings=3) + `confidence_score asc` + stable tie-breaker
+  - `cards`: `unresolved_card_count → ambiguous_card_count → card_mention_count → confidence_score` composite sort
+
+**Fix (frontend `frontend/src/pages/ObservedPlay.tsx`):**
+- Added `'cards'` to `LogSortKey` type
+- Cards header: `sortKey="cards"` (was `"ambiguous_card_count"`)
+- Updated tooltips for Cards and Parse headers
+
+**Tests:**
+- `TestApplyLogSort` class: 6 SQL unit tests (compile + inspect ORDER BY clause)
+- `TestLogListSort`: +4 HTTP tests for `sort_by=cards` and `sort_by=parse_status`
+- Frontend: updated Cards test expectations, +3 Parse tests
+
+**Validation:**
+- `cd frontend && npm test -- --run`: **246 passed (15 files)**
+- `cd frontend && npm run build`: clean
+- `cd backend && python3 -m pytest tests/ -x -q`: **970 passed, 1 skipped**
+
+---
+
+### Pre-Phase-5.2 Workflow Hardening (sessions 39–45)
+
+These sessions hardened the end-to-end workflow before starting the corpus quality scorecard.
+
+#### Session 39 — Data reset script
+- `scripts/reset_observed_play_data.sh`: safe local developer reset (deletes logs/events/mentions/ingestions/items + clears filesystem). Never auto-runs. Documented in STATUS.md.
+
+#### Session 40 — Ambiguous card row disappear bugfix
+- Traced stale closure bug in `UnresolvedCardsSection` and `ResolutionRuleModal`.
+- All resolution paths now call a stable `refreshRef` callback immediately after success.
+- Rows correctly disappear from the Unresolved / Ambiguous Cards view after every resolution, including the third+.
+
+#### Session 41 — Raw Logs sorting
+- Fixed Parse and Cards sort columns in the Raw Logs table.
+- `sort_by=parse_status` uses a `case()` rank expression.
+- `sort_by=cards` is now a composite sort (unresolved → ambiguous → mentions → confidence).
+
+#### Session 42 — Special condition / checkup / concession parser hardening
+- Added 12 new event types and patterns for real-corpus lines that produced `unknown` events in Dragapult ex vs Salazzle ex logs.
+- Pokémon Checkup, Burned/Poisoned condition damage counters, special condition applied/removed, checkup coin flip, damage counter placement/movement by ability, discarded card counts, cards moved to hand, cards shuffled into deck, opponent concession.
+
+#### Session 43 — Bulk parse / ingest actions
+- Added "Bulk Actions" panel to `/observed-play`.
+- Three new API endpoints: `POST /logs/reparse-all`, `POST /memory-ingestion/preview-eligible`, `POST /memory-ingestion/ingest-eligible`.
+- Idempotent: already-ingested logs skipped unless user opts in.
+
+#### Session 44 — Bulk action opt-in overrides
+- `include_ingested` flag on reparse-all (default false).
+- `include_already_ingested` flag on ingest-eligible / preview-eligible (default false).
+- Frontend modals updated with checkboxes and warning copy.
+- Re-ingest replaces (not duplicates) existing memory items.
+
+#### Session 45 — Low-confidence corpus audit and parser hardening
+- Added `backend/scripts/observed_play_low_confidence_audit.py` (read-only, --threshold / --top / --output).
+- `tmp/` added to `.gitignore` to protect raw-line audit reports.
+- Audit identified 188 events below 80% across 49 logs: 150 `card_effect_activated` at 0.78, plus 38 `unknown`.
+- Fixed: `card_effect_activated` confidence raised from 0.78 → 0.88 when card name captured.
+- Fixed: 4 new game-end patterns (Opponent prizes, Your deck, KO no bench, No bench backup).
+- Fixed: `RE_MULLIGAN_PLURAL` ("PLAYER took N mulligans.") → `ET_MULLIGAN` with `amount`.
+- Fixed: `RE_PLAYER_TIMEOUT` / `RE_PLAYER_RECONNECTED` → informational event types (not ingested).
+- After bulk reparse + re-ingest: **0 events below 80%, 0 unknown, avg confidence 0.8879**.
+
+**Corpus state at end of session 45:**
+```
+Logs:                     49
+Events:               10,047
+Events below 80%:          0
+Unknown events:            0
+Average confidence:   0.8879
+card_mentions:         8,670
+memory_items:          4,786
+memory_ingestions:       198
+```
+
+---
+
+### Phase 5.2 — Corpus Quality / Readiness Scorecard
+
+**Status: ✅ Complete (session 46)**
+
+**Goal:** Produce a read-only corpus quality summary for the 49-log real observed-play corpus. This scorecard is the gating check before deciding whether any downstream Coach advisory use is safe.
+
+**Scope (read-only, no new integrations):**
+
+| In scope | Out of scope |
+|---|---|
+| Corpus size and ingestion coverage | Coach integration |
+| Parser confidence distribution | AI Player integration |
+| Unknown / low-confidence event counts | pgvector embeddings |
+| Unresolved / ambiguous card-reference burden | Neo4j writes |
+| Memory item count and confidence distribution | simulator match_events |
+| Top actors / actions / attacks / abilities | card_performance writes |
+| Quality flags (low-confidence logs, blocked logs) | deck-builder usage |
+| Logs blocked or skipped | runtime memory usage |
+| Remaining parser risks | automatic recommendations |
+
+**Backend:**
+- `backend/app/observed_play/schemas.py`: Added 5 threshold constants (`READINESS_LOW_CONFIDENCE_EVENT_THRESHOLD`, `READINESS_INGESTION_COVERAGE_THRESHOLD`, `READINESS_AVG_EVENT_CONFIDENCE_THRESHOLD`, `READINESS_AVG_MEMORY_CONFIDENCE_THRESHOLD`, `READINESS_TOP_N_LIMIT`) and 5 new Pydantic schemas (`CorpusStats`, `ParserQualityStats`, `CardResolutionStats`, `MemoryQualityStats`, `CorpusReadinessReport`).
+- `backend/app/api/observed_play.py`: Added `GET /api/observed-play/corpus-readiness` endpoint. Queries all 6 observed-play tables. Scores 4 dimensions (35 + 25 + 20 + 20 = 100 pts). Deterministic verdict logic (not_ready / needs_review / ready). `_READINESS_CRITICAL_ROLES` defined inline to avoid circular imports.
+
+**Frontend:**
+- `frontend/src/types/observedPlay.ts`: TypeScript interfaces for all report types.
+- `frontend/src/api/observedPlay.ts`: `getCorpusReadiness()` function.
+- `frontend/src/pages/ObservedPlay.tsx`: `VerdictBadge`, `ScorecardStatRow`, `CorpusScorecardSection` components. Review-only safety note. Refresh button.
+
+**Tests:**
+- +17 backend tests (`TestCorpusReadiness`): endpoint exists, empty corpus → not_ready, clean corpus → ready, unknown events → not_ready, low-conf events → not_ready, critical unresolved → not_ready, ambiguous → needs_review, ingestion gap → needs_review, low-conf memory → needs_review, safety note present, no DB mutation, score in [0, 100], top lists limited, score deterministic.
+- +17 frontend tests (Phase 5.2 describe block): scorecard renders, empty state, ready/needs_review/not_ready badges, score, coverage/parser/card/memory stats, blockers/warnings/recommendations, safety note, refresh button, error state, dark-mode classes.
+
+**Live 49-log corpus scorecard result:**
+```
+verdict:              ready
+readiness_score:      97.22 / 100
+logs:                 49 / 49 parsed / 49 ingested
+events:               10,047
+memory items:         4,786
+unknown events:       0
+events below 80%:     0
+avg event confidence: 0.8879
+avg memory confidence: 0.8899
+card mentions:        8,670 resolved / 0 ambiguous / 0 unresolved / 0 critical
+blockers:             []
+warnings:             []
+```
+
+**Validation:**
+- Backend: 1108 passed, 5 skipped (was 1095, +17 new tests).
+- Frontend: 285 passed (was 268, +17 new tests).
+- Frontend build: clean.
+- No Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, data reset, or runtime integration.
+- `docs/AUDIT_STATE.md` not touched. No real logs or raw audit reports committed.
+
+---
+
+*End of Observed Play Memory Implementation Plan.*
+*Feature branch: `feature/observed-play-memory`. No production code in this document.*

@@ -8,6 +8,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const History = lazy(() => import('./pages/History'));
 const Memory = lazy(() => import('./pages/Memory'));
 const Coverage = lazy(() => import('./pages/Coverage'));
+const ObservedPlay = lazy(() => import('./pages/ObservedPlay'));
 
 function Page(element: ReactElement) {
   return (
@@ -24,4 +25,5 @@ export const router = createBrowserRouter([
   { path: '/history', element: Page(<History />) },
   { path: '/memory', element: Page(<Memory />) },
   { path: '/coverage', element: Page(<Coverage />) },
+  { path: '/observed-play', element: Page(<ObservedPlay />) },
 ]);

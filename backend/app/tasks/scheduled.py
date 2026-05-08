@@ -71,11 +71,19 @@ def run_scheduled_hh(num_games: int = 200) -> dict:
     matchup). Results feed into historical card performance data which the
     Coach uses for swap candidate selection.
     """
+    # The Neo4j AsyncDriver singleton is bound to whichever loop first called
+    # get_driver(). Reusing it across nightly runs (each with a fresh loop)
+    # causes stale-connection errors after the first run. Nil it here so it is
+    # recreated inside the new loop, matching the pattern in run_simulation.
+    from app.db import graph as _graph_module
+    _graph_module._driver = None
+
     loop = asyncio.new_event_loop()
     try:
         return loop.run_until_complete(_run_scheduled_hh_async(num_games))
     finally:
         loop.close()
+        _graph_module._driver = None
 
 
 async def _run_scheduled_hh_async(num_games: int) -> dict:

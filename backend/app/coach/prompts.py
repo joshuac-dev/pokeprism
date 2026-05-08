@@ -70,6 +70,8 @@ Weak synergies (candidates for removal): {weak_synergies}
 - Preserve the UNPROTECTED cards that contribute positively to draw/search.
 - Each swap must maintain a 60-card deck.
 - If the deck is performing well (win_rate > 60%), propose 0 swaps.
+- If an OBSERVED PLAY EVIDENCE block is provided at the end of this prompt, treat it as advisory context only. Cite relevant entries using kind "observed_play", ref = <event_id UUID>, value = <one-phrase description of what the evidence shows>.
+- You MUST always include "observed_play_acknowledgment" in your JSON response. If no OBSERVED PLAY EVIDENCE block was provided, set block_provided=false and leave the other fields empty. If the block WAS provided, set block_provided=true, list any event_id UUIDs you cited in "used_evidence_ids" (may be empty list if none were relevant), and if you chose not to use any observed-play evidence explain briefly in "not_used_reason".
 - Respond ONLY with valid JSON in this exact format:
 
 {{
@@ -80,14 +82,19 @@ Weak synergies (candidates for removal): {weak_synergies}
       "reasoning": "<one sentence>",
       "evidence": [
         {{
-          "kind": "card_performance|synergy|round_result|candidate_metric",
-          "ref": "<card id, metric name, or round number>",
+          "kind": "card_performance|synergy|round_result|candidate_metric|observed_play",
+          "ref": "<card id, metric name, round number, or event_id UUID>",
           "value": "<short factual value copied from supplied data>"
         }}
       ]
     }}
   ],
-  "analysis": "<2-3 sentence overall assessment>"
+  "analysis": "<2-3 sentence overall assessment>",
+  "observed_play_acknowledgment": {{
+    "block_provided": false,
+    "used_evidence_ids": [],
+    "not_used_reason": null
+  }}
 }}
 """
 
@@ -97,6 +104,27 @@ Your previous response failed validation:
 
 Return ONLY a JSON object matching the schema. Do not add prose. Do not use
 cards outside the supplied candidate/deck IDs.
+"""
+
+COACH_OBSERVED_PLAY_ACK_REPAIR_PROMPT = """\
+Your previous response was accepted for swaps but is missing the required \
+"observed_play_acknowledgment" field.
+
+An OBSERVED PLAY EVIDENCE block was provided in the original prompt. You MUST \
+include "observed_play_acknowledgment" in every response when the block is present.
+
+Re-emit your previous response exactly, adding the missing field. Your previous \
+response was:
+{previous_response}
+
+Return ONLY the corrected complete JSON object. The schema requires:
+  "observed_play_acknowledgment": {{
+    "block_provided": true,
+    "used_evidence_ids": [],
+    "not_used_reason": "<brief explanation of why observed-play evidence was not used, or null if you did use it>"
+  }}
+
+Do not change any swaps. Do not add prose outside the JSON.
 """
 
 DECK_NAME_PROMPT = """\

@@ -39,6 +39,15 @@ class Settings(BaseSettings):
         )
     )
 
+    # Observed Play Memory — Coach advisory integration (Phase 6.1)
+    # Default is OFF. Set OBSERVED_PLAY_MEMORY_ENABLED=true to enable injection
+    # of observed-play evidence into Coach prompts (advisory only; never affects
+    # AI Player, simulator, deck-builder, pgvector, Neo4j, match_events, or
+    # card_performance).
+    OBSERVED_PLAY_MEMORY_ENABLED: bool = Field(default=False)
+    OBSERVED_PLAY_MEMORY_MAX_EVIDENCE: int = Field(default=8)
+    OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE: float = Field(default=0.85)
+
     @property
     def cors_origins_list(self) -> list[str] | str:
         origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]

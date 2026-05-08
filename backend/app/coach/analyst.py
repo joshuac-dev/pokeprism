@@ -15,11 +15,12 @@ from app.config import settings
 from app.coach.prompts import (
     COACH_EVOLUTION_SYSTEM_PROMPT,
     COACH_EVOLUTION_USER_PROMPT,
+    COACH_OBSERVED_PLAY_ACK_REPAIR_PROMPT,
     COACH_REPAIR_PROMPT,
 )
 from sqlalchemy import select
 
-from app.db.models import Card, DeckMutation
+from app.db.models import Card, DeckMutation, Simulation
 from app.memory.embeddings import SimilarSituationFinder
 from app.memory.graph import GraphQueries
 from app.memory.postgres import CardPerformanceQueries
@@ -32,6 +33,26 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _TCGDEX_ID_RE = re.compile(r"^[a-z][a-z0-9.]*-[0-9]+[a-z]*$")
+
+_ACK_FALLBACK_REASON = (
+    "LLM failed to acknowledge injected observed-play evidence after retries."
+)
+
+
+def _inject_ack_fallback(op_ack: dict | None) -> dict | None:
+    """Ensure a non-null not_used_reason when acknowledgment_missing=True.
+
+    Every injected round must have either used_evidence_ids (non-empty) or
+    not_used_reason (non-null) so users can distinguish a genuine no-evidence
+    decision from a repair failure.
+    """
+    if op_ack is None:
+        return None
+    if op_ack.get("acknowledgment_missing") and not op_ack.get("not_used_reason"):
+        return {**op_ack, "not_used_reason": _ACK_FALLBACK_REASON}
+    return op_ack
+
+
 
 
 class CoachAnalyst:
@@ -111,6 +132,30 @@ class CoachAnalyst:
         primary_ids = self._identify_primary_line(round_results, current_deck)
         tiers = self._classify_deck_tiers(current_deck, primary_ids)
 
+        # Build card ID → name lookup for richer retrieval debug metadata
+        card_id_to_name: dict[str, str] = {}
+        for c in current_deck:
+            if c.tcgdex_id and c.name:
+                card_id_to_name.setdefault(c.tcgdex_id, c.name)
+        for c in top_cards:
+            cid, cname = c.get("tcgdex_id"), c.get("name")
+            if cid and cname:
+                card_id_to_name.setdefault(cid, cname)
+
+        observed_play_block, observed_play_ids, observed_play_retrieval_meta = (
+            await self._fetch_observed_play_block(
+                deck_card_ids=deck_ids,
+                deck_card_names=list(dict.fromkeys(c.name for c in current_deck if c.name)),
+                candidate_card_ids=[
+                    c.get("tcgdex_id") for c in top_cards if c.get("tcgdex_id")
+                ],
+                candidate_card_names=[
+                    c.get("name") for c in top_cards if c.get("name")
+                ],
+                card_id_to_name=card_id_to_name,
+            )
+        )
+
         prompt_messages = self._build_prompt_messages(
             deck=current_deck,
             excluded_ids=excluded,
@@ -121,9 +166,25 @@ class CoachAnalyst:
             similar=similar,
             tiers=tiers,
             regression_info=regression_info,
+            observed_play_block=observed_play_block,
         )
 
-        raw_swaps = await self._get_swap_decisions(prompt_messages)
+        raw_swaps, op_acknowledgment, op_analysis = await self._get_swap_decisions(
+            prompt_messages, observed_play_ids=observed_play_ids
+        )
+        op_meta: dict | None = None
+        if observed_play_ids or observed_play_block or observed_play_retrieval_meta:
+            op_meta = {
+                "block_injected": bool(observed_play_block),
+                "evidence_ids_available": observed_play_ids,
+                "acknowledgment": op_acknowledgment,
+                "llm_analysis": op_analysis,
+                "retrieval_metadata": observed_play_retrieval_meta,
+                "no_relevant_evidence": (
+                    observed_play_retrieval_meta.get("no_relevant_evidence", False)
+                    if observed_play_retrieval_meta else not bool(observed_play_block)
+                ),
+            }
 
         # Enforce tier protection rules (blocks tier1; requires full-line for tier2)
         all_deck_id_set = set(deck_ids)
@@ -157,12 +218,20 @@ class CoachAnalyst:
                 "card_added_def": self._candidate_to_card_definition(candidate_by_id.get(added)),
                 "reasoning": reasoning,
                 "evidence": swap.get("evidence", []),
+                "observed_play_meta": op_meta,
             }
             mutations.append(mutation)
             await self._graph.record_swap(removed, added, round_number, reasoning)
 
         if mutations:
             await self._write_mutations(mutations, simulation_id)
+        if op_meta is not None:
+            await self._write_sim_observed_play_meta(
+                simulation_id=simulation_id,
+                round_number=round_number,
+                op_meta=op_meta,
+                mutations_count=len(mutations),
+            )
 
         return mutations
 
@@ -181,6 +250,7 @@ class CoachAnalyst:
         excluded_ids: list[str] | None = None,
         tiers: dict | None = None,
         regression_info: dict | None = None,
+        observed_play_block: str = "",
     ) -> str:
         wins = sum(1 for r in round_results if r.winner == "p1")
         total = len(round_results)
@@ -227,6 +297,8 @@ class CoachAnalyst:
             card_tiers=card_tiers_text,
             performance_history=performance_history_text,
         )
+        if observed_play_block:
+            user_prompt = user_prompt + "\n\n" + observed_play_block
         return [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -236,22 +308,145 @@ class CoachAnalyst:
         """Compatibility helper for tests/callers that inspect the user prompt."""
         return self._build_prompt_messages(*args, **kwargs)[1]["content"]
 
-    async def _get_swap_decisions(self, messages: list[dict] | str, retries: int = 2) -> list[dict]:
+    async def _fetch_observed_play_block(
+        self,
+        deck_card_ids: list[str] | None = None,
+        deck_card_names: list[str] | None = None,
+        candidate_card_ids: list[str] | None = None,
+        candidate_card_names: list[str] | None = None,
+        card_id_to_name: dict[str, str] | None = None,
+    ) -> tuple[str, list[str], dict | None]:
+        """Return (prompt_block, evidence_ids, retrieval_metadata) if the feature flag is on.
+
+        Returns ("", [], None) when OBSERVED_PLAY_MEMORY_ENABLED is false (the
+        default), keeping Coach prompts byte-for-byte identical to pre-6.1.
+
+        When deck_card_ids / deck_card_names / candidate_card_ids / candidate_card_names
+        are supplied, tiered retrieval (Phase 6.2a) selects deck-relevant evidence.
+        When no context is supplied, Phase 6.1 global top-N behaviour is used.
+
+        Advisory only — never affects swap decisions or game logic directly.
+        """
+        if not settings.OBSERVED_PLAY_MEMORY_ENABLED:
+            logger.debug("OBSERVED_PLAY_MEMORY_ENABLED=false; skipping observed-play block.")
+            return "", [], None
+        try:
+            from app.observed_play.coach_context import build_coach_context_preview
+            preview = await build_coach_context_preview(
+                self._db,
+                deck_card_ids=deck_card_ids,
+                deck_card_names=deck_card_names,
+                candidate_card_ids=candidate_card_ids,
+                candidate_card_names=candidate_card_names,
+                allow_fallback=False,
+                include_relevance_hints=True,
+                card_id_to_name=card_id_to_name,
+            )
+            retrieval_meta: dict | None = None
+            if preview.retrieval_metadata is not None:
+                retrieval_meta = preview.retrieval_metadata.model_dump()
+            logger.info(
+                "OBSERVED_PLAY evidence fetch: would_inject=%s evidence_count=%d ids=%s",
+                preview.would_inject,
+                preview.evidence_count,
+                preview.evidence_ids[:3],
+            )
+            if preview.would_inject:
+                logger.info(
+                    "OBSERVED_PLAY block injected into Coach prompt (%d chars, %d items).",
+                    len(preview.prompt_block),
+                    preview.evidence_count,
+                )
+                return preview.prompt_block, list(preview.evidence_ids), retrieval_meta
+            else:
+                logger.info("OBSERVED_PLAY would_inject=false; reason: %s", preview.reason)
+                return "", [], retrieval_meta
+        except Exception:
+            logger.warning(
+                "Failed to fetch observed-play context for Coach prompt; "
+                "proceeding without it.",
+                exc_info=True,
+            )
+        return "", [], None
+
+    async def _get_swap_decisions(
+        self,
+        messages: list[dict] | str,
+        observed_play_ids: list[str] | None = None,
+        retries: int = 2,
+    ) -> tuple[list[dict], dict | None, str | None]:
         if isinstance(messages, str):
             messages = [
                 {"role": "system", "content": COACH_EVOLUTION_SYSTEM_PROMPT.format(max_swaps=self._max_swaps)},
                 {"role": "user", "content": messages},
             ]
+        last_raw = ""
+        # Saved when swaps are valid but ack is missing — used as fallback if ack
+        # repair causes the LLM to produce invalid swaps on the next attempt.
+        last_valid_swaps: list[dict] | None = None
+        last_valid_parsed: dict | None = None
+
         for attempt in range(retries):
             raw = await self._call_ollama(messages)
+            last_raw = raw
             parsed, parse_error = self._parse_response(raw)
             swaps, validation_error = self._validate_swap_response(parsed)
+
             if swaps is not None:
-                return swaps
+                # Check whether the observed-play acknowledgment is required and present.
+                needs_ack = bool(observed_play_ids)
+                has_ack = (
+                    isinstance(parsed, dict)
+                    and isinstance(parsed.get("observed_play_acknowledgment"), dict)
+                )
+
+                if needs_ack and not has_ack and attempt < retries - 1:
+                    # Save valid swaps as fallback in case the ack repair prompt
+                    # causes the LLM to produce invalid swaps on the next attempt.
+                    last_valid_swaps = swaps
+                    last_valid_parsed = parsed
+                    logger.warning(
+                        "Coach missing observed_play_acknowledgment (attempt %d/%d); "
+                        "retrying with ack repair prompt.",
+                        attempt + 1, retries,
+                    )
+                    messages = [
+                        messages[0],
+                        {
+                            "role": "user",
+                            "content": COACH_OBSERVED_PLAY_ACK_REPAIR_PROMPT.format(
+                                previous_response=raw[:2000],
+                            ),
+                        },
+                    ]
+                    continue
+
+                if needs_ack and not has_ack:
+                    logger.error(
+                        "Coach failed to include observed_play_acknowledgment after %d "
+                        "attempt(s); accepting with acknowledgment_missing=True.",
+                        attempt + 1,
+                    )
+
+                analysis_text: str | None = None
+                if isinstance(parsed, dict):
+                    raw_analysis = parsed.get("analysis")
+                    if isinstance(raw_analysis, str) and raw_analysis.strip():
+                        analysis_text = raw_analysis.strip()[:800]
+                if not swaps and parsed:
+                    logger.info(
+                        "Coach recommended 0 swaps. Analysis: %.300s",
+                        analysis_text or "(none)",
+                    )
+                op_ack = _inject_ack_fallback(
+                    self._extract_op_acknowledgment(parsed, observed_play_ids or [])
+                )
+                return swaps, op_ack, analysis_text
+
             error = parse_error or validation_error or "unknown schema failure"
             logger.warning(
-                "Coach response validation failed (attempt %d/%d): %s",
-                attempt + 1, retries, error,
+                "Coach response validation failed (attempt %d/%d): %s | raw=%.200s",
+                attempt + 1, retries, error, raw[:200],
             )
             messages = [
                 messages[0],
@@ -260,8 +455,30 @@ class CoachAnalyst:
                     "content": COACH_REPAIR_PROMPT.format(validation_error=error),
                 },
             ]
-        logger.error("Coach gave invalid response after %d retries", retries)
-        return []
+
+        # All retries exhausted without a clean response.
+        # If the ack repair attempt produced invalid swaps, fall back to the last
+        # valid (swap-validated) response and mark acknowledgment as missing.
+        if last_valid_swaps is not None:
+            logger.error(
+                "Ack repair produced invalid swaps; using last valid swaps with "
+                "acknowledgment_missing=True.",
+            )
+            analysis_text = None
+            if isinstance(last_valid_parsed, dict):
+                raw_analysis = last_valid_parsed.get("analysis")
+                if isinstance(raw_analysis, str) and raw_analysis.strip():
+                    analysis_text = raw_analysis.strip()[:800]
+            op_ack = _inject_ack_fallback(
+                self._extract_op_acknowledgment(last_valid_parsed, observed_play_ids or [])
+            )
+            return last_valid_swaps, op_ack, analysis_text
+
+        logger.error(
+            "Coach gave invalid response after %d retries. Last raw: %.200s",
+            retries, last_raw[:200],
+        )
+        return [], None, None
 
     async def _call_ollama(self, messages: list[dict]) -> str:
         """Call Ollama /api/chat with up to 3 connection retries (exponential backoff)."""
@@ -271,7 +488,8 @@ class CoachAnalyst:
             "model": self._model,
             "messages": messages,
             "stream": False,
-            "options": {"temperature": 0.2, "num_predict": 768},
+            "format": "json",
+            "options": {"temperature": 0.2, "num_predict": 2048},
         }
         _CONNECT_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout)
         for attempt in range(3):
@@ -282,7 +500,14 @@ class CoachAnalyst:
                         json=payload,
                     )
                     resp.raise_for_status()
-                    return resp.json().get("message", {}).get("content", "")
+                    content = resp.json().get("message", {}).get("content", "")
+                    if not content.strip():
+                        logger.warning(
+                            "Coach Ollama returned empty content (attempt %d/3). "
+                            "Response top-level keys: %s",
+                            attempt + 1, sorted(resp.json().keys()),
+                        )
+                    return content
             except _CONNECT_ERRORS as exc:
                 if attempt == 2:
                     raise
@@ -345,7 +570,7 @@ class CoachAnalyst:
                 kind = item.get("kind")
                 ref = item.get("ref")
                 value = item.get("value")
-                if kind not in {"card_performance", "synergy", "round_result", "candidate_metric"}:
+                if kind not in {"card_performance", "synergy", "round_result", "candidate_metric", "observed_play"}:
                     return None, "invalid evidence kind"
                 if not isinstance(ref, str) or not isinstance(value, str):
                     return None, "evidence ref/value must be strings"
@@ -361,6 +586,40 @@ class CoachAnalyst:
                 "evidence": bounded_evidence,
             })
         return valid, None
+
+    def _extract_op_acknowledgment(
+        self, parsed: dict | None, available_ids: list[str]
+    ) -> dict | None:
+        """Extract and normalise the observed_play_acknowledgment from an LLM response.
+
+        Returns None when no observed-play block was injected (available_ids empty).
+        When the block was injected, returns a dict with:
+          block_provided, used_evidence_ids, not_used_reason, acknowledgment_missing.
+        Logs a warning if the field was expected but absent.
+        """
+        if not available_ids:
+            return None
+        raw = parsed.get("observed_play_acknowledgment") if isinstance(parsed, dict) else None
+        if not isinstance(raw, dict):
+            logger.warning(
+                "OBSERVED_PLAY block was injected (%d IDs) but LLM did not include "
+                "observed_play_acknowledgment in response.",
+                len(available_ids),
+            )
+            return {
+                "block_provided": True,
+                "used_evidence_ids": [],
+                "not_used_reason": None,
+                "acknowledgment_missing": True,
+            }
+        used = raw.get("used_evidence_ids")
+        not_used = raw.get("not_used_reason")
+        return {
+            "block_provided": bool(raw.get("block_provided", True)),
+            "used_evidence_ids": used if isinstance(used, list) else [],
+            "not_used_reason": str(not_used)[:500] if isinstance(not_used, str) and not_used else None,
+            "acknowledgment_missing": False,
+        }
 
     def _format_reasoning_with_evidence(self, reasoning: str, evidence: list[dict]) -> str:
         """Persist a compact provenance trail in the existing reasoning field."""
@@ -942,7 +1201,49 @@ class CoachAnalyst:
                 card_added=m["card_added"],
                 reasoning=m.get("reasoning"),
                 evidence=m.get("evidence"),
+                observed_play_meta=m.get("observed_play_meta"),
             )
             for m in mutations
         )
         await self._db.flush()
+
+    async def _write_sim_observed_play_meta(
+        self,
+        simulation_id: uuid.UUID,
+        round_number: int,
+        op_meta: dict,
+        mutations_count: int,
+    ) -> None:
+        """Append per-round observed-play injection state to simulations.observed_play_meta.
+
+        Persists even when no mutations were produced, so coach-debug can
+        surface evidence injection state for 0-swap rounds.
+        """
+        from sqlalchemy.orm.attributes import flag_modified
+
+        sim = (await self._db.execute(
+            select(Simulation).where(Simulation.id == simulation_id)
+        )).scalar_one_or_none()
+        if sim is None:
+            logger.warning("_write_sim_observed_play_meta: simulation %s not found", simulation_id)
+            return
+
+        round_entry: dict = {
+            "round_number": round_number,
+            "block_injected": op_meta.get("block_injected", False),
+            "no_relevant_evidence": op_meta.get("no_relevant_evidence", False),
+            "evidence_ids_available": op_meta.get("evidence_ids_available") or [],
+            "acknowledgment": op_meta.get("acknowledgment"),
+            "llm_analysis": op_meta.get("llm_analysis"),
+            "retrieval_metadata": op_meta.get("retrieval_metadata"),
+            "mutations_produced": mutations_count,
+        }
+
+        current = sim.observed_play_meta
+        if isinstance(current, list):
+            sim.observed_play_meta = current + [round_entry]
+        else:
+            sim.observed_play_meta = [round_entry]
+        flag_modified(sim, "observed_play_meta")
+        await self._db.flush()
+

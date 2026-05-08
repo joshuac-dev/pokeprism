@@ -21,12 +21,32 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
+def _warn_if_log_root_not_writable() -> None:
+    """Warn at startup if the ptcgl_logs directory is missing or not writable."""
+    import os
+    from app.observed_play.storage import OBSERVED_PLAY_ROOT, ensure_observed_play_dirs
+    try:
+        ensure_observed_play_dirs()
+        # Quick write-permission probe
+        probe = OBSERVED_PLAY_ROOT / ".write_probe"
+        probe.write_bytes(b"")
+        probe.unlink()
+    except Exception as exc:
+        logger.warning(
+            "Observed Play log root %s is not writable: %s — "
+            "uploads will fail until permissions are fixed (chown -R app:app %s).",
+            OBSERVED_PLAY_ROOT, exc, OBSERVED_PLAY_ROOT,
+        )
+
+
 def create_app() -> socketio.ASGIApp:
     fastapi_app = FastAPI(
         title="PokéPrism API",
         description="Self-hosted Pokémon TCG simulation and deck evolution engine.",
         version="0.7.0",
     )
+
+    _warn_if_log_root_not_writable()
 
     fastapi_app.add_middleware(
         CORSMiddleware,

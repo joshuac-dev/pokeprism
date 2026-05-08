@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-05 (session 19 — manual deck name overrides in Simulation Setup)
+Last updated: 2026-05-08 (session 61 — Phase 6.2 stabilization sweep: both 6.2a and 6.2b manually validated)
 
 ## Current Workstream
 
@@ -16,6 +16,87 @@ post-phase development:
 - Card-effect correctness, handler registration, and simulation validation.
 - AI/coach hardening and decision-quality follow-up.
 - Operational refinement for Docker, Celery, CI, and local workflows.
+
+**Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
+**Phase 1 through Phase 6.2b are COMPLETE and manually validated.** Both phases validated 2026-05-08.
+See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
+
+**Phase 6.1 verification summary:**
+- User Check 1 ✅ — Flag-off context preview: `enabled=false`, `would_inject=false`, no evidence
+- User Check 2 ✅ — Flag-off Coach: no observed-play evidence in prompt or output
+- User Check 3 ✅ — Flag-on Coach: block injected, LLM acknowledges (or fallback `not_used_reason`)
+- User Check 4 ✅ — Immutability: all observed-play memory tables unchanged after flag-on simulation
+
+**Phase 6.2a — Evidence relevance retrieval (COMPLETE, manually validated 2026-05-08):**
+- Tiered retrieval: Tier 1 (exact card-ID match) → Tier 2 (ILIKE name match) → Tier 3 (global fallback, opt-in only).
+- Source diversity cap: max 2 items per `observed_play_log_id`.
+- Win/loss outcome weighting: +0.05 tiebreaker bonus, never a hard gate.
+- No relevant evidence (flag-on, no deck match): `would_inject=false`, `no_relevant_evidence=true`, empty prompt block.
+- `CoachAnalyst` now passes deck/candidate card context to `_fetch_observed_play_block()`.
+- `coach-debug` endpoint surfaces `retrieval_metadata` per round: `strategy`, `deck_card_ids`, `deck_card_names`, `candidate_card_ids`, `candidate_card_names`, `no_relevant_evidence`, and per-item `tier`, `relevance_score`, `match_source`, `matched_card_ids`, `matched_card_names`, `matched_reason`.
+- Debug refinements (17b6999): `deck_card_ids`/`candidate_card_ids` separated; `match_source` field (`deck_card`/`candidate_card`/`name_fallback_deck`/`name_fallback_candidate`/`global_fallback`); `matched_card_names` resolved from `card_id_to_name` dict; `matched_reason` human-readable; `no_relevant_evidence` explicit bool; deck matches sorted before candidate matches.
+- No migration required. Observed-play memory remains read-only and advisory.
+- Backend: 1223 passed, 1 skipped.
+
+**Phase 6.2a manual validation result (2026-05-08, commit 17b6999):**
+- Validated via flag-on H/H simulation + `GET /api/simulations/{id}/coach-debug`.
+- `strategy=deck_overlap_v1`, `allow_fallback=false`, `no_relevant_evidence=false`.
+- `deck_card_ids`/`candidate_card_ids` separate and populated.
+- All selected evidence was Tier 1, `match_source=deck_card`.
+- `matched_card_names` populated (Dragapult ex, Budew, Fezandipiti ex, Munkidori, Lillie's Clefairy ex).
+- `matched_reason` human-readable (e.g. "deck_card Dragapult ex matched actor_card_def_id sv06-001").
+- No global fallback injected by default. Source diversity cap working. Simulation completed normally.
+
+**Phase 6.2b — UI/debug visibility (COMPLETE, manually validated 2026-05-08):**
+- `ObservedPlayCoachContextPreview` TypeScript type extended with `retrieval_metadata` and `no_relevant_evidence`.
+- New TS interfaces: `EvidenceSelectionDetail`, `EvidenceExclusionSummary`, `ObservedPlayRetrievalMetadata`.
+- `CoachContextPreviewSection` (on `/observed-play`) shows: no-relevant-evidence banner, deck context pills, candidate card pills, evidence selected table (Tier / Score / Match source / Matched cards / Reason), exclusion summary row.
+- Shared `RetrievalMetadataPanel` component: `frontend/src/components/observedPlay/RetrievalMetadataPanel.tsx`.
+- New `ObservedPlayRetrievalDebugTile` in `frontend/src/components/simulation/` — per-round retrieval accordion using data from `GET /api/simulations/{id}/coach-debug`.
+- `Dashboard.tsx` loads coach-debug in a separate non-fatal effect and renders tile 14 "Observed-Play Retrieval Debug" after the Final Candidate Deck tile.
+- New types `CoachDebugAnalysisRound`, `CoachDebugResponse` in `simulation.ts`; `getSimulationCoachDebug` in `simulations.ts`.
+- Helper copy on `/observed-play` preview explains that deck-overlap retrieval metadata is in the simulation Dashboard.
+- 7 new frontend tests for `ObservedPlayRetrievalDebugTile` (353 total, 18 files). Build clean.
+
+**Phase 6.2b manual validation result (2026-05-08, commit 77e4048):**
+- Validated in the simulation Dashboard after a completed flag-on H/H simulation.
+- Observed-Play Retrieval Debug tile appears after Final Candidate Deck.
+- Tile shows: flag enabled, any block injected, round count summary, per-round accordion.
+- Per-round accordion shows: strategy (`deck_overlap_v1`), deck/candidate card pills, evidence selected table (Tier, Score, Match source, Matched cards, Reason), acknowledgment.
+- Tile values match `GET /api/simulations/{id}/coach-debug` curl output exactly.
+- UI is readable and sufficient for manual validation without curl.
+
+**Important UI/data-flow note:**
+- The `/observed-play` Coach Context Preview uses manual card-name filters with no simulation context; it may not have `retrieval_metadata` unless the endpoint is called with deck IDs.
+- Real deck-contextual retrieval metadata for a simulation lives in `GET /api/simulations/{id}/coach-debug`.
+- The authoritative UI for validating Phase 6.2a retrieval behavior is the simulation Dashboard "Observed-Play Retrieval Debug" tile (not the `/observed-play` preview).
+
+**Next feature step:** Phase 6.2c (if needed) — further validation passes or Phase 7 planning.
+Plan: `docs/proposals/OBSERVED_PLAY_EVIDENCE_RELEVANCE_PLAN.md`.
+Observed memory remains advisory only. No claim is made that observed-play evidence improves gameplay — the correct claim is: *observed-play evidence retrieval is deck-contextual, visible, verifiable, and advisory-only.*
+
+**Known caveat:** The LLM (Gemma) may fail to acknowledge observed-play evidence even after a repair retry. This is now visible and non-silent through the fallback `not_used_reason` (`"LLM failed to acknowledge injected observed-play evidence after retries."`) and `coach-debug` metadata. `any_acknowledgment_missing=true` is a valid outcome when this occurs; the goal is that failure is always explicit, never silent.
+
+**What observed-play injection does and does not do:**
+- ✅ Can inject observed-play evidence into Coach prompts when `OBSERVED_PLAY_MEMORY_ENABLED=true`.
+- ✅ Coach must cite evidence IDs or provide a `not_used_reason`.
+- ✅ Injection is verified read-only for all observed-play memory tables.
+- ❌ Does not affect AI Player, simulator runtime, deck builder, pgvector, Neo4j, `match_events`, `card_performance`, or gameplay decisions.
+- ❌ No claim is made that observed-play evidence improves Coach decisions — the injection is wired and verifiable; impact is not yet measured.
+
+### Local dev flag control
+
+To enable Coach observed-play injection locally:
+```bash
+echo "OBSERVED_PLAY_MEMORY_ENABLED=true" >> .env
+docker compose up -d --no-deps backend celery-worker
+```
+
+To disable (restore default):
+```bash
+sed -i '/OBSERVED_PLAY_MEMORY_ENABLED/d' .env
+docker compose up -d --no-deps backend celery-worker
+```
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
 workflow. `docs/CARDLIST.md`, `docs/POKEMON_MASTER_LIST.md`, and
@@ -33,10 +114,1906 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **598 passed, 1 skipped** — 2026-05-05 session 19. `cd backend && python3 -m pytest tests/ -x -q`. Historical: 584/1 (session 18), 579/1 (session 16), 565/1 (session 15), 547/1 (session 14), 542/1 (session 12), 522/1 (session 11), 490/1 (session 10), 478/1 (session 9), 466 (session 8). |
-| Frontend unit tests | **140 passed (14 files)** — 2026-05-05 session 19. `cd frontend && npm test -- --run`. Added `DeckUploader.test.tsx` (+3 new tests), `OpponentDeckList.test.tsx` (9 new tests, new file), `SimulationSetup.test.tsx` (9 new tests, new file). Historical: 118/12 (session 18). |
+| Backend test baseline | **1201 passed, 1 skipped** — 2026-05-08 session 57. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Frontend unit tests | **339 passed (17 files)** — 2026-05-10 session 54. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 57 Work (2026-05-08) — Coach ack retry + fallback reason + flag control
+
+### Problems addressed
+
+1. **Ack retry enforcement**: LLM sometimes omitted `observed_play_acknowledgment` silently. Added retry with repair prompt.
+2. **Fallback not_used_reason**: When all retries fail, `not_used_reason` was still `null`. Added `_inject_ack_fallback()` to ensure every injected round has a non-null `not_used_reason`.
+3. **Flag control**: `docker-compose.override.yml` hard-coded `OBSERVED_PLAY_MEMORY_ENABLED: "true"` with no easy way to turn it off. Now uses `${OBSERVED_PLAY_MEMORY_ENABLED:-false}`, defaulting to off unless set in `.env`.
+
+### What was changed
+
+- **`backend/app/coach/prompts.py`** — Added `COACH_OBSERVED_PLAY_ACK_REPAIR_PROMPT`: includes previous LLM response (≤2000 chars), instructs re-emission with ack field; does not resend deck context.
+- **`backend/app/coach/analyst.py`**:
+  - Added module-level `_ACK_FALLBACK_REASON` constant and `_inject_ack_fallback()` helper
+  - Refactored `_get_swap_decisions`: saves `last_valid_swaps`/`last_valid_parsed` on missing-ack; retries on non-final attempts; accepts with `acknowledgment_missing=True` on final attempt; uses `last_valid_swaps` fallback if repair causes invalid swaps
+  - `_inject_ack_fallback()` applied at all `acknowledgment_missing=True` return paths
+- **`docker-compose.override.yml`** — Replaced `OBSERVED_PLAY_MEMORY_ENABLED: "true"` with `"${OBSERVED_PLAY_MEMORY_ENABLED:-false}"` on both `backend` and `celery-worker`; added comments explaining how to enable via `.env`
+- **`.env.example`** — Added commented-out `# OBSERVED_PLAY_MEMORY_ENABLED=true` with instructions
+- **Tests** — `TestObservedPlayAckRepair` updated to 6 tests; assertions now verify non-null `not_used_reason` on fallback paths
+
+### Files changed
+
+- `backend/app/coach/prompts.py`
+- `backend/app/coach/analyst.py`
+- `backend/tests/test_coach/test_analyst.py`
+- `docker-compose.override.yml`
+- `.env.example`
+- `docs/STATUS.md`, `docs/CHANGELOG.md`
+
+### Validation
+
+- `docker compose exec backend python3 -c "from app.config import settings; print(settings.OBSERVED_PLAY_MEMORY_ENABLED)"` → `False`
+- `docker compose exec celery-worker python3 -c "from app.config import settings; print(settings.OBSERVED_PLAY_MEMORY_ENABLED)"` → `False`
+- `curl .../coach-context-preview?card_name=Dragapult+ex` → `enabled=false, would_inject=false`
+- Backend: **1201 passed, 1 skipped**
+- Frontend: **339 passed (17 files)** (unchanged)
+- No observed-play memory behavior, simulation mutation logic, AI Player, pgvector, Neo4j, match_events, card_performance, or deck-builder changed.
+
+## Session 56 Work (2026-05-08) — Coach observed-play no-mutation debug fix
+
+### Root cause / Scenario 3
+
+After fixing the celery-worker env (session 54), `OBSERVED_PLAY evidence fetch: would_inject=True evidence_count=8` appeared in the worker logs, confirming the block was injected. However, `GET /api/simulations/{id}/coach-debug` showed `observed_play_citations_found=[]` and `any_observed_play_cited=false`. The LLM received the evidence block but did not cite any observed-play event IDs in its structured response, because: (a) the prompt only softly requested citation; (b) there was no structured acknowledgment field in the response schema forcing the LLM to explicitly account for the observed-play block.
+
+### What was changed
+
+- **`backend/alembic/versions/h4i5j6k7l8m9_add_deck_mutation_observed_play_meta.py`** — new migration: adds `observed_play_meta JSONB nullable` column to `deck_mutations`
+- **`backend/app/db/models.py`** — added `observed_play_meta = Column(JSONB)` to `DeckMutation`
+- **`backend/app/coach/prompts.py`** — added `observed_play_acknowledgment` as a required top-level field in the JSON schema; added strong instruction: the LLM MUST include this field, set `block_provided=true` if the block was present, list cited event IDs in `used_evidence_ids`, and if no evidence was used explain in `not_used_reason`
+- **`backend/app/coach/analyst.py`**:
+  - `_fetch_observed_play_block()` now returns `tuple[str, list[str]]` (block_text, evidence_ids)
+  - New `_extract_op_acknowledgment(parsed, available_ids)` method: normalises the `observed_play_acknowledgment` from the LLM response; logs WARNING if field was expected but absent
+  - `_get_swap_decisions()` accepts `observed_play_ids` param; returns `tuple[list[dict], dict | None]` with the acknowledgment
+  - `analyze_and_mutate()` builds `op_meta` dict (`block_injected`, `evidence_ids_available`, `acknowledgment`) and attaches it to each mutation
+  - `_write_mutations()` stores `observed_play_meta` on `DeckMutation`
+- **`backend/app/api/simulations.py`** — `GET /api/simulations/{id}/coach-debug` now surfaces per-mutation: `observed_play_block_injected`, `observed_play_evidence_ids_available`, `observed_play_citations_used`, `observed_play_not_used_reason`, `observed_play_acknowledgment_missing`; top-level `any_block_injected`
+- **Tests**:
+  - Updated `_fetch_observed_play_block` tests (4): now check `(block, ids)` tuple
+  - Updated `_get_swap_decisions` callers (3): now unpack tuple
+  - Updated `test_observed_play_is_valid_evidence_kind`: includes `observed_play_acknowledgment` in response
+  - Added 5 new `TestCoachAnalystObservedPlay` tests for `_extract_op_acknowledgment`
+  - Added `TestGetSimulationCoachDebug.test_observed_play_meta_fields_surfaced` (new test)
+  - Updated `_make_mutation` mock to set `observed_play_meta=None` explicitly
+
+### Files changed
+
+- `backend/alembic/versions/h4i5j6k7l8m9_add_deck_mutation_observed_play_meta.py` (new)
+- `backend/app/db/models.py`
+- `backend/app/coach/prompts.py`
+- `backend/app/coach/analyst.py`
+- `backend/app/api/simulations.py`
+- `backend/tests/test_api/test_simulations.py`
+- `backend/tests/test_coach/test_analyst.py`
+- `docs/STATUS.md`, `docs/CHANGELOG.md`
+
+### Validation
+
+- Migration applied cleanly: `g3h4i5j6k7l8 → h4i5j6k7l8m9`
+- Backend: **1188 passed, 1 skipped**
+- Frontend: **339 passed (17 files)** (unchanged)
+- No observed-play memory behavior, simulation mutation logic, AI Player, pgvector, Neo4j, match_events, card_performance, or deck-builder changed.
+
+## Session 54 Work (2026-05-10) — Coach observed-play injection fix + debug visibility
+
+### Root cause
+
+`OBSERVED_PLAY_MEMORY_ENABLED=true` was set only on the backend API container; the celery-worker container (which actually runs H/H simulation tasks) did not have it. `settings.OBSERVED_PLAY_MEMORY_ENABLED` evaluated `False` in the worker, so `_fetch_observed_play_block` returned `""` immediately without fetching any evidence. The preview API endpoint worked because it ran in the backend container.
+
+Additional issue: the evidence kind validator only allowed `card_performance|synergy|round_result|candidate_metric`; `observed_play` was absent. Even after the env fix, the LLM would be unable to cite observed-play evidence IDs in the structured `evidence` field.
+
+### What was changed
+
+- **`docker-compose.override.yml`** — Added `OBSERVED_PLAY_MEMORY_ENABLED: "true"` to celery-worker environment
+- **`backend/app/coach/analyst.py`** — Added INFO-level logging in `_fetch_observed_play_block`: logs evidence_count, evidence_ids[:3], would_inject, and injection char count. Added `"observed_play"` to valid evidence kinds in `_validate_swap_response`
+- **`backend/app/coach/prompts.py`** — Added `observed_play` to the evidence kind schema; added instruction to cite observed-play event IDs using kind `observed_play` when OBSERVED PLAY EVIDENCE block is present
+- **`backend/app/api/simulations.py`** — Added read-only `GET /api/simulations/{id}/coach-debug` endpoint: returns flag state, all DeckMutations with evidence JSONB, extracted observed_play citations, and current context preview excerpt
+- **Tests** — Added `TestGetSimulationCoachDebug` (6 tests) in test_simulations.py; added `test_observed_play_is_valid_evidence_kind` in TestCoachAnalystObservedPlay; updated 3 prompt-content assertions to use `"— REVIEW ONLY"` suffix (distinguishing the actual block from the instruction reference)
+
+### Files changed
+
+- `docker-compose.override.yml`
+- `backend/app/coach/analyst.py`
+- `backend/app/coach/prompts.py`
+- `backend/app/api/simulations.py`
+- `backend/tests/test_api/test_simulations.py`
+- `backend/tests/test_coach/test_analyst.py`
+- `docs/STATUS.md`, `docs/CHANGELOG.md`
+
+### Validation
+
+- Backend: **1183 passed, 1 skipped**
+- Frontend: **339 passed (17 files)**
+- No observed-play memory behavior, simulation mutation logic, AI Player, pgvector, Neo4j, match_events, card_performance, or deck-builder changed.
+
+## Session 53 Work (2026-05-10) — PTCGL Format Deck Export
+
+### Root cause
+
+The Final Candidate Deck Copy button copied internal TCGdex IDs (`4 sv06-130`, `1 me01-113`) because `Deck.deck_text` is always stored in internal format. The `final_deck_text` and `original_deck_text` fields passed through that internal text directly.
+
+### What was changed
+
+- **`GET /api/simulations/{id}/final-deck`** — extended to return:
+  - `original_ptcgl_text` and `final_ptcgl_text`: human-readable PTCGL-grouped text
+    (e.g. `"Pokémon: 10\n3 Dragapult ex TWM 130\n…"`)
+  - `metadata_warnings`: list of cards that couldn't be fully formatted due to missing metadata
+  - Each card dict now includes `set_abbrev`, `set_number`, `category`, `ptcgl_line` fields
+  - All existing fields (`original_deck_text`, `final_deck_text`, `changed_cards`, etc.) unchanged
+- **`_build_ptcgl_text()` helper** — pure module-level function; groups cards into Pokémon / Trainer / Energy / Other sections with section counts; sorts by name within sections; falls back to TCGdex ID + emits warning if name/set data missing
+- **`DeckEvolutionPanel`** — main Copy button now copies `final_ptcgl_text`; label is "Copy PTCGL decklist"; original deck section also has "Copy PTCGL decklist" button; collapsible `<pre>` blocks show full PTCGL text; metadata warnings displayed in yellow box when present
+- **Types** — `DeckCardEntry` gains `set_abbrev`, `set_number`, `category`, `ptcgl_line`; `FinalDeckResponse` gains `original_ptcgl_text`, `final_ptcgl_text`, `metadata_warnings`
+
+### Files changed
+
+- `backend/app/api/simulations.py` — `_build_ptcgl_text()` helper + extended `_fetch_deck_cards` + new response fields
+- `backend/tests/test_api/test_simulations.py` — `TestBuildPtcglText` (8 unit tests) + 4 new endpoint tests
+- `frontend/src/components/simulation/DeckEvolutionPanel.tsx` — PTCGL copy/display, metadata warnings
+- `frontend/src/components/simulation/DeckEvolutionPanel.test.tsx` — 16 tests (was 13)
+- `frontend/src/types/simulation.ts` — extended `DeckCardEntry` + `FinalDeckResponse`
+- `docs/STATUS.md`, `docs/CHANGELOG.md`
+
+### Validation
+
+- Backend: **1176 passed, 1 skipped**
+- Frontend: **339 passed (17 files)**, build clean
+- No Coach logic, observed-play memory, AI Player, pgvector, Neo4j,
+  match_events, card_performance, deck-builder, data reset, or runtime
+  integration changed.
+
+## Session 52 Work (2026-05-09) — Final Candidate Deck / Deck Evolution Panel
+
+### What was added
+
+After multi-round H/H simulations, users can now see the full deck evolution:
+
+- **`GET /api/simulations/{id}/final-deck`** — returns original deck cards,
+  final working deck cards, changed-card summary (original count → final count),
+  `has_mutations` flag, and deck text for copy/export.
+- **`DeckEvolutionPanel`** React component — read-only tile showing:
+  - Safety note: "Original deck was not overwritten"
+  - Changed-cards table (before → after counts, green/red)
+  - Collapsible final candidate decklist + Copy button
+  - Collapsible original decklist
+  - "No mutations applied" state when deck unchanged
+- **Dashboard** integration: "Final Candidate Deck" tile added as full-width
+  tile after the Deck Mutation Log tile.
+- 5 new backend tests for `/final-deck` endpoint (404, 422, has_mutations
+  false, has_mutations true, changed_cards shape).
+- 13 new frontend tests for `DeckEvolutionPanel`.
+- TODO: save-as-new path deferred — panel is read-only.
+
+### Files changed
+
+- `backend/app/api/simulations.py` — new `GET /{id}/final-deck` endpoint
+- `backend/tests/test_api/test_simulations.py` — 5 new endpoint tests
+- `frontend/src/components/simulation/DeckEvolutionPanel.tsx` — new component
+- `frontend/src/components/simulation/DeckEvolutionPanel.test.tsx` — 13 tests
+- `frontend/src/pages/Dashboard.tsx` — imports + finalDeck state + new tile
+- `frontend/src/api/simulations.ts` — `getSimulationFinalDeck()` added
+- `frontend/src/types/simulation.ts` — `FinalDeckResponse`, `DeckCardEntry`, `ChangedCard` types
+- `docs/STATUS.md`, `docs/CHANGELOG.md`
+
+### Validation
+
+- Backend: **1165 passed, 1 skipped**
+- Frontend: **336 passed (17 files)**, build clean
+- No Coach logic, observed-play memory, AI Player, pgvector, Neo4j,
+  match_events, card_performance, deck-builder, data reset, or runtime
+  integration changed.
+
+## Session 51 Work (2026-05-09) — Multi-round Coach Simulation Deck Versioning Fix
+
+### Root cause
+
+After round 1 of a multi-round H/H simulation, Coach applied card swaps and
+`_apply_mutations` updated `current_deck_cards` in memory. Round 2 then called
+`ensure_deck_cards_for_id(user_deck_id, ..., current_deck_cards)` — passing the
+original user deck UUID but now-mutated card contents. The guard in
+`MatchMemoryWriter.ensure_deck_cards_for_id` saw that existing `DeckCard` rows
+for `user_deck_id` (original contents) didn't match the mutated `current_deck_cards`
+and raised `ValueError`. Original user deck rows were never modified — the mismatch
+was caused by reusing `user_deck_id` with mutated contents.
+
+### Fix (Option 2 — run-specific working deck versioning)
+
+- `simulation.py`: Track `current_p1_deck_id` (starts as `user_deck_id`). After
+  each Coach mutation where the deck text actually changes, create a new
+  `Deck` row (`source="simulation"`, name `"<deck> — sim <id8> r<N>"`) via
+  `ensure_deck_cards_for_id` with a fresh UUID and update `current_p1_deck_id`.
+  Subsequent rounds use `current_p1_deck_id` (the working clone), leaving the
+  original user deck and its `DeckCard` rows immutable.
+- `best_p1_deck_id` mirrors `best_deck_cards` for regression-revert correctness.
+- Round `deck_snapshot` stores `working_deck_id` so Celery retries restore the
+  correct working deck UUID.
+- At completion, `final_working_deck_id` is stored in `best_deck_snapshot` JSONB
+  (no migration required).
+- `memory/postgres.py`: Improved `ensure_deck_cards_for_id` error to include
+  expected/actual count maps and per-card diffs.
+- `api/simulations.py`: `GET /{id}` now returns `user_deck_id` and
+  `final_working_deck_id`.
+- 5 new backend checkpointing tests covering: original deck immutability, mutated
+  working deck acceptance, mismatch error details, `source="simulation"` attribute,
+  and round snapshot `working_deck_id` persistence.
+
+### Files changed
+
+- `backend/app/tasks/simulation.py`
+- `backend/app/memory/postgres.py`
+- `backend/app/api/simulations.py`
+- `backend/tests/test_tasks/test_simulation_checkpointing.py`
+
+### Validation
+
+- Backend: **1160 passed, 1 skipped**
+- Frontend: **323 passed (16 files)**, build clean
+- No AI Player, pgvector, Neo4j, observed-play memory, match_events,
+  card_performance, deck-builder, data reset, or runtime integration changed.
+
+## Session 50 Work (2026-05-09) — Coach LLM + UI Triage & Fix
+
+### Root cause
+
+A completed H/H simulation produced no visible card swaps and Coach reasoning
+was invisible in the UI. Investigation revealed two separate root causes:
+
+**Coach LLM (backend `analyst.py`):**
+- Ollama payload lacked `"format": "json"` → model returned prose instead of
+  JSON on attempt 1 → `invalid_json` parse error → WARNING emitted.
+- `num_predict: 768` was too small for a full Coach response with evidence.
+- Repair prompt replaced the user message with only the error text — no deck
+  context — so attempt 2 returned `{"swaps": [], "analysis": "..."}` with 0
+  swaps. This is the deliberate security design (prevents hostile context
+  resend); now `"format": "json"` makes attempt 1 succeed, so repair is a
+  last-resort only.
+
+**Frontend (mutation display):**
+- `useSimulation.ts` mapped live WebSocket `deck_mutation` events using
+  `ev.card_in`/`ev.card_out` but backend publishes `ev.add`/`ev.remove`.
+- Mutations were never fetched from REST on init — only from live WS — so
+  navigating to a completed sim showed 0 swaps.
+- `DeckMutation` type used `round`/`card_in`/`card_out`; REST API returns
+  `round_number`/`card_removed`/`card_added`/`reasoning`.
+- `DeckChangesTile` showed no reasoning field.
+
+### Changes
+
+**`backend/app/coach/analyst.py`:**
+- Added `"format": "json"` to Ollama payload — forces JSON output on first attempt.
+- Increased `num_predict: 768 → 2048` — prevents mid-response truncation.
+- `_get_swap_decisions`: logs `analysis` field at INFO when 0 swaps returned.
+- `_get_swap_decisions`: WARNING now includes raw response preview (200 chars).
+- `_get_swap_decisions`: ERROR on all-retries-fail includes last raw preview.
+- `_call_ollama`: logs WARNING when Ollama returns empty content.
+
+**`frontend/src/types/simulation.ts`:**
+- `DeckMutation` updated to `round_number`/`card_removed`/`card_added`/`reasoning`
+  (aligns with REST API and `MutationRow` in `dashboard.ts`).
+
+**`frontend/src/stores/simulationStore.ts`:**
+- Added `setMutations(mutations: DeckMutation[])` action for bulk REST load.
+
+**`frontend/src/hooks/useSimulation.ts`:**
+- Added `getSimulationMutations` import and REST fetch on init; mutations loaded
+  from REST immediately (covers completed sims navigated from History).
+- Fixed WS `deck_mutation` handler: `ev.add`/`ev.remove` → `card_removed`/`card_added`.
+- `reasoning` now passed through from WS events.
+
+**`frontend/src/components/simulation/DeckChangesTile.tsx`:**
+- Updated to use new field names (`round_number`, `card_removed`, `card_added`).
+- Added per-mutation expandable "Show/Hide reasoning" button.
+- Empty state updated: "No deck swaps recommended" + "Coach analysed results but
+  found no valid improvements to suggest".
+
+**`backend/tests/test_coach/test_analyst.py`:**
+- Added `TestCoachLLMLogging` class with 4 new tests:
+  - `test_zero_swaps_logs_analysis` — analysis field logged at INFO.
+  - `test_parse_failure_logs_raw_preview` — raw preview in ERROR on all-retries-fail.
+  - `test_parse_failure_warning_includes_raw_preview` — raw in WARNING per attempt.
+  - `test_ollama_payload_uses_json_format` — `format=json` + `num_predict=2048` verified.
+
+**`frontend/src/components/simulation/DeckChangesTile.test.tsx`** (NEW — 10 tests):
+- Empty state, swap count badge, card name render, round badge, reasoning expand/collapse.
+
+### Validation
+
+```text
+Backend: 1155 passed, 1 skipped
+Frontend: 323 passed (16 files)
+Build: clean
+OBSERVED_PLAY_MEMORY_ENABLED=false (unchanged default)
+docs/AUDIT_STATE.md: not touched
+```
+
+No AI Player, simulator runtime, deck builder, pgvector, Neo4j,
+`match_events`, `card_performance`, observed-play memory runtime, or gameplay
+integration added or changed.
+No data reset, force ingest, automatic ingestion, or DB mutations.
+
+---
+
+## Session 49 Work (2026-05-08) — Phase 6.1 End-Session Checkpoint
+
+### Status
+
+Phase 6.1 is **complete** at commit `e44681a`. This session records the
+end-of-session checkpoint only. No new feature work was performed.
+
+### Manual verification pending (next session)
+
+The following must be confirmed before starting Phase 6.2:
+
+1. **Flag-off:** `GET /api/observed-play/coach-context-preview` returns `enabled=false`, `would_inject=false`, `prompt_block=""` with default config.
+2. **Flag-off Coach prompt:** Coach prompts are byte-for-byte identical to pre-6.1 behavior.
+3. **Flag-on:** With `OBSERVED_PLAY_MEMORY_ENABLED=true` (local only), preview returns `would_inject=true`, bounded evidence block, readiness verdict, source-linked IDs, citation instructions. Test with `Dragapult ex`, `Salazzle ex`, `Dreepy`.
+4. **No mutation:** `observed_play_logs`, `observed_play_events`, `observed_card_mentions`, `observed_play_memory_ingestions`, `observed_play_memory_items` row counts unchanged after preview calls.
+5. **Reset flag:** Return to `OBSERVED_PLAY_MEMORY_ENABLED=false` after validation.
+
+### Confirmed state at checkpoint
+
+```text
+Branch:    feature/observed-play-memory
+HEAD:      e44681a25e3cdb8a4e59510dd6f1ee1782c4ed2f
+DB:        g3h4i5j6k7l8 (head)
+Backend:   1151 passed, 1 skipped
+Frontend:  313 passed (15 files)
+Build:     clean
+Flag default: OBSERVED_PLAY_MEMORY_ENABLED=false
+```
+
+No AI Player, simulator runtime, deck builder, pgvector, Neo4j,
+`match_events`, `card_performance`, or gameplay integration added.
+No data reset, force ingest, automatic ingestion, or DB mutations.
+`docs/AUDIT_STATE.md` not touched.
+
+---
+
+## Session 48 Work (2026-05-09) — Phase 6.1 Feature-Flagged Coach Prompt Evidence
+
+### Goal
+
+Wire the Phase 6.0 observed-play evidence layer into the Coach prompt/context
+path behind `OBSERVED_PLAY_MEMORY_ENABLED=false` (default off). When enabled,
+Coach can receive a bounded, source-linked observed-play evidence block with
+review-only instructions and evidence IDs, gated by corpus readiness. Observed
+memory remains advisory only and does not affect AI Player, simulator runtime,
+deck builder, pgvector, Neo4j, match_events, card_performance, or gameplay decisions.
+
+### Changes
+
+**Backend (`backend/app/config.py`):**
+- Added `OBSERVED_PLAY_MEMORY_ENABLED: bool = False`, `OBSERVED_PLAY_MEMORY_MAX_EVIDENCE: int = 8`, `OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE: float = 0.85`.
+
+**Backend (`backend/app/observed_play/readiness_service.py`)** (NEW):
+- Extracted `compute_corpus_readiness()` and `build_coach_evidence_filter()` from `api/observed_play.py` into shared importable module to prevent circular imports.
+
+**Backend (`backend/app/observed_play/schemas.py`):**
+- Appended Phase 6.1 schemas: `ObservedPlayCoachContextQuery`, `ObservedPlayEvidencePromptItem`, `ObservedPlayCoachContextPreview`.
+
+**Backend (`backend/app/observed_play/coach_context.py`)** (NEW):
+- Feature flag check, readiness gate, evidence fetch (re-using `build_coach_evidence_filter`), prompt block formatter, preview builder.
+- `build_coach_context_preview(db, ...)` is the main entry point.
+- `_REVIEW_ONLY_HEADER` defines prompt preamble with citation instructions.
+
+**Backend (`backend/app/api/observed_play.py`):**
+- Added `GET /api/observed-play/coach-context-preview` read-only endpoint.
+- Refactored: readiness functions now imported from `readiness_service`.
+
+**Backend (`backend/app/coach/analyst.py`):**
+- Added `observed_play_block=""` param to `_build_prompt_messages` (no-op when empty).
+- Added `_fetch_observed_play_block()` async helper: returns `""` when flag is off; calls `build_coach_context_preview`; returns `preview.prompt_block` if `would_inject`; catches all exceptions (safe fallback).
+- Updated `analyze_and_mutate` to call `_fetch_observed_play_block()` before building prompt. With default-off flag, Coach prompts are byte-for-byte identical to pre-6.1.
+
+**Backend tests (`backend/tests/test_api/test_observed_play.py`):**
+- Appended `TestCoachContextPreview` class with 14 tests.
+
+**Backend tests (`backend/tests/test_coach/test_analyst.py`):**
+- Appended `TestCoachAnalystObservedPlay` class with 8 tests covering flag-off/on, prompt position, `_fetch_observed_play_block` behavior, and exception safety.
+
+**Frontend (`frontend/src/types/observedPlay.ts`):**
+- Added `ObservedPlayCoachContextPreview` and `GetCoachContextPreviewParams` interfaces.
+
+**Frontend (`frontend/src/api/observedPlay.ts`):**
+- Added `getCoachContextPreview(params?)` function calling `GET /api/observed-play/coach-context-preview`.
+
+**Frontend (`frontend/src/pages/ObservedPlay.tsx`):**
+- Added `CoachContextPreviewSection` component: shows flag status, readiness verdict, would_inject, reason, warnings, evidence count/IDs, prompt block preview.
+- Wired into page after `CoachEvidenceSection`.
+
+**Frontend tests (`frontend/src/pages/ObservedPlay.test.tsx`):**
+- Added `getCoachContextPreview: vi.fn()` to mock and default `beforeEach` return.
+- Added `CoachContextPreviewSection` describe block with 11 tests.
+
+### Validation
+
+```text
+Backend: 1151 passed, 1 skipped
+Frontend: 313 passed (15 files)
+Frontend build: clean
+No DB mutations. No writes to Neo4j, pgvector, match_events, card_performance.
+OBSERVED_PLAY_MEMORY_ENABLED defaults to false.
+```
+
+### Scope adherence
+
+- No AI Player, simulator runtime, deck builder, pgvector, Neo4j, match_events, card_performance, or gameplay integration.
+- No data reset, force ingest, automatic ingestion.
+- No new DB migrations.
+- `docs/AUDIT_STATE.md` not touched.
+- No real logs, screenshots, database dumps, or .env secrets committed.
+
+## Session 47 Work (2026-05-09) — Phase 6.0 Coach-Only Advisory Evidence
+
+### Goal
+
+Add a read-only Coach advisory evidence layer that lets the Coach inspect
+observed-play memory items as source-linked evidence. The integration is
+advisory only — observed memory is not used by AI Player, simulator runtime,
+deck builder, pgvector, Neo4j, match_events, card_performance, or gameplay decisions.
+
+### Changes
+
+**Backend (`backend/app/observed_play/schemas.py`):**
+- Added Phase 6.0 constants: `COACH_EVIDENCE_DEFAULT_MIN_CONFIDENCE = 0.80`, `COACH_EVIDENCE_DEFAULT_LIMIT = 25`, `COACH_EVIDENCE_MAX_LIMIT = 100`.
+- Added 4 new Pydantic schemas: `CoachEvidenceQuery`, `CoachEvidenceSummary`, `CoachEvidenceItem`, `CoachEvidenceResponse`.
+
+**Backend (`backend/app/api/observed_play.py`):**
+- Refactored `get_corpus_readiness` body into `async def _compute_corpus_readiness(db)` helper (shared by scorecard endpoint and coach-evidence readiness gate).
+- `GET /api/observed-play/corpus-readiness` now delegates to `_compute_corpus_readiness`.
+- Added `_build_coach_evidence_filter()` helper for reusable evidence WHERE clauses.
+- Appended `GET /api/observed-play/coach-evidence` endpoint: readiness gate (HTTP 409 for `not_ready`), 7 aggregate queries (count, avg, memory_type distribution, top actors/targets/actions, evidence JOIN with log filename). Excludes unresolved card references and items below min_confidence by default.
+
+**Frontend (`frontend/src/types/observedPlay.ts`):**
+- Appended Phase 6.0 interfaces: `CoachEvidenceQuery`, `CoachEvidenceSummary`, `CoachEvidenceItem`, `CoachEvidenceResponse`, `GetCoachEvidenceParams`.
+
+**Frontend (`frontend/src/api/observedPlay.ts`):**
+- Added `CoachEvidenceResponse`, `GetCoachEvidenceParams` to imports.
+- Appended `getCoachEvidence(params)` function.
+
+**Frontend (`frontend/src/pages/ObservedPlay.tsx`):**
+- Added `getCoachEvidence` import and `CoachEvidenceResponse`, `CoachEvidenceItem` type imports.
+- Added `CoachEvidenceSection` component: search form (card name, memory type, action name, min confidence, limit), summary badges, evidence table with source raw line, 409 error state with blockers, needs-review warning display, dark mode.
+- Added `<CoachEvidenceSection />` after `<CorpusScorecardSection />`.
+
+**Tests:**
+- `backend/tests/test_api/test_observed_play.py`: +16 backend tests (`TestCoachEvidence` class, patches `_compute_corpus_readiness`).
+- `frontend/src/pages/ObservedPlay.test.tsx`: +14 frontend tests (Phase 6.0 `CoachEvidenceSection` describe block), added `getCoachEvidence: vi.fn()` to mock and `beforeEach` default.
+
+### Validation
+
+- Backend: **1129 passed, 1 skipped** (was 1108, +21 net new).
+- Frontend: **300 passed** (was 285, +15 new).
+- Frontend build: clean.
+- No data reset, force ingest, automatic ingestion, AI Player, pgvector, Neo4j, simulator match_events, card_performance writes, deck-builder usage, or runtime memory usage added.
+- `docs/AUDIT_STATE.md` not touched.
+- No real logs, screenshots, database dumps, or raw audit reports committed.
+
+---
+
+## Session 46 Work (2026-05-09) — Phase 5.2 Corpus Quality / Readiness Scorecard
+
+### Goal
+
+Build a read-only Corpus Quality / Readiness Scorecard for the 49-log observed-play corpus. Summarise corpus coverage, parser quality, card-resolution burden, and memory quality. Provide a deterministic verdict (ready / needs_review / not_ready) and 0–100 readiness score. Strictly review-only — no Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, or runtime integration.
+
+### Changes
+
+**Backend (`backend/app/observed_play/schemas.py`):**
+- Added 5 threshold constants: `READINESS_LOW_CONFIDENCE_EVENT_THRESHOLD = 0.80`, `READINESS_INGESTION_COVERAGE_THRESHOLD = 0.90`, `READINESS_AVG_EVENT_CONFIDENCE_THRESHOLD = 0.85`, `READINESS_AVG_MEMORY_CONFIDENCE_THRESHOLD = 0.75`, `READINESS_TOP_N_LIMIT = 10`.
+- Added 5 new Pydantic schemas: `CorpusStats`, `ParserQualityStats`, `CardResolutionStats`, `MemoryQualityStats`, `CorpusReadinessReport`.
+
+**Backend (`backend/app/api/observed_play.py`):**
+- Added `or_` to sqlalchemy imports.
+- Added new schema names to import block.
+- Defined `_READINESS_CRITICAL_ROLES` inline (mirrors `_CRITICAL_MENTION_ROLES` from memory_ingestion.py, avoids circular imports).
+- Appended `GET /api/observed-play/corpus-readiness` endpoint (~250 lines): 17 scalar queries + 3 fetchall queries across all 6 observed-play tables. Scores: Parser quality 35 pts + Ingestion coverage 25 pts + Card resolution 20 pts + Memory quality 20 pts = 100 max. Verdict: `not_ready` if any blocker, `needs_review` if any warning but no blockers, `ready` otherwise.
+
+**Frontend (`frontend/src/types/observedPlay.ts`):**
+- Appended Phase 5.2 TypeScript interfaces: `CorpusStats`, `ParserQualityStats`, `CardResolutionStats`, `MemoryQualityStats`, `CorpusReadinessReport`.
+
+**Frontend (`frontend/src/api/observedPlay.ts`):**
+- Added `CorpusReadinessReport` to imports.
+- Appended `getCorpusReadiness()` function.
+
+**Frontend (`frontend/src/pages/ObservedPlay.tsx`):**
+- Added `getCorpusReadiness` import and `CorpusReadinessReport` type import.
+- Added `VerdictBadge`, `ScorecardStatRow`, `CorpusScorecardSection` components.
+- Updated phase banner to mention Phase 5.2.
+- Added `<CorpusScorecardSection />` after `<MemoryAnalyticsSection />`.
+
+**Tests:**
+- `backend/tests/test_api/test_observed_play.py`: +17 backend tests (`TestCorpusReadiness` class — 14 endpoint tests + 3 helpers).
+- `frontend/src/pages/ObservedPlay.test.tsx`: +17 frontend tests (Phase 5.2 describe block), fixed default mock collision (`memory_type_counts: []` in `beforeEach`).
+
+### Phase 5.2 Corpus Scorecard — Live 49-Log Corpus Result
+
+```
+verdict:                ready
+readiness_score:        97.22 / 100
+logs:                   49 total / 49 parsed / 49 ingested / 0 failed
+events:                 10,047
+memory items:           4,786
+unknown events:         0
+events below 80%:       0
+avg event confidence:   0.8879
+avg log confidence:     0.8877
+avg memory confidence:  0.8899
+card mentions:          8,670 total / 8,670 resolved / 0 ambiguous / 0 unresolved / 0 critical unresolved
+blockers:               []
+warnings:               []
+recommendations:        []
+```
+
+The corpus meets all readiness criteria. It is ready for limited downstream experimentation later (Phase 6 Coach-only advisory integration).
+
+### Validation
+
+- Backend: **1108 passed, 5 skipped** (was 1095, +17 new tests including recount).
+- Frontend: **285 passed** (was 268, +17 new tests).
+- Frontend build: clean.
+- No Phase 6, data reset, force ingest, automatic ingestion, Coach/AI, pgvector, Neo4j writes, simulator match_events, card_performance writes, deck-builder usage, or runtime memory usage added.
+- `docs/AUDIT_STATE.md` not touched.
+- No real logs, screenshots, database dumps, or raw audit reports committed.
+
+---
+
+## Session 45 Work (2026-05-09) — Pre-Phase-5.2 Corpus Parser Triage / Hardening
+
+### Goal
+
+Automate the parser-hardening workflow. Create a read-only low-confidence audit script, run it against the 49 real battle logs, identify recurring parser gaps, improve parser patterns, reparse/re-ingest using the bulk debug options, and confirm the corpus drops to 0 events below 80% confidence.
+
+### Changes
+
+**New script:**
+- `backend/scripts/observed_play_low_confidence_audit.py`: Read-only audit against live DB. `--threshold` and `--top` args. Outputs totals, by-event-type breakdown, top raw lines, normalised pattern groups, and per-log summary. Invoked via `docker compose exec backend python scripts/observed_play_low_confidence_audit.py --threshold 0.80 --top 200`. Does not write raw lines to the repo; `--output` paths should be under `tmp/` (added to `.gitignore`).
+
+**Backend parser (`backend/app/observed_play/`):**
+- `constants.py`: Added `ET_PLAYER_TIMEOUT = "player_timeout"` and `ET_PLAYER_RECONNECTED = "player_reconnected"` (informational system events, not ingested into memory).
+- `patterns.py`: Added `RE_MULLIGAN_PLURAL` ("PLAYER took N mulligans."), four alternative game-end patterns (`RE_GAME_END_PRIZES_OPPONENT`, `RE_GAME_END_DECK_YOURS`, `RE_GAME_END_KO_NO_BENCH`, `RE_GAME_END_NO_BENCH_BACKUP`), and two system-event patterns (`RE_PLAYER_TIMEOUT`, `RE_PLAYER_RECONNECTED`).
+- `confidence.py`: `card_effect_activated` now returns 0.88 (was 0.78) when `card_name_raw` is captured. The card name is always captured by `RE_CARD_EFFECT_ACTIVATED`, so this removes the only event type hardcoded below the 0.80 gate.
+- `parser.py`: Added handlers for the 7 new patterns. Mulligan plural maps to `ET_MULLIGAN` with `amount` set. Game-end variants map to `ET_GAME_END` with appropriate `win_condition` values. Timeout/reconnect map to their own event types with `player_raw`/`player_alias`.
+
+**Tests:**
+- `tests/test_observed_play/test_parser.py`: +18 tests — `TestGameEndVariants` (6 tests for 4 new game-end patterns), `TestMulliganPlural` (5 tests), `TestPlayerSystemEvents` (7 tests). Also updated `card_effect_activated` confidence test to assert >= 0.88.
+
+**Gitignore:**
+- `.gitignore`: Added `tmp/` to prevent accidental commits of audit reports containing raw log lines.
+
+### Pre-fix corpus baseline (old parser on existing DB)
+
+- Total events: 10,047
+- Events below 80%: **188** (1.9% of total)
+  - `card_effect_activated`: 150 events at 0.78 (fixed: confidence raised to 0.88)
+  - `unknown`: 38 events at 0.30 (fixed: 4 new game-end patterns, mulligan plural, timeout, reconnect)
+- Average corpus confidence: 0.8840
+
+### Post-fix corpus results (after bulk reparse + re-ingest)
+
+- Events below 80%: **0** (0.0% of total)
+- Unknown events: **0**
+- Average corpus confidence: 0.8879
+- All 49 logs reparsed; all 49 re-ingested; idempotency confirmed on second run.
+
+### Validation
+
+- Backend: 1095 passed, 1 skipped (was 1077, +18 new tests).
+- Frontend: 268 passed, build clean.
+- No Phase 5.2, data reset, automatic ingestion, Coach/AI integration, pgvector, Neo4j writes, simulator match_events, card_performance writes, deck-builder usage, or runtime memory usage added.
+
+## Session 44 Work (2026-05-09) — Bulk Action Opt-in Flags
+
+### Goal
+
+Revise Observed Play bulk actions for testing/debugging workflows. Both defaults remain production-safe (already-ingested logs are skipped unless user opts in).
+
+### Changes
+
+**Backend:**
+- `schemas.py`: Added `BulkReparseRequest` and `BulkIngestEligibleRequest` request schemas. Extended `BulkReparseLogResult` (`had_existing_memory`, `memory_warning`), `BulkReparseSummary` (`ingested_reparsed_count`), `BulkIngestPreviewLog` (`eligible_for_reingest` status), `BulkIngestEligiblePreview` (`eligible_for_reingest_count`, `include_already_ingested`), `BulkIngestLogResult` (`reingested` status), `BulkIngestEligibleSummary` (`reingested_count`, `include_already_ingested`).
+- `api/observed_play.py`: Updated `reparse_all_logs`, `preview_ingest_eligible`, and `ingest_all_eligible` to accept optional request bodies. Reparse: opt-in `include_ingested` flag (default false) — reparsed ingested logs get `had_existing_memory=true` and `memory_warning`. Ingest: opt-in `include_already_ingested` flag (default false) — re-ingested logs use `status=reingested` and appear in `ingested_logs`.
+- `tests/test_api/test_observed_play.py`: +16 backend tests.
+
+**Frontend:**
+- `types/observedPlay.ts`: Added `BulkReparseRequest`, `BulkIngestEligibleRequest` interfaces. Extended existing bulk interfaces with new fields.
+- `api/observedPlay.ts`: Updated `bulkReparseAll`, `bulkPreviewEligible`, `bulkIngestEligible` to accept options objects.
+- `pages/ObservedPlay.tsx`: Added `bulkIncludeIngested` and `bulkIncludeAlreadyIngested` state. Parse modal: checkbox to opt in to reparsing ingested logs with conditional warning text; result shows `ingested_reparsed_count` when non-zero. Ingest modal: checkbox to opt in to re-ingesting already-ingested eligible logs with replacement warning; preview refreshes on toggle; result shows `reingested_count` as separate column when non-zero.
+- `pages/ObservedPlay.test.tsx`: +9 frontend tests.
+
+### Validation
+
+- Bulk actions now support explicit testing/debugging overrides. Parse/Reparse all can include already-ingested logs when the user opts in (default: skip); reparsing refreshes parse/card-mention data without changing memory. Ingest all eligible can re-ingest already-ingested eligible logs when the user opts in (default: skip); existing observed memory items for those logs are replaced rather than duplicated.
+- No Phase 5.2, data reset, automatic ingestion, Coach/AI integration, pgvector, Neo4j writes, simulator match_events, card_performance writes, deck-builder usage, or runtime memory usage added.
+
+## Session 43 Work (2026-05-08) — Bulk Parse / Ingest Actions
+
+### Goal
+
+Add safe bulk workflow actions to `/observed-play` to avoid manually reparsing and ingesting 49 uploaded battle logs one at a time.
+
+### Changes
+
+**Backend:**
+- `schemas.py`: Added `BulkReparseLogResult`, `BulkReparseSummary`, `BulkIngestPreviewLog`, `BulkIngestEligiblePreview`, `BulkIngestLogResult`, `BulkIngestEligibleSummary` Pydantic models.
+- `api/observed_play.py`: Added three endpoints:
+  - `POST /logs/reparse-all` — reparses all non-ingested logs, commits per-log, skips `memory_status=ingested`.
+  - `POST /memory-ingestion/preview-eligible` — read-only eligibility preview using same gates as single-log.
+  - `POST /memory-ingestion/ingest-eligible` — ingests all eligible logs, commits per-log, idempotent.
+- `tests/test_api/test_observed_play.py`: +18 backend tests covering all three endpoints.
+
+**Frontend:**
+- `types/observedPlay.ts`: Added bulk TypeScript interfaces.
+- `api/observedPlay.ts`: Added `bulkReparseAll`, `bulkPreviewEligible`, `bulkIngestEligible` functions.
+- `pages/ObservedPlay.tsx`: Added "Bulk Actions" panel between import report and Raw Logs sections with two buttons. Added inline `BulkParseModal` (confirm → run → show counts/confidence) and `BulkIngestEligibleModal` (preview eligibility → confirm ingest → show results). Post-action refreshes raw logs, memory analytics, and unresolved cards.
+- `pages/ObservedPlay.test.tsx`: +13 frontend tests for bulk actions.
+
+### Validation
+
+- Backend: 1065 passed, 1 skipped
+- Frontend: 259 passed (15 files), build clean
+- No data reset, Phase 5.2, Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, or runtime integration.
+
+## Session 42 Work (2026-05-07) — Parser Hardening: Special Conditions, Damage Counters, Checkup, Concession
+
+### Goal
+
+Harden the PTCGL log parser for real-corpus lines from a Dragapult ex vs Salazzle ex log that produced `unknown` events, lowering the log's ingestion eligibility score.
+
+### Root causes
+
+Parser had no patterns for: Pokémon Checkup markers, Burned/Poisoned condition damage counters, special condition applied/removed lines, checkup coin flips, ability-driven damage counter placement/movement, discarded card counts, cards moved to hand, cards shuffled into deck (with known-card sub-lines), and opponent concession game-end lines.
+
+### Backend changes
+
+- `constants.py`: Added 11 new event type constants: `ET_POKEMON_CHECKUP`, `ET_SPECIAL_CONDITION_APPLIED`, `ET_SPECIAL_CONDITION_REMOVED`, `ET_SPECIAL_CONDITION_DAMAGE`, `ET_DAMAGE_COUNTERS_PLACED`, `ET_DAMAGE_COUNTERS_MOVED`, `ET_POKEMON_SWITCHED`, `ET_CARDS_DISCARDED`, `ET_CARDS_DISCARDED_FROM_POKEMON`, `ET_CARDS_MOVED_TO_HAND`, `ET_CARDS_SHUFFLED_INTO_DECK`.
+- `patterns.py`: Added 13 new compiled regexes covering all new event types including singular/plural variants and curly-apostrophe support.
+- `confidence.py`: Added scoring entries for all new event types (0.82–0.97).
+- `parser.py`: Added dispatch blocks for all new patterns; bullet sub-line capture for card lists in discard/move/shuffle events.
+- `card_mentions.py`: Extended `_IGNORED_NORMALIZED` (burned, poisoned, paralyzed, confused, asleep, heads, tails, damage counters); added extraction branches for new event types; added payload card list extraction for discard/move/shuffle events.
+- New fixture: `backend/tests/fixtures/observed_play/special_conditions_and_concession.md`
+- New tests: 52 parser tests, 20 card-mention tests, 11 memory-ingestion tests (1047 backend total).
+
+### Validation
+
+- Backend: 1047 passed, 1 skipped
+- Frontend: 246 passed (15 files), build clean
+- No data reset, ingestion, Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, or runtime integration.
+
+
+
+### Goal
+
+Fix Raw Logs sorting for Parse and Cards columns discovered during real-corpus manual validation.
+
+### Root causes
+
+- **Parse**: `parse_status` sorted lexicographically on the raw string. With all 49 real logs at `parse_status="parsed"`, sorting appeared to do nothing. Fix: rank statuses with a `case()` expression (failed=0, raw_archived=1, parsed=2, parsed_with_warnings=3), tie-break with `confidence_score asc` so lower-confidence parsed logs surface for review within the same status group.
+- **Cards**: `sort_by=ambiguous_card_count` was a single-column sort that didn't capture triage priority, and card counts may be similar across logs. Fix: add `sort_by=cards` as a new composite sort key (`unresolved_card_count → ambiguous_card_count → card_mention_count → confidence_score`). Frontend Cards header changed to use `sort_by=cards`. The `sort_by=cards` key was not in `LOG_SORT_FIELDS` (would have returned 422), making it unusable.
+
+### Backend changes
+
+- `LOG_SORT_FIELDS`: removed `parse_status` (now handled as composite)
+- `_COMPOSITE_SORT_KEYS = {"parse_status", "cards"}` added
+- `_ALL_SORT_KEYS = LOG_SORT_FIELDS.keys() | _COMPOSITE_SORT_KEYS` — used for whitelist validation
+- `_apply_log_sort(q, sort_by, sort_dir)` extracted function:
+  - `parse_status`: `case()` rank + `confidence_score asc` + stable tie-breaker
+  - `cards`: composite multi-column sort (unresolved/ambiguous/total/confidence)
+  - other: single-column + stable tie-breaker (unchanged)
+
+### Frontend changes
+
+- `LogSortKey` type: added `'cards'`
+- Cards header: `sortKey="cards"` (was `"ambiguous_card_count"`), tooltip updated to mention unresolved/ambiguous/card mentions
+- Parse header: tooltip added ("Sorts by parse status, then lower-confidence parsed logs.")
+
+### Files changed
+
+- `backend/app/api/observed_play.py` — composite sort logic
+- `backend/tests/test_api/test_observed_play.py` — +4 HTTP tests (cards/parse), +6 `TestApplyLogSort` SQL unit tests (970 total)
+- `frontend/src/pages/ObservedPlay.tsx` — `LogSortKey`, Cards header, Parse tooltip
+- `frontend/src/pages/ObservedPlay.test.tsx` — updated Cards tests, +3 Parse tests (246 total)
+- `docs/STATUS.md`, `docs/CHANGELOG.md`, `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`
+
+### Test results
+
+- Frontend: **246 passed (15 files)** (+4 new tests)
+- Backend: **970 passed, 1 skipped** (+10 new tests)
+- Frontend build: **clean**
+
+### Scope
+
+Real-corpus sorting bugfix only. No Coach/AI, pgvector, Neo4j, simulator match_events, card_performance, deck-builder, runtime memory, data reset, or ingestion changes. No new DB migrations.
+
+---
+
+## Session 40 Work (2026-05-06) — Raw Logs Sorting
+
+### Goal
+
+Add sortable columns to the Raw Logs table for efficient real-corpus validation (49 uploaded logs).
+
+### Implementation
+
+Server-side sorting via `sort_by`/`sort_dir` query params (pagination is server-side). Backend whitelist validates 13 sort keys; invalid values return HTTP 422.
+
+### Backend changes
+
+- `GET /api/observed-play/logs`: added optional `sort_by` and `sort_dir` query params
+- `LOG_SORT_FIELDS` dict maps 13 string keys to ORM columns (whitelisted; no SQL injection possible)
+- Sort order: primary sort + stable tie-breaker (`created_at desc, id desc`)
+- Default: `created_at desc` (preserves prior behavior)
+- Invalid `sort_by`: HTTP 422 `"Invalid sort_by: ..."`
+- Invalid `sort_dir`: HTTP 422 `"Invalid sort_dir: ..."`
+
+Sort keys: `filename`, `parse_status`, `memory_status`, `event_count`, `confidence_score`, `card_mention_count`, `resolved_card_count`, `ambiguous_card_count`, `unresolved_card_count`, `memory_item_count`, `file_size_bytes`, `created_at`, `sha256_hash`
+
+### Frontend changes
+
+- `LogSortKey` union type + `SortableTh` component (accessible `<button>` with `▲`/`▼`/`↕` indicators and `aria-label`)
+- `logSortBy`/`logSortDir` state; `fetchLogs` closes over sort state (dep array updated); `handleLogSort` toggles direction on active column, sets default dir on new column, resets page to 1
+- All 10 Raw Logs table headers replaced with `<SortableTh>` components
+- Cards column sorts by `ambiguous_card_count desc` with tooltip
+
+### Files changed
+
+- `backend/app/api/observed_play.py` — sort params + LOG_SORT_FIELDS
+- `backend/tests/test_api/test_observed_play.py` — 11 new `TestLogListSort` tests (960 total)
+- `frontend/src/api/observedPlay.ts` — `sort_by`/`sort_dir` in `ListLogsParams`
+- `frontend/src/pages/ObservedPlay.tsx` — `SortableTh`, `LogSortKey`, sort state, `handleLogSort`, table headers
+- `frontend/src/pages/ObservedPlay.test.tsx` — 10 new sorting tests (242 total)
+- `docs/STATUS.md`, `docs/CHANGELOG.md`, `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`
+
+### Test results
+
+- Frontend: **242 passed (15 files)** (+10 new sort tests)
+- Backend: **960 passed, 1 skipped** (+11 new sort tests)
+- Frontend build: **clean**
+
+### Scope
+
+Real-corpus review UI polish only. No Coach/AI, pgvector, Neo4j, simulator match_events, card_performance, deck-builder, runtime memory, data reset, or ingestion changes. No new DB migrations.
+
+---
+
+## Session 39 Work (2026-05-06) — Real-Corpus Bugfix
+
+### Goal
+
+Fix real-corpus manual testing bug: ambiguous card rows stopped disappearing from the Unresolved / Ambiguous Cards section after the first two sequential resolutions, requiring a manual browser refresh.
+
+### Root cause
+
+`ResolutionRuleModal` deferred the parent refresh until the user explicitly clicked "Close" and only if `affected_log_ids` was non-empty. After several resolutions the React closure over `onResolved` was stale or the condition was not met, so the refresh never fired. Additionally, `MemoryAnalyticsSection` fetched the unresolved lookup only once on mount, so analytics Review buttons stopped working after resolutions.
+
+### Fix
+
+- `ResolutionRuleModal`: call `onResolved()` immediately after `createResolutionRule` + `resolveCards` succeed, not conditionally on Close click. Removed `affectedAfterRule` state; simplified `handleClose`.
+- `UnresolvedCardsSection`: added `onRefreshAnalytics` prop; `handleResolved` calls `load()`, `onRefreshLogs?.()`, and `onRefreshAnalytics?.()` every time. Guard `return null` so the section stays mounted while the modal is open (prevents premature unmount during the same render cycle).
+- `MemoryAnalyticsSection.load()`: includes `getUnresolvedCards` in the Promise.all so the lookup is always current after any analytics refresh. `handleReviewResolved` unconditionally calls all refresh callbacks.
+- Parent `ObservedPlay`: passes `onRefreshAnalytics={() => analyticsRefreshRef.current?.()}` to `<UnresolvedCardsSection>`.
+
+### Files changed
+
+- `frontend/src/pages/ObservedPlay.tsx` — all component changes
+- `frontend/src/pages/ObservedPlay.test.tsx` — 2 existing tests updated + 8 new regression tests (232 total)
+- `docs/STATUS.md`, `docs/CHANGELOG.md`, `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`
+
+### Test results
+
+- Frontend: **232 passed (15 files)** (+8 new regression tests)
+- Backend: **949 passed, 1 skipped** (no changes)
+- Frontend build: **clean**
+
+### Scope
+
+Frontend state-refresh bugfix only. No Coach/AI, pgvector, Neo4j, simulator match_events, card_performance, deck-builder, runtime memory, data reset, or ingestion changes.
+
+---
+
+## Session 38 Work (2026-05-06) — End-of-Session Checkpoint
+
+### Goal
+
+End-of-session checkpoint. 49 real battle logs uploaded after data reset. No new feature work.
+
+### Real corpus state after upload
+
+**Import batch:** 1 batch, status: `completed`
+
+| Field | Value |
+|---|---|
+| original_file_count | 49 |
+| accepted_file_count | 49 |
+| imported_file_count | 49 |
+| duplicate_file_count | 0 |
+| skipped_file_count | 0 |
+| failed_file_count | 0 |
+| started_at | 2026-05-06 20:01:56 UTC |
+| finished_at | 2026-05-06 20:02:00 UTC |
+
+**Post-upload table counts:**
+
+| Table | Count |
+|---|---|
+| observed_play_import_batches | 1 |
+| observed_play_logs | 49 |
+| observed_play_events | 9,278 |
+| observed_card_mentions | 7,093 |
+| observed_card_resolution_rules | 2 |
+| observed_play_memory_ingestions | 0 |
+| observed_play_memory_items | 0 |
+
+**Log quality snapshot:**
+
+| parse_status | memory_status | logs | avg_confidence | event_range | unresolved_cards | ambiguous_cards |
+|---|---|---|---|---|---|---|
+| parsed | not_ingested | 49 | 0.878 | 86–403 | 0 | 5,066 |
+
+**Key observations:**
+
+- ✅ All 49 logs parsed successfully (`parse_status = parsed`)
+- ✅ Average confidence 0.878 — above the 0.80 ingestion threshold
+- ✅ Zero unresolved cards — no complete card-recognition failures
+- ⚠️ 5,066 ambiguous card mentions across 49 logs (~103/log) — likely card versions that need resolution rules before or after ingestion
+- ℹ️ 2 resolution rules already exist (created during session)
+- ℹ️ 0 ingestions — no memory has been ingested yet; all logs remain `not_ingested`
+
+**No ingestion performed. No Coach/AI integration. Memories remain review-only.**
+
+### Files changed
+
+- `docs/STATUS.md` only (checkpoint docs)
+
+---
+
+## Pre-Phase-5.2 Corpus Readiness Checkpoint (session 45 end-of-session)
+
+This section replaces the now-completed "Tomorrow's Manual Validation Plan". All steps in that plan have been completed across sessions 39–45.
+
+### Corpus state (confirmed 2026-05-09, after session 45)
+
+```
+Branch:                   feature/observed-play-memory
+HEAD commit:              e50039d (fix(observed-play): harden parser from low-confidence corpus audit)
+DB migration head:        g3h4i5j6k7l8
+
+observed_play_logs:           49
+observed_play_events:     10,047
+observed_card_mentions:    8,670
+observed_play_memory_ingestions:  198
+observed_play_memory_items:   4,786
+
+Events below 80% confidence:   0
+Unknown events:                0
+Average corpus confidence:     0.8879
+Memory average confidence:     0.8899
+Ambiguous reference count:     0
+Unresolved reference count:    0
+```
+
+### Phase 5.2 readiness verdict
+
+All readiness gates passed:
+- ✅ All 49 logs ingest cleanly
+- ✅ Unresolved references: 0
+- ✅ Ambiguous references: 0 (all resolved during card review)
+- ✅ Events below 80%: 0
+- ✅ Unknown events: 0
+- ✅ Bulk re-ingest idempotent (second run = same counts, no duplicates)
+- ✅ No major parser bug detected across corpus
+
+**Phase 5.2 can start next session.**
+
+### What not to do at the start of Phase 5.2
+
+- Do not re-upload or re-ingest logs.
+- Do not run the reset script.
+- Do not force-ingest ineligible logs.
+- Do not lower confidence thresholds.
+- Do not wire observed memory into Coach or AI.
+
+
+---
+
+## Session 37 Work (2026-05-06)
+
+### Goal
+
+Observed Play data reset: clear all development/test data before uploading real battle-log corpus.
+
+### Summary
+
+Created `scripts/reset_observed_play_data.sh` — a guarded local maintenance script that truncates all 7 observed-play tables and clears the observed-play upload archive/staging directories. Requires `--yes` flag; verifies tables before acting; prints pre- and post-reset counts. No card data, simulator matches, card_performance, audit state, Coach/AI, Neo4j, pgvector, or runtime memory integration touched.
+
+### Pre-reset counts
+
+| Table | Count |
+|---|---|
+| observed_play_import_batches | 48 |
+| observed_play_logs | 45 |
+| observed_play_events | 1196 |
+| observed_card_mentions | 842 |
+| observed_card_resolution_rules | 6 |
+| observed_play_memory_ingestions | 6 |
+| observed_play_memory_items | 158 |
+| archive files | 4 |
+
+All cleared to 0.
+
+### Files changed
+
+- `scripts/reset_observed_play_data.sh` (new)
+- `docs/STATUS.md`, `docs/CHANGELOG.md`, `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`
+
+### Validation (session 37)
+
+- Reset script: clean exit, all post-reset counts = 0 ✓
+- Archive check: no files remaining ✓
+- API smoke: logs total=0, memory summary zeroed, analytics empty ✓
+- `cd backend && python3 -m pytest tests/ -x -q`: **949 passed, 1 skipped** ✓ (unchanged)
+- `cd frontend && npm test -- --run`: **224 passed (15 files)** ✓ (unchanged)
+- `cd frontend && npm run build`: clean ✓
+
+## Session 36 Work (2026-05-06)
+
+### Goal
+
+Observed Play Phase 5.1 UI polish: align Memory Analytics table columns on branch `feature/observed-play-memory`.
+
+### Summary
+
+`AnalyticsGroupTable` now uses `w-full table-fixed` + `<colgroup>` with 8 fixed column widths (34%/7%/9%/10%/8%/11%/10%/11%) so all analytics sections share a consistent column grid. Named column headers for Examples and Review. Non-reviewable rows render a muted `—` placeholder in the Review column (instead of null). Label cells gain `title=` for truncation safety.
+
+### Files changed
+
+- `frontend/src/pages/ObservedPlay.tsx` — `AnalyticsGroupTable` column layout
+- `frontend/src/pages/ObservedPlay.test.tsx` — 3 new column alignment tests (224 total)
+
+### Validation (session 36)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **949 passed, 1 skipped** ✓ (unchanged)
+- `cd frontend && npm test -- --run`: **224 passed (15 files)** ✓
+- `cd frontend && npm run build`: clean ✓
+- `git diff --check`: clean ✓
+
+## Session 35.1 Work (2026-05-06)
+
+### Goal
+
+Observed Play Memory Phase 5.1: Analytics Quality Triage Polish on branch `feature/observed-play-memory`.
+
+### Summary
+
+Made Memory Analytics actionable for quality triage: quality filter controls, Review action linking analytics rows to the existing manual card-resolution flow, examples modal filter label, and re-ingestion note.
+
+### Backend changes
+
+- `backend/app/observed_play/schemas.py`: Added `review_raw_name`, `review_status`, `can_review_resolution` fields to `MemoryAnalyticsGroup`.
+- `backend/app/api/observed_play.py`:
+  - `GET /memory-analytics`: Added `quality_filter` param (all/ambiguous/low_confidence/unresolved). Added quality filter logic to `_base_filter()`.
+  - `_fetch_analytics_groups`: Added `is_card_group=False` param. When True, populates `review_raw_name`, `review_status`, `can_review_resolution` for groups with ambiguous/unresolved counts.
+  - Card group calls (`top_actor_cards`, `top_target_cards`, `top_attachments`, `top_evolutions`, `top_knockouts`) now pass `is_card_group=True`.
+  - `GET /memory-analytics/source-items`: Added `related_card_raw`, `min_confidence`, `card_name` filter params.
+
+### Frontend changes
+
+- `frontend/src/types/observedPlay.ts`: Added `review_raw_name`, `review_status`, `can_review_resolution` to `MemoryAnalyticsGroup`. Added `quality_filter` to `GetMemoryAnalyticsParams`. Added `related_card_raw`, `min_confidence`, `card_name` to `MemoryAnalyticsSourceItemsParams`.
+- `frontend/src/api/observedPlay.ts`: Added `quality_filter` to `GetMemoryAnalyticsParams`.
+- `frontend/src/pages/ObservedPlay.tsx`:
+  - `AnalyticsGroupTable`: Added optional `onReview` prop. Review button appears when `can_review_resolution && (ambiguous_count + unresolved_count) > 0`.
+  - `MemoryAnalyticsExamplesModal`: Added `filterLabel` prop, renders "Filter: {label}" below title.
+  - `UnresolvedCardsSection`: Added `refreshRef` prop to expose `load` externally.
+  - `MemoryAnalyticsSection`: Added `onRefreshLogs`, `onRefreshUnresolved` props. Added `qualityFilter` state with quality filter buttons. Added `unresolvedLookup` (fetched on mount), `reviewItem`, `examplesFilterLabel` state. `load` passes `quality_filter` when not 'all'. Opens `ResolutionRuleModal` for review rows. Added re-ingestion note. Added `onReview` to card group tables. Added `filterLabel` to examples modal. Sections for `top_target_cards`, `top_abilities`, `top_attachments`, `top_evolutions`, `top_knockouts` added (were missing from original render).
+  - Main page: Added `unresolvedRefreshRef`. Passes `refreshRef`, `onRefreshLogs`, `onRefreshUnresolved` to `MemoryAnalyticsSection`; passes `refreshRef` to `UnresolvedCardsSection`.
+
+### Tests Added
+
+- `backend/tests/test_api/test_observed_play.py`: 9 new `TestMemoryAnalytics` tests — quality_filter variants (low_confidence, ambiguous, unresolved, all, invalid), source-items new filters (card_name, min_confidence, related_card_raw), review fields shape.
+- `frontend/src/pages/ObservedPlay.test.tsx`: 5 new Phase 5.1 tests — quality filter controls render, ambiguous/low_confidence filter calls, Review button visibility, re-ingestion note, examples modal filter label.
+
+### Validation (session 35.1)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **949 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **221 passed (15 files)** ✓
+- `cd frontend && npm run build`: clean ✓
+- `git diff --check`: clean ✓
+
+## Session 35 Work (2026-05-06)
+
+### Goal
+
+Observed Play Memory Phase 5: Read-Only Memory Analytics on branch `feature/observed-play-memory`.
+
+### Summary
+
+Added three read-only API endpoints and a `MemoryAnalyticsSection` frontend component to surface observed play memory analytics without integrating with Coach or AI Player.
+
+### Backend changes
+
+- `backend/app/observed_play/schemas.py`: Added `LOW_CONFIDENCE_THRESHOLD`, `MemorySummary`, `MemoryAnalyticsGroup`, and `MemoryAnalyticsResponse` schemas.
+- `backend/app/api/observed_play.py`: Added `and_`, `case`, `distinct` imports. Added `LOW_CONFIDENCE_THRESHOLD`, `MemoryAnalyticsGroup`, `MemoryAnalyticsResponse`, `MemorySummary` schema imports. Three new read-only routes: `GET /memory-summary`, `GET /memory-analytics`, `GET /memory-analytics/source-items`. Helper `_fetch_analytics_groups` for reuse across aggregation queries.
+
+### Frontend changes
+
+- `frontend/src/types/observedPlay.ts`: Added `MemorySummary`, `MemoryAnalyticsGroup`, `MemoryAnalyticsResponse`, `MemoryAnalyticsSourceItemsParams` interfaces.
+- `frontend/src/api/observedPlay.ts`: Added `getMemorySummary`, `getMemoryAnalytics`, `getMemoryAnalyticsSourceItems` API functions.
+- `frontend/src/pages/ObservedPlay.tsx`: Added `useRef` import. Added `StatCard`, `AnalyticsGroupTable`, `MemoryAnalyticsExamplesModal`, and `MemoryAnalyticsSection` components. `MemoryAnalyticsSection` renders summary stat cards, memory type table, top action/actor/attack tables, quality flags table, and drill-down examples modal. Placed after `UnresolvedCardsSection`. `analyticsRefreshRef` wired to auto-refresh analytics after ingest success.
+
+### Tests Added
+
+- `backend/tests/test_api/test_observed_play.py`: 5 new `TestMemoryAnalytics` tests (empty summary, empty analytics, empty source items, filter params, read-only assertion).
+- `frontend/src/pages/ObservedPlay.test.tsx`: 7 new Phase 5 tests (renders, empty state, summary cards, type counts, examples modal, refresh button, safety copy, dark mode classes).
+
+### Validation (session 35)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **940 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **215 passed (15 files)** ✓
+- `cd frontend && npm run build`: clean ✓
+
+## Session 31 Work (2026-05-06)
+
+### Goal
+
+Phase 3.2: Manual Card Resolution Rule UI. Wire the existing backend resolution
+rule API into the Observed Play UI so users can review unresolved/ambiguous raw
+card names, inspect candidates and source examples, create resolve/ignore rules,
+and rerun card resolution for affected logs.
+
+### Changes Applied
+
+#### Backend (`backend/app/observed_play/schemas.py`)
+
+- Added `SampleMentionItem` model with fields: `log_id`, `filename`, `event_id`,
+  `turn_number`, `player_alias`, `mention_role`, `source_event_type`, `raw_line`.
+- Extended `UnresolvedCardItem` with `sample_mentions: list[SampleMentionItem]`
+  and `affected_log_ids: list[str]` (both default empty).
+
+#### Backend (`backend/app/api/observed_play.py`)
+
+- `get_unresolved_cards`: after main query, fetches sample mentions (≤5 per group)
+  and affected log IDs (≤25 per group) via a single joined query; groups in Python.
+- `create_resolution_rule`: added validation — empty `raw_name` → 422; unknown
+  `action` → 422; `resolve` without target → 422; nonexistent `target_card_def_id`
+  → 422; duplicate normalized name (any action) → 409 with clear message.
+- Added `Card` import to support target card existence checks.
+
+#### Frontend (`frontend/src/types/observedPlay.ts`)
+
+- Added `SampleMentionItem` interface matching backend.
+- Extended `UnresolvedCardItem` with optional `sample_mentions` and `affected_log_ids`.
+
+#### Frontend (`frontend/src/pages/ObservedPlay.tsx`)
+
+- New imports: `createResolutionRule`, `resolveCards`, `CardCandidateItem`,
+  `ResolutionRuleCreate`, `SampleMentionItem`, `normalizeTcgdexImageUrl`.
+- New `ResolutionRuleModal` component: shows raw name, status, candidate table
+  (with thumbnail, name, set, number, card_def_id, reason, Select button), sample
+  mentions table (role, event type, turn, player, source line), Ignore action.
+  After successful rule creation, shows success message and re-resolved log count.
+  Closing modal after success triggers refresh of unresolved section and raw logs.
+- `UnresolvedCardsSection`: added `Action` column with `Review` button per row;
+  clicking opens `ResolutionRuleModal`. Refresh triggered after rule creation.
+
+### Tests Added
+
+- **11 new backend tests** (`TestResolutionRules` × 7, `TestUnresolvedCardsPhase32` × 4)
+  in `backend/tests/test_api/test_observed_play.py`:
+  - resolve rule success, ignore rule success, resolve without target 422, invalid
+    action 422, nonexistent target 422, duplicate 409, empty raw_name 422.
+  - unresolved response includes candidates, sample_mentions, affected_log_ids, empty result.
+- **10 new frontend tests** in `Phase 3.2 — Unresolved/Ambiguous Cards section` describe block:
+  Review button renders, clicking Review opens modal, modal renders raw name + candidates,
+  modal renders sample mentions, candidate select calls createResolutionRule, rerun called,
+  success message shown, ignore calls createResolutionRule, API error shown, empty candidates.
+
+### Scope Boundary
+
+- Rules affect observed-play card resolution only.
+- No Coach/AI integration, pgvector, Neo4j, simulator match_events, card_performance,
+  deck-builder influence, or runtime recommendations.
+- No automatic ingestion after rule creation.
+
+### Validation (session 31)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **935 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **198 passed (15 files)** ✓
+- `cd frontend && npm run build`: **passed** ✓
+- `docs/AUDIT_STATE.md` not touched ✓
+- `frontend/node_modules` not committed ✓
+- No real battle logs committed ✓
+
+### Files Changed (session 31)
+
+| File | Change |
+|---|---|
+| `backend/app/observed_play/schemas.py` | Added `SampleMentionItem`; extended `UnresolvedCardItem` |
+| `backend/app/api/observed_play.py` | `get_unresolved_cards` sample/log expansion; `create_resolution_rule` validation/409 |
+| `backend/tests/test_api/test_observed_play.py` | +11 tests (TestResolutionRules, TestUnresolvedCardsPhase32) |
+| `frontend/src/types/observedPlay.ts` | `SampleMentionItem`; extended `UnresolvedCardItem` |
+| `frontend/src/pages/ObservedPlay.tsx` | `ResolutionRuleModal`; enhanced `UnresolvedCardsSection` |
+| `frontend/src/pages/ObservedPlay.test.tsx` | +10 Phase 3.2 tests |
+| `docs/STATUS.md` | This file |
+| `docs/CHANGELOG.md` | Phase 3.2 entry |
+| `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md` | Phase 3.2 section |
+
+## Session 32 Work (2026-05-06)
+
+### Goal
+
+Phase 3.2 hotfix: after creating a manual resolution rule and rerunning affected
+log resolution, the Raw Logs table now refreshes immediately without a browser reload.
+
+### Root Cause
+
+`UnresolvedCardsSection` was self-contained with no external props.  `handleResolved`
+only refreshed the local unresolved groups via `load()` but never called the parent
+component's `fetchLogs`, so the Raw Logs table remained stale until page reload.
+
+### Fix
+
+- `UnresolvedCardsSection` now accepts an `onRefreshLogs?: () => void` prop.
+- `handleResolved` calls `onRefreshLogs?.()` after `load()`.
+- Parent component passes `() => fetchLogs(logPage)` as `onRefreshLogs`.
+- No backend changes; no API changes; no DB migration.
+
+### Tests Added (session 32)
+
+- **+3 new frontend tests** in `Phase 3.2 — Unresolved/Ambiguous Cards section`:
+  - After resolve rule + close modal → `listObservedPlayLogs` is called again.
+  - After ignore rule + close modal → `listObservedPlayLogs` is called again.
+  - Raw Logs table card count badges update from refreshed data (7✓/3? → 10✓).
+
+### Validation (session 32)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **935 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **200 passed (15 files)** ✓
+- `cd frontend && npm run build`: **passed** ✓
+- `docs/AUDIT_STATE.md` not touched ✓
+- `frontend/node_modules` not committed ✓
+- No real battle logs committed ✓
+
+### Files Changed (session 32)
+
+| File | Change |
+|---|---|
+| `frontend/src/pages/ObservedPlay.tsx` | `UnresolvedCardsSection` accepts `onRefreshLogs` prop; `handleResolved` calls it; parent passes `fetchLogs` |
+| `frontend/src/pages/ObservedPlay.test.tsx` | +3 refresh tests |
+| `docs/STATUS.md` | This file |
+| `docs/CHANGELOG.md` | Hotfix entry |
+
+## Session 33 Work (2026-05-06)
+
+### Goal
+
+Dark mode styling hotfix for `ObservedPlay.tsx`. The page showed white panels and
+low-contrast text in dark mode because the file had zero `dark:` Tailwind classes.
+
+### Root Cause
+
+`ObservedPlay.tsx` was written without any `dark:` Tailwind variants. All other pages
+(History, Memory, Coverage) had consistent dark mode support; Observed Play did not.
+
+### Fix
+
+Added 177 `dark:` Tailwind classes across all 13 components/sections in `ObservedPlay.tsx`:
+StatusChip, RawLogModal, ConfidenceBadge, ParserDiagnosticsPanel, EventsModal,
+CardResolutionBadges, ResolutionStatusBadge (palette), CardMentionsModal,
+ResolutionRuleModal, UnresolvedCardsSection, MemoryPreviewModal, MemoryItemsModal,
+and all main page sections (phase banner, upload, import report, import batches,
+raw logs). Follows exact dark mode patterns from History.tsx and Memory.tsx
+(`dark:bg-slate-900`, `dark:border-slate-700`, `dark:text-slate-400`, etc.).
+Unresolved/ambiguous panel uses `dark:bg-amber-950/50 dark:border-amber-800`.
+
+### Tests Added (session 33)
+
+- **+6 new frontend tests** in `describe('Dark mode styling')`:
+  - Raw Logs panel has `dark:bg-slate-900`
+  - Import History/Batches panel has `dark:bg-slate-900`
+  - Unresolved section has amber dark classes
+  - RawLogModal has `dark:bg-slate-900`
+  - MemoryPreviewModal has `dark:bg-slate-900`
+  - ResolutionRuleModal has `dark:bg-slate-900`
+
+### Validation (session 33)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **935 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **206 passed (15 files)** ✓
+- `cd frontend && npm run build`: **passed** ✓
+- `docs/AUDIT_STATE.md` not touched ✓
+- `frontend/node_modules` not committed ✓
+- No real battle logs committed ✓
+
+### Files Changed (session 33)
+
+| File | Change |
+|---|---|
+| `frontend/src/pages/ObservedPlay.tsx` | +177 `dark:` Tailwind classes across all components |
+| `frontend/src/pages/ObservedPlay.test.tsx` | +6 dark mode styling tests |
+| `docs/STATUS.md` | This file |
+| `docs/CHANGELOG.md` | Dark mode entry |
+
+## Session 34 Work (2026-05-06)
+
+### Goal
+
+Stabilization sweep of Observed Play Memory feature branch before Phase 5.
+Verified migrations, backend/frontend suites, Docker compose, API smoke, import
+smoke, dark-mode behavior, and memory item review. Fixed one UI bug found during sweep.
+
+### Bug Fixed
+
+**"Force ingest" button present in MemoryPreviewModal when ineligible.**
+
+The Phase 4.1 prompt explicitly prohibited a force-ingest UI ("Do not add a new
+force-ingest UI in this pass"). The implementation agent added it anyway. Removed
+the button (lines 1118–1126 in `ObservedPlay.tsx`). When a log is ineligible, only
+the Cancel button is shown alongside the blocker/reason details. The backend force
+path (`force=True, allow_unresolved=True`) remains available for future admin use;
+only the UI exposure is removed.
+
+### Checks Passed
+
+| Check | Result |
+|---|---|
+| `git status --short` | clean ✓ |
+| `git diff --check` | no whitespace errors ✓ |
+| `alembic current` / `alembic heads` | `g3h4i5j6k7l8 (head)` ✓ |
+| `docs/AUDIT_STATE.md` not touched | ✓ |
+| `frontend/node_modules` not committed (pre-existing tracked files from Phase 8) | noted |
+| No real battle logs committed | ✓ |
+| Backend import smoke | all observed-play and engine imports ok ✓ |
+| Docker compose up | all services healthy ✓ |
+| `GET /api/observed-play/logs` | 45 logs, 200 OK ✓ |
+| `GET /api/observed-play/unresolved-cards` | 50 groups, 200 OK ✓ |
+| `POST /api/observed-play/logs/{id}/memory-preview` | eligible/ineligible responses correct ✓ |
+| `GET /api/observed-play/logs/{id}/events` | 375 events ✓ |
+| `GET /api/observed-play/logs/{id}/card-mentions` | 205 mentions ✓ |
+| `POST /api/observed-play/logs/{id}/ingest-memory` | 158 items written ✓ |
+| `GET /api/observed-play/logs/{id}/memory-items` | 158 items returned ✓ |
+| Memory item quality | actor/target plausible, confidences correct ✓ |
+| No Coach/AI/Neo4j/pgvector/simulator integration found | ✓ |
+
+### Tests Added (session 34)
+
+- **+1 test**: `MemoryPreviewModal does not show "Force ingest" when ineligible`
+  — asserts neither "Force ingest" nor "Ingest memory" appears when preview is ineligible.
+  207 frontend tests total (up from 206).
+
+### Validation (session 34)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **935 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **207 passed (15 files)** ✓
+- `cd frontend && npm run build`: **passed** ✓
+
+### Files Changed (session 34)
+
+| File | Change |
+|---|---|
+| `frontend/src/pages/ObservedPlay.tsx` | Removed "Force ingest" button (7 lines) |
+| `frontend/src/pages/ObservedPlay.test.tsx` | +1 force-ingest-absent test |
+| `docs/STATUS.md` | This file |
+| `docs/CHANGELOG.md` | Stabilization entry |
+
+
+
+### Goal
+
+Phase 2.2: Polish parser v1 after Phase 2.1. Fix dash-prefixed child-line player
+attribution, expose parser diagnostics in the API and UI.
+
+### Root Cause Fixed
+
+Dash-prefixed child lines like `"- gehejo shuffled their deck."` were matched
+against patterns with `stripped` (the raw whitespace-stripped value). The lazy
+regex `^(?P<player>.+?) shuffled their deck` would capture `player = "- gehejo"`.
+`get_alias("- gehejo")` registered it as a new third player → `unknown` alias.
+
+### Fix Applied
+
+1. **`_strip_dash_prefix(line)`** helper added to `parser.py` — strips leading
+   `"- "` from a line for pattern matching only; `raw_line` still records the
+   original line with the dash.
+
+2. **`match_line`** computed after `stripped = line.strip()` at the top of the
+   parser's main `while` loop. All ~44 pattern `.match()` and `.search()` calls
+   now use `match_line`. The bottom `RE_DASH_LINE.match(stripped)` fallback still
+   uses `stripped` so unrecognized dash lines are silently skipped.
+
+3. **`patterns.py`** — removed `^-\s*` prefix from `RE_MULLIGAN_CARDS_LABEL`,
+   `RE_DAMAGE_BREAKDOWN_LABEL`, and `RE_BENCH_FROM_DECK_HIDDEN`. These now rely
+   on `match_line` normalization.
+
+### Diagnostics API Exposure
+
+4. **`schemas.py`** — new `ParserDiagnostics` Pydantic model with `unknown_count`,
+   `unknown_ratio`, `low_confidence_count`, `event_type_counts`, `top_unknown_raw_lines`.
+   Added `parser_diagnostics: ParserDiagnostics | None = None` to `LogSummary` and
+   `ReparseSummary`.
+
+5. **`api/observed_play.py`** — `_log_to_summary` now extracts `parser_diagnostics`
+   from `metadata_json` and returns it in the log list response. Reparse endpoint
+   includes `parser_diagnostics` in its `ReparseSummary` response.
+
+### Diagnostics UI
+
+6. **`frontend/src/types/observedPlay.ts`** — `ParserDiagnostics` interface added;
+   `parser_diagnostics?: ParserDiagnostics | null` added to `ObservedPlayLog`.
+
+7. **`frontend/src/pages/ObservedPlay.tsx`** — `ParserDiagnosticsPanel` component
+   shows unknown count/ratio, low-confidence count, and top unknown lines. Shown
+   inside `EventsModal` above the events table when diagnostics are present.
+   Diagnostics state is initialized from the log list and updated after reparse.
+
+### Tests Added
+
+- Parser tests: **14 new tests** in `TestDashChildLineAttribution` class covering
+  dash-prefixed shuffle, draw, hidden draw, evolution, bench-from-deck with player
+  alias assertions; raw_line preservation; non-dash regression; Dwebble Ascension
+  preserved; targeted no-damage attack stays `attack_used`; real-log fixture dash
+  lines check; diagnostics still present after changes. (87 total, up from 73.)
+- API tests: **3 new tests** in `TestParserDiagnosticsInApi` — log list includes
+  `parser_diagnostics` when present, null for old logs, reparse response includes
+  `parser_diagnostics`. (17 total in class, up from 14.)
+- Frontend tests: **5 new tests** — diagnostics panel shown with correct values,
+  top unknown lines rendered, modal works without diagnostics, reparse updates
+  diagnostics display. (163 total, up from 159.)
+
+### Validation (session 26)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **747 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **163 passed (15 files)** ✓
+- `cd frontend && npm run build`: ✓ built in ~4s
+- `docs/AUDIT_STATE.md`: not modified ✓
+- `frontend/node_modules`: not committed ✓
+- No real battle-log corpus committed ✓
+- No card resolution / Coach / AI / Neo4j / pgvector / memory ingestion added ✓
+
+### Parser Limitations Remaining
+
+Known patterns still producing `unknown` events in real logs:
+- PTCGL text art separator lines
+- Some conditional ability announcement formats
+- Deck search confirmations without explicit card names
+- "Looked at top N cards" observation lines
+These are candidates for Phase 2.3 if needed before Phase 3.
+
+## Session 29 Work (2026-05-06)
+
+### Goal
+
+Phase 3.1: Card Mention Cleanup and False-Unresolved Reduction. Strip safe
+zone/location suffixes from extracted mention names, improve mention role
+assignments for additional event types, and add `them`/numeric-card filtering so
+false unresolved counts drop without any silent ambiguous resolution.
+
+### Root Cause Fixed
+
+Mention extraction stored raw names like `"Dreepy in the Active Spot"` because the
+`RE_ATTACK` pattern captures `(?P<target_card>.+?)` including any trailing zone
+phrase. `_resolve_one()` would then try to look up `"Dreepy in the Active Spot"` in
+the card DB, which never matched → `unresolved`. Similarly, `"them"` passed
+`_is_meaningful()` and could be extracted as a spurious mention.
+
+### Changes Applied
+
+#### `backend/app/observed_play/card_mentions.py`
+
+1. **`_ZONE_SUFFIXES`** — 9 zone phrase variants to strip from mention names:
+   `in the Active Spot`, `to the Active Spot`, `on the Bench`, `to the Bench`,
+   `in the Bench`, `on your Bench`, `on their Bench`, `from the Active Spot`,
+   `from the Bench`.
+
+2. **`clean_extracted_card_name(raw)`** — strips the first matching zone suffix
+   (case-insensitive) and returns the trimmed card name. Does not mutate `raw_line`.
+
+3. **`_add()`** — calls `clean_extracted_card_name()` before `_is_meaningful()`.
+
+4. **`_IGNORED_NORMALIZED`** extended with `"cards"` and `"them"`.
+
+5. **`_RE_NUMERIC_CARDS`** — `re.compile(r"^\d+\s+cards?$")` added to
+   `_is_meaningful()` so strings like `"2 cards"` are never extracted.
+
+6. **Dispatch branches added**:
+   - `ET_DRAW → drawn_card` (known draw events extract card name).
+   - `ET_SWITCH_ACTIVE → actor_card` (switch/retreat events extract promoted Pokémon).
+   - `ET_OPENING_HAND_DRAW_KNOWN` branch no longer incorrectly bundled with `ET_PLAY_TO_BENCH`.
+
+7. **Payload card loop** — cleaned names applied for opening-hand and mulligan
+   card lists.
+
+### Tests Added
+
+**27 new tests** across 3 new classes in `test_card_mentions.py`:
+
+- `TestCleanExtractedCardName` (13 tests) — zone strip, multi-word names, no-op
+  on clean names, all 9 suffix variants.
+- `TestZoneSuffixCleaningInExtraction` (4 tests) — attack event with suffixed
+  target produces clean mention name; name without suffix unchanged; attack event
+  with no zone text unchanged.
+- `TestImprovedMentionRoles` (11 tests) — `ET_DRAW → drawn_card`;
+  `ET_SWITCH_ACTIVE → actor_card`; `ET_DRAW_HIDDEN` produces no mention;
+  `opening_hand_draw_known` cards → `revealed_card`; `mulligan_cards_revealed` →
+  `revealed_card`; `"them"`, `"a card"`, `"2 cards"` not extracted.
+
+(64 total card mention tests, up from 37.)
+
+### Validation (session 29)
+
+- `cd backend && python3 -m pytest tests/test_observed_play/test_card_mentions.py -q`: **64 passed** ✓
+- `cd backend && python3 -m pytest tests/ -x -q`: **831 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **173 passed (15 files)** ✓
+- `cd frontend && npm run build`: ✓ built in ~4s
+- `docs/AUDIT_STATE.md`: not modified ✓
+- `frontend/node_modules`: not committed ✓
+- No real battle-log corpus committed ✓
+- No Coach / AI / Neo4j / pgvector / memory ingestion added ✓
+
+### Expected Manual Validation
+
+After reparsing real logs the suffix raw names `"Dreepy in the Active Spot"`,
+`"Munkidori on the Bench"`, `"Dunsparce on the Bench"`, and `"Drakloak on the Bench"`
+should no longer appear as unresolved card mentions. Cleaned names will resolve to
+`ambiguous` (multiple prints) or `resolved` (unique print). Ambiguous same-name
+cards remain ambiguous.
+
+### Remaining Limitations
+
+- Resolution rules UI (create-rule flow) not yet wired in frontend.
+- No memory ingestion (Phase 4+).
+- No Coach or AI Player integration (Phase 6/8).
+
+## Session 28 Work (2026-05-06)
+
+### Goal
+
+Phase 3: Card Mention Extraction and Conservative Card Resolution. Extract
+structured card mentions from parsed events, resolve them against the card DB,
+report resolution status per log, and expose review UI for unresolved/ambiguous
+cards.
+
+### New DB Tables
+
+- `observed_card_mentions` — one row per card mention extracted from a parsed
+  event. Columns: `id`, `observed_play_log_id`, `observed_play_event_id`,
+  `mention_index`, `mention_role`, `raw_name`, `normalized_name`,
+  `resolved_card_def_id` (FK → `cards.tcgdex_id`), `resolved_card_name`,
+  `resolution_status`, `resolution_confidence`, `resolution_method`,
+  `candidate_count`, `candidates_json`, `source_event_type`, `source_field`,
+  `source_payload_path`, `resolver_version`.
+- `observed_card_resolution_rules` — manual ignore/override rules. Columns:
+  `id`, `normalized_name`, `rule_type` (`ignore`/`resolve`), `resolved_card_def_id`,
+  `notes`, `created_at`, `updated_at`.
+- Alembic migration `f2a3b4c5d6e7` applied. DB now at `f2a3b4c5d6e7 (head)`.
+
+### New Columns on `observed_play_logs`
+
+- `card_mention_count INT` — total mentions extracted.
+- `card_resolution_status TEXT` — `null` / `"not_resolved"` / `"resolved"` / `"has_unresolved"` / `"has_ambiguous"`.
+- `resolver_version TEXT` — version of resolver used (`"1.0"`).
+
+### New Backend Modules
+
+- `backend/app/observed_play/card_mentions.py` — `normalize_card_name()`,
+  `_is_meaningful()`, `extract_mentions_from_event()` with per-event-type dispatch
+  and dedup by `(role, normalized_name, source_field)`.
+- `backend/app/observed_play/card_resolution.py` — `_resolve_one()` (pure, no DB),
+  `extract_and_resolve_mentions_for_log(db, log_id)` (async, idempotent delete+insert),
+  energy alias table (11 types, bidirectional), `CardResolutionSummary` dataclass,
+  log-level status derivation.
+
+### Resolution Logic
+
+1. Manual ignore/resolve rules (from `observed_card_resolution_rules`).
+2. Exact normalized name match — unique → `resolved` / 0.98; multiple → `ambiguous` / 0.60.
+3. Basic energy alias match — unique → `resolved` / 0.95.
+4. Fallback → `unresolved` / 0.0.
+
+Hidden card names (`"a card"`, `""`, etc.) excluded via `_IGNORED_NORMALIZED` frozenset.
+Attack/ability names not extracted as mentions.
+
+### New API Routes
+
+- `GET /api/observed-play/logs/{id}/card-mentions` — paginated list of mentions, filterable by status.
+- `POST /api/observed-play/logs/{id}/resolve-cards` — trigger resolution for a log; returns `CardResolutionSummaryResponse`.
+- `GET /api/observed-play/unresolved-cards` — aggregate list of unresolved/ambiguous raw names across all logs.
+- `POST /api/observed-play/resolution-rules` — create a manual ignore/resolve rule.
+
+### Updated API Routes
+
+- `GET /api/observed-play/logs` and `GET /api/observed-play/logs/{id}` — now return `card_mention_count`, `resolved_card_count`, `ambiguous_card_count`, `unresolved_card_count`, `card_resolution_status` in `LogSummary`.
+- `POST /api/observed-play/logs/{id}/reparse` — now runs extraction+resolution after parse; returns the 5 new resolution fields in `ReparseSummary`.
+
+### Frontend Changes
+
+- `ObservedPlayLog` type: 5 optional resolution fields added.
+- New types: `CardMentionItem`, `CardMentionListResponse`, `CardResolutionSummaryResponse`, `UnresolvedCardItem`, `UnresolvedCardsResponse`, `ResolutionRuleCreate`, `ResolutionRuleResponse`, `CardCandidateItem`.
+- New API functions: `getCardMentions()`, `resolveCards()`, `getUnresolvedCards()`, `createResolutionRule()`.
+- `ObservedPlay.tsx`: `CardResolutionBadges` — resolved/ambiguous/unresolved pill badges in log table "Cards" column. `CardMentionsModal` — dialog showing paginated mentions with status filter, raw name, resolved name, method, confidence. `UnresolvedCardsSection` — section above import history listing unresolved/ambiguous card names across all logs. Phase banner updated to "Phase 3 active".
+
+### Tests Added
+
+- **37 new backend tests** in `backend/tests/test_observed_play/test_card_mentions.py` covering extraction, resolution, dedup, energy alias, manual rules, edge cases. (All passing.)
+- **~12 new frontend tests** in `Phase 3 card resolution` describe block: badges render, dash for no mentions, View cards button presence, modal open/close, empty modal state, unresolved section shows/hides, phase banner.
+
+### Validation (session 28)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **804 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **173 passed (15 files)** ✓
+- `cd frontend && npm run build`: ✓ built in ~4s
+- `docs/AUDIT_STATE.md`: not modified ✓
+- `frontend/node_modules`: not committed ✓
+- No real battle-log corpus committed ✓
+- No Coach / AI / Neo4j / pgvector / memory ingestion added ✓
+
+### Phase 3 Limitations / Next Steps
+
+- Resolution rules UI (ignore/resolve buttons) is backend-only; frontend create-rule flow not yet wired.
+- No memory ingestion (Phase 4+).
+- No Coach or AI Player integration (Phase 6/8).
+
+## Session 27 Work (2026-05-06)
+
+### Goal
+
+Phase 2.3: Address the top remaining unknown patterns from the manually validated
+real log. After Phase 2.2 the log had 14 unknowns (4.8%). The top 5 patterns were:
+direct retreat-to-bench, card/effect activation, discard-from-Pokémon, and
+card-added-to-hand.
+
+### New Event Types
+
+- `ET_CARD_EFFECT_ACTIVATED` (`"card_effect_activated"`) — lines like `"Spiky Energy was activated."`
+- `ET_DISCARD_FROM_POKEMON` (`"discard_from_pokemon"`) — lines like `"Basic Fighting Energy was discarded from DAVIDELIRIUM's Solrock."`
+- `ET_CARD_ADDED_TO_HAND` (`"card_added_to_hand"`) — lines like `"Growing Grass Energy was added to gehejo's hand."` and hidden `"A card was added to PLAYER's hand."`
+
+### New Patterns
+
+- `RE_RETREAT_DIRECT` — `PLAYER retreated CARD to the Bench.` (direct form, before `RE_RETREAT`)
+- `RE_DISCARD_FROM_POKEMON` — passive discard from Pokémon with player/target extraction (after `RE_DISCARD`)
+- `RE_CARD_EFFECT_ACTIVATED` — `CARD was activated.` (late in parser before bullet-skip)
+- `RE_CARD_ADDED_TO_HAND_KNOWN` — named-card form added to hand (after `RE_PRIZE_CARD_ADDED`)
+
+Pattern ordering preserved: prize-card-added before named-card-added-to-hand so "A card was added to PLAYER's hand" still emits `prize_card_added_to_hand`.
+
+Supports both straight `'` and curly `\u2019` apostrophes in possessive patterns.
+
+### Diagnostics Improvement
+
+- `top_unknown_raw_lines` de-duplicated using a seen-set; same list shape, no frontend changes.
+
+### Tests Added
+
+- **20 new tests** in `TestPhase23TopUnknowns` class covering all 4 new patterns,
+  multi-word Pokémon names, curly apostrophe, hidden-card variant, Phase 2.2 regression
+  (dash-prefix, Dwebble Ascension, targeted attack), and unknown-count reduction.
+  (107 total parser tests, up from 87.)
+
+### Validation (session 27)
+
+- `cd backend && python3 -m pytest tests/test_observed_play/ -q`: **107 passed** ✓
+- `cd backend && python3 -m pytest tests/ -x -q`: **767 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **163 passed (15 files)** ✓
+- `cd frontend && npm run build`: ✓ built in ~4.5s
+- `docs/AUDIT_STATE.md`: not modified ✓
+- `frontend/node_modules`: not committed ✓
+- No real battle-log corpus committed ✓
+- No card resolution / Coach / AI / Neo4j / pgvector / memory ingestion added ✓
+
+### Manual Real-Log Metrics (before/after Phase 2.3)
+
+Before:  events=292, confidence=84%, unknown=14 (4.8%), low_confidence=14
+Expected after: events≈292, confidence≥84%, unknown materially lower
+
+The five top unknown lines targeted:
+- `DAVIDELIRIUM retreated Hariyama to the Bench.` → `retreat` ✓
+- `DAVIDELIRIUM retreated Mega Lucario ex to the Bench.` → `retreat` ✓
+- `Spiky Energy was activated.` → `card_effect_activated` ✓
+- `Basic Fighting Energy was discarded from DAVIDELIRIUM's Solrock.` → `discard_from_pokemon` ✓
+- `Growing Grass Energy was added to gehejo's hand.` → `card_added_to_hand` ✓
+
+### Parser Limitations Remaining
+
+- PTCGL text art separator lines
+- Some conditional ability announcement formats
+- Deck search confirmations without explicit card names
+- "Looked at top N cards" observation lines
+
+## Session 26 Work (2026-05-06)
+
+
+### Goal
+
+Phase 2.1: Harden parser v1 against real PTCGL log patterns. Target: reduce
+unknown/misclassified event ratio, improve confidence from 56% baseline.
+
+### Patterns Fixed
+
+9 specific real-log misclassification bugs resolved:
+
+1. **Generic trainer play** — `PLAYER played CARD.` without `(Item)`/`(Supporter)` tag
+   now parses as new `play_trainer` event type (not `unknown`).
+2. **Hidden draw** — `PLAYER drew a card.` and `PLAYER drew N cards.` now correctly
+   parse as `draw_hidden` (not misclassified as known draw). Hidden draws check BEFORE
+   known draw pattern. `draw_hidden` now sets `amount=1` for singular form.
+3. **Non-energy attachment** — `PLAYER attached TOOL to TARGET.` now parses as new
+   `attach_card` event type when card name doesn't contain "Energy". Zone extracted
+   from target string ("in the Active Spot" → `active`, "on the Bench" → `bench`).
+   Energy attachments still correctly parse as `attach_energy`.
+4. **Direct evolution** — `PLAYER evolved FROM to TO [in ZONE].` (PTCGL direct format)
+   now parses as `evolve` with zone extraction. Possessive format still works.
+5. **Ability used** — `PLAYER's CARD used ABILITY.` (no target) now parses as
+   `ability_used`. Both straight (`'`) and curly (`'`) apostrophes supported.
+6. **No-damage attack** — `PLAYER's CARD used ATTACK on TARGET.` (no "for N damage")
+   now parses as `attack_used` with `damage=None`.
+7. **Singular prize** — `PLAYER took a Prize card.` now parses as `prize_taken`
+   with `prize_count_delta=1`. Checked before numeric pattern.
+8. **Hidden bench from deck** — `- PLAYER drew N cards and played them to the Bench.`
+   now parses as new `play_to_bench_hidden` event. `card_name_raw` is not set to `"them"`.
+   Checked before `play_to_bench` pattern.
+9. **Active switch/promotion** — `PLAYER's CARD is now in the Active Spot.` now
+   parses as `switch_active` with `zone="active"`.
+
+### New Event Types
+
+- `play_trainer` — generic trainer play without explicit subtype (confidence 0.85)
+- `attach_card` — non-energy card attachment to a Pokémon (confidence 0.87)
+- `play_to_bench_hidden` — hidden aggregate bench placement from deck (confidence 0.82)
+
+### Parser Diagnostics
+
+Parser now computes and stores diagnostics in `metadata_json["parser_diagnostics"]`:
+
+```json
+{
+  "unknown_count": N,
+  "unknown_ratio": 0.14,
+  "low_confidence_count": K,
+  "event_type_counts": {"turn_start": 20, "draw_hidden": 14, ...},
+  "top_unknown_raw_lines": ["...", ...]
+}
+```
+
+Diagnostics are computed after each parse and reparse. Exposed via existing
+`LogDetail.metadata_json` field — no schema/migration changes required.
+
+### Tests Added
+
+- Parser tests: **42 new tests** across 9 bug classes + diagnostics + real-log fixture
+  (73 total up from 31).
+- API tests: **2 new tests** for diagnostics in reparse response (27 total up from 25).
+- New test fixture: `tests/fixtures/observed_play/real_log_sample.md` with all 9
+  bug-example patterns.
+- Updated `basic_setup_and_turns.md`: first draw changed to named-card draw for
+  `test_draw_events_exist` to remain valid after draw-ordering fix.
+
+### No Phase 3 Work
+
+No card resolution, `observed_card_mentions`, unresolved-card UI, Coach/Player
+integration, pgvector, Neo4j, simulator `match_events`, card performance writes,
+or memory ingestion was added.
+
+### Validation (session 25)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **730 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **159 passed (15 files)** ✓
+- `docs/AUDIT_STATE.md`: not modified ✓
+- `frontend/node_modules`: not committed ✓
+- No real battle-log corpus committed ✓
+
+### Goal
+
+Stabilize Phase 2 after a 500 error during manual upload validation.
+
+### Root Cause
+
+The Phase 2 Alembic migration (`e1f2a3b4c5d6`) was not applied to the running
+PostgreSQL instance after the backend image was rebuilt. The code tried to INSERT
+into `observed_play_events` which didn't exist yet, causing:
+
+```
+asyncpg.exceptions.UndefinedTableError: relation "observed_play_events" does not exist
+```
+
+The DB was at migration `b9f8e1d2c3a4` (Phase 1 head); `e1f2a3b4c5d6` was the new head.
+
+### Fix Applied
+
+1. **Migration applied** — `docker compose exec backend alembic upgrade head` promoted DB
+   from `b9f8e1d2c3a4` → `e1f2a3b4c5d6`. The migration is idempotent. Steps added to
+   docs for post-rebuild workflow.
+
+2. **Duplicate result completeness** (`backend/app/observed_play/importer.py`):
+   Duplicate branch now includes `event_count` and `confidence_score` from the existing
+   log. These have schema defaults (0, None) so no 500 occurred, but the response was
+   semantically incomplete.
+
+3. **Frontend error detail** (`frontend/src/pages/ObservedPlay.tsx`):
+   Upload error handler now extracts `error.response?.data?.detail` from Axios error
+   before falling back to `error.message`. Users now see the specific backend failure
+   reason instead of "Request failed with status code 500".
+
+4. **EventsModal empty state** (`frontend/src/pages/ObservedPlay.tsx`):
+   When a log has zero events (`data.total === 0`), the modal now shows
+   "No parsed events found. Try Reparse." with an inline Reparse button,
+   instead of an empty table. Pre-Phase-2 `raw_archived` logs can be reparsed directly.
+
+5. **Phase banner** (`frontend/src/pages/ObservedPlay.tsx`):
+   Updated from "Raw archive only. Parser and memory ingestion are not active yet."
+   to "Phase 2 active — parser running. Memory ingestion not yet active."
+
+### Tests Added
+
+- Backend (`test_api/test_observed_play.py`): `test_returns_empty_list_for_raw_archived_log`
+  (200+empty for Phase-1 log), `test_duplicate_response_includes_event_count_and_confidence`
+  (duplicate result carries event_count/confidence_score). +2 tests.
+- Frontend (`ObservedPlay.test.tsx`): upload 500 shows backend detail, duplicate with
+  null event_count renders, empty event viewer shows no-events message + reparse button,
+  happy-path event viewer shows events table, fetch failure shows error. +5 tests.
+
+### Validation (session 24)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **688 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **159 passed (15 files)** ✓
+- `cd frontend && npm run build`: clean ✓
+- `docker compose exec backend alembic current`: `e1f2a3b4c5d6 (head)` ✓
+- `docs/AUDIT_STATE.md`: not touched ✓
+- `frontend/node_modules`: not committed ✓
+- No real battle logs committed ✓
+- No card resolution/Coach/AI/memory ingestion added ✓
+
+## Session 23 Work (2026-05-05)
+
+### Goal
+
+Observed Play Memory Phase 2: PTCGL battle log parser v1, structured event storage,
+confidence scoring, new events/reparse API endpoints, and frontend event viewer.
+
+### Completed
+
+1. **`observed_play_events` table** (`backend/alembic/versions/e1f2a3b4c5d6_observed_play_events.py`): New migration adding the `observed_play_events` table with 30+ columns (event_type, turn_number, phase, player_raw/alias, card_name_raw, damage, energy_type, prize_count_delta, confidence_score, parser_version, etc.), two indexes (`ix_ope_log_id_event_index`, `ix_ope_log_id_event_type`), and FK to `observed_play_logs`.
+
+2. **Parser modules** (4 new files):
+   - `backend/app/observed_play/constants.py`: All event type constants (`ET_TURN_START`, `ET_DRAW`, `ET_ATTACK_USED`, etc.), phase constants, `PARSER_VERSION = "1.0"`.
+   - `backend/app/observed_play/patterns.py`: Compiled regex patterns for all PTCGL log line types (turn start, draw, attach energy, play trainer, evolve, attack, KO, prize, mulligan, game end, etc.). Fixed turn-number regex to accept `"Alice's Turn 1"` format.
+   - `backend/app/observed_play/confidence.py`: Deterministic per-event and log-level confidence scoring functions.
+   - `backend/app/observed_play/parser.py`: Complete `parse_log()` implementation with `ParsedObservedLog`/`ParsedObservedEvent` dataclasses. Parser never throws; wraps inner parser in try/except. Player aliasing (first seen → `player_1`/`player_2`). Phase transitions (setup → turn → combat → game_end).
+
+3. **Importer Phase 2 block** (`backend/app/observed_play/importer.py`): After `db.flush()`, parse log content and insert `ObservedPlayEvent` rows. `parse_status` transitions to `"parsed"` / `"parsed_with_warnings"` / `"parse_failed"`. Parse failures do not prevent archive writes or lose `raw_content`. Return dict now includes `event_count` and `confidence_score`. `batch.summary_json` now includes `total_events_parsed` and `average_confidence`.
+
+4. **Schemas** (`backend/app/observed_play/schemas.py`): Added `EventSummary`, `PaginatedEvents`, `ReparseSummary` classes; `LogImportResult` gets `event_count`/`confidence_score`; `LogSummary` gets `parser_version`, `event_count`, `confidence_score`, `winner_raw`, `win_condition`.
+
+5. **API endpoints** (`backend/app/api/observed_play.py`): Added `GET /logs/{log_id}/events` (paginated, filterable by event_type/turn_number/min_confidence) and `POST /logs/{log_id}/reparse` (deletes existing events, re-runs parser, updates log fields). `_log_to_summary` updated with new fields.
+
+6. **Frontend** (`frontend/src/`):
+   - `types/observedPlay.ts`: Added `EventSummary`, `PaginatedEvents`; updated `ObservedPlayLog` and `LogImportResult` with new fields.
+   - `api/observedPlay.ts`: Added `getObservedPlayLogEvents`, `reparseObservedPlayLog`, `ListEventsParams`.
+   - `pages/ObservedPlay.tsx`: Added `ConfidenceBadge` component, `EventsModal` component (paginated event table with reparse button), updated raw logs table with Events/Confidence columns and "View events" button alongside "View raw".
+
+7. **Tests**:
+   - `backend/tests/test_observed_play/test_parser.py` (NEW): 33 tests across smoke, parser version, fixture golden tests, confidence scoring, and edge cases.
+   - `backend/tests/test_observed_play/test_importer.py`: 3 tests updated for new `parse_status` values.
+   - `backend/tests/test_api/test_observed_play.py`: `_make_log_model` updated; `TestGetLogEvents` and `TestReparseLog` classes added.
+   - `frontend/src/pages/ObservedPlay.test.tsx`: `getObservedPlayLogEvents` and `reparseObservedPlayLog` added to `vi.mock`; `sampleLog` updated with new fields; `beforeEach` defaults for new mocks.
+
+8. **Fixture files** (`backend/tests/fixtures/observed_play/`): `basic_setup_and_turns.md` and `mulligan_attack_ko_prize.md` added (synthetic, match regex patterns, contain no real battle logs).
+
+### Validation (session 23)
+
+- `docker compose run --rm backend pytest tests/ -q --tb=short`: **682 passed, 5 skipped** ✓
+- `cd frontend && npm test -- --run`: **154 passed (15 files)** ✓
+- `cd frontend && npm run build`: clean ✓
+- `docs/AUDIT_STATE.md`: not touched ✓
+- `frontend/node_modules`: not committed ✓
+- No real battle logs committed ✓
+- Parser never throws; parse failures do not lose raw_content ✓
+
+## Session 22 Work (2026-05-05)
+
+### Goal
+
+Fix Phase 1 raw Observed Play import so real PTCGL `.md` logs with spaces, bullets (`•`),
+and curly punctuation (`'`) import successfully. Improve file-level error visibility in
+the import report so users can see why an upload failed without checking logs.
+
+### Root Cause
+
+Docker named volumes are created by the Docker daemon as `root`-owned. The backend
+container runs as `app` (uid=999). The volume was mounted after `USER app`, so the
+app had write access to image layers but not to the named volume. Writes to
+`/data/ptcgl_logs/archive/` failed with `PermissionError: [Errno 13] Permission denied`.
+
+The UI did not display the error reason — the `error` field was returned by the API
+but the import report table had no Error column.
+
+### Fixes Applied
+
+1. **Docker ownership** (`backend/Dockerfile`): Added `RUN mkdir -p /data/ptcgl_logs && chown -R app:app /data/ptcgl_logs` before `USER app`. Docker copies image layer ownership into a named volume on its first creation. For existing volumes, manual `chown -R app:app /data/ptcgl_logs` was applied at runtime.
+
+2. **UTF-8 BOM decode** (`backend/app/observed_play/importer.py`): Added fallback decode via `utf-8-sig` for Windows PTCGL exports with BOM. Failed decode returns `"File is not valid UTF-8 or UTF-8 BOM text."`.
+
+3. **`parse_status` correctness** (`backend/app/observed_play/importer.py`): Infrastructure failures (too large, decode error, archive write error) now use `"not_applicable"`, `"decode_failed"`, `"archive_failed"` — never `"failed"`. Phase 1 has no parser; `"failed"` was semantically wrong for infrastructure errors.
+
+4. **`batch.errors_json` population** (`backend/app/observed_play/importer.py`): Per-file errors from failed results are now collected into `batch.errors_json` after `run_import` completes.
+
+5. **Startup warning** (`backend/app/main.py`): Added `_warn_if_log_root_not_writable()` called from `create_app()` — logs a WARNING with chown instructions if `/data/ptcgl_logs` is not writable at startup.
+
+6. **Frontend Error column** (`frontend/src/pages/ObservedPlay.tsx`): Added `Error` column to import report table (`l.error ?? '—'`). Added batch-level errors/warnings section below the counts grid.
+
+### Tests Added
+
+- **`backend/tests/test_observed_play/test_importer.py`**: 13 new async `TestRunImport` tests covering: realistic PTCGL log with bullets/curly apostrophes, spaced filename, UTF-8 BOM, invalid binary with clear error, `parse_status == "raw_archived"` for success, `parse_status != "failed"` for infrastructure failures, archive directory auto-created, archive file exists at stored_path, failed result includes error, `batch.errors_json` populated on failure, `batch.summary_json` includes files, duplicate detection.
+
+- **`frontend/src/pages/ObservedPlay.test.tsx`**: 3 new tests: failed import shows file-level error in Error column, successful import shows `—`, batch-level errors/warnings render when present.
+
+### Validation (session 22)
+
+- `cd backend && python3 -m pytest tests/ -x -q`: **648 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **154 passed (15 files)** ✓
+- `cd frontend && npm run build`: clean ✓
+- `docs/AUDIT_STATE.md`: not touched ✓
+- `frontend/node_modules`: not committed ✓
+- No raw battle logs committed ✓
+- No parser/card-resolution/memory ingestion added ✓
+
+## Session 21 Work (2026-05-05)
+
+### Goal
+
+Observed Play Memory Phase 1: Raw Archive and Import Foundation on branch `feature/observed-play-memory`.
+
+### Completed
+
+**Phase 1 — Raw import foundation implemented:**
+
+1. **DB models** (`backend/app/db/models.py`): Added `ObservedPlayImportBatch` and `ObservedPlayLog` ORM models with all Phase 1 fields, relationships, and unique constraint on `sha256_hash`.
+
+2. **Alembic migration** (`backend/alembic/versions/b9f8e1d2c3a4_observed_play_foundation.py`): Creates `observed_play_import_batches`, `observed_play_logs`, 4 indexes, unique constraint. `alembic upgrade head` applied successfully.
+
+3. **Storage module** (`backend/app/observed_play/storage.py`): SHA-256 computation, archive path convention (`archive/{sha[:2]}/{sha}{ext}`), archive/failed file writers, safe_filename, directory setup. Constants: max single file 2 MB, max ZIP 25 MB, max ZIP entries 500.
+
+4. **Importer module** (`backend/app/observed_play/importer.py`): `run_import()` orchestrates `.md`/`.markdown`/`.txt` (single file) and `.zip` (synchronous, Phase 1). Duplicate detection via `sha256_hash`, ZIP-slip protection, size/entry limits. Sets `parse_status="raw_archived"`, `memory_status="not_ingested"` — no parser or memory ingestion.
+
+5. **API routes** (`backend/app/api/observed_play.py`): `POST /api/observed-play/upload`, `GET /api/observed-play/batches`, `GET /api/observed-play/batches/{id}`, `GET /api/observed-play/logs`, `GET /api/observed-play/logs/{id}`. Registered in `backend/app/api/router.py`.
+
+6. **Docker** (`docker-compose.yml`): Added `ptcgl_logs_data` named volume, mounted to backend and celery-worker at `/data/ptcgl_logs`. Added `OBSERVED_PLAY_LOG_ROOT` env var to both.
+
+7. **Pydantic schemas** (`backend/app/observed_play/schemas.py`): `LogImportResult`, `BatchImportResponse`, `LogSummary`, `LogDetail`, `BatchSummary`, `BatchDetail`, `PaginatedBatches`, `PaginatedLogs`.
+
+8. **Frontend** (`frontend/src/types/observedPlay.ts`, `frontend/src/api/observedPlay.ts`, `frontend/src/pages/ObservedPlay.tsx`): TypeScript types, API client functions, full Observed Play page with upload panel, import report, import history table, raw logs table, raw log viewer modal. Phase banner: "Raw archive only. Parser and memory ingestion are not active yet."
+
+9. **Navigation**: Added Observed Play entry to `frontend/src/components/layout/Sidebar.tsx`. Route `/observed-play` added to `frontend/src/router.tsx`.
+
+10. **Tests**: 37 new backend tests (18 storage, 7 importer, 12 API mock-DB style). 10 new frontend tests. All pass.
+
+### Validation (session 21)
+
+- `alembic upgrade head`: applied migration `b9f8e1d2c3a4` ✓
+- `alembic current`: `b9f8e1d2c3a4 (head)` ✓
+- `cd backend && python3 -m pytest tests/ -x -q`: **635 passed, 1 skipped** ✓
+- `cd frontend && npm test -- --run`: **151 passed (15 files)** ✓
+- `cd frontend && npm run build`: clean ✓
+- `docker compose config`: valid ✓
+
+**Not implemented (Phase 2+):** parser event extraction, card mention/resolution, Coach/AI Player integration, Neo4j writes, pgvector embeddings, memory ingestion.
+
+## Session 20 Work (2026-05-05)
+
+### Goal
+
+Phase 0 design-alignment pass for Observed Play Memory on feature branch
+`feature/observed-play-memory`.
+
+### Completed
+
+- docs(observed-play): add implementation plan — created `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md` (all 23 required sections); defines MVP boundary, parallel DB tables, parser v1 architecture, card resolution strategy, 10 API routes, 9 frontend components, confidence tiers, reparse/versioning, memory ingestion stages, testing strategy, and 8-phase phased plan. No production code or migrations added.
+- chore: add `data/ptcgl_logs/` to `.gitignore`
+- docs: update STATUS.md and CHANGELOG.md with branch/design status
 
 ## Session 19 Work (2026-05-05)
 

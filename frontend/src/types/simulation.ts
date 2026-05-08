@@ -89,6 +89,8 @@ export interface SimulationDetail {
   id: string;
   status: 'pending' | 'running' | 'complete' | 'failed' | 'cancelled' | 'queued';
   user_deck_name: string | null;
+  user_deck_id: string | null;
+  final_working_deck_id: string | null;
   game_mode: string;
   deck_mode: string;
   num_rounds: number;
@@ -107,9 +109,77 @@ export interface SimulationDetail {
 // ----- Deck mutations --------------------------------------------------------
 
 export interface DeckMutation {
-  round: number;
-  card_in: string | null;
-  card_out: string | null;
+  round_number: number;
+  card_removed: string | null;
+  card_added: string | null;
+  reasoning: string | null;
   win_rate_before: number | null;
   win_rate_after: number | null;
+}
+
+// ----- Final candidate deck --------------------------------------------------
+
+export interface DeckCardEntry {
+  tcgdex_id: string;
+  name: string;
+  set_abbrev: string | null;
+  set_number: string | null;
+  category: string | null;
+  quantity: number;
+  ptcgl_line: string | null;
+}
+
+export interface ChangedCard {
+  tcgdex_id: string;
+  name: string;
+  original_count: number;
+  final_count: number;
+}
+
+export interface FinalDeckResponse {
+  original_deck_id: string | null;
+  original_deck_name: string;
+  original_cards: DeckCardEntry[];
+  original_deck_text: string;
+  original_ptcgl_text: string;
+  final_working_deck_id: string | null;
+  final_deck_name: string;
+  final_cards: DeckCardEntry[];
+  final_deck_text: string;
+  final_ptcgl_text: string;
+  changed_cards: ChangedCard[];
+  has_mutations: boolean;
+  metadata_warnings: string[];
+}
+
+// ----- Coach-debug (observed-play retrieval) ---------------------------------
+
+export interface CoachDebugAnalysisRound {
+  round_number: number;
+  block_injected: boolean;
+  no_relevant_evidence: boolean;
+  evidence_ids_available: string[];
+  acknowledgment: {
+    block_provided?: boolean;
+    used_evidence_ids?: string[];
+    not_used_reason?: string | null;
+    acknowledgment_missing?: boolean;
+  } | null;
+  llm_analysis: string | null;
+  retrieval_metadata: import('./observedPlay').ObservedPlayRetrievalMetadata | null;
+  mutations_produced: number;
+}
+
+export interface CoachDebugResponse {
+  simulation_id: string;
+  simulation_status: string;
+  flag_enabled: boolean;
+  any_block_injected: boolean;
+  simulation_observed_play_summary: {
+    any_block_injected: boolean;
+    evidence_ids_available: string[];
+    not_used_reasons: string[];
+    any_acknowledgment_missing: boolean;
+  };
+  analysis_rounds: CoachDebugAnalysisRound[];
 }

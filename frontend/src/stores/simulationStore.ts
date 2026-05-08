@@ -29,6 +29,7 @@ interface SimulationState {
   prependEvents: (events: NormalisedEvent[], total: number, hasMore: boolean) => void;
   appendEvent: (event: NormalisedEvent) => void;
   addMutation: (m: DeckMutation) => void;
+  setMutations: (mutations: DeckMutation[]) => void;
   reset: () => void;
 }
 
@@ -37,6 +38,7 @@ interface SimulationActions {
   prependEvents: SimulationState['prependEvents'];
   appendEvent: SimulationState['appendEvent'];
   addMutation: SimulationState['addMutation'];
+  setMutations: SimulationState['setMutations'];
   reset: SimulationState['reset'];
 }
 
@@ -82,6 +84,8 @@ export const useSimulationStore = create<SimulationState>((set) => ({
 
   addMutation: (m) =>
     set((s) => ({ mutations: [...s.mutations, m] })),
+
+  setMutations: (mutations) => set({ mutations }),
 
   reset: () => set({ ...INITIAL }),
 }));

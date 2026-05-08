@@ -191,9 +191,19 @@ class MatchMemoryWriter:
             return deck_id
 
         if existing_counts != counts:
+            missing = {tid: counts[tid] for tid in counts if tid not in existing_counts}
+            extra = {tid: existing_counts[tid] for tid in existing_counts if tid not in counts}
+            diff = {
+                tid: (counts.get(tid, 0), existing_counts.get(tid, 0))
+                for tid in set(counts) | set(existing_counts)
+                if counts.get(tid, 0) != existing_counts.get(tid, 0)
+            }
             raise ValueError(
                 f"Deck {deck_id} already has DeckCard rows that do not match "
-                "the scheduled simulation deck contents."
+                "the scheduled simulation deck contents. "
+                f"Expected {len(counts)} card types, found {len(existing_counts)}. "
+                f"Differences (card_id: (expected_qty, actual_qty)): {diff}. "
+                f"Missing from DB: {missing}. Extra in DB: {extra}."
             )
 
         return deck_id

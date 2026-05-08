@@ -6,7 +6,7 @@ import uuid
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
-    BigInteger, Boolean, Column, ForeignKey, Index, Integer, Text,
+    BigInteger, Boolean, Column, Float, ForeignKey, Index, Integer, Text,
     UniqueConstraint, func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID
@@ -120,6 +120,8 @@ class Simulation(Base):
     created_at           = Column(TIMESTAMP(timezone=True), server_default=func.now())
     updated_at           = Column(TIMESTAMP(timezone=True), server_default=func.now(),
                                   onupdate=func.now())
+
+    observed_play_meta   = Column(JSONB)   # list of per-round injection states for coach-debug
 
     user_deck            = relationship("Deck",
                                         foreign_keys=[user_deck_id],
@@ -298,6 +300,7 @@ class DeckMutation(Base):
     card_added    = Column(Text, nullable=False)
     reasoning     = Column(Text)
     evidence      = Column(JSONB)
+    observed_play_meta = Column(JSONB)
     created_at    = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
 
@@ -327,3 +330,304 @@ class Embedding(Base):
     content_text = Column(Text)
     embedding    = Column(Vector(768))           # nomic-embed-text outputs 768-dim vectors
     created_at   = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+
+# ── Observed Play Memory ───────────────────────────────────────────────────────
+
+class ObservedPlayImportBatch(Base):
+    """One row per upload operation (single file or ZIP)."""
+    __tablename__ = "observed_play_import_batches"
+
+    id                   = Column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    source               = Column(Text, nullable=False, default="upload_single")
+    uploaded_filename    = Column(Text)
+    celery_task_id       = Column(Text)
+    status               = Column(Text, nullable=False, default="pending")
+    original_file_count  = Column(Integer, default=0)
+    accepted_file_count  = Column(Integer, default=0)
+    duplicate_file_count = Column(Integer, default=0)
+    failed_file_count    = Column(Integer, default=0)
+    imported_file_count  = Column(Integer, default=0)
+    skipped_file_count   = Column(Integer, default=0)
+    started_at           = Column(TIMESTAMP(timezone=True))
+    finished_at          = Column(TIMESTAMP(timezone=True))
+    summary_json         = Column(JSONB, default=dict)
+    errors_json          = Column(JSONB, default=list)
+    warnings_json        = Column(JSONB, default=list)
+    created_at           = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at           = Column(TIMESTAMP(timezone=True), server_default=func.now(),
+                                  onupdate=func.now())
+
+    logs = relationship("ObservedPlayLog", back_populates="import_batch")
+
+
+class ObservedPlayLog(Base):
+    """One row per imported raw battle log. Canonical source record."""
+    __tablename__ = "observed_play_logs"
+    __table_args__ = (
+        UniqueConstraint("sha256_hash", name="uq_observed_play_logs_sha256"),
+        Index("idx_opl_import_batch_id", "import_batch_id"),
+        Index("idx_opl_parse_status", "parse_status"),
+        Index("idx_opl_memory_status", "memory_status"),
+        Index("idx_opl_created_at", "created_at"),
+    )
+
+    id                    = Column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    import_batch_id       = Column(UUID(as_uuid=True),
+                                   ForeignKey("observed_play_import_batches.id"))
+    source                = Column(Text, nullable=False, default="ptcgl_export")
+    original_filename     = Column(Text, nullable=False)
+    stored_path           = Column(Text)
+    sha256_hash           = Column(Text, nullable=False)
+    raw_content           = Column(Text)
+    file_size_bytes       = Column(Integer, nullable=False, default=0)
+    parse_status          = Column(Text, nullable=False, default="raw_archived")
+    memory_status         = Column(Text, nullable=False, default="not_ingested")
+    memory_item_count     = Column(Integer, default=0)
+    last_memory_ingested_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    parser_version        = Column(Text)
+    player_1_name_raw     = Column(Text)
+    player_2_name_raw     = Column(Text)
+    player_1_alias        = Column(Text)
+    player_2_alias        = Column(Text)
+    self_player_index     = Column(Integer)
+    winner_raw            = Column(Text)
+    winner_alias          = Column(Text)
+    win_condition         = Column(Text)
+    game_date_detected    = Column(Text)  # ISO date string; set by parser in Phase 2
+    turn_count            = Column(Integer, default=0)
+    event_count           = Column(Integer, default=0)
+    recognized_card_count  = Column(Integer, default=0)
+    unresolved_card_count  = Column(Integer, default=0)
+    ambiguous_card_count   = Column(Integer, default=0)
+    card_mention_count     = Column(Integer, default=0)
+    card_resolution_status = Column(Text, nullable=True)
+    resolver_version       = Column(Text, nullable=True)
+    confidence_score      = Column(Float)
+    errors_json           = Column(JSONB, default=list)
+    warnings_json         = Column(JSONB, default=list)
+    metadata_json         = Column(JSONB, default=dict)
+    created_at            = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at            = Column(TIMESTAMP(timezone=True), server_default=func.now(),
+                                   onupdate=func.now())
+
+    events = relationship("ObservedPlayEvent", back_populates="log", cascade="all, delete-orphan")
+    card_mentions = relationship("ObservedCardMention", back_populates="log", cascade="all, delete-orphan")
+    import_batch = relationship("ObservedPlayImportBatch", back_populates="logs")
+    memory_ingestions = relationship("ObservedPlayMemoryIngestion", back_populates="log", cascade="all, delete-orphan")
+
+class ObservedPlayEvent(Base):
+    """One parsed event from a PTCGL battle log."""
+    __tablename__ = "observed_play_events"
+    __table_args__ = (
+        UniqueConstraint("observed_play_log_id", "event_index", name="uq_ope_log_event_index"),
+        Index("idx_ope_log_id", "observed_play_log_id"),
+        Index("idx_ope_import_batch_id", "import_batch_id"),
+        Index("idx_ope_event_type", "event_type"),
+        Index("idx_ope_player_alias", "player_alias"),
+        Index("idx_ope_created_at", "created_at"),
+    )
+
+    id                      = Column(BigInteger, primary_key=True, autoincrement=True)
+    observed_play_log_id    = Column(UUID(as_uuid=True),
+                                     ForeignKey("observed_play_logs.id", ondelete="CASCADE"),
+                                     nullable=False)
+    import_batch_id         = Column(UUID(as_uuid=True), nullable=True)
+    event_index             = Column(Integer, nullable=False)
+    turn_number             = Column(Integer, nullable=True)
+    phase                   = Column(Text, nullable=False)
+    player_raw              = Column(Text, nullable=True)
+    player_alias            = Column(Text, nullable=True)
+    actor_type              = Column(Text, nullable=True)
+    event_type              = Column(Text, nullable=False)
+    raw_line                = Column(Text, nullable=False)
+    raw_block               = Column(Text, nullable=True)
+    card_name_raw           = Column(Text, nullable=True)
+    target_card_name_raw    = Column(Text, nullable=True)
+    zone                    = Column(Text, nullable=True)
+    target_zone             = Column(Text, nullable=True)
+    amount                  = Column(Integer, nullable=True)
+    damage                  = Column(Integer, nullable=True)
+    base_damage             = Column(Integer, nullable=True)
+    weakness_damage         = Column(Integer, nullable=True)
+    resistance_delta        = Column(Integer, nullable=True)
+    healing_amount          = Column(Integer, nullable=True)
+    energy_type             = Column(Text, nullable=True)
+    prize_count_delta       = Column(Integer, nullable=True)
+    deck_count_delta        = Column(Integer, nullable=True)
+    hand_count_delta        = Column(Integer, nullable=True)
+    discard_count_delta     = Column(Integer, nullable=True)
+    event_payload_json      = Column(JSONB, default=dict)
+    confidence_score        = Column(Float, nullable=False, default=0.0)
+    confidence_reasons_json = Column(JSONB, default=list)
+    parser_version          = Column(Text, nullable=False)
+    created_at              = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+    log = relationship("ObservedPlayLog", back_populates="events")
+
+
+# ── Observed Card Mentions (Phase 3) ──────────────────────────────────────────
+
+class ObservedCardMention(Base):
+    """One raw card mention extracted from a parsed observed event."""
+    __tablename__ = "observed_card_mentions"
+    __table_args__ = (
+        UniqueConstraint("observed_play_event_id", "mention_index",
+                         name="uq_ocm_event_mention_index"),
+        Index("idx_ocm_log_id", "observed_play_log_id"),
+        Index("idx_ocm_event_id", "observed_play_event_id"),
+        Index("idx_ocm_normalized_name", "normalized_name"),
+        Index("idx_ocm_resolution_status", "resolution_status"),
+        Index("idx_ocm_resolved_card_def_id", "resolved_card_def_id"),
+        Index("idx_ocm_created_at", "created_at"),
+    )
+
+    id                      = Column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    observed_play_log_id    = Column(UUID(as_uuid=True),
+                                     ForeignKey("observed_play_logs.id", ondelete="CASCADE"),
+                                     nullable=False)
+    observed_play_event_id  = Column(BigInteger,
+                                     ForeignKey("observed_play_events.id", ondelete="CASCADE"),
+                                     nullable=False)
+    import_batch_id         = Column(UUID(as_uuid=True), nullable=True)
+
+    mention_index           = Column(Integer, nullable=False)
+    mention_role            = Column(Text, nullable=False)
+    raw_name                = Column(Text, nullable=False)
+    normalized_name         = Column(Text, nullable=False)
+
+    resolved_card_def_id    = Column(Text, ForeignKey("cards.tcgdex_id"), nullable=True)
+    resolved_card_name      = Column(Text, nullable=True)
+    resolution_status       = Column(Text, nullable=False, default="unresolved")
+    resolution_confidence   = Column(Float, nullable=True)
+    resolution_method       = Column(Text, nullable=True)
+    resolution_reason       = Column(Text, nullable=True)
+    candidate_count         = Column(Integer, default=0)
+    candidates_json         = Column(JSONB, default=list)
+
+    source_event_type       = Column(Text, nullable=False)
+    source_field            = Column(Text, nullable=False)
+    source_payload_path     = Column(Text, nullable=True)
+    parser_version          = Column(Text, nullable=True)
+    resolver_version        = Column(Text, nullable=False, default="1.0")
+
+    created_at              = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at              = Column(TIMESTAMP(timezone=True), server_default=func.now(),
+                                     onupdate=func.now())
+
+    log  = relationship("ObservedPlayLog", back_populates="card_mentions")
+
+
+class ObservedCardResolutionRule(Base):
+    """Manual override rule for card name resolution."""
+    __tablename__ = "observed_card_resolution_rules"
+    __table_args__ = (
+        Index("idx_ocrr_normalized_name", "normalized_name"),
+        Index("idx_ocrr_action", "action"),
+    )
+
+    id                  = Column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    raw_name            = Column(Text, nullable=False)
+    normalized_name     = Column(Text, nullable=False)
+    target_card_def_id  = Column(Text, ForeignKey("cards.tcgdex_id"), nullable=True)
+    target_card_name    = Column(Text, nullable=True)
+    action              = Column(Text, nullable=False)   # resolve | ignore
+    scope               = Column(Text, nullable=False, default="global")
+    notes               = Column(Text, nullable=True)
+    created_at          = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at          = Column(TIMESTAMP(timezone=True), server_default=func.now(),
+                                 onupdate=func.now())
+
+
+# ── Observed Play Memory Ingestion (Phase 4) ──────────────────────────────────
+
+class ObservedPlayMemoryIngestion(Base):
+    """One ingestion run for an observed play log."""
+    __tablename__ = "observed_play_memory_ingestions"
+    __table_args__ = (
+        Index("idx_opmi_log_id", "observed_play_log_id"),
+        Index("idx_opmi_import_batch_id", "import_batch_id"),
+        Index("idx_opmi_status", "status"),
+        Index("idx_opmi_created_at", "created_at"),
+    )
+
+    id                      = Column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    observed_play_log_id    = Column(UUID(as_uuid=True),
+                                     ForeignKey("observed_play_logs.id", ondelete="CASCADE"),
+                                     nullable=False)
+    import_batch_id         = Column(UUID(as_uuid=True), nullable=True)
+    status                  = Column(Text, nullable=False)          # pending/completed/failed/skipped
+    ingestion_version       = Column(Text, nullable=False)
+    eligibility_status      = Column(Text, nullable=False)          # eligible/ineligible/forced
+    eligibility_reasons_json = Column(JSONB, default=list)
+    config_json             = Column(JSONB, default=dict)
+    summary_json            = Column(JSONB, default=dict)
+    error_json              = Column(JSONB, default=dict)
+    source_event_count      = Column(Integer, default=0)
+    memory_item_count       = Column(Integer, default=0)
+    skipped_event_count     = Column(Integer, default=0)
+    blocked_reason_count    = Column(Integer, default=0)
+    created_at              = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at              = Column(TIMESTAMP(timezone=True), server_default=func.now(),
+                                     onupdate=func.now())
+    completed_at            = Column(TIMESTAMP(timezone=True), nullable=True)
+
+    log   = relationship("ObservedPlayLog", back_populates="memory_ingestions")
+    items = relationship("ObservedPlayMemoryItem", back_populates="ingestion",
+                         cascade="all, delete-orphan")
+
+
+class ObservedPlayMemoryItem(Base):
+    """One normalized memory fact derived from a parsed observed play event."""
+    __tablename__ = "observed_play_memory_items"
+    __table_args__ = (
+        Index("idx_opitem_log_id", "observed_play_log_id"),
+        Index("idx_opitem_event_id", "observed_play_event_id"),
+        Index("idx_opitem_ingestion_id", "ingestion_id"),
+        Index("idx_opitem_memory_type", "memory_type"),
+        Index("idx_opitem_memory_key", "memory_key"),
+        Index("idx_opitem_actor_card_def_id", "actor_card_def_id"),
+        Index("idx_opitem_target_card_def_id", "target_card_def_id"),
+        Index("idx_opitem_source_event_type", "source_event_type"),
+        Index("idx_opitem_created_at", "created_at"),
+    )
+
+    id                      = Column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    ingestion_id            = Column(UUID(as_uuid=True),
+                                     ForeignKey("observed_play_memory_ingestions.id", ondelete="CASCADE"),
+                                     nullable=False)
+    observed_play_log_id    = Column(UUID(as_uuid=True),
+                                     ForeignKey("observed_play_logs.id", ondelete="CASCADE"),
+                                     nullable=False)
+    observed_play_event_id  = Column(BigInteger,
+                                     ForeignKey("observed_play_events.id", ondelete="CASCADE"),
+                                     nullable=False)
+    import_batch_id         = Column(UUID(as_uuid=True), nullable=True)
+    memory_type             = Column(Text, nullable=False)
+    memory_key              = Column(Text, nullable=False)
+    turn_number             = Column(Integer, nullable=True)
+    phase                   = Column(Text, nullable=True)
+    player_alias            = Column(Text, nullable=True)
+    player_raw              = Column(Text, nullable=True)
+    actor_card_raw          = Column(Text, nullable=True)
+    actor_card_def_id       = Column(Text, nullable=True)
+    actor_resolution_status = Column(Text, nullable=True)
+    target_card_raw         = Column(Text, nullable=True)
+    target_card_def_id      = Column(Text, nullable=True)
+    target_resolution_status = Column(Text, nullable=True)
+    related_card_raw        = Column(Text, nullable=True)
+    related_card_def_id     = Column(Text, nullable=True)
+    related_resolution_status = Column(Text, nullable=True)
+    action_name             = Column(Text, nullable=True)
+    amount                  = Column(Integer, nullable=True)
+    damage                  = Column(Integer, nullable=True)
+    zone                    = Column(Text, nullable=True)
+    target_zone             = Column(Text, nullable=True)
+    confidence_score        = Column(Float, nullable=False, default=0.0)
+    source_event_type       = Column(Text, nullable=False)
+    source_raw_line         = Column(Text, nullable=False)
+    source_payload_json     = Column(JSONB, default=dict)
+    metadata_json           = Column(JSONB, default=dict)
+    created_at              = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+    ingestion = relationship("ObservedPlayMemoryIngestion", back_populates="items")
