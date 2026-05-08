@@ -2126,5 +2126,85 @@ Added `scripts/reset_observed_play_data.sh` — a guarded local maintenance scri
 
 ---
 
+### Pre-Phase-5.2 Workflow Hardening (sessions 39–45)
+
+These sessions hardened the end-to-end workflow before starting the corpus quality scorecard.
+
+#### Session 39 — Data reset script
+- `scripts/reset_observed_play_data.sh`: safe local developer reset (deletes logs/events/mentions/ingestions/items + clears filesystem). Never auto-runs. Documented in STATUS.md.
+
+#### Session 40 — Ambiguous card row disappear bugfix
+- Traced stale closure bug in `UnresolvedCardsSection` and `ResolutionRuleModal`.
+- All resolution paths now call a stable `refreshRef` callback immediately after success.
+- Rows correctly disappear from the Unresolved / Ambiguous Cards view after every resolution, including the third+.
+
+#### Session 41 — Raw Logs sorting
+- Fixed Parse and Cards sort columns in the Raw Logs table.
+- `sort_by=parse_status` uses a `case()` rank expression.
+- `sort_by=cards` is now a composite sort (unresolved → ambiguous → mentions → confidence).
+
+#### Session 42 — Special condition / checkup / concession parser hardening
+- Added 12 new event types and patterns for real-corpus lines that produced `unknown` events in Dragapult ex vs Salazzle ex logs.
+- Pokémon Checkup, Burned/Poisoned condition damage counters, special condition applied/removed, checkup coin flip, damage counter placement/movement by ability, discarded card counts, cards moved to hand, cards shuffled into deck, opponent concession.
+
+#### Session 43 — Bulk parse / ingest actions
+- Added "Bulk Actions" panel to `/observed-play`.
+- Three new API endpoints: `POST /logs/reparse-all`, `POST /memory-ingestion/preview-eligible`, `POST /memory-ingestion/ingest-eligible`.
+- Idempotent: already-ingested logs skipped unless user opts in.
+
+#### Session 44 — Bulk action opt-in overrides
+- `include_ingested` flag on reparse-all (default false).
+- `include_already_ingested` flag on ingest-eligible / preview-eligible (default false).
+- Frontend modals updated with checkboxes and warning copy.
+- Re-ingest replaces (not duplicates) existing memory items.
+
+#### Session 45 — Low-confidence corpus audit and parser hardening
+- Added `backend/scripts/observed_play_low_confidence_audit.py` (read-only, --threshold / --top / --output).
+- `tmp/` added to `.gitignore` to protect raw-line audit reports.
+- Audit identified 188 events below 80% across 49 logs: 150 `card_effect_activated` at 0.78, plus 38 `unknown`.
+- Fixed: `card_effect_activated` confidence raised from 0.78 → 0.88 when card name captured.
+- Fixed: 4 new game-end patterns (Opponent prizes, Your deck, KO no bench, No bench backup).
+- Fixed: `RE_MULLIGAN_PLURAL` ("PLAYER took N mulligans.") → `ET_MULLIGAN` with `amount`.
+- Fixed: `RE_PLAYER_TIMEOUT` / `RE_PLAYER_RECONNECTED` → informational event types (not ingested).
+- After bulk reparse + re-ingest: **0 events below 80%, 0 unknown, avg confidence 0.8879**.
+
+**Corpus state at end of session 45:**
+```
+Logs:                     49
+Events:               10,047
+Events below 80%:          0
+Unknown events:            0
+Average confidence:   0.8879
+card_mentions:         8,670
+memory_items:          4,786
+memory_ingestions:       198
+```
+
+---
+
+### Phase 5.2 — Corpus Quality / Readiness Scorecard (NOT YET STARTED)
+
+**Status: Planned. Has not started.**
+
+**Goal:** Produce a read-only corpus quality summary for the 49-log real observed-play corpus. This scorecard is the gating check before deciding whether any downstream Coach advisory use is safe.
+
+**Scope (read-only, no new integrations):**
+
+| In scope | Out of scope |
+|---|---|
+| Corpus size and ingestion coverage | Coach integration |
+| Parser confidence distribution | AI Player integration |
+| Unknown / low-confidence event counts | pgvector embeddings |
+| Unresolved / ambiguous card-reference burden | Neo4j writes |
+| Memory item count and confidence distribution | simulator match_events |
+| Top actors / actions / attacks / abilities | card_performance writes |
+| Quality flags (low-confidence logs, blocked logs) | deck-builder usage |
+| Logs blocked or skipped | runtime memory usage |
+| Remaining parser risks | automatic recommendations |
+
+**Deliverable:** A read-only scorecard endpoint or page section summarizing the above. Does not wire observed memory into Coach or AI. Does not lower eligibility gates.
+
+---
+
 *End of Observed Play Memory Implementation Plan.*
 *Feature branch: `feature/observed-play-memory`. No production code in this document.*
