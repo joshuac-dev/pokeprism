@@ -104,7 +104,9 @@ def event_confidence(event_type: str, fields_captured: list[str]) -> tuple[float
         return 0.82, ["hidden aggregate bench play"]
 
     if event_type == "card_effect_activated":
-        return 0.78, ["card activation with name captured"]
+        if "card_name_raw" in fields_captured:
+            return 0.88, ["card activation with name captured"]
+        return 0.78, ["card activation matched without card name"]
 
     if event_type == "discard_from_pokemon":
         if "card_name_raw" in fields_captured and "target_card_name_raw" in fields_captured:

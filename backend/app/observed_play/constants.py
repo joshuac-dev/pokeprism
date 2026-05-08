@@ -73,5 +73,9 @@ ET_PRIZE_TAKEN = "prize_taken"
 ET_PRIZE_CARD_ADDED = "prize_card_added_to_hand"
 ET_GAME_END = "game_end"
 
+# Event types (game system — informational, not ingested into memory)
+ET_PLAYER_TIMEOUT = "player_timeout"
+ET_PLAYER_RECONNECTED = "player_reconnected"
+
 # Fallback
 ET_UNKNOWN = "unknown"

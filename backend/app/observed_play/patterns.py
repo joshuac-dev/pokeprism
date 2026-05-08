@@ -7,6 +7,8 @@ RE_COIN_FLIP_RESULT = re.compile(r'^(?P<player>.+?) won the coin toss', re.IGNOR
 RE_TURN_ORDER_CHOICE = re.compile(r'^(?P<player>.+?) decided to go (?P<order>first|second)', re.IGNORECASE)
 RE_OPENING_HAND_HIDDEN = re.compile(r'^(?P<player>.+?) drew (?P<n>\d+) cards? for the opening hand', re.IGNORECASE)
 RE_MULLIGAN = re.compile(r'^(?P<player>.+?) took a mulligan', re.IGNORECASE)
+# Plural: "PLAYER took N mulligans." (two or more mulligans)
+RE_MULLIGAN_PLURAL = re.compile(r'^(?P<player>.+?) took (?P<n>\d+) mulligans?\.', re.IGNORECASE)
 RE_MULLIGAN_EXTRA_DRAW = re.compile(r'^(?P<player>.+?) drew (?P<n>\d+) more card.*because (?P<other>.+?) took at least', re.IGNORECASE)
 RE_MULLIGAN_CARDS_LABEL = re.compile(r'^Cards revealed from Mulligan', re.IGNORECASE)
 RE_PLAY_TO_ACTIVE = re.compile(r'^(?P<player>.+?) played (?P<card>.+?) to the Active Spot', re.IGNORECASE)
@@ -72,6 +74,23 @@ RE_PRIZE_CARD_ADDED = re.compile(r"^A card was added to (?P<player>.+?)['\u2019]
 RE_GAME_END_PRIZES = re.compile(r"All Prize cards taken\.\s*(?P<winner>.+?) wins", re.IGNORECASE)
 RE_GAME_END_DECK = re.compile(r"(?P<winner>.+?) wins because (?P<loser>.+?) has no cards", re.IGNORECASE)
 RE_GAME_END_KO = re.compile(r"(?P<winner>.+?) wins!", re.IGNORECASE)
+# Alternative game-end phrasings seen in the PTCGL corpus
+RE_GAME_END_PRIZES_OPPONENT = re.compile(
+    r"^Opponent took all of their Prize cards\.\s*(?P<winner>.+?) wins\.",
+    re.IGNORECASE,
+)
+RE_GAME_END_DECK_YOURS = re.compile(
+    r"^Your deck ran out of cards\.\s*(?P<winner>.+?) wins\.",
+    re.IGNORECASE,
+)
+RE_GAME_END_KO_NO_BENCH = re.compile(
+    r"^Knocked Out with no Benched Pok[e\u00e9]mon\.\s*(?P<winner>.+?) wins\.",
+    re.IGNORECASE,
+)
+RE_GAME_END_NO_BENCH_BACKUP = re.compile(
+    r"^No Benched Pok[e\u00e9]mon for backup\.\s*(?P<winner>.+?) wins\.",
+    re.IGNORECASE,
+)
 
 # Retreat / switch
 RE_RETREAT = re.compile(r"^(?P<player>.+?)['\u2019]s (?P<card>.+?) retreated", re.IGNORECASE)
@@ -204,5 +223,17 @@ RE_CARD_EFFECT_ACTIVATED = re.compile(
 # (keep after RE_PRIZE_CARD_ADDED which handles "A card was added to PLAYER's hand.")
 RE_CARD_ADDED_TO_HAND_KNOWN = re.compile(
     r"^(?P<card>.+?) was added to (?P<player>.+?)['\u2019]s hand\.$",
+    re.IGNORECASE,
+)
+
+# Game system events (informational, not ingested into memory)
+# "PLAYER didn't take an action in time."
+RE_PLAYER_TIMEOUT = re.compile(
+    r"^(?P<player>.+?) didn['\u2019]t take an action in time\.",
+    re.IGNORECASE,
+)
+# "PLAYER lost connection and reconnected to the server."
+RE_PLAYER_RECONNECTED = re.compile(
+    r"^(?P<player>.+?) lost connection and reconnected to the server\.",
     re.IGNORECASE,
 )

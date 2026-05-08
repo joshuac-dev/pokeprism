@@ -33,12 +33,13 @@ from .constants import (
     ET_POKEMON_SWITCHED,
     ET_CARDS_DISCARDED, ET_CARDS_DISCARDED_FROM_POKEMON,
     ET_CARDS_MOVED_TO_HAND, ET_CARDS_SHUFFLED_INTO_DECK,
+    ET_PLAYER_TIMEOUT, ET_PLAYER_RECONNECTED,
     ET_UNKNOWN,
 )
 from .patterns import (
     RE_SETUP_HEADER, RE_COIN_FLIP_CHOICE, RE_COIN_FLIP_RESULT,
     RE_TURN_ORDER_CHOICE, RE_OPENING_HAND_HIDDEN,
-    RE_MULLIGAN, RE_MULLIGAN_EXTRA_DRAW, RE_MULLIGAN_CARDS_LABEL,
+    RE_MULLIGAN, RE_MULLIGAN_PLURAL, RE_MULLIGAN_EXTRA_DRAW, RE_MULLIGAN_CARDS_LABEL,
     RE_PLAY_TO_ACTIVE, RE_PLAY_TO_BENCH,
     RE_TURN_START,
     RE_DRAW_KNOWN, RE_DRAW_HIDDEN, RE_DRAW_N_HIDDEN,
@@ -55,6 +56,8 @@ from .patterns import (
     RE_PRIZE_TAKEN_SINGULAR, RE_PRIZE_TAKEN, RE_PRIZE_CARD_ADDED,
     RE_CARD_ADDED_TO_HAND_KNOWN, RE_CARD_EFFECT_ACTIVATED,
     RE_GAME_END_PRIZES, RE_GAME_END_DECK, RE_GAME_END_KO,
+    RE_GAME_END_PRIZES_OPPONENT, RE_GAME_END_DECK_YOURS,
+    RE_GAME_END_KO_NO_BENCH, RE_GAME_END_NO_BENCH_BACKUP,
     RE_BULLET_LINE, RE_DASH_LINE, RE_BENCH_FROM_DECK_HIDDEN,
     RE_SEARCH, RE_RECOVER,
     RE_POKEMON_CHECKUP, RE_CHECKUP_COIN_FLIP,
@@ -64,6 +67,7 @@ from .patterns import (
     RE_CARDS_DISCARDED, RE_CARDS_DISCARDED_FROM_POKEMON,
     RE_CARDS_MOVED_TO_HAND, RE_CARDS_SHUFFLED_INTO_DECK,
     RE_GAME_END_CONCEDED,
+    RE_PLAYER_TIMEOUT, RE_PLAYER_RECONNECTED,
 )
 from .confidence import event_confidence, log_confidence
 
@@ -307,6 +311,78 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
             i += 1
             continue
 
+        m = RE_GAME_END_PRIZES_OPPONENT.match(match_line)
+        if m:
+            winner_raw = m.group("winner").strip()
+            win_condition = "prizes"
+            alias, actor = get_alias(winner_raw)
+            winner_alias = alias
+            score, reasons = event_confidence(ET_GAME_END, ["winner_raw"])
+            current_phase = PHASE_GAME_END
+            events.append(_make_event(
+                event_idx, current_turn, PHASE_GAME_END, ET_GAME_END, stripped,
+                player_raw=winner_raw, player_alias=alias, actor_type=actor,
+                event_payload={"winner": winner_raw, "win_condition": "prizes"},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
+        m = RE_GAME_END_DECK_YOURS.match(match_line)
+        if m:
+            winner_raw = m.group("winner").strip()
+            win_condition = "deck_out"
+            alias, actor = get_alias(winner_raw)
+            winner_alias = alias
+            score, reasons = event_confidence(ET_GAME_END, ["winner_raw"])
+            current_phase = PHASE_GAME_END
+            events.append(_make_event(
+                event_idx, current_turn, PHASE_GAME_END, ET_GAME_END, stripped,
+                player_raw=winner_raw, player_alias=alias, actor_type=actor,
+                event_payload={"winner": winner_raw, "win_condition": "deck_out"},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
+        m = RE_GAME_END_KO_NO_BENCH.match(match_line)
+        if m:
+            winner_raw = m.group("winner").strip()
+            win_condition = "ko_no_bench"
+            alias, actor = get_alias(winner_raw)
+            winner_alias = alias
+            score, reasons = event_confidence(ET_GAME_END, ["winner_raw"])
+            current_phase = PHASE_GAME_END
+            events.append(_make_event(
+                event_idx, current_turn, PHASE_GAME_END, ET_GAME_END, stripped,
+                player_raw=winner_raw, player_alias=alias, actor_type=actor,
+                event_payload={"winner": winner_raw, "win_condition": "ko_no_bench"},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
+        m = RE_GAME_END_NO_BENCH_BACKUP.match(match_line)
+        if m:
+            winner_raw = m.group("winner").strip()
+            win_condition = "no_bench_backup"
+            alias, actor = get_alias(winner_raw)
+            winner_alias = alias
+            score, reasons = event_confidence(ET_GAME_END, ["winner_raw"])
+            current_phase = PHASE_GAME_END
+            events.append(_make_event(
+                event_idx, current_turn, PHASE_GAME_END, ET_GAME_END, stripped,
+                player_raw=winner_raw, player_alias=alias, actor_type=actor,
+                event_payload={"winner": winner_raw, "win_condition": "no_bench_backup"},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
         # ── Setup header ──────────────────────────────────────────────────────
         if RE_SETUP_HEADER.match(match_line):
             score, reasons = event_confidence(ET_SETUP_START, [])
@@ -454,6 +530,24 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
                 confidence_score=score, confidence_reasons=reasons,
             ))
             event_idx += 1
+            continue
+
+        # ── Mulligan (plural count: "PLAYER took N mulligans.") ─────────────────
+        m = RE_MULLIGAN_PLURAL.match(match_line)
+        if m:
+            player = m.group("player").strip()
+            n = int(m.group("n"))
+            alias, actor = get_alias(player)
+            score, reasons = event_confidence(ET_MULLIGAN, ["player_raw", "amount"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_MULLIGAN, stripped,
+                player_raw=player, player_alias=alias, actor_type=actor,
+                amount=n,
+                event_payload={"mulligan_count": n},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
             continue
 
         # ── Mulligan ──────────────────────────────────────────────────────────
@@ -1550,6 +1644,36 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
                 event_idx, current_turn, PHASE_GAME_END, ET_GAME_END, stripped,
                 player_raw=w, player_alias=alias, actor_type=actor,
                 event_payload={"winner": w, "win_condition": "ko"},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
+        # ── Player timeout ("PLAYER didn't take an action in time.") ─────────
+        m = RE_PLAYER_TIMEOUT.match(match_line)
+        if m:
+            player = m.group("player").strip()
+            alias, actor = get_alias(player)
+            score, reasons = event_confidence(ET_PLAYER_TIMEOUT, ["player_raw"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_PLAYER_TIMEOUT, stripped,
+                player_raw=player, player_alias=alias, actor_type=actor,
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
+        # ── Player reconnected ("PLAYER lost connection and reconnected.") ────
+        m = RE_PLAYER_RECONNECTED.match(match_line)
+        if m:
+            player = m.group("player").strip()
+            alias, actor = get_alias(player)
+            score, reasons = event_confidence(ET_PLAYER_RECONNECTED, ["player_raw"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_PLAYER_RECONNECTED, stripped,
+                player_raw=player, player_alias=alias, actor_type=actor,
                 confidence_score=score, confidence_reasons=reasons,
             ))
             event_idx += 1

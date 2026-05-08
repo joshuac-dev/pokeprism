@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-08 (session 43 — Observed Play bulk parse/ingest actions)
+Last updated: 2026-05-09 (session 45 — Pre-Phase-5.2 corpus parser triage / hardening)
 
 ## Current Workstream
 
@@ -40,10 +40,54 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **1065 passed, 1 skipped** — 2026-05-08 session 43. `cd backend && python3 -m pytest tests/ -x -q`. |
-| Frontend unit tests | **259 passed (15 files)** — 2026-05-08 session 43. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **1095 passed, 1 skipped** — 2026-05-09 session 45. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Frontend unit tests | **268 passed (15 files)** — 2026-05-09 session 45. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 45 Work (2026-05-09) — Pre-Phase-5.2 Corpus Parser Triage / Hardening
+
+### Goal
+
+Automate the parser-hardening workflow. Create a read-only low-confidence audit script, run it against the 49 real battle logs, identify recurring parser gaps, improve parser patterns, reparse/re-ingest using the bulk debug options, and confirm the corpus drops to 0 events below 80% confidence.
+
+### Changes
+
+**New script:**
+- `backend/scripts/observed_play_low_confidence_audit.py`: Read-only audit against live DB. `--threshold` and `--top` args. Outputs totals, by-event-type breakdown, top raw lines, normalised pattern groups, and per-log summary. Invoked via `docker compose exec backend python scripts/observed_play_low_confidence_audit.py --threshold 0.80 --top 200`. Does not write raw lines to the repo; `--output` paths should be under `tmp/` (added to `.gitignore`).
+
+**Backend parser (`backend/app/observed_play/`):**
+- `constants.py`: Added `ET_PLAYER_TIMEOUT = "player_timeout"` and `ET_PLAYER_RECONNECTED = "player_reconnected"` (informational system events, not ingested into memory).
+- `patterns.py`: Added `RE_MULLIGAN_PLURAL` ("PLAYER took N mulligans."), four alternative game-end patterns (`RE_GAME_END_PRIZES_OPPONENT`, `RE_GAME_END_DECK_YOURS`, `RE_GAME_END_KO_NO_BENCH`, `RE_GAME_END_NO_BENCH_BACKUP`), and two system-event patterns (`RE_PLAYER_TIMEOUT`, `RE_PLAYER_RECONNECTED`).
+- `confidence.py`: `card_effect_activated` now returns 0.88 (was 0.78) when `card_name_raw` is captured. The card name is always captured by `RE_CARD_EFFECT_ACTIVATED`, so this removes the only event type hardcoded below the 0.80 gate.
+- `parser.py`: Added handlers for the 7 new patterns. Mulligan plural maps to `ET_MULLIGAN` with `amount` set. Game-end variants map to `ET_GAME_END` with appropriate `win_condition` values. Timeout/reconnect map to their own event types with `player_raw`/`player_alias`.
+
+**Tests:**
+- `tests/test_observed_play/test_parser.py`: +18 tests — `TestGameEndVariants` (6 tests for 4 new game-end patterns), `TestMulliganPlural` (5 tests), `TestPlayerSystemEvents` (7 tests). Also updated `card_effect_activated` confidence test to assert >= 0.88.
+
+**Gitignore:**
+- `.gitignore`: Added `tmp/` to prevent accidental commits of audit reports containing raw log lines.
+
+### Pre-fix corpus baseline (old parser on existing DB)
+
+- Total events: 10,047
+- Events below 80%: **188** (1.9% of total)
+  - `card_effect_activated`: 150 events at 0.78 (fixed: confidence raised to 0.88)
+  - `unknown`: 38 events at 0.30 (fixed: 4 new game-end patterns, mulligan plural, timeout, reconnect)
+- Average corpus confidence: 0.8840
+
+### Post-fix corpus results (after bulk reparse + re-ingest)
+
+- Events below 80%: **0** (0.0% of total)
+- Unknown events: **0**
+- Average corpus confidence: 0.8879
+- All 49 logs reparsed; all 49 re-ingested; idempotency confirmed on second run.
+
+### Validation
+
+- Backend: 1095 passed, 1 skipped (was 1077, +18 new tests).
+- Frontend: 268 passed, build clean.
+- No Phase 5.2, data reset, automatic ingestion, Coach/AI integration, pgvector, Neo4j writes, simulator match_events, card_performance writes, deck-builder usage, or runtime memory usage added.
 
 ## Session 44 Work (2026-05-09) — Bulk Action Opt-in Flags
 

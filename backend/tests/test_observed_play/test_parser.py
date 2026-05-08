@@ -42,6 +42,8 @@ from app.observed_play.constants import (
     ET_CARDS_SHUFFLED_INTO_DECK,
     ET_GAME_END,
     ET_COIN_FLIP_RESULT,
+    ET_PLAYER_TIMEOUT,
+    ET_PLAYER_RECONNECTED,
 )
 
 
@@ -755,6 +757,13 @@ class TestPhase23TopUnknowns:
         assert len(activated) >= 1
         assert activated[0].raw_line == "Spiky Energy was activated."
 
+    def test_card_effect_activated_confidence_high(self):
+        """card_effect_activated with card name captured should be >= 0.88."""
+        result = self._parse_with_players("Battle Cage was activated.\n")
+        activated = [e for e in result.events if e.event_type == EVENT_CARD_EFFECT_ACTIVATED]
+        assert len(activated) >= 1
+        assert activated[0].confidence_score >= 0.88
+
     # ── Discard from Pokémon ─────────────────────────────────────────────────
 
     def test_discard_from_pokemon_straight_apostrophe(self):
@@ -1306,3 +1315,137 @@ class TestSpecialConditionsFixtureNoUnknowns:
 
     def test_overall_confidence_high(self):
         assert self.result.confidence_score >= 0.85
+
+
+# ---------------------------------------------------------------------------
+# Corpus triage — new patterns found from low-confidence audit
+# ---------------------------------------------------------------------------
+
+
+class TestGameEndVariants:
+    """Test alternative PTCGL game-end phrasings mapped to ET_GAME_END."""
+
+    def _parse(self, raw: str) -> list:
+        result = parse_log(
+            "Setup\n"
+            "P1 chose heads for the opening coin toss.\n"
+            "P1's Turn 1\n"
+            + raw
+        )
+        return [e for e in result.events if e.event_type == ET_GAME_END]
+
+    def test_prizes_opponent(self):
+        """'Opponent took all of their Prize cards. WINNER wins.'"""
+        events = self._parse("Opponent took all of their Prize cards. Player2 wins.\n")
+        assert len(events) == 1
+        assert events[0].event_payload["win_condition"] == "prizes"
+        assert events[0].player_raw == "Player2"
+
+    def test_deck_ran_out(self):
+        """'Your deck ran out of cards. WINNER wins.'"""
+        events = self._parse("Your deck ran out of cards. Player1 wins.\n")
+        assert len(events) == 1
+        assert events[0].event_payload["win_condition"] == "deck_out"
+        assert events[0].player_raw == "Player1"
+
+    def test_ko_no_bench(self):
+        """'Knocked Out with no Benched Pokémon. WINNER wins.'"""
+        events = self._parse("Knocked Out with no Benched Pokémon. Champion wins.\n")
+        assert len(events) == 1
+        assert events[0].event_payload["win_condition"] == "ko_no_bench"
+        assert events[0].player_raw == "Champion"
+
+    def test_no_bench_backup(self):
+        """'No Benched Pokémon for backup. WINNER wins.'"""
+        events = self._parse("No Benched Pokémon for backup. WinnerUser wins.\n")
+        assert len(events) == 1
+        assert events[0].event_payload["win_condition"] == "no_bench_backup"
+        assert events[0].player_raw == "WinnerUser"
+
+    def test_prizes_opponent_not_unknown(self):
+        result = parse_log("Setup\nOpponent took all of their Prize cards. UserAbc wins.\n")
+        unknown = [e for e in result.events if e.event_type == EVENT_UNKNOWN]
+        game_ends = [e for e in result.events if e.event_type == ET_GAME_END]
+        assert len(game_ends) == 1
+        assert not any(
+            e.raw_line == "Opponent took all of their Prize cards. UserAbc wins."
+            for e in unknown
+        )
+
+    def test_ko_no_bench_confidence(self):
+        events = self._parse("Knocked Out with no Benched Pokémon. AnyPlayer wins.\n")
+        assert events and events[0].confidence_score >= 0.88
+
+
+class TestMulliganPlural:
+    """PLAYER took N mulligans. — plural form should map to ET_MULLIGAN."""
+
+    def _parse_setup(self, raw: str):
+        result = parse_log("Setup\n" + raw)
+        return [e for e in result.events if e.event_type == EVENT_MULLIGAN]
+
+    def test_two_mulligans(self):
+        events = self._parse_setup("SomePlayer took 2 mulligans.\n")
+        assert len(events) == 1
+        assert events[0].player_raw == "SomePlayer"
+        assert events[0].amount == 2
+
+    def test_four_mulligans(self):
+        events = self._parse_setup("AnotherUser took 4 mulligans.\n")
+        assert len(events) == 1
+        assert events[0].amount == 4
+
+    def test_plural_not_unknown(self):
+        result = parse_log("Setup\nBigt132 took 2 mulligans.\n")
+        unknown = [e for e in result.events if e.event_type == EVENT_UNKNOWN]
+        assert not any("took 2 mulligans" in e.raw_line for e in unknown)
+
+    def test_plural_mulligan_confidence(self):
+        events = self._parse_setup("SomePlayer took 2 mulligans.\n")
+        assert events and events[0].confidence_score >= 0.80
+
+    def test_mulligan_payload(self):
+        events = self._parse_setup("SomePlayer took 3 mulligans.\n")
+        assert events
+        assert events[0].event_payload.get("mulligan_count") == 3
+
+
+class TestPlayerSystemEvents:
+    """Timeout and reconnect events should be mapped, not unknown."""
+
+    def _parse(self, raw: str):
+        return parse_log("Setup\nP1's Turn 1\n" + raw)
+
+    def test_player_timeout_parsed(self):
+        result = self._parse("PlayerXYZ didn't take an action in time.\n")
+        timeout_events = [e for e in result.events if e.event_type == ET_PLAYER_TIMEOUT]
+        assert len(timeout_events) == 1
+        assert timeout_events[0].player_raw == "PlayerXYZ"
+
+    def test_player_timeout_not_unknown(self):
+        result = self._parse("PlayerXYZ didn't take an action in time.\n")
+        unknown = [e for e in result.events if e.event_type == EVENT_UNKNOWN]
+        assert not any("didn't take an action in time" in e.raw_line for e in unknown)
+
+    def test_player_timeout_confidence(self):
+        result = self._parse("PlayerXYZ didn't take an action in time.\n")
+        timeout_events = [e for e in result.events if e.event_type == ET_PLAYER_TIMEOUT]
+        assert timeout_events and timeout_events[0].confidence_score >= 0.80
+
+    def test_player_reconnected_parsed(self):
+        result = self._parse("PlayerABC lost connection and reconnected to the server.\n")
+        recon_events = [e for e in result.events if e.event_type == ET_PLAYER_RECONNECTED]
+        assert len(recon_events) == 1
+        assert recon_events[0].player_raw == "PlayerABC"
+
+    def test_player_reconnected_not_unknown(self):
+        result = self._parse("PlayerABC lost connection and reconnected to the server.\n")
+        unknown = [e for e in result.events if e.event_type == EVENT_UNKNOWN]
+        assert not any("lost connection" in e.raw_line for e in unknown)
+
+    def test_player_timeout_curly_apostrophe(self):
+        """Curly apostrophe variant: PLAYER didn\u2019t take an action in time."""
+        result = self._parse("PlayerXYZ didn\u2019t take an action in time.\n")
+        timeout_events = [e for e in result.events if e.event_type == ET_PLAYER_TIMEOUT]
+        assert len(timeout_events) == 1
+
