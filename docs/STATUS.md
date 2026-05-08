@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-10 (session 54 — Coach observed-play injection fix + debug visibility)
+Last updated: 2026-05-08 (session 55 — Coach observed-play acknowledgment enforcement)
 
 ## Current Workstream
 
@@ -21,7 +21,7 @@ post-phase development:
 **Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, Phase 5.1, pre-Phase-5.2 workflow hardening, Phase 5.2, Phase 6.0, and Phase 6.1 are complete.**
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
-**Next step (immediate):** Re-run User Check 3 with celery-worker flag fixed — run H/H simulation, check backend logs for OBSERVED_PLAY lines, check `/api/simulations/{id}/coach-debug` for evidence injection.
+**Next step (immediate):** Re-run User Check 3 with celery-worker flag fixed and acknowledgment enforcement — run H/H simulation, check celery logs for OBSERVED_PLAY lines, check `/api/simulations/{id}/coach-debug` for `observed_play_block_injected=true` and `observed_play_not_used_reason` or citations.
 **Next feature step:** Phase 6.2+ — Further Coach advisory features (future). Observed memory remains advisory only.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
@@ -40,10 +40,54 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **1183 passed, 1 skipped** — 2026-05-10 session 54. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Backend test baseline | **1188 passed, 1 skipped** — 2026-05-08 session 55. `cd backend && python3 -m pytest tests/ -x -q`. |
 | Frontend unit tests | **339 passed (17 files)** — 2026-05-10 session 54. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 55 Work (2026-05-08) — Coach observed-play acknowledgment enforcement
+
+### Root cause / Scenario 3
+
+After fixing the celery-worker env (session 54), `OBSERVED_PLAY evidence fetch: would_inject=True evidence_count=8` appeared in the worker logs, confirming the block was injected. However, `GET /api/simulations/{id}/coach-debug` showed `observed_play_citations_found=[]` and `any_observed_play_cited=false`. The LLM received the evidence block but did not cite any observed-play event IDs in its structured response, because: (a) the prompt only softly requested citation; (b) there was no structured acknowledgment field in the response schema forcing the LLM to explicitly account for the observed-play block.
+
+### What was changed
+
+- **`backend/alembic/versions/h4i5j6k7l8m9_add_deck_mutation_observed_play_meta.py`** — new migration: adds `observed_play_meta JSONB nullable` column to `deck_mutations`
+- **`backend/app/db/models.py`** — added `observed_play_meta = Column(JSONB)` to `DeckMutation`
+- **`backend/app/coach/prompts.py`** — added `observed_play_acknowledgment` as a required top-level field in the JSON schema; added strong instruction: the LLM MUST include this field, set `block_provided=true` if the block was present, list cited event IDs in `used_evidence_ids`, and if no evidence was used explain in `not_used_reason`
+- **`backend/app/coach/analyst.py`**:
+  - `_fetch_observed_play_block()` now returns `tuple[str, list[str]]` (block_text, evidence_ids)
+  - New `_extract_op_acknowledgment(parsed, available_ids)` method: normalises the `observed_play_acknowledgment` from the LLM response; logs WARNING if field was expected but absent
+  - `_get_swap_decisions()` accepts `observed_play_ids` param; returns `tuple[list[dict], dict | None]` with the acknowledgment
+  - `analyze_and_mutate()` builds `op_meta` dict (`block_injected`, `evidence_ids_available`, `acknowledgment`) and attaches it to each mutation
+  - `_write_mutations()` stores `observed_play_meta` on `DeckMutation`
+- **`backend/app/api/simulations.py`** — `GET /api/simulations/{id}/coach-debug` now surfaces per-mutation: `observed_play_block_injected`, `observed_play_evidence_ids_available`, `observed_play_citations_used`, `observed_play_not_used_reason`, `observed_play_acknowledgment_missing`; top-level `any_block_injected`
+- **Tests**:
+  - Updated `_fetch_observed_play_block` tests (4): now check `(block, ids)` tuple
+  - Updated `_get_swap_decisions` callers (3): now unpack tuple
+  - Updated `test_observed_play_is_valid_evidence_kind`: includes `observed_play_acknowledgment` in response
+  - Added 5 new `TestCoachAnalystObservedPlay` tests for `_extract_op_acknowledgment`
+  - Added `TestGetSimulationCoachDebug.test_observed_play_meta_fields_surfaced` (new test)
+  - Updated `_make_mutation` mock to set `observed_play_meta=None` explicitly
+
+### Files changed
+
+- `backend/alembic/versions/h4i5j6k7l8m9_add_deck_mutation_observed_play_meta.py` (new)
+- `backend/app/db/models.py`
+- `backend/app/coach/prompts.py`
+- `backend/app/coach/analyst.py`
+- `backend/app/api/simulations.py`
+- `backend/tests/test_api/test_simulations.py`
+- `backend/tests/test_coach/test_analyst.py`
+- `docs/STATUS.md`, `docs/CHANGELOG.md`
+
+### Validation
+
+- Migration applied cleanly: `g3h4i5j6k7l8 → h4i5j6k7l8m9`
+- Backend: **1188 passed, 1 skipped**
+- Frontend: **339 passed (17 files)** (unchanged)
+- No observed-play memory behavior, simulation mutation logic, AI Player, pgvector, Neo4j, match_events, card_performance, or deck-builder changed.
 
 ## Session 54 Work (2026-05-10) — Coach observed-play injection fix + debug visibility
 

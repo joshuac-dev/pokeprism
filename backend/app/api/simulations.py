@@ -1022,6 +1022,8 @@ async def get_simulation_coach_debug(
     for m in mutation_rows:
         evidence = m.evidence or []
         op_cites = [e for e in evidence if isinstance(e, dict) and e.get("kind") == "observed_play"]
+        op_meta = m.observed_play_meta or {}
+        op_ack = op_meta.get("acknowledgment") or {}
         mutations_data.append({
             "id": str(m.id),
             "round_number": m.round_number,
@@ -1029,7 +1031,11 @@ async def get_simulation_coach_debug(
             "card_added": m.card_added,
             "reasoning": m.reasoning,
             "evidence": evidence,
-            "observed_play_citations": op_cites,
+            "observed_play_block_injected": op_meta.get("block_injected", False),
+            "observed_play_evidence_ids_available": op_meta.get("evidence_ids_available", []),
+            "observed_play_citations_used": op_cites,
+            "observed_play_not_used_reason": op_ack.get("not_used_reason"),
+            "observed_play_acknowledgment_missing": op_ack.get("acknowledgment_missing", False),
         })
         all_op_citations.extend(op_cites)
 
@@ -1056,6 +1062,7 @@ async def get_simulation_coach_debug(
         "mutations": mutations_data,
         "observed_play_citations_found": all_op_citations,
         "any_observed_play_cited": len(all_op_citations) > 0,
+        "any_block_injected": any(m.get("observed_play_block_injected") for m in mutations_data),
         "current_context_preview": current_preview,
     }
 

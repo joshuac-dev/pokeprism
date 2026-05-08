@@ -2108,7 +2108,7 @@ class TestGetSimulationCoachDebug:
         sim.status = status
         return sim
 
-    def _make_mutation(self, round_number=1, evidence=None):
+    def _make_mutation(self, round_number=1, evidence=None, observed_play_meta=None):
         m = MagicMock()
         m.id = uuid.uuid4()
         m.round_number = round_number
@@ -2116,6 +2116,7 @@ class TestGetSimulationCoachDebug:
         m.card_added = "sv05-144"
         m.reasoning = "Better draw support [Evidence: card_performance:sv06-128=0.3]"
         m.evidence = evidence or [{"kind": "card_performance", "ref": "sv06-128", "value": "win_rate=0.3"}]
+        m.observed_play_meta = observed_play_meta
         return m
 
     def _make_session(self, sim, mutations):
@@ -2273,3 +2274,46 @@ class TestGetSimulationCoachDebug:
         data = resp.json()
         assert data["mutations"] == []
         assert data["any_observed_play_cited"] is False
+
+    def test_observed_play_meta_fields_surfaced(self):
+        """observed_play_block_injected and evidence_ids_available appear per mutation."""
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim = self._make_sim()
+        op_meta = {
+            "block_injected": True,
+            "evidence_ids_available": ["uuid-aaa", "uuid-bbb"],
+            "acknowledgment": {
+                "block_provided": True,
+                "used_evidence_ids": [],
+                "not_used_reason": "Evidence referred to different cards.",
+                "acknowledgment_missing": False,
+            },
+        }
+        op_cite = {"kind": "observed_play", "ref": "uuid-aaa", "value": "KO on turn 5"}
+        mut = self._make_mutation(
+            evidence=[op_cite],
+            observed_play_meta=op_meta,
+        )
+
+        async def override_db():
+            yield self._make_session(sim, [mut])
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with patch("app.api.simulations.settings") as mock_settings:
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            with TestClient(app) as c:
+                resp = c.get(f"/api/simulations/{sim.id}/coach-debug")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        m_data = data["mutations"][0]
+        assert m_data["observed_play_block_injected"] is True
+        assert m_data["observed_play_evidence_ids_available"] == ["uuid-aaa", "uuid-bbb"]
+        assert m_data["observed_play_citations_used"][0]["ref"] == "uuid-aaa"
+        assert "different cards" in m_data["observed_play_not_used_reason"]
+        assert data["any_block_injected"] is True

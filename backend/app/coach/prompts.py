@@ -71,6 +71,7 @@ Weak synergies (candidates for removal): {weak_synergies}
 - Each swap must maintain a 60-card deck.
 - If the deck is performing well (win_rate > 60%), propose 0 swaps.
 - If an OBSERVED PLAY EVIDENCE block is provided at the end of this prompt, treat it as advisory context only. Cite relevant entries using kind "observed_play", ref = <event_id UUID>, value = <one-phrase description of what the evidence shows>.
+- You MUST always include "observed_play_acknowledgment" in your JSON response. If no OBSERVED PLAY EVIDENCE block was provided, set block_provided=false and leave the other fields empty. If the block WAS provided, set block_provided=true, list any event_id UUIDs you cited in "used_evidence_ids" (may be empty list if none were relevant), and if you chose not to use any observed-play evidence explain briefly in "not_used_reason".
 - Respond ONLY with valid JSON in this exact format:
 
 {{
@@ -88,7 +89,12 @@ Weak synergies (candidates for removal): {weak_synergies}
       ]
     }}
   ],
-  "analysis": "<2-3 sentence overall assessment>"
+  "analysis": "<2-3 sentence overall assessment>",
+  "observed_play_acknowledgment": {{
+    "block_provided": false,
+    "used_evidence_ids": [],
+    "not_used_reason": null
+  }}
 }}
 """
 

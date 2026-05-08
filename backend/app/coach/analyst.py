@@ -111,6 +111,8 @@ class CoachAnalyst:
         primary_ids = self._identify_primary_line(round_results, current_deck)
         tiers = self._classify_deck_tiers(current_deck, primary_ids)
 
+        observed_play_block, observed_play_ids = await self._fetch_observed_play_block()
+
         prompt_messages = self._build_prompt_messages(
             deck=current_deck,
             excluded_ids=excluded,
@@ -121,10 +123,19 @@ class CoachAnalyst:
             similar=similar,
             tiers=tiers,
             regression_info=regression_info,
-            observed_play_block=await self._fetch_observed_play_block(),
+            observed_play_block=observed_play_block,
         )
 
-        raw_swaps = await self._get_swap_decisions(prompt_messages)
+        raw_swaps, op_acknowledgment = await self._get_swap_decisions(
+            prompt_messages, observed_play_ids=observed_play_ids
+        )
+        op_meta: dict | None = None
+        if observed_play_ids or observed_play_block:
+            op_meta = {
+                "block_injected": bool(observed_play_block),
+                "evidence_ids_available": observed_play_ids,
+                "acknowledgment": op_acknowledgment,
+            }
 
         # Enforce tier protection rules (blocks tier1; requires full-line for tier2)
         all_deck_id_set = set(deck_ids)
@@ -158,6 +169,7 @@ class CoachAnalyst:
                 "card_added_def": self._candidate_to_card_definition(candidate_by_id.get(added)),
                 "reasoning": reasoning,
                 "evidence": swap.get("evidence", []),
+                "observed_play_meta": op_meta,
             }
             mutations.append(mutation)
             await self._graph.record_swap(removed, added, round_number, reasoning)
@@ -240,16 +252,16 @@ class CoachAnalyst:
         """Compatibility helper for tests/callers that inspect the user prompt."""
         return self._build_prompt_messages(*args, **kwargs)[1]["content"]
 
-    async def _fetch_observed_play_block(self) -> str:
-        """Return the observed-play evidence prompt block if the feature flag is on.
+    async def _fetch_observed_play_block(self) -> tuple[str, list[str]]:
+        """Return (prompt_block, evidence_ids) if the feature flag is on.
 
-        Returns an empty string when OBSERVED_PLAY_MEMORY_ENABLED is false (the
+        Returns ("", []) when OBSERVED_PLAY_MEMORY_ENABLED is false (the
         default), keeping Coach prompts byte-for-byte identical to pre-6.1.
         Advisory only — never affects swap decisions or game logic directly.
         """
         if not settings.OBSERVED_PLAY_MEMORY_ENABLED:
             logger.debug("OBSERVED_PLAY_MEMORY_ENABLED=false; skipping observed-play block.")
-            return ""
+            return "", []
         try:
             from app.observed_play.coach_context import build_coach_context_preview
             preview = await build_coach_context_preview(self._db)
@@ -265,7 +277,7 @@ class CoachAnalyst:
                     len(preview.prompt_block),
                     preview.evidence_count,
                 )
-                return preview.prompt_block
+                return preview.prompt_block, list(preview.evidence_ids)
             else:
                 logger.info("OBSERVED_PLAY would_inject=false; reason: %s", preview.reason)
         except Exception:
@@ -274,15 +286,21 @@ class CoachAnalyst:
                 "proceeding without it.",
                 exc_info=True,
             )
-        return ""
+        return "", []
 
-    async def _get_swap_decisions(self, messages: list[dict] | str, retries: int = 2) -> list[dict]:
+    async def _get_swap_decisions(
+        self,
+        messages: list[dict] | str,
+        observed_play_ids: list[str] | None = None,
+        retries: int = 2,
+    ) -> tuple[list[dict], dict | None]:
         if isinstance(messages, str):
             messages = [
                 {"role": "system", "content": COACH_EVOLUTION_SYSTEM_PROMPT.format(max_swaps=self._max_swaps)},
                 {"role": "user", "content": messages},
             ]
         last_raw = ""
+        last_parsed: dict | None = None
         for attempt in range(retries):
             raw = await self._call_ollama(messages)
             last_raw = raw
@@ -294,7 +312,9 @@ class CoachAnalyst:
                         "Coach recommended 0 swaps. Analysis: %.300s",
                         parsed.get("analysis", "(none)"),
                     )
-                return swaps
+                last_parsed = parsed
+                op_ack = self._extract_op_acknowledgment(parsed, observed_play_ids or [])
+                return swaps, op_ack
             error = parse_error or validation_error or "unknown schema failure"
             logger.warning(
                 "Coach response validation failed (attempt %d/%d): %s | raw=%.200s",
@@ -311,7 +331,7 @@ class CoachAnalyst:
             "Coach gave invalid response after %d retries. Last raw: %.200s",
             retries, last_raw[:200],
         )
-        return []
+        return [], None
 
     async def _call_ollama(self, messages: list[dict]) -> str:
         """Call Ollama /api/chat with up to 3 connection retries (exponential backoff)."""
@@ -419,6 +439,40 @@ class CoachAnalyst:
                 "evidence": bounded_evidence,
             })
         return valid, None
+
+    def _extract_op_acknowledgment(
+        self, parsed: dict | None, available_ids: list[str]
+    ) -> dict | None:
+        """Extract and normalise the observed_play_acknowledgment from an LLM response.
+
+        Returns None when no observed-play block was injected (available_ids empty).
+        When the block was injected, returns a dict with:
+          block_provided, used_evidence_ids, not_used_reason, acknowledgment_missing.
+        Logs a warning if the field was expected but absent.
+        """
+        if not available_ids:
+            return None
+        raw = parsed.get("observed_play_acknowledgment") if isinstance(parsed, dict) else None
+        if not isinstance(raw, dict):
+            logger.warning(
+                "OBSERVED_PLAY block was injected (%d IDs) but LLM did not include "
+                "observed_play_acknowledgment in response.",
+                len(available_ids),
+            )
+            return {
+                "block_provided": True,
+                "used_evidence_ids": [],
+                "not_used_reason": None,
+                "acknowledgment_missing": True,
+            }
+        used = raw.get("used_evidence_ids")
+        not_used = raw.get("not_used_reason")
+        return {
+            "block_provided": bool(raw.get("block_provided", True)),
+            "used_evidence_ids": used if isinstance(used, list) else [],
+            "not_used_reason": str(not_used)[:500] if isinstance(not_used, str) and not_used else None,
+            "acknowledgment_missing": False,
+        }
 
     def _format_reasoning_with_evidence(self, reasoning: str, evidence: list[dict]) -> str:
         """Persist a compact provenance trail in the existing reasoning field."""
@@ -1000,6 +1054,7 @@ class CoachAnalyst:
                 card_added=m["card_added"],
                 reasoning=m.get("reasoning"),
                 evidence=m.get("evidence"),
+                observed_play_meta=m.get("observed_play_meta"),
             )
             for m in mutations
         )
