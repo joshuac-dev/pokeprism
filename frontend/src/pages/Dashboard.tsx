@@ -8,8 +8,9 @@ import {
   getSimulationPrizeRace,
   getSimulationMutations,
   getSimulationFinalDeck,
+  getSimulationCoachDebug,
 } from '../api/simulations';
-import type { SimulationDetail, FinalDeckResponse } from '../types/simulation';
+import type { SimulationDetail, FinalDeckResponse, CoachDebugResponse } from '../types/simulation';
 import type { MatchRow, RoundRow, PrizeRaceData, MutationRow, OpponentStat } from '../types/dashboard';
 import SummaryCards from '../components/dashboard/SummaryCards';
 import WinRateDonut from '../components/dashboard/WinRateDonut';
@@ -22,6 +23,7 @@ import DecisionMap from '../components/dashboard/DecisionMap';
 import CardSwapHeatMap from '../components/dashboard/CardSwapHeatMap';
 import MutationDiffLog from '../components/dashboard/MutationDiffLog';
 import DeckEvolutionPanel from '../components/simulation/DeckEvolutionPanel';
+import ObservedPlayRetrievalDebugTile from '../components/simulation/ObservedPlayRetrievalDebugTile';
 
 function DashboardTile({
   title,
@@ -73,6 +75,7 @@ export default function Dashboard() {
   const [prizeRace, setPrizeRace] = useState<PrizeRaceData>({ matches: [], average: [] });
   const [mutations, setMutations] = useState<MutationRow[]>([]);
   const [finalDeck, setFinalDeck] = useState<FinalDeckResponse | null>(null);
+  const [coachDebug, setCoachDebug] = useState<CoachDebugResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -99,6 +102,14 @@ export default function Dashboard() {
         setError(err?.response?.status === 404 ? 'Simulation not found.' : 'Failed to load dashboard data.');
       })
       .finally(() => setLoading(false));
+  }, [id]);
+
+  // Load coach-debug separately; failure is non-fatal
+  useEffect(() => {
+    if (!id) return;
+    getSimulationCoachDebug(id)
+      .then(setCoachDebug)
+      .catch(() => setCoachDebug(null));
   }, [id]);
 
   const deckName = detail?.user_deck_name ?? 'Dashboard';
@@ -205,6 +216,22 @@ export default function Dashboard() {
           >
             <DeckEvolutionPanel data={finalDeck} />
           </DashboardTile>
+
+          {/* Tile 14: Observed-Play Retrieval Debug */}
+          {id && coachDebug && (
+            <DashboardTile
+              title="Observed-Play Retrieval Debug"
+              className="col-span-1 md:col-span-2 xl:col-span-3"
+              testId="dashboard-retrieval-debug"
+            >
+              <ObservedPlayRetrievalDebugTile
+                simulationId={id}
+                rounds={coachDebug.analysis_rounds}
+                flagEnabled={coachDebug.flag_enabled}
+                anyBlockInjected={coachDebug.any_block_injected}
+              />
+            </DashboardTile>
+          )}
         </div>
       )}
     </PageShell>

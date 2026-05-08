@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-08 (session 59 — Phase 6.2b complete: UI/debug polish for evidence retrieval metadata)
+Last updated: 2026-05-08 (session 60 — Phase 6.2b complete: simulation Dashboard retrieval debug tile)
 
 ## Current Workstream
 
@@ -42,7 +42,12 @@ See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 - `ObservedPlayCoachContextPreview` TypeScript type extended with `retrieval_metadata` and `no_relevant_evidence`.
 - New TS interfaces: `EvidenceSelectionDetail`, `EvidenceExclusionSummary`, `ObservedPlayRetrievalMetadata`.
 - `CoachContextPreviewSection` now shows: no-relevant-evidence banner, deck context pills, candidate card pills, evidence selected table (Tier badge / Score / Match source / Matched cards / Reason), exclusion summary row.
-- 7 new frontend tests (346 total). Build clean.
+- Shared `RetrievalMetadataPanel` component extracted to `frontend/src/components/observedPlay/RetrievalMetadataPanel.tsx`.
+- New `ObservedPlayRetrievalDebugTile` component in `frontend/src/components/simulation/` shows per-round retrieval debug (round accordion, strategy, deck/candidate counts, evidence table, no-relevant-evidence banner) using data from `GET /api/simulations/{id}/coach-debug`.
+- `Dashboard.tsx` loads coach-debug in a separate non-fatal effect and renders tile 14 "Observed-Play Retrieval Debug" after the Final Candidate Deck tile.
+- New types `CoachDebugAnalysisRound`, `CoachDebugResponse` in `simulation.ts`; `getSimulationCoachDebug` in `simulations.ts`.
+- Helper copy added to `/observed-play` preview section explaining deck-overlap retrieval metadata is in the simulation Dashboard.
+- 7 new frontend tests for `ObservedPlayRetrievalDebugTile` (353 total, 18 files). Build clean.
 
 **Next feature step:** Phase 6.2c (if needed) — further manual validation or Phase 7 planning.
 Plan: `docs/proposals/OBSERVED_PLAY_EVIDENCE_RELEVANCE_PLAN.md`.

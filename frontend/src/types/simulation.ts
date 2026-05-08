@@ -151,3 +151,35 @@ export interface FinalDeckResponse {
   has_mutations: boolean;
   metadata_warnings: string[];
 }
+
+// ----- Coach-debug (observed-play retrieval) ---------------------------------
+
+export interface CoachDebugAnalysisRound {
+  round_number: number;
+  block_injected: boolean;
+  no_relevant_evidence: boolean;
+  evidence_ids_available: string[];
+  acknowledgment: {
+    block_provided?: boolean;
+    used_evidence_ids?: string[];
+    not_used_reason?: string | null;
+    acknowledgment_missing?: boolean;
+  } | null;
+  llm_analysis: string | null;
+  retrieval_metadata: import('./observedPlay').ObservedPlayRetrievalMetadata | null;
+  mutations_produced: number;
+}
+
+export interface CoachDebugResponse {
+  simulation_id: string;
+  simulation_status: string;
+  flag_enabled: boolean;
+  any_block_injected: boolean;
+  simulation_observed_play_summary: {
+    any_block_injected: boolean;
+    evidence_ids_available: string[];
+    not_used_reasons: string[];
+    any_acknowledgment_missing: boolean;
+  };
+  analysis_rounds: CoachDebugAnalysisRound[];
+}
