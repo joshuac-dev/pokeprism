@@ -960,9 +960,10 @@ class TestCoachAnalystObservedPlay:
         analyst = _make_analyst()
         with patch("app.coach.analyst.settings") as mock_settings:
             mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = False
-            block, ids = await analyst._fetch_observed_play_block()
+            block, ids, meta = await analyst._fetch_observed_play_block()
         assert block == ""
         assert ids == []
+        assert meta is None
 
     @pytest.mark.asyncio
     async def test_fetch_observed_play_block_returns_block_when_enabled(self):
@@ -987,7 +988,7 @@ class TestCoachAnalystObservedPlay:
                  new=AsyncMock(return_value=fake_preview),
              ):
             mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
-            block, ids = await analyst._fetch_observed_play_block()
+            block, ids, meta = await analyst._fetch_observed_play_block()
         assert "OBSERVED PLAY EVIDENCE" in block
         assert ids == ["some-uuid"]
 
@@ -1014,7 +1015,7 @@ class TestCoachAnalystObservedPlay:
                  new=AsyncMock(return_value=not_ready_preview),
              ):
             mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
-            block, ids = await analyst._fetch_observed_play_block()
+            block, ids, meta = await analyst._fetch_observed_play_block()
         assert block == ""
         assert ids == []
 
@@ -1028,11 +1029,71 @@ class TestCoachAnalystObservedPlay:
                  side_effect=Exception("db error"),
              ):
             mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
-            block, ids = await analyst._fetch_observed_play_block()
+            block, ids, meta = await analyst._fetch_observed_play_block()
         assert block == ""
         assert ids == []
+        assert meta is None
 
-    def test_observed_play_is_valid_evidence_kind(self):
+    @pytest.mark.asyncio
+    async def test_fetch_observed_play_block_passes_deck_context_when_enabled(self):
+        """_fetch_observed_play_block passes deck/candidate context to build_coach_context_preview."""
+        from app.observed_play.schemas import ObservedPlayCoachContextPreview, ObservedPlayRetrievalMetadata
+        analyst = _make_analyst()
+        fake_preview = ObservedPlayCoachContextPreview(
+            enabled=True,
+            readiness_verdict="ready",
+            readiness_score=97.0,
+            would_inject=True,
+            reason="enabled",
+            prompt_block="OBSERVED PLAY EVIDENCE — REVIEW ONLY\nEvidence:\n1. ...",
+            evidence_count=1,
+            evidence_ids=["ev-1"],
+            warnings=[],
+            filters_applied={},
+            retrieval_metadata=ObservedPlayRetrievalMetadata(
+                strategy="deck_overlap_v1",
+                query_card_ids=["sv06-123"],
+                query_card_names=["Dragapult ex"],
+            ),
+        )
+        mock_preview_fn = AsyncMock(return_value=fake_preview)
+        with patch("app.coach.analyst.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.build_coach_context_preview",
+                 new=mock_preview_fn,
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            block, ids, meta = await analyst._fetch_observed_play_block(
+                deck_card_ids=["sv06-123"],
+                deck_card_names=["Dragapult ex"],
+                candidate_card_ids=["sv05-144"],
+                candidate_card_names=["Pidgeot ex"],
+            )
+        assert "OBSERVED PLAY EVIDENCE" in block
+        assert ids == ["ev-1"]
+        assert meta is not None
+        assert meta["strategy"] == "deck_overlap_v1"
+        # Verify context was passed through to build_coach_context_preview
+        call_kwargs = mock_preview_fn.call_args.kwargs
+        assert call_kwargs["deck_card_ids"] == ["sv06-123"]
+        assert call_kwargs["deck_card_names"] == ["Dragapult ex"]
+        assert call_kwargs["candidate_card_ids"] == ["sv05-144"]
+        assert call_kwargs["candidate_card_names"] == ["Pidgeot ex"]
+        assert call_kwargs["allow_fallback"] is False
+
+    @pytest.mark.asyncio
+    async def test_fetch_observed_play_block_returns_empty_3tuple_when_disabled_with_deck_context(self):
+        """_fetch_observed_play_block returns ('', [], None) when flag off, even with deck context."""
+        analyst = _make_analyst()
+        with patch("app.coach.analyst.settings") as mock_settings:
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = False
+            block, ids, meta = await analyst._fetch_observed_play_block(
+                deck_card_ids=["sv06-123"],
+                deck_card_names=["Dragapult ex"],
+            )
+        assert block == ""
+        assert ids == []
+        assert meta is None
         """_validate_swap_response accepts kind='observed_play' without error."""
         analyst = _make_analyst()
         response = {

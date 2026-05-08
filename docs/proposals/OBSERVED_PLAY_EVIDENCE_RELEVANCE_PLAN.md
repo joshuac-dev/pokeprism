@@ -1,8 +1,8 @@
 # Phase 6.2 — Observed-Play Evidence Relevance / Retrieval Quality
 
-> **Status: Planning only.** Phase 6.1 is complete and verified.
-> Phase 6.2 has not been implemented. Do not treat this document as
-> describing current behavior.
+> **Phase 6.2a: COMPLETE.** Backend tiered retrieval implemented and tested.
+> Phase 6.2b (UI/debug polish) is the next step.
+> Phase 6.1 is complete and verified.
 
 ---
 

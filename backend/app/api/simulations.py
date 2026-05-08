@@ -1072,6 +1072,8 @@ async def get_simulation_coach_debug(
                 "evidence_ids": preview.evidence_ids,
                 "prompt_block_excerpt": preview.prompt_block[:600] if preview.prompt_block else "",
                 "reason": preview.reason,
+                "no_relevant_evidence": preview.no_relevant_evidence,
+                "retrieval_metadata": preview.retrieval_metadata.model_dump() if preview.retrieval_metadata else None,
             }
         except Exception as exc:
             current_preview = {"error": str(exc)}

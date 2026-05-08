@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-08 (session 57 — Phase 6.1 manually verified; all User Checks 1–4 complete)
+Last updated: 2026-05-08 (session 58 — Phase 6.2a implemented: tiered observed-play evidence retrieval)
 
 ## Current Workstream
 
@@ -18,7 +18,7 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1 through Phase 6.1 are COMPLETE and VERIFIED.** User Checks 1–4 all passed 2026-05-08.
+**Phase 1 through Phase 6.2a are COMPLETE.** Phase 6.1 verified 2026-05-08.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
 **Phase 6.1 verification summary:**
@@ -27,8 +27,18 @@ See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 - User Check 3 ✅ — Flag-on Coach: block injected, LLM acknowledges (or fallback `not_used_reason`)
 - User Check 4 ✅ — Immutability: all observed-play memory tables unchanged after flag-on simulation
 
-**Next feature step:** Phase 6.2 — Observed-Play Evidence Relevance / Retrieval Quality.
-Plan: `docs/proposals/OBSERVED_PLAY_EVIDENCE_RELEVANCE_PLAN.md`. Not yet implemented.
+**Phase 6.2a — Evidence relevance retrieval (COMPLETE):**
+- Tiered retrieval: Tier 1 (exact card-ID match) → Tier 2 (ILIKE name match) → Tier 3 (global fallback, opt-in only).
+- Source diversity cap: max 2 items per `observed_play_log_id`.
+- Win/loss outcome weighting: +0.05 tiebreaker bonus, never a hard gate.
+- No relevant evidence (flag-on, no deck match): `would_inject=false`, `no_relevant_evidence=true`, empty prompt block.
+- `CoachAnalyst` now passes deck/candidate card context to `_fetch_observed_play_block()`.
+- `coach-debug` endpoint surfaces `retrieval_metadata` (strategy, query IDs/names, per-item tier/score/matched field).
+- No migration required. Observed-play memory remains read-only and advisory.
+- Backend: 1223 passed, 1 skipped.
+
+**Next feature step:** Phase 6.2b — UI/debug polish for evidence retrieval metadata.
+Plan: `docs/proposals/OBSERVED_PLAY_EVIDENCE_RELEVANCE_PLAN.md`.
 Observed memory remains advisory only.
 
 **Known caveat:** The LLM (Gemma) may fail to acknowledge observed-play evidence even after a repair retry. This is now visible and non-silent through the fallback `not_used_reason` (`"LLM failed to acknowledge injected observed-play evidence after retries."`) and `coach-debug` metadata. `any_acknowledgment_missing=true` is a valid outcome when this occurs; the goal is that failure is always explicit, never silent.

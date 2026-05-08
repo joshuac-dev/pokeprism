@@ -738,6 +738,40 @@ class ObservedPlayEvidencePromptItem(BaseModel):
     source_raw_line: str
 
 
+class EvidenceSelectionDetail(BaseModel):
+    """Debug detail for one evidence item produced by tiered retrieval (Phase 6.2a)."""
+    memory_item_id: str
+    relevance_score: float
+    tier: int
+    matched_card_ids: list[str] = Field(default_factory=list)
+    matched_card_names: list[str] = Field(default_factory=list)
+    matched_field: str | None = None
+    matched_reason: str | None = None
+    source_log_id: str
+    from_winning_game: bool | None = None
+
+
+class EvidenceExclusionSummary(BaseModel):
+    """Count of candidates excluded during tiered evidence selection (Phase 6.2a)."""
+    low_confidence: int = 0
+    wrong_archetype: int = 0
+    source_cap_excluded: int = 0
+    unresolved_reference: int = 0
+
+
+class ObservedPlayRetrievalMetadata(BaseModel):
+    """Metadata describing the tiered evidence retrieval decision (Phase 6.2a)."""
+    strategy: str = "deck_overlap_v1"
+    query_card_ids: list[str] = Field(default_factory=list)
+    query_card_names: list[str] = Field(default_factory=list)
+    candidate_card_ids: list[str] = Field(default_factory=list)
+    candidate_card_names: list[str] = Field(default_factory=list)
+    allow_fallback: bool = False
+    max_items_per_log: int = 2
+    evidence_selected: list[EvidenceSelectionDetail] = Field(default_factory=list)
+    excluded_summary: EvidenceExclusionSummary = Field(default_factory=EvidenceExclusionSummary)
+
+
 class ObservedPlayCoachContextPreview(BaseModel):
     """
     Preview of the observed-play evidence block that would be injected into a
@@ -757,3 +791,6 @@ class ObservedPlayCoachContextPreview(BaseModel):
     evidence_ids: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     filters_applied: dict = Field(default_factory=dict)
+    # Phase 6.2a — tiered retrieval additions
+    retrieval_metadata: ObservedPlayRetrievalMetadata | None = None
+    no_relevant_evidence: bool = False

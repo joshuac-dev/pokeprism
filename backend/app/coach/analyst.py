@@ -132,7 +132,18 @@ class CoachAnalyst:
         primary_ids = self._identify_primary_line(round_results, current_deck)
         tiers = self._classify_deck_tiers(current_deck, primary_ids)
 
-        observed_play_block, observed_play_ids = await self._fetch_observed_play_block()
+        observed_play_block, observed_play_ids, observed_play_retrieval_meta = (
+            await self._fetch_observed_play_block(
+                deck_card_ids=deck_ids,
+                deck_card_names=[c.name for c in current_deck if c.name],
+                candidate_card_ids=[
+                    c.get("tcgdex_id") for c in top_cards if c.get("tcgdex_id")
+                ],
+                candidate_card_names=[
+                    c.get("name") for c in top_cards if c.get("name")
+                ],
+            )
+        )
 
         prompt_messages = self._build_prompt_messages(
             deck=current_deck,
@@ -157,6 +168,7 @@ class CoachAnalyst:
                 "evidence_ids_available": observed_play_ids,
                 "acknowledgment": op_acknowledgment,
                 "llm_analysis": op_analysis,
+                "retrieval_metadata": observed_play_retrieval_meta,
             }
 
         # Enforce tier protection rules (blocks tier1; requires full-line for tier2)
@@ -281,19 +293,41 @@ class CoachAnalyst:
         """Compatibility helper for tests/callers that inspect the user prompt."""
         return self._build_prompt_messages(*args, **kwargs)[1]["content"]
 
-    async def _fetch_observed_play_block(self) -> tuple[str, list[str]]:
-        """Return (prompt_block, evidence_ids) if the feature flag is on.
+    async def _fetch_observed_play_block(
+        self,
+        deck_card_ids: list[str] | None = None,
+        deck_card_names: list[str] | None = None,
+        candidate_card_ids: list[str] | None = None,
+        candidate_card_names: list[str] | None = None,
+    ) -> tuple[str, list[str], dict | None]:
+        """Return (prompt_block, evidence_ids, retrieval_metadata) if the feature flag is on.
 
-        Returns ("", []) when OBSERVED_PLAY_MEMORY_ENABLED is false (the
+        Returns ("", [], None) when OBSERVED_PLAY_MEMORY_ENABLED is false (the
         default), keeping Coach prompts byte-for-byte identical to pre-6.1.
+
+        When deck_card_ids / deck_card_names / candidate_card_ids / candidate_card_names
+        are supplied, tiered retrieval (Phase 6.2a) selects deck-relevant evidence.
+        When no context is supplied, Phase 6.1 global top-N behaviour is used.
+
         Advisory only — never affects swap decisions or game logic directly.
         """
         if not settings.OBSERVED_PLAY_MEMORY_ENABLED:
             logger.debug("OBSERVED_PLAY_MEMORY_ENABLED=false; skipping observed-play block.")
-            return "", []
+            return "", [], None
         try:
             from app.observed_play.coach_context import build_coach_context_preview
-            preview = await build_coach_context_preview(self._db)
+            preview = await build_coach_context_preview(
+                self._db,
+                deck_card_ids=deck_card_ids,
+                deck_card_names=deck_card_names,
+                candidate_card_ids=candidate_card_ids,
+                candidate_card_names=candidate_card_names,
+                allow_fallback=False,
+                include_relevance_hints=True,
+            )
+            retrieval_meta: dict | None = None
+            if preview.retrieval_metadata is not None:
+                retrieval_meta = preview.retrieval_metadata.model_dump()
             logger.info(
                 "OBSERVED_PLAY evidence fetch: would_inject=%s evidence_count=%d ids=%s",
                 preview.would_inject,
@@ -306,16 +340,17 @@ class CoachAnalyst:
                     len(preview.prompt_block),
                     preview.evidence_count,
                 )
-                return preview.prompt_block, list(preview.evidence_ids)
+                return preview.prompt_block, list(preview.evidence_ids), retrieval_meta
             else:
                 logger.info("OBSERVED_PLAY would_inject=false; reason: %s", preview.reason)
+                return "", [], retrieval_meta
         except Exception:
             logger.warning(
                 "Failed to fetch observed-play context for Coach prompt; "
                 "proceeding without it.",
                 exc_info=True,
             )
-        return "", []
+        return "", [], None
 
     async def _get_swap_decisions(
         self,
@@ -1182,6 +1217,7 @@ class CoachAnalyst:
             "evidence_ids_available": op_meta.get("evidence_ids_available") or [],
             "acknowledgment": op_meta.get("acknowledgment"),
             "llm_analysis": op_meta.get("llm_analysis"),
+            "retrieval_metadata": op_meta.get("retrieval_metadata"),
             "mutations_produced": mutations_count,
         }
 
