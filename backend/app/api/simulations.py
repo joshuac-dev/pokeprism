@@ -1039,6 +1039,27 @@ async def get_simulation_coach_debug(
         })
         all_op_citations.extend(op_cites)
 
+    # Simulation-level observed-play meta (persisted per-round, including 0-swap rounds)
+    sim_op_rounds: list[dict] = sim.observed_play_meta or []
+    if not isinstance(sim_op_rounds, list):
+        sim_op_rounds = []
+
+    sim_any_block_injected = any(r.get("block_injected") for r in sim_op_rounds)
+    sim_all_evidence_ids: list[str] = []
+    sim_not_used_reasons: list[str] = []
+    sim_any_ack_missing = False
+    for r in sim_op_rounds:
+        for eid in (r.get("evidence_ids_available") or []):
+            if eid not in sim_all_evidence_ids:
+                sim_all_evidence_ids.append(eid)
+        ack = r.get("acknowledgment") or {}
+        if ack.get("not_used_reason"):
+            sim_not_used_reasons.append(
+                f"Round {r.get('round_number', '?')}: {ack['not_used_reason']}"
+            )
+        if ack.get("acknowledgment_missing"):
+            sim_any_ack_missing = True
+
     # Current preview (what the block would contain if fetched now)
     current_preview: dict | None = None
     if settings.OBSERVED_PLAY_MEMORY_ENABLED:
@@ -1062,7 +1083,17 @@ async def get_simulation_coach_debug(
         "mutations": mutations_data,
         "observed_play_citations_found": all_op_citations,
         "any_observed_play_cited": len(all_op_citations) > 0,
-        "any_block_injected": any(m.get("observed_play_block_injected") for m in mutations_data),
+        "any_block_injected": (
+            any(m.get("observed_play_block_injected") for m in mutations_data)
+            or sim_any_block_injected
+        ),
+        "simulation_observed_play_summary": {
+            "any_block_injected": sim_any_block_injected,
+            "evidence_ids_available": sim_all_evidence_ids,
+            "not_used_reasons": sim_not_used_reasons,
+            "any_acknowledgment_missing": sim_any_ack_missing,
+        },
+        "analysis_rounds": sim_op_rounds,
         "current_context_preview": current_preview,
     }
 

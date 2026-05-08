@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-08 (session 55 — Coach observed-play acknowledgment enforcement)
+Last updated: 2026-05-08 (session 56 — Coach observed-play no-mutation debug fix)
 
 ## Current Workstream
 
@@ -21,7 +21,7 @@ post-phase development:
 **Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, Phase 5.1, pre-Phase-5.2 workflow hardening, Phase 5.2, Phase 6.0, and Phase 6.1 are complete.**
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
-**Next step (immediate):** Re-run User Check 3 with celery-worker flag fixed and acknowledgment enforcement — run H/H simulation, check celery logs for OBSERVED_PLAY lines, check `/api/simulations/{id}/coach-debug` for `observed_play_block_injected=true` and `observed_play_not_used_reason` or citations.
+**Next step (immediate):** Re-run User Check 3 final retry — new H/H simulation will store per-round observed-play injection state in `simulations.observed_play_meta`. Even if mutations=[], `GET /api/simulations/{id}/coach-debug` will show `any_block_injected=true`, `analysis_rounds` with per-round evidence data, and `simulation_observed_play_summary` with acknowledgment state.
 **Next feature step:** Phase 6.2+ — Further Coach advisory features (future). Observed memory remains advisory only.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
@@ -40,7 +40,7 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **1188 passed, 1 skipped** — 2026-05-08 session 55. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Backend test baseline | **1195 passed, 1 skipped** — 2026-05-08 session 56. `cd backend && python3 -m pytest tests/ -x -q`. |
 | Frontend unit tests | **339 passed (17 files)** — 2026-05-10 session 54. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |

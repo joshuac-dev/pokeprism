@@ -19,7 +19,7 @@ from app.coach.prompts import (
 )
 from sqlalchemy import select
 
-from app.db.models import Card, DeckMutation
+from app.db.models import Card, DeckMutation, Simulation
 from app.memory.embeddings import SimilarSituationFinder
 from app.memory.graph import GraphQueries
 from app.memory.postgres import CardPerformanceQueries
@@ -126,7 +126,7 @@ class CoachAnalyst:
             observed_play_block=observed_play_block,
         )
 
-        raw_swaps, op_acknowledgment = await self._get_swap_decisions(
+        raw_swaps, op_acknowledgment, op_analysis = await self._get_swap_decisions(
             prompt_messages, observed_play_ids=observed_play_ids
         )
         op_meta: dict | None = None
@@ -135,6 +135,7 @@ class CoachAnalyst:
                 "block_injected": bool(observed_play_block),
                 "evidence_ids_available": observed_play_ids,
                 "acknowledgment": op_acknowledgment,
+                "llm_analysis": op_analysis,
             }
 
         # Enforce tier protection rules (blocks tier1; requires full-line for tier2)
@@ -176,6 +177,13 @@ class CoachAnalyst:
 
         if mutations:
             await self._write_mutations(mutations, simulation_id)
+        if op_meta is not None:
+            await self._write_sim_observed_play_meta(
+                simulation_id=simulation_id,
+                round_number=round_number,
+                op_meta=op_meta,
+                mutations_count=len(mutations),
+            )
 
         return mutations
 
@@ -293,7 +301,7 @@ class CoachAnalyst:
         messages: list[dict] | str,
         observed_play_ids: list[str] | None = None,
         retries: int = 2,
-    ) -> tuple[list[dict], dict | None]:
+    ) -> tuple[list[dict], dict | None, str | None]:
         if isinstance(messages, str):
             messages = [
                 {"role": "system", "content": COACH_EVOLUTION_SYSTEM_PROMPT.format(max_swaps=self._max_swaps)},
@@ -307,14 +315,19 @@ class CoachAnalyst:
             parsed, parse_error = self._parse_response(raw)
             swaps, validation_error = self._validate_swap_response(parsed)
             if swaps is not None:
+                analysis_text: str | None = None
+                if isinstance(parsed, dict):
+                    raw_analysis = parsed.get("analysis")
+                    if isinstance(raw_analysis, str) and raw_analysis.strip():
+                        analysis_text = raw_analysis.strip()[:800]
                 if not swaps and parsed:
                     logger.info(
                         "Coach recommended 0 swaps. Analysis: %.300s",
-                        parsed.get("analysis", "(none)"),
+                        analysis_text or "(none)",
                     )
                 last_parsed = parsed
                 op_ack = self._extract_op_acknowledgment(parsed, observed_play_ids or [])
-                return swaps, op_ack
+                return swaps, op_ack, analysis_text
             error = parse_error or validation_error or "unknown schema failure"
             logger.warning(
                 "Coach response validation failed (attempt %d/%d): %s | raw=%.200s",
@@ -331,7 +344,7 @@ class CoachAnalyst:
             "Coach gave invalid response after %d retries. Last raw: %.200s",
             retries, last_raw[:200],
         )
-        return [], None
+        return [], None, None
 
     async def _call_ollama(self, messages: list[dict]) -> str:
         """Call Ollama /api/chat with up to 3 connection retries (exponential backoff)."""
@@ -1059,3 +1072,42 @@ class CoachAnalyst:
             for m in mutations
         )
         await self._db.flush()
+
+    async def _write_sim_observed_play_meta(
+        self,
+        simulation_id: uuid.UUID,
+        round_number: int,
+        op_meta: dict,
+        mutations_count: int,
+    ) -> None:
+        """Append per-round observed-play injection state to simulations.observed_play_meta.
+
+        Persists even when no mutations were produced, so coach-debug can
+        surface evidence injection state for 0-swap rounds.
+        """
+        from sqlalchemy.orm.attributes import flag_modified
+
+        sim = (await self._db.execute(
+            select(Simulation).where(Simulation.id == simulation_id)
+        )).scalar_one_or_none()
+        if sim is None:
+            logger.warning("_write_sim_observed_play_meta: simulation %s not found", simulation_id)
+            return
+
+        round_entry: dict = {
+            "round_number": round_number,
+            "block_injected": op_meta.get("block_injected", False),
+            "evidence_ids_available": op_meta.get("evidence_ids_available") or [],
+            "acknowledgment": op_meta.get("acknowledgment"),
+            "llm_analysis": op_meta.get("llm_analysis"),
+            "mutations_produced": mutations_count,
+        }
+
+        current = sim.observed_play_meta
+        if isinstance(current, list):
+            sim.observed_play_meta = current + [round_entry]
+        else:
+            sim.observed_play_meta = [round_entry]
+        flag_modified(sim, "observed_play_meta")
+        await self._db.flush()
+

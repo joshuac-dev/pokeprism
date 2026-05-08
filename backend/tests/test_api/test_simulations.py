@@ -2106,6 +2106,7 @@ class TestGetSimulationCoachDebug:
         sim = MagicMock()
         sim.id = uuid.uuid4()
         sim.status = status
+        sim.observed_play_meta = None
         return sim
 
     def _make_mutation(self, round_number=1, evidence=None, observed_play_meta=None):
@@ -2317,3 +2318,114 @@ class TestGetSimulationCoachDebug:
         assert m_data["observed_play_citations_used"][0]["ref"] == "uuid-aaa"
         assert "different cards" in m_data["observed_play_not_used_reason"]
         assert data["any_block_injected"] is True
+
+    def test_sim_level_observed_play_meta_no_mutations(self):
+        """any_block_injected is True from sim.observed_play_meta even when mutations=[]."""
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim = self._make_sim(status="completed")
+        sim.observed_play_meta = [
+            {
+                "round_number": 1,
+                "block_injected": True,
+                "evidence_ids_available": ["ev-001", "ev-002"],
+                "acknowledgment": {
+                    "block_provided": True,
+                    "used_evidence_ids": [],
+                    "not_used_reason": "Current deck performing well above threshold.",
+                    "acknowledgment_missing": False,
+                },
+                "llm_analysis": "Win rate exceeds 60%. No swaps recommended.",
+                "mutations_produced": 0,
+            }
+        ]
+
+        async def override_db():
+            yield self._make_session(sim, [])
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with patch("app.api.simulations.settings") as mock_settings:
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            with TestClient(app) as c:
+                resp = c.get(f"/api/simulations/{sim.id}/coach-debug")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["mutations"] == []
+        # any_block_injected comes from sim-level meta, not mutations
+        assert data["any_block_injected"] is True
+        # simulation_observed_play_summary aggregated from sim meta
+        summary = data["simulation_observed_play_summary"]
+        assert summary["any_block_injected"] is True
+        assert "ev-001" in summary["evidence_ids_available"]
+        assert any("Current deck performing" in r for r in summary["not_used_reasons"])
+        assert summary["any_acknowledgment_missing"] is False
+        # analysis_rounds contains the per-round data
+        assert len(data["analysis_rounds"]) == 1
+        assert data["analysis_rounds"][0]["round_number"] == 1
+        assert data["analysis_rounds"][0]["block_injected"] is True
+        assert data["analysis_rounds"][0]["mutations_produced"] == 0
+
+    def test_sim_level_observed_play_meta_no_block_returns_false(self):
+        """any_block_injected is False when sim meta shows block was not injected."""
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim = self._make_sim(status="completed")
+        sim.observed_play_meta = [
+            {
+                "round_number": 1,
+                "block_injected": False,
+                "evidence_ids_available": [],
+                "acknowledgment": None,
+                "llm_analysis": None,
+                "mutations_produced": 0,
+            }
+        ]
+
+        async def override_db():
+            yield self._make_session(sim, [])
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with patch("app.api.simulations.settings") as mock_settings:
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = False
+            with TestClient(app) as c:
+                resp = c.get(f"/api/simulations/{sim.id}/coach-debug")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["any_block_injected"] is False
+        assert data["simulation_observed_play_summary"]["any_block_injected"] is False
+        assert data["simulation_observed_play_summary"]["evidence_ids_available"] == []
+
+    def test_analysis_rounds_present_even_when_no_sim_meta(self):
+        """analysis_rounds is an empty list when sim.observed_play_meta is None."""
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        sim = self._make_sim()
+
+        async def override_db():
+            yield self._make_session(sim, [])
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with patch("app.api.simulations.settings") as mock_settings:
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = False
+            with TestClient(app) as c:
+                resp = c.get(f"/api/simulations/{sim.id}/coach-debug")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["analysis_rounds"] == []
+        assert data["simulation_observed_play_summary"]["any_block_injected"] is False
+

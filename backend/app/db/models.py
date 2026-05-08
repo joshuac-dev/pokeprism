@@ -121,6 +121,8 @@ class Simulation(Base):
     updated_at           = Column(TIMESTAMP(timezone=True), server_default=func.now(),
                                   onupdate=func.now())
 
+    observed_play_meta   = Column(JSONB)   # list of per-round injection states for coach-debug
+
     user_deck            = relationship("Deck",
                                         foreign_keys=[user_deck_id],
                                         back_populates="simulations")
