@@ -507,3 +507,59 @@ export interface BulkIngestEligibleSummary {
   skipped_logs: BulkIngestLogResult[];
   failed_logs: BulkIngestLogResult[];
 }
+
+// ── Phase 5.2: Corpus Readiness Scorecard ─────────────────────────────────────
+
+export interface CorpusStats {
+  log_count: number;
+  parsed_log_count: number;
+  ingested_log_count: number;
+  not_ingested_log_count: number;
+  failed_log_count: number;
+  event_count: number;
+  memory_item_count: number;
+}
+
+export interface ParserQualityStats {
+  avg_event_confidence: number | null;
+  min_log_confidence: number | null;
+  avg_log_confidence: number | null;
+  unknown_event_count: number;
+  low_confidence_event_count: number;
+  low_confidence_threshold: number;
+  logs_below_ingestion_threshold: number;
+}
+
+export interface CardResolutionStats {
+  card_mention_count: number;
+  resolved_count: number;
+  ambiguous_count: number;
+  unresolved_count: number;
+  critical_unresolved_count: number;
+  top_ambiguous: string[];
+  top_unresolved: string[];
+}
+
+export interface MemoryQualityStats {
+  avg_memory_confidence: number | null;
+  low_confidence_memory_item_count: number;
+  ambiguous_reference_item_count: number;
+  unresolved_reference_item_count: number;
+  memory_type_counts: Array<{ memory_type: string; count: number }>;
+  top_quality_flags: Array<{ label: string; count: number }>;
+}
+
+export interface CorpusReadinessReport {
+  verdict: 'ready' | 'needs_review' | 'not_ready';
+  readiness_score: number;
+  generated_at: string;
+  review_only: boolean;
+  safety_note: string;
+  corpus: CorpusStats;
+  parser_quality: ParserQualityStats;
+  card_resolution: CardResolutionStats;
+  memory_quality: MemoryQualityStats;
+  blockers: string[];
+  warnings: string[];
+  recommendations: string[];
+}

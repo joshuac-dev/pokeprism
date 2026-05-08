@@ -2182,9 +2182,9 @@ memory_ingestions:       198
 
 ---
 
-### Phase 5.2 — Corpus Quality / Readiness Scorecard (NOT YET STARTED)
+### Phase 5.2 — Corpus Quality / Readiness Scorecard
 
-**Status: Planned. Has not started.**
+**Status: ✅ Complete (session 46)**
 
 **Goal:** Produce a read-only corpus quality summary for the 49-log real observed-play corpus. This scorecard is the gating check before deciding whether any downstream Coach advisory use is safe.
 
@@ -2202,7 +2202,41 @@ memory_ingestions:       198
 | Logs blocked or skipped | runtime memory usage |
 | Remaining parser risks | automatic recommendations |
 
-**Deliverable:** A read-only scorecard endpoint or page section summarizing the above. Does not wire observed memory into Coach or AI. Does not lower eligibility gates.
+**Backend:**
+- `backend/app/observed_play/schemas.py`: Added 5 threshold constants (`READINESS_LOW_CONFIDENCE_EVENT_THRESHOLD`, `READINESS_INGESTION_COVERAGE_THRESHOLD`, `READINESS_AVG_EVENT_CONFIDENCE_THRESHOLD`, `READINESS_AVG_MEMORY_CONFIDENCE_THRESHOLD`, `READINESS_TOP_N_LIMIT`) and 5 new Pydantic schemas (`CorpusStats`, `ParserQualityStats`, `CardResolutionStats`, `MemoryQualityStats`, `CorpusReadinessReport`).
+- `backend/app/api/observed_play.py`: Added `GET /api/observed-play/corpus-readiness` endpoint. Queries all 6 observed-play tables. Scores 4 dimensions (35 + 25 + 20 + 20 = 100 pts). Deterministic verdict logic (not_ready / needs_review / ready). `_READINESS_CRITICAL_ROLES` defined inline to avoid circular imports.
+
+**Frontend:**
+- `frontend/src/types/observedPlay.ts`: TypeScript interfaces for all report types.
+- `frontend/src/api/observedPlay.ts`: `getCorpusReadiness()` function.
+- `frontend/src/pages/ObservedPlay.tsx`: `VerdictBadge`, `ScorecardStatRow`, `CorpusScorecardSection` components. Review-only safety note. Refresh button.
+
+**Tests:**
+- +17 backend tests (`TestCorpusReadiness`): endpoint exists, empty corpus → not_ready, clean corpus → ready, unknown events → not_ready, low-conf events → not_ready, critical unresolved → not_ready, ambiguous → needs_review, ingestion gap → needs_review, low-conf memory → needs_review, safety note present, no DB mutation, score in [0, 100], top lists limited, score deterministic.
+- +17 frontend tests (Phase 5.2 describe block): scorecard renders, empty state, ready/needs_review/not_ready badges, score, coverage/parser/card/memory stats, blockers/warnings/recommendations, safety note, refresh button, error state, dark-mode classes.
+
+**Live 49-log corpus scorecard result:**
+```
+verdict:              ready
+readiness_score:      97.22 / 100
+logs:                 49 / 49 parsed / 49 ingested
+events:               10,047
+memory items:         4,786
+unknown events:       0
+events below 80%:     0
+avg event confidence: 0.8879
+avg memory confidence: 0.8899
+card mentions:        8,670 resolved / 0 ambiguous / 0 unresolved / 0 critical
+blockers:             []
+warnings:             []
+```
+
+**Validation:**
+- Backend: 1108 passed, 5 skipped (was 1095, +17 new tests).
+- Frontend: 285 passed (was 268, +17 new tests).
+- Frontend build: clean.
+- No Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, data reset, or runtime integration.
+- `docs/AUDIT_STATE.md` not touched. No real logs or raw audit reports committed.
 
 ---
 

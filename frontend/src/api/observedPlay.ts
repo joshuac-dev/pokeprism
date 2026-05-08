@@ -7,6 +7,7 @@ import type {
   BulkReparseSummary,
   CardMentionListResponse,
   CardResolutionSummaryResponse,
+  CorpusReadinessReport,
   IngestionConfig,
   MemoryAnalyticsResponse,
   MemoryAnalyticsSourceItemsParams,
@@ -224,4 +225,9 @@ export async function bulkPreviewEligible(opts: BulkIngestEligibleRequest = {}):
 export async function bulkIngestEligible(opts: BulkIngestEligibleRequest = {}): Promise<BulkIngestEligibleSummary> {
   const resp = await api.post('/api/observed-play/memory-ingestion/ingest-eligible', opts);
   return resp.data as BulkIngestEligibleSummary;
+}
+
+export async function getCorpusReadiness(): Promise<CorpusReadinessReport> {
+  const resp = await api.get('/api/observed-play/corpus-readiness');
+  return resp.data as CorpusReadinessReport;
 }

@@ -3105,3 +3105,355 @@ class TestBulkIngestEligible:
         statuses = {l["status"] for l in data["ingested_logs"]}
         assert "ingested" in statuses
         assert "reingested" in statuses
+
+
+# ── Phase 5.2: Corpus Readiness Scorecard ────────────────────────────────────
+
+def _make_scalar_result(value):
+    r = MagicMock()
+    r.scalar.return_value = value
+    return r
+
+
+def _make_fetchall_result(rows):
+    r = MagicMock()
+    r.fetchall.return_value = rows
+    return r
+
+
+class TestCorpusReadiness:
+    """Tests for GET /api/observed-play/corpus-readiness (Phase 5.2)."""
+
+    def _db_override(self, scalar_sequence, fetchall_sequence=None):
+        """Build an async DB override that returns scalars and fetchall values in order.
+
+        scalar_sequence: consumed when the caller invokes .scalar() on the execute result.
+        fetchall_sequence: consumed when the caller invokes .fetchall() on the execute result.
+        The two sequences are tracked independently so fetchall calls do not consume scalar slots.
+        """
+        fetchall_seq = list(fetchall_sequence or [])
+        scalar_seq = list(scalar_sequence)
+        scalar_calls = [0]
+        fetchall_calls = [0]
+
+        async def override_db():
+            session = AsyncMock()
+
+            async def execute_side_effect(query, *args, **kwargs):
+                r = MagicMock()
+
+                def _scalar():
+                    idx = scalar_calls[0]
+                    scalar_calls[0] += 1
+                    return scalar_seq[idx] if idx < len(scalar_seq) else 0
+
+                def _fetchall():
+                    idx = fetchall_calls[0]
+                    fetchall_calls[0] += 1
+                    return fetchall_seq[idx] if idx < len(fetchall_seq) else []
+
+                r.scalar = MagicMock(side_effect=_scalar)
+                r.fetchall = MagicMock(side_effect=_fetchall)
+                return r
+
+            session.execute = AsyncMock(side_effect=execute_side_effect)
+            yield session
+
+        return override_db
+
+    def _simple_override(self, scalars, fetchalls=None):
+        """Shorthand: build DB override with given scalar values."""
+        return self._db_override(scalars, fetchalls or [[], []])
+
+    def test_endpoint_exists_and_is_get(self, client):
+        override = self._simple_override(
+            [0, 0, 0, 0, 0, 0, None, None, None, 0, 0, 0, 0, 0, 0, None, 0, 0, 0],
+        )
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override
+        try:
+            resp = client.get("/api/observed-play/corpus-readiness")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200
+
+    def test_is_read_only_no_post(self, client):
+        resp = client.post("/api/observed-play/corpus-readiness")
+        assert resp.status_code == 405
+
+    def test_response_includes_review_only_flag(self, client):
+        override = self._simple_override(
+            [0, 0, 0, 0, 0, 0, None, None, None, 0, 0, 0, 0, 0, 0, None, 0, 0, 0],
+        )
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override
+        try:
+            resp = client.get("/api/observed-play/corpus-readiness")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert data["review_only"] is True
+        assert "safety_note" in data
+        assert len(data["safety_note"]) > 0
+
+    def test_empty_corpus_returns_not_ready(self, client):
+        """All zeros → no parsed/ingested logs → not_ready."""
+        override = self._simple_override(
+            [0] * 20,
+        )
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override
+        try:
+            resp = client.get("/api/observed-play/corpus-readiness")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert data["verdict"] == "not_ready"
+        assert len(data["blockers"]) > 0
+
+    def test_unknown_events_force_not_ready(self, client):
+        """Any unknown events → not_ready."""
+        # Simulate: 5 logs, 5 parsed, 5 ingested, 0 failed, 100 events, 50 memory items,
+        # avg_event_conf=0.9, min_log_conf=0.85, avg_log_conf=0.88,
+        # unknown_event_count=3 → blocker
+        override = self._simple_override(
+            [5, 5, 5, 0, 100, 50,     # corpus: log, parsed, ingested, failed, events, memory
+             0.9, 0.85, 0.88, 3, 0, 0,   # parser: avg_event, min_log, avg_log, unknown, low_conf, below_threshold
+             10, 8, 0, 0, 0,              # card: total, resolved, ambiguous, unresolved, critical
+             0.85, 0, 0, 0],              # memory: avg_mem, low_conf, ambig_ref, unres_ref
+        )
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override
+        try:
+            resp = client.get("/api/observed-play/corpus-readiness")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert data["verdict"] == "not_ready"
+        assert any("unknown" in b.lower() for b in data["blockers"])
+
+    def test_low_confidence_events_force_not_ready(self, client):
+        """Events below threshold → not_ready."""
+        override = self._simple_override(
+            [5, 5, 5, 0, 100, 50,
+             0.9, 0.85, 0.88, 0, 7, 0,   # low_confidence_event_count=7
+             10, 8, 0, 0, 0,
+             0.85, 0, 0, 0],
+        )
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override
+        try:
+            resp = client.get("/api/observed-play/corpus-readiness")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert data["verdict"] == "not_ready"
+        assert any("confidence" in b.lower() for b in data["blockers"])
+
+    def test_critical_unresolved_force_not_ready(self, client):
+        """Critical unresolved card mentions → not_ready."""
+        override = self._simple_override(
+            [5, 5, 5, 0, 100, 50,
+             0.9, 0.85, 0.88, 0, 0, 0,
+             10, 8, 0, 2, 2,   # unresolved=2, critical_unresolved=2
+             0.85, 0, 0, 0],
+        )
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override
+        try:
+            resp = client.get("/api/observed-play/corpus-readiness")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert data["verdict"] == "not_ready"
+        assert data["card_resolution"]["critical_unresolved_count"] == 2
+
+    def test_ambiguous_mentions_create_needs_review(self, client):
+        """No blockers but ambiguous mentions → needs_review."""
+        override = self._simple_override(
+            [5, 5, 5, 0, 100, 50,
+             0.9, 0.85, 0.88, 0, 0, 0,
+             10, 7, 3, 0, 0,   # ambiguous=3
+             0.85, 0, 0, 0],
+        )
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override
+        try:
+            resp = client.get("/api/observed-play/corpus-readiness")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert data["verdict"] == "needs_review"
+        assert any("ambiguous" in w.lower() for w in data["warnings"])
+
+    def test_low_confidence_memory_items_create_needs_review(self, client):
+        """Low-confidence memory items → needs_review warning."""
+        override = self._simple_override(
+            [5, 5, 5, 0, 100, 50,
+             0.9, 0.85, 0.88, 0, 0, 0,
+             10, 10, 0, 0, 0,
+             0.85, 5, 0, 0],   # low_conf_memory=5 → warning
+        )
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override
+        try:
+            resp = client.get("/api/observed-play/corpus-readiness")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert data["verdict"] == "needs_review"
+        assert any("low-confidence" in w.lower() or "confidence" in w.lower() for w in data["warnings"])
+
+    def test_ingestion_coverage_below_threshold_creates_needs_review(self, client):
+        """Ingestion coverage < 90 % → needs_review."""
+        override = self._simple_override(
+            [10, 10, 8, 0, 200, 80,   # 8/10 = 80% < 90%
+             0.9, 0.85, 0.88, 0, 0, 0,
+             20, 20, 0, 0, 0,
+             0.85, 0, 0, 0],
+        )
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override
+        try:
+            resp = client.get("/api/observed-play/corpus-readiness")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert data["verdict"] == "needs_review"
+        assert any("coverage" in w.lower() or "ingestion" in w.lower() for w in data["warnings"])
+
+    def test_fully_clean_corpus_can_return_ready(self, client):
+        """All metrics clean → ready verdict."""
+        override = self._simple_override(
+            [5, 5, 5, 0, 100, 50,     # all parsed and ingested, no failures
+             0.92, 0.88, 0.90, 0, 0, 0,  # no unknowns, no low-conf events
+             10, 10, 0, 0, 0,            # all resolved, no ambiguous/unresolved
+             0.88, 0, 0, 0],             # high memory confidence, no low-conf items
+        )
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override
+        try:
+            resp = client.get("/api/observed-play/corpus-readiness")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert data["verdict"] == "ready"
+        assert data["blockers"] == []
+        assert data["warnings"] == []
+
+    def test_readiness_score_is_deterministic_and_in_range(self, client):
+        """Score must be a float in [0, 100] and stable across identical calls."""
+        override = self._simple_override(
+            [5, 5, 5, 0, 100, 50,
+             0.92, 0.88, 0.90, 0, 0, 0,
+             10, 10, 0, 0, 0,
+             0.88, 0, 0, 0],
+        )
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override
+        try:
+            resp = client.get("/api/observed-play/corpus-readiness")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        score = data["readiness_score"]
+        assert isinstance(score, (int, float))
+        assert 0 <= score <= 100
+
+    def test_response_shape_includes_all_sections(self, client):
+        """Response must include corpus, parser_quality, card_resolution, memory_quality."""
+        override = self._simple_override([0] * 25)
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override
+        try:
+            resp = client.get("/api/observed-play/corpus-readiness")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        for key in ("verdict", "readiness_score", "generated_at", "review_only", "safety_note",
+                    "corpus", "parser_quality", "card_resolution", "memory_quality",
+                    "blockers", "warnings", "recommendations"):
+            assert key in data, f"Missing key: {key}"
+        for key in ("log_count", "parsed_log_count", "ingested_log_count", "event_count", "memory_item_count"):
+            assert key in data["corpus"]
+        for key in ("unknown_event_count", "low_confidence_event_count", "avg_event_confidence"):
+            assert key in data["parser_quality"]
+        for key in ("card_mention_count", "resolved_count", "ambiguous_count",
+                    "unresolved_count", "critical_unresolved_count"):
+            assert key in data["card_resolution"]
+        for key in ("avg_memory_confidence", "low_confidence_memory_item_count",
+                    "ambiguous_reference_item_count", "unresolved_reference_item_count"):
+            assert key in data["memory_quality"]
+
+    def test_top_ambiguous_and_unresolved_are_limited(self, client):
+        """top_ambiguous and top_unresolved must be lists (bounded by READINESS_TOP_N_LIMIT)."""
+        override = self._simple_override(
+            [0] * 25,
+            fetchalls=[[], []],
+        )
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override
+        try:
+            resp = client.get("/api/observed-play/corpus-readiness")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        assert isinstance(data["card_resolution"]["top_ambiguous"], list)
+        assert isinstance(data["card_resolution"]["top_unresolved"], list)
+
+    def test_endpoint_does_not_mutate_db(self, client):
+        """GET /corpus-readiness must not call commit() or rollback()."""
+        committed = []
+        rolled_back = []
+
+        async def override_db():
+            session = AsyncMock()
+            r = MagicMock()
+            r.scalar.return_value = 0
+            r.fetchall.return_value = []
+            session.execute = AsyncMock(return_value=r)
+            session.commit = AsyncMock(side_effect=lambda: committed.append(1))
+            session.rollback = AsyncMock(side_effect=lambda: rolled_back.append(1))
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            client.get("/api/observed-play/corpus-readiness")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert committed == [], "GET /corpus-readiness must not commit"
+        assert rolled_back == [], "GET /corpus-readiness must not rollback"
+
+    def test_generated_at_is_iso_timestamp(self, client):
+        override = self._simple_override([0] * 25)
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override
+        try:
+            resp = client.get("/api/observed-play/corpus-readiness")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        data = resp.json()
+        from datetime import datetime
+        # Should not raise
+        datetime.fromisoformat(data["generated_at"])
+
+    def test_existing_memory_analytics_still_pass(self, client):
+        """Sanity: the existing /memory-summary endpoint is unaffected."""
+        async def override_db():
+            session = AsyncMock()
+            r = MagicMock()
+            r.scalar.return_value = 0
+            rows = MagicMock()
+            rows.all.return_value = []
+            r.scalars.return_value = rows
+            session.execute = AsyncMock(return_value=r)
+            yield session
+
+        from app.api.observed_play import get_db
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            resp = client.get("/api/observed-play/memory-summary")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+        assert resp.status_code == 200

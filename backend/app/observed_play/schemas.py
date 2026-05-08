@@ -543,3 +543,96 @@ class BulkIngestEligibleSummary(BaseModel):
     ingested_logs: list[BulkIngestLogResult] = Field(default_factory=list)
     skipped_logs: list[BulkIngestLogResult] = Field(default_factory=list)
     failed_logs: list[BulkIngestLogResult] = Field(default_factory=list)
+
+
+# ── Phase 5.2: Corpus Readiness Scorecard ─────────────────────────────────────
+
+# Event-level threshold used by the low-confidence audit and ingestion eligibility logic.
+READINESS_LOW_CONFIDENCE_EVENT_THRESHOLD = 0.80
+# Minimum ingestion coverage ratio to avoid a "needs_review" warning.
+READINESS_INGESTION_COVERAGE_THRESHOLD = 0.90
+# Minimum average event confidence to avoid a "needs_review" warning.
+READINESS_AVG_EVENT_CONFIDENCE_THRESHOLD = 0.85
+# Minimum average memory confidence to avoid a "needs_review" warning.
+# Same as LOW_CONFIDENCE_THRESHOLD used by memory item quality flags.
+READINESS_AVG_MEMORY_CONFIDENCE_THRESHOLD = 0.75
+# Maximum number of top ambiguous/unresolved raw names returned in the report.
+READINESS_TOP_N_LIMIT = 10
+
+
+class CorpusStats(BaseModel):
+    """Corpus coverage: how many logs were uploaded, parsed, and ingested."""
+    log_count: int = 0
+    parsed_log_count: int = 0
+    ingested_log_count: int = 0
+    not_ingested_log_count: int = 0
+    failed_log_count: int = 0
+    event_count: int = 0
+    memory_item_count: int = 0
+
+
+class ParserQualityStats(BaseModel):
+    """Aggregate parser quality metrics across all events and logs."""
+    avg_event_confidence: float | None = None
+    min_log_confidence: float | None = None
+    avg_log_confidence: float | None = None
+    unknown_event_count: int = 0
+    low_confidence_event_count: int = 0
+    low_confidence_threshold: float = READINESS_LOW_CONFIDENCE_EVENT_THRESHOLD
+    logs_below_ingestion_threshold: int = 0
+
+
+class CardResolutionStats(BaseModel):
+    """Card-mention resolution burden across the full corpus."""
+    card_mention_count: int = 0
+    resolved_count: int = 0
+    ambiguous_count: int = 0
+    unresolved_count: int = 0
+    critical_unresolved_count: int = 0
+    top_ambiguous: list[str] = Field(default_factory=list)
+    top_unresolved: list[str] = Field(default_factory=list)
+
+
+class MemoryQualityStats(BaseModel):
+    """Aggregate quality metrics across ingested memory items."""
+    avg_memory_confidence: float | None = None
+    low_confidence_memory_item_count: int = 0
+    ambiguous_reference_item_count: int = 0
+    unresolved_reference_item_count: int = 0
+    memory_type_counts: list[dict] = Field(default_factory=list)
+    top_quality_flags: list[dict] = Field(default_factory=list)
+
+
+class CorpusReadinessReport(BaseModel):
+    """
+    Read-only Corpus Quality / Readiness Scorecard.
+
+    Verdict rules (deterministic, no LLM):
+      not_ready  — any blocker: no parsed/ingested logs, unknown events,
+                   events below 0.80, critical unresolved mentions, or failed logs.
+      needs_review — any warning: ambiguous/unresolved mentions, low-confidence
+                   memory items, ingestion coverage < 90 %, avg confidence thresholds.
+      ready      — all blockers and warnings absent.
+
+    Score (0–100):
+      Parser quality  35 pts  (no unknowns 10, no low-conf 10, avg confidence 15)
+      Ingestion       25 pts  (coverage ratio 20, no failures 5)
+      Card resolution 20 pts  (no critical unresolved 10, resolution ratio 10)
+      Memory quality  20 pts  (avg memory confidence 10, low-conf burden 10)
+    """
+    verdict: str  # "ready" | "needs_review" | "not_ready"
+    readiness_score: float
+    generated_at: str
+    review_only: bool = True
+    safety_note: str = (
+        "This scorecard is read-only. Observed memories are not used by Coach, "
+        "AI Player, simulator runtime, deck builder, pgvector, Neo4j, "
+        "match_events, or card_performance."
+    )
+    corpus: CorpusStats = Field(default_factory=CorpusStats)
+    parser_quality: ParserQualityStats = Field(default_factory=ParserQualityStats)
+    card_resolution: CardResolutionStats = Field(default_factory=CardResolutionStats)
+    memory_quality: MemoryQualityStats = Field(default_factory=MemoryQualityStats)
+    blockers: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)

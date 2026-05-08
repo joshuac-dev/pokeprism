@@ -30,6 +30,9 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+### Added
+- **Observed Play Phase 5.2: Corpus Quality / Readiness Scorecard** — read-only. Backend `GET /api/observed-play/corpus-readiness` endpoint returns a `CorpusReadinessReport` with deterministic verdict (`ready`/`needs_review`/`not_ready`), readiness score (0–100), corpus coverage, parser quality, card-resolution burden, and memory quality stats. Scoring: Parser quality 35 pts (unknowns 10, low-conf events 10, avg event conf 15) + Ingestion coverage 25 pts + Card resolution 20 pts + Memory quality 20 pts. Verdict is `not_ready` if any blocker exists, `needs_review` if any warning exists without blockers, `ready` otherwise. Frontend `CorpusScorecardSection` component with `VerdictBadge`, `ScorecardStatRow`, and full scorecard panel placed after Memory Analytics. Explicit review-only safety note in UI and API response. +17 backend tests (`TestCorpusReadiness`), +17 frontend tests (Phase 5.2 describe block). Live 49-log corpus result: verdict=ready, score=97.22, 0 unknown events, 0 low-confidence events, 0 ambiguous/unresolved card mentions. No Coach/AI, pgvector, Neo4j, simulator match_events, card_performance, deck-builder, data reset, or runtime integration.
+
 ### Changed
 - **Parser: `card_effect_activated` confidence raised** — Was hardcoded at 0.78 (below the 0.80 eligibility gate). Now returns 0.88 when the card name is captured (which is always the case for this event type). Eliminates 150 sub-threshold events across the 49-log corpus.
 - **Bulk reparse opt-in flag** — `POST /logs/reparse-all` now accepts optional `include_ingested` (default false). When true, already-ingested logs are reparsed and their parsed events/card mentions refreshed without changing memory items. Response includes `ingested_reparsed_count` and per-log `had_existing_memory`/`memory_warning` fields.

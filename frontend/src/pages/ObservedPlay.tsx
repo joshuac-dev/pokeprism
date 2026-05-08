@@ -21,6 +21,7 @@ import {
   bulkReparseAll,
   bulkPreviewEligible,
   bulkIngestEligible,
+  getCorpusReadiness,
 } from '../api/observedPlay';
 import type {
   BulkReparseSummary,
@@ -48,6 +49,7 @@ import type {
   MemoryAnalyticsGroup,
   MemoryAnalyticsSourceItemsParams,
   UnresolvedCardItem,
+  CorpusReadinessReport,
 } from '../types/observedPlay';
 import { normalizeTcgdexImageUrl } from '../utils/imageUrl';
 
@@ -1529,6 +1531,283 @@ function MemoryAnalyticsExamplesModal({
   );
 }
 
+// ── Phase 5.2: Corpus Readiness Scorecard ────────────────────────────────────
+
+function VerdictBadge({ verdict }: { verdict: CorpusReadinessReport['verdict'] }) {
+  const cfg = {
+    ready: { label: 'Ready for limited downstream experimentation', cls: 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700' },
+    needs_review: { label: 'Needs Review', cls: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700' },
+    not_ready: { label: 'Not Ready', cls: 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700' },
+  }[verdict];
+  return (
+    <span className={`inline-block rounded border px-2 py-0.5 text-xs font-semibold ${cfg.cls}`}>
+      {cfg.label}
+    </span>
+  );
+}
+
+function ScorecardStatRow({ label, value, note }: { label: string; value: string | number; note?: string }) {
+  return (
+    <tr className="border-b border-gray-100 dark:border-slate-800 last:border-0">
+      <td className="py-0.5 pr-3 text-gray-500 dark:text-slate-400 w-1/2">{label}</td>
+      <td className="py-0.5 font-mono font-medium text-gray-900 dark:text-white">{value}</td>
+      {note && <td className="py-0.5 pl-2 text-gray-400 dark:text-slate-500 text-xs">{note}</td>}
+    </tr>
+  );
+}
+
+function CorpusScorecardSection() {
+  const [report, setReport] = useState<CorpusReadinessReport | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setReport(await getCorpusReadiness());
+    } catch {
+      setError('Failed to load corpus readiness scorecard.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const pct = (n: number, d: number) => d > 0 ? `${Math.round((n / d) * 100)}%` : 'n/a';
+  const fmt = (v: number | null | undefined, digits = 4) =>
+    v != null ? v.toFixed(digits) : '—';
+
+  return (
+    <section
+      className="mb-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm"
+      data-testid="corpus-scorecard-section"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+          Observed Play Corpus Quality / Readiness Scorecard
+        </h2>
+        <button
+          onClick={() => load()}
+          disabled={loading}
+          className="rounded border border-gray-300 dark:border-slate-600 px-2 py-0.5 text-xs text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-40"
+        >
+          {loading ? 'Loading…' : 'Refresh scorecard'}
+        </button>
+      </div>
+      <p className="text-xs text-gray-500 dark:text-slate-400 mb-4" data-testid="scorecard-safety-note">
+        Observed memories are still review-only and are not used by Coach, AI Player, simulator
+        runtime, deck builder, pgvector, Neo4j, match_events, or card_performance.
+      </p>
+
+      {error && (
+        <p className="text-sm text-red-600 dark:text-red-400 mb-3" data-testid="scorecard-error">{error}</p>
+      )}
+
+      {!loading && !error && report === null && (
+        <p className="text-sm text-gray-400 dark:text-slate-500" data-testid="scorecard-empty">
+          No observed-play corpus data found. Upload logs before reviewing readiness.
+        </p>
+      )}
+
+      {report && (
+        <>
+          {/* Verdict + score bar */}
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <VerdictBadge verdict={report.verdict} />
+            <span className="text-xs text-gray-500 dark:text-slate-400">
+              Readiness score:&nbsp;
+              <span
+                className="font-mono font-semibold text-gray-900 dark:text-white"
+                data-testid="readiness-score"
+              >
+                {report.readiness_score.toFixed(1)}&nbsp;/&nbsp;100
+              </span>
+            </span>
+            <span className="text-xs text-gray-400 dark:text-slate-500">
+              Generated {new Date(report.generated_at).toLocaleString()}
+            </span>
+          </div>
+
+          {/* Empty corpus message */}
+          {report.corpus.log_count === 0 && (
+            <p className="text-sm text-gray-400 dark:text-slate-500 mb-4" data-testid="scorecard-no-logs">
+              No observed-play corpus data found. Upload logs before reviewing readiness.
+            </p>
+          )}
+
+          {/* Stats grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            {/* Corpus coverage */}
+            <div>
+              <h3 className="text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1 uppercase tracking-wide">
+                Corpus Coverage
+              </h3>
+              <table className="w-full text-xs">
+                <tbody>
+                  <ScorecardStatRow label="Logs" value={report.corpus.log_count} />
+                  <ScorecardStatRow
+                    label="Parsed"
+                    value={`${report.corpus.parsed_log_count} / ${report.corpus.log_count}`}
+                    note={pct(report.corpus.parsed_log_count, report.corpus.log_count)}
+                  />
+                  <ScorecardStatRow
+                    label="Ingested"
+                    value={`${report.corpus.ingested_log_count} / ${report.corpus.log_count}`}
+                    note={pct(report.corpus.ingested_log_count, report.corpus.log_count)}
+                  />
+                  <ScorecardStatRow label="Failed logs" value={report.corpus.failed_log_count} />
+                  <ScorecardStatRow label="Events" value={report.corpus.event_count.toLocaleString()} />
+                  <ScorecardStatRow label="Memory items" value={report.corpus.memory_item_count.toLocaleString()} />
+                </tbody>
+              </table>
+            </div>
+
+            {/* Parser quality */}
+            <div>
+              <h3 className="text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1 uppercase tracking-wide">
+                Parser Quality
+              </h3>
+              <table className="w-full text-xs">
+                <tbody>
+                  <ScorecardStatRow label="Unknown events" value={report.parser_quality.unknown_event_count} />
+                  <ScorecardStatRow
+                    label={`Events below ${(report.parser_quality.low_confidence_threshold * 100).toFixed(0)}%`}
+                    value={report.parser_quality.low_confidence_event_count}
+                  />
+                  <ScorecardStatRow
+                    label="Avg event confidence"
+                    value={fmt(report.parser_quality.avg_event_confidence)}
+                  />
+                  <ScorecardStatRow
+                    label="Avg log confidence"
+                    value={fmt(report.parser_quality.avg_log_confidence)}
+                  />
+                  <ScorecardStatRow
+                    label="Min log confidence"
+                    value={fmt(report.parser_quality.min_log_confidence)}
+                  />
+                  <ScorecardStatRow
+                    label="Logs below ingestion threshold"
+                    value={report.parser_quality.logs_below_ingestion_threshold}
+                  />
+                </tbody>
+              </table>
+            </div>
+
+            {/* Card resolution */}
+            <div>
+              <h3 className="text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1 uppercase tracking-wide">
+                Card Resolution Burden
+              </h3>
+              <table className="w-full text-xs">
+                <tbody>
+                  <ScorecardStatRow label="Total card mentions" value={report.card_resolution.card_mention_count.toLocaleString()} />
+                  <ScorecardStatRow
+                    label="Resolved"
+                    value={`${report.card_resolution.resolved_count.toLocaleString()} / ${report.card_resolution.card_mention_count.toLocaleString()}`}
+                    note={pct(report.card_resolution.resolved_count, report.card_resolution.card_mention_count)}
+                  />
+                  <ScorecardStatRow label="Ambiguous" value={report.card_resolution.ambiguous_count} />
+                  <ScorecardStatRow label="Unresolved" value={report.card_resolution.unresolved_count} />
+                  <ScorecardStatRow label="Critical unresolved" value={report.card_resolution.critical_unresolved_count} />
+                </tbody>
+              </table>
+              {report.card_resolution.top_ambiguous.length > 0 && (
+                <div className="mt-1">
+                  <span className="text-xs text-gray-400 dark:text-slate-500">Top ambiguous: </span>
+                  <span className="text-xs font-mono text-gray-700 dark:text-slate-300">
+                    {report.card_resolution.top_ambiguous.slice(0, 5).join(', ')}
+                  </span>
+                </div>
+              )}
+              {report.card_resolution.top_unresolved.length > 0 && (
+                <div className="mt-0.5">
+                  <span className="text-xs text-gray-400 dark:text-slate-500">Top unresolved: </span>
+                  <span className="text-xs font-mono text-gray-700 dark:text-slate-300">
+                    {report.card_resolution.top_unresolved.slice(0, 5).join(', ')}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Memory quality */}
+            <div>
+              <h3 className="text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1 uppercase tracking-wide">
+                Memory Quality
+              </h3>
+              <table className="w-full text-xs">
+                <tbody>
+                  <ScorecardStatRow
+                    label="Avg memory confidence"
+                    value={fmt(report.memory_quality.avg_memory_confidence)}
+                  />
+                  <ScorecardStatRow
+                    label="Low-confidence items"
+                    value={report.memory_quality.low_confidence_memory_item_count}
+                  />
+                  <ScorecardStatRow
+                    label="Ambiguous ref items"
+                    value={report.memory_quality.ambiguous_reference_item_count}
+                  />
+                  <ScorecardStatRow
+                    label="Unresolved ref items"
+                    value={report.memory_quality.unresolved_reference_item_count}
+                  />
+                </tbody>
+              </table>
+              {report.memory_quality.memory_type_counts.length > 0 && (
+                <div className="mt-2">
+                  <span className="text-xs text-gray-400 dark:text-slate-500 block mb-0.5">Memory types:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {report.memory_quality.memory_type_counts.slice(0, 6).map((mt) => (
+                      <span key={mt.memory_type} className="text-xs rounded bg-gray-100 dark:bg-slate-800 px-1 py-0.5 font-mono">
+                        {mt.memory_type}&nbsp;
+                        <span className="font-semibold">{mt.count}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Blockers */}
+          {report.blockers.length > 0 && (
+            <div className="mb-3 rounded border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 p-3" data-testid="scorecard-blockers">
+              <h3 className="text-xs font-semibold text-red-700 dark:text-red-300 mb-1">Blockers</h3>
+              <ul className="text-xs text-red-700 dark:text-red-300 list-disc list-inside space-y-0.5">
+                {report.blockers.map((b, i) => <li key={i}>{b}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {/* Warnings */}
+          {report.warnings.length > 0 && (
+            <div className="mb-3 rounded border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950 p-3" data-testid="scorecard-warnings">
+              <h3 className="text-xs font-semibold text-yellow-700 dark:text-yellow-300 mb-1">Warnings</h3>
+              <ul className="text-xs text-yellow-700 dark:text-yellow-300 list-disc list-inside space-y-0.5">
+                {report.warnings.map((w, i) => <li key={i}>{w}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {/* Recommendations */}
+          {report.recommendations.length > 0 && (
+            <div className="mb-1 rounded border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 p-3" data-testid="scorecard-recommendations">
+              <h3 className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">Recommendations</h3>
+              <ul className="text-xs text-blue-700 dark:text-blue-300 list-disc list-inside space-y-0.5">
+                {report.recommendations.map((r, i) => <li key={i}>{r}</li>)}
+              </ul>
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
 function MemoryAnalyticsSection({
   refreshRef,
   onRefreshLogs,
@@ -1968,8 +2247,8 @@ export default function ObservedPlay() {
     <PageShell title="Observed Play">
       {/* Phase banner */}
       <div className="mb-6 rounded border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/50 px-4 py-2 text-sm text-blue-700 dark:text-blue-300">
-        Phase 4 active — memory ingestion enabled. Observed memories are stored for review only.
-        They are not used by Coach or AI Player yet.
+        Phase 4 active — memory ingestion enabled. Phase 5.2 adds the Corpus Quality / Readiness Scorecard.
+        Observed memories are stored for review only. They are not used by Coach or AI Player yet.
       </div>
 
       {/* ── Upload panel ─────────────────────────────────────────────────── */}
@@ -2457,6 +2736,8 @@ export default function ObservedPlay() {
         onRefreshLogs={() => fetchLogs(logPage)}
         onRefreshUnresolved={() => unresolvedRefreshRef.current?.()}
       />
+
+      <CorpusScorecardSection />
 
       {viewLogId && (
         <RawLogModal logId={viewLogId} onClose={() => setViewLogId(null)} />

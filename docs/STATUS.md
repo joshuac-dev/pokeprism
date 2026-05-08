@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-09 (session 45 — Pre-Phase-5.2 corpus parser triage / hardening)
+Last updated: 2026-05-09 (session 46 — Phase 5.2 Corpus Quality / Readiness Scorecard)
 
 ## Current Workstream
 
@@ -18,11 +18,11 @@ post-phase development:
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
 **Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
-**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, Phase 5.1, and pre-Phase-5.2 workflow hardening are complete.**
-**Phase 5.2 has NOT started.** Phase 6+ (Coach/AI integration) has NOT started.
+**Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, Phase 5.1, pre-Phase-5.2 workflow hardening, and Phase 5.2 are complete.**
+**Phase 6+ (Coach/AI integration) has NOT started.**
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
-**Next step:** Phase 5.2 — Corpus Quality / Readiness Scorecard. Read-only. Does not wire observed memory into Coach or AI.
+**Next step:** Phase 6 — Coach-Only Advisory Integration (future). Requires Phase 5.2 scorecard verdict ≥ "ready".
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
 workflow. `docs/CARDLIST.md`, `docs/POKEMON_MASTER_LIST.md`, and
@@ -40,10 +40,77 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **1095 passed, 1 skipped** — 2026-05-09 session 45. `cd backend && python3 -m pytest tests/ -x -q`. |
-| Frontend unit tests | **268 passed (15 files)** — 2026-05-09 session 45. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **1108 passed, 5 skipped** — 2026-05-09 session 46. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Frontend unit tests | **285 passed (15 files)** — 2026-05-09 session 46. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 46 Work (2026-05-09) — Phase 5.2 Corpus Quality / Readiness Scorecard
+
+### Goal
+
+Build a read-only Corpus Quality / Readiness Scorecard for the 49-log observed-play corpus. Summarise corpus coverage, parser quality, card-resolution burden, and memory quality. Provide a deterministic verdict (ready / needs_review / not_ready) and 0–100 readiness score. Strictly review-only — no Coach/AI, pgvector, Neo4j, simulator, card-performance, deck-builder, or runtime integration.
+
+### Changes
+
+**Backend (`backend/app/observed_play/schemas.py`):**
+- Added 5 threshold constants: `READINESS_LOW_CONFIDENCE_EVENT_THRESHOLD = 0.80`, `READINESS_INGESTION_COVERAGE_THRESHOLD = 0.90`, `READINESS_AVG_EVENT_CONFIDENCE_THRESHOLD = 0.85`, `READINESS_AVG_MEMORY_CONFIDENCE_THRESHOLD = 0.75`, `READINESS_TOP_N_LIMIT = 10`.
+- Added 5 new Pydantic schemas: `CorpusStats`, `ParserQualityStats`, `CardResolutionStats`, `MemoryQualityStats`, `CorpusReadinessReport`.
+
+**Backend (`backend/app/api/observed_play.py`):**
+- Added `or_` to sqlalchemy imports.
+- Added new schema names to import block.
+- Defined `_READINESS_CRITICAL_ROLES` inline (mirrors `_CRITICAL_MENTION_ROLES` from memory_ingestion.py, avoids circular imports).
+- Appended `GET /api/observed-play/corpus-readiness` endpoint (~250 lines): 17 scalar queries + 3 fetchall queries across all 6 observed-play tables. Scores: Parser quality 35 pts + Ingestion coverage 25 pts + Card resolution 20 pts + Memory quality 20 pts = 100 max. Verdict: `not_ready` if any blocker, `needs_review` if any warning but no blockers, `ready` otherwise.
+
+**Frontend (`frontend/src/types/observedPlay.ts`):**
+- Appended Phase 5.2 TypeScript interfaces: `CorpusStats`, `ParserQualityStats`, `CardResolutionStats`, `MemoryQualityStats`, `CorpusReadinessReport`.
+
+**Frontend (`frontend/src/api/observedPlay.ts`):**
+- Added `CorpusReadinessReport` to imports.
+- Appended `getCorpusReadiness()` function.
+
+**Frontend (`frontend/src/pages/ObservedPlay.tsx`):**
+- Added `getCorpusReadiness` import and `CorpusReadinessReport` type import.
+- Added `VerdictBadge`, `ScorecardStatRow`, `CorpusScorecardSection` components.
+- Updated phase banner to mention Phase 5.2.
+- Added `<CorpusScorecardSection />` after `<MemoryAnalyticsSection />`.
+
+**Tests:**
+- `backend/tests/test_api/test_observed_play.py`: +17 backend tests (`TestCorpusReadiness` class — 14 endpoint tests + 3 helpers).
+- `frontend/src/pages/ObservedPlay.test.tsx`: +17 frontend tests (Phase 5.2 describe block), fixed default mock collision (`memory_type_counts: []` in `beforeEach`).
+
+### Phase 5.2 Corpus Scorecard — Live 49-Log Corpus Result
+
+```
+verdict:                ready
+readiness_score:        97.22 / 100
+logs:                   49 total / 49 parsed / 49 ingested / 0 failed
+events:                 10,047
+memory items:           4,786
+unknown events:         0
+events below 80%:       0
+avg event confidence:   0.8879
+avg log confidence:     0.8877
+avg memory confidence:  0.8899
+card mentions:          8,670 total / 8,670 resolved / 0 ambiguous / 0 unresolved / 0 critical unresolved
+blockers:               []
+warnings:               []
+recommendations:        []
+```
+
+The corpus meets all readiness criteria. It is ready for limited downstream experimentation later (Phase 6 Coach-only advisory integration).
+
+### Validation
+
+- Backend: **1108 passed, 5 skipped** (was 1095, +17 new tests including recount).
+- Frontend: **285 passed** (was 268, +17 new tests).
+- Frontend build: clean.
+- No Phase 6, data reset, force ingest, automatic ingestion, Coach/AI, pgvector, Neo4j writes, simulator match_events, card_performance writes, deck-builder usage, or runtime memory usage added.
+- `docs/AUDIT_STATE.md` not touched.
+- No real logs, screenshots, database dumps, or raw audit reports committed.
+
+---
 
 ## Session 45 Work (2026-05-09) — Pre-Phase-5.2 Corpus Parser Triage / Hardening
 

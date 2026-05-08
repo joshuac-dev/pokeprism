@@ -26,6 +26,7 @@ vi.mock('../api/observedPlay', () => ({
   bulkReparseAll: vi.fn(),
   bulkPreviewEligible: vi.fn(),
   bulkIngestEligible: vi.fn(),
+  getCorpusReadiness: vi.fn(),
 }));
 
 import {
@@ -46,6 +47,7 @@ import {
   bulkReparseAll,
   bulkPreviewEligible,
   bulkIngestEligible,
+  getCorpusReadiness,
 } from '../api/observedPlay';
 
 const emptyBatches = { items: [], total: 0, page: 1, per_page: 25 };
@@ -211,6 +213,35 @@ beforeEach(() => {
     considered_count: 0, eligible_count: 0, ingested_count: 0, skipped_count: 0,
     failed_count: 0, memory_items_created: 0,
     ingested_logs: [], skipped_logs: [], failed_logs: [],
+  });
+  (getCorpusReadiness as ReturnType<typeof vi.fn>).mockResolvedValue({
+    verdict: 'ready',
+    readiness_score: 95.0,
+    generated_at: '2026-06-01T12:00:00Z',
+    review_only: true,
+    safety_note: 'This scorecard is read-only.',
+    corpus: {
+      log_count: 49, parsed_log_count: 49, ingested_log_count: 49,
+      not_ingested_log_count: 0, failed_log_count: 0,
+      event_count: 10047, memory_item_count: 1234,
+    },
+    parser_quality: {
+      avg_event_confidence: 0.8879, min_log_confidence: 0.81, avg_log_confidence: 0.887,
+      unknown_event_count: 0, low_confidence_event_count: 0,
+      low_confidence_threshold: 0.80, logs_below_ingestion_threshold: 0,
+    },
+    card_resolution: {
+      card_mention_count: 500, resolved_count: 490, ambiguous_count: 0,
+      unresolved_count: 0, critical_unresolved_count: 0,
+      top_ambiguous: [], top_unresolved: [],
+    },
+    memory_quality: {
+      avg_memory_confidence: 0.88, low_confidence_memory_item_count: 0,
+      ambiguous_reference_item_count: 0, unresolved_reference_item_count: 0,
+      memory_type_counts: [],
+      top_quality_flags: [],
+    },
+    blockers: [], warnings: [], recommendations: [],
   });
 });
 
@@ -2810,6 +2841,224 @@ describe('Bulk actions panel', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Re-ingested')).toBeInTheDocument();
+    });
+  });
+});
+
+// ── Phase 5.2: Corpus Readiness Scorecard tests ───────────────────────────────
+
+const emptyReadiness = {
+  verdict: 'not_ready' as const,
+  readiness_score: 0,
+  generated_at: '2026-06-01T12:00:00Z',
+  review_only: true,
+  safety_note: 'This scorecard is read-only. Observed memories are not used by Coach, AI Player, simulator runtime, deck builder, pgvector, Neo4j, match_events, or card_performance.',
+  corpus: {
+    log_count: 0, parsed_log_count: 0, ingested_log_count: 0,
+    not_ingested_log_count: 0, failed_log_count: 0,
+    event_count: 0, memory_item_count: 0,
+  },
+  parser_quality: {
+    avg_event_confidence: null, min_log_confidence: null, avg_log_confidence: null,
+    unknown_event_count: 0, low_confidence_event_count: 0,
+    low_confidence_threshold: 0.80, logs_below_ingestion_threshold: 0,
+  },
+  card_resolution: {
+    card_mention_count: 0, resolved_count: 0, ambiguous_count: 0,
+    unresolved_count: 0, critical_unresolved_count: 0,
+    top_ambiguous: [], top_unresolved: [],
+  },
+  memory_quality: {
+    avg_memory_confidence: null, low_confidence_memory_item_count: 0,
+    ambiguous_reference_item_count: 0, unresolved_reference_item_count: 0,
+    memory_type_counts: [], top_quality_flags: [],
+  },
+  blockers: ['No logs have been parsed. Upload and parse logs before reviewing readiness.'],
+  warnings: [],
+  recommendations: ['Upload observed-play logs to begin corpus evaluation.'],
+};
+
+const readyReadiness = {
+  verdict: 'ready' as const,
+  readiness_score: 97.5,
+  generated_at: '2026-06-01T12:00:00Z',
+  review_only: true,
+  safety_note: 'This scorecard is read-only.',
+  corpus: {
+    log_count: 49, parsed_log_count: 49, ingested_log_count: 49,
+    not_ingested_log_count: 0, failed_log_count: 0,
+    event_count: 10047, memory_item_count: 1234,
+  },
+  parser_quality: {
+    avg_event_confidence: 0.8879, min_log_confidence: 0.81, avg_log_confidence: 0.887,
+    unknown_event_count: 0, low_confidence_event_count: 0,
+    low_confidence_threshold: 0.80, logs_below_ingestion_threshold: 0,
+  },
+  card_resolution: {
+    card_mention_count: 500, resolved_count: 500, ambiguous_count: 0,
+    unresolved_count: 0, critical_unresolved_count: 0,
+    top_ambiguous: [], top_unresolved: [],
+  },
+  memory_quality: {
+    avg_memory_confidence: 0.88, low_confidence_memory_item_count: 0,
+    ambiguous_reference_item_count: 0, unresolved_reference_item_count: 0,
+    memory_type_counts: [{ memory_type: 'attack_used', count: 600 }],
+    top_quality_flags: [],
+  },
+  blockers: [], warnings: [], recommendations: [],
+};
+
+const needsReviewReadiness = {
+  ...readyReadiness,
+  verdict: 'needs_review' as const,
+  readiness_score: 72.0,
+  warnings: ['10 ambiguous card mention(s).'],
+  card_resolution: { ...readyReadiness.card_resolution, ambiguous_count: 10 },
+};
+
+describe('Phase 5.2 — Corpus Readiness Scorecard', () => {
+  it('renders the scorecard section on /observed-play', async () => {
+    setup();
+    await waitFor(() => {
+      expect(screen.getByTestId('corpus-scorecard-section')).toBeInTheDocument();
+    });
+  });
+
+  it('renders the safety note', async () => {
+    setup();
+    await waitFor(() => {
+      expect(screen.getByTestId('scorecard-safety-note')).toBeInTheDocument();
+    });
+  });
+
+  it('renders ready verdict badge', async () => {
+    (getCorpusReadiness as ReturnType<typeof vi.fn>).mockResolvedValue(readyReadiness);
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText(/ready for limited downstream experimentation/i)).toBeInTheDocument();
+    });
+  });
+
+  it('renders needs_review verdict badge', async () => {
+    (getCorpusReadiness as ReturnType<typeof vi.fn>).mockResolvedValue(needsReviewReadiness);
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText(/needs review/i)).toBeInTheDocument();
+    });
+  });
+
+  it('renders not_ready verdict badge for empty corpus', async () => {
+    (getCorpusReadiness as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReadiness);
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText(/not ready/i)).toBeInTheDocument();
+    });
+  });
+
+  it('renders the readiness score', async () => {
+    (getCorpusReadiness as ReturnType<typeof vi.fn>).mockResolvedValue(readyReadiness);
+    setup();
+    await waitFor(() => {
+      expect(screen.getByTestId('readiness-score')).toBeInTheDocument();
+      expect(screen.getByTestId('readiness-score')).toHaveTextContent('97.5');
+    });
+  });
+
+  it('renders corpus coverage stats', async () => {
+    (getCorpusReadiness as ReturnType<typeof vi.fn>).mockResolvedValue(readyReadiness);
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText('Corpus Coverage')).toBeInTheDocument();
+      expect(screen.getByText('10,047')).toBeInTheDocument();
+    });
+  });
+
+  it('renders parser quality stats', async () => {
+    (getCorpusReadiness as ReturnType<typeof vi.fn>).mockResolvedValue(readyReadiness);
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText('Parser Quality')).toBeInTheDocument();
+      expect(screen.getByText('Unknown events')).toBeInTheDocument();
+    });
+  });
+
+  it('renders card resolution stats', async () => {
+    (getCorpusReadiness as ReturnType<typeof vi.fn>).mockResolvedValue(readyReadiness);
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText('Card Resolution Burden')).toBeInTheDocument();
+      expect(screen.getByText('Critical unresolved')).toBeInTheDocument();
+    });
+  });
+
+  it('renders memory quality stats', async () => {
+    (getCorpusReadiness as ReturnType<typeof vi.fn>).mockResolvedValue(readyReadiness);
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText('Memory Quality')).toBeInTheDocument();
+      expect(screen.getByText('Avg memory confidence')).toBeInTheDocument();
+    });
+  });
+
+  it('renders blockers when present', async () => {
+    (getCorpusReadiness as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReadiness);
+    setup();
+    await waitFor(() => {
+      expect(screen.getByTestId('scorecard-blockers')).toBeInTheDocument();
+      expect(screen.getByText(/No logs have been parsed/i)).toBeInTheDocument();
+    });
+  });
+
+  it('renders warnings when present', async () => {
+    (getCorpusReadiness as ReturnType<typeof vi.fn>).mockResolvedValue(needsReviewReadiness);
+    setup();
+    await waitFor(() => {
+      expect(screen.getByTestId('scorecard-warnings')).toBeInTheDocument();
+    });
+  });
+
+  it('renders recommendations when present', async () => {
+    (getCorpusReadiness as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReadiness);
+    setup();
+    await waitFor(() => {
+      expect(screen.getByTestId('scorecard-recommendations')).toBeInTheDocument();
+    });
+  });
+
+  it('renders error state on API failure', async () => {
+    (getCorpusReadiness as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network error'));
+    setup();
+    await waitFor(() => {
+      expect(screen.getByTestId('scorecard-error')).toBeInTheDocument();
+    });
+  });
+
+  it('refresh button calls getCorpusReadiness again', async () => {
+    (getCorpusReadiness as ReturnType<typeof vi.fn>).mockResolvedValue(readyReadiness);
+    setup();
+    await waitFor(() => {
+      expect(screen.getByTestId('corpus-scorecard-section')).toBeInTheDocument();
+    });
+    const refreshBtn = screen.getByRole('button', { name: /refresh scorecard/i });
+    expect(refreshBtn).toBeInTheDocument();
+    await userEvent.click(refreshBtn);
+    await waitFor(() => {
+      expect(getCorpusReadiness).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('scorecard section has dark-mode classes', async () => {
+    setup();
+    await waitFor(() => {
+      const section = screen.getByTestId('corpus-scorecard-section');
+      expect(section.className).toMatch(/dark:/);
+    });
+  });
+
+  it('existing memory analytics section still renders', async () => {
+    setup();
+    await waitFor(() => {
+      expect(screen.getByText('Memory Analytics')).toBeInTheDocument();
     });
   });
 });
