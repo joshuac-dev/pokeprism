@@ -1,16 +1,25 @@
 # Local dev overrides — not committed to production
+#
+# To enable observed-play Coach advisory injection locally:
+#   echo "OBSERVED_PLAY_MEMORY_ENABLED=true" >> .env
+# To disable (default), remove that line or set it to false.
+#
 services:
   backend:
     environment:
       LOG_LEVEL: DEBUG
-      OBSERVED_PLAY_MEMORY_ENABLED: "true"
+      # OBSERVED_PLAY_MEMORY_ENABLED is read from .env (default: false).
+      # To override here for a quick test, uncomment the line below — but
+      # do NOT commit it as "true"; use .env for persistent local settings.
+      OBSERVED_PLAY_MEMORY_ENABLED: "${OBSERVED_PLAY_MEMORY_ENABLED:-false}"
     volumes:
       - ./backend:/app  # Full source mount for hot-reload
 
   celery-worker:
     environment:
       LOG_LEVEL: DEBUG
-      OBSERVED_PLAY_MEMORY_ENABLED: "true"
+      # Mirror the same flag as backend so both containers agree.
+      OBSERVED_PLAY_MEMORY_ENABLED: "${OBSERVED_PLAY_MEMORY_ENABLED:-false}"
     volumes:
       - ./backend:/app  # Full source mount so workers use latest code
 
