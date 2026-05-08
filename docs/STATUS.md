@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-09 (session 52 — Final Candidate Deck panel)
+Last updated: 2026-05-10 (session 53 — PTCGL format deck export)
 
 ## Current Workstream
 
@@ -21,7 +21,7 @@ post-phase development:
 **Phase 1, Phase 2, Phase 2.1, Phase 2.2, Phase 2.3, Phase 3, Phase 3.1, Phase 3.2, Phase 4, Phase 4.1, Phase 5, Phase 5.1, pre-Phase-5.2 workflow hardening, Phase 5.2, Phase 6.0, and Phase 6.1 are complete.**
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
-**Next step (immediate):** Resume Phase 6.1 manual verification (User Check 2 — flag-off Coach prompt). Final Candidate Deck panel now complete.
+**Next step (immediate):** Resume Phase 6.1 manual verification (User Check 2 — flag-off Coach prompt). Final Candidate Deck PTCGL export now complete.
 **Next feature step:** Phase 6.2+ — Further Coach advisory features (future). Observed memory remains advisory only.
 
 `docs/AUDIT_RULES.md` and `docs/AUDIT_STATE.md` define the active card audit
@@ -40,10 +40,45 @@ Re-check them before making claims in user-facing docs.
 | Coverage endpoint snapshot | **2,035 auditable cards, 1,742 implemented, 293 flat-only, 0 missing, 100.0%** — 2026-05-05 |
 | Local matches table | 12,266 rows — 2026-05-05 |
 | Local `card_performance` table | **1,947** rows — 2026-05-05 |
-| Backend test baseline | **1165 passed, 1 skipped** — 2026-05-09 session 52. `cd backend && python3 -m pytest tests/ -x -q`. |
-| Frontend unit tests | **336 passed (17 files)** — 2026-05-09 session 52. `cd frontend && npm test -- --run`. |
+| Backend test baseline | **1176 passed, 1 skipped** — 2026-05-10 session 53. `cd backend && python3 -m pytest tests/ -x -q`. |
+| Frontend unit tests | **339 passed (17 files)** — 2026-05-10 session 53. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+
+## Session 53 Work (2026-05-10) — PTCGL Format Deck Export
+
+### Root cause
+
+The Final Candidate Deck Copy button copied internal TCGdex IDs (`4 sv06-130`, `1 me01-113`) because `Deck.deck_text` is always stored in internal format. The `final_deck_text` and `original_deck_text` fields passed through that internal text directly.
+
+### What was changed
+
+- **`GET /api/simulations/{id}/final-deck`** — extended to return:
+  - `original_ptcgl_text` and `final_ptcgl_text`: human-readable PTCGL-grouped text
+    (e.g. `"Pokémon: 10\n3 Dragapult ex TWM 130\n…"`)
+  - `metadata_warnings`: list of cards that couldn't be fully formatted due to missing metadata
+  - Each card dict now includes `set_abbrev`, `set_number`, `category`, `ptcgl_line` fields
+  - All existing fields (`original_deck_text`, `final_deck_text`, `changed_cards`, etc.) unchanged
+- **`_build_ptcgl_text()` helper** — pure module-level function; groups cards into Pokémon / Trainer / Energy / Other sections with section counts; sorts by name within sections; falls back to TCGdex ID + emits warning if name/set data missing
+- **`DeckEvolutionPanel`** — main Copy button now copies `final_ptcgl_text`; label is "Copy PTCGL decklist"; original deck section also has "Copy PTCGL decklist" button; collapsible `<pre>` blocks show full PTCGL text; metadata warnings displayed in yellow box when present
+- **Types** — `DeckCardEntry` gains `set_abbrev`, `set_number`, `category`, `ptcgl_line`; `FinalDeckResponse` gains `original_ptcgl_text`, `final_ptcgl_text`, `metadata_warnings`
+
+### Files changed
+
+- `backend/app/api/simulations.py` — `_build_ptcgl_text()` helper + extended `_fetch_deck_cards` + new response fields
+- `backend/tests/test_api/test_simulations.py` — `TestBuildPtcglText` (8 unit tests) + 4 new endpoint tests
+- `frontend/src/components/simulation/DeckEvolutionPanel.tsx` — PTCGL copy/display, metadata warnings
+- `frontend/src/components/simulation/DeckEvolutionPanel.test.tsx` — 16 tests (was 13)
+- `frontend/src/types/simulation.ts` — extended `DeckCardEntry` + `FinalDeckResponse`
+- `docs/STATUS.md`, `docs/CHANGELOG.md`
+
+### Validation
+
+- Backend: **1176 passed, 1 skipped**
+- Frontend: **339 passed (17 files)**, build clean
+- No Coach logic, observed-play memory, AI Player, pgvector, Neo4j,
+  match_events, card_performance, deck-builder, data reset, or runtime
+  integration changed.
 
 ## Session 52 Work (2026-05-09) — Final Candidate Deck / Deck Evolution Panel
 

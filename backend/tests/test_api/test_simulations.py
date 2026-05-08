@@ -1474,6 +1474,94 @@ class TestGetSimulationMutations:
 
 
 # ---------------------------------------------------------------------------
+# _build_ptcgl_text unit tests
+# ---------------------------------------------------------------------------
+
+class TestBuildPtcglText:
+    """Unit tests for the _build_ptcgl_text helper (pure function)."""
+
+    def _card(self, tcgdex_id, name, qty, category, set_abbrev="MEG", set_number="100"):
+        ptcgl_line = f"{qty} {name} {set_abbrev} {set_number}" if name and set_abbrev and set_number else None
+        return {
+            "tcgdex_id": tcgdex_id,
+            "name": name,
+            "quantity": qty,
+            "category": category,
+            "set_abbrev": set_abbrev,
+            "set_number": set_number,
+            "ptcgl_line": ptcgl_line,
+        }
+
+    def test_empty_cards_produces_empty_string(self):
+        from app.api.simulations import _build_ptcgl_text
+        text, warnings = _build_ptcgl_text([])
+        assert text == ""
+        assert warnings == []
+
+    def test_pokemon_section_header(self):
+        from app.api.simulations import _build_ptcgl_text
+        cards = [self._card("c1", "Dreepy", 4, "Pokemon")]
+        text, _ = _build_ptcgl_text(cards)
+        assert text.startswith("Pokémon: 4")
+        assert "4 Dreepy MEG 100" in text
+
+    def test_trainer_section_header(self):
+        from app.api.simulations import _build_ptcgl_text
+        cards = [self._card("c1", "Ultra Ball", 4, "Trainer")]
+        text, _ = _build_ptcgl_text(cards)
+        assert "Trainer: 4" in text
+
+    def test_energy_section_header(self):
+        from app.api.simulations import _build_ptcgl_text
+        cards = [self._card("c1", "Psychic Energy", 10, "Energy", "SVE", "5")]
+        text, _ = _build_ptcgl_text(cards)
+        assert "Energy: 10" in text
+
+    def test_mixed_categories_grouped_correctly(self):
+        from app.api.simulations import _build_ptcgl_text
+        cards = [
+            self._card("c1", "Dreepy", 4, "Pokemon"),
+            self._card("c2", "Ultra Ball", 4, "Trainer"),
+            self._card("c3", "Psychic Energy", 10, "Energy", "SVE", "5"),
+        ]
+        text, _ = _build_ptcgl_text(cards)
+        pokemon_pos = text.index("Pokémon:")
+        trainer_pos = text.index("Trainer:")
+        energy_pos = text.index("Energy:")
+        assert pokemon_pos < trainer_pos < energy_pos
+
+    def test_section_count_is_sum_of_quantities(self):
+        from app.api.simulations import _build_ptcgl_text
+        cards = [
+            self._card("c1", "Dreepy", 3, "Pokemon"),
+            self._card("c2", "Drakloak", 2, "Pokemon"),
+        ]
+        text, _ = _build_ptcgl_text(cards)
+        assert "Pokémon: 5" in text
+
+    def test_missing_metadata_emits_warning_and_uses_tcgdex_id(self):
+        from app.api.simulations import _build_ptcgl_text
+        card = {
+            "tcgdex_id": "sv99-999",
+            "name": "Mystery Card",
+            "quantity": 1,
+            "category": "Pokemon",
+            "set_abbrev": None,
+            "set_number": None,
+            "ptcgl_line": None,
+        }
+        text, warnings = _build_ptcgl_text([card])
+        assert len(warnings) == 1
+        assert "sv99-999" in text  # falls back to tcgdex_id
+
+    def test_no_warning_when_all_metadata_present(self):
+        from app.api.simulations import _build_ptcgl_text
+        cards = [self._card("c1", "Dreepy", 4, "Pokemon")]
+        _, warnings = _build_ptcgl_text(cards)
+        assert warnings == []
+
+
+# ---------------------------------------------------------------------------
 # GET /api/simulations/{id}/final-deck
 # ---------------------------------------------------------------------------
 
@@ -1621,12 +1709,12 @@ class TestGetSimulationFinalDeck:
             best_deck_snapshot={"final_working_deck_id": str(working_id)},
         )
 
-        # Build mock card tuples: (DeckCard mock, name)
+        # Build mock card tuples: (DeckCard mock, name, set_abbrev, set_number, category)
         def make_dc(card_id, name, qty):
             dc = MagicMock()
             dc.card_tcgdex_id = card_id
             dc.quantity = qty
-            return (dc, name)
+            return (dc, name, "MEG", "001", "Pokemon")
 
         orig_cards = [make_dc("sv06-001", "Dragapult ex", 4)]
         final_cards = [make_dc("sv06-001", "Dragapult ex", 4), make_dc("sv06-002", "Iron Hands ex", 2)]
@@ -1683,6 +1771,161 @@ class TestGetSimulationFinalDeck:
         assert "has_mutations" in data
         assert "original_cards" in data
         assert "final_cards" in data
+        # New PTCGL fields must be present
+        assert "final_ptcgl_text" in data
+        assert "original_ptcgl_text" in data
+        assert "metadata_warnings" in data
+
+    def _make_full_card_session(self, sim, orig_cards, final_cards, deck_row_orig, deck_row_final):
+        """Helper: returns a session that serves orig/final card tuples with full metadata."""
+        session = AsyncMock()
+        call_count = {"n": 0}
+
+        def make_scalar(val):
+            m = MagicMock()
+            m.scalar_one_or_none.return_value = val
+            return m
+
+        async def _execute(query, *a, **kw):
+            call_count["n"] += 1
+            n = call_count["n"]
+            if n == 1:
+                return make_scalar(sim)
+            elif n == 2:
+                return make_scalar(deck_row_orig)
+            elif n == 3:
+                m = MagicMock()
+                m.all.return_value = orig_cards
+                return m
+            elif n == 4:
+                return make_scalar(deck_row_final)
+            else:
+                m = MagicMock()
+                m.all.return_value = final_cards
+                return m
+
+        session.execute = AsyncMock(side_effect=_execute)
+        return session
+
+    def test_final_ptcgl_text_contains_card_names(self):
+        """final_ptcgl_text must include card names, not just TCGdex IDs."""
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        orig_id = uuid.uuid4()
+        working_id = uuid.uuid4()
+        sim = self._make_sim(
+            user_deck_id=orig_id,
+            best_deck_snapshot={"final_working_deck_id": str(working_id)},
+        )
+
+        def make_dc(card_id, name, qty, cat="Pokemon", set_abbrev="MEG", set_number="130"):
+            dc = MagicMock()
+            dc.card_tcgdex_id = card_id
+            dc.quantity = qty
+            return (dc, name, set_abbrev, set_number, cat)
+
+        orig_cards = [make_dc("sv06-001", "Dragapult ex", 4)]
+        final_cards = [
+            make_dc("sv06-001", "Dragapult ex", 4),
+            make_dc("sv06-100", "Ultra Ball", 2, "Trainer", "MEG", "100"),
+        ]
+        deck_row_orig = self._make_deck_row(deck_id=orig_id)
+        deck_row_final = self._make_deck_row(deck_id=working_id)
+        session = self._make_full_card_session(sim, orig_cards, final_cards, deck_row_orig, deck_row_final)
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get(f"/api/simulations/{uuid.uuid4()}/final-deck")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        ptcgl = data["final_ptcgl_text"]
+        assert "Dragapult ex" in ptcgl
+        assert "Ultra Ball" in ptcgl
+        assert "MEG" in ptcgl
+        # Must NOT be only raw tcgdex IDs
+        assert "sv06-001" not in ptcgl
+
+    def test_ptcgl_text_has_category_sections(self):
+        """PTCGL text groups cards under Pokémon / Trainer / Energy sections."""
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        orig_id = uuid.uuid4()
+        working_id = uuid.uuid4()
+        sim = self._make_sim(
+            user_deck_id=orig_id,
+            best_deck_snapshot={"final_working_deck_id": str(working_id)},
+        )
+
+        def make_dc(card_id, name, qty, cat, abbrev="MEG", num="1"):
+            dc = MagicMock()
+            dc.card_tcgdex_id = card_id
+            dc.quantity = qty
+            return (dc, name, abbrev, num, cat)
+
+        cards = [
+            make_dc("c1", "Dreepy", 4, "Pokemon"),
+            make_dc("c2", "Ultra Ball", 4, "Trainer"),
+            make_dc("c3", "Psychic Energy", 10, "Energy"),
+        ]
+        deck_row = self._make_deck_row()
+        session = self._make_full_card_session(sim, cards, cards, deck_row, deck_row)
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get(f"/api/simulations/{uuid.uuid4()}/final-deck")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        ptcgl = data["final_ptcgl_text"]
+        assert "Pokémon:" in ptcgl
+        assert "Trainer:" in ptcgl
+        assert "Energy:" in ptcgl
+
+    def test_missing_metadata_emits_warning(self):
+        """Cards with no set_abbrev/set_number should emit a metadata_warning."""
+        from app.api.simulations import get_db
+        from app.main import create_app
+        from fastapi.testclient import TestClient
+
+        orig_id = uuid.uuid4()
+        sim = self._make_sim(user_deck_id=orig_id, best_deck_snapshot={})
+
+        # Card with None metadata
+        dc = MagicMock()
+        dc.card_tcgdex_id = "sv99-999"
+        dc.quantity = 1
+        card_rows = [(dc, "Mystery Card", None, None, "Pokemon")]
+
+        deck_row = self._make_deck_row(deck_id=orig_id)
+        session = self._make_session(sim, deck_row=deck_row, card_rows=card_rows)
+
+        async def override_db():
+            yield session
+
+        app = create_app()
+        app.fastapi_app.dependency_overrides[get_db] = override_db
+        with TestClient(app) as c:
+            resp = c.get(f"/api/simulations/{uuid.uuid4()}/final-deck")
+        app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["metadata_warnings"]) > 0
 
 
 # ---------------------------------------------------------------------------

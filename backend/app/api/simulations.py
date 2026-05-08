@@ -820,6 +820,52 @@ async def get_simulation_mutations(
 # GET /api/simulations/{id}/final-deck
 # ---------------------------------------------------------------------------
 
+_PTCGL_CATEGORY_ORDER = {"Pokemon": 0, "Trainer": 1, "Energy": 2}
+
+
+def _build_ptcgl_text(cards: list[dict]) -> tuple[str, list[str]]:
+    """Format enriched card entries into a PTCGL-style decklist string.
+
+    Returns ``(ptcgl_text, warnings)`` where ``warnings`` lists any cards
+    whose metadata was incomplete and fell back to a TCGdex-ID line.
+    """
+    warnings: list[str] = []
+    by_category: dict[str, list[dict]] = {"Pokemon": [], "Trainer": [], "Energy": [], "Other": []}
+
+    for card in cards:
+        cat = card.get("category") or "Other"
+        bucket = "Other"
+        if cat in by_category:
+            bucket = cat
+        by_category[bucket].append(card)
+
+    sections: list[str] = []
+    for cat in ("Pokemon", "Trainer", "Energy", "Other"):
+        entries = by_category[cat]
+        if not entries:
+            continue
+        entries_sorted = sorted(
+            entries,
+            key=lambda c: (c.get("name") or c["tcgdex_id"], c.get("set_abbrev") or "", c.get("set_number") or ""),
+        )
+        total = sum(c["quantity"] for c in entries_sorted)
+        label = "Pokémon" if cat == "Pokemon" else cat
+        lines = [f"{label}: {total}"]
+        for c in entries_sorted:
+            ptcgl_line = c.get("ptcgl_line")
+            if ptcgl_line:
+                lines.append(ptcgl_line)
+            else:
+                # metadata missing — fall back to TCGdex ID
+                lines.append(f"{c['quantity']} {c['tcgdex_id']}")
+                warnings.append(
+                    f"{c.get('name') or c['tcgdex_id']} — set/number metadata missing, used TCGdex ID"
+                )
+        sections.append("\n".join(lines))
+
+    return ("\n\n".join(sections), warnings)
+
+
 @router.get("/{simulation_id}/final-deck")
 async def get_simulation_final_deck(
     simulation_id: str,
@@ -827,13 +873,14 @@ async def get_simulation_final_deck(
 ) -> dict:
     """Return original and final candidate deck contents after Coach mutations.
 
-    - ``original_cards``: DeckCard rows for the user's submitted deck.
-    - ``final_cards``: DeckCard rows for the final simulation working deck
-      (i.e. after all Coach mutations).  Equal to ``original_cards`` when no
-      mutations changed the deck.
-    - ``changed_cards``: list of cards whose quantity differed between original
-      and final deck, with ``original_count`` and ``final_count``.
+    - ``original_cards`` / ``final_cards``: enriched DeckCard entries with
+      name, set_abbrev, set_number, category, ptcgl_line, quantity.
+    - ``original_ptcgl_text`` / ``final_ptcgl_text``: human-readable
+      PTCGL-style decklist grouped by Pokémon / Trainer / Energy.
+    - ``changed_cards``: cards whose quantity differed between original and
+      final deck.
     - ``has_mutations``: True when the final deck differs from the original.
+    - ``metadata_warnings``: list of cards whose metadata was incomplete.
     """
     try:
         sim_uuid = __import__("uuid").UUID(simulation_id)
@@ -854,7 +901,11 @@ async def get_simulation_final_deck(
     )
 
     async def _fetch_deck_cards(deck_id: uuid.UUID | None) -> tuple[str, str, list[dict]]:
-        """Return (deck_name, deck_text, card_rows) for a deck UUID or empty defaults."""
+        """Return (deck_name, deck_text, card_rows) for a deck UUID or empty defaults.
+
+        card_rows are enriched with name, set_abbrev, set_number, category,
+        and a pre-formatted ptcgl_line.
+        """
         if deck_id is None:
             return ("", "", [])
         deck_row = (await db.execute(
@@ -862,20 +913,38 @@ async def get_simulation_final_deck(
         )).scalar_one_or_none()
         if deck_row is None:
             return ("", "", [])
-        card_rows = (await db.execute(
-            select(DeckCard, Card.name)
+        rows = (await db.execute(
+            select(DeckCard, Card.name, Card.set_abbrev, Card.set_number, Card.category)
             .join(Card, DeckCard.card_tcgdex_id == Card.tcgdex_id, isouter=True)
             .where(DeckCard.deck_id == deck_id)
-            .order_by(Card.name)
+            .order_by(Card.category, Card.name)
         )).all()
-        cards = [
-            {"tcgdex_id": dc.card_tcgdex_id, "name": name or dc.card_tcgdex_id, "quantity": dc.quantity}
-            for dc, name in card_rows
-        ]
+        cards = []
+        for dc, name, set_abbrev, set_number, category in rows:
+            display_name = name or dc.card_tcgdex_id
+            has_full_meta = bool(name and set_abbrev and set_number)
+            ptcgl_line = (
+                f"{dc.quantity} {name} {set_abbrev} {set_number}"
+                if has_full_meta
+                else None
+            )
+            cards.append({
+                "tcgdex_id": dc.card_tcgdex_id,
+                "name": display_name,
+                "set_abbrev": set_abbrev or None,
+                "set_number": set_number or None,
+                "category": category or None,
+                "quantity": dc.quantity,
+                "ptcgl_line": ptcgl_line,
+            })
         return (deck_row.name or "", deck_row.deck_text or "", cards)
 
     orig_name, orig_text, orig_cards = await _fetch_deck_cards(original_deck_id)
     final_name, final_text, final_cards = await _fetch_deck_cards(final_deck_id)
+
+    orig_ptcgl_text, orig_warnings = _build_ptcgl_text(orig_cards)
+    final_ptcgl_text, final_warnings = _build_ptcgl_text(final_cards)
+    metadata_warnings = list(dict.fromkeys(orig_warnings + final_warnings))  # deduplicate, preserve order
 
     # Compute changed-cards summary
     orig_counts = {c["tcgdex_id"]: (c["name"], c["quantity"]) for c in orig_cards}
@@ -900,12 +969,15 @@ async def get_simulation_final_deck(
         "original_deck_name": orig_name,
         "original_cards": orig_cards,
         "original_deck_text": orig_text,
+        "original_ptcgl_text": orig_ptcgl_text,
         "final_working_deck_id": final_working_deck_id_str,
         "final_deck_name": final_name,
         "final_cards": final_cards,
         "final_deck_text": final_text,
+        "final_ptcgl_text": final_ptcgl_text,
         "changed_cards": changed_cards,
         "has_mutations": has_mutations,
+        "metadata_warnings": metadata_warnings,
     }
 
 

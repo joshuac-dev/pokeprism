@@ -122,7 +122,11 @@ export interface DeckMutation {
 export interface DeckCardEntry {
   tcgdex_id: string;
   name: string;
+  set_abbrev: string | null;
+  set_number: string | null;
+  category: string | null;
   quantity: number;
+  ptcgl_line: string | null;
 }
 
 export interface ChangedCard {
@@ -137,10 +141,13 @@ export interface FinalDeckResponse {
   original_deck_name: string;
   original_cards: DeckCardEntry[];
   original_deck_text: string;
+  original_ptcgl_text: string;
   final_working_deck_id: string | null;
   final_deck_name: string;
   final_cards: DeckCardEntry[];
   final_deck_text: string;
+  final_ptcgl_text: string;
   changed_cards: ChangedCard[];
   has_mutations: boolean;
+  metadata_warnings: string[];
 }
