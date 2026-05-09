@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-09 (Phase 7.1d archetype label retrieval ranking implemented)
+Last updated: 2026-05-09 (Phase 7.1e archetype label ranking manually validated)
 
 ## Current Workstream
 
@@ -134,9 +134,26 @@ deck-builder changes, pgvector/Neo4j writes, `match_events` writes, or
 - Real deck-contextual retrieval metadata for a simulation lives in `GET /api/simulations/{id}/coach-debug`.
 - The authoritative UI for validating Phase 6.2a retrieval behavior is the simulation Dashboard "Observed-Play Retrieval Debug" tile (not the `/observed-play` preview).
 
-**Next feature step:** Phase 7.1c (if approved) — UI label display/review for
-the backend preview results. Retrieval ranking integration remains deferred
-until labels are visible and manually validated.
+**Phase 7.1e — Manual label ranking validation (COMPLETE, 2026-05-09):**
+Six retrieval contexts validated: Dragapult, Gardevoir, Crustle, Mixed/Ambiguous,
+Unknown/No-label, and No-match. All ranking invariants held. Corpus counts unchanged.
+
+Validation verdict: `ready_for_phase_7_2_planning`.
+
+Full report: `docs/proposals/OBSERVED_PLAY_LABEL_RANKING_PHASE_7_1E_VALIDATION_REPORT.md`
+
+Key findings:
+- All 6 contexts produced correct `would_inject`, `no_relevant_evidence`, and label boost behavior.
+- `label_match_reason` text was clear and non-misleading in all cases.
+- Tier-first sort invariant held; labels did not promote Tier 2 above Tier 1.
+- 0.10 boost cap held in all cases observed.
+- Duplicate-key accumulation did not materially distort any real corpus result.
+- No code changes were made during Phase 7.1e.
+
+**Next feature step:** Phase 7.2 — Matchup-aware retrieval. The label infrastructure
+is validated and stable. Suggested focus: filter evidence by matchup archetype pair
+and expand corpus with more Gardevoir, Crustle, and Salazzle logs.
+
 Plans: `docs/proposals/OBSERVED_PLAY_INTELLIGENCE_PHASE_7_PLAN.md` and
 `docs/proposals/OBSERVED_PLAY_ARCHETYPE_LABELING_PHASE_7_1_SPEC.md`.
 Observed memory remains advisory only. No claim is made that observed-play evidence improves gameplay — the correct claim is: *observed-play evidence retrieval is deck-contextual, visible, verifiable, and advisory-only.*

@@ -31,6 +31,17 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Added
+- **Phase 7.1e — Manual archetype label ranking validation** — Validated Phase
+  7.1d label ranking behavior across six retrieval contexts using real corpus
+  data: Dragapult, Gardevoir, Crustle, Mixed/Ambiguous, Unknown/No-label, and
+  No-match. All ranking invariants held. Tier-first sort kept exact card-ID
+  evidence above label-boosted items. 0.10 boost cap enforced in all cases.
+  `label_match_reason` text was clear and accurate. Corpus counts confirmed
+  unchanged (read-only). Duplicate-key accumulation did not distort any real
+  result. Verdict: `ready_for_phase_7_2_planning`. Full report:
+  `docs/proposals/OBSERVED_PLAY_LABEL_RANKING_PHASE_7_1E_VALIDATION_REPORT.md`.
+  No code changes were made during Phase 7.1e.
+
 - **Phase 7.1d — Archetype label retrieval ranking integration** — Added
   `label_strategy=archetype_label_boost_v1` as a bounded debug/ranking signal
   layered onto the existing `deck_overlap_v1` Coach observed-play evidence
