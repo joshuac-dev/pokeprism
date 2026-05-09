@@ -32,13 +32,23 @@ function confidenceText(confidence: number): string {
   return `${Math.round(confidence * 100)}%`;
 }
 
+function safeArray<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function safeCounts(value: Record<string, number> | null | undefined): Record<string, number> {
+  return value && typeof value === 'object' ? value : {};
+}
+
 function evidenceCountFor(label: ArchetypeLabel, name: string): number | undefined {
-  return label.evidence_counts[name] ?? label.evidence_counts[name.toLowerCase()];
+  const counts = safeCounts(label.evidence_counts);
+  return counts[name] ?? counts[name.toLowerCase()];
 }
 
 function evidenceSummary(label: ArchetypeLabel): string {
-  if (label.evidence_card_names.length === 0) return 'No card evidence listed';
-  return label.evidence_card_names
+  const evidenceCardNames = safeArray(label.evidence_card_names);
+  if (evidenceCardNames.length === 0) return 'No card evidence listed';
+  return evidenceCardNames
     .slice(0, 8)
     .map((name) => {
       const count = evidenceCountFor(label, name);
@@ -48,6 +58,9 @@ function evidenceSummary(label: ArchetypeLabel): string {
 }
 
 function LabelCard({ label, primary = false }: { label: ArchetypeLabel; primary?: boolean }) {
+  const evidenceEventIds = safeArray(label.evidence_event_ids);
+  const evidenceMemoryItemIds = safeArray(label.evidence_memory_item_ids);
+
   return (
     <div className="rounded border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-900 p-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -69,7 +82,7 @@ function LabelCard({ label, primary = false }: { label: ArchetypeLabel; primary?
             <span>Confidence {confidenceText(label.confidence)}</span>
             <span>Source {label.source}</span>
             <span>Status {label.review_status}</span>
-            {label.player_alias && <span>Player {label.player_alias}</span>}
+            {label.player_alias && <span>Alias {label.player_alias}</span>}
           </div>
         </div>
         <code className="rounded bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[11px] text-slate-500 dark:text-slate-400">
@@ -82,13 +95,13 @@ function LabelCard({ label, primary = false }: { label: ArchetypeLabel; primary?
         {evidenceSummary(label)}
       </div>
 
-      {(label.evidence_event_ids.length > 0 || label.evidence_memory_item_ids.length > 0) && (
+      {(evidenceEventIds.length > 0 || evidenceMemoryItemIds.length > 0) && (
         <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-          {label.evidence_event_ids.length > 0 && (
-            <span>{label.evidence_event_ids.length} event ID(s)</span>
+          {evidenceEventIds.length > 0 && (
+            <span>{evidenceEventIds.length} event ID(s)</span>
           )}
-          {label.evidence_memory_item_ids.length > 0 && (
-            <span>{label.evidence_memory_item_ids.length} memory item ID(s)</span>
+          {evidenceMemoryItemIds.length > 0 && (
+            <span>{evidenceMemoryItemIds.length} memory item ID(s)</span>
           )}
         </div>
       )}
@@ -156,7 +169,7 @@ export default function ArchetypeLabelPreviewPanel(props: Props) {
 
   if (props.variant === 'deck') {
     const deckPreview = preview as DeckArchetypeLabelPreview;
-    const labels: ArchetypeLabel[] = deckPreview.labels ?? [];
+    const labels: ArchetypeLabel[] = safeArray(deckPreview.labels);
     const primaryKey = deckPreview.primary_label?.canonical_key;
 
     return (
@@ -186,8 +199,9 @@ export default function ArchetypeLabelPreviewPanel(props: Props) {
   }
 
   const logPreview = preview as ObservedLogArchetypeLabelPreview;
-  const groups = Object.entries(logPreview.labels_by_player ?? {}) as [string, ArchetypeLabel[]][];
-  const globalLabels: ArchetypeLabel[] = logPreview.global_labels ?? [];
+  const groups = Object.entries(logPreview.labels_by_player ?? {})
+    .map(([player, labels]) => [player, safeArray(labels)] as [string, ArchetypeLabel[]]);
+  const globalLabels: ArchetypeLabel[] = safeArray(logPreview.global_labels);
   const hasLabels = groups.some(([, labels]) => labels.length > 0) || globalLabels.length > 0;
 
   return (

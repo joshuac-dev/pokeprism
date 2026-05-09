@@ -83,7 +83,33 @@ describe('ArchetypeLabelPreviewPanel', () => {
     expect(screen.getByText('Player 2')).toBeInTheDocument();
     expect(screen.getByText('Dragapult ex')).toBeInTheDocument();
     expect(screen.getByText('Crustle')).toBeInTheDocument();
+    expect(screen.getByText('Alias Player 1')).toBeInTheDocument();
+    expect(screen.queryByText('Player Player 1')).not.toBeInTheDocument();
     expect(screen.getAllByText('Source observed_log').length).toBeGreaterThan(0);
+  });
+
+  it('handles missing evidence arrays without crashing', () => {
+    const malformedLabel = {
+      ...dragapultLabel,
+      evidence_card_names: null,
+      evidence_counts: null,
+      evidence_event_ids: null,
+      evidence_memory_item_ids: null,
+    } as unknown as ArchetypeLabel;
+    const preview: DeckArchetypeLabelPreview = {
+      deck_id: 'deck-1',
+      deck_name: 'Malformed',
+      labels: [malformedLabel],
+      primary_label: malformedLabel,
+      ambiguous: false,
+      no_label_reason: null,
+      source: 'deck_cards',
+    };
+
+    render(<ArchetypeLabelPreviewPanel variant="deck" preview={preview} />);
+
+    expect(screen.getByText('Dragapult ex')).toBeInTheDocument();
+    expect(screen.getByText(/No card evidence listed/)).toBeInTheDocument();
   });
 
   it('renders no-label state', () => {
