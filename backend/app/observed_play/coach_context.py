@@ -62,7 +62,9 @@ _OUTCOME_BONUS = 0.05
 _SOURCE_REP_PENALTY = 0.03
 _LABEL_STRATEGY = "archetype_label_boost_v1"
 _LABEL_BOOST_CAP = 0.10
-_MATCHUP_STRATEGY = "matchup_context_preview_v1"
+_MATCHUP_STRATEGY = "matchup_context_boost_v1"
+_MATCHUP_BOOST_CAP = 0.12
+_MIN_DIRECTED_MATCHUP_LOGS_FOR_BOOST = 3
 
 
 @dataclass
@@ -84,10 +86,11 @@ class _RawCandidate:
     matched_label_types: list[str] = dc_field(default_factory=list)
     source_log_labels: list[ArchetypeLabel] = dc_field(default_factory=list)
     label_match_reason: str | None = None
+    matchup_boost: float = 0.0
 
     @property
     def final_score(self) -> float:
-        return self.base_score + self.label_boost
+        return self.base_score + self.label_boost + self.matchup_boost
 
 _REVIEW_ONLY_HEADER = """\
 OBSERVED PLAY EVIDENCE — REVIEW ONLY
@@ -392,6 +395,136 @@ def _source_log_matchup_metadata(
         "source_log_opponent_player_labels": opponent_player_labels,
         "matchup_match_reason": matchup_match_reason,
     }
+
+
+def _directed_key_from_preview(
+    preview: "ObservedLogArchetypeLabelPreview",
+    current_primary_key: str,
+) -> str | None:
+    """Compute directed matchup key for a log preview, aligned to the current player side.
+
+    Returns None if either side lacks a primary archetype label.
+    Phase 7.2c: shared logic for coverage counting and per-evidence boost assignment.
+    """
+    player_aliases = list(preview.labels_by_player.keys())
+    current_alias: str | None = None
+    for alias in player_aliases:
+        player_labels = preview.labels_by_player.get(alias, [])
+        if any(lb.canonical_key == current_primary_key for lb in player_labels):
+            current_alias = alias
+            break
+
+    if current_alias is None:
+        return None
+
+    opponent_alias = next((a for a in player_aliases if a != current_alias), None)
+    current_player_labels = list(preview.labels_by_player.get(current_alias, []))
+    opponent_player_labels = (
+        list(preview.labels_by_player.get(opponent_alias, [])) if opponent_alias else []
+    )
+
+    current_source_primary = _primary_archetype_label(current_player_labels)
+    opponent_source_primary = _primary_archetype_label(opponent_player_labels)
+
+    if current_source_primary and opponent_source_primary:
+        return f"{current_source_primary.canonical_key}|vs|{opponent_source_primary.canonical_key}"
+    return None
+
+
+async def _count_directed_matchup_logs(
+    db: "AsyncSession",
+    directed_matchup_key: str,
+    current_primary_key: str,
+) -> tuple[int, str]:
+    """Count corpus logs that produce the exact directed matchup key.
+
+    A log is 'clean' when both player sides can be assigned exactly one primary
+    archetype label and the preview is not ambiguous.  Reads all observed-play
+    memory items in a single query; no DB writes occur.
+    Phase 7.2c: used to gate matchup boost activation.
+    """
+    q = select(ObservedPlayMemoryItem)
+    rows = (await db.execute(q)).all()
+
+    signals_by_log: dict[str, list[ObservedCardSignal]] = defaultdict(list)
+    for row in rows:
+        item = row[0]
+        log_id = str(item.observed_play_log_id)
+        raw_player = getattr(item, "player_alias", None)
+        player = raw_player if isinstance(raw_player, str) and raw_player else "unknown"
+        for raw_name, card_id, status in (
+            (item.actor_card_raw, item.actor_card_def_id, item.actor_resolution_status),
+            (item.target_card_raw, item.target_card_def_id, item.target_resolution_status),
+            (
+                item.related_card_raw,
+                item.related_card_def_id,
+                getattr(item, "related_resolution_status", None),
+            ),
+        ):
+            if raw_name or card_id:
+                signals_by_log[log_id].append(
+                    ObservedCardSignal(
+                        player_alias=player,
+                        card_id=card_id,
+                        name=raw_name,
+                        resolution_status=status,
+                        memory_item_id=str(item.id),
+                        action_name=item.action_name,
+                        memory_type=item.memory_type,
+                        source_event_type=getattr(item, "source_event_type", None),
+                    )
+                )
+
+    count = 0
+    for log_id, signals in signals_by_log.items():
+        preview = infer_observed_log_labels_from_signals(log_id, signals)
+        if preview.ambiguous:
+            continue
+        key = _directed_key_from_preview(preview, current_primary_key)
+        if key == directed_matchup_key:
+            count += 1
+
+    if count == 0:
+        reason = (
+            f"0 clean logs match {directed_matchup_key}; "
+            f"minimum is {_MIN_DIRECTED_MATCHUP_LOGS_FOR_BOOST}"
+        )
+    elif count < _MIN_DIRECTED_MATCHUP_LOGS_FOR_BOOST:
+        reason = (
+            f"{count} clean log(s) match {directed_matchup_key}; "
+            f"minimum is {_MIN_DIRECTED_MATCHUP_LOGS_FOR_BOOST}"
+        )
+    else:
+        reason = f"{count} clean log(s) match {directed_matchup_key}; boost eligible"
+    return count, reason
+
+
+def _apply_matchup_boosts(
+    candidates: list[_RawCandidate],
+    *,
+    directed_matchup_key: str,
+    source_label_cache: dict[str, "ObservedLogArchetypeLabelPreview"],
+    current_primary_key: str,
+) -> int:
+    """Apply matchup boost to evidence items whose source log matches the directed matchup key.
+
+    Returns count of items that received a non-zero boost.
+    Called only when the coverage gate is met.  Tier-first sort applied after.
+    Phase 7.2c.
+    """
+    boost_count = 0
+    for cand in candidates:
+        preview = source_label_cache.get(cand.log_id)
+        if preview is None:
+            cand.matchup_boost = 0.0
+            continue
+        key = _directed_key_from_preview(preview, current_primary_key)
+        if key is not None and key == directed_matchup_key:
+            cand.matchup_boost = _MATCHUP_BOOST_CAP
+            boost_count += 1
+        else:
+            cand.matchup_boost = 0.0
+    return boost_count
 
 
 def _format_evidence_prompt_block(
@@ -905,9 +1038,40 @@ async def _build_tiered_preview(
     no_evidence = not selected_candidates and not allow_fallback
 
     # Phase 7.2b: compute matchup context preview from already-inferred labels.
-    # Operates on in-memory data only; does not affect scores, ordering, or candidate pool.
     matchup_ctx = _compute_matchup_context(deck_labels, candidate_labels)
     source_label_cache = _source_log_label_cache(selected_candidates)
+
+    # Phase 7.2c: guarded matchup boost — activate only when coverage gate is met.
+    directed_matchup_key = matchup_ctx.get("directed_matchup_key")
+    current_primary_key = matchup_ctx.get("current_primary_archetype_key")
+
+    matchup_pair_log_count = 0
+    matchup_pair_eligible = False
+    matchup_ranking_enabled = False
+    matchup_boost_applied_count = 0
+    matchup_coverage_reason: str | None = None
+
+    if directed_matchup_key and current_primary_key:
+        matchup_pair_log_count, matchup_coverage_reason = await _count_directed_matchup_logs(
+            db, directed_matchup_key, current_primary_key
+        )
+        if matchup_pair_log_count >= _MIN_DIRECTED_MATCHUP_LOGS_FOR_BOOST:
+            matchup_pair_eligible = True
+            matchup_ranking_enabled = True
+            matchup_boost_applied_count = _apply_matchup_boosts(
+                selected_candidates,
+                directed_matchup_key=directed_matchup_key,
+                source_label_cache=source_label_cache,
+                current_primary_key=current_primary_key,
+            )
+            # Re-sort: tier-first invariant preserved; matchup boost now affects final_score
+            selected_candidates.sort(
+                key=lambda c: (c.tier, not c.is_deck_match, -c.final_score)
+            )
+    else:
+        matchup_coverage_reason = (
+            matchup_ctx.get("no_matchup_signal_reason") or "no directed matchup key"
+        )
 
     prompt_items: list[ObservedPlayEvidencePromptItem] = []
     evidence_ids: list[str] = []
@@ -971,8 +1135,8 @@ async def _build_tiered_preview(
             label_match_reason=cand.label_match_reason,
             source_log_id=cand.log_id,
             from_winning_game=cand.from_winning_game,
-            # Phase 7.2b matchup preview — boost is always 0.0
-            matchup_boost=0.0,
+            # Phase 7.2c: actual matchup_boost (0.0 when coverage gate not met)
+            matchup_boost=round(cand.matchup_boost, 4),
             source_log_matchup_key=matchup_meta["source_log_matchup_key"],
             source_log_current_player_labels=matchup_meta["source_log_current_player_labels"],
             source_log_opponent_player_labels=matchup_meta["source_log_opponent_player_labels"],
@@ -998,10 +1162,10 @@ async def _build_tiered_preview(
         no_relevant_evidence=no_evidence,
         evidence_selected=evidence_details,
         excluded_summary=exclusion,
-        # Phase 7.2b matchup context preview
+        # Phase 7.2b matchup context
         matchup_strategy=_MATCHUP_STRATEGY,
         matchup_context_enabled=True,
-        matchup_ranking_enabled=False,
+        matchup_ranking_enabled=matchup_ranking_enabled,
         matchup_candidate_pool_expanded=False,
         matchup_filter_applied=False,
         current_archetype_labels=[lb for lb in deck_labels if lb.label_type == "archetype"],
@@ -1011,6 +1175,13 @@ async def _build_tiered_preview(
         directed_matchup_key=matchup_ctx["directed_matchup_key"],
         matchup_confidence=matchup_ctx["matchup_confidence"],
         no_matchup_signal_reason=matchup_ctx["no_matchup_signal_reason"],
+        # Phase 7.2c guarded matchup boost
+        matchup_boost_cap=_MATCHUP_BOOST_CAP,
+        matchup_min_pair_logs=_MIN_DIRECTED_MATCHUP_LOGS_FOR_BOOST,
+        matchup_pair_log_count=matchup_pair_log_count,
+        matchup_pair_eligible=matchup_pair_eligible,
+        matchup_boost_applied_count=matchup_boost_applied_count,
+        matchup_coverage_reason=matchup_coverage_reason,
     )
 
     if no_evidence:

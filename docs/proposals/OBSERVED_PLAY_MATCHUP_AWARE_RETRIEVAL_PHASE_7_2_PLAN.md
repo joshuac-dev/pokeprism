@@ -25,6 +25,17 @@
 > Phase 7.2c is gated. Full report:
 > `docs/proposals/OBSERVED_PLAY_CORPUS_EXPANSION_PHASE_7_2_READINESS_REPORT.md`.
 
+## Phase 7.2c Status: Implemented
+
+Phase 7.2c implements a generic guarded matchup boost. The mechanism is fallback-safe:
+
+- Mechanism: implemented and generic (not tied to specific matchups)
+- Real-corpus activation: blocked for pairs with <3 clean logs (most pairs in current corpus)
+- Broad rollout: pending corpus expansion for meaningful validation
+
+The previous corpus readiness gate blocks BOOST ACTIVATION for under-covered pairs and BROAD ROLLOUT,
+not the generic fallback-safe implementation.
+
 ---
 
 ## 1. Executive Summary

@@ -31,6 +31,22 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Added
+- **Phase 7.2c — Generic Guarded Matchup Boost** —
+  feat(observed-play): Add guarded matchup ranking boost (matchup_context_boost_v1).
+  Coverage gate: ≥3 clean directed-matchup logs required for boost activation.
+  Boost cap: 0.12; applies only to evidence from matching directed matchup source logs.
+  Score composition: final_score = base + label_boost + matchup_boost.
+  Graceful fallback for unseen/under-covered matchups (matchup_boost=0.0).
+  New retrieval metadata fields: matchup_boost_cap, matchup_min_pair_logs,
+  matchup_pair_log_count, matchup_pair_eligible, matchup_boost_applied_count,
+  matchup_coverage_reason. Per-evidence: matchup_boost now reflects actual value
+  (was always 0.0 in Phase 7.2b). Frontend: updated matchup section in
+  RetrievalMetadataPanel with boost visibility and new Matchup boost column in
+  evidence table. Advisory copy updated to describe generic/gated nature.
+  Backend tests: 16 new tests for coverage gate and boost logic.
+  Frontend tests: 7 new UI tests.
+  Branch: `phase-7-2c-guarded-matchup-boost`.
+
 - **Phase 7.2 corpus readiness audit** — Read-only audit of observed-play corpus
   against Phase 7.2c matchup ranking gates. Verdict: `not_ready_needs_more_logs`.
   49 total logs (all parsed+ingested). Archetype distribution: dragapult-ex (23),

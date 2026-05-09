@@ -30,6 +30,21 @@ more clean logs. No import candidates found locally.
 Phase 7.2c is **gated** pending corpus expansion.
 Full report: `docs/proposals/OBSERVED_PLAY_CORPUS_EXPANSION_PHASE_7_2_READINESS_REPORT.md`.
 
+## Phase 7.2c — Guarded Matchup Boost (Current)
+
+Status: Implemented
+
+- Generic guarded matchup ranking boost inside existing deck_overlap_v1 retrieval path
+- Strategy: matchup_context_boost_v1
+- Boost cap: 0.12; minimum directed pair logs: 3
+- When directed matchup pair has ≥3 clean corpus logs: matchup_boost applied (max 0.12)
+- When pair is unseen or under-covered: matchup_boost=0.0; fallback to Phase 7.1d behavior
+- Tier-first sort invariant preserved; lower-tier evidence with boost cannot outrank higher-tier
+- No candidate pool expansion; no hard filtering; no evidence injection for no-match contexts
+- No persistence; no migrations
+- Real corpus currently under-covered: most contexts have matchup_ranking_enabled=False
+- Full broad activation pending corpus expansion
+
 **Phase 7.2b implementation:** matchup context preview metadata merged to main (`6234d5c`).
 `matchup_strategy=matchup_context_preview_v1`. Directed matchup key computed from
 highest-confidence archetype labels. All matchup fields are metadata-only:
