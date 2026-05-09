@@ -551,6 +551,35 @@ class TestSelectTieredEvidence:
         assert selected[1].tier == 2
         assert selected[1].final_score > selected[0].final_score
 
+    @pytest.mark.asyncio
+    async def test_no_label_signals_do_not_crash_retrieval(self):
+        """Retrieval with no deck-name signals (empty label context) completes safely."""
+        from app.observed_play.coach_context import _select_tiered_evidence
+
+        item = _make_item(
+            item_id=_uuid("ab000008"),
+            log_id=uuid.uuid4(),
+            actor_card_def_id="sv-basic",
+            actor_card_raw=None,
+            confidence_score=0.80,
+            player_alias=None,
+        )
+        db = _make_db([_make_row(item)], [])
+        selected, _ = await _select_tiered_evidence(
+            db,
+            deck_card_ids=["sv-basic"],
+            deck_card_names=[],  # no names → no label inference → no boost
+            candidate_card_ids=[],
+            candidate_card_names=[],
+            min_confidence=0.65,
+            effective_limit=8,
+            allow_fallback=False,
+        )
+        assert len(selected) == 1
+        assert selected[0].label_boost == 0.0
+        assert selected[0].matched_label_keys == []
+        assert selected[0].label_match_reason is None
+
 
 # ── Tests for build_coach_context_preview (tiered path) ───────────────────────
 

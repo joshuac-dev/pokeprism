@@ -186,6 +186,23 @@ describe('ObservedPlayRetrievalDebugTile', () => {
     expect(screen.getByText(/Matched current archetype label Dragapult ex/i)).toBeInTheDocument();
   });
 
+  it('shows no-label state for older simulation payloads without label_ranking_enabled', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            // label_ranking_enabled absent → falsy → older simulation fallback
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    expect(screen.getByText(/No label ranking signal applied/i)).toBeInTheDocument();
+  });
+
   it('shows deck card count in round header', () => {
     render(
       <ObservedPlayRetrievalDebugTile

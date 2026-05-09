@@ -224,6 +224,9 @@ def _apply_label_boosts(
     if not candidates or not current_labels:
         return
 
+    # If the same canonical_key appears in both deck_labels and candidate_labels,
+    # the candidate entry wins (last-write). Confidence/type differences are minor
+    # and the boost cap bounds any amplification.
     current_by_key = {label.canonical_key: label for label in current_labels}
     source_cache = _source_log_label_cache(candidates)
 
@@ -244,6 +247,10 @@ def _apply_label_boosts(
             current_label = current_by_key.get(source_label.canonical_key)
             if current_label is None:
                 continue
+            # When player_alias is unavailable, labels from all players are iterated and
+            # the same canonical_key may contribute boost more than once (once per player
+            # who holds that label). The matched_keys deduplication prevents double-counting
+            # in display, but raw boost accumulates. The _LABEL_BOOST_CAP hard-bounds this.
             boost += _boost_for_label_match(
                 current_label,
                 source_label,
