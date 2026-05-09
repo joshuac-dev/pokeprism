@@ -10,8 +10,10 @@ import {
   getSimulationFinalDeck,
   getSimulationCoachDebug,
 } from '../api/simulations';
+import { getDeckArchetypeLabelPreview } from '../api/decks';
 import type { SimulationDetail, FinalDeckResponse, CoachDebugResponse } from '../types/simulation';
 import type { MatchRow, RoundRow, PrizeRaceData, MutationRow, OpponentStat } from '../types/dashboard';
+import type { DeckArchetypeLabelPreview } from '../types/observedPlay';
 import SummaryCards from '../components/dashboard/SummaryCards';
 import WinRateDonut from '../components/dashboard/WinRateDonut';
 import WinRateProgress from '../components/dashboard/WinRateProgress';
@@ -24,6 +26,7 @@ import CardSwapHeatMap from '../components/dashboard/CardSwapHeatMap';
 import MutationDiffLog from '../components/dashboard/MutationDiffLog';
 import DeckEvolutionPanel from '../components/simulation/DeckEvolutionPanel';
 import ObservedPlayRetrievalDebugTile from '../components/simulation/ObservedPlayRetrievalDebugTile';
+import ArchetypeLabelPreviewPanel from '../components/observedPlay/ArchetypeLabelPreviewPanel';
 
 function DashboardTile({
   title,
@@ -76,6 +79,9 @@ export default function Dashboard() {
   const [mutations, setMutations] = useState<MutationRow[]>([]);
   const [finalDeck, setFinalDeck] = useState<FinalDeckResponse | null>(null);
   const [coachDebug, setCoachDebug] = useState<CoachDebugResponse | null>(null);
+  const [deckLabelPreview, setDeckLabelPreview] = useState<DeckArchetypeLabelPreview | null>(null);
+  const [deckLabelLoading, setDeckLabelLoading] = useState(false);
+  const [deckLabelError, setDeckLabelError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -111,6 +117,37 @@ export default function Dashboard() {
       .then(setCoachDebug)
       .catch(() => setCoachDebug(null));
   }, [id]);
+
+  // Deck label preview is advisory-only and non-fatal.
+  useEffect(() => {
+    const deckId = detail?.user_deck_id;
+    if (!deckId) {
+      setDeckLabelPreview(null);
+      setDeckLabelError(null);
+      setDeckLabelLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setDeckLabelLoading(true);
+    setDeckLabelError(null);
+    setDeckLabelPreview(null);
+
+    getDeckArchetypeLabelPreview(deckId)
+      .then((preview) => {
+        if (!cancelled) setDeckLabelPreview(preview);
+      })
+      .catch(() => {
+        if (!cancelled) setDeckLabelError('Deck label preview unavailable.');
+      })
+      .finally(() => {
+        if (!cancelled) setDeckLabelLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [detail?.user_deck_id]);
 
   const deckName = detail?.user_deck_name ?? 'Dashboard';
   const opponents = deriveOpponentStats(matches);
@@ -216,6 +253,21 @@ export default function Dashboard() {
           >
             <DeckEvolutionPanel data={finalDeck} />
           </DashboardTile>
+
+          {detail.user_deck_id && (
+            <DashboardTile
+              title="Deck Context Labels"
+              className="col-span-1 md:col-span-2 xl:col-span-3"
+              testId="dashboard-deck-label-preview"
+            >
+              <ArchetypeLabelPreviewPanel
+                variant="deck"
+                preview={deckLabelPreview}
+                loading={deckLabelLoading}
+                error={deckLabelError}
+              />
+            </DashboardTile>
+          )}
 
           {/* Tile 14: Observed-Play Retrieval Debug */}
           {id && coachDebug && (

@@ -31,6 +31,51 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Added
+- **Phase 7.1c — UI archetype label preview display/review** — Added
+  frontend read-only display for Phase 7.1b archetype/package/strategy label
+  previews. New shared `ArchetypeLabelPreviewPanel` renders advisory labels,
+  confidence, source, review status, evidence cards/counts, ambiguous state,
+  and no-label reasons. `/observed-play` Raw Logs now includes a "Preview
+  labels" action that opens a per-log modal grouped by observed player alias.
+  Simulation Dashboard now shows a non-fatal "Deck Context Labels" tile when
+  `user_deck_id` is available. Added frontend API wrappers and TypeScript
+  schemas for deck/log label preview responses. Labels remain read-only,
+  are not persisted, and are not used for Coach retrieval ranking. No backend
+  retrieval, Coach strategy, Coach prompt injection, simulator gameplay,
+  AI Player, observed-play ingestion, deck-builder, pgvector/Neo4j,
+  `match_events`, or `card_performance` behavior changed. Validation:
+  `npm ci`, frontend tests (`362 passed`), frontend build, and
+  `git diff --check` passed. Endpoint smoke checks covered known Dragapult,
+  Gardevoir, Crustle, unknown/no-label, and mixed/ambiguous observed-log
+  preview examples.
+
+- **Phase 7.1b — Backend archetype label inference preview** — Added
+  deterministic, backend-only advisory label preview for decks and observed-play
+  logs. New schemas: `ArchetypeLabel`, `DeckArchetypeLabelPreview`, and
+  `ObservedLogArchetypeLabelPreview`. New service:
+  `backend/app/observed_play/archetype_labels.py` with canonical key
+  normalization, seed archetype/package/strategy rules, deck-card inference,
+  and per-player observed-log inference from memory items/card mentions. New
+  read-only endpoints: `GET /api/decks/{deck_id}/archetype-label-preview` and
+  `GET /api/observed-play/logs/{log_id}/archetype-label-preview`. Seed labels:
+  Dragapult ex, Salazzle ex, Crustle, Charizard ex, Gardevoir ex, Fire toolbox,
+  Poison/Burn strategy, Spread damage, Stage 2 setup, and Psychic engine.
+  Labels are not persisted by default and do not affect observed-play retrieval
+  ranking. No migrations, Coach strategy changes, simulator gameplay changes,
+  AI Player behavior changes, pgvector/Neo4j writes, `match_events` writes,
+  `card_performance` writes, deck-builder changes, or observed-play ingestion
+  changes.
+
+- **Phase 7.1a — Archetype labeling schema/API design** — Docs-only. Added
+  `docs/proposals/OBSERVED_PLAY_ARCHETYPE_LABELING_PHASE_7_1_SPEC.md`, an
+  implementation-ready design for Deck Archetype Labeling and Log/Deck Tags.
+  The spec recommends manual labels plus deterministic suggestions, multiple
+  labels per deck/log, per-player observed-log labels, visible review/edit
+  workflow, no-migration metadata-first storage where practical, and a later
+  bounded retrieval ranking boost only after labels are visible and validated.
+  Updated `docs/STATUS.md` and the Phase 7.0 roadmap to reference the new
+  Phase 7.1a spec. No code or migrations changed; Phase 7.1 is not implemented.
+
 - **Phase 6.2 stabilization sweep (session 61)** — Docs-only. Recorded that Phase 6.2a and Phase 6.2b are both manually validated. Updated `docs/STATUS.md` with explicit validation results for both phases, UI/data-flow clarification (simulation Dashboard tile is the authoritative UI for retrieval debug; `/observed-play` preview does not have deck context), and the canonical advisory-only scope statement. Updated `docs/proposals/OBSERVED_PLAY_EVIDENCE_RELEVANCE_PLAN.md` header to reflect the compressed phase numbering used in practice, tightened §17 Acceptance Criteria with concrete validation results, and added Appendix C (Phase 6.2a and 6.2b manual validation record with per-check tables and scope boundary confirmation). No code changed.
 
 - **Phase 6.2b — Simulation Dashboard retrieval debug tile (session 60)** — `RetrievalMetadataPanel` extracted to shared component `frontend/src/components/observedPlay/RetrievalMetadataPanel.tsx`. New `ObservedPlayRetrievalDebugTile` component (`frontend/src/components/simulation/`) shows per-round retrieval debug accordion: round number, injected/no-relevant badge, strategy/deck-count header, evidence table, no-relevant-evidence banner, acknowledgment summary. `Dashboard.tsx` loads `GET /api/simulations/{id}/coach-debug` in a separate non-fatal effect and renders tile 14 "Observed-Play Retrieval Debug" after Final Candidate Deck. New types `CoachDebugAnalysisRound`, `CoachDebugResponse` in `simulation.ts`; `getSimulationCoachDebug` in `simulations.ts`. Helper copy added to `/observed-play` preview explaining retrieval metadata is in the simulation Dashboard. +7 new `ObservedPlayRetrievalDebugTile` tests (353 total, 18 files). Build clean. No backend changes.

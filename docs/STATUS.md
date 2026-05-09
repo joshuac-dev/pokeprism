@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-08 (session 61 — Phase 6.2 stabilization sweep: both 6.2a and 6.2b manually validated)
+Last updated: 2026-05-09 (Phase 7.1c UI archetype label preview display implemented)
 
 ## Current Workstream
 
@@ -17,9 +17,51 @@ post-phase development:
 - AI/coach hardening and decision-quality follow-up.
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
-**Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
+**Active planning branch:** `phase-7-observed-play-planning` — Observed-Play Intelligence Planning
 **Phase 1 through Phase 6.2b are COMPLETE and manually validated.** Both phases validated 2026-05-08.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
+
+**Phase 7.0 planning:** `docs/proposals/OBSERVED_PLAY_INTELLIGENCE_PHASE_7_PLAN.md`
+recommends Phase 7.1 — Deck Archetype Labeling and Log/Deck Tags.
+
+**Phase 7.1a schema/API design:** `docs/proposals/OBSERVED_PLAY_ARCHETYPE_LABELING_PHASE_7_1_SPEC.md`
+adds an implementation-ready design for manual labels plus deterministic
+suggestions, multi-label log/deck support, user review/edit flows, no-migration
+metadata-first storage options, API shape, deterministic inference rules, UI
+surfaces, retrieval integration staging, and tests.
+
+**Phase 7.1b backend preview:** deterministic backend archetype/package/strategy
+label preview is implemented. New read-only endpoints:
+- `GET /api/decks/{deck_id}/archetype-label-preview`
+- `GET /api/observed-play/logs/{log_id}/archetype-label-preview`
+
+Seed labels: Dragapult ex, Salazzle ex, Crustle, Charizard ex, Gardevoir ex,
+Fire toolbox, Poison/Burn strategy, Spread damage, Stage 2 setup, Psychic
+engine. Labels are advisory/contextual only, are not persisted by default, and
+do not affect Coach retrieval ranking. No migrations, Coach strategy changes,
+simulator gameplay changes, AI Player changes, pgvector/Neo4j writes,
+`match_events` writes, `card_performance` writes, deck-builder changes, or
+observed-play ingestion changes were made.
+
+**Phase 7.1c UI preview display:** frontend read-only display/review surfaces
+are implemented for the Phase 7.1b preview endpoints.
+- `/observed-play` Raw Logs table now has a per-log "Preview labels" action
+  that opens an advisory label preview modal grouped by observed player alias.
+- Simulation Dashboard now shows a non-fatal "Deck Context Labels" tile when
+  `user_deck_id` is available, using the deck preview endpoint.
+- Shared frontend display component renders label, type, source, confidence,
+  review status, evidence cards/counts, ambiguous state, no-label reason, and
+  advisory/read-only copy.
+- Validation: `npm ci`, frontend tests (`362 passed`), frontend build, and
+  `git diff --check` passed. Endpoint smoke checks confirmed Dragapult,
+  Gardevoir, Crustle, unknown/no-label, and mixed/ambiguous observed-log
+  preview payloads remain plausible.
+
+Phase 7.1c does not persist labels, does not add edit/accept/reject behavior,
+does not change retrieval ranking, and does not alter Coach prompt injection,
+Coach strategy, simulator gameplay, AI Player behavior, observed-play
+ingestion, deck-builder behavior, pgvector/Neo4j, `match_events`, or
+`card_performance`.
 
 **Phase 6.1 verification summary:**
 - User Check 1 ✅ — Flag-off context preview: `enabled=false`, `would_inject=false`, no evidence
@@ -71,8 +113,11 @@ See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 - Real deck-contextual retrieval metadata for a simulation lives in `GET /api/simulations/{id}/coach-debug`.
 - The authoritative UI for validating Phase 6.2a retrieval behavior is the simulation Dashboard "Observed-Play Retrieval Debug" tile (not the `/observed-play` preview).
 
-**Next feature step:** Phase 6.2c (if needed) — further validation passes or Phase 7 planning.
-Plan: `docs/proposals/OBSERVED_PLAY_EVIDENCE_RELEVANCE_PLAN.md`.
+**Next feature step:** Phase 7.1c (if approved) — UI label display/review for
+the backend preview results. Retrieval ranking integration remains deferred
+until labels are visible and manually validated.
+Plans: `docs/proposals/OBSERVED_PLAY_INTELLIGENCE_PHASE_7_PLAN.md` and
+`docs/proposals/OBSERVED_PLAY_ARCHETYPE_LABELING_PHASE_7_1_SPEC.md`.
 Observed memory remains advisory only. No claim is made that observed-play evidence improves gameplay — the correct claim is: *observed-play evidence retrieval is deck-contextual, visible, verifiable, and advisory-only.*
 
 **Known caveat:** The LLM (Gemma) may fail to acknowledge observed-play evidence even after a repair retry. This is now visible and non-silent through the fallback `not_used_reason` (`"LLM failed to acknowledge injected observed-play evidence after retries."`) and `coach-debug` metadata. `any_acknowledgment_missing=true` is a valid outcome when this occurs; the goal is that failure is always explicit, never silent.
