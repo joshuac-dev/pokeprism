@@ -1032,7 +1032,7 @@ class TestMatchupMetadataInTieredPreview:
 
     @pytest.mark.asyncio
     async def test_matchup_strategy_present_in_tiered_metadata(self):
-        """Tiered retrieval metadata includes matchup_strategy=matchup_context_preview_v1."""
+        """Tiered retrieval metadata includes matchup_strategy=matchup_context_boost_v1."""
         from app.observed_play.coach_context import build_coach_context_preview
 
         item = _make_item(
@@ -1066,8 +1066,8 @@ class TestMatchupMetadataInTieredPreview:
         assert meta.matchup_filter_applied is False
 
     @pytest.mark.asyncio
-    async def test_matchup_boost_is_always_zero(self):
-        """Phase 7.2b: matchup_boost must be 0.0 on all evidence items."""
+    async def test_matchup_boost_is_zero_without_opponent_context(self):
+        """Without opponent context, coverage gate is never triggered; matchup_boost=0.0 on all evidence."""
         from app.observed_play.coach_context import build_coach_context_preview
 
         item = _make_item(
@@ -1103,8 +1103,8 @@ class TestMatchupMetadataInTieredPreview:
             assert detail.matchup_boost == 0.0
 
     @pytest.mark.asyncio
-    async def test_scores_unchanged_compared_with_label_ranking(self):
-        """Adding matchup context must not change relevance_score or evidence order."""
+    async def test_scores_and_order_unchanged_when_matchup_boost_is_zero(self):
+        """Without opponent context, matchup_boost=0.0, so relevance_score order is unchanged."""
         from app.observed_play.coach_context import build_coach_context_preview
 
         log_a, log_b = uuid.uuid4(), uuid.uuid4()
@@ -1144,10 +1144,10 @@ class TestMatchupMetadataInTieredPreview:
         # Order: item_a before item_b (higher confidence)
         assert ids[0] == str(_uuid("7b000003"))
         assert ids[1] == str(_uuid("7b000004"))
-        # Scores include label_boost but NOT matchup_boost
+        # Score formula: base + label_boost + matchup_boost (0.0 here — no opponent context)
         for detail in meta.evidence_selected:
             assert detail.final_relevance_score == pytest.approx(
-                detail.base_relevance_score + detail.label_boost, abs=0.0001
+                detail.base_relevance_score + detail.label_boost + detail.matchup_boost, abs=0.0001
             )
 
     @pytest.mark.asyncio

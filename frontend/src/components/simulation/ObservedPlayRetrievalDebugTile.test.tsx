@@ -282,7 +282,7 @@ describe('ObservedPlayRetrievalDebugTile', () => {
     expect(screen.getByText(/no opponent archetype label/i)).toBeInTheDocument();
   });
 
-  it('shows preview-only advisory copy', () => {
+  it('shows fallback advisory copy for under-covered matchups', () => {
     render(
       <ObservedPlayRetrievalDebugTile
         simulationId="sim-1"
