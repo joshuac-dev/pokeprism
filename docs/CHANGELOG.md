@@ -31,6 +31,16 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Added
+- **Phase 7.1a — Archetype labeling schema/API design** — Docs-only. Added
+  `docs/proposals/OBSERVED_PLAY_ARCHETYPE_LABELING_PHASE_7_1_SPEC.md`, an
+  implementation-ready design for Deck Archetype Labeling and Log/Deck Tags.
+  The spec recommends manual labels plus deterministic suggestions, multiple
+  labels per deck/log, per-player observed-log labels, visible review/edit
+  workflow, no-migration metadata-first storage where practical, and a later
+  bounded retrieval ranking boost only after labels are visible and validated.
+  Updated `docs/STATUS.md` and the Phase 7.0 roadmap to reference the new
+  Phase 7.1a spec. No code or migrations changed; Phase 7.1 is not implemented.
+
 - **Phase 6.2 stabilization sweep (session 61)** — Docs-only. Recorded that Phase 6.2a and Phase 6.2b are both manually validated. Updated `docs/STATUS.md` with explicit validation results for both phases, UI/data-flow clarification (simulation Dashboard tile is the authoritative UI for retrieval debug; `/observed-play` preview does not have deck context), and the canonical advisory-only scope statement. Updated `docs/proposals/OBSERVED_PLAY_EVIDENCE_RELEVANCE_PLAN.md` header to reflect the compressed phase numbering used in practice, tightened §17 Acceptance Criteria with concrete validation results, and added Appendix C (Phase 6.2a and 6.2b manual validation record with per-check tables and scope boundary confirmation). No code changed.
 
 - **Phase 6.2b — Simulation Dashboard retrieval debug tile (session 60)** — `RetrievalMetadataPanel` extracted to shared component `frontend/src/components/observedPlay/RetrievalMetadataPanel.tsx`. New `ObservedPlayRetrievalDebugTile` component (`frontend/src/components/simulation/`) shows per-round retrieval debug accordion: round number, injected/no-relevant badge, strategy/deck-count header, evidence table, no-relevant-evidence banner, acknowledgment summary. `Dashboard.tsx` loads `GET /api/simulations/{id}/coach-debug` in a separate non-fatal effect and renders tile 14 "Observed-Play Retrieval Debug" after Final Candidate Deck. New types `CoachDebugAnalysisRound`, `CoachDebugResponse` in `simulation.ts`; `getSimulationCoachDebug` in `simulations.ts`. Helper copy added to `/observed-play` preview explaining retrieval metadata is in the simulation Dashboard. +7 new `ObservedPlayRetrievalDebugTile` tests (353 total, 18 files). Build clean. No backend changes.

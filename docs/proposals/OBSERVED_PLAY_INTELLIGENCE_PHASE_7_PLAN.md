@@ -559,6 +559,11 @@ Recommended next phase:
 
 **Phase 7.1 — Deck Archetype Labeling and Log/Deck Tags.**
 
+Phase 7.1a schema/API design is now specified in
+`docs/proposals/OBSERVED_PLAY_ARCHETYPE_LABELING_PHASE_7_1_SPEC.md`. That
+document turns this roadmap recommendation into an implementation-ready design;
+it does not implement Phase 7.1.
+
 This matches the user's stated preference, and review does not reveal a safer or
 more valuable immediate alternative.
 
@@ -875,6 +880,8 @@ Mitigations:
 - Define confidence/review status vocabulary.
 - Define API response shapes.
 - No runtime behavior changes.
+- Detailed spec:
+  `docs/proposals/OBSERVED_PLAY_ARCHETYPE_LABELING_PHASE_7_1_SPEC.md`.
 
 ### Phase 7.1b — Backend Archetype Inference Service
 

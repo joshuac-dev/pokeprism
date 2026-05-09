@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-08 (session 61 — Phase 6.2 stabilization sweep: both 6.2a and 6.2b manually validated)
+Last updated: 2026-05-09 (Phase 7.1a planning — archetype labeling schema/API design added)
 
 ## Current Workstream
 
@@ -17,9 +17,19 @@ post-phase development:
 - AI/coach hardening and decision-quality follow-up.
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
-**Active feature branch:** `feature/observed-play-memory` — Observed Play Memory
+**Active planning branch:** `phase-7-observed-play-planning` — Observed-Play Intelligence Planning
 **Phase 1 through Phase 6.2b are COMPLETE and manually validated.** Both phases validated 2026-05-08.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
+
+**Phase 7.0 planning:** `docs/proposals/OBSERVED_PLAY_INTELLIGENCE_PHASE_7_PLAN.md`
+recommends Phase 7.1 — Deck Archetype Labeling and Log/Deck Tags.
+
+**Phase 7.1a schema/API design:** `docs/proposals/OBSERVED_PLAY_ARCHETYPE_LABELING_PHASE_7_1_SPEC.md`
+adds an implementation-ready design for manual labels plus deterministic
+suggestions, multi-label log/deck support, user review/edit flows, no-migration
+metadata-first storage options, API shape, deterministic inference rules, UI
+surfaces, retrieval integration staging, and tests. This is docs-only planning;
+Phase 7.1 is not implemented.
 
 **Phase 6.1 verification summary:**
 - User Check 1 ✅ — Flag-off context preview: `enabled=false`, `would_inject=false`, no evidence
@@ -71,8 +81,10 @@ See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 - Real deck-contextual retrieval metadata for a simulation lives in `GET /api/simulations/{id}/coach-debug`.
 - The authoritative UI for validating Phase 6.2a retrieval behavior is the simulation Dashboard "Observed-Play Retrieval Debug" tile (not the `/observed-play` preview).
 
-**Next feature step:** Phase 6.2c (if needed) — further validation passes or Phase 7 planning.
-Plan: `docs/proposals/OBSERVED_PLAY_EVIDENCE_RELEVANCE_PLAN.md`.
+**Next feature step:** Phase 7.1b (if approved) — backend archetype label
+inference preview, preferably no-migration and display/review-first.
+Plans: `docs/proposals/OBSERVED_PLAY_INTELLIGENCE_PHASE_7_PLAN.md` and
+`docs/proposals/OBSERVED_PLAY_ARCHETYPE_LABELING_PHASE_7_1_SPEC.md`.
 Observed memory remains advisory only. No claim is made that observed-play evidence improves gameplay — the correct claim is: *observed-play evidence retrieval is deck-contextual, visible, verifiable, and advisory-only.*
 
 **Known caveat:** The LLM (Gemma) may fail to acknowledge observed-play evidence even after a repair retry. This is now visible and non-silent through the fallback `not_used_reason` (`"LLM failed to acknowledge injected observed-play evidence after retries."`) and `coach-debug` metadata. `any_acknowledgment_missing=true` is a valid outcome when this occurs; the goal is that failure is always explicit, never silent.
