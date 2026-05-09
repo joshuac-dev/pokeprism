@@ -17,6 +17,13 @@
 > Hardening: `|vs|unknown` overclaiming removed; source_log_matchup_key returns
 > `None` when opponent side is indeterminate.
 > Backend: 1272 passed, 1 skipped. Frontend: 372 passed.
+>
+> Phase 7.2 corpus readiness audit completed 2026-05-09 on branch
+> `phase-7-2-corpus-expansion-readiness`. Verdict: `not_ready_needs_more_logs`.
+> 49 logs total; salazzle-ex (1 log), charizard-ex (1 log) are critical gaps.
+> All cross-matchup pairs have exactly 1 log each — below ≥3 gate for 7.2c.
+> Phase 7.2c is gated. Full report:
+> `docs/proposals/OBSERVED_PLAY_CORPUS_EXPANSION_PHASE_7_2_READINESS_REPORT.md`.
 
 ---
 
