@@ -62,6 +62,7 @@ _OUTCOME_BONUS = 0.05
 _SOURCE_REP_PENALTY = 0.03
 _LABEL_STRATEGY = "archetype_label_boost_v1"
 _LABEL_BOOST_CAP = 0.10
+_MATCHUP_STRATEGY = "matchup_context_preview_v1"
 
 
 @dataclass
@@ -272,6 +273,127 @@ def _apply_label_boosts(
         cand.matched_label_types = matched_types
         cand.source_log_labels = matched_source_labels
         cand.label_match_reason = " ".join(reasons) if reasons and cand.label_boost > 0 else None
+
+
+def _primary_archetype_label(labels: list[ArchetypeLabel]) -> ArchetypeLabel | None:
+    """Return the highest-confidence archetype-type label, or None if absent.
+
+    Phase 7.2b: used for matchup context preview, does not affect retrieval scoring.
+    """
+    archetype_labels = [lb for lb in labels if lb.label_type == "archetype"]
+    if not archetype_labels:
+        return None
+    return max(archetype_labels, key=lambda lb: lb.confidence)
+
+
+def _compute_matchup_context(
+    deck_labels: list[ArchetypeLabel],
+    candidate_labels: list[ArchetypeLabel],
+) -> dict:
+    """Compute directed matchup key and confidence from deck/candidate labels.
+
+    Phase 7.2b: preview/debug metadata only. Does not affect evidence scoring or ordering.
+    Direction matters: dragapult-ex|vs|gardevoir-ex ≠ gardevoir-ex|vs|dragapult-ex.
+    """
+    current_primary = _primary_archetype_label(deck_labels)
+    if current_primary is None:
+        return {
+            "current_primary_archetype_key": None,
+            "opponent_primary_archetype_key": None,
+            "directed_matchup_key": None,
+            "matchup_confidence": None,
+            "no_matchup_signal_reason": "no_current_archetype_label",
+        }
+
+    opponent_primary = _primary_archetype_label(candidate_labels)
+    if opponent_primary is None:
+        return {
+            "current_primary_archetype_key": current_primary.canonical_key,
+            "opponent_primary_archetype_key": None,
+            "directed_matchup_key": None,
+            "matchup_confidence": None,
+            "no_matchup_signal_reason": "no_opponent_archetype_label",
+        }
+
+    matchup_key = f"{current_primary.canonical_key}|vs|{opponent_primary.canonical_key}"
+    confidence = round(min(current_primary.confidence, opponent_primary.confidence), 4)
+    return {
+        "current_primary_archetype_key": current_primary.canonical_key,
+        "opponent_primary_archetype_key": opponent_primary.canonical_key,
+        "directed_matchup_key": matchup_key,
+        "matchup_confidence": confidence,
+        "no_matchup_signal_reason": None,
+    }
+
+
+def _source_log_matchup_metadata(
+    cand: _RawCandidate,
+    label_cache: dict[str, "ObservedLogArchetypeLabelPreview"],
+    current_primary_key: str | None,
+) -> dict:
+    """Compute per-evidence source log matchup metadata.
+
+    Phase 7.2b: preview/debug metadata only. matchup_boost is always 0.0.
+    Assigns current/opponent player sides by checking which player's labels contain
+    the current primary archetype key. Falls back to None when assignment is ambiguous.
+    """
+    if current_primary_key is None:
+        return {
+            "source_log_matchup_key": None,
+            "source_log_current_player_labels": [],
+            "source_log_opponent_player_labels": [],
+            "matchup_match_reason": None,
+        }
+
+    preview = label_cache.get(cand.log_id)
+    if preview is None:
+        return {
+            "source_log_matchup_key": None,
+            "source_log_current_player_labels": [],
+            "source_log_opponent_player_labels": [],
+            "matchup_match_reason": None,
+        }
+
+    player_aliases = list(preview.labels_by_player.keys())
+    current_alias: str | None = None
+    for alias in player_aliases:
+        player_labels = preview.labels_by_player.get(alias, [])
+        if any(lb.canonical_key == current_primary_key for lb in player_labels):
+            current_alias = alias
+            break
+
+    opponent_alias: str | None = None
+    if current_alias is not None:
+        opponent_alias = next((a for a in player_aliases if a != current_alias), None)
+
+    current_player_labels = list(preview.labels_by_player.get(current_alias, [])) if current_alias else []
+    opponent_player_labels = list(preview.labels_by_player.get(opponent_alias, [])) if opponent_alias else []
+
+    current_source_primary = _primary_archetype_label(current_player_labels)
+    opponent_source_primary = _primary_archetype_label(opponent_player_labels)
+
+    if current_source_primary and opponent_source_primary:
+        source_log_matchup_key = (
+            f"{current_source_primary.canonical_key}|vs|{opponent_source_primary.canonical_key}"
+        )
+        matchup_match_reason = (
+            f"Source log {cand.log_id[:8]}: "
+            f"current={current_source_primary.canonical_key}, "
+            f"opponent={opponent_source_primary.canonical_key}"
+        )
+    elif current_source_primary:
+        source_log_matchup_key = f"{current_source_primary.canonical_key}|vs|unknown"
+        matchup_match_reason = None
+    else:
+        source_log_matchup_key = None
+        matchup_match_reason = None
+
+    return {
+        "source_log_matchup_key": source_log_matchup_key,
+        "source_log_current_player_labels": current_player_labels,
+        "source_log_opponent_player_labels": opponent_player_labels,
+        "matchup_match_reason": matchup_match_reason,
+    }
 
 
 def _format_evidence_prompt_block(
@@ -784,6 +906,11 @@ async def _build_tiered_preview(
 
     no_evidence = not selected_candidates and not allow_fallback
 
+    # Phase 7.2b: compute matchup context preview from already-inferred labels.
+    # Operates on in-memory data only; does not affect scores, ordering, or candidate pool.
+    matchup_ctx = _compute_matchup_context(deck_labels, candidate_labels)
+    source_label_cache = _source_log_label_cache(selected_candidates)
+
     prompt_items: list[ObservedPlayEvidencePromptItem] = []
     evidence_ids: list[str] = []
     evidence_details: list[EvidenceSelectionDetail] = []
@@ -823,6 +950,10 @@ async def _build_tiered_preview(
         else:
             matched_reason = None
 
+        matchup_meta = _source_log_matchup_metadata(
+            cand, source_label_cache, matchup_ctx["current_primary_archetype_key"]
+        )
+
         detail = EvidenceSelectionDetail(
             memory_item_id=mid,
             relevance_score=round(cand.final_score, 4),
@@ -842,6 +973,12 @@ async def _build_tiered_preview(
             label_match_reason=cand.label_match_reason,
             source_log_id=cand.log_id,
             from_winning_game=cand.from_winning_game,
+            # Phase 7.2b matchup preview — boost is always 0.0
+            matchup_boost=0.0,
+            source_log_matchup_key=matchup_meta["source_log_matchup_key"],
+            source_log_current_player_labels=matchup_meta["source_log_current_player_labels"],
+            source_log_opponent_player_labels=matchup_meta["source_log_opponent_player_labels"],
+            matchup_match_reason=matchup_meta["matchup_match_reason"],
         )
         evidence_details.append(detail)
         relevance_details[mid] = detail
@@ -863,6 +1000,19 @@ async def _build_tiered_preview(
         no_relevant_evidence=no_evidence,
         evidence_selected=evidence_details,
         excluded_summary=exclusion,
+        # Phase 7.2b matchup context preview
+        matchup_strategy=_MATCHUP_STRATEGY,
+        matchup_context_enabled=True,
+        matchup_ranking_enabled=False,
+        matchup_candidate_pool_expanded=False,
+        matchup_filter_applied=False,
+        current_archetype_labels=[lb for lb in deck_labels if lb.label_type == "archetype"],
+        opponent_archetype_labels=[lb for lb in candidate_labels if lb.label_type == "archetype"],
+        current_primary_archetype_key=matchup_ctx["current_primary_archetype_key"],
+        opponent_primary_archetype_key=matchup_ctx["opponent_primary_archetype_key"],
+        directed_matchup_key=matchup_ctx["directed_matchup_key"],
+        matchup_confidence=matchup_ctx["matchup_confidence"],
+        no_matchup_signal_reason=matchup_ctx["no_matchup_signal_reason"],
     )
 
     if no_evidence:

@@ -214,4 +214,107 @@ describe('ObservedPlayRetrievalDebugTile', () => {
     );
     expect(screen.getByText(/1 deck IDs/i)).toBeInTheDocument();
   });
+
+  // Phase 7.2b matchup context tests
+  it('shows matchup context section when matchup_context_enabled is true', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            matchup_context_enabled: true,
+            matchup_strategy: 'matchup_context_preview_v1',
+            matchup_ranking_enabled: false,
+            matchup_candidate_pool_expanded: false,
+            matchup_filter_applied: false,
+            directed_matchup_key: 'dragapult-ex|vs|gardevoir-ex',
+            matchup_confidence: 0.88,
+            current_primary_archetype_key: 'dragapult-ex',
+            opponent_primary_archetype_key: 'gardevoir-ex',
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    expect(screen.getByText(/matchup_context_preview_v1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Matchup strategy/i)).toBeInTheDocument();
+  });
+
+  it('shows directed matchup key when present', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            matchup_context_enabled: true,
+            matchup_strategy: 'matchup_context_preview_v1',
+            directed_matchup_key: 'dragapult-ex|vs|gardevoir-ex',
+            matchup_confidence: 0.88,
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    expect(screen.getByText('dragapult-ex|vs|gardevoir-ex')).toBeInTheDocument();
+  });
+
+  it('shows no_matchup_signal_reason when no directed key', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            matchup_context_enabled: true,
+            matchup_strategy: 'matchup_context_preview_v1',
+            directed_matchup_key: null,
+            no_matchup_signal_reason: 'no_opponent_archetype_label',
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    expect(screen.getByText(/no opponent archetype label/i)).toBeInTheDocument();
+  });
+
+  it('shows preview-only advisory copy', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            matchup_context_enabled: true,
+            matchup_strategy: 'matchup_context_preview_v1',
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    expect(screen.getByText(/preview\/debug metadata only in Phase 7\.2b/i)).toBeInTheDocument();
+  });
+
+  it('older payload without matchup fields still renders without errors', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            // No matchup fields — backward compat
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    // Matchup section should not render
+    expect(screen.queryByText(/Matchup strategy/i)).not.toBeInTheDocument();
+  });
 });

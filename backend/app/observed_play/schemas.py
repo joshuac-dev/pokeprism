@@ -802,6 +802,12 @@ class EvidenceSelectionDetail(BaseModel):
     label_match_reason: str | None = None
     source_log_id: str
     from_winning_game: bool | None = None
+    # Phase 7.2b — matchup context preview (metadata only, does not affect scoring)
+    matchup_boost: float = 0.0
+    source_log_matchup_key: str | None = None
+    source_log_current_player_labels: list[ArchetypeLabel] = Field(default_factory=list)
+    source_log_opponent_player_labels: list[ArchetypeLabel] = Field(default_factory=list)
+    matchup_match_reason: str | None = None
 
 
 class EvidenceExclusionSummary(BaseModel):
@@ -835,6 +841,19 @@ class ObservedPlayRetrievalMetadata(BaseModel):
     no_relevant_evidence: bool = False
     evidence_selected: list[EvidenceSelectionDetail] = Field(default_factory=list)
     excluded_summary: EvidenceExclusionSummary = Field(default_factory=EvidenceExclusionSummary)
+    # Phase 7.2b — matchup context preview (metadata only, no scoring/ordering change)
+    matchup_strategy: str | None = None
+    matchup_context_enabled: bool = False
+    matchup_ranking_enabled: bool = False
+    matchup_candidate_pool_expanded: bool = False
+    matchup_filter_applied: bool = False
+    current_archetype_labels: list[ArchetypeLabel] = Field(default_factory=list)
+    opponent_archetype_labels: list[ArchetypeLabel] = Field(default_factory=list)
+    current_primary_archetype_key: str | None = None
+    opponent_primary_archetype_key: str | None = None
+    directed_matchup_key: str | None = None
+    matchup_confidence: float | None = None
+    no_matchup_signal_reason: str | None = None
 
 
 class ObservedPlayCoachContextPreview(BaseModel):
