@@ -31,6 +31,24 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Added
+- **Phase 7.1c — UI archetype label preview display/review** — Added
+  frontend read-only display for Phase 7.1b archetype/package/strategy label
+  previews. New shared `ArchetypeLabelPreviewPanel` renders advisory labels,
+  confidence, source, review status, evidence cards/counts, ambiguous state,
+  and no-label reasons. `/observed-play` Raw Logs now includes a "Preview
+  labels" action that opens a per-log modal grouped by observed player alias.
+  Simulation Dashboard now shows a non-fatal "Deck Context Labels" tile when
+  `user_deck_id` is available. Added frontend API wrappers and TypeScript
+  schemas for deck/log label preview responses. Labels remain read-only,
+  are not persisted, and are not used for Coach retrieval ranking. No backend
+  retrieval, Coach strategy, Coach prompt injection, simulator gameplay,
+  AI Player, observed-play ingestion, deck-builder, pgvector/Neo4j,
+  `match_events`, or `card_performance` behavior changed. Validation:
+  `npm ci`, frontend tests (`362 passed`), frontend build, and
+  `git diff --check` passed. Endpoint smoke checks covered known Dragapult,
+  Gardevoir, Crustle, unknown/no-label, and mixed/ambiguous observed-log
+  preview examples.
+
 - **Phase 7.1b — Backend archetype label inference preview** — Added
   deterministic, backend-only advisory label preview for decks and observed-play
   logs. New schemas: `ArchetypeLabel`, `DeckArchetypeLabelPreview`, and

@@ -29,6 +29,7 @@ import type {
   GetCoachEvidenceParams,
   ObservedPlayCoachContextPreview,
   GetCoachContextPreviewParams,
+  ObservedLogArchetypeLabelPreview,
 } from '../types/observedPlay';
 
 export interface ListBatchesParams {
@@ -246,4 +247,11 @@ export async function getCoachContextPreview(
 ): Promise<ObservedPlayCoachContextPreview> {
   const resp = await api.get('/api/observed-play/coach-context-preview', { params });
   return resp.data as ObservedPlayCoachContextPreview;
+}
+
+export async function getObservedLogArchetypeLabelPreview(
+  logId: string,
+): Promise<ObservedLogArchetypeLabelPreview> {
+  const resp = await api.get(`/api/observed-play/logs/${logId}/archetype-label-preview`);
+  return resp.data as ObservedLogArchetypeLabelPreview;
 }

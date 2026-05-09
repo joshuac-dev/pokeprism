@@ -58,6 +58,7 @@ import type {
   GetCoachContextPreviewParams,
 } from '../types/observedPlay';
 import { normalizeTcgdexImageUrl } from '../utils/imageUrl';
+import ObservedLogArchetypeLabelPreviewModal from '../components/observedPlay/ObservedLogArchetypeLabelPreviewModal';
 
 const ACCEPTED_EXTS = '.md,.markdown,.txt,.zip';
 
@@ -2550,6 +2551,7 @@ export default function ObservedPlay() {
   const [viewCardMentionsLogId, setViewCardMentionsLogId] = useState<string | null>(null);
   const [memoryPreviewLogId, setMemoryPreviewLogId] = useState<string | null>(null);
   const [memoryItemsLogId, setMemoryItemsLogId] = useState<string | null>(null);
+  const [labelPreviewLogId, setLabelPreviewLogId] = useState<string | null>(null);
 
   // Bulk action state
   const [bulkParseOpen, setBulkParseOpen] = useState(false);
@@ -3127,6 +3129,12 @@ export default function ObservedPlay() {
                       >
                         View events
                       </button>
+                      <button
+                        onClick={() => setLabelPreviewLogId(log.id)}
+                        className="rounded border border-amber-300 dark:border-amber-700 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
+                      >
+                        Preview labels
+                      </button>
                       {(log.card_mention_count ?? 0) > 0 && (
                         <button
                           onClick={() => setViewCardMentionsLogId(log.id)}
@@ -3227,6 +3235,13 @@ export default function ObservedPlay() {
         <MemoryItemsModal
           logId={memoryItemsLogId}
           onClose={() => setMemoryItemsLogId(null)}
+        />
+      )}
+      {labelPreviewLogId && (
+        <ObservedLogArchetypeLabelPreviewModal
+          logId={labelPreviewLogId}
+          filename={logs.find((log) => log.id === labelPreviewLogId)?.original_filename ?? null}
+          onClose={() => setLabelPreviewLogId(null)}
         />
       )}
     </PageShell>

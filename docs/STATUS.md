@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-09 (Phase 7.1b backend archetype label preview implemented)
+Last updated: 2026-05-09 (Phase 7.1c UI archetype label preview display implemented)
 
 ## Current Workstream
 
@@ -42,6 +42,26 @@ do not affect Coach retrieval ranking. No migrations, Coach strategy changes,
 simulator gameplay changes, AI Player changes, pgvector/Neo4j writes,
 `match_events` writes, `card_performance` writes, deck-builder changes, or
 observed-play ingestion changes were made.
+
+**Phase 7.1c UI preview display:** frontend read-only display/review surfaces
+are implemented for the Phase 7.1b preview endpoints.
+- `/observed-play` Raw Logs table now has a per-log "Preview labels" action
+  that opens an advisory label preview modal grouped by observed player alias.
+- Simulation Dashboard now shows a non-fatal "Deck Context Labels" tile when
+  `user_deck_id` is available, using the deck preview endpoint.
+- Shared frontend display component renders label, type, source, confidence,
+  review status, evidence cards/counts, ambiguous state, no-label reason, and
+  advisory/read-only copy.
+- Validation: `npm ci`, frontend tests (`362 passed`), frontend build, and
+  `git diff --check` passed. Endpoint smoke checks confirmed Dragapult,
+  Gardevoir, Crustle, unknown/no-label, and mixed/ambiguous observed-log
+  preview payloads remain plausible.
+
+Phase 7.1c does not persist labels, does not add edit/accept/reject behavior,
+does not change retrieval ranking, and does not alter Coach prompt injection,
+Coach strategy, simulator gameplay, AI Player behavior, observed-play
+ingestion, deck-builder behavior, pgvector/Neo4j, `match_events`, or
+`card_performance`.
 
 **Phase 6.1 verification summary:**
 - User Check 1 ✅ — Flag-off context preview: `enabled=false`, `would_inject=false`, no evidence

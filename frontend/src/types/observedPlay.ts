@@ -681,3 +681,58 @@ export interface GetCoachContextPreviewParams {
   min_confidence?: number;
   limit?: number;
 }
+
+// ── Phase 7.1b/7.1c: Archetype label preview schemas ───────────────────────
+
+export type ArchetypeLabelType = 'archetype' | 'package' | 'strategy' | 'matchup' | 'format';
+
+export type ArchetypeLabelSource =
+  | 'manual'
+  | 'deck_cards'
+  | 'observed_log'
+  | 'llm_suggestion'
+  | 'imported';
+
+export type ArchetypeLabelReviewStatus =
+  | 'suggested'
+  | 'accepted'
+  | 'rejected'
+  | 'edited'
+  | 'stale'
+  | 'needs_review';
+
+export interface ArchetypeLabel {
+  label: string;
+  canonical_key: string;
+  label_type: ArchetypeLabelType;
+  source: ArchetypeLabelSource;
+  confidence: number;
+  review_status: ArchetypeLabelReviewStatus;
+  player_alias?: string | null;
+  evidence_card_ids: string[];
+  evidence_card_names: string[];
+  evidence_counts: Record<string, number>;
+  evidence_event_ids: string[];
+  evidence_memory_item_ids: string[];
+  notes?: string | null;
+  schema_version: string;
+}
+
+export interface DeckArchetypeLabelPreview {
+  deck_id: string;
+  deck_name?: string | null;
+  labels: ArchetypeLabel[];
+  primary_label?: ArchetypeLabel | null;
+  ambiguous: boolean;
+  no_label_reason?: string | null;
+  source: 'deck_cards';
+}
+
+export interface ObservedLogArchetypeLabelPreview {
+  observed_play_log_id: string;
+  labels_by_player: Record<string, ArchetypeLabel[]>;
+  global_labels: ArchetypeLabel[];
+  ambiguous: boolean;
+  no_label_reason?: string | null;
+  source: 'observed_log';
+}

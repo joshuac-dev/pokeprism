@@ -1373,34 +1373,47 @@ Manual checks:
 
 Goal:
 
-- Display labels in `/observed-play` and deck surfaces.
-- Add minimal review controls if persistence is available.
+- Display labels in `/observed-play` and deck/dashboard surfaces.
+- Implemented as read-only preview display only. No persistence-backed review
+  controls are available yet, so accept/reject/edit remains deferred.
 
 Files likely touched:
 
 - `frontend/src/types/observedPlay.ts`.
 - `frontend/src/api/observedPlay.ts`.
+- `frontend/src/api/decks.ts`.
 - `frontend/src/pages/ObservedPlay.tsx`.
+- `frontend/src/pages/Dashboard.tsx`.
 - New observed-play label components.
-- Possibly deck detail/edit components if a stable deck surface exists.
+- There is no dependency on the stubbed `GET /api/decks/` list endpoint.
 
 Tests:
 
 - Label chips render.
 - Evidence panel renders.
-- Accept/reject/edit controls.
+- Observed-log labels render grouped by player.
+- Dashboard does not call deck preview without `user_deck_id`.
+- Dashboard remains usable when preview fetch fails.
 - Old logs/decks without labels render.
+- Phase 7.1c validation: frontend tests passed (`362 passed`) and frontend
+  production build passed.
 
 Acceptance criteria:
 
 - Labels visible and reviewable.
 - Low-confidence/unreviewed labels are visually distinct.
 - Tables remain readable.
+- UI copy says labels are advisory/read-only, not card rules, and not currently
+  used for Coach retrieval ranking.
+- Labels are not persisted and no edit/accept/reject controls are exposed.
 
 Manual checks:
 
 - Check dark mode, long labels, multi-label rows, and logs with both players
   labeled.
+- Endpoint smoke checks confirmed Dragapult, Gardevoir, Crustle,
+  unknown/no-label, and mixed/ambiguous observed-log payloads are still shaped
+  for the UI surfaces.
 
 ### Phase 7.1d — retrieval metadata/ranking integration
 

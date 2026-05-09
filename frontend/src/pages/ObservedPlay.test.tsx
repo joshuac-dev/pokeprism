@@ -29,6 +29,7 @@ vi.mock('../api/observedPlay', () => ({
   getCorpusReadiness: vi.fn(),
   getCoachEvidence: vi.fn(),
   getCoachContextPreview: vi.fn(),
+  getObservedLogArchetypeLabelPreview: vi.fn(),
 }));
 
 import {
@@ -52,6 +53,7 @@ import {
   getCorpusReadiness,
   getCoachEvidence,
   getCoachContextPreview,
+  getObservedLogArchetypeLabelPreview,
 } from '../api/observedPlay';
 
 const emptyBatches = { items: [], total: 0, page: 1, per_page: 25 };
@@ -273,6 +275,14 @@ beforeEach(() => {
     warnings: [],
     filters_applied: { min_confidence: 0.85, limit: 8 },
   });
+  (getObservedLogArchetypeLabelPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+    observed_play_log_id: 'log-001',
+    labels_by_player: {},
+    global_labels: [],
+    ambiguous: false,
+    no_label_reason: 'no seeded archetype evidence found',
+    source: 'observed_log',
+  });
 });
 
 describe('ObservedPlay page', () => {
@@ -283,6 +293,53 @@ describe('ObservedPlay page', () => {
     });
     expect(screen.getByText('Choose file…')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /upload/i })).toBeInTheDocument();
+  });
+
+  it('previews advisory labels for a raw observed-play log', async () => {
+    (listObservedPlayLogs as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [sampleLog],
+      total: 1,
+      page: 1,
+      per_page: 25,
+    });
+    (getObservedLogArchetypeLabelPreview as ReturnType<typeof vi.fn>).mockResolvedValue({
+      observed_play_log_id: 'log-001',
+      labels_by_player: {
+        'Player 1': [
+          {
+            label: 'Dragapult ex',
+            canonical_key: 'dragapult-ex',
+            label_type: 'archetype',
+            source: 'observed_log',
+            confidence: 0.72,
+            review_status: 'suggested',
+            player_alias: 'Player 1',
+            evidence_card_ids: ['sv08-130'],
+            evidence_card_names: ['Dragapult ex', 'Dreepy'],
+            evidence_counts: { 'Dragapult ex': 2, Dreepy: 3 },
+            evidence_event_ids: ['101'],
+            evidence_memory_item_ids: ['mem-1'],
+            notes: null,
+            schema_version: 'archetype_label_v1',
+          },
+        ],
+      },
+      global_labels: [],
+      ambiguous: true,
+      no_label_reason: null,
+      source: 'observed_log',
+    });
+
+    setup();
+    const button = await screen.findByRole('button', { name: /preview labels/i });
+    await userEvent.click(button);
+
+    expect(await screen.findByText('Observed-Play Label Preview')).toBeInTheDocument();
+    expect(screen.getByText('Player 1')).toBeInTheDocument();
+    expect(screen.getByText('Dragapult ex')).toBeInTheDocument();
+    expect(screen.getByText(/Ambiguous preview/)).toBeInTheDocument();
+    expect(screen.getByText(/not currently used for Coach retrieval ranking/i)).toBeInTheDocument();
+    expect(getObservedLogArchetypeLabelPreview).toHaveBeenCalledWith('log-001');
   });
 
   it('shows phase 4 active banner', async () => {
