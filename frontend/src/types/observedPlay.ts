@@ -628,11 +628,19 @@ export interface GetCoachEvidenceParams {
 export interface EvidenceSelectionDetail {
   memory_item_id: string;
   relevance_score: number;
+  base_relevance_score?: number | null;
+  label_boost?: number;
+  final_relevance_score?: number | null;
   tier: number;
   matched_card_ids: string[];
   matched_card_names: string[];
   matched_field: string | null;
   matched_reason: string | null;
+  matched_label_keys?: string[];
+  matched_label_names?: string[];
+  matched_label_types?: string[];
+  source_log_labels?: ArchetypeLabel[];
+  label_match_reason?: string | null;
   match_source: string | null;
   source_log_id: string;
   from_winning_game: boolean | null;
@@ -647,10 +655,16 @@ export interface EvidenceExclusionSummary {
 
 export interface ObservedPlayRetrievalMetadata {
   strategy: string;
+  label_strategy?: string | null;
+  label_ranking_enabled?: boolean;
   deck_card_ids: string[];
   deck_card_names: string[];
   candidate_card_ids: string[];
   candidate_card_names: string[];
+  deck_labels?: ArchetypeLabel[];
+  candidate_labels?: ArchetypeLabel[];
+  label_boost_cap?: number;
+  label_boost_applied_count?: number;
   allow_fallback: boolean;
   max_items_per_log: number;
   evidence_selected: EvidenceSelectionDetail[];
