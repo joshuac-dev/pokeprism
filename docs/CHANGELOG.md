@@ -31,6 +31,19 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Added
+- **Phase 7.2 corpus readiness audit** — Read-only audit of observed-play corpus
+  against Phase 7.2c matchup ranking gates. Verdict: `not_ready_needs_more_logs`.
+  49 total logs (all parsed+ingested). Archetype distribution: dragapult-ex (23),
+  crustle (12), gardevoir-ex (12), salazzle-ex (1), charizard-ex (1). Cross-matchup
+  pair coverage: dragapult-ex|vs|crustle (1), dragapult-ex|vs|gardevoir-ex (1),
+  gardevoir-ex|vs|charizard-ex (1) — all below the ≥3 minimum gate. Mirror matches
+  (same archetype on both sides) account for 37 of 40 fully-labeled directed pairs.
+  No import candidates found locally. No imports performed. Phase 7.2c gated pending
+  corpus expansion: priority gaps are Salazzle ex (need 4 more clean logs),
+  Charizard ex (need 4 more), and any cross-matchup pair reaching ≥3 logs.
+  Full report: `docs/proposals/OBSERVED_PLAY_CORPUS_EXPANSION_PHASE_7_2_READINESS_REPORT.md`.
+  No code changes. Branch: `phase-7-2-corpus-expansion-readiness`.
+
 - **Phase 7.2b — Matchup context preview metadata** — Added
   `matchup_strategy=matchup_context_preview_v1` as a metadata-only preview
   layer on top of the existing `deck_overlap_v1` + `archetype_label_boost_v1`

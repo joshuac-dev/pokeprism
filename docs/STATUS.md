@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-09 (Phase 7.2b matchup context preview completed)
+Last updated: 2026-05-09 (Phase 7.2 corpus readiness audit completed)
 
 ## Current Workstream
 
@@ -21,21 +21,24 @@ post-phase development:
 **Phase 1 through Phase 6.2b are COMPLETE and manually validated.** Both phases validated 2026-05-08.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
-**Phase 7.2b implementation:** matchup context preview metadata added to
-observed-play retrieval debug output. `matchup_strategy=matchup_context_preview_v1`.
-Directed matchup key (`{current}|vs|{opponent}`) computed from highest-confidence
-archetype labels. All new matchup fields are metadata-only: `matchup_ranking_enabled=False`,
-`matchup_boost=0.0`, scores and ordering unchanged from Phase 7.1d.
-Backend: 1267 passed, 1 skipped. Frontend: 371 passed, 21 files.
-Recommended next: Phase 7.2c corpus expansion and matchup ranking signal.
+**Phase 7.2 corpus readiness audit (2026-05-09):** Verdict: `not_ready_needs_more_logs`.
+49 logs in corpus (all parsed+ingested). Archetype distribution: dragapult-ex (23),
+crustle (12), gardevoir-ex (12), salazzle-ex (1), charizard-ex (1). All cross-matchup
+pairs (different archetypes on each side) have exactly 1 log each — below the ≥3
+minimum for Phase 7.2c matchup ranking. Salazzle-ex and Charizard-ex each need 4
+more clean logs. No import candidates found locally.
+Phase 7.2c is **gated** pending corpus expansion.
+Full report: `docs/proposals/OBSERVED_PLAY_CORPUS_EXPANSION_PHASE_7_2_READINESS_REPORT.md`.
+
+**Phase 7.2b implementation:** matchup context preview metadata merged to main (`6234d5c`).
+`matchup_strategy=matchup_context_preview_v1`. Directed matchup key computed from
+highest-confidence archetype labels. All matchup fields are metadata-only:
+`matchup_ranking_enabled=False`, `matchup_boost=0.0`, scores and ordering unchanged.
+Hardening removed `|vs|unknown` partial-key overclaiming.
+Backend: 1272 passed, 1 skipped. Frontend: 372 passed, 21 files.
 
 **Phase 7.2a design:** `docs/proposals/OBSERVED_PLAY_MATCHUP_AWARE_RETRIEVAL_PHASE_7_2_PLAN.md`
 contains the full matchup-aware retrieval design and corpus expansion plan.
-Verdict: design complete, ready for Phase 7.2b implementation.
-Recommended next slice: Phase 7.2b — backend matchup context metadata preview,
-no retrieval behavior change. Corpus expansion (Section 9 of the plan) should
-begin in parallel: priority targets are Gardevoir ex (≥5 more logs),
-Crustle (≥5 more logs), Salazzle ex (≥5 logs), Charizard ex (≥5 logs).
 Matchup ranking boost (Phase 7.2c) gated on corpus reaching minimum thresholds.
 Candidate-pool expansion (Phase 7.2d) gated on matchup pairs reaching ≥3 logs.
 
