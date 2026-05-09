@@ -317,4 +317,27 @@ describe('ObservedPlayRetrievalDebugTile', () => {
     // Matchup section should not render
     expect(screen.queryByText(/Matchup strategy/i)).not.toBeInTheDocument();
   });
+
+  it('shows matchup ranking and pool expansion as disabled', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            matchup_context_enabled: true,
+            matchup_strategy: 'matchup_context_preview_v1',
+            matchup_ranking_enabled: false,
+            matchup_candidate_pool_expanded: false,
+            matchup_filter_applied: false,
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    expect(screen.getByText(/Matchup ranking/i)).toBeInTheDocument();
+    expect(screen.getByText(/Candidate pool expansion/i)).toBeInTheDocument();
+    expect(screen.getByText(/Filter applied/i)).toBeInTheDocument();
+  });
 });

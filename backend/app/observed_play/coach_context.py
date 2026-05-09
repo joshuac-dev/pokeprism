@@ -381,10 +381,8 @@ def _source_log_matchup_metadata(
             f"current={current_source_primary.canonical_key}, "
             f"opponent={opponent_source_primary.canonical_key}"
         )
-    elif current_source_primary:
-        source_log_matchup_key = f"{current_source_primary.canonical_key}|vs|unknown"
-        matchup_match_reason = None
     else:
+        # Opponent side unknown or ambiguous — do not overclaim a partial matchup key.
         source_log_matchup_key = None
         matchup_match_reason = None
 

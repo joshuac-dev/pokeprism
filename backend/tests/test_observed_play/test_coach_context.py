@@ -915,7 +915,104 @@ class TestComputeMatchupContext:
         assert ctx["no_matchup_signal_reason"] == "no_current_archetype_label"
 
 
-# ── Tests for Phase 7.2b matchup metadata in tiered preview ──────────────────
+class TestSourceLogMatchupMetadata:
+    """Tests for _source_log_matchup_metadata — per-evidence source-log player assignment."""
+
+    def _make_label(self, canonical_key, label_type="archetype", confidence=0.90):
+        from app.observed_play.schemas import ArchetypeLabel
+        return ArchetypeLabel(
+            label=canonical_key,
+            canonical_key=canonical_key,
+            label_type=label_type,
+            source="observed_log",
+            confidence=confidence,
+            review_status="suggested",
+            evidence_card_ids=[],
+            evidence_card_names=[],
+            evidence_counts={},
+            evidence_event_ids=[],
+            evidence_memory_item_ids=[],
+            schema_version="archetype_label_v1",
+        )
+
+    def _make_cand(self, log_id: str):
+        from app.observed_play.coach_context import _RawCandidate
+        item = MagicMock()
+        return _RawCandidate(item=item, log_id=log_id, tier=1, base_score=0.90)
+
+    def _make_preview(self, log_id: str, labels_by_player: dict):
+        from app.observed_play.schemas import ObservedLogArchetypeLabelPreview
+        return ObservedLogArchetypeLabelPreview(
+            observed_play_log_id=log_id,
+            labels_by_player=labels_by_player,
+        )
+
+    def _fn(self, cand, label_cache, current_primary_key):
+        from app.observed_play.coach_context import _source_log_matchup_metadata
+        return _source_log_matchup_metadata(cand, label_cache, current_primary_key)
+
+    def test_full_assignment_produces_directed_key(self):
+        """Both players identified → source_log_matchup_key is formed."""
+        log_id = str(uuid.uuid4())
+        cand = self._make_cand(log_id)
+        preview = self._make_preview(log_id, {
+            "player_1": [self._make_label("dragapult-ex")],
+            "player_2": [self._make_label("gardevoir-ex")],
+        })
+        result = self._fn(cand, {log_id: preview}, "dragapult-ex")
+        assert result["source_log_matchup_key"] == "dragapult-ex|vs|gardevoir-ex"
+        assert result["matchup_match_reason"] is not None
+        assert "dragapult-ex" in result["matchup_match_reason"]
+        assert "gardevoir-ex" in result["matchup_match_reason"]
+
+    def test_partial_assignment_returns_null_key_not_unknown_suffix(self):
+        """Current player identified but opponent has no archetype label → source_log_matchup_key=None.
+
+        Regression test for |vs|unknown overclaiming fix.
+        """
+        log_id = str(uuid.uuid4())
+        cand = self._make_cand(log_id)
+        # player_2 has only strategy labels, not archetype
+        preview = self._make_preview(log_id, {
+            "player_1": [self._make_label("dragapult-ex")],
+            "player_2": [self._make_label("spread-damage", label_type="strategy")],
+        })
+        result = self._fn(cand, {log_id: preview}, "dragapult-ex")
+        # Must NOT produce |vs|unknown — that overclaims
+        assert result["source_log_matchup_key"] is None
+        assert result["matchup_match_reason"] is None
+        # Player labels should still be populated
+        assert len(result["source_log_current_player_labels"]) >= 1
+
+    def test_no_current_primary_key_returns_null(self):
+        """current_primary_key=None → all fields are None/empty."""
+        log_id = str(uuid.uuid4())
+        cand = self._make_cand(log_id)
+        preview = self._make_preview(log_id, {"player_1": [self._make_label("dragapult-ex")]})
+        result = self._fn(cand, {log_id: preview}, None)
+        assert result["source_log_matchup_key"] is None
+        assert result["matchup_match_reason"] is None
+        assert result["source_log_current_player_labels"] == []
+
+    def test_no_cache_entry_returns_null(self):
+        """Missing label cache entry → all fields null."""
+        log_id = str(uuid.uuid4())
+        cand = self._make_cand(log_id)
+        result = self._fn(cand, {}, "dragapult-ex")
+        assert result["source_log_matchup_key"] is None
+        assert result["matchup_match_reason"] is None
+
+    def test_no_player_matches_current_primary_key(self):
+        """Neither player alias matches current_primary_key → null key, no overclaiming."""
+        log_id = str(uuid.uuid4())
+        cand = self._make_cand(log_id)
+        preview = self._make_preview(log_id, {
+            "player_1": [self._make_label("crustle")],
+            "player_2": [self._make_label("gardevoir-ex")],
+        })
+        result = self._fn(cand, {log_id: preview}, "dragapult-ex")
+        assert result["source_log_matchup_key"] is None
+        assert result["matchup_match_reason"] is None
 
 class TestMatchupMetadataInTieredPreview:
 
