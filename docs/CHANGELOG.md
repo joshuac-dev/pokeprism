@@ -31,7 +31,30 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Added
-- **Phase 7.2a — Matchup-aware retrieval design and corpus expansion plan** —
+- **Phase 7.2b — Matchup context preview metadata** — Added
+  `matchup_strategy=matchup_context_preview_v1` as a metadata-only preview
+  layer on top of the existing `deck_overlap_v1` + `archetype_label_boost_v1`
+  retrieval. Computes directed matchup key (`{current}|vs|{opponent}`) from
+  highest-confidence archetype label on each side. New metadata fields on
+  `ObservedPlayRetrievalMetadata`: `matchup_strategy`, `matchup_context_enabled`,
+  `matchup_ranking_enabled` (always false), `matchup_candidate_pool_expanded`
+  (always false), `matchup_filter_applied` (always false),
+  `current/opponent_archetype_labels`, `current/opponent_primary_archetype_key`,
+  `directed_matchup_key`, `matchup_confidence`, `no_matchup_signal_reason`.
+  New per-evidence fields on `EvidenceSelectionDetail`: `matchup_boost` (always
+  `0.0`), `source_log_matchup_key`, `source_log_current/opponent_player_labels`,
+  `matchup_match_reason`. Scores, ordering, evidence IDs, and prompt injection
+  policy are byte-for-byte unchanged from Phase 7.1d. Dashboard retrieval debug
+  UI shows a sky-blue matchup section with directed key, archetype labels,
+  no-signal reason, and advisory copy ("preview/debug metadata only in Phase
+  7.2b. It does not affect evidence scores or ordering."). Older payloads without
+  matchup fields render without errors. No migrations, no label/matchup
+  persistence, no hard filtering, no candidate-pool expansion, no Coach strategy
+  changes, no simulator/AI Player/ingestion/deck-builder changes, no pgvector/
+  Neo4j/`match_events`/`card_performance` writes.
+  Backend: 1267 passed, 1 skipped. Frontend: 371 passed, 21 files.
+
+
   Designed Phase 7.2 matchup-aware retrieval: directed matchup pair model
   (`{user}|vs|{opponent}`), `MatchupContext` dataclass, proposed metadata schema
   additions to `ObservedPlayRetrievalMetadata` and `EvidenceSelectionDetail`,

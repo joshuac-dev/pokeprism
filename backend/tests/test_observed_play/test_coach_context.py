@@ -803,3 +803,449 @@ class TestBuildCoachContextPreviewTiered:
         db.add.assert_not_called()
         db.flush.assert_not_called()
         db.delete.assert_not_called()
+
+
+# ── Tests for Phase 7.2b matchup context preview helpers ─────────────────────
+
+class TestPrimaryArchetypeLabel:
+    def _fn(self, labels):
+        from app.observed_play.coach_context import _primary_archetype_label
+        return _primary_archetype_label(labels)
+
+    def _make_label(self, canonical_key, label_type="archetype", confidence=0.90):
+        from app.observed_play.schemas import ArchetypeLabel
+        return ArchetypeLabel(
+            label=canonical_key,
+            canonical_key=canonical_key,
+            label_type=label_type,
+            source="deck_cards",
+            confidence=confidence,
+            review_status="suggested",
+            evidence_card_ids=[],
+            evidence_card_names=[],
+            evidence_counts={},
+            evidence_event_ids=[],
+            evidence_memory_item_ids=[],
+            schema_version="archetype_label_v1",
+        )
+
+    def test_returns_highest_confidence_archetype_label(self):
+        low = self._make_label("crustle", confidence=0.70)
+        high = self._make_label("dragapult-ex", confidence=0.92)
+        result = self._fn([low, high])
+        assert result is not None
+        assert result.canonical_key == "dragapult-ex"
+
+    def test_ignores_non_archetype_labels(self):
+        pkg = self._make_label("stage-2-setup", label_type="package", confidence=0.95)
+        arch = self._make_label("dragapult-ex", label_type="archetype", confidence=0.80)
+        result = self._fn([pkg, arch])
+        assert result is not None
+        assert result.canonical_key == "dragapult-ex"
+
+    def test_returns_none_for_empty_list(self):
+        assert self._fn([]) is None
+
+    def test_returns_none_when_no_archetype_labels(self):
+        pkg = self._make_label("spread-damage", label_type="strategy", confidence=0.85)
+        assert self._fn([pkg]) is None
+
+
+class TestComputeMatchupContext:
+    def _fn(self, deck_labels, candidate_labels):
+        from app.observed_play.coach_context import _compute_matchup_context
+        return _compute_matchup_context(deck_labels, candidate_labels)
+
+    def _make_label(self, canonical_key, label_type="archetype", confidence=0.90):
+        from app.observed_play.schemas import ArchetypeLabel
+        return ArchetypeLabel(
+            label=canonical_key,
+            canonical_key=canonical_key,
+            label_type=label_type,
+            source="deck_cards",
+            confidence=confidence,
+            review_status="suggested",
+            evidence_card_ids=[],
+            evidence_card_names=[],
+            evidence_counts={},
+            evidence_event_ids=[],
+            evidence_memory_item_ids=[],
+            schema_version="archetype_label_v1",
+        )
+
+    def test_directed_key_formed_when_both_archetypes_present(self):
+        deck = [self._make_label("dragapult-ex", confidence=0.92)]
+        cand = [self._make_label("gardevoir-ex", confidence=0.85)]
+        ctx = self._fn(deck, cand)
+        assert ctx["directed_matchup_key"] == "dragapult-ex|vs|gardevoir-ex"
+        assert ctx["current_primary_archetype_key"] == "dragapult-ex"
+        assert ctx["opponent_primary_archetype_key"] == "gardevoir-ex"
+        assert ctx["no_matchup_signal_reason"] is None
+
+    def test_direction_matters(self):
+        deck = [self._make_label("gardevoir-ex", confidence=0.88)]
+        cand = [self._make_label("dragapult-ex", confidence=0.90)]
+        ctx = self._fn(deck, cand)
+        assert ctx["directed_matchup_key"] == "gardevoir-ex|vs|dragapult-ex"
+
+    def test_no_directed_key_when_current_archetype_absent(self):
+        deck = [self._make_label("spread-damage", label_type="strategy", confidence=0.90)]
+        cand = [self._make_label("gardevoir-ex", confidence=0.88)]
+        ctx = self._fn(deck, cand)
+        assert ctx["directed_matchup_key"] is None
+        assert ctx["no_matchup_signal_reason"] == "no_current_archetype_label"
+
+    def test_no_directed_key_when_opponent_archetype_absent(self):
+        deck = [self._make_label("dragapult-ex", confidence=0.92)]
+        cand = []
+        ctx = self._fn(deck, cand)
+        assert ctx["directed_matchup_key"] is None
+        assert ctx["current_primary_archetype_key"] == "dragapult-ex"
+        assert ctx["no_matchup_signal_reason"] == "no_opponent_archetype_label"
+
+    def test_confidence_is_minimum_of_both(self):
+        deck = [self._make_label("dragapult-ex", confidence=0.92)]
+        cand = [self._make_label("crustle", confidence=0.70)]
+        ctx = self._fn(deck, cand)
+        assert ctx["matchup_confidence"] == pytest.approx(0.70, abs=0.001)
+
+    def test_empty_inputs_return_no_directed_key(self):
+        ctx = self._fn([], [])
+        assert ctx["directed_matchup_key"] is None
+        assert ctx["no_matchup_signal_reason"] == "no_current_archetype_label"
+
+
+class TestSourceLogMatchupMetadata:
+    """Tests for _source_log_matchup_metadata — per-evidence source-log player assignment."""
+
+    def _make_label(self, canonical_key, label_type="archetype", confidence=0.90):
+        from app.observed_play.schemas import ArchetypeLabel
+        return ArchetypeLabel(
+            label=canonical_key,
+            canonical_key=canonical_key,
+            label_type=label_type,
+            source="observed_log",
+            confidence=confidence,
+            review_status="suggested",
+            evidence_card_ids=[],
+            evidence_card_names=[],
+            evidence_counts={},
+            evidence_event_ids=[],
+            evidence_memory_item_ids=[],
+            schema_version="archetype_label_v1",
+        )
+
+    def _make_cand(self, log_id: str):
+        from app.observed_play.coach_context import _RawCandidate
+        item = MagicMock()
+        return _RawCandidate(item=item, log_id=log_id, tier=1, base_score=0.90)
+
+    def _make_preview(self, log_id: str, labels_by_player: dict):
+        from app.observed_play.schemas import ObservedLogArchetypeLabelPreview
+        return ObservedLogArchetypeLabelPreview(
+            observed_play_log_id=log_id,
+            labels_by_player=labels_by_player,
+        )
+
+    def _fn(self, cand, label_cache, current_primary_key):
+        from app.observed_play.coach_context import _source_log_matchup_metadata
+        return _source_log_matchup_metadata(cand, label_cache, current_primary_key)
+
+    def test_full_assignment_produces_directed_key(self):
+        """Both players identified → source_log_matchup_key is formed."""
+        log_id = str(uuid.uuid4())
+        cand = self._make_cand(log_id)
+        preview = self._make_preview(log_id, {
+            "player_1": [self._make_label("dragapult-ex")],
+            "player_2": [self._make_label("gardevoir-ex")],
+        })
+        result = self._fn(cand, {log_id: preview}, "dragapult-ex")
+        assert result["source_log_matchup_key"] == "dragapult-ex|vs|gardevoir-ex"
+        assert result["matchup_match_reason"] is not None
+        assert "dragapult-ex" in result["matchup_match_reason"]
+        assert "gardevoir-ex" in result["matchup_match_reason"]
+
+    def test_partial_assignment_returns_null_key_not_unknown_suffix(self):
+        """Current player identified but opponent has no archetype label → source_log_matchup_key=None.
+
+        Regression test for |vs|unknown overclaiming fix.
+        """
+        log_id = str(uuid.uuid4())
+        cand = self._make_cand(log_id)
+        # player_2 has only strategy labels, not archetype
+        preview = self._make_preview(log_id, {
+            "player_1": [self._make_label("dragapult-ex")],
+            "player_2": [self._make_label("spread-damage", label_type="strategy")],
+        })
+        result = self._fn(cand, {log_id: preview}, "dragapult-ex")
+        # Must NOT produce |vs|unknown — that overclaims
+        assert result["source_log_matchup_key"] is None
+        assert result["matchup_match_reason"] is None
+        # Player labels should still be populated
+        assert len(result["source_log_current_player_labels"]) >= 1
+
+    def test_no_current_primary_key_returns_null(self):
+        """current_primary_key=None → all fields are None/empty."""
+        log_id = str(uuid.uuid4())
+        cand = self._make_cand(log_id)
+        preview = self._make_preview(log_id, {"player_1": [self._make_label("dragapult-ex")]})
+        result = self._fn(cand, {log_id: preview}, None)
+        assert result["source_log_matchup_key"] is None
+        assert result["matchup_match_reason"] is None
+        assert result["source_log_current_player_labels"] == []
+
+    def test_no_cache_entry_returns_null(self):
+        """Missing label cache entry → all fields null."""
+        log_id = str(uuid.uuid4())
+        cand = self._make_cand(log_id)
+        result = self._fn(cand, {}, "dragapult-ex")
+        assert result["source_log_matchup_key"] is None
+        assert result["matchup_match_reason"] is None
+
+    def test_no_player_matches_current_primary_key(self):
+        """Neither player alias matches current_primary_key → null key, no overclaiming."""
+        log_id = str(uuid.uuid4())
+        cand = self._make_cand(log_id)
+        preview = self._make_preview(log_id, {
+            "player_1": [self._make_label("crustle")],
+            "player_2": [self._make_label("gardevoir-ex")],
+        })
+        result = self._fn(cand, {log_id: preview}, "dragapult-ex")
+        assert result["source_log_matchup_key"] is None
+        assert result["matchup_match_reason"] is None
+
+class TestMatchupMetadataInTieredPreview:
+
+    @pytest.mark.asyncio
+    async def test_matchup_strategy_present_in_tiered_metadata(self):
+        """Tiered retrieval metadata includes matchup_strategy=matchup_context_preview_v1."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        item = _make_item(
+            item_id=_uuid("7b000001"),
+            log_id=uuid.uuid4(),
+            actor_card_def_id="sv-dragapult",
+            actor_card_raw="Dragapult ex",
+            confidence_score=0.88,
+        )
+        db = _make_db([_make_row(item)], [])
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=_ready_readiness()),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult"],
+                deck_card_names=["Dragapult ex"],
+                allow_fallback=False,
+            )
+        meta = preview.retrieval_metadata
+        assert meta is not None
+        assert meta.matchup_strategy == "matchup_context_preview_v1"
+        assert meta.matchup_context_enabled is True
+        assert meta.matchup_ranking_enabled is False
+        assert meta.matchup_candidate_pool_expanded is False
+        assert meta.matchup_filter_applied is False
+
+    @pytest.mark.asyncio
+    async def test_matchup_boost_is_always_zero(self):
+        """Phase 7.2b: matchup_boost must be 0.0 on all evidence items."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        item = _make_item(
+            item_id=_uuid("7b000002"),
+            log_id=uuid.uuid4(),
+            actor_card_def_id="sv-dragapult",
+            target_card_def_id="sv-drakloak",
+            related_card_def_id="sv-dreepy",
+            actor_card_raw="Dragapult ex",
+            target_card_raw="Drakloak",
+            related_card_raw="Dreepy",
+            confidence_score=0.70,
+            player_alias="player_1",
+        )
+        db = _make_db([_make_row(item)], [])
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=_ready_readiness()),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.65
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult", "sv-drakloak", "sv-dreepy"],
+                deck_card_names=["Dragapult ex", "Drakloak", "Dreepy"],
+                allow_fallback=False,
+            )
+        meta = preview.retrieval_metadata
+        assert meta is not None
+        for detail in meta.evidence_selected:
+            assert detail.matchup_boost == 0.0
+
+    @pytest.mark.asyncio
+    async def test_scores_unchanged_compared_with_label_ranking(self):
+        """Adding matchup context must not change relevance_score or evidence order."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        log_a, log_b = uuid.uuid4(), uuid.uuid4()
+        item_a = _make_item(
+            item_id=_uuid("7b000003"), log_id=log_a,
+            actor_card_def_id="sv-dragapult", actor_card_raw="Dragapult ex",
+            confidence_score=0.91, player_alias="player_1",
+        )
+        item_b = _make_item(
+            item_id=_uuid("7b000004"), log_id=log_b,
+            actor_card_def_id="sv-dragapult", actor_card_raw="Dragapult ex",
+            confidence_score=0.88, player_alias="player_1",
+        )
+
+        async def _run():
+            db = _make_db([_make_row(item_a), _make_row(item_b)], [])
+            with patch("app.observed_play.coach_context.settings") as mock_settings, \
+                 patch(
+                     "app.observed_play.coach_context.compute_corpus_readiness",
+                     new=AsyncMock(return_value=_ready_readiness()),
+                 ):
+                mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+                mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+                mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+                return await build_coach_context_preview(
+                    db,
+                    deck_card_ids=["sv-dragapult"],
+                    deck_card_names=["Dragapult ex"],
+                    allow_fallback=False,
+                )
+
+        preview = await _run()
+        meta = preview.retrieval_metadata
+        assert meta is not None
+        ids = [d.memory_item_id for d in meta.evidence_selected]
+        scores = [d.relevance_score for d in meta.evidence_selected]
+        # Order: item_a before item_b (higher confidence)
+        assert ids[0] == str(_uuid("7b000003"))
+        assert ids[1] == str(_uuid("7b000004"))
+        # Scores include label_boost but NOT matchup_boost
+        for detail in meta.evidence_selected:
+            assert detail.final_relevance_score == pytest.approx(
+                detail.base_relevance_score + detail.label_boost, abs=0.0001
+            )
+
+    @pytest.mark.asyncio
+    async def test_directed_matchup_key_in_metadata_when_opponent_present(self):
+        """directed_matchup_key is populated when both deck and candidate have archetype labels."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        item = _make_item(
+            item_id=_uuid("7b000005"),
+            log_id=uuid.uuid4(),
+            actor_card_def_id="sv-dragapult",
+            actor_card_raw="Dragapult ex",
+            confidence_score=0.88,
+        )
+        db = _make_db([_make_row(item)], [])
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=_ready_readiness()),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult"],
+                deck_card_names=["Dragapult ex"],
+                candidate_card_ids=["sv-gardevoir"],
+                candidate_card_names=["Gardevoir ex"],
+                allow_fallback=False,
+            )
+        meta = preview.retrieval_metadata
+        assert meta is not None
+        assert meta.directed_matchup_key is not None
+        assert "|vs|" in meta.directed_matchup_key
+        assert meta.no_matchup_signal_reason is None
+        assert meta.matchup_confidence is not None
+
+    @pytest.mark.asyncio
+    async def test_no_matchup_signal_when_no_opponent_cards(self):
+        """no_matchup_signal_reason populated when candidate cards produce no archetype label."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        item = _make_item(
+            item_id=_uuid("7b000006"),
+            log_id=uuid.uuid4(),
+            actor_card_def_id="sv-dragapult",
+            actor_card_raw="Dragapult ex",
+            confidence_score=0.88,
+        )
+        db = _make_db([_make_row(item)], [])
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=_ready_readiness()),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult"],
+                deck_card_names=["Dragapult ex"],
+                # No candidate cards → no opponent archetype label
+                allow_fallback=False,
+            )
+        meta = preview.retrieval_metadata
+        assert meta is not None
+        assert meta.directed_matchup_key is None
+        assert meta.no_matchup_signal_reason == "no_opponent_archetype_label"
+
+    @pytest.mark.asyncio
+    async def test_no_evidence_path_still_has_matchup_context(self):
+        """no_relevant_evidence path still returns matchup context in retrieval_metadata."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        db = _make_db([], [])
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=_ready_readiness()),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult"],
+                deck_card_names=["Dragapult ex"],
+                allow_fallback=False,
+            )
+        assert preview.would_inject is False
+        assert preview.no_relevant_evidence is True
+        meta = preview.retrieval_metadata
+        assert meta is not None
+        assert meta.matchup_strategy == "matchup_context_preview_v1"
+        assert meta.matchup_ranking_enabled is False
+
+    @pytest.mark.asyncio
+    async def test_flag_off_matchup_context_absent(self):
+        """When flag is off, retrieval_metadata is None and no matchup context is computed."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        db = AsyncMock()
+        with patch("app.observed_play.coach_context.settings") as mock_settings:
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = False
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult"],
+                deck_card_names=["Dragapult ex"],
+            )
+        assert preview.enabled is False
+        assert preview.retrieval_metadata is None

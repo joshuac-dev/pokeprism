@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-09 (Phase 7.2a matchup-aware retrieval design completed)
+Last updated: 2026-05-09 (Phase 7.2b matchup context preview completed)
 
 ## Current Workstream
 
@@ -20,6 +20,14 @@ post-phase development:
 **Active planning branch:** `phase-7-observed-play-planning` — Observed-Play Intelligence Planning
 **Phase 1 through Phase 6.2b are COMPLETE and manually validated.** Both phases validated 2026-05-08.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
+
+**Phase 7.2b implementation:** matchup context preview metadata added to
+observed-play retrieval debug output. `matchup_strategy=matchup_context_preview_v1`.
+Directed matchup key (`{current}|vs|{opponent}`) computed from highest-confidence
+archetype labels. All new matchup fields are metadata-only: `matchup_ranking_enabled=False`,
+`matchup_boost=0.0`, scores and ordering unchanged from Phase 7.1d.
+Backend: 1267 passed, 1 skipped. Frontend: 371 passed, 21 files.
+Recommended next: Phase 7.2c corpus expansion and matchup ranking signal.
 
 **Phase 7.2a design:** `docs/proposals/OBSERVED_PLAY_MATCHUP_AWARE_RETRIEVAL_PHASE_7_2_PLAN.md`
 contains the full matchup-aware retrieval design and corpus expansion plan.

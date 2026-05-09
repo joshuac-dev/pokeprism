@@ -644,6 +644,11 @@ export interface EvidenceSelectionDetail {
   match_source: string | null;
   source_log_id: string;
   from_winning_game: boolean | null;
+  matchup_boost?: number;
+  source_log_matchup_key?: string | null;
+  source_log_current_player_labels?: ArchetypeLabel[];
+  source_log_opponent_player_labels?: ArchetypeLabel[];
+  matchup_match_reason?: string | null;
 }
 
 export interface EvidenceExclusionSummary {
@@ -670,6 +675,18 @@ export interface ObservedPlayRetrievalMetadata {
   evidence_selected: EvidenceSelectionDetail[];
   excluded_summary: EvidenceExclusionSummary;
   no_relevant_evidence: boolean;
+  matchup_strategy?: string | null;
+  matchup_context_enabled?: boolean;
+  matchup_ranking_enabled?: boolean;
+  matchup_candidate_pool_expanded?: boolean;
+  matchup_filter_applied?: boolean;
+  current_archetype_labels?: ArchetypeLabel[];
+  opponent_archetype_labels?: ArchetypeLabel[];
+  current_primary_archetype_key?: string | null;
+  opponent_primary_archetype_key?: string | null;
+  directed_matchup_key?: string | null;
+  matchup_confidence?: number | null;
+  no_matchup_signal_reason?: string | null;
 }
 
 export interface ObservedPlayCoachContextPreview {

@@ -8,6 +8,15 @@
 > Phase 7.2a update: design completed 2026-05-09 on branch
 > `phase-7-2a-matchup-aware-retrieval-design`. Corpus findings and recommended
 > implementation slices (7.2b–7.2e) are recorded here.
+>
+> Phase 7.2b update: metadata-only implementation completed 2026-05-09 on branch
+> `phase-7-2b-matchup-context-preview`. Added `matchup_strategy=matchup_context_preview_v1`,
+> directed matchup key, `current/opponent_archetype_labels`,
+> `matchup_context_enabled=True`, `matchup_ranking_enabled=False`,
+> `matchup_boost=0.0`. Scores, ordering, and evidence IDs unchanged from Phase 7.1d.
+> Hardening: `|vs|unknown` overclaiming removed; source_log_matchup_key returns
+> `None` when opponent side is indeterminate.
+> Backend: 1272 passed, 1 skipped. Frontend: 372 passed.
 
 ---
 

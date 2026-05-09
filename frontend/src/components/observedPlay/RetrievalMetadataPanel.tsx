@@ -116,6 +116,71 @@ export default function RetrievalMetadataPanel({ meta }: { meta: ObservedPlayRet
         <p className="text-xs text-slate-400 italic">No label ranking signal applied.</p>
       )}
 
+      {/* Matchup context preview (Phase 7.2b) */}
+      {meta.matchup_context_enabled && (
+        <div className="rounded border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/30 p-2">
+          <div className="flex flex-wrap gap-3 text-xs text-sky-800 dark:text-sky-200 mb-2">
+            <span>
+              <span className="font-semibold">Matchup strategy:</span>{' '}
+              <code>{meta.matchup_strategy ?? 'unknown'}</code>
+            </span>
+            <span>
+              <span className="font-semibold">Matchup ranking:</span>{' '}
+              <span className="text-slate-500 dark:text-slate-400">disabled</span>
+            </span>
+            <span>
+              <span className="font-semibold">Candidate pool expansion:</span>{' '}
+              <span className="text-slate-500 dark:text-slate-400">disabled</span>
+            </span>
+            <span>
+              <span className="font-semibold">Filter applied:</span>{' '}
+              <span className="text-slate-500 dark:text-slate-400">no</span>
+            </span>
+          </div>
+          {meta.directed_matchup_key ? (
+            <div className="text-xs text-sky-800 dark:text-sky-200 mb-1">
+              <span className="font-semibold">Directed matchup key:</span>{' '}
+              <code className="px-1.5 py-0.5 rounded bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300">
+                {meta.directed_matchup_key}
+              </code>
+              {meta.matchup_confidence != null && (
+                <span className="ml-2 text-sky-600 dark:text-sky-400">
+                  (confidence {meta.matchup_confidence.toFixed(2)})
+                </span>
+              )}
+            </div>
+          ) : meta.no_matchup_signal_reason ? (
+            <div className="text-xs text-sky-600 dark:text-sky-400 italic mb-1">
+              No directed matchup key — {meta.no_matchup_signal_reason.replace(/_/g, ' ')}
+            </div>
+          ) : null}
+          {((meta.current_archetype_labels?.length ?? 0) > 0 || (meta.opponent_archetype_labels?.length ?? 0) > 0) && (
+            <div className="mt-1 space-y-1">
+              {(meta.current_archetype_labels?.length ?? 0) > 0 && (
+                <div className="text-xs">
+                  <span className="font-semibold text-sky-800 dark:text-sky-200 mr-1">Current archetypes:</span>
+                  <span className="text-sky-700 dark:text-sky-300">
+                    {meta.current_archetype_labels!.map((l) => l.label).join(', ')}
+                  </span>
+                </div>
+              )}
+              {(meta.opponent_archetype_labels?.length ?? 0) > 0 && (
+                <div className="text-xs">
+                  <span className="font-semibold text-sky-800 dark:text-sky-200 mr-1">Opponent archetypes:</span>
+                  <span className="text-sky-700 dark:text-sky-300">
+                    {meta.opponent_archetype_labels!.map((l) => l.label).join(', ')}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+          <p className="mt-2 text-[11px] text-sky-600 dark:text-sky-400">
+            Matchup context is preview/debug metadata only in Phase 7.2b. It does not affect evidence
+            scores or ordering.
+          </p>
+        </div>
+      )}
+
       {/* No-relevant-evidence note */}
       {meta.no_relevant_evidence && (
         <p className="text-xs text-amber-700 dark:text-amber-400 italic">
@@ -197,6 +262,16 @@ export default function RetrievalMetadataPanel({ meta }: { meta: ObservedPlayRet
                       {ev.label_match_reason && (
                         <span className="block mt-1 text-[11px] text-amber-700 dark:text-amber-300">
                           {ev.label_match_reason}
+                        </span>
+                      )}
+                      {ev.source_log_matchup_key && (
+                        <span className="block mt-1 text-[11px] text-sky-600 dark:text-sky-400">
+                          matchup: {ev.source_log_matchup_key}
+                        </span>
+                      )}
+                      {ev.matchup_match_reason && (
+                        <span className="block mt-1 text-[11px] text-sky-500 dark:text-sky-400">
+                          {ev.matchup_match_reason}
                         </span>
                       )}
                     </td>
