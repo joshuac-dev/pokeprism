@@ -5,6 +5,11 @@
 > behavior, AI Player behavior, pgvector retrieval, Neo4j writes, match_events
 > writes, or card-performance writes are added by this plan.
 
+> Phase 7.2a update: matchup-aware retrieval design is complete (2026-05-09).
+> Full design: `docs/proposals/OBSERVED_PLAY_MATCHUP_AWARE_RETRIEVAL_PHASE_7_2_PLAN.md`.
+> Recommended next slice: Phase 7.2b — backend matchup context metadata preview,
+> no retrieval behavior change. Phases 7.1a–7.1e are complete and merged.
+
 ---
 
 ## 1. Executive Summary

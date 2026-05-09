@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-09 (Phase 7.1e archetype label ranking manually validated)
+Last updated: 2026-05-09 (Phase 7.2a matchup-aware retrieval design completed)
 
 ## Current Workstream
 
@@ -21,8 +21,18 @@ post-phase development:
 **Phase 1 through Phase 6.2b are COMPLETE and manually validated.** Both phases validated 2026-05-08.
 See `docs/proposals/OBSERVED_PLAY_MEMORY_IMPLEMENTATION_PLAN.md`.
 
+**Phase 7.2a design:** `docs/proposals/OBSERVED_PLAY_MATCHUP_AWARE_RETRIEVAL_PHASE_7_2_PLAN.md`
+contains the full matchup-aware retrieval design and corpus expansion plan.
+Verdict: design complete, ready for Phase 7.2b implementation.
+Recommended next slice: Phase 7.2b — backend matchup context metadata preview,
+no retrieval behavior change. Corpus expansion (Section 9 of the plan) should
+begin in parallel: priority targets are Gardevoir ex (≥5 more logs),
+Crustle (≥5 more logs), Salazzle ex (≥5 logs), Charizard ex (≥5 logs).
+Matchup ranking boost (Phase 7.2c) gated on corpus reaching minimum thresholds.
+Candidate-pool expansion (Phase 7.2d) gated on matchup pairs reaching ≥3 logs.
+
 **Phase 7.0 planning:** `docs/proposals/OBSERVED_PLAY_INTELLIGENCE_PHASE_7_PLAN.md`
-recommends Phase 7.1 — Deck Archetype Labeling and Log/Deck Tags.
+recommends Phase 7.1 — Deck Archetype Labeling and Log/Deck Tags (complete through 7.1e).
 
 **Phase 7.1a schema/API design:** `docs/proposals/OBSERVED_PLAY_ARCHETYPE_LABELING_PHASE_7_1_SPEC.md`
 adds an implementation-ready design for manual labels plus deterministic
