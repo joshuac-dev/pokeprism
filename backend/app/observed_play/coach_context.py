@@ -29,15 +29,23 @@ from sqlalchemy import or_, select
 
 from app.config import settings
 from app.db.models import ObservedPlayLog, ObservedPlayMemoryItem
+from app.observed_play.archetype_labels import (
+    CardSignal,
+    ObservedCardSignal,
+    infer_deck_labels_from_cards,
+    infer_observed_log_labels_from_signals,
+)
 from app.observed_play.readiness_service import (
     build_coach_evidence_filter,
     compute_corpus_readiness,
 )
 from app.observed_play.schemas import (
+    ArchetypeLabel,
     EvidenceExclusionSummary,
     EvidenceSelectionDetail,
     ObservedPlayCoachContextPreview,
     ObservedPlayEvidencePromptItem,
+    ObservedLogArchetypeLabelPreview,
     ObservedPlayRetrievalMetadata,
 )
 
@@ -52,6 +60,8 @@ _MAX_ITEMS_PER_LOG = 2
 _TIER_BONUS = {1: 0.20, 2: 0.10, 3: 0.00}
 _OUTCOME_BONUS = 0.05
 _SOURCE_REP_PENALTY = 0.03
+_LABEL_STRATEGY = "archetype_label_boost_v1"
+_LABEL_BOOST_CAP = 0.10
 
 
 @dataclass
@@ -67,6 +77,16 @@ class _RawCandidate:
     match_source: str | None = None
     from_winning_game: bool | None = None
     base_score: float = 0.0
+    label_boost: float = 0.0
+    matched_label_keys: list[str] = dc_field(default_factory=list)
+    matched_label_names: list[str] = dc_field(default_factory=list)
+    matched_label_types: list[str] = dc_field(default_factory=list)
+    source_log_labels: list[ArchetypeLabel] = dc_field(default_factory=list)
+    label_match_reason: str | None = None
+
+    @property
+    def final_score(self) -> float:
+        return self.base_score + self.label_boost
 
 _REVIEW_ONLY_HEADER = """\
 OBSERVED PLAY EVIDENCE — REVIEW ONLY
@@ -101,6 +121,157 @@ def _determine_winning_game(
         if player_2_alias and winner_alias != player_2_alias:
             return False
     return None
+
+
+def _labels_from_card_context(
+    *,
+    context_id: str,
+    names: list[str],
+    ids: list[str],
+) -> list[ArchetypeLabel]:
+    """Infer advisory labels from in-memory card context without persistence."""
+    signals: list[CardSignal] = []
+    for idx, name in enumerate(names):
+        if not name:
+            continue
+        signals.append(CardSignal(
+            card_id=ids[idx] if idx < len(ids) else None,
+            name=name,
+            count=1,
+        ))
+    if not signals:
+        return []
+    return infer_deck_labels_from_cards(context_id, None, signals).labels
+
+
+def _source_log_label_cache(candidates: list[_RawCandidate]) -> dict[str, ObservedLogArchetypeLabelPreview]:
+    """Infer observed-log labels from the already-fetched candidate pool only.
+
+    Phase 7.1d intentionally does not broaden the retrieval candidate pool.
+    """
+    signals_by_log: dict[str, list[ObservedCardSignal]] = defaultdict(list)
+    for cand in candidates:
+        item = cand.item
+        raw_player = getattr(item, "player_alias", None)
+        player = raw_player if isinstance(raw_player, str) and raw_player else "unknown"
+        for raw_name, card_id, status in (
+            (item.actor_card_raw, item.actor_card_def_id, item.actor_resolution_status),
+            (item.target_card_raw, item.target_card_def_id, item.target_resolution_status),
+            (item.related_card_raw, item.related_card_def_id, getattr(item, "related_resolution_status", None)),
+        ):
+            if raw_name or card_id:
+                signals_by_log[cand.log_id].append(ObservedCardSignal(
+                    player_alias=player,
+                    card_id=card_id,
+                    name=raw_name,
+                    resolution_status=status,
+                    memory_item_id=str(item.id),
+                    action_name=item.action_name,
+                    memory_type=item.memory_type,
+                    source_event_type=getattr(item, "source_event_type", None),
+                ))
+
+    return {
+        log_id: infer_observed_log_labels_from_signals(log_id, signals)
+        for log_id, signals in signals_by_log.items()
+    }
+
+
+def _labels_for_candidate(
+    cand: _RawCandidate,
+    label_cache: dict[str, ObservedLogArchetypeLabelPreview],
+) -> list[ArchetypeLabel]:
+    preview = label_cache.get(cand.log_id)
+    if preview is None:
+        return []
+    raw_player = getattr(cand.item, "player_alias", None)
+    player_alias = raw_player if isinstance(raw_player, str) and raw_player else None
+    if player_alias and player_alias in preview.labels_by_player:
+        labels = list(preview.labels_by_player[player_alias])
+    else:
+        labels = [
+            label
+            for group in preview.labels_by_player.values()
+            for label in group
+        ]
+    labels.extend(preview.global_labels)
+    return labels
+
+
+def _boost_for_label_match(
+    current_label: ArchetypeLabel,
+    source_label: ArchetypeLabel,
+    *,
+    source_ambiguous: bool,
+) -> float:
+    if source_ambiguous or min(current_label.confidence, source_label.confidence) < 0.60:
+        return 0.02
+    if current_label.label_type == "archetype" and source_label.label_type == "archetype":
+        return 0.08
+    if current_label.label_type in ("package", "strategy") or source_label.label_type in ("package", "strategy"):
+        return 0.04
+    return 0.02
+
+
+def _apply_label_boosts(
+    candidates: list[_RawCandidate],
+    *,
+    deck_labels: list[ArchetypeLabel],
+    candidate_labels: list[ArchetypeLabel],
+) -> None:
+    """Apply bounded label boosts to existing candidates only."""
+    current_labels = deck_labels + candidate_labels
+    if not candidates or not current_labels:
+        return
+
+    # If the same canonical_key appears in both deck_labels and candidate_labels,
+    # the candidate entry wins (last-write). Confidence/type differences are minor
+    # and the boost cap bounds any amplification.
+    current_by_key = {label.canonical_key: label for label in current_labels}
+    source_cache = _source_log_label_cache(candidates)
+
+    for cand in candidates:
+        source_preview = source_cache.get(cand.log_id)
+        source_labels = _labels_for_candidate(cand, source_cache)
+        if not source_labels:
+            continue
+
+        boost = 0.0
+        matched_keys: list[str] = []
+        matched_names: list[str] = []
+        matched_types: list[str] = []
+        matched_source_labels: list[ArchetypeLabel] = []
+        reasons: list[str] = []
+
+        for source_label in source_labels:
+            current_label = current_by_key.get(source_label.canonical_key)
+            if current_label is None:
+                continue
+            # When player_alias is unavailable, labels from all players are iterated and
+            # the same canonical_key may contribute boost more than once (once per player
+            # who holds that label). The matched_keys deduplication prevents double-counting
+            # in display, but raw boost accumulates. The _LABEL_BOOST_CAP hard-bounds this.
+            boost += _boost_for_label_match(
+                current_label,
+                source_label,
+                source_ambiguous=bool(getattr(source_preview, "ambiguous", False)),
+            )
+            if source_label.canonical_key not in matched_keys:
+                matched_keys.append(source_label.canonical_key)
+                matched_names.append(source_label.label)
+                matched_types.append(source_label.label_type)
+                matched_source_labels.append(source_label)
+                reasons.append(
+                    f"Matched current {current_label.label_type} label {current_label.label} "
+                    f"to source log/player label {source_label.label}."
+                )
+
+        cand.label_boost = round(min(_LABEL_BOOST_CAP, boost), 4)
+        cand.matched_label_keys = matched_keys
+        cand.matched_label_names = matched_names
+        cand.matched_label_types = matched_types
+        cand.source_log_labels = matched_source_labels
+        cand.label_match_reason = " ".join(reasons) if reasons and cand.label_boost > 0 else None
 
 
 def _format_evidence_prompt_block(
@@ -162,6 +333,8 @@ async def _select_tiered_evidence(
     effective_limit: int,
     allow_fallback: bool,
     card_id_to_name: dict[str, str] | None = None,
+    deck_labels: list[ArchetypeLabel] | None = None,
+    candidate_labels: list[ArchetypeLabel] | None = None,
 ) -> tuple[list[_RawCandidate], EvidenceExclusionSummary]:
     """Tiered evidence retrieval.
 
@@ -344,8 +517,30 @@ async def _select_tiered_evidence(
                 base_score=base_score,
             ))
 
-    # ── Sort: deck matches first, then by base_score descending ───────────────
-    raw_candidates.sort(key=lambda c: (c.is_deck_match, c.base_score), reverse=True)
+    # ── Label boost: bounded re-ranking signal within existing candidates only
+    effective_deck_labels = deck_labels
+    if effective_deck_labels is None:
+        effective_deck_labels = _labels_from_card_context(
+            context_id="current-deck",
+            names=deck_card_names,
+            ids=deck_card_ids,
+        )
+    effective_candidate_labels = candidate_labels
+    if effective_candidate_labels is None:
+        effective_candidate_labels = _labels_from_card_context(
+            context_id="candidate-cards",
+            names=candidate_card_names,
+            ids=candidate_card_ids,
+        )
+
+    _apply_label_boosts(
+        raw_candidates,
+        deck_labels=effective_deck_labels,
+        candidate_labels=effective_candidate_labels,
+    )
+
+    # ── Sort: tier first, then deck matches, then final score descending ──────
+    raw_candidates.sort(key=lambda c: (c.tier, not c.is_deck_match, -c.final_score))
 
     # ── Source diversity cap ───────────────────────────────────────────────────
     log_counts: dict[str, int] = defaultdict(int)
@@ -562,6 +757,16 @@ async def _build_tiered_preview(
     unique_deck_names = list(dict.fromkeys(deck_card_names))
     unique_candidate_ids = list(dict.fromkeys(candidate_card_ids))
     unique_candidate_names = list(dict.fromkeys(candidate_card_names))
+    deck_labels = _labels_from_card_context(
+        context_id="current-deck",
+        names=unique_deck_names,
+        ids=unique_deck_ids,
+    )
+    candidate_labels = _labels_from_card_context(
+        context_id="candidate-cards",
+        names=unique_candidate_names,
+        ids=unique_candidate_ids,
+    )
 
     selected_candidates, exclusion = await _select_tiered_evidence(
         db,
@@ -573,6 +778,8 @@ async def _build_tiered_preview(
         effective_limit=effective_limit,
         allow_fallback=allow_fallback,
         card_id_to_name=id_to_name,
+        deck_labels=deck_labels,
+        candidate_labels=candidate_labels,
     )
 
     no_evidence = not selected_candidates and not allow_fallback
@@ -618,13 +825,21 @@ async def _build_tiered_preview(
 
         detail = EvidenceSelectionDetail(
             memory_item_id=mid,
-            relevance_score=round(cand.base_score, 4),
+            relevance_score=round(cand.final_score, 4),
+            base_relevance_score=round(cand.base_score, 4),
+            label_boost=round(cand.label_boost, 4),
+            final_relevance_score=round(cand.final_score, 4),
             tier=cand.tier,
             match_source=cand.match_source,
             matched_card_ids=cand.matched_card_ids,
             matched_card_names=cand.matched_card_names,
             matched_field=cand.matched_field,
             matched_reason=matched_reason,
+            matched_label_keys=cand.matched_label_keys,
+            matched_label_names=cand.matched_label_names,
+            matched_label_types=cand.matched_label_types,
+            source_log_labels=cand.source_log_labels,
+            label_match_reason=cand.label_match_reason,
             source_log_id=cand.log_id,
             from_winning_game=cand.from_winning_game,
         )
@@ -633,10 +848,16 @@ async def _build_tiered_preview(
 
     retrieval_metadata = ObservedPlayRetrievalMetadata(
         strategy="deck_overlap_v1",
+        label_strategy=_LABEL_STRATEGY,
+        label_ranking_enabled=True,
         deck_card_ids=unique_deck_ids,
         deck_card_names=unique_deck_names,
         candidate_card_ids=unique_candidate_ids,
         candidate_card_names=unique_candidate_names,
+        deck_labels=deck_labels,
+        candidate_labels=candidate_labels,
+        label_boost_cap=_LABEL_BOOST_CAP,
+        label_boost_applied_count=sum(1 for cand in selected_candidates if cand.label_boost > 0),
         allow_fallback=allow_fallback,
         max_items_per_log=_MAX_ITEMS_PER_LOG,
         no_relevant_evidence=no_evidence,

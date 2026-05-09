@@ -1101,48 +1101,56 @@ Labels should not affect retrieval immediately. Use a staged approach.
 
 After labels are visible and manually validated:
 
-- Add label match as a small bounded ranking boost.
+- Add label match as a small bounded ranking boost. Implemented in Phase 7.1d
+  as `label_strategy=archetype_label_boost_v1` layered onto `deck_overlap_v1`.
 - Exact card-ID match still outranks label-only evidence.
 - Label-only match cannot override no-relevant-evidence gating unless the user
   explicitly enables label fallback.
 - Keep `allow_fallback=false` default.
 - Expose every label influence in `coach-debug`.
+- Do not broaden the candidate pool in this phase; infer source labels only
+  from evidence rows already fetched by Tier 1/Tier 2/Tier 3 retrieval.
 
 Recommended retrieval metadata fields:
 
-- `current_deck_labels`
+- `deck_labels`
+- `candidate_labels`
 - `source_log_labels`
-- `label_match`
+- `label_strategy`
+- `label_ranking_enabled`
 - `label_boost`
-- `label_reason`
-- `label_confidence`
-- `label_review_status`
+- `label_match_reason`
+- `base_relevance_score`
+- `final_relevance_score`
 
 Example metadata extension:
 
 ```json
 {
-  "strategy": "deck_overlap_v1_label_boost_v1",
-  "current_deck_labels": [
+  "strategy": "deck_overlap_v1",
+  "label_strategy": "archetype_label_boost_v1",
+  "label_ranking_enabled": true,
+  "deck_labels": [
     {
-      "canonical_key": "dragapult_ex",
+      "canonical_key": "dragapult-ex",
       "label": "Dragapult ex",
       "label_type": "archetype",
-      "source": "manual",
-      "confidence": 1.0,
-      "review_status": "accepted"
+      "source": "deck_cards",
+      "confidence": 0.92,
+      "review_status": "suggested"
     }
   ],
+  "label_boost_cap": 0.10,
   "evidence_selected": [
     {
       "memory_item_id": "uuid",
       "tier": 1,
-      "relevance_score": 0.97,
-      "label_match": true,
-      "label_boost": 0.03,
-      "label_reason": "source log player_1 accepted label Dragapult ex matched current deck label",
-      "label_confidence": 1.0,
-      "label_review_status": "accepted"
+      "base_relevance_score": 0.95,
+      "label_boost": 0.08,
+      "final_relevance_score": 1.03,
+      "matched_label_keys": ["dragapult-ex"],
+      "matched_label_names": ["Dragapult ex"],
+      "label_match_reason": "Matched current archetype label Dragapult ex to source log/player label Dragapult ex."
     }
   ]
 }
@@ -1150,11 +1158,13 @@ Example metadata extension:
 
 Label boost rules:
 
-- Apply only to accepted manual labels and high-confidence deterministic labels.
-- Do not apply labels below `0.60`.
-- Cap total label boost, for example `<= 0.05`.
+- Apply only to deterministic labels inferred in-memory for the current request.
+- Strong matching archetype labels may add `+0.08`; package/strategy matches
+  may add `+0.04`; weak/ambiguous matches add at most `+0.02`.
+- Cap total label boost at `<= 0.10`.
+- Sort by retrieval tier first, then final relevance score.
 - Do not promote Tier 2/label-only evidence above Tier 1 exact card-ID evidence.
-- Do not inject evidence solely because a weak label matched.
+- Do not inject evidence solely because a label matched.
 
 ---
 
@@ -1421,6 +1431,7 @@ Goal:
 
 - Add bounded label boost after display/review has been validated.
 - Expose label influence in coach-debug and Dashboard tile.
+- Implemented in Phase 7.1d without persistence or candidate-pool expansion.
 
 Files likely touched:
 
@@ -1438,11 +1449,16 @@ Tests:
 - No relevant evidence remains no injection unless explicit label fallback is
   enabled.
 - Read-only retrieval guarantees still pass.
+- Existing no-label behavior remains unchanged.
+- Dashboard retrieval debug displays label strategy, boost, matched labels, and
+  label match reason.
 
 Acceptance criteria:
 
 - Label influence is visible and bounded.
 - No Coach strategy or gameplay logic changes.
+- No migrations, label persistence, hard filtering, or label-only candidate
+  expansion.
 
 Manual checks:
 

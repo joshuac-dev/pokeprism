@@ -31,6 +31,25 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Added
+- **Phase 7.1d — Archetype label retrieval ranking integration** — Added
+  `label_strategy=archetype_label_boost_v1` as a bounded debug/ranking signal
+  layered onto the existing `deck_overlap_v1` Coach observed-play evidence
+  retrieval. Deterministic deck/candidate labels are inferred from the current
+  card context; source labels are inferred from the already-fetched candidate
+  evidence rows only. Labels can add a capped boost (`<= 0.10`) and re-rank
+  evidence only within the existing candidate pool. Sorting is tier-first, so
+  exact Tier 1 card-ID evidence still outranks lower-tier label-boosted
+  evidence. Labels do not hard-filter evidence, do not expand candidate pools,
+  do not persist, and do not override `no_relevant_evidence` gating when
+  `allow_fallback=false`. Retrieval metadata now includes deck/candidate
+  labels, boost cap/count, per-evidence base/final score, label boost, matched
+  labels, source labels, and label match reason. Dashboard retrieval debug UI
+  shows the label strategy and per-evidence boost details. No migrations,
+  Coach strategy or prompt-injection policy changes, simulator gameplay
+  changes, AI Player behavior changes, observed-play ingestion changes,
+  deck-builder changes, pgvector/Neo4j writes, `match_events` writes, or
+  `card_performance` writes.
+
 - **Phase 7.1c — UI archetype label preview display/review** — Added
   frontend read-only display for Phase 7.1b archetype/package/strategy label
   previews. New shared `ArchetypeLabelPreviewPanel` renders advisory labels,

@@ -13,6 +13,9 @@ export default function RetrievalMetadataPanel({ meta }: { meta: ObservedPlayRet
     meta.excluded_summary.low_confidence > 0 ||
     meta.excluded_summary.source_cap_excluded > 0 ||
     meta.excluded_summary.unresolved_reference > 0;
+  const deckLabels = meta.deck_labels ?? [];
+  const candidateLabels = meta.candidate_labels ?? [];
+  const labelBoostApplied = meta.label_boost_applied_count ?? 0;
 
   return (
     <div className="space-y-3">
@@ -59,6 +62,60 @@ export default function RetrievalMetadataPanel({ meta }: { meta: ObservedPlayRet
         </div>
       )}
 
+      {/* Label ranking debug */}
+      {meta.label_ranking_enabled ? (
+        <div className="rounded border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-2">
+          <div className="flex flex-wrap gap-3 text-xs text-amber-800 dark:text-amber-200">
+            <span>
+              <span className="font-semibold">Label strategy:</span>{' '}
+              <code>{meta.label_strategy ?? 'unknown'}</code>
+            </span>
+            <span>
+              <span className="font-semibold">Boost cap:</span>{' '}
+              {(meta.label_boost_cap ?? 0).toFixed(2)}
+            </span>
+            <span>
+              <span className="font-semibold">Applied:</span>{' '}
+              {labelBoostApplied} evidence item{labelBoostApplied === 1 ? '' : 's'}
+            </span>
+          </div>
+          {(deckLabels.length > 0 || candidateLabels.length > 0) ? (
+            <div className="mt-2 space-y-1">
+              {deckLabels.length > 0 && (
+                <div>
+                  <span className="text-xs font-semibold text-amber-800 dark:text-amber-200 mr-2">
+                    Deck labels
+                  </span>
+                  <span className="text-xs text-amber-700 dark:text-amber-300">
+                    {deckLabels.map((label) => `${label.label} (${label.label_type})`).join(', ')}
+                  </span>
+                </div>
+              )}
+              {candidateLabels.length > 0 && (
+                <div>
+                  <span className="text-xs font-semibold text-amber-800 dark:text-amber-200 mr-2">
+                    Candidate labels
+                  </span>
+                  <span className="text-xs text-amber-700 dark:text-amber-300">
+                    {candidateLabels.map((label) => `${label.label} (${label.label_type})`).join(', ')}
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+              No label ranking signal applied.
+            </p>
+          )}
+          <p className="mt-2 text-[11px] text-amber-700 dark:text-amber-300">
+            Label boosts are retrieval-debug metadata only. They are not card rules and do not approve
+            or persist labels.
+          </p>
+        </div>
+      ) : (
+        <p className="text-xs text-slate-400 italic">No label ranking signal applied.</p>
+      )}
+
       {/* No-relevant-evidence note */}
       {meta.no_relevant_evidence && (
         <p className="text-xs text-amber-700 dark:text-amber-400 italic">
@@ -78,6 +135,7 @@ export default function RetrievalMetadataPanel({ meta }: { meta: ObservedPlayRet
                 <tr className="text-left text-violet-600 dark:text-violet-400 border-b border-violet-200 dark:border-violet-700">
                   <th className="py-1 pr-3 font-semibold whitespace-nowrap">Tier</th>
                   <th className="py-1 pr-3 font-semibold whitespace-nowrap">Score</th>
+                  <th className="py-1 pr-3 font-semibold whitespace-nowrap">Label boost</th>
                   <th className="py-1 pr-3 font-semibold whitespace-nowrap">Match source</th>
                   <th className="py-1 pr-3 font-semibold whitespace-nowrap">Matched card(s)</th>
                   <th className="py-1 font-semibold">Reason</th>
@@ -101,7 +159,20 @@ export default function RetrievalMetadataPanel({ meta }: { meta: ObservedPlayRet
                       </span>
                     </td>
                     <td className="py-1 pr-3 font-mono whitespace-nowrap text-violet-800 dark:text-violet-200">
-                      {ev.relevance_score.toFixed(3)}
+                      {(ev.final_relevance_score ?? ev.relevance_score).toFixed(3)}
+                      {ev.base_relevance_score != null && (
+                        <span className="block text-[10px] text-violet-500 dark:text-violet-400">
+                          base {ev.base_relevance_score.toFixed(3)}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-1 pr-3 whitespace-nowrap text-violet-700 dark:text-violet-300">
+                      {(ev.label_boost ?? 0) > 0 ? `+${(ev.label_boost ?? 0).toFixed(2)}` : '—'}
+                      {ev.matched_label_names && ev.matched_label_names.length > 0 && (
+                        <span className="block text-[10px] text-violet-500 dark:text-violet-400">
+                          {ev.matched_label_names.join(', ')}
+                        </span>
+                      )}
                     </td>
                     <td className="py-1 pr-3 whitespace-nowrap">
                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -123,6 +194,11 @@ export default function RetrievalMetadataPanel({ meta }: { meta: ObservedPlayRet
                     </td>
                     <td className="py-1 text-violet-600 dark:text-violet-400 break-words max-w-[24rem]">
                       {ev.matched_reason ?? '—'}
+                      {ev.label_match_reason && (
+                        <span className="block mt-1 text-[11px] text-amber-700 dark:text-amber-300">
+                          {ev.label_match_reason}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

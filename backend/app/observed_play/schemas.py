@@ -786,12 +786,20 @@ class EvidenceSelectionDetail(BaseModel):
     """Debug detail for one evidence item produced by tiered retrieval (Phase 6.2a)."""
     memory_item_id: str
     relevance_score: float
+    base_relevance_score: float | None = None
+    label_boost: float = 0.0
+    final_relevance_score: float | None = None
     tier: int
     match_source: str | None = None  # "deck_card" | "candidate_card" | "name_fallback_deck" | "name_fallback_candidate" | "global_fallback"
     matched_card_ids: list[str] = Field(default_factory=list)
     matched_card_names: list[str] = Field(default_factory=list)
     matched_field: str | None = None
     matched_reason: str | None = None
+    matched_label_keys: list[str] = Field(default_factory=list)
+    matched_label_names: list[str] = Field(default_factory=list)
+    matched_label_types: list[str] = Field(default_factory=list)
+    source_log_labels: list[ArchetypeLabel] = Field(default_factory=list)
+    label_match_reason: str | None = None
     source_log_id: str
     from_winning_game: bool | None = None
 
@@ -812,10 +820,16 @@ class EvidenceExclusionSummary(BaseModel):
 class ObservedPlayRetrievalMetadata(BaseModel):
     """Metadata describing the tiered evidence retrieval decision (Phase 6.2a)."""
     strategy: str = "deck_overlap_v1"
+    label_strategy: str | None = None
+    label_ranking_enabled: bool = False
     deck_card_ids: list[str] = Field(default_factory=list)
     deck_card_names: list[str] = Field(default_factory=list)
     candidate_card_ids: list[str] = Field(default_factory=list)
     candidate_card_names: list[str] = Field(default_factory=list)
+    deck_labels: list[ArchetypeLabel] = Field(default_factory=list)
+    candidate_labels: list[ArchetypeLabel] = Field(default_factory=list)
+    label_boost_cap: float = 0.0
+    label_boost_applied_count: int = 0
     allow_fallback: bool = False
     max_items_per_log: int = 2
     no_relevant_evidence: bool = False

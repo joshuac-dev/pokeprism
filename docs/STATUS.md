@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-09 (Phase 7.1c UI archetype label preview display implemented)
+Last updated: 2026-05-09 (Phase 7.1d archetype label retrieval ranking implemented)
 
 ## Current Workstream
 
@@ -62,6 +62,27 @@ does not change retrieval ranking, and does not alter Coach prompt injection,
 Coach strategy, simulator gameplay, AI Player behavior, observed-play
 ingestion, deck-builder behavior, pgvector/Neo4j, `match_events`, or
 `card_performance`.
+
+**Phase 7.1d retrieval ranking integration:** deterministic archetype/package/
+strategy labels are now used as a bounded, inspectable ranking signal inside
+the existing `deck_overlap_v1` tiered retrieval path.
+- Retrieval metadata includes `label_strategy=archetype_label_boost_v1`,
+  `label_ranking_enabled`, deck/candidate labels, boost cap, and per-evidence
+  label match details.
+- Label boost is additive and capped at `0.10`.
+- Sorting is tier-first, then final score, so exact Tier 1 deck/card evidence
+  still outranks lower-tier label-boosted evidence.
+- Labels only re-rank the existing candidate pool. They do not hard-filter
+  evidence, do not expand the candidate pool, and do not turn
+  `no_relevant_evidence=true` into an injected block when `allow_fallback=false`.
+- Labels are not persisted and remain advisory/debug metadata only.
+- Dashboard retrieval debug displays label strategy, labels used for ranking,
+  base/final score, label boost, matched labels, and label match reason.
+
+No migrations, Coach strategy changes, Coach prompt-injection policy changes,
+simulator gameplay changes, AI Player changes, observed-play ingestion changes,
+deck-builder changes, pgvector/Neo4j writes, `match_events` writes, or
+`card_performance` writes were made.
 
 **Phase 6.1 verification summary:**
 - User Check 1 ✅ — Flag-off context preview: `enabled=false`, `would_inject=false`, no evidence

@@ -126,6 +126,83 @@ describe('ObservedPlayRetrievalDebugTile', () => {
     expect(screen.getAllByText('Dragapult ex').length).toBeGreaterThan(0);
   });
 
+  it('shows label ranking debug metadata when available', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            label_strategy: 'archetype_label_boost_v1',
+            label_ranking_enabled: true,
+            label_boost_cap: 0.10,
+            label_boost_applied_count: 1,
+            deck_labels: [{
+              label: 'Dragapult ex',
+              canonical_key: 'dragapult-ex',
+              label_type: 'archetype',
+              source: 'deck_cards',
+              confidence: 0.92,
+              review_status: 'suggested',
+              player_alias: null,
+              evidence_card_ids: ['sv06-001'],
+              evidence_card_names: ['Dragapult ex'],
+              evidence_counts: { 'dragapult ex': 3 },
+              evidence_event_ids: [],
+              evidence_memory_item_ids: [],
+              notes: null,
+              schema_version: 'archetype_label_v1',
+            }],
+            evidence_selected: [{
+              memory_item_id: 'mem-1',
+              relevance_score: 1.03,
+              base_relevance_score: 0.95,
+              label_boost: 0.08,
+              final_relevance_score: 1.03,
+              tier: 1,
+              matched_card_ids: ['sv06-001'],
+              matched_card_names: ['Dragapult ex'],
+              matched_field: 'actor_card_def_id',
+              matched_reason: 'deck_card Dragapult ex matched actor_card_def_id sv06-001',
+              matched_label_keys: ['dragapult-ex'],
+              matched_label_names: ['Dragapult ex'],
+              matched_label_types: ['archetype'],
+              source_log_labels: [],
+              label_match_reason: 'Matched current archetype label Dragapult ex to source log/player label Dragapult ex.',
+              match_source: 'deck_card',
+              source_log_id: 'log-abc',
+              from_winning_game: true,
+            }],
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    expect(screen.getByText(/Label strategy/i)).toBeInTheDocument();
+    expect(screen.getByText('archetype_label_boost_v1')).toBeInTheDocument();
+    expect(screen.getByText(/\+0\.08/)).toBeInTheDocument();
+    expect(screen.getByText(/base 0\.950/i)).toBeInTheDocument();
+    expect(screen.getByText(/Matched current archetype label Dragapult ex/i)).toBeInTheDocument();
+  });
+
+  it('shows no-label state for older simulation payloads without label_ranking_enabled', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            // label_ranking_enabled absent → falsy → older simulation fallback
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    expect(screen.getByText(/No label ranking signal applied/i)).toBeInTheDocument();
+  });
+
   it('shows deck card count in round header', () => {
     render(
       <ObservedPlayRetrievalDebugTile

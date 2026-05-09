@@ -47,6 +47,8 @@ def _make_item(
     source_raw_line: str = "Player attacked.",
     actor_resolution_status: str | None = None,
     target_resolution_status: str | None = None,
+    related_resolution_status: str | None = None,
+    player_alias: str | None = None,
 ) -> MagicMock:
     item = MagicMock()
     item.id = item_id or uuid.uuid4()
@@ -65,6 +67,9 @@ def _make_item(
     item.source_raw_line = source_raw_line
     item.actor_resolution_status = actor_resolution_status
     item.target_resolution_status = target_resolution_status
+    item.related_resolution_status = related_resolution_status
+    item.player_alias = player_alias
+    item.source_event_type = None
     return item
 
 
@@ -403,6 +408,178 @@ class TestSelectTieredEvidence:
         assert cand.matched_field == "actor_card_def_id"
         assert cand.base_score > 0.88  # confidence + tier bonus
 
+    @pytest.mark.asyncio
+    async def test_label_boost_applied_for_matching_source_label(self):
+        """A matching current/source archetype label applies a bounded boost."""
+        from app.observed_play.coach_context import _select_tiered_evidence
+
+        log_a = uuid.uuid4()
+        item = _make_item(
+            item_id=_uuid("ab000001"),
+            log_id=log_a,
+            actor_card_def_id="sv-dragapult",
+            target_card_def_id="sv-drakloak",
+            related_card_def_id="sv-dreepy",
+            actor_card_raw="Dragapult ex",
+            target_card_raw="Drakloak",
+            related_card_raw="Dreepy",
+            confidence_score=0.70,
+            player_alias="player_1",
+        )
+        db = _make_db([_make_row(item)], [])
+        selected, _ = await _select_tiered_evidence(
+            db,
+            deck_card_ids=["sv-dragapult", "sv-drakloak", "sv-dreepy"],
+            deck_card_names=["Dragapult ex", "Drakloak", "Dreepy"],
+            candidate_card_ids=[],
+            candidate_card_names=[],
+            min_confidence=0.65,
+            effective_limit=8,
+            allow_fallback=False,
+        )
+        assert selected[0].label_boost == 0.10
+        assert selected[0].final_score == pytest.approx(selected[0].base_score + 0.10)
+        assert "dragapult-ex" in selected[0].matched_label_keys
+        assert "Matched current archetype label Dragapult ex" in selected[0].label_match_reason
+
+    @pytest.mark.asyncio
+    async def test_label_boost_cap(self):
+        """Multiple matched labels cannot exceed the configured boost cap."""
+        from app.observed_play.coach_context import _select_tiered_evidence
+
+        item = _make_item(
+            item_id=_uuid("ab000002"),
+            log_id=uuid.uuid4(),
+            actor_card_def_id="sv-dragapult",
+            target_card_def_id="sv-drakloak",
+            related_card_def_id="sv-dreepy",
+            actor_card_raw="Dragapult ex",
+            target_card_raw="Drakloak",
+            related_card_raw="Dreepy",
+            confidence_score=0.70,
+            player_alias="player_1",
+            action_name="Phantom Dive",
+            memory_type="attack_used",
+        )
+        db = _make_db([_make_row(item)], [])
+        selected, _ = await _select_tiered_evidence(
+            db,
+            deck_card_ids=["sv-dragapult", "sv-drakloak", "sv-dreepy"],
+            deck_card_names=["Dragapult ex", "Drakloak", "Dreepy"],
+            candidate_card_ids=[],
+            candidate_card_names=[],
+            min_confidence=0.65,
+            effective_limit=8,
+            allow_fallback=False,
+        )
+        assert selected[0].label_boost <= 0.10
+
+    @pytest.mark.asyncio
+    async def test_label_boost_reorders_within_same_tier_only(self):
+        """Label boost may reorder same-tier evidence."""
+        from app.observed_play.coach_context import _select_tiered_evidence
+
+        no_label_item = _make_item(
+            item_id=_uuid("ab000003"),
+            log_id=uuid.uuid4(),
+            actor_card_def_id="sv-tech",
+            actor_card_raw="Tech Card",
+            confidence_score=0.80,
+            player_alias="player_1",
+        )
+        label_item = _make_item(
+            item_id=_uuid("ab000004"),
+            log_id=uuid.uuid4(),
+            actor_card_def_id="sv-dragapult",
+            target_card_def_id="sv-drakloak",
+            related_card_def_id="sv-dreepy",
+            actor_card_raw="Dragapult ex",
+            target_card_raw="Drakloak",
+            related_card_raw="Dreepy",
+            confidence_score=0.75,
+            player_alias="player_1",
+        )
+        db = _make_db([_make_row(no_label_item), _make_row(label_item)], [])
+        selected, _ = await _select_tiered_evidence(
+            db,
+            deck_card_ids=["sv-tech", "sv-dragapult", "sv-drakloak", "sv-dreepy"],
+            deck_card_names=["Tech Card", "Dragapult ex", "Drakloak", "Dreepy"],
+            candidate_card_ids=[],
+            candidate_card_names=[],
+            min_confidence=0.65,
+            effective_limit=8,
+            allow_fallback=False,
+        )
+        assert [str(c.item.id) for c in selected[:2]] == [str(_uuid("ab000004")), str(_uuid("ab000003"))]
+        assert selected[0].tier == selected[1].tier == 1
+
+    @pytest.mark.asyncio
+    async def test_label_boost_cannot_outrank_higher_tier(self):
+        """Tier ordering is preserved before label-adjusted score."""
+        from app.observed_play.coach_context import _select_tiered_evidence
+
+        tier1_item = _make_item(
+            item_id=_uuid("ab000005"),
+            log_id=uuid.uuid4(),
+            actor_card_def_id="sv-tech",
+            actor_card_raw="Tech Card",
+            confidence_score=0.65,
+        )
+        tier2_item = _make_item(
+            item_id=_uuid("ab000006"),
+            log_id=uuid.uuid4(),
+            actor_card_def_id=None,
+            actor_card_raw="Dragapult ex",
+            target_card_raw="Drakloak",
+            related_card_raw="Dreepy",
+            confidence_score=0.95,
+            player_alias="player_1",
+        )
+        db = _make_db([_make_row(tier1_item)], [_make_row(tier2_item)])
+        selected, _ = await _select_tiered_evidence(
+            db,
+            deck_card_ids=["sv-tech", "sv-dragapult", "sv-drakloak", "sv-dreepy"],
+            deck_card_names=["Tech Card", "Dragapult ex", "Drakloak", "Dreepy"],
+            candidate_card_ids=[],
+            candidate_card_names=[],
+            min_confidence=0.65,
+            effective_limit=8,
+            allow_fallback=False,
+        )
+        assert selected[0].tier == 1
+        assert str(selected[0].item.id) == str(_uuid("ab000005"))
+        assert selected[1].tier == 2
+        assert selected[1].final_score > selected[0].final_score
+
+    @pytest.mark.asyncio
+    async def test_no_label_signals_do_not_crash_retrieval(self):
+        """Retrieval with no deck-name signals (empty label context) completes safely."""
+        from app.observed_play.coach_context import _select_tiered_evidence
+
+        item = _make_item(
+            item_id=_uuid("ab000008"),
+            log_id=uuid.uuid4(),
+            actor_card_def_id="sv-basic",
+            actor_card_raw=None,
+            confidence_score=0.80,
+            player_alias=None,
+        )
+        db = _make_db([_make_row(item)], [])
+        selected, _ = await _select_tiered_evidence(
+            db,
+            deck_card_ids=["sv-basic"],
+            deck_card_names=[],  # no names → no label inference → no boost
+            candidate_card_ids=[],
+            candidate_card_names=[],
+            min_confidence=0.65,
+            effective_limit=8,
+            allow_fallback=False,
+        )
+        assert len(selected) == 1
+        assert selected[0].label_boost == 0.0
+        assert selected[0].matched_label_keys == []
+        assert selected[0].label_match_reason is None
+
 
 # ── Tests for build_coach_context_preview (tiered path) ───────────────────────
 
@@ -486,6 +663,57 @@ class TestBuildCoachContextPreviewTiered:
         assert preview.retrieval_metadata is None
         # DB should not have been queried
         db.execute.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_label_metadata_in_tiered_preview(self):
+        """Retrieval metadata exposes label strategy and per-evidence boost detail."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        item = _make_item(
+            item_id=_uuid("88000002"),
+            log_id=uuid.uuid4(),
+            actor_card_def_id="sv-dragapult",
+            target_card_def_id="sv-drakloak",
+            related_card_def_id="sv-dreepy",
+            actor_card_raw="Dragapult ex",
+            target_card_raw="Drakloak",
+            related_card_raw="Dreepy",
+            confidence_score=0.70,
+            player_alias="player_1",
+        )
+        db = _make_db([_make_row(item)], [])
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=_ready_readiness()),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.65
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult", "sv-drakloak", "sv-dreepy"],
+                deck_card_names=["Dragapult ex", "Drakloak", "Dreepy"],
+                allow_fallback=False,
+            )
+
+        meta = preview.retrieval_metadata
+        assert meta is not None
+        assert meta.strategy == "deck_overlap_v1"
+        assert meta.label_strategy == "archetype_label_boost_v1"
+        assert meta.label_ranking_enabled is True
+        assert meta.label_boost_cap == 0.10
+        assert meta.label_boost_applied_count == 1
+        assert [label.canonical_key for label in meta.deck_labels] == [
+            "dragapult-ex", "stage-2-setup", "spread-damage"
+        ]
+        detail = meta.evidence_selected[0]
+        assert detail.base_relevance_score is not None
+        assert detail.final_relevance_score == detail.relevance_score
+        assert detail.label_boost == 0.10
+        assert "dragapult-ex" in detail.matched_label_keys
+        assert detail.source_log_labels[0].canonical_key == "dragapult-ex"
+        assert "Matched current archetype label Dragapult ex" in detail.label_match_reason
 
     @pytest.mark.asyncio
     async def test_relevance_hints_in_prompt_block(self):
