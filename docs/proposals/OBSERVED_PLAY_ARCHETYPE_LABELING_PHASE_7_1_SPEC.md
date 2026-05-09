@@ -10,6 +10,23 @@
 > endpoints for decks and observed logs. Labels are still not persisted by
 > default and are not used for retrieval ranking.
 
+> Phase 7.1c update: frontend read-only label display and review surfaces are
+> implemented. Labels are visible in the `/observed-play` Raw Logs per-log modal
+> and the Simulation Dashboard "Deck Context Labels" tile. Labels remain
+> advisory and unpersisted.
+
+> Phase 7.1d update: deterministic labels are now used as a bounded ranking
+> signal (`label_strategy=archetype_label_boost_v1`, boost cap 0.10) inside
+> the existing `deck_overlap_v1` tiered retrieval path. Labels do not persist,
+> do not expand the candidate pool, and do not override `no_relevant_evidence`
+> gating.
+
+> Phase 7.1e update: label ranking validated across Dragapult, Gardevoir,
+> Crustle, Mixed/Ambiguous, Unknown/No-label, and No-match corpus contexts.
+> Verdict: `ready_for_phase_7_2_planning`. Full report:
+> `docs/proposals/OBSERVED_PLAY_LABEL_RANKING_PHASE_7_1E_VALIDATION_REPORT.md`.
+> No code changes were made in Phase 7.1e.
+
 ---
 
 ## 1. Executive Summary
