@@ -31,6 +31,23 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Added
+- **Phase 7.1b — Backend archetype label inference preview** — Added
+  deterministic, backend-only advisory label preview for decks and observed-play
+  logs. New schemas: `ArchetypeLabel`, `DeckArchetypeLabelPreview`, and
+  `ObservedLogArchetypeLabelPreview`. New service:
+  `backend/app/observed_play/archetype_labels.py` with canonical key
+  normalization, seed archetype/package/strategy rules, deck-card inference,
+  and per-player observed-log inference from memory items/card mentions. New
+  read-only endpoints: `GET /api/decks/{deck_id}/archetype-label-preview` and
+  `GET /api/observed-play/logs/{log_id}/archetype-label-preview`. Seed labels:
+  Dragapult ex, Salazzle ex, Crustle, Charizard ex, Gardevoir ex, Fire toolbox,
+  Poison/Burn strategy, Spread damage, Stage 2 setup, and Psychic engine.
+  Labels are not persisted by default and do not affect observed-play retrieval
+  ranking. No migrations, Coach strategy changes, simulator gameplay changes,
+  AI Player behavior changes, pgvector/Neo4j writes, `match_events` writes,
+  `card_performance` writes, deck-builder changes, or observed-play ingestion
+  changes.
+
 - **Phase 7.1a — Archetype labeling schema/API design** — Docs-only. Added
   `docs/proposals/OBSERVED_PLAY_ARCHETYPE_LABELING_PHASE_7_1_SPEC.md`, an
   implementation-ready design for Deck Archetype Labeling and Log/Deck Tags.

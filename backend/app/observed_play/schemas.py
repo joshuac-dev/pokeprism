@@ -2,9 +2,53 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+
+
+LabelType = Literal["archetype", "package", "strategy", "matchup", "format"]
+LabelSource = Literal["manual", "deck_cards", "observed_log", "llm_suggestion", "imported"]
+LabelReviewStatus = Literal["suggested", "accepted", "rejected", "edited", "stale", "needs_review"]
+
+
+class ArchetypeLabel(BaseModel):
+    """Advisory deck/log context label produced by Phase 7.1 inference."""
+    label: str
+    canonical_key: str
+    label_type: LabelType
+    source: LabelSource
+    confidence: float = Field(ge=0.0, le=1.0)
+    review_status: LabelReviewStatus = "suggested"
+    player_alias: str | None = None
+    evidence_card_ids: list[str] = Field(default_factory=list)
+    evidence_card_names: list[str] = Field(default_factory=list)
+    evidence_counts: dict[str, int] = Field(default_factory=dict)
+    evidence_event_ids: list[str] = Field(default_factory=list)
+    evidence_memory_item_ids: list[str] = Field(default_factory=list)
+    notes: str | None = None
+    schema_version: str = "archetype_label_v1"
+
+
+class DeckArchetypeLabelPreview(BaseModel):
+    """Read-only archetype/package/strategy label preview for one deck."""
+    deck_id: str
+    deck_name: str | None = None
+    labels: list[ArchetypeLabel] = Field(default_factory=list)
+    primary_label: ArchetypeLabel | None = None
+    ambiguous: bool = False
+    no_label_reason: str | None = None
+    source: Literal["deck_cards"] = "deck_cards"
+
+
+class ObservedLogArchetypeLabelPreview(BaseModel):
+    """Read-only archetype/package/strategy label preview for one observed log."""
+    observed_play_log_id: str
+    labels_by_player: dict[str, list[ArchetypeLabel]] = Field(default_factory=dict)
+    global_labels: list[ArchetypeLabel] = Field(default_factory=list)
+    ambiguous: bool = False
+    no_label_reason: str | None = None
+    source: Literal["observed_log"] = "observed_log"
 
 
 class ParserDiagnostics(BaseModel):

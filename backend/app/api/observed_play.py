@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from typing import AsyncGenerator, Optional
 
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile
@@ -29,8 +30,10 @@ from app.observed_play.memory_ingestion import (
     ingest_observed_play_log,
     preview_observed_play_ingestion,
 )
+from app.observed_play.archetype_labels import preview_observed_log_archetype_labels
 from app.observed_play.parser import parse_log
 from app.observed_play.schemas import (
+    ObservedLogArchetypeLabelPreview,
     BatchDetail,
     BatchImportResponse,
     BatchSummary,
@@ -438,6 +441,25 @@ async def get_log(
     if log is None:
         raise HTTPException(status_code=404, detail="Log not found")
     return _log_to_detail(log)
+
+
+@router.get(
+    "/logs/{log_id}/archetype-label-preview",
+    response_model=ObservedLogArchetypeLabelPreview,
+)
+async def get_observed_log_archetype_label_preview(
+    log_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> ObservedLogArchetypeLabelPreview:
+    """Return a read-only deterministic label preview for one observed log."""
+    try:
+        log_uuid = uuid.UUID(log_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Log not found")
+    preview = await preview_observed_log_archetype_labels(db, log_uuid)
+    if preview is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+    return preview
 
 
 # ── Log events ────────────────────────────────────────────────────────────────

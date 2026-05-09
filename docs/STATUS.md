@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-09 (Phase 7.1a planning — archetype labeling schema/API design added)
+Last updated: 2026-05-09 (Phase 7.1b backend archetype label preview implemented)
 
 ## Current Workstream
 
@@ -28,8 +28,20 @@ recommends Phase 7.1 — Deck Archetype Labeling and Log/Deck Tags.
 adds an implementation-ready design for manual labels plus deterministic
 suggestions, multi-label log/deck support, user review/edit flows, no-migration
 metadata-first storage options, API shape, deterministic inference rules, UI
-surfaces, retrieval integration staging, and tests. This is docs-only planning;
-Phase 7.1 is not implemented.
+surfaces, retrieval integration staging, and tests.
+
+**Phase 7.1b backend preview:** deterministic backend archetype/package/strategy
+label preview is implemented. New read-only endpoints:
+- `GET /api/decks/{deck_id}/archetype-label-preview`
+- `GET /api/observed-play/logs/{log_id}/archetype-label-preview`
+
+Seed labels: Dragapult ex, Salazzle ex, Crustle, Charizard ex, Gardevoir ex,
+Fire toolbox, Poison/Burn strategy, Spread damage, Stage 2 setup, Psychic
+engine. Labels are advisory/contextual only, are not persisted by default, and
+do not affect Coach retrieval ranking. No migrations, Coach strategy changes,
+simulator gameplay changes, AI Player changes, pgvector/Neo4j writes,
+`match_events` writes, `card_performance` writes, deck-builder changes, or
+observed-play ingestion changes were made.
 
 **Phase 6.1 verification summary:**
 - User Check 1 ✅ — Flag-off context preview: `enabled=false`, `would_inject=false`, no evidence
@@ -81,8 +93,9 @@ Phase 7.1 is not implemented.
 - Real deck-contextual retrieval metadata for a simulation lives in `GET /api/simulations/{id}/coach-debug`.
 - The authoritative UI for validating Phase 6.2a retrieval behavior is the simulation Dashboard "Observed-Play Retrieval Debug" tile (not the `/observed-play` preview).
 
-**Next feature step:** Phase 7.1b (if approved) — backend archetype label
-inference preview, preferably no-migration and display/review-first.
+**Next feature step:** Phase 7.1c (if approved) — UI label display/review for
+the backend preview results. Retrieval ranking integration remains deferred
+until labels are visible and manually validated.
 Plans: `docs/proposals/OBSERVED_PLAY_INTELLIGENCE_PHASE_7_PLAN.md` and
 `docs/proposals/OBSERVED_PLAY_ARCHETYPE_LABELING_PHASE_7_1_SPEC.md`.
 Observed memory remains advisory only. No claim is made that observed-play evidence improves gameplay — the correct claim is: *observed-play evidence retrieval is deck-contextual, visible, verifiable, and advisory-only.*

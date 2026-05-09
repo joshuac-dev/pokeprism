@@ -5,6 +5,11 @@
 > behavior, pgvector retrieval, Neo4j writes, `match_events` writes,
 > `card_performance` writes, or observed-play ingestion changes.
 
+> Phase 7.1b update: the backend deterministic preview slice is now implemented
+> in `backend/app/observed_play/archetype_labels.py` with read-only preview
+> endpoints for decks and observed logs. Labels are still not persisted by
+> default and are not used for retrieval ranking.
+
 ---
 
 ## 1. Executive Summary
@@ -1333,6 +1338,8 @@ Goal:
 - Add deterministic backend label inference for decks and observed logs.
 - Default to preview-only.
 - Optionally persist only after explicit action.
+- Implemented in Phase 7.1b as read-only preview only; persistence remains
+  deferred.
 
 Files likely touched:
 
@@ -1353,6 +1360,9 @@ Acceptance criteria:
 - Preview endpoints write nothing.
 - Labels include source/confidence/review status/evidence.
 - Manual labels are not overwritten if persistence is included.
+- Implemented seed labels: Dragapult ex, Salazzle ex, Crustle, Charizard ex,
+  Gardevoir ex, Fire toolbox, Poison/Burn strategy, Spread damage, Stage 2
+  setup, and Psychic engine.
 
 Manual checks:
 

@@ -16,6 +16,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from app.observed_play.schemas import ArchetypeLabel, ObservedLogArchetypeLabelPreview
+
 
 # ── App client ─────────────────────────────────────────────────────────────────
 
@@ -153,6 +155,78 @@ def _make_zip(files: dict[str, bytes]) -> bytes:
         for name, data in files.items():
             zf.writestr(name, data)
     return buf.getvalue()
+
+
+# ── Phase 7.1b label preview tests ────────────────────────────────────────────
+
+class TestObservedLogArchetypeLabelPreview:
+    def test_observed_log_preview_returns_labels_by_player(self, client):
+        from app.api.observed_play import get_db
+
+        log_id = str(uuid.uuid4())
+        preview = ObservedLogArchetypeLabelPreview(
+            observed_play_log_id=log_id,
+            labels_by_player={
+                "player_1": [
+                    ArchetypeLabel(
+                        label="Dragapult ex",
+                        canonical_key="dragapult-ex",
+                        label_type="archetype",
+                        source="observed_log",
+                        confidence=0.78,
+                        player_alias="player_1",
+                    )
+                ]
+            },
+        )
+
+        session = AsyncMock()
+        session.add = MagicMock()
+        session.commit = AsyncMock()
+        session.flush = AsyncMock()
+
+        async def override_db():
+            yield session
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            with patch(
+                "app.api.observed_play.preview_observed_log_archetype_labels",
+                new=AsyncMock(return_value=preview),
+            ) as mock_preview:
+                resp = client.get(f"/api/observed-play/logs/{log_id}/archetype-label-preview")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["observed_play_log_id"] == log_id
+        assert data["labels_by_player"]["player_1"][0]["canonical_key"] == "dragapult-ex"
+        mock_preview.assert_awaited_once()
+        session.add.assert_not_called()
+        session.commit.assert_not_awaited()
+        session.flush.assert_not_awaited()
+
+    def test_observed_log_preview_returns_404_for_missing_log(self, client):
+        from app.api.observed_play import get_db
+
+        log_id = str(uuid.uuid4())
+
+        async def override_db():
+            yield AsyncMock()
+
+        client.app.fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            with patch(
+                "app.api.observed_play.preview_observed_log_archetype_labels",
+                new=AsyncMock(return_value=None),
+            ):
+                resp = client.get(f"/api/observed-play/logs/{log_id}/archetype-label-preview")
+        finally:
+            client.app.fastapi_app.dependency_overrides.clear()
+
+        assert resp.status_code == 404
+        assert resp.json()["detail"] == "Log not found"
 
 
 # ── Upload tests ───────────────────────────────────────────────────────────────
