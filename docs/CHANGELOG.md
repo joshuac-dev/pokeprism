@@ -31,6 +31,19 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Added
+- **Phase 7.2a — Matchup-aware retrieval design and corpus expansion plan** —
+  Designed Phase 7.2 matchup-aware retrieval: directed matchup pair model
+  (`{user}|vs|{opponent}`), `MatchupContext` dataclass, proposed metadata schema
+  additions to `ObservedPlayRetrievalMetadata` and `EvidenceSelectionDetail`,
+  matchup ranking boost design (`matchup_context_boost_v1`, cap 0.12), guarded
+  candidate-pool expansion policy (deferred until corpus thresholds), corpus
+  expansion targets (Gardevoir ≥5 logs, Crustle ≥5, Salazzle ≥5, Charizard ≥5),
+  priority matchup pairs, player-side assignment logic, risk analysis, and
+  implementation phases 7.2b–7.2e. Full plan:
+  `docs/proposals/OBSERVED_PLAY_MATCHUP_AWARE_RETRIEVAL_PHASE_7_2_PLAN.md`.
+  No code changes. No retrieval behavior change. No migrations.
+  Recommended next slice: Phase 7.2b (metadata preview, no ranking change).
+
 - **Phase 7.1e — Manual archetype label ranking validation** — Validated Phase
   7.1d label ranking behavior across six retrieval contexts using real corpus
   data: Dragapult, Gardevoir, Crustle, Mixed/Ambiguous, Unknown/No-label, and
