@@ -77,6 +77,16 @@ _BASIC_ENERGY_PTCGL_NUMBERS = {
     "Metal Energy": "8",
 }
 
+# Maps (ptcgl_set_abbrev, normalised_set_number) → (db_set_abbrev, normalised_set_number).
+# Used when a PTCGL card export uses a set/number that TCGDex does not catalogue,
+# but the same card already exists in the local DB under a different set_abbrev or number.
+# Both halves of each entry use normalised set_numbers (str(int(n))).
+_PTCGL_DB_KEY_ALIASES: dict[tuple[str, str], tuple[str, str]] = {
+    # Mega Charizard Y ex: PTCGL exports as "MEP 30" but TCGDex has no mep-030.
+    # The card exists in the DB as me02.5-022 (set_abbrev="ASC", set_number="22").
+    ("MEP", "30"): ("ASC", "22"),
+}
+
 
 def _parse_ptcgl_deck_text(deck_text: str) -> list[dict]:
     """Parse PTCGL export format into structured entries.
@@ -1392,7 +1402,10 @@ async def ensure_deck_cards_in_db(deck_texts: list[str], db: AsyncSession) -> No
     if not all_ptcgl_entries:
         return
 
-    abbrevs = list({e["set_abbrev"] for e in all_ptcgl_entries})
+    abbrevs_set = {e["set_abbrev"] for e in all_ptcgl_entries}
+    # Also query aliased DB set_abbrevs so alias resolution can hit db_keys.
+    aliased_abbrevs = {v[0] for k, v in _PTCGL_DB_KEY_ALIASES.items() if k[0] in abbrevs_set}
+    abbrevs = list(abbrevs_set | aliased_abbrevs)
     result = await db.execute(select(Card).where(Card.set_abbrev.in_(abbrevs)))
     db_keys: set[tuple[str, str]] = set()
     for row in result.scalars().all():
@@ -1406,7 +1419,8 @@ async def ensure_deck_cards_in_db(deck_texts: list[str], db: AsyncSession) -> No
         number = entry["set_number"]
         norm = str(int(number)) if number.isdigit() else number
         key = (abbrev, norm)
-        if key not in db_keys and key not in seen_keys:
+        resolved_key = _PTCGL_DB_KEY_ALIASES.get(key, key)
+        if resolved_key not in db_keys and key not in seen_keys:
             seen_keys.add(key)
             misses.append(entry)
 
@@ -1578,7 +1592,10 @@ async def _deck_text_to_card_defs(
 
     # ── 2a. Batch DB lookup by (set_abbrev, normalised set_number) ────────────
     # Cards must already be in DB (ensure_deck_cards_in_db was called at submission).
-    abbrevs = list({e["set_abbrev"] for e in ptcgl_entries})
+    abbrevs_set = {e["set_abbrev"] for e in ptcgl_entries}
+    # Include aliased DB set_abbrevs so _PTCGL_DB_KEY_ALIASES entries can be resolved.
+    aliased_abbrevs = {v[0] for k, v in _PTCGL_DB_KEY_ALIASES.items() if k[0] in abbrevs_set}
+    abbrevs = list(abbrevs_set | aliased_abbrevs)
     async with SessionFactory() as db:
         result = await db.execute(
             select(Card).where(Card.set_abbrev.in_(abbrevs))
@@ -1598,7 +1615,7 @@ async def _deck_text_to_card_defs(
         norm = str(int(number)) if number.isdigit() else number
         key = (abbrev, norm)
 
-        row = db_cards.get(key)
+        row = db_cards.get(key) or db_cards.get(_PTCGL_DB_KEY_ALIASES.get(key, key))
         if row is None:
             raise ValueError(
                 f"Card not in DB: {entry['name']} {abbrev} {number}. "

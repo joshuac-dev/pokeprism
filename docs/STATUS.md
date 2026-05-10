@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-10 (Energy Search Pro sv08-176 handler implemented)
+Last updated: 2026-05-10 (Mega Charizard Y ex MEP 30 PTCGL import alias)
 
 ## Current Workstream
 

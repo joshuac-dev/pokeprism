@@ -31,6 +31,16 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Added
+- **PTCGL alias for Mega Charizard Y ex MEP 30** —
+  fix(cards): Resolve Mega Charizard Y ex MEP 30 PTCGL import failure.
+  TCGDex has no `mep-030` (the MEP set skips numbers 029–036 entirely).
+  Added `_PTCGL_DB_KEY_ALIASES` in `simulation.py` mapping PTCGL key
+  `("MEP", "30")` to the existing DB card `me02.5-022` (ASC 22,
+  "Mega Charizard Y ex", HP 360, Fire, Stage2). Both `ensure_deck_cards_in_db`
+  and `_deck_text_to_card_defs` now resolve the alias without a TCGDex fetch.
+  Unrelated MEP cards are unaffected. Four regression tests added.
+  Branch: `fix-mega-charizard-y-mep30-resolution`.
+
 - **Energy Search Pro (sv08-176) trainer handler** —
   fix(engine): Implement Energy Search Pro ACE SPEC Item trainer effect.
   Handler searches player deck for any number of Basic Energy cards of different
