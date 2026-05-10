@@ -4151,7 +4151,8 @@ def _lustrous_assist(state: GameState, action):
         req_energy = ChoiceRequest(
             "choose_cards", player_id,
             "Lustrous Assist: choose any amount of Energy to move",
-            # cards may be EnergyAttachment objects; the choice system keys them by source_card_id.
+            # Use EnergyAttachment objects directly so the player chooses exact attached Energy
+            # cards by source_card_id, then we move only those selected attachments.
             cards=list(donor.energy_attached), min_count=0, max_count=len(donor.energy_attached),
         )
         resp_energy = yield req_energy

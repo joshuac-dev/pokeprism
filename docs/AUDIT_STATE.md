@@ -12,7 +12,7 @@ last_pr:
 last_issue: Nightly DB-backed card effect implementation audit - 2026-05-10
 last_first_card_audited: Lapras | SCR | 31 | sv07-031
 last_card_fully_audited: Ledian | SCR | 3 | sv07-003
-notes: 4 findings (4 code fixes + 0 engine gaps after repair). Fixes: #S11-1 sv08.5-115 Larry's Skill explicit-empty handling; #S11-2 sv07-003/svp-133 Ledian Glittering Star Pattern optional on-evolve gust; #S11-3 sv07-032 Lapras ex Larimar Rain now supports arbitrary subset selection from revealed top-20 Energy cards before per-card attachments; #S11-4 me01-101 Latios Lustrous Assist now supports moving any amount of Energy from one or more Benched donors to Active Mega Latias ex. Focused tests: 3 passed (`EG14_larimar_rain or EG15_lustrous_assist`) + 184 audit regressions passed; full backend 1333 passed / 7 skipped.
+notes: 4 findings (4 code fixes, 0 remaining gaps in this repaired window). S11-1 Larry's Skill explicit-empty; S11-2 Ledian Glittering Star Pattern; S11-3 Larimar Rain subset+target flow; S11-4 Lustrous Assist multi-donor any-amount flow. Tests: focused 3 passed, audit regressions 184 passed, backend 1333 passed / 7 skipped.
 ```
 
 ## Cursor rules

@@ -4249,6 +4249,7 @@ async def test_EG14_larimar_rain_attaches_energy_from_top20():
     gen = _larimar_rain(state, action)
     req = next(gen)
     assert req.choice_type == "choose_cards"
+    assert [c.instance_id for c in req.cards] == [energy_card.instance_id]
 
     resp = Action(
         player_id="p1",
@@ -4259,11 +4260,12 @@ async def test_EG14_larimar_rain_attaches_energy_from_top20():
     try:
         req2 = gen.send(resp)
         assert req2.choice_type == "choose_target"
-        gen.send(Action(
+        target_resp = Action(
             player_id="p1",
             action_type=ActionType.CHOOSE_TARGET,
             target_instance_id=attacker.instance_id,
-        ))
+        )
+        gen.send(target_resp)
     except StopIteration:
         pass
 
@@ -4305,7 +4307,9 @@ async def test_EG14_larimar_rain_can_choose_non_prefix_energy_subset():
     gen = _larimar_rain(state, _make_action(attack_index=1))
     req_cards = next(gen)
     assert req_cards.choice_type == "choose_cards"
-    assert {c.instance_id for c in req_cards.cards} == {e1.instance_id, e2.instance_id, e3.instance_id}
+    assert {c.instance_id for c in req_cards.cards} == {
+        e1.instance_id, e2.instance_id, e3.instance_id
+    }
     req_tgt = gen.send(Action(
         player_id="p1",
         action_type=ActionType.CHOOSE_CARDS,
