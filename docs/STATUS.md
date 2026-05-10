@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-10 (Three missing card handlers: Brilliant Blender, Pidgeot ex, Prime Catcher alt)
+Last updated: 2026-05-10 (Nightly DB-backed audit: Larry's Skill + Ledian fixes, 2 engine gaps documented)
 
 ## Current Workstream
 
@@ -16,6 +16,24 @@ post-phase development:
 - Card-effect correctness, handler registration, and simulation validation.
 - AI/coach hardening and decision-quality follow-up.
 - Operational refinement for Docker, Celery, CI, and local workflows.
+
+**DB-backed audit handoff (2026-05-10):**
+- current workstream: DB-backed card-effect audits and cursor-based handler fixes
+- completion status: `PARTIAL_TIME_BUDGET`
+- target findings: 25
+- implemented fixes: 2
+- documented engine gaps: 2
+- database cards audited: 21
+- first card audited: `Lapras | SCR | 31 | sv07-031`
+- last card fully audited: `Ledian | SCR | 3 | sv07-003`
+- next resume cursor: `Ledyba | SCR | 2 | sv07-002`
+- AUDIT_STATE.md update status: updated
+- focused tests run: `python3 -m pytest tests/test_engine/test_audit_fixes.py -q -k 'larrys_skill or glittering_star_pattern'` (4 passed); `python3 -m pytest tests/test_engine/test_audit_fixes.py -q` (182 passed)
+- full tests run: `python3 -m pytest tests/ -x -q` (1331 passed, 7 skipped)
+- implemented fixes: `sv08.5-115` Larry's Skill now honors explicit empty selections instead of forcing fallback deck hits; `sv07-003` / `svp-133` Ledian Glittering Star Pattern now resolves as an optional on-evolve gust limited to opponent Benched Pokémon with 90 HP or less remaining
+- documented engine gaps: `EG14` `sv07-032` Lapras ex Larimar Rain still lacks arbitrary subset/ordering choice across revealed Energy cards; `EG15` `me01-101` Latios Lustrous Assist still lacks multi-donor / partial attached-Energy selection
+- known issues / follow-up: continue from `Ledyba | SCR | 2 | sv07-002`; revisit `Larimar Rain` and `Lustrous Assist` once richer multi-card / attached-energy choice plumbing is available
+- operational notes: effects files changed: yes (`backend/app/engine/effects/abilities.py`, `backend/app/engine/effects/trainers.py`); celery-worker rebuild required locally: yes (`docker compose build celery-worker && docker compose up -d celery-worker`)
 
 **Active planning branch:** `phase-7-observed-play-planning` — Observed-Play Intelligence Planning
 **Phase 1 through Phase 6.2b are COMPLETE and manually validated.** Both phases validated 2026-05-08.

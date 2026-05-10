@@ -1647,6 +1647,7 @@ EVOLVE_TRIGGER_ABILITIES: frozenset[str] = frozenset({
     "Biting Spree",          # sv10-122 TR Crobat ex — 2 counters on each of 2 opp Pokémon on evolve
     "Greedy Order",          # sv10-159 Arven's Greedent — retrieve up to 2 Arven's Sandwich from discard
     "Defiant Horn",          # sv09-136 Hop's Dubwool — gust on evolve
+    "Glittering Star Pattern",  # sv07-003 / svp-133 Ledian — optional gust on evolve
     "Jewel Seeker",          # sv07-115 / sv08.5-078 / svp-141 Noctowl — search deck for 2 Trainers
     "Time to Chow Down",     # sv07-067 Dachsbun ex — heal all damage from Evolution Pokémon
     "Wafting Heal",          # sv08.5-008 Whimsicott — heal all damage from Active Grass Pokémon
@@ -3676,6 +3677,47 @@ def _inviting_wink(state: GameState, action):
     state.emit_event("inviting_wink", player=player_id, opp=opp_id, placed=placed)
 
 
+def _glittering_star_pattern(state: GameState, action):
+    """sv07-003 / svp-133 Ledian — optional gust on evolve for low-HP Benched Pokémon."""
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    eligible = [p for p in opp.bench if p.current_hp <= 90]
+    if not eligible:
+        state.emit_event("ability_used", player=player_id,
+                         card="Ledian", ability="Glittering Star Pattern",
+                         result="no_eligible_bench")
+        return
+
+    req = ChoiceRequest(
+        "choose_option", player_id,
+        "Glittering Star Pattern: switch in an opponent's Benched Pokémon with 90 HP or less remaining?",
+        options=["Yes", "No"],
+    )
+    resp = yield req
+    if resp is None or resp.selected_option != 0:
+        state.emit_event("ability_used", player=player_id,
+                         card="Ledian", ability="Glittering Star Pattern",
+                         result="declined")
+        return
+
+    req_target = ChoiceRequest(
+        "choose_target", player_id,
+        "Glittering Star Pattern: choose 1 opponent's Benched Pokémon with 90 HP or less remaining",
+        targets=eligible,
+    )
+    resp_target = yield req_target
+    target = None
+    if resp_target and getattr(resp_target, "target_instance_id", None):
+        target = next((p for p in eligible if p.instance_id == resp_target.target_instance_id), None)
+    if target is None:
+        target = eligible[0]
+    _switch_active_with_bench(opp, target)
+    state.emit_event("ability_used", player=player_id,
+                     card="Ledian", ability="Glittering Star Pattern",
+                     new_active=target.card_name)
+
+
 # Sudden Shearing (sv08-004 Durant ex) ───────────────────────────────────────
 
 def _sudden_shearing(state: GameState, action):
@@ -5105,7 +5147,7 @@ def register_all(registry):
     registry.register_passive_ability("sv08-143", "Boosted Evolution")      # Eevee (first-turn evolution rule: noop)
     registry.register_passive_ability("sv08-147", "Born to Slack")          # Slaking ex (attack validator: noop)
     registry.register_passive_ability("sv08-150", "Expert Hider")           # Kecleon (on-hit coin flip block: noop)
-    registry.register_passive_ability("sv07-003", "Glittering Star Pattern") # Ledian (on-evolve switch: noop)
+    registry.register_ability("sv07-003", "Glittering Star Pattern", _glittering_star_pattern)
     registry.register_passive_ability("sv07-006", "Selective Slime")        # Cradily (coin flip status choice: noop)
     registry.register_passive_ability("sv07-014", "Ripening Charge")        # Hydrapple ex (energy attach + heal: noop)
     registry.register_passive_ability("sv07-038", "Primal Knowledge")       # Carracosta (global +30 vs Evo: noop)
@@ -5297,7 +5339,7 @@ def register_all(registry):
     registry.register_passive_ability("svp-126", "Hero's Spirit")           # Palafin ex (sv06-061 alt)
     registry.register_passive_ability("svp-127", "Azure Seas")              # Walking Wake ex (sv05-050 alt)
     registry.register_ability("svp-128", "Rapid Vernier", _rapid_vernier)   # Iron Leaves ex (on-bench: switch + energy move)
-    registry.register_passive_ability("svp-133", "Glittering Star Pattern") # Ledian (sv07-003 alt)
+    registry.register_ability("svp-133", "Glittering Star Pattern", _glittering_star_pattern)
     registry.register_passive_ability("svp-134", "Food Prep")               # Crabominable (sv07-042 alt)
     registry.register_passive_ability("svp-136", "Curly Wall")              # Bouffalant (sv07-119 alt)
     registry.register_ability("svp-141", "Jewel Seeker", _jewel_seeker)      # Noctowl (sv07-115 alt)

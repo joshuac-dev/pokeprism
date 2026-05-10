@@ -30,6 +30,11 @@ Live simulation fix:
   #L1  : _ET_ATTACH (me02-039 Cresselia Swelling Light) — called EnergyType enum instead of EnergyAttachment
   #L2  : _tr_venture_bomb_b19 (sv10-179 TR Venture Bomb) — check_ko called with transposed (player_id, target) args
   #L3  : _upthrusting_horns_b4 / _opposing_winds_b5 / _balloon_return_b5 — energy_provides populated with EnergyType enums instead of strings
+Session 11 audit:
+  #S11-1: _larrys_skill (sv08.5-115) now honors explicit empty selections instead of forcing fallback deck hits
+  #S11-2: Glittering Star Pattern (sv07-003 / svp-133 Ledian) implemented as an optional on-evolve gust for benched targets at 90 HP or less remaining
+  #EG14 : sv07-032 Lapras ex Larimar Rain — current chooser can only attach a deck-order prefix of found Energy cards; arbitrary subset/ordering from the revealed top 20 still needs richer multi-card choice UX in attacks.py
+  #EG15 : me01-101 Latios Lustrous Assist — current handler moves all Energy from one chosen Bench donor; TCGDex requires moving any amount from one or more Benched Pokémon, which needs richer attached-energy selection in abilities.py / choice plumbing
 """
 from __future__ import annotations
 
@@ -44,7 +49,7 @@ from app.engine.effects.base import ChoiceRequest
 from app.engine.effects.registry import _choice_to_legal_actions, _default_choice
 from app.engine.effects.registry import EffectRegistry
 from app.engine.runner import MatchRunner
-from app.engine.state import CardInstance, EnergyAttachment, EnergyType, GameState, Zone, StatusCondition
+from app.engine.state import CardInstance, EnergyAttachment, EnergyType, GameState, Phase, Zone, StatusCondition
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -5625,6 +5630,132 @@ def test_prime_catcher_alt_registered():
     alt = reg._trainer_effects.get("sv08.5-119")
     assert alt is not None
     assert alt is original
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Larry's Skill (sv08.5-115) — explicit zero should not force a search result
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_larrys_skill_explicit_zero_keeps_deck_cards_in_deck():
+    """Explicit empty selections should not force Pokémon/Supporter/Energy into hand."""
+    from app.engine.effects.trainers import _larrys_skill
+
+    pokemon = _make_pokemon_inst("larry-poke")
+    supporter = CardInstance(
+        instance_id="larry-supporter",
+        card_def_id="larry-supporter",
+        card_name="Test Supporter",
+        current_hp=0,
+        max_hp=0,
+        zone=Zone.DECK,
+        card_type="Trainer",
+        card_subtype="Supporter",
+    )
+    energy = _make_basic_energy_inst("larry-energy", "Grass Energy", "Grass")
+    filler = _make_trainer_inst("larry-filler")
+    filler.zone = Zone.HAND
+
+    state = _make_state(
+        p1_active=CardInstance(instance_id="larry-p1a", card_def_id="larry-p1a",
+                               card_name="P1Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+        p2_active=CardInstance(instance_id="larry-p2a", card_def_id="larry-p2a",
+                               card_name="P2Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    state.p1.hand = [filler]
+    state.p1.deck = [pokemon, supporter, energy]
+
+    gen = _larrys_skill(state, Action(action_type=ActionType.PLAY_SUPPORTER, player_id="p1"))
+    req1 = next(gen)
+    assert req1.choice_type == "choose_cards"
+    req2 = gen.send(Action(action_type=ActionType.CHOOSE_CARDS, player_id="p1", selected_cards=[]))
+    assert req2.choice_type == "choose_cards"
+    req3 = gen.send(Action(action_type=ActionType.CHOOSE_CARDS, player_id="p1", selected_cards=[]))
+    assert req3.choice_type == "choose_cards"
+    with pytest.raises(StopIteration):
+        gen.send(Action(action_type=ActionType.CHOOSE_CARDS, player_id="p1", selected_cards=[]))
+
+    assert filler in state.p1.discard
+    assert pokemon in state.p1.deck
+    assert supporter in state.p1.deck
+    assert energy in state.p1.deck
+    assert pokemon not in state.p1.hand
+    assert supporter not in state.p1.hand
+    assert energy not in state.p1.hand
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Ledian — Glittering Star Pattern (sv07-003 / svp-133)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_glittering_star_pattern_registered_for_both_prints():
+    """Both Ledian prints should register the same on-evolve ability handler."""
+    from app.engine.effects.registry import EffectRegistry
+
+    reg = EffectRegistry.instance()
+    primary = reg._ability_effects.get("sv07-003:Glittering Star Pattern")
+    alt = reg._ability_effects.get("svp-133:Glittering Star Pattern")
+
+    assert primary is not None
+    assert alt is primary
+
+
+def test_glittering_star_pattern_switches_eligible_benched_target():
+    """Ledian can gust an opponent's Benched Pokémon with 90 HP or less remaining."""
+    from app.engine.effects.abilities import _glittering_star_pattern
+
+    state = _make_state(
+        p1_active=CardInstance(instance_id="led-p1a", card_def_id="led-p1a",
+                               card_name="Ledian", current_hp=110, max_hp=110, zone=Zone.ACTIVE),
+        p2_active=CardInstance(instance_id="led-p2a", card_def_id="led-p2a",
+                               card_name="Opp Active", current_hp=150, max_hp=150, zone=Zone.ACTIVE),
+        p2_bench=[
+            CardInstance(instance_id="led-eligible", card_def_id="led-eligible",
+                         card_name="Eligible Bench", current_hp=90, max_hp=120, zone=Zone.BENCH),
+            CardInstance(instance_id="led-ineligible", card_def_id="led-ineligible",
+                         card_name="Ineligible Bench", current_hp=100, max_hp=100, zone=Zone.BENCH),
+        ],
+    )
+
+    gen = _glittering_star_pattern(
+        state, Action(action_type=ActionType.USE_ABILITY, player_id="p1")
+    )
+    req = next(gen)
+    assert req.choice_type == "choose_option"
+    req2 = gen.send(Action(action_type=ActionType.CHOOSE_OPTION, player_id="p1", selected_option=0))
+    assert req2.choice_type == "choose_target"
+    with pytest.raises(StopIteration):
+        gen.send(Action(action_type=ActionType.CHOOSE_TARGET, player_id="p1",
+                        target_instance_id="led-eligible"))
+
+    assert state.p2.active.instance_id == "led-eligible"
+    assert any(b.instance_id == "led-p2a" for b in state.p2.bench)
+    assert any(e.get("ability") == "Glittering Star Pattern" for e in state.events)
+
+
+def test_glittering_star_pattern_can_be_declined():
+    """Choosing No should leave the opponent's board unchanged."""
+    from app.engine.effects.abilities import _glittering_star_pattern
+
+    state = _make_state(
+        p1_active=CardInstance(instance_id="led2-p1a", card_def_id="led2-p1a",
+                               card_name="Ledian", current_hp=110, max_hp=110, zone=Zone.ACTIVE),
+        p2_active=CardInstance(instance_id="led2-p2a", card_def_id="led2-p2a",
+                               card_name="Opp Active", current_hp=150, max_hp=150, zone=Zone.ACTIVE),
+        p2_bench=[
+            CardInstance(instance_id="led2-eligible", card_def_id="led2-eligible",
+                         card_name="Eligible Bench", current_hp=80, max_hp=120, zone=Zone.BENCH),
+        ],
+    )
+
+    gen = _glittering_star_pattern(
+        state, Action(action_type=ActionType.USE_ABILITY, player_id="p1")
+    )
+    next(gen)
+    with pytest.raises(StopIteration):
+        gen.send(Action(action_type=ActionType.CHOOSE_OPTION, player_id="p1", selected_option=1))
+
+    assert state.p2.active.instance_id == "led2-p2a"
+    assert state.p2.bench[0].instance_id == "led2-eligible"
 
 
 # ──────────────────────────────────────────────────────────────────────────────

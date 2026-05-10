@@ -31,6 +31,31 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Added
+- **Nightly DB-backed audit session (partial) — 2026-05-10** —
+  fix(engine): Continue the rotating DB-backed card audit from `Lapras | SCR | 31 | sv07-031`.
+
+  - **Larry's Skill (sv08.5-115)** — Explicit empty selections are now honored for the
+    Pokémon, Supporter, and Basic Energy search steps instead of forcing fallback
+    picks from deck order. No-response fallback still takes the first matching card.
+    One regression test added.
+  - **Ledian Glittering Star Pattern (sv07-003 / svp-133)** — Implemented the
+    on-evolve gust effect as an optional trigger that only targets an opponent's
+    Benched Pokémon with 90 HP or less remaining. Three regression tests added.
+  - **Documented engine gaps** — Recorded two true gaps found in the same audit
+    window: `EG14` Lapras ex `Larimar Rain` still lacks arbitrary subset/order
+    selection across revealed Energy cards, and `EG15` Latios `Lustrous Assist`
+    still lacks multi-donor / partial attached-Energy selection. Both gaps are
+    now called out in `backend/tests/test_engine/test_audit_fixes.py`,
+    `docs/AUDIT_STATE.md`, and `docs/STATUS.md`.
+  - Why: Live TCGDex comparison against the DB-backed traversal exposed one
+    concrete trainer-choice bug, one missing on-evolve ability implementation,
+    and two remaining engine-capability limits within the audited card window.
+  - Evidence: `backend/app/engine/effects/trainers.py`;
+    `backend/app/engine/effects/abilities.py`;
+    `backend/tests/test_engine/test_audit_fixes.py`;
+    `docs/AUDIT_STATE.md`; `docs/STATUS.md`.
+  - Confidence: High.
+
 - **Three missing card-effect handlers** —
   fix(engine): Implement Brilliant Blender, Pidgeot ex, and Prime Catcher effects.
 
