@@ -18,6 +18,13 @@
 > `None` when opponent side is indeterminate.
 > Backend: 1272 passed, 1 skipped. Frontend: 372 passed.
 >
+> Phase 7.2c UX/debug validation completed 2026-05-10 on branch
+> `phase-7-2c-post-merge-ux-debug-validation` (from f4399a0).
+> Verdict: `ready_for_parallel_corpus_expansion`. Four retrieval contexts checked.
+> All confirmed correct fallback behavior. Coach-debug readability: 7/7 YES.
+> Minor UI fix: `matchup_boost_applied_count` always shown in 7.2c context.
+> Full report: `docs/proposals/OBSERVED_PLAY_PHASE_7_2C_UX_DEBUG_VALIDATION_REPORT.md`.
+>
 > Phase 7.2 corpus readiness audit completed 2026-05-09 on branch
 > `phase-7-2-corpus-expansion-readiness`. Verdict: `not_ready_needs_more_logs`.
 > 49 logs total; salazzle-ex (1 log), charizard-ex (1 log) are critical gaps.

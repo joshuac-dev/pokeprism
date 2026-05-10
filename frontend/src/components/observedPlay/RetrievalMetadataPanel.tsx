@@ -167,11 +167,11 @@ export default function RetrievalMetadataPanel({ meta }: { meta: ObservedPlayRet
                   <span className="text-amber-600 dark:text-amber-400">no</span>
                 )}
               </span>
-              {(meta.matchup_boost_applied_count ?? 0) > 0 && (
-                <span>
-                  <span className="font-semibold">Boost applied:</span> {meta.matchup_boost_applied_count} item(s)
-                </span>
-              )}
+              <span>
+                <span className="font-semibold">Boost applied:</span>{' '}
+                {meta.matchup_boost_applied_count ?? 0}{' '}
+                item{(meta.matchup_boost_applied_count ?? 0) === 1 ? '' : 's'}
+              </span>
             </div>
           )}
           {meta.directed_matchup_key ? (

@@ -31,6 +31,19 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Added
+- **Phase 7.2c UX/debug validation** —
+  docs(observed-play): Phase 7.2c UX/debug validation report added.
+  Branch: `phase-7-2c-post-merge-ux-debug-validation` (baseline `f4399a0`).
+  Verdict: `ready_for_parallel_corpus_expansion`. Four retrieval contexts
+  checked via `build_coach_context_preview` with `OBSERVED_PLAY_MEMORY_ENABLED`
+  enabled. All contexts confirmed correct fallback behavior (matchup_pair_eligible=
+  False, matchup_boost_applied_count=0, coverage reason populated). Coach-debug
+  readability checklist: 7/7 answered YES. Minor UI fix: `matchup_boost_applied_count`
+  now always displayed in 7.2c context (removed `> 0` guard so "Boost applied: 0 items"
+  is explicit for under-covered matchups). One new test added. 380 tests pass, build clean.
+  Full report: `docs/proposals/OBSERVED_PLAY_PHASE_7_2C_UX_DEBUG_VALIDATION_REPORT.md`.
+  Corpus expansion continues; Phase 7.2d deferred.
+
 - **Phase 7.2c — Generic Guarded Matchup Boost** —
   feat(observed-play): Add guarded matchup ranking boost (matchup_context_boost_v1).
   Coverage gate: ≥3 clean directed-matchup logs required for boost activation.
