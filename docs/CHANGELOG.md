@@ -33,10 +33,13 @@ merged PR history support that it actually landed.
 ### Added
 - **Energy Search Pro (sv08-176) trainer handler** —
   fix(engine): Implement Energy Search Pro ACE SPEC Item trainer effect.
+  fix(engine): Implement Energy Search Pro ACE SPEC Item trainer effect.
   Handler searches player deck for any number of Basic Energy cards of different
   types, moves them to hand, and shuffles the deck. Enforces Basic Energy only
   (Special Energy excluded), distinct energy types per card, and AI fallback
-  (one card per available type). Nine new backend tests added.
+  (one card per available type). Explicit zero-card selection is honored
+  (distinguished from no-response AI fallback). Non-deck and Special Energy
+  IDs in response are silently ignored. Thirteen backend tests added.
   Branch: `fix-energy-search-pro-handler`.
 
 - **Phase 7.2c UX/debug validation** —

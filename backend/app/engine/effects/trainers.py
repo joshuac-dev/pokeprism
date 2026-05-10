@@ -4252,9 +4252,13 @@ def _energy_search_pro(state: GameState, action):
         cards=candidates, min_count=0, max_count=len(candidates),
     )
     resp = yield req
-    # Fallback: take one of each available type (AI convention).
-    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
-                  else [c.instance_id for c in candidates])
+    # Distinguish explicit empty selection from absent/None response.
+    # Explicit [] means the player chose zero cards (valid per card rules).
+    # Missing/None response means no UI present; fall back to taking one of each type.
+    if resp is not None and resp.selected_cards is not None:
+        chosen_ids = resp.selected_cards
+    else:
+        chosen_ids = [c.instance_id for c in candidates]
 
     # Move chosen cards to hand, enforcing one card per energy type.
     seen_chosen_types: set[str] = set()
