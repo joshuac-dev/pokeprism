@@ -5675,6 +5675,7 @@ def test_larrys_skill_explicit_zero_keeps_deck_cards_in_deck():
         gen.send(Action(action_type=ActionType.CHOOSE_CARDS, player_id="p1", selected_cards=[]))
 
     assert filler in state.p1.discard
+    assert len(state.p1.hand) == 0
     assert pokemon in state.p1.deck
     assert supporter in state.p1.deck
     assert energy in state.p1.deck

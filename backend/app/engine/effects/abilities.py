@@ -3711,6 +3711,10 @@ def _glittering_star_pattern(state: GameState, action):
     if resp_target and getattr(resp_target, "target_instance_id", None):
         target = next((p for p in eligible if p.instance_id == resp_target.target_instance_id), None)
     if target is None:
+        if resp_target and getattr(resp_target, "target_instance_id", None):
+            state.emit_event("ability_used", player=player_id,
+                             card="Ledian", ability="Glittering Star Pattern",
+                             result="invalid_target_fallback")
         target = eligible[0]
     _switch_active_with_bench(opp, target)
     state.emit_event("ability_used", player=player_id,
