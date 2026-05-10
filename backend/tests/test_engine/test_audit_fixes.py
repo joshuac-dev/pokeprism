@@ -5081,3 +5081,324 @@ def test_bench_from_effect_bench_full_returns_false():
     assert result is False
     assert placed_full not in state.p1.bench
     assert len(state.p1.bench) == 5
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Energy Search Pro (sv08-176) — ACE SPEC Item
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _make_basic_energy_inst(instance_id: str, name: str, etype: str) -> "CardInstance":
+    from app.engine.state import CardInstance as CI
+    return CI(
+        instance_id=instance_id,
+        card_def_id=f"tst-{instance_id}",
+        card_name=name,
+        current_hp=0,
+        max_hp=0,
+        zone=Zone.DECK,
+        card_type="Energy",
+        card_subtype="Basic",
+        energy_provides=[etype],
+    )
+
+
+def _make_special_energy_inst(instance_id: str, name: str) -> "CardInstance":
+    from app.engine.state import CardInstance as CI
+    return CI(
+        instance_id=instance_id,
+        card_def_id=f"tst-{instance_id}",
+        card_name=name,
+        current_hp=0,
+        max_hp=0,
+        zone=Zone.DECK,
+        card_type="Energy",
+        card_subtype="Special",
+        energy_provides=["Colorless"],
+    )
+
+
+def _esp_state(deck_cards):
+    """Build a minimal GameState with the given deck for p1."""
+    from app.engine.state import CardInstance as CI
+    p1_active = CI(instance_id="esp-p1a", card_def_id="tst-esp-p1a",
+                   card_name="P1Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE)
+    p2_active = CI(instance_id="esp-p2a", card_def_id="tst-esp-p2a",
+                   card_name="P2Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE)
+    state = _make_state(p1_active=p1_active, p2_active=p2_active)
+    state.p1.deck = list(deck_cards)
+    return state
+
+
+def _esp_action():
+    return Action(player_id="p1", action_type=ActionType.ATTACK, attack_index=0)
+
+
+def test_energy_search_pro_registered():
+    """sv08-176 Energy Search Pro is registered in the trainer effect registry."""
+    from app.engine.effects.registry import EffectRegistry
+    reg = EffectRegistry.instance()
+    handler = reg._trainer_effects.get("sv08-176")
+    assert handler is not None
+    assert handler.__name__ == "_energy_search_pro"
+
+
+@pytest.mark.asyncio
+async def test_energy_search_pro_moves_basic_energy_to_hand():
+    """Energy Search Pro: selected Basic Energy cards move from deck to hand."""
+    from app.engine.effects.trainers import _energy_search_pro
+    fire = _make_basic_energy_inst("esp-fire-1", "Fire Energy", "Fire")
+    water = _make_basic_energy_inst("esp-water-1", "Water Energy", "Water")
+    state = _esp_state([fire, water])
+    action = _esp_action()
+
+    gen = _energy_search_pro(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.ATTACK,
+                      selected_cards=[fire.instance_id, water.instance_id])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert fire in state.p1.hand
+    assert water in state.p1.hand
+    assert fire.zone == Zone.HAND
+    assert water.zone == Zone.HAND
+    assert fire not in state.p1.deck
+    assert water not in state.p1.deck
+
+
+@pytest.mark.asyncio
+async def test_energy_search_pro_basic_energy_only():
+    """Energy Search Pro: Special Energy cards are never offered as candidates."""
+    from app.engine.effects.trainers import _energy_search_pro
+    fire = _make_basic_energy_inst("esp-basic-fire", "Fire Energy", "Fire")
+    special = _make_special_energy_inst("esp-special-1", "Double Turbo")
+    state = _esp_state([fire, special])
+    action = _esp_action()
+
+    gen = _energy_search_pro(state, action)
+    req = next(gen)
+    candidate_ids = {c.instance_id for c in req.cards}
+    assert fire.instance_id in candidate_ids
+    assert special.instance_id not in candidate_ids
+    try:
+        gen.send(None)
+    except StopIteration:
+        pass
+
+
+@pytest.mark.asyncio
+async def test_energy_search_pro_enforces_different_types():
+    """Energy Search Pro: two cards of the same type — only one may be taken."""
+    from app.engine.effects.trainers import _energy_search_pro
+    fire1 = _make_basic_energy_inst("esp-fire-a", "Fire Energy", "Fire")
+    fire2 = _make_basic_energy_inst("esp-fire-b", "Fire Energy", "Fire")
+    water = _make_basic_energy_inst("esp-water-b", "Water Energy", "Water")
+    lightning = _make_basic_energy_inst("esp-light-b", "Lightning Energy", "Lightning")
+    state = _esp_state([fire1, fire2, water, lightning])
+    action = _esp_action()
+
+    gen = _energy_search_pro(state, action)
+    req = next(gen)
+    # Candidate list must have exactly 3 entries (one per distinct type)
+    assert len(req.cards) == 3
+    candidate_etypes = [c.energy_provides[0] for c in req.cards]
+    assert candidate_etypes.count("Fire") == 1
+    assert "Water" in candidate_etypes
+    assert "Lightning" in candidate_etypes
+    try:
+        gen.send(None)
+    except StopIteration:
+        pass
+
+
+@pytest.mark.asyncio
+async def test_energy_search_pro_duplicate_type_response_blocked():
+    """Energy Search Pro: if response somehow contains two Fire cards, only one moves to hand."""
+    from app.engine.effects.trainers import _energy_search_pro
+    fire1 = _make_basic_energy_inst("esp-fd1", "Fire Energy", "Fire")
+    fire2 = _make_basic_energy_inst("esp-fd2", "Fire Energy", "Fire")
+    state = _esp_state([fire1, fire2])
+    action = _esp_action()
+
+    gen = _energy_search_pro(state, action)
+    next(gen)
+    resp = Action(player_id="p1", action_type=ActionType.ATTACK,
+                  selected_cards=[fire1.instance_id, fire2.instance_id])
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    fire_in_hand = [c for c in state.p1.hand if c.energy_provides == ["Fire"]]
+    assert len(fire_in_hand) == 1
+
+
+@pytest.mark.asyncio
+async def test_energy_search_pro_shuffles_deck():
+    """Energy Search Pro always shuffles the deck afterward."""
+    from app.engine.effects.trainers import _energy_search_pro
+    fire = _make_basic_energy_inst("esp-shuf-fire", "Fire Energy", "Fire")
+    state = _esp_state([fire])
+    action = _esp_action()
+
+    gen = _energy_search_pro(state, action)
+    try:
+        next(gen)
+        gen.send(None)
+    except StopIteration:
+        pass
+
+    assert any(e["event_type"] == "shuffle_deck" for e in state.events)
+
+
+@pytest.mark.asyncio
+async def test_energy_search_pro_emits_event():
+    """Energy Search Pro emits an energy_search_pro event with cards_taken."""
+    from app.engine.effects.trainers import _energy_search_pro
+    fire = _make_basic_energy_inst("esp-ev-fire", "Fire Energy", "Fire")
+    water = _make_basic_energy_inst("esp-ev-water", "Water Energy", "Water")
+    state = _esp_state([fire, water])
+    action = _esp_action()
+
+    gen = _energy_search_pro(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.ATTACK,
+                      selected_cards=[fire.instance_id, water.instance_id])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    esp_events = [e for e in state.events if e["event_type"] == "energy_search_pro"]
+    assert len(esp_events) == 1
+    assert esp_events[0]["cards_taken"] == 2
+
+
+@pytest.mark.asyncio
+async def test_energy_search_pro_empty_deck_no_crash():
+    """Energy Search Pro: empty deck (no Basic Energy) shuffles and does not crash."""
+    from app.engine.effects.trainers import _energy_search_pro
+    state = _esp_state([])
+    action = _esp_action()
+
+    gen = _energy_search_pro(state, action)
+    result = None
+    try:
+        result = next(gen)
+    except StopIteration:
+        pass
+
+    # Must not have yielded a ChoiceRequest (returns early)
+    assert result is None
+    assert any(e["event_type"] == "shuffle_deck" for e in state.events)
+
+
+@pytest.mark.asyncio
+async def test_energy_search_pro_fallback_takes_all_types():
+    """Energy Search Pro: no response → fallback takes one card per type."""
+    from app.engine.effects.trainers import _energy_search_pro
+    fire = _make_basic_energy_inst("esp-fb-fire", "Fire Energy", "Fire")
+    water = _make_basic_energy_inst("esp-fb-water", "Water Energy", "Water")
+    state = _esp_state([fire, water])
+    action = _esp_action()
+
+    gen = _energy_search_pro(state, action)
+    try:
+        next(gen)
+        gen.send(None)  # No response → AI fallback
+    except StopIteration:
+        pass
+
+    assert fire in state.p1.hand
+    assert water in state.p1.hand
+
+
+@pytest.mark.asyncio
+async def test_energy_search_pro_explicit_zero_moves_nothing():
+    """Explicit empty selection moves no cards to hand (not the same as no response)."""
+    from app.engine.effects.trainers import _energy_search_pro
+    fire = _make_basic_energy_inst("esp-z-fire", "Fire Energy", "Fire")
+    water = _make_basic_energy_inst("esp-z-water", "Water Energy", "Water")
+    state = _esp_state([fire, water])
+    action = _esp_action()
+
+    gen = _energy_search_pro(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.ATTACK, selected_cards=[])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert len(state.p1.hand) == 0
+    assert fire in state.p1.deck
+    assert water in state.p1.deck
+
+
+@pytest.mark.asyncio
+async def test_energy_search_pro_explicit_zero_shuffles_and_emits():
+    """Explicit empty selection still shuffles and emits energy_search_pro with cards_taken=0."""
+    from app.engine.effects.trainers import _energy_search_pro
+    fire = _make_basic_energy_inst("esp-ze-fire", "Fire Energy", "Fire")
+    state = _esp_state([fire])
+    action = _esp_action()
+
+    gen = _energy_search_pro(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.ATTACK, selected_cards=[])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert any(e["event_type"] == "shuffle_deck" for e in state.events)
+    esp_events = [e for e in state.events if e["event_type"] == "energy_search_pro"]
+    assert len(esp_events) == 1
+    assert esp_events[0]["cards_taken"] == 0
+
+
+@pytest.mark.asyncio
+async def test_energy_search_pro_special_energy_in_response_ignored():
+    """Special Energy card ID in response is silently ignored."""
+    from app.engine.effects.trainers import _energy_search_pro
+    fire = _make_basic_energy_inst("esp-sig-fire", "Fire Energy", "Fire")
+    special = _make_special_energy_inst("esp-sig-special", "Double Turbo")
+    # Put both in deck so the ID lookup succeeds
+    state = _esp_state([fire, special])
+    action = _esp_action()
+
+    gen = _energy_search_pro(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.ATTACK,
+                      selected_cards=[fire.instance_id, special.instance_id])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert fire in state.p1.hand
+    assert special not in state.p1.hand
+    assert special in state.p1.deck
+
+
+@pytest.mark.asyncio
+async def test_energy_search_pro_nondeck_id_in_response_ignored():
+    """A card ID not in the deck is silently ignored."""
+    from app.engine.effects.trainers import _energy_search_pro
+    fire = _make_basic_energy_inst("esp-nd-fire", "Fire Energy", "Fire")
+    state = _esp_state([fire])
+    action = _esp_action()
+
+    gen = _energy_search_pro(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.ATTACK,
+                      selected_cards=["fake-nonexistent-id"])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert len(state.p1.hand) == 0
+    assert fire in state.p1.deck
