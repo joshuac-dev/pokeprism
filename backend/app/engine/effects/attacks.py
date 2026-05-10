@@ -28456,8 +28456,36 @@ def _refrigerated_stream(state, action):
 # Flagged Batch 6 — new handlers for previously-flagged cards
 # ──────────────────────────────────────────────────────────────────────────────
 
+def _blustery_wind(state, action):
+    """sv03-164 Pidgeot ex atk0 — Blustery Wind: 120 damage; you may discard a Stadium in play."""
+    _apply_damage(state, action, 120)
+    if state.phase == Phase.GAME_OVER:
+        return
+    if not state.active_stadium:
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        "Blustery Wind: you may discard the Stadium in play",
+        cards=[state.active_stadium], min_count=0, max_count=1,
+    )
+    resp = yield req
+    # No-response fallback: decline to discard (optional effect — safe AI default).
+    chosen_ids = (resp.selected_cards if resp is not None and resp.selected_cards
+                  else [])
+
+    if chosen_ids and state.active_stadium:
+        stadium = state.active_stadium
+        state.active_stadium = None
+        state.emit_event("stadium_discarded", stadium=stadium.card_name,
+                         reason="blustery_wind")
+
+
 def register_flagged_batch6_attacks(registry):
     """Register Flagged Batch 6 attack handlers."""
+    # ── sv03-164 Pidgeot ex ───────────────────────────────────────────────────
+    registry.register_attack("sv03-164", 0, _blustery_wind)          # Blustery Wind
+
     # ── sv10-150 TR Persian ex ────────────────────────────────────────────────
     registry.register_attack("sv10-150", 0, _haughty_order)          # Haughty Order
 

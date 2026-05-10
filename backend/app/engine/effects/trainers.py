@@ -5756,6 +5756,50 @@ def _earthen_vessel(state: GameState, action):
     state.emit_event("shuffle_deck", player=player_id, reason="earthen_vessel")
 
 
+def _brilliant_blender(state: GameState, action):
+    """Brilliant Blender (sv08-164) — ACE SPEC Item
+
+    Search your deck for up to 5 Pokémon and discard them. Then, shuffle your deck.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    pokemon_in_deck = [c for c in player.deck if c.card_type.lower() == "pokemon"]
+
+    if not pokemon_in_deck:
+        random.shuffle(player.deck)
+        state.emit_event("brilliant_blender", player=player_id, discarded=0)
+        state.emit_event("shuffle_deck", player=player_id, reason="brilliant_blender")
+        return
+
+    max_count = min(5, len(pokemon_in_deck))
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Brilliant Blender: choose up to 5 Pokémon from your deck to discard",
+        cards=pokemon_in_deck, min_count=0, max_count=max_count,
+    )
+    resp = yield req
+    # Explicit [] means player chose zero (valid). None/missing response falls back
+    # to discarding up to 5 Pokémon in deck order (deterministic AI fallback).
+    if resp is not None and resp.selected_cards is not None:
+        chosen_ids = resp.selected_cards
+    else:
+        chosen_ids = [c.instance_id for c in pokemon_in_deck[:max_count]]
+
+    discarded = 0
+    for iid in chosen_ids[:5]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card and card.card_type.lower() == "pokemon":
+            player.deck.remove(card)
+            card.zone = Zone.DISCARD
+            player.discard.append(card)
+            discarded += 1
+
+    random.shuffle(player.deck)
+    state.emit_event("brilliant_blender", player=player_id, discarded=discarded)
+    state.emit_event("shuffle_deck", player=player_id, reason="brilliant_blender")
+
+
 def register_all(registry: EffectRegistry) -> None:
     """Register all trainer effect handlers."""
 
@@ -5812,6 +5856,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv05-144", _buddy_buddy_poffin)
     registry.register_trainer("me02.5-184", _buddy_buddy_poffin)  # Buddy-Buddy Poffin alt print
     registry.register_trainer("sv05-157", _prime_catcher)
+    registry.register_trainer("sv08.5-119", _prime_catcher)  # Prime Catcher alt print (PRE 119 ACE SPEC)
     registry.register_trainer("sv06-143", _bug_catching_set)
     registry.register_trainer("sv08.5-102", _bug_catching_set)  # Bug Catching Set (PE alt)
     registry.register_trainer("sv06-148", _enhanced_hammer)
@@ -5992,6 +6037,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv08-189", _tera_orb_b19)              # Tera Orb
     registry.register_trainer("sv07-138", _kofu_b19)                  # Kofu
     registry.register_trainer("sv06-162", _scoop_up_cyclone)          # Scoop Up Cyclone (ACE SPEC)
+    registry.register_trainer("sv08-164", _brilliant_blender)         # Brilliant Blender (ACE SPEC Item)
     registry.register_trainer("sv08-176", _energy_search_pro)         # Energy Search Pro (ACE SPEC Item)
     registry.register_trainer("sv08-183", _miracle_headset)           # Miracle Headset (ACE SPEC)
     registry.register_trainer("sv08-185", _precious_trolley)          # Precious Trolley (ACE SPEC Item)
