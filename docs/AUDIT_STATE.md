@@ -12,7 +12,7 @@ last_pr:
 last_issue: Nightly DB-backed card effect implementation audit - 2026-05-10
 last_first_card_audited: Lapras | SCR | 31 | sv07-031
 last_card_fully_audited: Ledian | SCR | 3 | sv07-003
-notes: 4 findings (4 code fixes, 0 remaining gaps in this repaired window). S11-1 Larry's Skill explicit-empty; S11-2 Ledian Glittering Star Pattern; S11-3 Larimar Rain subset+target flow; S11-4 Lustrous Assist multi-donor any-amount flow. Tests: focused 3 passed, audit regressions 184 passed, backend 1333 passed / 7 skipped.
+notes: 4 findings (4 code fixes, 0 remaining gaps in this repaired window). S11-1 Larry's Skill explicit-empty; S11-2 Ledian Glittering Star Pattern; S11-3 Larimar Rain subset+target flow; S11-4 Lustrous Assist multi-donor any-amount flow. Tests: focused 4 passed, audit regressions 185 passed, backend 1334 passed / 7 skipped.
 ```
 
 ## Cursor rules

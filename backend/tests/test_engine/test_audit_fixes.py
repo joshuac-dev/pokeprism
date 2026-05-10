@@ -4219,7 +4219,7 @@ async def test_EG9_metronome_copies_opp_attack_damage():
 
 
 @pytest.mark.asyncio
-async def test_EG14_larimar_rain_attaches_energy_from_top20():
+async def test_EG14_larimar_rain_basic_energy_attachment():
     """sv07-032 Lapras ex — Larimar Rain: attaches energy from top 20 deck cards to own Pokémon."""
     from app.engine.effects.attacks import _larimar_rain
 
@@ -4405,6 +4405,53 @@ async def test_EG15_lustrous_assist_moves_any_amount_from_multiple_bench_donors(
     assert donor2.energy_attached == []
     assert latios.ability_used_this_turn is True
     assert any(e.get("event_type") == "lustrous_assist" and e.get("moved") == 2 for e in state.events)
+
+
+@pytest.mark.asyncio
+async def test_EG15_lustrous_assist_allows_zero_selection_from_donor():
+    """Choosing zero Energy from a donor is valid and keeps attachment state unchanged."""
+    from app.engine.effects.abilities import _lustrous_assist
+
+    active = CardInstance(
+        instance_id="la0-active", card_def_id="me01-100",
+        card_name="Mega Latias ex", current_hp=280, max_hp=280, zone=Zone.ACTIVE,
+    )
+    active.moved_from_bench_this_turn = True
+    latios = CardInstance(
+        instance_id="la0-latios", card_def_id="me01-101",
+        card_name="Latios", current_hp=120, max_hp=120, zone=Zone.BENCH,
+    )
+    donor = CardInstance(
+        instance_id="la0-d1", card_def_id="tst-la0-d1",
+        card_name="Donor 1", current_hp=100, max_hp=100, zone=Zone.BENCH,
+    )
+    donor.energy_attached = [
+        EnergyAttachment(EnergyType.WATER, "la0-w1", card_def_id="basic-water", provides=[EnergyType.WATER]),
+    ]
+    opp_active = CardInstance(
+        instance_id="la0-opp", card_def_id="tst-la0-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=active, p1_bench=[latios, donor], p2_active=opp_active)
+
+    gen = _lustrous_assist(state, Action(
+        player_id="p1", action_type=ActionType.USE_ABILITY, card_instance_id=latios.instance_id
+    ))
+    next(gen)  # choose_option
+    req_donor = gen.send(Action(player_id="p1", action_type=ActionType.CHOOSE_OPTION, selected_option=0))
+    assert req_donor.choice_type == "choose_target"
+    req_energy = gen.send(Action(
+        player_id="p1", action_type=ActionType.CHOOSE_TARGET, target_instance_id=donor.instance_id
+    ))
+    assert req_energy.choice_type == "choose_cards"
+    req_done = gen.send(Action(player_id="p1", action_type=ActionType.CHOOSE_CARDS, selected_cards=[]))
+    assert req_done.choice_type == "choose_option"
+    with pytest.raises(StopIteration):
+        gen.send(Action(player_id="p1", action_type=ActionType.CHOOSE_OPTION, selected_option=1))
+
+    assert [a.source_card_id for a in donor.energy_attached] == ["la0-w1"]
+    assert active.energy_attached == []
+    assert any(e.get("event_type") == "lustrous_assist" and e.get("moved") == 0 for e in state.events)
 
 
 def test_EG11_unleash_lightning_sets_player_flag():
