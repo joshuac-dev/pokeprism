@@ -4664,33 +4664,8 @@ def _double_edge(state, action):
 
 
 def _erasure_ball_asc(state, action):
-    """me02.5-079 TR Mewtwo ex atk0 — Erasure Ball: 160 + discard up to 2 Energy from YOUR bench, +60 each."""
-    player = state.get_player(action.player_id)
-    bench_with_energy = [p for p in player.bench if p.energy_attached]
-    if not bench_with_energy:
-        _apply_damage(state, action, 160)
-        return
-
-    req = ChoiceRequest(
-        "choose_targets", action.player_id,
-        "Erasure Ball: choose up to 2 of your Benched Pokémon to discard 1 Energy from (+60 each)",
-        targets=bench_with_energy, min_count=0, max_count=2,
-    )
-    resp = yield req
-    chosen_ids = set()
-    if resp and hasattr(resp, "target_instance_ids") and resp.target_instance_ids:
-        chosen_ids = set(resp.target_instance_ids[:2])
-
-    discarded = 0
-    for poke in bench_with_energy:
-        if poke.instance_id not in chosen_ids:
-            continue
-        if poke.energy_attached:
-            poke.energy_attached.pop(0)
-            discarded += 1
-
-    state.emit_event("erasure_ball_asc", player=action.player_id, discarded=discarded)
-    _apply_damage(state, action, 160 + 60 * discarded)
+    """me02.5-079 TR Mewtwo ex atk0 — Erasure Ball (identical to sv10-081 DRI version)."""
+    yield from _erasure_ball(state, action)
 
 
 def _hide(state, action):
