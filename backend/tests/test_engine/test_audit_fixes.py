@@ -5718,6 +5718,8 @@ async def test_quick_search_explicit_zero_moves_nothing():
 
     assert len(state.p1.hand) == 0
     assert card in state.p1.deck
+    # Choosing zero still consumes the once-per-turn Quick Search use.
+    assert state.p1.quick_search_used_this_turn is True
 
 
 @pytest.mark.asyncio
@@ -5977,3 +5979,31 @@ async def test_blustery_wind_damage_and_stadium_both_occur():
 
     assert state.p2.active.current_hp < opp_hp_before
     assert state.active_stadium is None
+
+
+@pytest.mark.asyncio
+async def test_blustery_wind_game_over_skips_stadium_discard():
+    """When 120 damage KOs the opponent (GAME_OVER), stadium discard is never offered."""
+    from app.engine.effects.attacks import _blustery_wind
+    from app.engine.state import Phase
+    # Set opponent to 1 HP so 120 damage knocks it out.
+    # With no bench, the no_bench win condition fires and state.phase -> GAME_OVER.
+    state = _bw_state(with_stadium=True)
+    state.p2.active.current_hp = 1
+    state.p2.bench = []
+    action = _bw_action()
+
+    yielded_requests = []
+    gen = _blustery_wind(state, action)
+    try:
+        req = next(gen)
+        yielded_requests.append(req)
+        gen.send(None)
+    except StopIteration:
+        pass
+
+    assert state.phase == Phase.GAME_OVER
+    # Handler must not yield a ChoiceRequest after game ends.
+    assert yielded_requests == [], "Stadium discard should not be offered when game is over"
+    # Stadium is still in place (handler returned before discarding it).
+    assert state.active_stadium is not None
