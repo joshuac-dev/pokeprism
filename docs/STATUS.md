@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-10 (Three missing card handlers: Brilliant Blender, Pidgeot ex, Prime Catcher alt)
+Last updated: 2026-05-10 (fix-erasure-ball-asc-choice-type: me02.5-079 handler bug + _drive_effect None guard)
 
 ## Current Workstream
 

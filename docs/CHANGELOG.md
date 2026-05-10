@@ -30,8 +30,38 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
-### Added
-- **Three missing card-effect handlers** —
+### Fixed
+- **me02.5-079 Erasure Ball ASC — handler bug and engine None guard** —
+  fix(engine): correct _erasure_ball_asc choice_type and add _drive_effect None guard.
+
+  Root-cause diagnosis: a simulation (Alakazam Dudunsparce vs 47 opponents) failed
+  on opponent 47 (Rocket's Spidops deck) at 0 matches with
+  `AttributeError: 'NoneType' object has no attribute 'action_type'`. 46/47 opponents
+  (4600 matches) completed successfully and are fully usable.
+
+  **Bug 1 (handler, root cause):** `_erasure_ball_asc` (me02.5-079 TR Mewtwo ex)
+  yielded `ChoiceRequest("choose_targets", ...)`. The type `"choose_targets"` (plural)
+  is not handled by `_choice_to_legal_actions`; it returned `[]`, the heuristic player
+  returned `None`, and `ActionValidator.validate(state, None)` raised `AttributeError`.
+  Fixed by replacing the broken implementation with `yield from _erasure_ball(state,
+  action)` — the DRI version (sv10-081) has identical card text and works correctly.
+
+  **Bug 2 (engine safety, secondary):** `_drive_effect` in `registry.py` called
+  `ActionValidator.validate(state, chosen)` without a `None` guard, meaning any handler
+  whose AI resolves to `None` (empty legal-actions list) would crash. Fixed with an
+  explicit `if chosen is not None:` guard before the validate call.
+
+  Three regression tests added in `test_audit_fixes.py`:
+  - `test_erasure_ball_asc_with_bench_energy_yields_choose_cards` — verifies choose_cards
+    request, energy discard, and 220 damage.
+  - `test_erasure_ball_asc_no_bench_energy_does_base_damage` — verifies 160 damage,
+    no ChoiceRequest.
+  - `test_drive_effect_none_guard_prevents_crash_on_unknown_choice_type` — verifies
+    engine completes the handler via default_choice fallback instead of crashing.
+
+  Branch: `fix-erasure-ball-asc-choice-type`. Backend: 1336 passed, 1 skipped.
+
+
   fix(engine): Implement Brilliant Blender, Pidgeot ex, and Prime Catcher effects.
 
   - **Brilliant Blender (sv08-164)** — ACE SPEC Item. Player searches their deck

@@ -6007,3 +6007,119 @@ async def test_blustery_wind_game_over_skips_stadium_discard():
     assert yielded_requests == [], "Stadium discard should not be offered when game is over"
     # Stadium is still in place (handler returned before discarding it).
     assert state.active_stadium is not None
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Fix: me02.5-079 Erasure Ball ASC — choose_targets → choose_cards delegation
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _eb_asc_state(bench_energy_count: int = 1):
+    """State with p1 active + one benched Pokémon optionally carrying energy."""
+    mewtwo_cdef = _make_card(
+        "me02.5-079", "TR Mewtwo ex", hp=200,
+        attacks=[AttackDef(name="Erasure Ball", damage="160", cost=["Psychic", "Psychic"])],
+    )
+    bench_cdef = _make_card("tst-eb-001", "BenchMon", hp=80)
+    opp_cdef = _make_card("tst-eb-002", "OppMon", hp=200)
+    card_registry.register(mewtwo_cdef)
+    card_registry.register(bench_cdef)
+    card_registry.register(opp_cdef)
+
+    mewtwo_inst = _make_instance(mewtwo_cdef)
+    bench_inst = _make_instance(bench_cdef, zone=Zone.BENCH)
+    for i in range(bench_energy_count):
+        bench_inst.energy_attached.append(_make_energy(EnergyType.PSYCHIC, f"psychic-{i}"))
+    opp_inst = _make_instance(opp_cdef, hp=400)
+    return _make_state(p1_active=mewtwo_inst, p1_bench=[bench_inst], p2_active=opp_inst), bench_inst
+
+
+@pytest.mark.asyncio
+async def test_erasure_ball_asc_with_bench_energy_yields_choose_cards():
+    """me02.5-079 Erasure Ball must yield choose_cards (not the defunct choose_targets)."""
+    from app.engine.effects.attacks import _erasure_ball_asc
+    state, bench_inst = _eb_asc_state(bench_energy_count=1)
+    opp_hp_before = state.p2.active.current_hp
+    action = _make_action()
+
+    energy = bench_inst.energy_attached[0]
+    gen = _erasure_ball_asc(state, action)
+    req = next(gen)
+
+    assert req.choice_type == "choose_cards", (
+        f"Expected choose_cards but got '{req.choice_type}'; "
+        "handler still uses the defunct choose_targets type"
+    )
+    # Send back selecting the one energy card — energy discarded, damage = 160 + 60 = 220
+    resp = Action(player_id="p1", action_type=ActionType.ATTACK,
+                  selected_cards=[energy.source_card_id])
+    try:
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert bench_inst.energy_attached == [], "Energy should be discarded after Erasure Ball"
+    assert state.p2.active.current_hp == opp_hp_before - 220
+
+
+@pytest.mark.asyncio
+async def test_erasure_ball_asc_no_bench_energy_does_base_damage():
+    """me02.5-079 Erasure Ball with no bench energy: 160 damage, no ChoiceRequest."""
+    from app.engine.effects.attacks import _erasure_ball_asc
+    state, bench_inst = _eb_asc_state(bench_energy_count=0)
+    opp_hp_before = state.p2.active.current_hp
+    action = _make_action()
+
+    yielded = []
+    gen = _erasure_ball_asc(state, action)
+    try:
+        req = next(gen)
+        yielded.append(req)
+        gen.send(None)
+    except StopIteration:
+        pass
+
+    assert yielded == [], "No ChoiceRequest should be yielded when bench has no energy"
+    assert state.p2.active.current_hp == opp_hp_before - 160
+
+
+@pytest.mark.asyncio
+async def test_drive_effect_none_guard_prevents_crash_on_unknown_choice_type():
+    """_drive_effect must not crash when a handler yields an unknown choice_type.
+
+    If choose_action returns None (no legal actions for an unknown type), the
+    None guard in _drive_effect must catch it and fall back to the default choice.
+    """
+    from app.engine.effects.registry import _drive_effect
+
+    class _NullPlayer:
+        async def choose_action(self, state, legal_actions):
+            return None  # simulates empty legal list → player returns None
+
+    null_player = _NullPlayer()
+
+    def _bad_handler(state, action):
+        """Handler that uses an unsupported choice_type (as _erasure_ball_asc formerly did)."""
+        req = ChoiceRequest(
+            "choose_targets",  # unknown — _choice_to_legal_actions returns []
+            action.player_id,
+            "Bad handler",
+            targets=[],
+            min_count=0,
+            max_count=0,
+        )
+        _resp = yield req
+        state.emit_event("bad_handler_completed")
+
+    state, _ = _eb_asc_state(bench_energy_count=0)
+    action = _make_action()
+
+    # Must not raise AttributeError / any exception
+    await _drive_effect(
+        _bad_handler,
+        state,
+        action,
+        get_player=lambda _pid: null_player,
+    )
+
+    completed = [e for e in state.events if e.get("event_type") == "bad_handler_completed"]
+    assert completed, "_drive_effect should complete the generator via default_choice fallback"
