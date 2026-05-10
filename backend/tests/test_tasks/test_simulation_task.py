@@ -635,6 +635,193 @@ class TestEnsureDeckCardsInDb:
             mock_db.commit.assert_called_once()
 
 
+
+# ---------------------------------------------------------------------------
+# _PTCGL_DB_KEY_ALIASES — MEP 30 alias resolution
+# ---------------------------------------------------------------------------
+
+class TestPtcglDbKeyAliases:
+    """Tests for PTCGL alias resolution (e.g. Mega Charizard Y ex MEP 30 → ASC 22)."""
+
+    @pytest.mark.asyncio
+    async def test_mep30_resolves_via_alias_in_deck_text_to_card_defs(self):
+        """MEP 30 resolves to me02.5-022 (ASC 22) without needing MEP in DB."""
+        from unittest.mock import AsyncMock, MagicMock
+        from app.tasks.simulation import _deck_text_to_card_defs
+
+        mock_row = MagicMock()
+        mock_row.tcgdex_id = "me02.5-022"
+        mock_row.name = "Mega Charizard Y ex"
+        mock_row.set_abbrev = "ASC"
+        mock_row.set_number = "22"
+        mock_row.category = "Pokemon"
+        mock_row.subcategory = "Stage2"
+        mock_row.hp = 360
+        mock_row.types = ["Fire"]
+        mock_row.evolve_from = "Charmeleon"
+        mock_row.stage = "Stage2"
+        mock_row.retreat_cost = 3
+        mock_row.regulation_mark = None
+        mock_row.rarity = None
+        mock_row.image_url = None
+
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [mock_row]
+        mock_result = MagicMock()
+        mock_result.scalars.return_value = mock_scalars
+
+        mock_session = AsyncMock()
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=False)
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        mock_factory = MagicMock()
+        mock_factory.return_value = mock_session
+
+        defs = await _deck_text_to_card_defs("1 Mega Charizard Y ex MEP 30", mock_factory)
+
+        assert len(defs) == 1
+        assert defs[0].tcgdex_id == "me02.5-022"
+        assert defs[0].name == "Mega Charizard Y ex"
+
+    @pytest.mark.asyncio
+    async def test_mep30_no_tcgdex_call_when_asc22_in_db(self):
+        """ensure_deck_cards_in_db does not call TCGDex for MEP 30 when ASC 22 is in DB."""
+        from unittest.mock import AsyncMock, MagicMock, patch
+        from app.tasks.simulation import ensure_deck_cards_in_db
+
+        asc_row = MagicMock()
+        asc_row.set_abbrev = "ASC"
+        asc_row.set_number = "22"
+        scalars = MagicMock()
+        scalars.all.return_value = [asc_row]
+        result = MagicMock()
+        result.scalars.return_value = scalars
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(return_value=result)
+
+        with patch("app.cards.tcgdex.TCGDexClient.get_card") as mock_get:
+            await ensure_deck_cards_in_db(["1 Mega Charizard Y ex MEP 30"], mock_db)
+            mock_get.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_unrelated_mep_card_unaffected_by_alias(self):
+        """An unrelated MEP card (e.g. MEP 25) still resolves via normal DB lookup."""
+        from unittest.mock import AsyncMock, MagicMock
+        from app.tasks.simulation import _deck_text_to_card_defs
+
+        mock_row = MagicMock()
+        mock_row.tcgdex_id = "mep-025"
+        mock_row.name = "Pikachu ex"
+        mock_row.set_abbrev = "MEP"
+        mock_row.set_number = "25"
+        mock_row.category = "Pokemon"
+        mock_row.subcategory = "Basic"
+        mock_row.hp = 130
+        mock_row.types = ["Lightning"]
+        mock_row.evolve_from = None
+        mock_row.stage = "Basic"
+        mock_row.retreat_cost = 1
+        mock_row.regulation_mark = None
+        mock_row.rarity = None
+        mock_row.image_url = None
+
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [mock_row]
+        mock_result = MagicMock()
+        mock_result.scalars.return_value = mock_scalars
+
+        mock_session = AsyncMock()
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=False)
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        mock_factory = MagicMock()
+        mock_factory.return_value = mock_session
+
+        defs = await _deck_text_to_card_defs("1 Pikachu ex MEP 25", mock_factory)
+
+        assert len(defs) == 1
+        assert defs[0].tcgdex_id == "mep-025"
+
+    @pytest.mark.asyncio
+    async def test_unknown_mep_card_still_raises(self):
+        """An unknown MEP card not in the alias map still raises ValueError if absent from DB."""
+        from unittest.mock import AsyncMock, MagicMock
+        from app.tasks.simulation import _deck_text_to_card_defs
+
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = []
+        mock_result = MagicMock()
+        mock_result.scalars.return_value = mock_scalars
+
+        mock_session = AsyncMock()
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=False)
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        mock_factory = MagicMock()
+        mock_factory.return_value = mock_session
+
+        with pytest.raises(ValueError, match="ensure_deck_cards_in_db"):
+            await _deck_text_to_card_defs("1 SomeCard MEP 99", mock_factory)
+
+    @pytest.mark.asyncio
+    async def test_mep30_fresh_db_fetches_alias_target_not_mep030(self):
+        """Fresh DB: MEP 30 absent causes alias target (ASC 22/me02.5) to be fetched, not mep-030."""
+        from unittest.mock import AsyncMock, MagicMock, patch, call
+        from app.tasks.simulation import ensure_deck_cards_in_db
+
+        # DB returns nothing (fresh install, neither MEP nor ASC cards present)
+        empty_scalars = MagicMock()
+        empty_scalars.all.return_value = []
+        empty_result = MagicMock()
+        empty_result.scalars.return_value = empty_scalars
+
+        mock_db = MagicMock()
+        mock_db.execute = AsyncMock(return_value=empty_result)
+        mock_db.commit = AsyncMock()
+
+        raw_tcgdex = {
+            "id": "me02.5-022",
+            "name": "Mega Charizard Y ex",
+            "category": "Pokemon",
+            "hp": 360,
+            "types": ["Fire"],
+            "stage": "Stage2",
+            "retreat": 3,
+            "attacks": [],
+            "abilities": [],
+            "weaknesses": [],
+            "resistances": [],
+            "regulationMark": None,
+            "rarity": None,
+            "image": None,
+        }
+
+        with patch("app.cards.tcgdex.TCGDexClient.get_card", new_callable=AsyncMock, return_value=raw_tcgdex) as mock_get, \
+             patch("app.memory.postgres.MatchMemoryWriter.ensure_cards", new_callable=AsyncMock):
+            await ensure_deck_cards_in_db(["1 Mega Charizard Y ex MEP 30"], mock_db)
+            # Must have fetched ASC 22 (set_id "me02.5", number "22"), not mep-030
+            mock_get.assert_called_once()
+            args = mock_get.call_args
+            assert args[0][0] == "me02.5", f"Expected set_id 'me02.5', got {args[0][0]!r}"
+            assert str(args[0][1]) == "22", f"Expected number '22', got {args[0][1]!r}"
+
+    def test_resolve_ptcgl_db_key_alias(self):
+        """_resolve_ptcgl_db_key returns canonical alias target for known aliases."""
+        from app.tasks.simulation import _resolve_ptcgl_db_key
+        assert _resolve_ptcgl_db_key("MEP", "30") == ("ASC", "22")
+
+    def test_resolve_ptcgl_db_key_passthrough(self):
+        """_resolve_ptcgl_db_key returns original key for non-aliased entries."""
+        from app.tasks.simulation import _resolve_ptcgl_db_key
+        assert _resolve_ptcgl_db_key("PRE", "71") == ("PRE", "71")
+        assert _resolve_ptcgl_db_key("MEP", "25") == ("MEP", "25")
+        assert _resolve_ptcgl_db_key("MEP", "99") == ("MEP", "99")
+
+
 # ---------------------------------------------------------------------------
 # _check_regression
 # ---------------------------------------------------------------------------
