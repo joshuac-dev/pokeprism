@@ -767,6 +767,60 @@ class TestPtcglDbKeyAliases:
         with pytest.raises(ValueError, match="ensure_deck_cards_in_db"):
             await _deck_text_to_card_defs("1 SomeCard MEP 99", mock_factory)
 
+    @pytest.mark.asyncio
+    async def test_mep30_fresh_db_fetches_alias_target_not_mep030(self):
+        """Fresh DB: MEP 30 absent causes alias target (ASC 22/me02.5) to be fetched, not mep-030."""
+        from unittest.mock import AsyncMock, MagicMock, patch, call
+        from app.tasks.simulation import ensure_deck_cards_in_db
+
+        # DB returns nothing (fresh install, neither MEP nor ASC cards present)
+        empty_scalars = MagicMock()
+        empty_scalars.all.return_value = []
+        empty_result = MagicMock()
+        empty_result.scalars.return_value = empty_scalars
+
+        mock_db = MagicMock()
+        mock_db.execute = AsyncMock(return_value=empty_result)
+        mock_db.commit = AsyncMock()
+
+        raw_tcgdex = {
+            "id": "me02.5-022",
+            "name": "Mega Charizard Y ex",
+            "category": "Pokemon",
+            "hp": 360,
+            "types": ["Fire"],
+            "stage": "Stage2",
+            "retreat": 3,
+            "attacks": [],
+            "abilities": [],
+            "weaknesses": [],
+            "resistances": [],
+            "regulationMark": None,
+            "rarity": None,
+            "image": None,
+        }
+
+        with patch("app.cards.tcgdex.TCGDexClient.get_card", new_callable=AsyncMock, return_value=raw_tcgdex) as mock_get, \
+             patch("app.memory.postgres.MatchMemoryWriter.ensure_cards", new_callable=AsyncMock):
+            await ensure_deck_cards_in_db(["1 Mega Charizard Y ex MEP 30"], mock_db)
+            # Must have fetched ASC 22 (set_id "me02.5", number "22"), not mep-030
+            mock_get.assert_called_once()
+            args = mock_get.call_args
+            assert args[0][0] == "me02.5", f"Expected set_id 'me02.5', got {args[0][0]!r}"
+            assert str(args[0][1]) == "22", f"Expected number '22', got {args[0][1]!r}"
+
+    def test_resolve_ptcgl_db_key_alias(self):
+        """_resolve_ptcgl_db_key returns canonical alias target for known aliases."""
+        from app.tasks.simulation import _resolve_ptcgl_db_key
+        assert _resolve_ptcgl_db_key("MEP", "30") == ("ASC", "22")
+
+    def test_resolve_ptcgl_db_key_passthrough(self):
+        """_resolve_ptcgl_db_key returns original key for non-aliased entries."""
+        from app.tasks.simulation import _resolve_ptcgl_db_key
+        assert _resolve_ptcgl_db_key("PRE", "71") == ("PRE", "71")
+        assert _resolve_ptcgl_db_key("MEP", "25") == ("MEP", "25")
+        assert _resolve_ptcgl_db_key("MEP", "99") == ("MEP", "99")
+
 
 # ---------------------------------------------------------------------------
 # _check_regression

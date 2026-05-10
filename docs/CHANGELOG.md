@@ -37,8 +37,11 @@ merged PR history support that it actually landed.
   Added `_PTCGL_DB_KEY_ALIASES` in `simulation.py` mapping PTCGL key
   `("MEP", "30")` to the existing DB card `me02.5-022` (ASC 22,
   "Mega Charizard Y ex", HP 360, Fire, Stage2). Both `ensure_deck_cards_in_db`
-  and `_deck_text_to_card_defs` now resolve the alias without a TCGDex fetch.
-  Unrelated MEP cards are unaffected. Four regression tests added.
+  and `_deck_text_to_card_defs` resolve the alias without a TCGDex fetch.
+  Fresh-DB hardening: if the canonical ASC 22 row is absent, the import path
+  fetches `me02.5-022` via the alias target, never attempting `mep-030`.
+  `_resolve_ptcgl_db_key` helper centralises alias resolution for both paths.
+  Unrelated MEP cards are unaffected. Seven regression tests added.
   Branch: `fix-mega-charizard-y-mep30-resolution`.
 
 - **Energy Search Pro (sv08-176) trainer handler** —
