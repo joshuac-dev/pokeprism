@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-09 (Phase 7.2 corpus readiness audit completed)
+Last updated: 2026-05-10 (Phase 7.2c post-merge UX/debug validation completed)
 
 ## Current Workstream
 
@@ -32,7 +32,7 @@ Full report: `docs/proposals/OBSERVED_PLAY_CORPUS_EXPANSION_PHASE_7_2_READINESS_
 
 ## Phase 7.2c — Guarded Matchup Boost (Current)
 
-Status: Implemented
+Status: Implemented and UX/debug validated
 
 - Generic guarded matchup ranking boost inside existing deck_overlap_v1 retrieval path
 - Strategy: matchup_context_boost_v1
@@ -44,6 +44,17 @@ Status: Implemented
 - No persistence; no migrations
 - Real corpus currently under-covered: most contexts have matchup_ranking_enabled=False
 - Full broad activation pending corpus expansion
+
+**Phase 7.2c post-merge UX/debug validation (2026-05-10):**
+Verdict: `ready_for_parallel_corpus_expansion`.
+Branch: `phase-7-2c-post-merge-ux-debug-validation` (from `f4399a0`).
+Four retrieval contexts checked (Dragapult vs Gardevoir, Crustle vs Dragapult,
+no-match fake cards, no-label trainer-only deck). All contexts confirmed
+`matchup_pair_eligible=False`, `matchup_boost_applied_count=0`, correct
+`matchup_coverage_reason`. Coach-debug readability checklist: all 7 questions
+answered YES. One minor UI fix: `matchup_boost_applied_count` now always shown
+in 7.2c context (was hidden when 0). 380 frontend tests pass, build clean.
+Full report: `docs/proposals/OBSERVED_PLAY_PHASE_7_2C_UX_DEBUG_VALIDATION_REPORT.md`.
 
 **Phase 7.2b implementation:** matchup context preview metadata merged to main (`6234d5c`).
 `matchup_strategy=matchup_context_preview_v1`. Directed matchup key computed from

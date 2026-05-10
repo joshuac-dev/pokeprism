@@ -414,6 +414,30 @@ describe('ObservedPlayRetrievalDebugTile', () => {
     expect(screen.getAllByText(/Coverage/i).length).toBeGreaterThanOrEqual(1);
   });
 
+  it('shows boost applied count as 0 when boost did not apply in under-covered context', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            matchup_context_enabled: true,
+            matchup_strategy: 'matchup_context_boost_v1',
+            matchup_boost_cap: 0.12,
+            matchup_min_pair_logs: 3,
+            matchup_pair_log_count: 1,
+            matchup_pair_eligible: false,
+            matchup_boost_applied_count: 0,
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    // "Boost applied" must always be visible in a 7.2c context so devs can confirm 0 boosts
+    expect(screen.getByText(/Boost applied/i)).toBeInTheDocument();
+  });
+
   it('shows fallback copy about generic gated boost', () => {
     render(
       <ObservedPlayRetrievalDebugTile
