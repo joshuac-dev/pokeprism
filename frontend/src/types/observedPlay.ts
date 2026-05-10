@@ -687,6 +687,12 @@ export interface ObservedPlayRetrievalMetadata {
   directed_matchup_key?: string | null;
   matchup_confidence?: number | null;
   no_matchup_signal_reason?: string | null;
+  matchup_boost_cap?: number;
+  matchup_min_pair_logs?: number;
+  matchup_pair_log_count?: number;
+  matchup_pair_eligible?: boolean;
+  matchup_boost_applied_count?: number;
+  matchup_coverage_reason?: string | null;
 }
 
 export interface ObservedPlayCoachContextPreview {

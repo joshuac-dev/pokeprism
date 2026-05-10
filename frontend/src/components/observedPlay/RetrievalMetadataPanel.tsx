@@ -116,7 +116,7 @@ export default function RetrievalMetadataPanel({ meta }: { meta: ObservedPlayRet
         <p className="text-xs text-slate-400 italic">No label ranking signal applied.</p>
       )}
 
-      {/* Matchup context preview (Phase 7.2b) */}
+      {/* Matchup context (Phase 7.2c) */}
       {meta.matchup_context_enabled && (
         <div className="rounded border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/30 p-2">
           <div className="flex flex-wrap gap-3 text-xs text-sky-800 dark:text-sky-200 mb-2">
@@ -126,7 +126,11 @@ export default function RetrievalMetadataPanel({ meta }: { meta: ObservedPlayRet
             </span>
             <span>
               <span className="font-semibold">Matchup ranking:</span>{' '}
-              <span className="text-slate-500 dark:text-slate-400">disabled</span>
+              {meta.matchup_ranking_enabled ? (
+                <span className="text-green-600 dark:text-green-400 font-semibold">enabled</span>
+              ) : (
+                <span className="text-slate-500 dark:text-slate-400">disabled</span>
+              )}
             </span>
             <span>
               <span className="font-semibold">Candidate pool expansion:</span>{' '}
@@ -137,6 +141,39 @@ export default function RetrievalMetadataPanel({ meta }: { meta: ObservedPlayRet
               <span className="text-slate-500 dark:text-slate-400">no</span>
             </span>
           </div>
+          {meta.matchup_boost_cap != null && (
+            <div className="flex flex-wrap gap-3 text-xs text-sky-700 dark:text-sky-300 mb-1">
+              <span>
+                <span className="font-semibold">Boost cap:</span> {meta.matchup_boost_cap.toFixed(2)}
+              </span>
+              <span>
+                <span className="font-semibold">Min pair logs:</span> {meta.matchup_min_pair_logs ?? 3}
+              </span>
+              <span>
+                <span className="font-semibold">Pair log count:</span>{' '}
+                <span className={
+                  (meta.matchup_pair_log_count ?? 0) >= (meta.matchup_min_pair_logs ?? 3)
+                    ? 'text-green-600 dark:text-green-400 font-semibold'
+                    : 'text-amber-600 dark:text-amber-400'
+                }>
+                  {meta.matchup_pair_log_count ?? 0}
+                </span>
+              </span>
+              <span>
+                <span className="font-semibold">Eligible:</span>{' '}
+                {meta.matchup_pair_eligible ? (
+                  <span className="text-green-600 dark:text-green-400 font-semibold">yes</span>
+                ) : (
+                  <span className="text-amber-600 dark:text-amber-400">no</span>
+                )}
+              </span>
+              {(meta.matchup_boost_applied_count ?? 0) > 0 && (
+                <span>
+                  <span className="font-semibold">Boost applied:</span> {meta.matchup_boost_applied_count} item(s)
+                </span>
+              )}
+            </div>
+          )}
           {meta.directed_matchup_key ? (
             <div className="text-xs text-sky-800 dark:text-sky-200 mb-1">
               <span className="font-semibold">Directed matchup key:</span>{' '}
@@ -154,6 +191,11 @@ export default function RetrievalMetadataPanel({ meta }: { meta: ObservedPlayRet
               No directed matchup key — {meta.no_matchup_signal_reason.replace(/_/g, ' ')}
             </div>
           ) : null}
+          {meta.matchup_coverage_reason && !meta.matchup_pair_eligible && (
+            <div className="text-xs text-amber-600 dark:text-amber-400 italic mb-1">
+              Coverage: {meta.matchup_coverage_reason}
+            </div>
+          )}
           {((meta.current_archetype_labels?.length ?? 0) > 0 || (meta.opponent_archetype_labels?.length ?? 0) > 0) && (
             <div className="mt-1 space-y-1">
               {(meta.current_archetype_labels?.length ?? 0) > 0 && (
@@ -175,8 +217,8 @@ export default function RetrievalMetadataPanel({ meta }: { meta: ObservedPlayRet
             </div>
           )}
           <p className="mt-2 text-[11px] text-sky-600 dark:text-sky-400">
-            Matchup context is preview/debug metadata only in Phase 7.2b. It does not affect evidence
-            scores or ordering.
+            Matchup boost is generic and gated by corpus coverage. If a matchup is unseen or under-covered,
+            PokéPrism falls back to card overlap and archetype/package/strategy labels.
           </p>
         </div>
       )}
@@ -201,6 +243,7 @@ export default function RetrievalMetadataPanel({ meta }: { meta: ObservedPlayRet
                   <th className="py-1 pr-3 font-semibold whitespace-nowrap">Tier</th>
                   <th className="py-1 pr-3 font-semibold whitespace-nowrap">Score</th>
                   <th className="py-1 pr-3 font-semibold whitespace-nowrap">Label boost</th>
+                  <th className="py-1 pr-3 font-semibold whitespace-nowrap">Matchup boost</th>
                   <th className="py-1 pr-3 font-semibold whitespace-nowrap">Match source</th>
                   <th className="py-1 pr-3 font-semibold whitespace-nowrap">Matched card(s)</th>
                   <th className="py-1 font-semibold">Reason</th>
@@ -239,6 +282,14 @@ export default function RetrievalMetadataPanel({ meta }: { meta: ObservedPlayRet
                         </span>
                       )}
                     </td>
+                    <td className="py-1 pr-3 whitespace-nowrap text-sky-700 dark:text-sky-300">
+                      {(ev.matchup_boost ?? 0) > 0 ? `+${(ev.matchup_boost ?? 0).toFixed(2)}` : '—'}
+                      {ev.source_log_matchup_key && (
+                        <span className="block text-[10px] text-sky-500 dark:text-sky-400">
+                          {ev.source_log_matchup_key}
+                        </span>
+                      )}
+                    </td>
                     <td className="py-1 pr-3 whitespace-nowrap">
                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
                         ev.match_source === 'deck_card'
@@ -262,11 +313,6 @@ export default function RetrievalMetadataPanel({ meta }: { meta: ObservedPlayRet
                       {ev.label_match_reason && (
                         <span className="block mt-1 text-[11px] text-amber-700 dark:text-amber-300">
                           {ev.label_match_reason}
-                        </span>
-                      )}
-                      {ev.source_log_matchup_key && (
-                        <span className="block mt-1 text-[11px] text-sky-600 dark:text-sky-400">
-                          matchup: {ev.source_log_matchup_key}
                         </span>
                       )}
                       {ev.matchup_match_reason && (

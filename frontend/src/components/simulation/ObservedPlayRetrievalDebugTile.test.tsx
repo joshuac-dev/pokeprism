@@ -282,7 +282,7 @@ describe('ObservedPlayRetrievalDebugTile', () => {
     expect(screen.getByText(/no opponent archetype label/i)).toBeInTheDocument();
   });
 
-  it('shows preview-only advisory copy', () => {
+  it('shows fallback advisory copy for under-covered matchups', () => {
     render(
       <ObservedPlayRetrievalDebugTile
         simulationId="sim-1"
@@ -297,7 +297,7 @@ describe('ObservedPlayRetrievalDebugTile', () => {
       />
     );
     fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
-    expect(screen.getByText(/preview\/debug metadata only in Phase 7\.2b/i)).toBeInTheDocument();
+    expect(screen.getByText(/generic and gated by corpus coverage/i)).toBeInTheDocument();
   });
 
   it('older payload without matchup fields still renders without errors', () => {
@@ -339,5 +339,177 @@ describe('ObservedPlayRetrievalDebugTile', () => {
     expect(screen.getByText(/Matchup ranking/i)).toBeInTheDocument();
     expect(screen.getByText(/Candidate pool expansion/i)).toBeInTheDocument();
     expect(screen.getByText(/Filter applied/i)).toBeInTheDocument();
+  });
+
+  it('shows matchup_context_boost_v1 strategy when using phase 7.2c', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            matchup_context_enabled: true,
+            matchup_strategy: 'matchup_context_boost_v1',
+            matchup_ranking_enabled: false,
+            matchup_boost_cap: 0.12,
+            matchup_min_pair_logs: 3,
+            matchup_pair_log_count: 0,
+            matchup_pair_eligible: false,
+            matchup_coverage_reason: '0 clean logs match dragapult-ex|vs|gardevoir-ex; minimum is 3',
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    expect(screen.getByText(/matchup_context_boost_v1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Boost cap/i)).toBeInTheDocument();
+    expect(screen.getByText(/Min pair logs/i)).toBeInTheDocument();
+  });
+
+  it('shows pair log count and eligibility when present', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            matchup_context_enabled: true,
+            matchup_strategy: 'matchup_context_boost_v1',
+            matchup_boost_cap: 0.12,
+            matchup_min_pair_logs: 3,
+            matchup_pair_log_count: 5,
+            matchup_pair_eligible: true,
+            matchup_ranking_enabled: true,
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    expect(screen.getByText(/Pair log count/i)).toBeInTheDocument();
+    expect(screen.getByText(/Eligible/i)).toBeInTheDocument();
+  });
+
+  it('shows coverage reason when not eligible', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            matchup_context_enabled: true,
+            matchup_strategy: 'matchup_context_boost_v1',
+            matchup_boost_cap: 0.12,
+            matchup_min_pair_logs: 3,
+            matchup_pair_log_count: 1,
+            matchup_pair_eligible: false,
+            matchup_coverage_reason: '1 clean log(s) match dragapult-ex|vs|gardevoir-ex; minimum is 3',
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    expect(screen.getAllByText(/Coverage/i).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('shows fallback copy about generic gated boost', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            matchup_context_enabled: true,
+            matchup_strategy: 'matchup_context_boost_v1',
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    expect(screen.getByText(/generic and gated by corpus coverage/i)).toBeInTheDocument();
+  });
+
+  it('shows matchup_boost in evidence table when boost is applied', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            matchup_context_enabled: true,
+            matchup_strategy: 'matchup_context_boost_v1',
+            matchup_ranking_enabled: true,
+            matchup_boost_cap: 0.12,
+            matchup_pair_eligible: true,
+            matchup_boost_applied_count: 1,
+            evidence_selected: [{
+              memory_item_id: 'mem-1',
+              relevance_score: 1.20,
+              base_relevance_score: 0.95,
+              label_boost: 0.08,
+              matchup_boost: 0.12,
+              final_relevance_score: 1.15,
+              tier: 1,
+              matched_card_ids: ['sv06-001'],
+              matched_card_names: ['Dragapult ex'],
+              matched_field: 'actor_card_def_id',
+              matched_reason: 'deck_card Dragapult ex matched actor_card_def_id',
+              source_log_matchup_key: 'dragapult-ex|vs|gardevoir-ex',
+              match_source: 'deck_card',
+              source_log_id: 'log-abc',
+              from_winning_game: true,
+            }],
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    expect(screen.getAllByText(/Matchup boost/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/\+0\.12/)).toBeInTheDocument();
+  });
+
+  it('shows matchup ranking as enabled when matchup_ranking_enabled is true', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            matchup_context_enabled: true,
+            matchup_strategy: 'matchup_context_boost_v1',
+            matchup_ranking_enabled: true,
+            matchup_boost_cap: 0.12,
+            matchup_pair_eligible: true,
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    expect(screen.getAllByText(/enabled/i).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('older payload without phase 7.2c matchup fields still renders safely', () => {
+    render(
+      <ObservedPlayRetrievalDebugTile
+        simulationId="sim-1"
+        rounds={[makeRound({
+          retrieval_metadata: makeMetadata({
+            matchup_context_enabled: true,
+            matchup_strategy: 'matchup_context_preview_v1',
+            // No phase 7.2c fields
+          }),
+        })]}
+        flagEnabled={true}
+        anyBlockInjected={true}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Round 1/i }));
+    // Should render without errors; boost cap section absent
+    expect(screen.queryByText(/Boost cap/i)).not.toBeInTheDocument();
   });
 });

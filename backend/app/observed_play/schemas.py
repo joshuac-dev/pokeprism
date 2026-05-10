@@ -854,6 +854,13 @@ class ObservedPlayRetrievalMetadata(BaseModel):
     directed_matchup_key: str | None = None
     matchup_confidence: float | None = None
     no_matchup_signal_reason: str | None = None
+    # Phase 7.2c — guarded matchup boost metadata
+    matchup_boost_cap: float = 0.0
+    matchup_min_pair_logs: int = 0
+    matchup_pair_log_count: int = 0
+    matchup_pair_eligible: bool = False
+    matchup_boost_applied_count: int = 0
+    matchup_coverage_reason: str | None = None
 
 
 class ObservedPlayCoachContextPreview(BaseModel):

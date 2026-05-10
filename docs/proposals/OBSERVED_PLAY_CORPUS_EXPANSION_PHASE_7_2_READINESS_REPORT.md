@@ -5,6 +5,13 @@
 > Date: 2026-05-09
 > Baseline commit: `6234d5cd` (Merge branch 'phase-7-2b-matchup-context-preview')
 
+## Phase 7.2c Note
+
+Phase 7.2c has implemented the generic matchup boost mechanism. The readiness gate described in
+this report blocks boost ACTIVATION and BROAD ROLLOUT for under-covered pairs. For any matchup
+with <3 clean directed logs, matchup_boost=0.0 and retrieval falls back to Phase 7.1d/7.2b behavior.
+The readiness gate does NOT block the implementation itself.
+
 ---
 
 ## 1. Summary Verdict

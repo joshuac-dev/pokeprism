@@ -85,14 +85,28 @@ def _make_row(item, winner_alias=None, self_player_index=None, p1=None, p2=None)
 
 
 def _make_db(*per_call_rows):
-    """Mock async DB session returning given row lists on successive execute() calls."""
+    """Mock async DB session returning given row lists on successive execute() calls.
+
+    Extra calls beyond the provided row lists return an empty result, allowing
+    Phase 7.2c coverage queries to succeed without StopIteration errors.
+    """
     db = AsyncMock()
     results = []
     for rows in per_call_rows:
         r = MagicMock()
         r.all.return_value = rows
         results.append(r)
-    db.execute = AsyncMock(side_effect=results)
+
+    _empty = MagicMock()
+    _empty.all.return_value = []
+    _call_idx = [0]
+
+    async def _execute(stmt):
+        idx = _call_idx[0]
+        _call_idx[0] += 1
+        return results[idx] if idx < len(results) else _empty
+
+    db.execute = _execute
     return db
 
 
@@ -1018,7 +1032,7 @@ class TestMatchupMetadataInTieredPreview:
 
     @pytest.mark.asyncio
     async def test_matchup_strategy_present_in_tiered_metadata(self):
-        """Tiered retrieval metadata includes matchup_strategy=matchup_context_preview_v1."""
+        """Tiered retrieval metadata includes matchup_strategy=matchup_context_boost_v1."""
         from app.observed_play.coach_context import build_coach_context_preview
 
         item = _make_item(
@@ -1045,15 +1059,15 @@ class TestMatchupMetadataInTieredPreview:
             )
         meta = preview.retrieval_metadata
         assert meta is not None
-        assert meta.matchup_strategy == "matchup_context_preview_v1"
+        assert meta.matchup_strategy == "matchup_context_boost_v1"
         assert meta.matchup_context_enabled is True
         assert meta.matchup_ranking_enabled is False
         assert meta.matchup_candidate_pool_expanded is False
         assert meta.matchup_filter_applied is False
 
     @pytest.mark.asyncio
-    async def test_matchup_boost_is_always_zero(self):
-        """Phase 7.2b: matchup_boost must be 0.0 on all evidence items."""
+    async def test_matchup_boost_is_zero_without_opponent_context(self):
+        """Without opponent context, coverage gate is never triggered; matchup_boost=0.0 on all evidence."""
         from app.observed_play.coach_context import build_coach_context_preview
 
         item = _make_item(
@@ -1089,8 +1103,8 @@ class TestMatchupMetadataInTieredPreview:
             assert detail.matchup_boost == 0.0
 
     @pytest.mark.asyncio
-    async def test_scores_unchanged_compared_with_label_ranking(self):
-        """Adding matchup context must not change relevance_score or evidence order."""
+    async def test_scores_and_order_unchanged_when_matchup_boost_is_zero(self):
+        """Without opponent context, matchup_boost=0.0, so relevance_score order is unchanged."""
         from app.observed_play.coach_context import build_coach_context_preview
 
         log_a, log_b = uuid.uuid4(), uuid.uuid4()
@@ -1130,10 +1144,10 @@ class TestMatchupMetadataInTieredPreview:
         # Order: item_a before item_b (higher confidence)
         assert ids[0] == str(_uuid("7b000003"))
         assert ids[1] == str(_uuid("7b000004"))
-        # Scores include label_boost but NOT matchup_boost
+        # Score formula: base + label_boost + matchup_boost (0.0 here — no opponent context)
         for detail in meta.evidence_selected:
             assert detail.final_relevance_score == pytest.approx(
-                detail.base_relevance_score + detail.label_boost, abs=0.0001
+                detail.base_relevance_score + detail.label_boost + detail.matchup_boost, abs=0.0001
             )
 
     @pytest.mark.asyncio
@@ -1229,7 +1243,7 @@ class TestMatchupMetadataInTieredPreview:
         assert preview.no_relevant_evidence is True
         meta = preview.retrieval_metadata
         assert meta is not None
-        assert meta.matchup_strategy == "matchup_context_preview_v1"
+        assert meta.matchup_strategy == "matchup_context_boost_v1"
         assert meta.matchup_ranking_enabled is False
 
     @pytest.mark.asyncio
@@ -1249,3 +1263,681 @@ class TestMatchupMetadataInTieredPreview:
             )
         assert preview.enabled is False
         assert preview.retrieval_metadata is None
+
+
+# ── Tests for Phase 7.2c guarded matchup boost ───────────────────────────────
+
+class TestMatchupCoverageAndBoost:
+    """Phase 7.2c: guarded matchup boost — coverage gate and boost application."""
+
+    def _make_label(self, canonical_key, label_type="archetype", confidence=0.90):
+        from app.observed_play.schemas import ArchetypeLabel
+        return ArchetypeLabel(
+            label=canonical_key,
+            canonical_key=canonical_key,
+            label_type=label_type,
+            source="observed_log",
+            confidence=confidence,
+            review_status="suggested",
+            evidence_card_ids=[],
+            evidence_card_names=[],
+            evidence_counts={},
+            evidence_event_ids=[],
+            evidence_memory_item_ids=[],
+            schema_version="archetype_label_v1",
+        )
+
+    def _make_preview(self, log_id, player1_key, player2_key=None, ambiguous=False):
+        """Build a controlled ObservedLogArchetypeLabelPreview."""
+        from app.observed_play.schemas import ObservedLogArchetypeLabelPreview
+        labels_by_player = {}
+        if player1_key:
+            labels_by_player["player_1"] = [self._make_label(player1_key)]
+        if player2_key:
+            labels_by_player["player_2"] = [self._make_label(player2_key)]
+        return ObservedLogArchetypeLabelPreview(
+            observed_play_log_id=str(log_id),
+            ambiguous=ambiguous,
+            labels_by_player=labels_by_player,
+        )
+
+    class _CovRow:
+        """Row wrapper for coverage query (select(ObservedPlayMemoryItem))."""
+        def __init__(self, item):
+            self._item = item
+        def __getitem__(self, idx):
+            return self._item
+
+    # ── 1. Coverage helper counts only clean directed matchup logs ──────────
+
+    @pytest.mark.asyncio
+    async def test_coverage_counts_clean_directed_logs(self):
+        """Coverage helper counts logs where both sides have primary archetype labels."""
+        from app.observed_play.coach_context import _count_directed_matchup_logs
+
+        log_ids = [uuid.uuid4() for _ in range(3)]
+        items = [
+            _make_item(
+                log_id=lid,
+                player_alias="player_1",
+                actor_card_raw="Dragapult ex",
+                actor_card_def_id="sv-drag",
+            )
+            for lid in log_ids
+        ]
+        cov_rows = [self._CovRow(it) for it in items]
+        db = _make_db(cov_rows)
+
+        def _mock_infer(log_id, signals):
+            return self._make_preview(log_id, "dragapult-ex", "gardevoir-ex")
+
+        with patch(
+            "app.observed_play.coach_context.infer_observed_log_labels_from_signals",
+            side_effect=_mock_infer,
+        ):
+            count, reason = await _count_directed_matchup_logs(
+                db, "dragapult-ex|vs|gardevoir-ex", "dragapult-ex"
+            )
+
+        assert count == 3
+        assert "boost eligible" in reason
+
+    # ── 2. Coverage helper ignores ambiguous logs ──────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_coverage_ignores_ambiguous_logs(self):
+        """Coverage helper skips logs whose preview is marked ambiguous."""
+        from app.observed_play.coach_context import _count_directed_matchup_logs
+
+        log_id = uuid.uuid4()
+        item = _make_item(log_id=log_id, player_alias="player_1", actor_card_raw="Dragapult ex")
+        db = _make_db([self._CovRow(item)])
+
+        def _mock_infer(lid, signals):
+            return self._make_preview(lid, "dragapult-ex", "gardevoir-ex", ambiguous=True)
+
+        with patch(
+            "app.observed_play.coach_context.infer_observed_log_labels_from_signals",
+            side_effect=_mock_infer,
+        ):
+            count, _ = await _count_directed_matchup_logs(
+                db, "dragapult-ex|vs|gardevoir-ex", "dragapult-ex"
+            )
+
+        assert count == 0
+
+    # ── 3. Coverage helper ignores one-sided logs ──────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_coverage_ignores_one_sided_logs(self):
+        """Logs with only one player labeled do not count towards coverage."""
+        from app.observed_play.coach_context import _count_directed_matchup_logs
+
+        log_id = uuid.uuid4()
+        item = _make_item(log_id=log_id, player_alias="player_1", actor_card_raw="Dragapult ex")
+        db = _make_db([self._CovRow(item)])
+
+        def _mock_infer(lid, signals):
+            # Only player_1 has a label — opponent side unknown
+            return self._make_preview(lid, "dragapult-ex", player2_key=None)
+
+        with patch(
+            "app.observed_play.coach_context.infer_observed_log_labels_from_signals",
+            side_effect=_mock_infer,
+        ):
+            count, _ = await _count_directed_matchup_logs(
+                db, "dragapult-ex|vs|gardevoir-ex", "dragapult-ex"
+            )
+
+        assert count == 0
+
+    # ── 4. Mirror match doesn't count for a different directed pair ─────────
+
+    @pytest.mark.asyncio
+    async def test_coverage_ignores_mirror_match_for_different_pair(self):
+        """A dragapult-ex vs dragapult-ex mirror match doesn't count for dragapult-ex|vs|gardevoir-ex."""
+        from app.observed_play.coach_context import _count_directed_matchup_logs
+
+        log_id = uuid.uuid4()
+        item = _make_item(log_id=log_id, player_alias="player_1", actor_card_raw="Dragapult ex")
+        db = _make_db([self._CovRow(item)])
+
+        def _mock_infer(lid, signals):
+            return self._make_preview(lid, "dragapult-ex", "dragapult-ex")
+
+        with patch(
+            "app.observed_play.coach_context.infer_observed_log_labels_from_signals",
+            side_effect=_mock_infer,
+        ):
+            count, _ = await _count_directed_matchup_logs(
+                db, "dragapult-ex|vs|gardevoir-ex", "dragapult-ex"
+            )
+
+        assert count == 0
+
+    # ── 5. Directed pair with ≥3 logs is eligible ──────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_directed_pair_with_three_logs_is_eligible(self):
+        """matchup_pair_eligible=True and matchup_ranking_enabled=True when coverage >= 3."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        log_ids = [uuid.uuid4() for _ in range(3)]
+        items = [
+            _make_item(
+                log_id=lid, actor_card_def_id="sv-dragapult",
+                actor_card_raw="Dragapult ex", confidence_score=0.88, player_alias="player_1",
+            )
+            for lid in log_ids
+        ]
+        # Tier 1 rows for evidence selection, then coverage rows
+        tier1_rows = [_make_row(items[0])]
+        cov_rows = [self._CovRow(it) for it in items]
+
+        db = _make_db(tier1_rows, [], cov_rows)
+
+        def _mock_infer(lid, signals):
+            return self._make_preview(lid, "dragapult-ex", "gardevoir-ex")
+
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=_ready_readiness()),
+             ), \
+             patch(
+                 "app.observed_play.coach_context.infer_observed_log_labels_from_signals",
+                 side_effect=_mock_infer,
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult"],
+                deck_card_names=["Dragapult ex"],
+                candidate_card_ids=["sv-gardevoir"],
+                candidate_card_names=["Gardevoir ex"],
+                allow_fallback=False,
+            )
+
+        meta = preview.retrieval_metadata
+        assert meta is not None
+        assert meta.matchup_pair_eligible is True
+        assert meta.matchup_ranking_enabled is True
+        assert meta.matchup_pair_log_count == 3
+        assert meta.matchup_strategy == "matchup_context_boost_v1"
+
+    # ── 6. Directed pair with <3 logs is not eligible ──────────────────────
+
+    @pytest.mark.asyncio
+    async def test_directed_pair_with_two_logs_is_not_eligible(self):
+        """matchup_pair_eligible=False when coverage < 3."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        log_ids = [uuid.uuid4() for _ in range(2)]
+        items = [
+            _make_item(
+                log_id=lid, actor_card_def_id="sv-dragapult",
+                actor_card_raw="Dragapult ex", confidence_score=0.88, player_alias="player_1",
+            )
+            for lid in log_ids
+        ]
+        tier1_rows = [_make_row(items[0])]
+        cov_rows = [self._CovRow(it) for it in items]
+
+        db = _make_db(tier1_rows, [], cov_rows)
+
+        def _mock_infer(lid, signals):
+            return self._make_preview(lid, "dragapult-ex", "gardevoir-ex")
+
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=_ready_readiness()),
+             ), \
+             patch(
+                 "app.observed_play.coach_context.infer_observed_log_labels_from_signals",
+                 side_effect=_mock_infer,
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult"],
+                deck_card_names=["Dragapult ex"],
+                candidate_card_ids=["sv-gardevoir"],
+                candidate_card_names=["Gardevoir ex"],
+                allow_fallback=False,
+            )
+
+        meta = preview.retrieval_metadata
+        assert meta is not None
+        assert meta.matchup_pair_eligible is False
+        assert meta.matchup_ranking_enabled is False
+        assert meta.matchup_pair_log_count == 2
+
+    # ── 7. Unseen matchup is not eligible and does not error ───────────────
+
+    @pytest.mark.asyncio
+    async def test_unseen_matchup_is_not_eligible_and_no_error(self):
+        """Unseen matchup with 0 coverage logs → not eligible, no exception."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        item = _make_item(
+            log_id=uuid.uuid4(), actor_card_def_id="sv-dragapult",
+            actor_card_raw="Dragapult ex", confidence_score=0.88,
+        )
+        db = _make_db([_make_row(item)], [], [])  # empty coverage
+
+        def _mock_infer(lid, signals):
+            # All corpus logs are of a completely different matchup
+            return self._make_preview(lid, "charizard-ex", "pikachu-ex")
+
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=_ready_readiness()),
+             ), \
+             patch(
+                 "app.observed_play.coach_context.infer_observed_log_labels_from_signals",
+                 side_effect=_mock_infer,
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult"],
+                deck_card_names=["Dragapult ex"],
+                candidate_card_ids=["sv-gardevoir"],
+                candidate_card_names=["Gardevoir ex"],
+                allow_fallback=False,
+            )
+
+        meta = preview.retrieval_metadata
+        assert meta is not None
+        assert meta.matchup_pair_eligible is False
+        assert meta.matchup_ranking_enabled is False
+        assert meta.matchup_pair_log_count == 0
+        assert meta.matchup_boost_applied_count == 0
+
+    # ── 8. Eligible pair applies boost to matching evidence ────────────────
+
+    @pytest.mark.asyncio
+    async def test_eligible_pair_applies_boost_to_matching_evidence(self):
+        """When eligible, evidence from a log with matching directed matchup key gets matchup_boost > 0."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        log_a = uuid.uuid4()
+        item_a = _make_item(
+            log_id=log_a, actor_card_def_id="sv-dragapult",
+            actor_card_raw="Dragapult ex", confidence_score=0.88, player_alias="player_1",
+        )
+        # Coverage items: 3 matching logs (log_a + 2 more)
+        cov_log_ids = [log_a, uuid.uuid4(), uuid.uuid4()]
+        cov_items = [
+            _make_item(log_id=lid, player_alias="player_1", actor_card_raw="Dragapult ex")
+            for lid in cov_log_ids
+        ]
+        cov_rows = [self._CovRow(it) for it in cov_items]
+
+        db = _make_db([_make_row(item_a)], [], cov_rows)
+
+        def _mock_infer(lid, signals):
+            return self._make_preview(str(lid), "dragapult-ex", "gardevoir-ex")
+
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=_ready_readiness()),
+             ), \
+             patch(
+                 "app.observed_play.coach_context.infer_observed_log_labels_from_signals",
+                 side_effect=_mock_infer,
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult"],
+                deck_card_names=["Dragapult ex"],
+                candidate_card_ids=["sv-gardevoir"],
+                candidate_card_names=["Gardevoir ex"],
+                allow_fallback=False,
+            )
+
+        meta = preview.retrieval_metadata
+        assert meta is not None
+        assert meta.matchup_boost_applied_count >= 1
+        assert meta.evidence_selected[0].matchup_boost > 0.0
+
+    # ── 9. Non-matching source_log_matchup_key gets boost=0.0 ─────────────
+
+    @pytest.mark.asyncio
+    async def test_non_matching_source_log_gets_zero_boost(self):
+        """Evidence from a log that doesn't match the directed matchup key gets matchup_boost=0.0."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        log_a = uuid.uuid4()
+        item_a = _make_item(
+            log_id=log_a, actor_card_def_id="sv-dragapult",
+            actor_card_raw="Dragapult ex", confidence_score=0.88, player_alias="player_1",
+        )
+        # Coverage: 3 logs matching dragapult vs gardevoir
+        cov_items = [
+            _make_item(log_id=uuid.uuid4(), player_alias="player_1", actor_card_raw="Dragapult ex")
+            for _ in range(3)
+        ]
+
+        db = _make_db([_make_row(item_a)], [], [self._CovRow(it) for it in cov_items])
+
+        call_count = [0]
+
+        def _mock_infer(lid, signals):
+            call_count[0] += 1
+            # Coverage logs return dragapult vs gardevoir (eligible)
+            # But the selected evidence log_a is from a charizard vs pikachu game
+            lid_str = str(lid)
+            if lid_str == str(log_a):
+                return self._make_preview(lid_str, "charizard-ex", "pikachu-ex")
+            return self._make_preview(lid_str, "dragapult-ex", "gardevoir-ex")
+
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=_ready_readiness()),
+             ), \
+             patch(
+                 "app.observed_play.coach_context.infer_observed_log_labels_from_signals",
+                 side_effect=_mock_infer,
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult"],
+                deck_card_names=["Dragapult ex"],
+                candidate_card_ids=["sv-gardevoir"],
+                candidate_card_names=["Gardevoir ex"],
+                allow_fallback=False,
+            )
+
+        meta = preview.retrieval_metadata
+        assert meta is not None
+        assert meta.matchup_ranking_enabled is True  # coverage gate met
+        assert meta.evidence_selected[0].matchup_boost == 0.0  # this log doesn't match
+
+    # ── 10. Boost cap enforced at 0.12 ─────────────────────────────────────
+
+    def test_matchup_boost_cap_is_0_12(self):
+        """_MATCHUP_BOOST_CAP constant is exactly 0.12."""
+        from app.observed_play.coach_context import _MATCHUP_BOOST_CAP
+        assert _MATCHUP_BOOST_CAP == 0.12
+
+    # ── 11. final_relevance_score = base + label_boost + matchup_boost ─────
+
+    @pytest.mark.asyncio
+    async def test_final_score_composition_with_matchup_boost(self):
+        """final_relevance_score = base_relevance_score + label_boost + matchup_boost."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        log_a = uuid.uuid4()
+        item_a = _make_item(
+            log_id=log_a, actor_card_def_id="sv-dragapult",
+            actor_card_raw="Dragapult ex", confidence_score=0.88, player_alias="player_1",
+        )
+        cov_items = [
+            _make_item(log_id=uuid.uuid4(), player_alias="player_1", actor_card_raw="Dragapult ex")
+            for _ in range(3)
+        ]
+
+        db = _make_db([_make_row(item_a)], [], [self._CovRow(it) for it in cov_items])
+
+        def _mock_infer(lid, signals):
+            return self._make_preview(str(lid), "dragapult-ex", "gardevoir-ex")
+
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=_ready_readiness()),
+             ), \
+             patch(
+                 "app.observed_play.coach_context.infer_observed_log_labels_from_signals",
+                 side_effect=_mock_infer,
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult"],
+                deck_card_names=["Dragapult ex"],
+                candidate_card_ids=["sv-gardevoir"],
+                candidate_card_names=["Gardevoir ex"],
+                allow_fallback=False,
+            )
+
+        meta = preview.retrieval_metadata
+        assert meta is not None
+        for detail in meta.evidence_selected:
+            expected = (detail.base_relevance_score or 0.0) + detail.label_boost + detail.matchup_boost
+            assert detail.final_relevance_score == pytest.approx(expected, abs=0.0002)
+
+    # ── 12. Same-tier evidence may reorder by matchup boost ────────────────
+
+    @pytest.mark.asyncio
+    async def test_same_tier_reorder_by_matchup_boost(self):
+        """Same-tier evidence with matchup boost outranks same-tier evidence without it."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        # log_a: matches the directed matchup key — gets boost
+        # log_b: does not match — lower final score
+        # Initially log_b has higher base confidence, but boost should put log_a first
+        log_a = uuid.uuid4()
+        log_b = uuid.uuid4()
+        item_a = _make_item(
+            item_id=_uuid("c0000001"), log_id=log_a,
+            actor_card_def_id="sv-dragapult", actor_card_raw="Dragapult ex",
+            confidence_score=0.88, player_alias="player_1",
+        )
+        item_b = _make_item(
+            item_id=_uuid("c0000002"), log_id=log_b,
+            actor_card_def_id="sv-dragapult", actor_card_raw="Dragapult ex",
+            confidence_score=0.92,  # higher base confidence
+            player_alias="player_1",
+        )
+        # Coverage: 3 logs confirming dragapult-ex|vs|gardevoir-ex
+        cov_items = [
+            _make_item(log_id=uuid.uuid4(), player_alias="player_1", actor_card_raw="Dragapult ex")
+            for _ in range(3)
+        ]
+
+        db = _make_db(
+            [_make_row(item_a), _make_row(item_b)], [],
+            [self._CovRow(it) for it in cov_items],
+        )
+
+        def _mock_infer(lid, signals):
+            lid_str = str(lid)
+            if lid_str == str(log_a):
+                return self._make_preview(lid_str, "dragapult-ex", "gardevoir-ex")
+            elif lid_str == str(log_b):
+                # log_b is from a different matchup — no boost
+                return self._make_preview(lid_str, "charizard-ex", "gardevoir-ex")
+            # Coverage logs
+            return self._make_preview(lid_str, "dragapult-ex", "gardevoir-ex")
+
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=_ready_readiness()),
+             ), \
+             patch(
+                 "app.observed_play.coach_context.infer_observed_log_labels_from_signals",
+                 side_effect=_mock_infer,
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult"],
+                deck_card_names=["Dragapult ex"],
+                candidate_card_ids=["sv-gardevoir"],
+                candidate_card_names=["Gardevoir ex"],
+                allow_fallback=False,
+            )
+
+        meta = preview.retrieval_metadata
+        assert meta is not None
+        # log_a should be ranked first due to matchup boost despite lower base confidence
+        ids = [d.memory_item_id for d in meta.evidence_selected]
+        assert ids[0] == str(_uuid("c0000001"))  # log_a first
+        assert meta.evidence_selected[0].matchup_boost == pytest.approx(0.12, abs=0.001)
+        assert meta.evidence_selected[1].matchup_boost == 0.0
+
+    # ── 13. Lower-tier evidence with boost cannot outrank higher-tier ───────
+
+    @pytest.mark.asyncio
+    async def test_tier_invariant_lower_tier_with_boost_cannot_outrank_higher_tier(self):
+        """Tier 1 evidence without boost stays above Tier 2 evidence with matchup boost."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        log_a = uuid.uuid4()  # Tier 1, no matchup boost
+        log_b = uuid.uuid4()  # Tier 2, gets matchup boost
+
+        item_tier1 = _make_item(
+            item_id=_uuid("d0000001"), log_id=log_a,
+            actor_card_def_id="sv-dragapult", actor_card_raw="Dragapult ex",
+            confidence_score=0.88, player_alias="player_1",
+        )
+        item_tier2 = _make_item(
+            item_id=_uuid("d0000002"), log_id=log_b,
+            actor_card_raw="Dragapult ex",  # name match only → tier 2
+            actor_card_def_id=None,
+            confidence_score=0.90, player_alias="player_1",
+        )
+        cov_items = [
+            _make_item(log_id=uuid.uuid4(), player_alias="player_1", actor_card_raw="Dragapult ex")
+            for _ in range(3)
+        ]
+
+        db = _make_db(
+            [_make_row(item_tier1)],   # Tier 1 results
+            [_make_row(item_tier2)],   # Tier 2 results
+            [self._CovRow(it) for it in cov_items],
+        )
+
+        def _mock_infer(lid, signals):
+            # Both logs match the directed matchup key
+            return self._make_preview(str(lid), "dragapult-ex", "gardevoir-ex")
+
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=_ready_readiness()),
+             ), \
+             patch(
+                 "app.observed_play.coach_context.infer_observed_log_labels_from_signals",
+                 side_effect=_mock_infer,
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult"],
+                deck_card_names=["Dragapult ex"],
+                candidate_card_ids=["sv-gardevoir"],
+                candidate_card_names=["Gardevoir ex"],
+                allow_fallback=False,
+            )
+
+        meta = preview.retrieval_metadata
+        assert meta is not None
+        assert len(meta.evidence_selected) == 2
+        # Tier 1 must be first regardless of matchup boost on tier 2
+        assert meta.evidence_selected[0].tier == 1
+        assert meta.evidence_selected[1].tier == 2
+
+    # ── 14. no_relevant_evidence remains no evidence ────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_no_relevant_evidence_remains_no_evidence_with_coverage(self):
+        """no_relevant_evidence=True even when matchup coverage >= 3; no evidence injected."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        # No evidence (tier1+2 empty, allow_fallback=False)
+        cov_items = [
+            _make_item(log_id=uuid.uuid4(), player_alias="player_1", actor_card_raw="Dragapult ex")
+            for _ in range(3)
+        ]
+        db = _make_db([], [], [self._CovRow(it) for it in cov_items])
+
+        def _mock_infer(lid, signals):
+            return self._make_preview(str(lid), "dragapult-ex", "gardevoir-ex")
+
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=_ready_readiness()),
+             ), \
+             patch(
+                 "app.observed_play.coach_context.infer_observed_log_labels_from_signals",
+                 side_effect=_mock_infer,
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult"],
+                deck_card_names=["Dragapult ex"],
+                candidate_card_ids=["sv-gardevoir"],
+                candidate_card_names=["Gardevoir ex"],
+                allow_fallback=False,
+            )
+
+        assert preview.would_inject is False
+        assert preview.no_relevant_evidence is True
+        assert preview.evidence_count == 0
+        meta = preview.retrieval_metadata
+        assert meta is not None
+        assert len(meta.evidence_selected) == 0
+
+    # ── 15. allow_fallback=False behavior unchanged ─────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_allow_fallback_false_behavior_unchanged(self):
+        """allow_fallback=False still returns no evidence when no deck overlap."""
+        from app.observed_play.coach_context import build_coach_context_preview
+
+        db = _make_db([], [])
+
+        with patch("app.observed_play.coach_context.settings") as mock_settings, \
+             patch(
+                 "app.observed_play.coach_context.compute_corpus_readiness",
+                 new=AsyncMock(return_value=_ready_readiness()),
+             ):
+            mock_settings.OBSERVED_PLAY_MEMORY_ENABLED = True
+            mock_settings.OBSERVED_PLAY_MEMORY_MAX_EVIDENCE = 8
+            mock_settings.OBSERVED_PLAY_MEMORY_MIN_CONFIDENCE = 0.85
+            preview = await build_coach_context_preview(
+                db,
+                deck_card_ids=["sv-dragapult"],
+                deck_card_names=["Dragapult ex"],
+                allow_fallback=False,
+            )
+
+        assert preview.would_inject is False
+        assert preview.no_relevant_evidence is True
+
+    # ── 16. Strategy name updated to boost_v1 ──────────────────────────────
+
+    def test_matchup_strategy_name_is_boost_v1(self):
+        """_MATCHUP_STRATEGY constant is matchup_context_boost_v1."""
+        from app.observed_play.coach_context import _MATCHUP_STRATEGY
+        assert _MATCHUP_STRATEGY == "matchup_context_boost_v1"
