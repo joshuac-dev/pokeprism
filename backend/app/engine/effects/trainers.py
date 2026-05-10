@@ -4221,6 +4221,62 @@ def _dusk_ball_b19(state: GameState, action):
     state.emit_event("shuffle_deck", player=player_id, reason="dusk_ball")
 
 
+def _energy_search_pro(state: GameState, action):
+    """Energy Search Pro (sv08-176) — ACE SPEC Item
+
+    Search your deck for any number of Basic Energy cards of different types,
+    reveal them, and put them into your hand. Then, shuffle your deck.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    # Build candidate list: one representative card per distinct Basic Energy type.
+    seen_types: set[str] = set()
+    candidates: list = []
+    for c in player.deck:
+        if not _is_basic_energy_card(c):
+            continue
+        etype = c.energy_provides[0] if c.energy_provides else "Colorless"
+        if etype not in seen_types:
+            seen_types.add(etype)
+            candidates.append(c)
+
+    if not candidates:
+        random.shuffle(player.deck)
+        state.emit_event("shuffle_deck", player=player_id, reason="energy_search_pro")
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Energy Search Pro: choose any number of Basic Energy cards of different types from your deck",
+        cards=candidates, min_count=0, max_count=len(candidates),
+    )
+    resp = yield req
+    # Fallback: take one of each available type (AI convention).
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [c.instance_id for c in candidates])
+
+    # Move chosen cards to hand, enforcing one card per energy type.
+    seen_chosen_types: set[str] = set()
+    moved = 0
+    for iid in chosen_ids:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if not card or not _is_basic_energy_card(card):
+            continue
+        etype = card.energy_provides[0] if card.energy_provides else "Colorless"
+        if etype in seen_chosen_types:
+            continue
+        seen_chosen_types.add(etype)
+        player.deck.remove(card)
+        card.zone = Zone.HAND
+        player.hand.append(card)
+        moved += 1
+
+    random.shuffle(player.deck)
+    state.emit_event("energy_search_pro", player=player_id, cards_taken=moved)
+    state.emit_event("shuffle_deck", player=player_id, reason="energy_search_pro")
+
+
 def _lisias_appeal_b19(state: GameState, action):
     """Lisia's Appeal (sv08-179)
 
@@ -5932,6 +5988,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv08-189", _tera_orb_b19)              # Tera Orb
     registry.register_trainer("sv07-138", _kofu_b19)                  # Kofu
     registry.register_trainer("sv06-162", _scoop_up_cyclone)          # Scoop Up Cyclone (ACE SPEC)
+    registry.register_trainer("sv08-176", _energy_search_pro)         # Energy Search Pro (ACE SPEC Item)
     registry.register_trainer("sv08-183", _miracle_headset)           # Miracle Headset (ACE SPEC)
     registry.register_trainer("sv08-185", _precious_trolley)          # Precious Trolley (ACE SPEC Item)
 
