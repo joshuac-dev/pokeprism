@@ -19268,24 +19268,38 @@ def _larimar_rain(state, action):
         # No energy found; shuffle back (they're still in deck, no action needed)
         state.emit_event("larimar_rain_no_energy", player=action.player_id)
         return
-    # Iteratively let player attach energy cards
+
+    # Choose which revealed Energy cards to attach (explicit empty selection is allowed).
+    req_cards = ChoiceRequest(
+        "choose_cards", action.player_id,
+        "Larimar Rain: choose any number of Energy cards from the revealed top 20 to attach",
+        cards=energy_cards, min_count=0, max_count=len(energy_cards),
+    )
+    resp_cards = yield req_cards
+    if resp_cards is None:
+        # No response fallback: attach all revealed Energy cards.
+        chosen_ids = [c.instance_id for c in energy_cards]
+    else:
+        chosen_ids = resp_cards.selected_cards or []
+
+    selected_energy = [c for c in energy_cards if c.instance_id in set(chosen_ids)]
+
+    # Let player choose an attachment target for each selected Energy.
     attached_count = 0
-    for ec in list(energy_cards):
+    for ec in selected_energy:
         if ec not in player.deck:
             continue  # already moved
         req_tgt = ChoiceRequest(
             "choose_target", action.player_id,
-            f"Larimar Rain: choose a Pokémon to attach {ec.card_name} to (or choose none to skip)",
+            f"Larimar Rain: choose a Pokémon to attach {ec.card_name} to",
             targets=in_play,
         )
         resp_tgt = yield req_tgt
-        if resp_tgt is None:
-            break
         target = None
         if resp_tgt and resp_tgt.target_instance_id:
             target = next((p for p in in_play if p.instance_id == resp_tgt.target_instance_id), None)
         if target is None:
-            break
+            target = player.active if player.active else in_play[0]
         player.deck.remove(ec)
         att = _make_energy_attachment(ec)
         ec.zone = target.zone

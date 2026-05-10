@@ -4104,7 +4104,7 @@ def _flustered_leap(state: GameState, action):
 
 
 def _lustrous_assist(state: GameState, action):
-    """me01-101 Latios — Lustrous Assist: when Mega Latias ex moves from bench to active, move energy from bench to active."""
+    """me01-101 Latios — Lustrous Assist: move any amount of Energy from your Benched Pokémon to your Active Mega Latias ex."""
     player_id = action.player_id
     player = state.get_player(player_id)
 
@@ -4121,21 +4121,51 @@ def _lustrous_assist(state: GameState, action):
     if not donors:
         return
 
-    req = ChoiceRequest(
-        "choose_target", player_id,
-        "Lustrous Assist: choose a Benched Pokémon to move all Energy from to Mega Latias ex",
-        targets=donors,
-    )
-    resp = yield req
-    src = None
-    if resp and resp.target_instance_id:
-        src = next((p for p in donors if p.instance_id == resp.target_instance_id), None)
-    if src is None:
-        src = donors[0]
+    moved = 0
+    while True:
+        donors = [p for p in player.bench if p.energy_attached]
+        if not donors:
+            break
 
-    # Move all energy from src to active Mega Latias ex
-    player.active.energy_attached.extend(src.energy_attached)
-    src.energy_attached = []
+        req_use = ChoiceRequest(
+            "choose_option", player_id,
+            "Lustrous Assist: move Energy from a Benched Pokémon to your Active Pokémon?",
+            options=["Yes", "No"],
+        )
+        resp_use = yield req_use
+        if resp_use is None or resp_use.selected_option != 0:
+            break
+
+        req_donor = ChoiceRequest(
+            "choose_target", player_id,
+            "Lustrous Assist: choose a Benched Pokémon to move Energy from",
+            targets=donors,
+        )
+        resp_donor = yield req_donor
+        donor = None
+        if resp_donor and resp_donor.target_instance_id:
+            donor = next((p for p in donors if p.instance_id == resp_donor.target_instance_id), None)
+        if donor is None:
+            donor = donors[0]
+
+        req_energy = ChoiceRequest(
+            "choose_cards", player_id,
+            "Lustrous Assist: choose any amount of Energy to move",
+            cards=list(donor.energy_attached), min_count=0, max_count=len(donor.energy_attached),
+        )
+        resp_energy = yield req_energy
+        if resp_energy is None:
+            chosen_ids = [att.source_card_id for att in donor.energy_attached]
+        else:
+            chosen_ids = resp_energy.selected_cards or []
+
+        for sid in chosen_ids:
+            att = next((a for a in donor.energy_attached if a.source_card_id == sid), None)
+            if att is None:
+                continue
+            donor.energy_attached.remove(att)
+            player.active.energy_attached.append(att)
+            moved += 1
 
     # Mark ability used on Latios
     latios = _find_in_play(player, action.card_instance_id)
@@ -4143,7 +4173,7 @@ def _lustrous_assist(state: GameState, action):
         latios.ability_used_this_turn = True
 
     state.emit_event("lustrous_assist", player=player_id,
-                     from_card=src.card_name, to_card=player.active.card_name)
+                     to_card=player.active.card_name, moved=moved)
 
 
 # Fire Off (sv01-041 Armarouge) ──────────────────────────────────────────────

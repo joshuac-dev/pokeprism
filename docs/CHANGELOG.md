@@ -41,17 +41,17 @@ merged PR history support that it actually landed.
   - **Ledian Glittering Star Pattern (sv07-003 / svp-133)** — Implemented the
     on-evolve gust effect as an optional trigger that only targets an opponent's
     Benched Pokémon with 90 HP or less remaining. Three regression tests added.
-  - **Documented engine gaps** — Recorded two true gaps found in the same audit
-    window: `EG14` Lapras ex `Larimar Rain` still lacks arbitrary subset/order
-    selection across revealed Energy cards, and `EG15` Latios `Lustrous Assist`
-    still lacks multi-donor / partial attached-Energy selection. Both gaps are
-    now called out in `backend/tests/test_engine/test_audit_fixes.py`,
-    `docs/AUDIT_STATE.md`, and `docs/STATUS.md`.
+  - **Engine gap repairs** — Repaired both gaps from the same audit window:
+    - `EG14` Lapras ex `Larimar Rain` now supports arbitrary subset selection
+      from revealed top-20 Energy cards, then per-card attachment targeting.
+    - `EG15` Latios `Lustrous Assist` now supports moving any amount of Energy
+      from one or more Benched donors to Active Mega Latias ex.
   - Why: Live TCGDex comparison against the DB-backed traversal exposed one
     concrete trainer-choice bug, one missing on-evolve ability implementation,
-    and two remaining engine-capability limits within the audited card window.
+    and two missing effect-capability behaviors within the audited card window.
   - Evidence: `backend/app/engine/effects/trainers.py`;
     `backend/app/engine/effects/abilities.py`;
+    `backend/app/engine/effects/attacks.py`;
     `backend/tests/test_engine/test_audit_fixes.py`;
     `docs/AUDIT_STATE.md`; `docs/STATUS.md`.
   - Confidence: High.

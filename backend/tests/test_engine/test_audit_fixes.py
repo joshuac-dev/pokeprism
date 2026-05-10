@@ -33,8 +33,8 @@ Live simulation fix:
 Session 11 audit:
   #S11-1: _larrys_skill (sv08.5-115) now honors explicit empty selections instead of forcing fallback deck hits
   #S11-2: Glittering Star Pattern (sv07-003 / svp-133 Ledian) implemented as an optional on-evolve gust for benched targets at 90 HP or less remaining
-  #EG14 : sv07-032 Lapras ex Larimar Rain — current chooser can only attach a deck-order prefix of found Energy cards; arbitrary subset/ordering from the revealed top 20 still needs richer multi-card choice UX in attacks.py
-  #EG15 : me01-101 Latios Lustrous Assist — current handler moves all Energy from one chosen Bench donor; TCGDex requires moving any amount from one or more Benched Pokémon, which needs richer attached-energy selection in abilities.py / choice plumbing
+  #S11-3: sv07-032 Lapras ex Larimar Rain now allows arbitrary Energy subset selection from revealed top 20 before per-card attachment targets
+  #S11-4: me01-101 Latios Lustrous Assist now supports moving any amount of Energy from one or more Benched donors
 """
 from __future__ import annotations
 
@@ -4248,26 +4248,158 @@ async def test_EG10_larimar_rain_attaches_energy_from_top20():
     action = _make_action(attack_index=1)
     gen = _larimar_rain(state, action)
     req = next(gen)
-    assert req.choice_type == "choose_target"
+    assert req.choice_type == "choose_cards"
 
     resp = Action(
         player_id="p1",
-        action_type=ActionType.CHOOSE_TARGET,
-        target_instance_id=attacker.instance_id,
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[energy_card.instance_id],
     )
-    # Send response to attach; next yield may request next energy (or StopIteration if done)
+    # Send card choice and then choose target.
     try:
         req2 = gen.send(resp)
-        # Skip remaining energy selection
-        try:
-            gen.send(None)
-        except StopIteration:
-            pass
+        assert req2.choice_type == "choose_target"
+        gen.send(Action(
+            player_id="p1",
+            action_type=ActionType.CHOOSE_TARGET,
+            target_instance_id=attacker.instance_id,
+        ))
     except StopIteration:
         pass
 
     assert len(attacker.energy_attached) >= 1
     assert any(e.get("event_type") == "energy_attached_from_deck" for e in state.events)
+
+
+@pytest.mark.asyncio
+async def test_EG10_larimar_rain_can_choose_non_prefix_energy_subset():
+    """Larimar Rain can attach a non-prefix subset from revealed Energy cards."""
+    from app.engine.effects.attacks import _larimar_rain
+
+    attacker = CardInstance(
+        instance_id="lr2-atk", card_def_id="sv07-032",
+        card_name="Lapras ex", current_hp=230, max_hp=230, zone=Zone.ACTIVE,
+    )
+    bench = CardInstance(
+        instance_id="lr2-bench", card_def_id="tst-lr2-bench",
+        card_name="BenchMon", current_hp=120, max_hp=120, zone=Zone.BENCH,
+    )
+    e1 = CardInstance(instance_id="lr2-e1", card_def_id="basic-water-1",
+                      card_name="Water Energy", zone=Zone.DECK, card_type="Energy",
+                      energy_provides=["Water"])
+    e2 = CardInstance(instance_id="lr2-e2", card_def_id="basic-grass-1",
+                      card_name="Grass Energy", zone=Zone.DECK, card_type="Energy",
+                      energy_provides=["Grass"])
+    e3 = CardInstance(instance_id="lr2-e3", card_def_id="basic-fire-1",
+                      card_name="Fire Energy", zone=Zone.DECK, card_type="Energy",
+                      energy_provides=["Fire"])
+    filler = CardInstance(instance_id="lr2-f", card_def_id="tst-lr2-f",
+                          card_name="Trainer", zone=Zone.DECK, card_type="Trainer")
+    opp_active = CardInstance(
+        instance_id="lr2-opp", card_def_id="tst-lr2-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p1_bench=[bench], p2_active=opp_active)
+    state.p1.deck = [e1, filler, e2, e3]
+
+    gen = _larimar_rain(state, _make_action(attack_index=1))
+    req_cards = next(gen)
+    assert req_cards.choice_type == "choose_cards"
+    req_tgt = gen.send(Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[e2.instance_id, e3.instance_id],  # skip first energy on purpose
+    ))
+    assert req_tgt.choice_type == "choose_target"
+    req_tgt2 = gen.send(Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_TARGET,
+        target_instance_id=bench.instance_id,
+    ))
+    assert req_tgt2.choice_type == "choose_target"
+    with pytest.raises(StopIteration):
+        gen.send(Action(
+            player_id="p1",
+            action_type=ActionType.CHOOSE_TARGET,
+            target_instance_id=attacker.instance_id,
+        ))
+
+    # Chosen non-prefix energies moved; unchosen first energy remains in deck.
+    assert e2 not in state.p1.deck and e3 not in state.p1.deck
+    assert e1 in state.p1.deck
+    assert len(bench.energy_attached) == 1
+    assert len(attacker.energy_attached) == 1
+
+
+@pytest.mark.asyncio
+async def test_EG10_lustrous_assist_moves_any_amount_from_multiple_bench_donors():
+    """me01-101 Latios — Lustrous Assist supports partial multi-donor energy movement."""
+    from app.engine.effects.abilities import _lustrous_assist
+
+    active = CardInstance(
+        instance_id="la-active", card_def_id="me01-100",
+        card_name="Mega Latias ex", current_hp=280, max_hp=280, zone=Zone.ACTIVE,
+    )
+    active.moved_from_bench_this_turn = True
+    latios = CardInstance(
+        instance_id="la-latios", card_def_id="me01-101",
+        card_name="Latios", current_hp=120, max_hp=120, zone=Zone.BENCH,
+    )
+    donor1 = CardInstance(
+        instance_id="la-d1", card_def_id="tst-la-d1",
+        card_name="Donor 1", current_hp=100, max_hp=100, zone=Zone.BENCH,
+    )
+    donor2 = CardInstance(
+        instance_id="la-d2", card_def_id="tst-la-d2",
+        card_name="Donor 2", current_hp=100, max_hp=100, zone=Zone.BENCH,
+    )
+    donor1.energy_attached = [
+        EnergyAttachment(EnergyType.WATER, "la-w1", card_def_id="basic-water", provides=[EnergyType.WATER]),
+        EnergyAttachment(EnergyType.FIRE, "la-f1", card_def_id="basic-fire", provides=[EnergyType.FIRE]),
+    ]
+    donor2.energy_attached = [
+        EnergyAttachment(EnergyType.GRASS, "la-g1", card_def_id="basic-grass", provides=[EnergyType.GRASS]),
+    ]
+
+    opp_active = CardInstance(
+        instance_id="la-opp", card_def_id="tst-la-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=active, p1_bench=[latios, donor1, donor2], p2_active=opp_active)
+
+    gen = _lustrous_assist(state, Action(
+        player_id="p1", action_type=ActionType.USE_ABILITY, card_instance_id=latios.instance_id
+    ))
+    req_use_1 = next(gen)
+    assert req_use_1.choice_type == "choose_option"
+    req_donor_1 = gen.send(Action(player_id="p1", action_type=ActionType.CHOOSE_OPTION, selected_option=0))
+    assert req_donor_1.choice_type == "choose_target"
+    req_energy_1 = gen.send(Action(
+        player_id="p1", action_type=ActionType.CHOOSE_TARGET, target_instance_id=donor1.instance_id
+    ))
+    assert req_energy_1.choice_type == "choose_cards"
+    req_use_2 = gen.send(Action(
+        player_id="p1", action_type=ActionType.CHOOSE_CARDS, selected_cards=["la-f1"]
+    ))
+    assert req_use_2.choice_type == "choose_option"
+    req_donor_2 = gen.send(Action(player_id="p1", action_type=ActionType.CHOOSE_OPTION, selected_option=0))
+    assert req_donor_2.choice_type == "choose_target"
+    req_energy_2 = gen.send(Action(
+        player_id="p1", action_type=ActionType.CHOOSE_TARGET, target_instance_id=donor2.instance_id
+    ))
+    assert req_energy_2.choice_type == "choose_cards"
+    req_use_3 = gen.send(Action(
+        player_id="p1", action_type=ActionType.CHOOSE_CARDS, selected_cards=["la-g1"]
+    ))
+    assert req_use_3.choice_type == "choose_option"
+    with pytest.raises(StopIteration):
+        gen.send(Action(player_id="p1", action_type=ActionType.CHOOSE_OPTION, selected_option=1))
+
+    assert [a.source_card_id for a in active.energy_attached] == ["la-f1", "la-g1"]
+    assert [a.source_card_id for a in donor1.energy_attached] == ["la-w1"]
+    assert donor2.energy_attached == []
+    assert latios.ability_used_this_turn is True
+    assert any(e.get("event_type") == "lustrous_assist" and e.get("moved") == 2 for e in state.events)
 
 
 def test_EG11_unleash_lightning_sets_player_flag():
