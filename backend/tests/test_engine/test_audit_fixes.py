@@ -4219,7 +4219,7 @@ async def test_EG9_metronome_copies_opp_attack_damage():
 
 
 @pytest.mark.asyncio
-async def test_EG10_larimar_rain_attaches_energy_from_top20():
+async def test_EG14_larimar_rain_attaches_energy_from_top20():
     """sv07-032 Lapras ex — Larimar Rain: attaches energy from top 20 deck cards to own Pokémon."""
     from app.engine.effects.attacks import _larimar_rain
 
@@ -4272,7 +4272,7 @@ async def test_EG10_larimar_rain_attaches_energy_from_top20():
 
 
 @pytest.mark.asyncio
-async def test_EG10_larimar_rain_can_choose_non_prefix_energy_subset():
+async def test_EG14_larimar_rain_can_choose_non_prefix_energy_subset():
     """Larimar Rain can attach a non-prefix subset from revealed Energy cards."""
     from app.engine.effects.attacks import _larimar_rain
 
@@ -4305,6 +4305,7 @@ async def test_EG10_larimar_rain_can_choose_non_prefix_energy_subset():
     gen = _larimar_rain(state, _make_action(attack_index=1))
     req_cards = next(gen)
     assert req_cards.choice_type == "choose_cards"
+    assert {c.instance_id for c in req_cards.cards} == {e1.instance_id, e2.instance_id, e3.instance_id}
     req_tgt = gen.send(Action(
         player_id="p1",
         action_type=ActionType.CHOOSE_CARDS,
@@ -4332,7 +4333,7 @@ async def test_EG10_larimar_rain_can_choose_non_prefix_energy_subset():
 
 
 @pytest.mark.asyncio
-async def test_EG10_lustrous_assist_moves_any_amount_from_multiple_bench_donors():
+async def test_EG15_lustrous_assist_moves_any_amount_from_multiple_bench_donors():
     """me01-101 Latios — Lustrous Assist supports partial multi-donor energy movement."""
     from app.engine.effects.abilities import _lustrous_assist
 

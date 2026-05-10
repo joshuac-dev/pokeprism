@@ -28,7 +28,7 @@ post-phase development:
 - last card fully audited: `Ledian | SCR | 3 | sv07-003`
 - next resume cursor: `Ledyba | SCR | 2 | sv07-002`
 - AUDIT_STATE.md update status: updated
-- focused tests run: `python3 -m pytest tests/test_engine/test_audit_fixes.py -q -k 'EG10_larimar_rain or EG10_lustrous_assist'` (3 passed); `python3 -m pytest tests/test_engine/test_audit_fixes.py -q` (184 passed)
+- focused tests run: `python3 -m pytest tests/test_engine/test_audit_fixes.py -q -k 'EG14_larimar_rain or EG15_lustrous_assist'` (3 passed); `python3 -m pytest tests/test_engine/test_audit_fixes.py -q` (184 passed)
 - full tests run: `python3 -m pytest tests/ -x -q` (1333 passed, 7 skipped)
 - implemented fixes: `sv08.5-115` Larry's Skill explicit-empty handling; `sv07-003` / `svp-133` Ledian Glittering Star Pattern optional on-evolve gust; `sv07-032` Lapras ex Larimar Rain arbitrary subset selection from revealed top-20 Energy cards plus per-card attachments; `me01-101` Latios Lustrous Assist any-amount multi-donor Energy movement
 - documented engine gaps: none from this audited window after repair
