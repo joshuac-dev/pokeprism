@@ -1088,8 +1088,10 @@ def _larrys_skill(state: GameState, action):
             cards=pokemon_in_deck, min_count=0, max_count=1,
         )
         resp = yield req
-        chosen_ids = (resp.selected_cards if resp and resp.selected_cards
-                      else [pokemon_in_deck[0].instance_id])
+        if resp is None:
+            chosen_ids = [pokemon_in_deck[0].instance_id]
+        else:
+            chosen_ids = resp.selected_cards or []
         for iid in chosen_ids[:1]:
             card = next((c for c in player.deck if c.instance_id == iid), None)
             if card:
@@ -1108,8 +1110,10 @@ def _larrys_skill(state: GameState, action):
             cards=supporters_in_deck, min_count=0, max_count=1,
         )
         resp2 = yield req2
-        chosen_ids2 = (resp2.selected_cards if resp2 and resp2.selected_cards
-                       else [supporters_in_deck[0].instance_id])
+        if resp2 is None:
+            chosen_ids2 = [supporters_in_deck[0].instance_id]
+        else:
+            chosen_ids2 = resp2.selected_cards or []
         for iid in chosen_ids2[:1]:
             card = next((c for c in player.deck if c.instance_id == iid), None)
             if card:
@@ -1126,8 +1130,10 @@ def _larrys_skill(state: GameState, action):
             cards=basic_energy_in_deck, min_count=0, max_count=1,
         )
         resp3 = yield req3
-        chosen_ids3 = (resp3.selected_cards if resp3 and resp3.selected_cards
-                       else [basic_energy_in_deck[0].instance_id])
+        if resp3 is None:
+            chosen_ids3 = [basic_energy_in_deck[0].instance_id]
+        else:
+            chosen_ids3 = resp3.selected_cards or []
         for iid in chosen_ids3[:1]:
             card = next((c for c in player.deck if c.instance_id == iid), None)
             if card:

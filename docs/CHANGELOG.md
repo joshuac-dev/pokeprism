@@ -30,6 +30,32 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+### Added
+- **Nightly DB-backed audit session (partial) — 2026-05-10** —
+  fix(engine): Continue the rotating DB-backed card audit from `Lapras | SCR | 31 | sv07-031`.
+
+  - **Larry's Skill (sv08.5-115)** — Explicit empty selections are now honored for the
+    Pokémon, Supporter, and Basic Energy search steps instead of forcing fallback
+    picks from deck order. No-response fallback still takes the first matching card.
+    One regression test added.
+  - **Ledian Glittering Star Pattern (sv07-003 / svp-133)** — Implemented the
+    on-evolve gust effect as an optional trigger that only targets an opponent's
+    Benched Pokémon with 90 HP or less remaining. Three regression tests added.
+  - **Engine gap repairs** — Repaired both gaps from the same audit window:
+    - `EG14` Lapras ex `Larimar Rain` now supports arbitrary subset selection
+      from revealed top-20 Energy cards, then per-card attachment targeting.
+    - `EG15` Latios `Lustrous Assist` now supports moving any amount of Energy
+      from one or more Benched donors to Active Mega Latias ex.
+  - Why: Live TCGDex comparison against the DB-backed traversal exposed one
+    concrete trainer-choice bug, one missing on-evolve ability implementation,
+    and two missing effect-capability behaviors within the audited card window.
+  - Evidence: `backend/app/engine/effects/trainers.py`;
+    `backend/app/engine/effects/abilities.py`;
+    `backend/app/engine/effects/attacks.py`;
+    `backend/tests/test_engine/test_audit_fixes.py`;
+    `docs/AUDIT_STATE.md`; `docs/STATUS.md`.
+  - Confidence: High.
+
 ### Fixed
 - **me02.5-079 Erasure Ball ASC — handler bug and engine None guard** —
   fix(engine): correct _erasure_ball_asc choice_type and add _drive_effect None guard.
@@ -61,7 +87,7 @@ merged PR history support that it actually landed.
 
   Branch: `fix-erasure-ball-asc-choice-type`. Backend: 1336 passed, 1 skipped.
 
-
+- **Three missing card-effect handlers** —
   fix(engine): Implement Brilliant Blender, Pidgeot ex, and Prime Catcher effects.
 
   - **Brilliant Blender (sv08-164)** — ACE SPEC Item. Player searches their deck

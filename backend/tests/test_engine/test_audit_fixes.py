@@ -30,6 +30,11 @@ Live simulation fix:
   #L1  : _ET_ATTACH (me02-039 Cresselia Swelling Light) — called EnergyType enum instead of EnergyAttachment
   #L2  : _tr_venture_bomb_b19 (sv10-179 TR Venture Bomb) — check_ko called with transposed (player_id, target) args
   #L3  : _upthrusting_horns_b4 / _opposing_winds_b5 / _balloon_return_b5 — energy_provides populated with EnergyType enums instead of strings
+Session 11 audit:
+  #S11-1: _larrys_skill (sv08.5-115) now honors explicit empty selections instead of forcing fallback deck hits
+  #S11-2: Glittering Star Pattern (sv07-003 / svp-133 Ledian) implemented as an optional on-evolve gust for benched targets at 90 HP or less remaining
+  #S11-3: sv07-032 Lapras ex Larimar Rain now allows arbitrary Energy subset selection from revealed top 20 before per-card attachment targets
+  #S11-4: me01-101 Latios Lustrous Assist now supports moving any amount of Energy from one or more Benched donors
 """
 from __future__ import annotations
 
@@ -44,7 +49,7 @@ from app.engine.effects.base import ChoiceRequest
 from app.engine.effects.registry import _choice_to_legal_actions, _default_choice
 from app.engine.effects.registry import EffectRegistry
 from app.engine.runner import MatchRunner
-from app.engine.state import CardInstance, EnergyAttachment, EnergyType, GameState, Zone, StatusCondition
+from app.engine.state import CardInstance, EnergyAttachment, EnergyType, GameState, Phase, Zone, StatusCondition
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -4214,7 +4219,7 @@ async def test_EG9_metronome_copies_opp_attack_damage():
 
 
 @pytest.mark.asyncio
-async def test_EG10_larimar_rain_attaches_energy_from_top20():
+async def test_EG14_larimar_rain_basic_energy_attachment():
     """sv07-032 Lapras ex — Larimar Rain: attaches energy from top 20 deck cards to own Pokémon."""
     from app.engine.effects.attacks import _larimar_rain
 
@@ -4243,26 +4248,210 @@ async def test_EG10_larimar_rain_attaches_energy_from_top20():
     action = _make_action(attack_index=1)
     gen = _larimar_rain(state, action)
     req = next(gen)
-    assert req.choice_type == "choose_target"
+    assert req.choice_type == "choose_cards"
+    assert [c.instance_id for c in req.cards] == [energy_card.instance_id]
 
     resp = Action(
         player_id="p1",
-        action_type=ActionType.CHOOSE_TARGET,
-        target_instance_id=attacker.instance_id,
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[energy_card.instance_id],
     )
-    # Send response to attach; next yield may request next energy (or StopIteration if done)
+    # Send card choice and then choose target.
     try:
         req2 = gen.send(resp)
-        # Skip remaining energy selection
-        try:
-            gen.send(None)
-        except StopIteration:
-            pass
+        assert req2.choice_type == "choose_target"
+        target_resp = Action(
+            player_id="p1",
+            action_type=ActionType.CHOOSE_TARGET,
+            target_instance_id=attacker.instance_id,
+        )
+        gen.send(target_resp)
     except StopIteration:
         pass
 
     assert len(attacker.energy_attached) >= 1
     assert any(e.get("event_type") == "energy_attached_from_deck" for e in state.events)
+
+
+@pytest.mark.asyncio
+async def test_EG14_larimar_rain_can_choose_non_prefix_energy_subset():
+    """Larimar Rain can attach a non-prefix subset from revealed Energy cards."""
+    from app.engine.effects.attacks import _larimar_rain
+
+    attacker = CardInstance(
+        instance_id="lr2-atk", card_def_id="sv07-032",
+        card_name="Lapras ex", current_hp=230, max_hp=230, zone=Zone.ACTIVE,
+    )
+    bench = CardInstance(
+        instance_id="lr2-bench", card_def_id="tst-lr2-bench",
+        card_name="BenchMon", current_hp=120, max_hp=120, zone=Zone.BENCH,
+    )
+    e1 = CardInstance(instance_id="lr2-e1", card_def_id="basic-water-1",
+                      card_name="Water Energy", zone=Zone.DECK, card_type="Energy",
+                      energy_provides=["Water"])
+    e2 = CardInstance(instance_id="lr2-e2", card_def_id="basic-grass-1",
+                      card_name="Grass Energy", zone=Zone.DECK, card_type="Energy",
+                      energy_provides=["Grass"])
+    e3 = CardInstance(instance_id="lr2-e3", card_def_id="basic-fire-1",
+                      card_name="Fire Energy", zone=Zone.DECK, card_type="Energy",
+                      energy_provides=["Fire"])
+    filler = CardInstance(instance_id="lr2-f", card_def_id="tst-lr2-f",
+                          card_name="Trainer", zone=Zone.DECK, card_type="Trainer")
+    opp_active = CardInstance(
+        instance_id="lr2-opp", card_def_id="tst-lr2-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=attacker, p1_bench=[bench], p2_active=opp_active)
+    state.p1.deck = [e1, filler, e2, e3]
+
+    gen = _larimar_rain(state, _make_action(attack_index=1))
+    req_cards = next(gen)
+    assert req_cards.choice_type == "choose_cards"
+    assert {c.instance_id for c in req_cards.cards} == {
+        e1.instance_id, e2.instance_id, e3.instance_id
+    }
+    req_tgt = gen.send(Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_CARDS,
+        selected_cards=[e2.instance_id, e3.instance_id],  # skip first energy on purpose
+    ))
+    assert req_tgt.choice_type == "choose_target"
+    req_tgt2 = gen.send(Action(
+        player_id="p1",
+        action_type=ActionType.CHOOSE_TARGET,
+        target_instance_id=bench.instance_id,
+    ))
+    assert req_tgt2.choice_type == "choose_target"
+    with pytest.raises(StopIteration):
+        gen.send(Action(
+            player_id="p1",
+            action_type=ActionType.CHOOSE_TARGET,
+            target_instance_id=attacker.instance_id,
+        ))
+
+    # Chosen non-prefix energies moved; unchosen first energy remains in deck.
+    assert e2 not in state.p1.deck and e3 not in state.p1.deck
+    assert e1 in state.p1.deck
+    assert len(bench.energy_attached) == 1
+    assert len(attacker.energy_attached) == 1
+
+
+@pytest.mark.asyncio
+async def test_EG15_lustrous_assist_moves_any_amount_from_multiple_bench_donors():
+    """me01-101 Latios — Lustrous Assist supports partial multi-donor energy movement."""
+    from app.engine.effects.abilities import _lustrous_assist
+
+    active = CardInstance(
+        instance_id="la-active", card_def_id="me01-100",
+        card_name="Mega Latias ex", current_hp=280, max_hp=280, zone=Zone.ACTIVE,
+    )
+    active.moved_from_bench_this_turn = True
+    latios = CardInstance(
+        instance_id="la-latios", card_def_id="me01-101",
+        card_name="Latios", current_hp=120, max_hp=120, zone=Zone.BENCH,
+    )
+    donor1 = CardInstance(
+        instance_id="la-d1", card_def_id="tst-la-d1",
+        card_name="Donor 1", current_hp=100, max_hp=100, zone=Zone.BENCH,
+    )
+    donor2 = CardInstance(
+        instance_id="la-d2", card_def_id="tst-la-d2",
+        card_name="Donor 2", current_hp=100, max_hp=100, zone=Zone.BENCH,
+    )
+    donor1.energy_attached = [
+        EnergyAttachment(EnergyType.WATER, "la-w1", card_def_id="basic-water", provides=[EnergyType.WATER]),
+        EnergyAttachment(EnergyType.FIRE, "la-f1", card_def_id="basic-fire", provides=[EnergyType.FIRE]),
+    ]
+    donor2.energy_attached = [
+        EnergyAttachment(EnergyType.GRASS, "la-g1", card_def_id="basic-grass", provides=[EnergyType.GRASS]),
+    ]
+
+    opp_active = CardInstance(
+        instance_id="la-opp", card_def_id="tst-la-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=active, p1_bench=[latios, donor1, donor2], p2_active=opp_active)
+
+    gen = _lustrous_assist(state, Action(
+        player_id="p1", action_type=ActionType.USE_ABILITY, card_instance_id=latios.instance_id
+    ))
+    req_use_1 = next(gen)
+    assert req_use_1.choice_type == "choose_option"
+    req_donor_1 = gen.send(Action(player_id="p1", action_type=ActionType.CHOOSE_OPTION, selected_option=0))
+    assert req_donor_1.choice_type == "choose_target"
+    req_energy_1 = gen.send(Action(
+        player_id="p1", action_type=ActionType.CHOOSE_TARGET, target_instance_id=donor1.instance_id
+    ))
+    assert req_energy_1.choice_type == "choose_cards"
+    req_use_2 = gen.send(Action(
+        player_id="p1", action_type=ActionType.CHOOSE_CARDS, selected_cards=["la-f1"]
+    ))
+    assert req_use_2.choice_type == "choose_option"
+    req_donor_2 = gen.send(Action(player_id="p1", action_type=ActionType.CHOOSE_OPTION, selected_option=0))
+    assert req_donor_2.choice_type == "choose_target"
+    req_energy_2 = gen.send(Action(
+        player_id="p1", action_type=ActionType.CHOOSE_TARGET, target_instance_id=donor2.instance_id
+    ))
+    assert req_energy_2.choice_type == "choose_cards"
+    req_use_3 = gen.send(Action(
+        player_id="p1", action_type=ActionType.CHOOSE_CARDS, selected_cards=["la-g1"]
+    ))
+    assert req_use_3.choice_type == "choose_option"
+    with pytest.raises(StopIteration):
+        gen.send(Action(player_id="p1", action_type=ActionType.CHOOSE_OPTION, selected_option=1))
+
+    assert [a.source_card_id for a in active.energy_attached] == ["la-f1", "la-g1"]
+    assert [a.source_card_id for a in donor1.energy_attached] == ["la-w1"]
+    assert donor2.energy_attached == []
+    assert latios.ability_used_this_turn is True
+    assert any(e.get("event_type") == "lustrous_assist" and e.get("moved") == 2 for e in state.events)
+
+
+@pytest.mark.asyncio
+async def test_EG15_lustrous_assist_allows_zero_selection_from_donor():
+    """Choosing zero Energy from a donor is valid and keeps attachment state unchanged."""
+    from app.engine.effects.abilities import _lustrous_assist
+
+    active = CardInstance(
+        instance_id="la0-active", card_def_id="me01-100",
+        card_name="Mega Latias ex", current_hp=280, max_hp=280, zone=Zone.ACTIVE,
+    )
+    active.moved_from_bench_this_turn = True
+    latios = CardInstance(
+        instance_id="la0-latios", card_def_id="me01-101",
+        card_name="Latios", current_hp=120, max_hp=120, zone=Zone.BENCH,
+    )
+    donor = CardInstance(
+        instance_id="la0-d1", card_def_id="tst-la0-d1",
+        card_name="Donor 1", current_hp=100, max_hp=100, zone=Zone.BENCH,
+    )
+    donor.energy_attached = [
+        EnergyAttachment(EnergyType.WATER, "la0-w1", card_def_id="basic-water", provides=[EnergyType.WATER]),
+    ]
+    opp_active = CardInstance(
+        instance_id="la0-opp", card_def_id="tst-la0-opp",
+        card_name="OppMon", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state = _make_state(p1_active=active, p1_bench=[latios, donor], p2_active=opp_active)
+
+    gen = _lustrous_assist(state, Action(
+        player_id="p1", action_type=ActionType.USE_ABILITY, card_instance_id=latios.instance_id
+    ))
+    next(gen)  # choose_option
+    req_donor = gen.send(Action(player_id="p1", action_type=ActionType.CHOOSE_OPTION, selected_option=0))
+    assert req_donor.choice_type == "choose_target"
+    req_energy = gen.send(Action(
+        player_id="p1", action_type=ActionType.CHOOSE_TARGET, target_instance_id=donor.instance_id
+    ))
+    assert req_energy.choice_type == "choose_cards"
+    req_done = gen.send(Action(player_id="p1", action_type=ActionType.CHOOSE_CARDS, selected_cards=[]))
+    assert req_done.choice_type == "choose_option"
+    with pytest.raises(StopIteration):
+        gen.send(Action(player_id="p1", action_type=ActionType.CHOOSE_OPTION, selected_option=1))
+
+    assert [a.source_card_id for a in donor.energy_attached] == ["la0-w1"]
+    assert active.energy_attached == []
+    assert any(e.get("event_type") == "lustrous_assist" and e.get("moved") == 0 for e in state.events)
 
 
 def test_EG11_unleash_lightning_sets_player_flag():
@@ -5625,6 +5814,133 @@ def test_prime_catcher_alt_registered():
     alt = reg._trainer_effects.get("sv08.5-119")
     assert alt is not None
     assert alt is original
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Larry's Skill (sv08.5-115) — explicit zero should not force a search result
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_larrys_skill_explicit_zero_keeps_deck_cards_in_deck():
+    """Explicit empty selections should not force Pokémon/Supporter/Energy into hand."""
+    from app.engine.effects.trainers import _larrys_skill
+
+    pokemon = _make_pokemon_inst("larry-poke")
+    supporter = CardInstance(
+        instance_id="larry-supporter",
+        card_def_id="larry-supporter",
+        card_name="Test Supporter",
+        current_hp=0,
+        max_hp=0,
+        zone=Zone.DECK,
+        card_type="Trainer",
+        card_subtype="Supporter",
+    )
+    energy = _make_basic_energy_inst("larry-energy", "Grass Energy", "Grass")
+    filler = _make_trainer_inst("larry-filler")
+    filler.zone = Zone.HAND
+
+    state = _make_state(
+        p1_active=CardInstance(instance_id="larry-p1a", card_def_id="larry-p1a",
+                               card_name="P1Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+        p2_active=CardInstance(instance_id="larry-p2a", card_def_id="larry-p2a",
+                               card_name="P2Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE),
+    )
+    state.p1.hand = [filler]
+    state.p1.deck = [pokemon, supporter, energy]
+
+    gen = _larrys_skill(state, Action(action_type=ActionType.PLAY_SUPPORTER, player_id="p1"))
+    req1 = next(gen)
+    assert req1.choice_type == "choose_cards"
+    req2 = gen.send(Action(action_type=ActionType.CHOOSE_CARDS, player_id="p1", selected_cards=[]))
+    assert req2.choice_type == "choose_cards"
+    req3 = gen.send(Action(action_type=ActionType.CHOOSE_CARDS, player_id="p1", selected_cards=[]))
+    assert req3.choice_type == "choose_cards"
+    with pytest.raises(StopIteration):
+        gen.send(Action(action_type=ActionType.CHOOSE_CARDS, player_id="p1", selected_cards=[]))
+
+    assert filler in state.p1.discard
+    assert len(state.p1.hand) == 0
+    assert pokemon in state.p1.deck
+    assert supporter in state.p1.deck
+    assert energy in state.p1.deck
+    assert pokemon not in state.p1.hand
+    assert supporter not in state.p1.hand
+    assert energy not in state.p1.hand
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Ledian — Glittering Star Pattern (sv07-003 / svp-133)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_glittering_star_pattern_registered_for_both_prints():
+    """Both Ledian prints should register the same on-evolve ability handler."""
+    from app.engine.effects.registry import EffectRegistry
+
+    reg = EffectRegistry.instance()
+    primary = reg._ability_effects.get("sv07-003:Glittering Star Pattern")
+    alt = reg._ability_effects.get("svp-133:Glittering Star Pattern")
+
+    assert primary is not None
+    assert alt is primary
+
+
+def test_glittering_star_pattern_switches_eligible_benched_target():
+    """Ledian can gust an opponent's Benched Pokémon with 90 HP or less remaining."""
+    from app.engine.effects.abilities import _glittering_star_pattern
+
+    state = _make_state(
+        p1_active=CardInstance(instance_id="led-p1a", card_def_id="led-p1a",
+                               card_name="Ledian", current_hp=110, max_hp=110, zone=Zone.ACTIVE),
+        p2_active=CardInstance(instance_id="led-p2a", card_def_id="led-p2a",
+                               card_name="Opp Active", current_hp=150, max_hp=150, zone=Zone.ACTIVE),
+        p2_bench=[
+            CardInstance(instance_id="led-eligible", card_def_id="led-eligible",
+                         card_name="Eligible Bench", current_hp=90, max_hp=120, zone=Zone.BENCH),
+            CardInstance(instance_id="led-ineligible", card_def_id="led-ineligible",
+                         card_name="Ineligible Bench", current_hp=100, max_hp=100, zone=Zone.BENCH),
+        ],
+    )
+
+    gen = _glittering_star_pattern(
+        state, Action(action_type=ActionType.USE_ABILITY, player_id="p1")
+    )
+    req = next(gen)
+    assert req.choice_type == "choose_option"
+    req2 = gen.send(Action(action_type=ActionType.CHOOSE_OPTION, player_id="p1", selected_option=0))
+    assert req2.choice_type == "choose_target"
+    with pytest.raises(StopIteration):
+        gen.send(Action(action_type=ActionType.CHOOSE_TARGET, player_id="p1",
+                        target_instance_id="led-eligible"))
+
+    assert state.p2.active.instance_id == "led-eligible"
+    assert any(b.instance_id == "led-p2a" for b in state.p2.bench)
+    assert any(e.get("ability") == "Glittering Star Pattern" for e in state.events)
+
+
+def test_glittering_star_pattern_can_be_declined():
+    """Choosing No should leave the opponent's board unchanged."""
+    from app.engine.effects.abilities import _glittering_star_pattern
+
+    state = _make_state(
+        p1_active=CardInstance(instance_id="led2-p1a", card_def_id="led2-p1a",
+                               card_name="Ledian", current_hp=110, max_hp=110, zone=Zone.ACTIVE),
+        p2_active=CardInstance(instance_id="led2-p2a", card_def_id="led2-p2a",
+                               card_name="Opp Active", current_hp=150, max_hp=150, zone=Zone.ACTIVE),
+        p2_bench=[
+            CardInstance(instance_id="led2-eligible", card_def_id="led2-eligible",
+                         card_name="Eligible Bench", current_hp=80, max_hp=120, zone=Zone.BENCH),
+        ],
+    )
+
+    gen = _glittering_star_pattern(
+        state, Action(action_type=ActionType.USE_ABILITY, player_id="p1")
+    )
+    next(gen)
+    with pytest.raises(StopIteration):
+        gen.send(Action(action_type=ActionType.CHOOSE_OPTION, player_id="p1", selected_option=1))
+
+    assert state.p2.active.instance_id == "led2-p2a"
+    assert state.p2.bench[0].instance_id == "led2-eligible"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
