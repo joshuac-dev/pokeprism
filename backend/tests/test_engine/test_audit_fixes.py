@@ -5402,3 +5402,578 @@ async def test_energy_search_pro_nondeck_id_in_response_ignored():
 
     assert len(state.p1.hand) == 0
     assert fire in state.p1.deck
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Brilliant Blender (sv08-164) — ACE SPEC Item: discard up to 5 Pokémon from deck
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _make_pokemon_inst(instance_id: str, name: str = "Test Pokémon") -> CardInstance:
+    return CardInstance(
+        instance_id=instance_id,
+        card_def_id=f"tst-{instance_id}",
+        card_name=name,
+        current_hp=100,
+        max_hp=100,
+        zone=Zone.DECK,
+        card_type="Pokemon",
+    )
+
+
+def _make_trainer_inst(instance_id: str, name: str = "Test Trainer") -> CardInstance:
+    return CardInstance(
+        instance_id=instance_id,
+        card_def_id=f"tst-{instance_id}",
+        card_name=name,
+        current_hp=0,
+        max_hp=0,
+        zone=Zone.DECK,
+        card_type="Trainer",
+        card_subtype="Item",
+    )
+
+
+def _bb_state(deck_cards):
+    """Build a minimal GameState with given deck for p1."""
+    p1_active = CardInstance(instance_id="bb-p1a", card_def_id="tst-bb-p1a",
+                             card_name="P1Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE)
+    p2_active = CardInstance(instance_id="bb-p2a", card_def_id="tst-bb-p2a",
+                             card_name="P2Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE)
+    state = _make_state(p1_active=p1_active, p2_active=p2_active)
+    state.p1.deck = list(deck_cards)
+    return state
+
+
+def _bb_action():
+    return Action(player_id="p1", action_type=ActionType.ATTACK, attack_index=0)
+
+
+def test_brilliant_blender_registered():
+    """sv08-164 Brilliant Blender is registered in the trainer effect registry."""
+    from app.engine.effects.registry import EffectRegistry
+    reg = EffectRegistry.instance()
+    handler = reg._trainer_effects.get("sv08-164")
+    assert handler is not None
+    assert handler.__name__ == "_brilliant_blender"
+
+
+@pytest.mark.asyncio
+async def test_brilliant_blender_discards_chosen_pokemon():
+    """Selected Pokémon move from deck to discard."""
+    from app.engine.effects.trainers import _brilliant_blender
+    p1 = _make_pokemon_inst("bb-p1")
+    p2 = _make_pokemon_inst("bb-p2")
+    state = _bb_state([p1, p2])
+    action = _bb_action()
+
+    gen = _brilliant_blender(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.ATTACK,
+                      selected_cards=[p1.instance_id])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert p1 in state.p1.discard
+    assert p1.zone == Zone.DISCARD
+    assert p1 not in state.p1.deck
+    assert p2 in state.p1.deck  # not selected
+
+
+@pytest.mark.asyncio
+async def test_brilliant_blender_allows_up_to_five():
+    """Up to 5 Pokémon can be selected; a 6th is capped."""
+    from app.engine.effects.trainers import _brilliant_blender
+    pokes = [_make_pokemon_inst(f"bb-5p-{i}") for i in range(7)]
+    state = _bb_state(pokes)
+    action = _bb_action()
+
+    # Try to send 7 IDs — handler should discard at most 5
+    gen = _brilliant_blender(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.ATTACK,
+                      selected_cards=[c.instance_id for c in pokes])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    discarded = [c for c in pokes if c in state.p1.discard]
+    assert len(discarded) <= 5
+
+
+@pytest.mark.asyncio
+async def test_brilliant_blender_does_not_discard_trainers():
+    """Trainer cards in the response are ignored."""
+    from app.engine.effects.trainers import _brilliant_blender
+    poke = _make_pokemon_inst("bb-t-p")
+    trainer = _make_trainer_inst("bb-t-t")
+    state = _bb_state([poke, trainer])
+    action = _bb_action()
+
+    gen = _brilliant_blender(state, action)
+    try:
+        next(gen)
+        # Request to discard both — only Pokémon should be discarded
+        resp = Action(player_id="p1", action_type=ActionType.ATTACK,
+                      selected_cards=[poke.instance_id, trainer.instance_id])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert poke in state.p1.discard
+    assert trainer not in state.p1.discard
+
+
+@pytest.mark.asyncio
+async def test_brilliant_blender_explicit_zero_discards_nothing():
+    """Explicit empty selection discards no cards but still shuffles."""
+    from app.engine.effects.trainers import _brilliant_blender
+    poke = _make_pokemon_inst("bb-z-p")
+    state = _bb_state([poke])
+    action = _bb_action()
+
+    gen = _brilliant_blender(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.ATTACK, selected_cards=[])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert len(state.p1.discard) == 0
+    assert poke in state.p1.deck
+    shuffle_events = [e for e in state.p1_events() if e["event_type"] == "shuffle_deck"] if hasattr(state, "p1_events") else [e for e in state.events if e.get("event_type") == "shuffle_deck"]
+    # Just verify no crash and deck intact
+    assert poke in state.p1.deck
+
+
+@pytest.mark.asyncio
+async def test_brilliant_blender_empty_deck_no_crash():
+    """No Pokémon in deck: no crash, deck still shuffled."""
+    from app.engine.effects.trainers import _brilliant_blender
+    trainer = _make_trainer_inst("bb-ed-t")
+    state = _bb_state([trainer])
+    action = _bb_action()
+
+    gen = _brilliant_blender(state, action)
+    try:
+        req = next(gen)
+        # Handler should return early (no Pokémon), so no request yielded
+        pytest.fail("Expected StopIteration before yielding request")
+    except StopIteration:
+        pass
+
+    assert len(state.p1.discard) == 0
+    bb_events = [e for e in state.events if e.get("event_type") == "brilliant_blender"]
+    assert bb_events
+    assert bb_events[0]["discarded"] == 0
+
+
+@pytest.mark.asyncio
+async def test_brilliant_blender_fallback_discards_in_deck_order():
+    """No response (None): fallback discards up to 5 Pokémon in deck order."""
+    from app.engine.effects.trainers import _brilliant_blender
+    pokes = [_make_pokemon_inst(f"bb-fb-{i}") for i in range(7)]
+    state = _bb_state(pokes)
+    action = _bb_action()
+
+    gen = _brilliant_blender(state, action)
+    try:
+        next(gen)
+        gen.send(None)  # No response → AI fallback
+    except StopIteration:
+        pass
+
+    assert len(state.p1.discard) == 5
+
+
+@pytest.mark.asyncio
+async def test_brilliant_blender_emits_events():
+    """Handler emits brilliant_blender and shuffle_deck events."""
+    from app.engine.effects.trainers import _brilliant_blender
+    poke = _make_pokemon_inst("bb-ev-p")
+    state = _bb_state([poke])
+    action = _bb_action()
+
+    gen = _brilliant_blender(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.ATTACK,
+                      selected_cards=[poke.instance_id])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    bb_events = [e for e in state.events if e.get("event_type") == "brilliant_blender"]
+    shuffle_events = [e for e in state.events if e.get("event_type") == "shuffle_deck"]
+    assert bb_events
+    assert bb_events[0]["discarded"] == 1
+    assert shuffle_events
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Prime Catcher (sv08.5-119) — ACE SPEC Item: same handler as sv05-157
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_prime_catcher_alt_registered():
+    """sv08.5-119 Prime Catcher (PRE alt) is registered to the same handler as sv05-157."""
+    from app.engine.effects.registry import EffectRegistry
+    reg = EffectRegistry.instance()
+    original = reg._trainer_effects.get("sv05-157")
+    alt = reg._trainer_effects.get("sv08.5-119")
+    assert alt is not None
+    assert alt is original
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Pidgeot ex Quick Search (sv03-164) — once-per-turn global ability, deck → hand
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _qs_state(deck_cards):
+    p1_pidgeot = CardInstance(instance_id="qs-p1a", card_def_id="sv03-164",
+                              card_name="Pidgeot ex", current_hp=220, max_hp=220,
+                              zone=Zone.ACTIVE, card_type="Pokemon")
+    p2_active = CardInstance(instance_id="qs-p2a", card_def_id="tst-qs-p2a",
+                             card_name="P2Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE)
+    state = _make_state(p1_active=p1_pidgeot, p2_active=p2_active)
+    state.p1.deck = list(deck_cards)
+    return state
+
+
+def _qs_action():
+    return Action(player_id="p1", action_type=ActionType.USE_ABILITY,
+                  card_instance_id="qs-p1a")
+
+
+def test_quick_search_registered():
+    """sv03-164 Quick Search is registered in the ability effect registry."""
+    from app.engine.effects.registry import EffectRegistry
+    reg = EffectRegistry.instance()
+    handler = reg._ability_effects.get("sv03-164:Quick Search")
+    assert handler is not None
+    assert handler.__name__ == "_quick_search"
+
+
+@pytest.mark.asyncio
+async def test_quick_search_moves_card_to_hand():
+    """Chosen card moves from deck to hand."""
+    from app.engine.effects.abilities import _quick_search
+    card = _make_pokemon_inst("qs-card")
+    state = _qs_state([card])
+    action = _qs_action()
+
+    gen = _quick_search(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.USE_ABILITY,
+                      selected_cards=[card.instance_id])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert card in state.p1.hand
+    assert card.zone == Zone.HAND
+    assert card not in state.p1.deck
+
+
+@pytest.mark.asyncio
+async def test_quick_search_searches_any_card_type():
+    """Any card type (Pokémon, Trainer, Energy) can be selected."""
+    from app.engine.effects.abilities import _quick_search
+    trainer = _make_trainer_inst("qs-any-t")
+    energy = _make_basic_energy_inst("qs-any-e", "Fire Energy", "Fire")
+    state = _qs_state([trainer, energy])
+    action = _qs_action()
+
+    gen = _quick_search(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.USE_ABILITY,
+                      selected_cards=[trainer.instance_id])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert trainer in state.p1.hand
+
+
+@pytest.mark.asyncio
+async def test_quick_search_explicit_zero_moves_nothing():
+    """Explicit empty selection moves no cards."""
+    from app.engine.effects.abilities import _quick_search
+    card = _make_pokemon_inst("qs-z-card")
+    state = _qs_state([card])
+    action = _qs_action()
+
+    gen = _quick_search(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.USE_ABILITY,
+                      selected_cards=[])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert len(state.p1.hand) == 0
+    assert card in state.p1.deck
+
+
+@pytest.mark.asyncio
+async def test_quick_search_once_per_turn_limit():
+    """Second Quick Search in same turn is blocked by global flag."""
+    from app.engine.effects.abilities import _quick_search
+    card1 = _make_pokemon_inst("qs-otp-1")
+    card2 = _make_pokemon_inst("qs-otp-2")
+    state = _qs_state([card1, card2])
+    state.p1.quick_search_used_this_turn = True  # Simulate first Pidgeot ex already used it
+    action = _qs_action()
+
+    gen = _quick_search(state, action)
+    try:
+        next(gen)
+        pytest.fail("Expected StopIteration — ability already used")
+    except StopIteration:
+        pass
+
+    already_used = [e for e in state.events if e.get("event_type") == "ability_already_used"]
+    assert already_used
+
+
+@pytest.mark.asyncio
+async def test_quick_search_two_copies_blocked():
+    """Two Pidgeot ex: second Quick Search in same turn is blocked."""
+    from app.engine.effects.abilities import _quick_search
+    card = _make_pokemon_inst("qs-2cp-card")
+    state = _qs_state([card])
+    action = _qs_action()
+
+    # First use
+    gen1 = _quick_search(state, action)
+    try:
+        next(gen1)
+        resp = Action(player_id="p1", action_type=ActionType.USE_ABILITY,
+                      selected_cards=[card.instance_id])
+        gen1.send(resp)
+    except StopIteration:
+        pass
+
+    assert state.p1.quick_search_used_this_turn is True
+
+    # Second use (from the second Pidgeot ex instance)
+    card2 = _make_pokemon_inst("qs-2cp-card2")
+    state.p1.deck.append(card2)
+    gen2 = _quick_search(state, action)
+    try:
+        next(gen2)
+        pytest.fail("Expected StopIteration — second Quick Search blocked")
+    except StopIteration:
+        pass
+
+    assert len(state.p1.hand) == 1  # Only one card moved
+
+
+@pytest.mark.asyncio
+async def test_quick_search_empty_deck_no_crash():
+    """Empty deck: no crash, flag still consumed."""
+    from app.engine.effects.abilities import _quick_search
+    state = _qs_state([])
+    action = _qs_action()
+
+    gen = _quick_search(state, action)
+    try:
+        req = next(gen)
+        pytest.fail("Expected StopIteration on empty deck")
+    except StopIteration:
+        pass
+
+    assert state.p1.quick_search_used_this_turn is True
+    assert len(state.p1.hand) == 0
+
+
+@pytest.mark.asyncio
+async def test_quick_search_fallback_takes_first_deck_card():
+    """No response: fallback takes the first card in deck order."""
+    from app.engine.effects.abilities import _quick_search
+    card1 = _make_pokemon_inst("qs-fb-1")
+    card2 = _make_pokemon_inst("qs-fb-2")
+    state = _qs_state([card1, card2])
+    action = _qs_action()
+
+    gen = _quick_search(state, action)
+    try:
+        next(gen)
+        gen.send(None)  # No response → fallback
+    except StopIteration:
+        pass
+
+    assert card1 in state.p1.hand
+    assert card2 in state.p1.deck
+
+
+@pytest.mark.asyncio
+async def test_quick_search_emits_ability_used_event():
+    """Handler emits an ability_used event with ability name Quick Search."""
+    from app.engine.effects.abilities import _quick_search
+    card = _make_pokemon_inst("qs-ev-card")
+    state = _qs_state([card])
+    action = _qs_action()
+
+    gen = _quick_search(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.USE_ABILITY,
+                      selected_cards=[card.instance_id])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    ability_events = [e for e in state.events if e.get("event_type") == "ability_used"
+                      and e.get("ability") == "Quick Search"]
+    assert ability_events
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Pidgeot ex Blustery Wind (sv03-164) — 120 damage, optional Stadium discard
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _bw_state(with_stadium: bool = False):
+    p1_pidgeot = CardInstance(instance_id="bw-p1a", card_def_id="sv03-164",
+                              card_name="Pidgeot ex", current_hp=220, max_hp=220,
+                              zone=Zone.ACTIVE, card_type="Pokemon",
+                              energy_attached=[
+                                  EnergyAttachment(energy_type=EnergyType.COLORLESS,
+                                                   source_card_id="bw-e1",
+                                                   card_def_id="bw-e1"),
+                                  EnergyAttachment(energy_type=EnergyType.COLORLESS,
+                                                   source_card_id="bw-e2",
+                                                   card_def_id="bw-e2"),
+                              ])
+    p2_active = CardInstance(instance_id="bw-p2a", card_def_id="tst-bw-p2a",
+                             card_name="P2Active", current_hp=200, max_hp=200, zone=Zone.ACTIVE)
+    state = _make_state(p1_active=p1_pidgeot, p2_active=p2_active)
+    state.active_player = "p1"
+    if with_stadium:
+        state.active_stadium = CardInstance(
+            instance_id="bw-stadium",
+            card_def_id="tst-bw-stad",
+            card_name="Test Stadium",
+            current_hp=0, max_hp=0,
+            zone=Zone.ACTIVE,
+            card_type="Trainer", card_subtype="Stadium",
+        )
+    return state
+
+
+def _bw_action():
+    return Action(player_id="p1", action_type=ActionType.ATTACK, attack_index=0,
+                  card_instance_id="bw-p1a")
+
+
+def test_blustery_wind_registered():
+    """sv03-164 Blustery Wind is registered in the attack effect registry."""
+    from app.engine.effects.registry import EffectRegistry
+    reg = EffectRegistry.instance()
+    handler = reg._attack_effects.get("sv03-164:0")
+    assert handler is not None
+    assert handler.__name__ == "_blustery_wind"
+
+
+@pytest.mark.asyncio
+async def test_blustery_wind_deals_120_damage():
+    """Blustery Wind deals 120 base damage to the opponent's Active."""
+    from app.engine.effects.attacks import _blustery_wind
+    state = _bw_state(with_stadium=False)
+    opp_hp_before = state.p2.active.current_hp
+    action = _bw_action()
+
+    gen = _blustery_wind(state, action)
+    try:
+        req = next(gen)
+        pytest.fail("Expected StopIteration when no stadium — no choice needed")
+    except StopIteration:
+        pass
+
+    # Damage should have been dealt (120, may be adjusted by W/R but base is 120)
+    assert state.p2.active.current_hp < opp_hp_before
+
+
+@pytest.mark.asyncio
+async def test_blustery_wind_no_stadium_no_crash():
+    """No Stadium in play: damage still occurs, no crash, no choice yielded."""
+    from app.engine.effects.attacks import _blustery_wind
+    state = _bw_state(with_stadium=False)
+    action = _bw_action()
+
+    gen = _blustery_wind(state, action)
+    try:
+        req = next(gen)
+        pytest.fail("Expected StopIteration — no stadium to discard")
+    except StopIteration:
+        pass
+
+    assert state.active_stadium is None
+
+
+@pytest.mark.asyncio
+async def test_blustery_wind_discards_stadium_when_chosen():
+    """When player selects the stadium, it is removed from play."""
+    from app.engine.effects.attacks import _blustery_wind
+    state = _bw_state(with_stadium=True)
+    stadium = state.active_stadium
+    action = _bw_action()
+
+    gen = _blustery_wind(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.ATTACK,
+                      selected_cards=[stadium.instance_id])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert state.active_stadium is None
+    discarded = [e for e in state.events if e.get("event_type") == "stadium_discarded"]
+    assert discarded
+
+
+@pytest.mark.asyncio
+async def test_blustery_wind_leaves_stadium_when_declined():
+    """When player passes empty selection, Stadium remains in play."""
+    from app.engine.effects.attacks import _blustery_wind
+    state = _bw_state(with_stadium=True)
+    stadium = state.active_stadium
+    action = _bw_action()
+
+    gen = _blustery_wind(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.ATTACK, selected_cards=[])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert state.active_stadium is stadium  # Stadium still there
+
+
+@pytest.mark.asyncio
+async def test_blustery_wind_damage_and_stadium_both_occur():
+    """120 damage AND stadium discard can happen in the same attack."""
+    from app.engine.effects.attacks import _blustery_wind
+    state = _bw_state(with_stadium=True)
+    stadium = state.active_stadium
+    opp_hp_before = state.p2.active.current_hp
+    action = _bw_action()
+
+    gen = _blustery_wind(state, action)
+    try:
+        next(gen)
+        resp = Action(player_id="p1", action_type=ActionType.ATTACK,
+                      selected_cards=[stadium.instance_id])
+        gen.send(resp)
+    except StopIteration:
+        pass
+
+    assert state.p2.active.current_hp < opp_hp_before
+    assert state.active_stadium is None

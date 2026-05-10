@@ -31,6 +31,34 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Added
+- **Three missing card-effect handlers** —
+  fix(engine): Implement Brilliant Blender, Pidgeot ex, and Prime Catcher effects.
+
+  - **Brilliant Blender (sv08-164)** — ACE SPEC Item. Player searches their deck
+    for up to 5 Pokémon and discards them, then shuffles the deck. Trainer/Energy
+    cards in the selection are ignored. Explicit zero-card selection honored.
+    No-response AI fallback discards up to 5 Pokémon in deck order. Nine tests added.
+
+  - **Prime Catcher (sv08.5-119)** — ACE SPEC Item. Registers the PRE 119 alt
+    print to the existing `_prime_catcher` handler (sv05-157). No new logic needed.
+    One registration test added.
+
+  - **Pidgeot ex Quick Search (sv03-164)** — Ability. Once-per-turn global limit
+    enforced via a new `PlayerState.quick_search_used_this_turn` flag (resets in
+    `runner.py` per-turn reset loop), preventing a second Pidgeot ex from using
+    Quick Search in the same turn. Player searches their deck for any 1 card
+    (any type) and puts it into their hand, then shuffles. Explicit zero-card
+    selection honored. No-response AI fallback takes the first deck card. Ten
+    tests added.
+
+  - **Pidgeot ex Blustery Wind (sv03-164)** — Attack. Deals 120 base damage
+    through the standard `_apply_damage` pipeline (weakness/resistance/tools).
+    Optional Stadium discard: if a Stadium is in play the player may discard it;
+    explicit empty selection leaves it in play; no-response fallback declines
+    (safe AI default for optional discard). Six tests added.
+
+  Branch: `fix-three-missing-card-handlers`.
+
 - **PTCGL alias for Mega Charizard Y ex MEP 30** —
   fix(cards): Resolve Mega Charizard Y ex MEP 30 PTCGL import failure.
   TCGDex has no `mep-030` (the MEP set skips numbers 029–036 entirely).

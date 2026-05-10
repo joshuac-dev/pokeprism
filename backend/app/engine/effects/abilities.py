@@ -4263,6 +4263,58 @@ def _tandem_unit(state: GameState, action):
     state.emit_event("ability_used", player=player_id, card="Miraidon ex", ability="Tandem Unit")
 
 
+def _quick_search(state, action):
+    """sv03-164 Pidgeot ex — Quick Search
+
+    Once during your turn, you may search your deck for a card and put it into
+    your hand. Then, shuffle your deck. You can't use more than 1 Quick Search
+    Ability each turn.
+    """
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    # Global once-per-turn limit: applies across all Pidgeot ex copies in play.
+    if player.quick_search_used_this_turn:
+        state.emit_event("ability_already_used", player=player_id,
+                         card="Pidgeot ex", ability="Quick Search")
+        return
+
+    # Consuming the use before the search (using the ability counts even if deck is empty).
+    player.quick_search_used_this_turn = True
+
+    if not player.deck:
+        state.emit_event("search_failed", player=player_id,
+                         card="Pidgeot ex", reason="empty_deck")
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Quick Search: choose 1 card from your deck to put into your hand",
+        cards=list(player.deck), min_count=0, max_count=1,
+    )
+    resp = yield req
+    # Explicit [] means player chose zero (valid — "you may"). None/missing falls back
+    # to taking the first card in deck order (deterministic AI fallback).
+    if resp is not None and resp.selected_cards is not None:
+        chosen_ids = resp.selected_cards
+    else:
+        chosen_ids = [player.deck[0].instance_id]
+
+    moved = 0
+    for iid in chosen_ids[:1]:
+        card = next((c for c in player.deck if c.instance_id == iid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.HAND
+            player.hand.append(card)
+            moved += 1
+
+    random.shuffle(player.deck)
+    state.emit_event("ability_used", player=player_id,
+                     card="Pidgeot ex", ability="Quick Search", cards_taken=moved)
+    state.emit_event("shuffle_deck", player=player_id, reason="quick_search")
+
+
 def register_all(registry):
     """Register all ability effect handlers with the registry."""
 
@@ -5344,3 +5396,6 @@ def register_all(registry):
 
     registry.register_ability("sv02-169", "Squawk and Seize", _squawk_and_seize,
                                condition=_cond_squawk_and_seize)  # Squawkabilly ex
+
+    # ── sv03-164 Pidgeot ex ───────────────────────────────────────────────────
+    registry.register_ability("sv03-164", "Quick Search", _quick_search)
