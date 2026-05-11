@@ -121,7 +121,7 @@ If the run ends with `BLOCKED_TCGDEX` before any card is audited, do not advance
 
 If the run ends with `BLOCKED_DB_ACCESS`, do not advance the cursor.
 
-If the run ends with `TARGET_REACHED` or `PARTIAL_TIME_BUDGET`, set `next_start_cursor` to the next database card after the last fully audited card.
+If the run ends with `TARGET_REACHED` or `CONTINUATION_REQUIRED`, set `next_start_cursor` to the next database card after the last fully audited card.
 
 If the run reaches the end of the sorted database list and still has not reached the target finding count, wrap to the beginning of the sorted database list and continue. If the run audits every database card in one circular pass without reaching the target, set completion status to `DB_EXHAUSTED` and set `next_start_cursor` to the same start cursor used for that full pass, or to `START_OF_DATABASE_CARD_LIST` if no concrete start cursor was available.
 
@@ -323,10 +323,14 @@ When that happens:
 1. Stop auditing new cards.
 2. Finish the current card fix if it is already in progress and safe to complete.
 3. Run the most relevant focused tests.
-4. Commit the implemented changes.
-5. Open the PR with status `PARTIAL_TIME_BUDGET`.
-6. Include the next resume cursor.
-7. Put any discovered but unfixed candidates in `Unresolved candidates`.
+4. Commit the implemented changes including `docs/audit_runs/<date>-<run>-card-effect-audit.json`.
+5. Set `completion_status` to `CONTINUATION_REQUIRED` and `continuation_required=true` in the JSON.
+6. Include the next resume cursor in `next_resume_cursor` and update `docs/AUDIT_STATE.md`.
+7. Open the PR only if at least `min_cards_before_partial` database cards were audited.
+8. Add label `audit-continuation-required` to the PR.
+9. Put any discovered but unfixed candidates in `Unresolved candidates`.
+
+`PARTIAL_TIME_BUDGET` is **not a valid completion status** under robust-audit-v2. The PR gate will reject it.
 
 Do not spend the run building a large backlog of findings without implementing them.
 
@@ -356,13 +360,15 @@ Allowed result values:
 - `db-identity-gap`
 - `blocked-tcgdex`
 - `blocked-db-access`
-- `partial-time-budget`
+- `continuation-required`
+
+`partial-time-budget` is **not** a valid result value. Use `continuation-required` instead.
 
 ## Required PR summary
 
 The PR summary must include:
 
-- `Completion status`: `TARGET_REACHED`, `DB_EXHAUSTED`, `BLOCKED_TCGDEX`, `BLOCKED_DB_ACCESS`, or `PARTIAL_TIME_BUDGET`
+- `Completion status`: `TARGET_REACHED`, `DB_EXHAUSTED`, `FULL_CYCLE_COMPLETE`, `BLOCKED_TCGDEX`, `BLOCKED_DB_ACCESS`, or `CONTINUATION_REQUIRED`
 - `TCGDEX_PREFLIGHT`
 - `DB_CARD_SOURCE`
 - `Target findings`
@@ -396,7 +402,7 @@ The agent must not:
 - create stub or placeholder handlers;
 - silently approximate precise card mechanics;
 - report `PARTIAL_TIME_BUDGET` (use `CONTINUATION_REQUIRED` instead);
-- omit `docs/audit_runs/<YYYY-MM-DD>-card-effect-audit.json` from the PR;
+- omit `docs/audit_runs/<YYYY-MM-DD>-<run-number>-card-effect-audit.json` from the PR;
 - commit `frontend/node_modules`.
 
 ## Robust audit v2 enforcement rules

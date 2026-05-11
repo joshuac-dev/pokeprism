@@ -33,7 +33,6 @@ jobs:
           import re
           import subprocess
           import sys
-          import glob as _glob
 
           errors = []
           warnings = []
@@ -46,7 +45,7 @@ jobs:
 
           base_ref = os.environ.get("GITHUB_BASE_REF", "main")
 
-          # 1a. Check for frontend/node_modules in all tracked files (never acceptable)
+          # ── 1a. frontend/node_modules (check all tracked files) ─────────────────────
           result = subprocess.run(
               ["git", "ls-files", "frontend/node_modules"],
               capture_output=True, text=True
@@ -55,7 +54,7 @@ jobs:
           if nm_count > 0:
               fail(f"frontend/node_modules is tracked in git ({nm_count} files). Remove it.")
 
-          # 1b. Check for unsafe artifacts in files ADDED by this PR
+          # ── 1b. Unsafe artifacts (only PR-added files) ───────────────────────────────
           result = subprocess.run(
               ["git", "diff", "--name-only", "--diff-filter=A",
                f"origin/{base_ref}...HEAD"],
@@ -67,7 +66,9 @@ jobs:
               re.compile(r"battle.*\.log$", re.IGNORECASE),
               re.compile(r".*\.dump$", re.IGNORECASE),
               re.compile(r"(^|/)database[^/]*\.sql$"),
-              re.compile(r"observed_play/import_candidates/.*\.(txt|log)$", re.IGNORECASE),
+              # Block import_candidates txt/md/log; existing README.md is a pre-existing
+              # tracked file and will not appear in --diff-filter=A for audit PRs.
+              re.compile(r"observed_play/import_candidates/.*\.(txt|md|log)$", re.IGNORECASE),
           ]
           for f in added_files:
               for pat in unsafe_patterns:
@@ -75,18 +76,38 @@ jobs:
                       fail(f"Unsafe artifact committed: {f}")
                       break
 
-          # 2. Find audit report
-          reports = sorted(_glob.glob("docs/audit_runs/*-card-effect-audit.json"))
-          if not reports:
-              fail("No docs/audit_runs/*-card-effect-audit.json found. A machine-readable audit report is required.")
+          # ── 2. Find the audit report changed by this PR ──────────────────────────────
+          result = subprocess.run(
+              ["git", "diff", "--name-only",
+               "--diff-filter=AM",  # Added or Modified
+               f"origin/{base_ref}...HEAD",
+               "--", "docs/audit_runs/*-card-effect-audit.json"],
+              capture_output=True, text=True
+          )
+          changed_reports = [f for f in result.stdout.splitlines() if f.strip()]
+
+          if not changed_reports:
+              fail(
+                  "No docs/audit_runs/*-card-effect-audit.json added or modified by this PR. "
+                  "A machine-readable audit report is required."
+              )
               for e in errors:
                   print(f"ERROR: {e}")
               sys.exit(1)
 
-          report_path = reports[-1]
+          if len(changed_reports) > 1:
+              fail(
+                  f"Multiple audit reports changed in this PR: {changed_reports}. "
+                  "Exactly one audit report must be added or modified per PR."
+              )
+              for e in errors:
+                  print(f"ERROR: {e}")
+              sys.exit(1)
+
+          report_path = changed_reports[0]
           print(f"Found audit report: {report_path}")
 
-          # 3. Parse JSON
+          # ── 3. Parse JSON ─────────────────────────────────────────────────────────────
           try:
               with open(report_path) as fh:
                   data = json.load(fh)
@@ -96,7 +117,7 @@ jobs:
                   print(f"ERROR: {e}")
               sys.exit(1)
 
-          # 4. Required fields
+          # ── 4. Required fields ────────────────────────────────────────────────────────
           required = [
               "run_date_utc", "completion_status", "target_findings",
               "fixes_implemented", "engine_gaps_documented", "total_findings",
@@ -125,18 +146,21 @@ jobs:
           continuation = bool(data.get("continuation_required", False))
           next_cursor = data.get("next_resume_cursor", "")
           ledger = data.get("audit_ledger", [])
+          # min_cards_before_partial: use value from JSON if present, else 100
+          min_cards = int(data.get("min_cards_before_partial", 100))
 
-          print(f"completion_status:  {status}")
-          print(f"target_findings:    {target}")
-          print(f"fixes_implemented:  {fixes}")
-          print(f"engine_gaps:        {gaps}")
-          print(f"total_findings:     {total}")
-          print(f"cards_audited:      {cards_audited}")
-          print(f"db_card_count:      {db_card_count}")
-          print(f"full_cycle:         {full_cycle}")
-          print(f"continuation:       {continuation}")
+          print(f"completion_status:       {status}")
+          print(f"target_findings:         {target}")
+          print(f"fixes_implemented:       {fixes}")
+          print(f"engine_gaps:             {gaps}")
+          print(f"total_findings:          {total}")
+          print(f"cards_audited:           {cards_audited}")
+          print(f"db_card_count:           {db_card_count}")
+          print(f"full_cycle:              {full_cycle}")
+          print(f"continuation:            {continuation}")
+          print(f"min_cards_before_partial: {min_cards}")
 
-          # 5. Audit ledger validation
+          # ── 5. Audit ledger validation ────────────────────────────────────────────────
           ALLOWED_RESULTS = {
               "fixed", "engine-gap", "no-issue", "tcgdex-unresolved",
               "db-identity-gap", "blocked-tcgdex", "blocked-db-access",
@@ -151,9 +175,15 @@ jobs:
                       fail(f"audit_ledger[{i}] missing field: {ef}")
               r = entry.get("result", "")
               if r not in ALLOWED_RESULTS:
-                  fail(f"audit_ledger[{i}] has unknown result: {r!r}")
+                  if r == "partial-time-budget":
+                      fail(
+                          f"audit_ledger[{i}] uses invalid result 'partial-time-budget'. "
+                          "Use 'continuation-required' instead."
+                      )
+                  else:
+                      fail(f"audit_ledger[{i}] has unknown result: {r!r}")
 
-          # 6. Completion status rules
+          # ── 6. Completion status rules ────────────────────────────────────────────────
           TERMINAL_STATUSES = {
               "TARGET_REACHED", "DB_EXHAUSTED", "FULL_CYCLE_COMPLETE",
               "BLOCKED_TCGDEX", "BLOCKED_DB_ACCESS", "CONTINUATION_REQUIRED",
@@ -161,15 +191,21 @@ jobs:
 
           if status not in TERMINAL_STATUSES:
               if status == "PARTIAL_TIME_BUDGET":
-                  fail("PARTIAL_TIME_BUDGET is not a valid completion status under robust-audit-v2. Use CONTINUATION_REQUIRED instead.")
+                  fail(
+                      "PARTIAL_TIME_BUDGET is not a valid completion status under robust-audit-v2. "
+                      "Use CONTINUATION_REQUIRED instead."
+                  )
               else:
-                  fail(f"Unknown completion_status: {status!r}. Must be one of: {', '.join(sorted(TERMINAL_STATUSES))}")
+                  fail(
+                      f"Unknown completion_status: {status!r}. "
+                      f"Must be one of: {', '.join(sorted(TERMINAL_STATUSES))}"
+                  )
 
           if status == "TARGET_REACHED":
               if total < target:
                   fail(
-                      f"TARGET_REACHED requires fixes_implemented + engine_gaps_documented >= target_findings. "
-                      f"Got {total} < {target}."
+                      f"TARGET_REACHED requires fixes_implemented + engine_gaps_documented >= "
+                      f"target_findings. Got {total} < {target}."
                   )
 
           if status in ("DB_EXHAUSTED", "FULL_CYCLE_COMPLETE"):
@@ -184,6 +220,17 @@ jobs:
           if status == "CONTINUATION_REQUIRED":
               if not continuation:
                   fail("CONTINUATION_REQUIRED requires continuation_required=true in the audit report.")
+
+              # min_cards_before_partial check (not applied to blocked statuses)
+              if cards_audited < min_cards:
+                  fail(
+                      f"CONTINUATION_REQUIRED requires at least {min_cards} cards audited "
+                      f"(min_cards_before_partial). Got {cards_audited}. "
+                      "Continue auditing until the minimum is reached or another terminal "
+                      "status is reached."
+                  )
+
+              # PR label check
               pr_labels_raw = os.environ.get("PR_LABELS", "[]")
               try:
                   pr_labels = json.loads(pr_labels_raw)
@@ -193,11 +240,11 @@ jobs:
               has_partial_ok_label = "audit-partial-merge-ok" in pr_labels
               if not (has_continuation_label or has_partial_ok_label):
                   fail(
-                      "CONTINUATION_REQUIRED PRs must have either the audit-continuation-required or "
-                      "audit-partial-merge-ok label. Add one of these labels to allow partial merge."
+                      "CONTINUATION_REQUIRED PRs must have either the audit-continuation-required "
+                      "or audit-partial-merge-ok label. Add one of these labels to allow partial merge."
                   )
 
-          # 7. Cursor consistency
+          # ── 7. Cursor consistency ─────────────────────────────────────────────────────
           if cards_audited > 0 and next_cursor:
               state_cursor = ""
               try:
@@ -219,7 +266,7 @@ jobs:
               elif state_cursor == next_cursor:
                   print(f"Cursor consistent: {next_cursor!r}")
 
-          # 8. Report
+          # ── 8. Final report ───────────────────────────────────────────────────────────
           for w in warnings:
               print(f"WARNING: {w}")
 
