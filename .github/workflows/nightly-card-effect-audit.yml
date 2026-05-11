@@ -113,7 +113,9 @@ jobs:
 
           BODY_FILE="$(mktemp)"
 
-          cat > "$BODY_FILE" <<ROBUSTAUDITEOF
+          export REPORT_FILE START_CURSOR START_CURSOR_SOURCE
+
+          cat > "$BODY_FILE" <<'ROBUSTAUDITEOF'
           # DB-BACKED CARD IMPLEMENTATION AUDIT AND FIX TASK (ROBUST-AUDIT-v3)
 
           This is a scheduled task for GitHub Copilot coding agent.
@@ -156,7 +158,7 @@ jobs:
 
           Before opening the PR, create and commit:
 
-              ${REPORT_FILE}
+              __REPORT_FILE__
 
           This file is required. The PR gate will reject PRs without a valid report AND
           will reject reports that use the old shallow ledger format.
@@ -250,7 +252,7 @@ jobs:
           ## Allowed completion statuses (robust-audit-v2)
 
           TARGET_REACHED:
-            fixes_implemented + engine_gaps_documented >= ${TARGET_FINDINGS}.
+            fixes_implemented + engine_gaps_documented >= __TARGET_FINDINGS__.
             Set full_cycle_completed appropriately and continuation_required=false.
 
           DB_EXHAUSTED:
@@ -282,29 +284,29 @@ jobs:
           1. Stop auditing new cards.
           2. Finish the current card fix if safe to complete.
           3. Run the most relevant focused tests.
-          4. Commit all changes including ${REPORT_FILE}.
+          4. Commit all changes including __REPORT_FILE__.
           5. Set completion_status to CONTINUATION_REQUIRED and continuation_required=true in JSON.
           6. Set next_resume_cursor to the next database card after the last fully audited card.
           7. Update docs/AUDIT_STATE.md with that cursor.
-          8. Open the PR only if at least ${MIN_CARDS_BEFORE_PARTIAL} database cards were audited.
+          8. Open the PR only if at least __MIN_CARDS_BEFORE_PARTIAL__ database cards were audited.
           9. Add label audit-continuation-required to the PR.
 
           Do NOT report PARTIAL_TIME_BUDGET. It is not accepted under robust-audit-v2.
 
           ## Minimum cards before CONTINUATION_REQUIRED is acceptable
 
-          At least ${MIN_CARDS_BEFORE_PARTIAL} database cards must be audited before
+          At least __MIN_CARDS_BEFORE_PARTIAL__ database cards must be audited before
           CONTINUATION_REQUIRED is acceptable. If fewer cards were audited, continue
           until the minimum is reached or another terminal status is reached.
 
           ## Start cursor
 
-          Start cursor source: ${START_CURSOR_SOURCE}
-          Start cursor: ${START_CURSOR}
+          Start cursor source: __START_CURSOR_SOURCE__
+          Start cursor: __START_CURSOR__
 
           ## Required state update (robust-audit-v2)
 
-          CRITICAL: The next_resume_cursor in ${REPORT_FILE}
+          CRITICAL: The next_resume_cursor in __REPORT_FILE__
           MUST match next_start_cursor in docs/AUDIT_STATE.md whenever cards were audited.
           The PR gate will reject PRs where these values do not match.
 
@@ -313,7 +315,7 @@ jobs:
           Include in the PR description:
 
           - Completion status
-          - Target findings: ${TARGET_FINDINGS}
+          - Target findings: __TARGET_FINDINGS__
           - Implemented fixes
           - Documented engine gaps
           - Database cards audited
@@ -323,7 +325,7 @@ jobs:
           - AUDIT_STATE.md updated: yes/no
           - STATUS.md updated: yes/no
           - CHANGELOG.md updated: yes/no
-          - Machine-readable report: ${REPORT_FILE} committed
+          - Machine-readable report: __REPORT_FILE__ committed
 
           ## Hard prohibitions
 
@@ -331,9 +333,28 @@ jobs:
           Do not guess card text.
           Do not report PARTIAL_TIME_BUDGET.
           Do not commit frontend/node_modules.
-          Do not omit ${REPORT_FILE}.
+          Do not omit __REPORT_FILE__.
           Do not advance docs/AUDIT_STATE.md unless an actual database-card audit occurred.
           ROBUSTAUDITEOF
+
+          python3 - "$BODY_FILE" <<'PY'
+          import os
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          text = path.read_text(encoding="utf-8")
+          replacements = {
+              "__REPORT_FILE__": os.environ["REPORT_FILE"],
+              "__TARGET_FINDINGS__": os.environ["TARGET_FINDINGS"],
+              "__MIN_CARDS_BEFORE_PARTIAL__": os.environ["MIN_CARDS_BEFORE_PARTIAL"],
+              "__START_CURSOR_SOURCE__": os.environ["START_CURSOR_SOURCE"],
+              "__START_CURSOR__": os.environ["START_CURSOR"],
+          }
+          for old, new in replacements.items():
+              text = text.replace(old, new)
+          path.write_text(text, encoding="utf-8")
+          PY
 
           JQ_FILTER='
             {
