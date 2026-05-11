@@ -408,7 +408,7 @@ def test_anthea_concordia_awards_three_extra_prizes_on_active_ko():
         card_registry.register(c)
 
     attacker = _inst(attacker_def, "ns-reshiram")
-    defender = _inst(defender_def, "defender", hp=60)
+    defender = _inst(defender_def, "defender")
     state = _state(
         p1_active=attacker,
         p2_active=defender,
@@ -420,7 +420,7 @@ def test_anthea_concordia_awards_three_extra_prizes_on_active_ko():
 
     _apply_damage(state, Action(ActionType.ATTACK, "p1", attack_index=0), 100)
 
-    assert state.p1.prizes_remaining == 2
+    assert state.p1.prizes_remaining == 2  # 6 start - 1 normal prize - 3 Anthea prizes
     assert len(state.p1.prizes) == 2
 
 
@@ -431,7 +431,7 @@ def test_rescue_board_and_area_zero_alt_prints_match_primary_behavior():
     card_registry.register(bench)
 
     active = _inst(tera, "active-alt")
-    active.tools_attached = ["sv05-159"]
+    active.tools_attached = ["sv05-159"]  # Rescue Board alt print
     bench_target = _inst(bench, "bench-target", zone=Zone.BENCH)
     state = _state(p1_active=active, p1_bench=[bench_target], p2_active=_inst(bench, "opp-alt"))
     assert get_retreat_cost_reduction(active, state, "p1") == 1
