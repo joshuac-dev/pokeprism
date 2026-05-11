@@ -24,6 +24,23 @@ post-phase development:
   `.github/workflows/card-effect-audit-pr-gate.yml` validates every audit PR labeled
   `card-effect-audit` or `robust-audit-v2`.
 
+**Nightly H/H simulation lifecycle fix (2026-05-13):**
+- Root cause: `_run_scheduled_hh_async` called `run_hh_batch(persist=True)` which created a bare
+  Simulation row (`status=running`, blank deck names, `matches_per_opponent=0`), completed all 200
+  games in ~26 s, then returned without ever updating the row. The row stayed `status=running`
+  indefinitely.
+- History showed blank Your Deck / Opponent(s) because `user_deck_name=NULL` and no
+  `SimulationOpponent` rows existed.
+- Fix: `_run_scheduled_hh_async` now pre-creates the Simulation row with full metadata before
+  calling `run_hh_batch`, wraps the batch in try/except (marks failed on error), creates a
+  `SimulationOpponent` row for TR-Mewtwo on success, and marks the row `complete` after the batch.
+- Non-overlap guard: skips if a scheduled H/H sim is still in `running/pending/queued` state;
+  marks stale runs (> 1 h) as failed before starting a new one.
+- 7 new lifecycle tests in `backend/tests/test_tasks/test_scheduled_hh.py` (mock-based, no DB).
+- Module-level imports added to `scheduled.py` so tests can patch them cleanly.
+- Stuck nightly run `1280be10-fc27-457b-b45d-dd5439c3bfc1` (200 matches, created 2026-05-11 02:00
+  UTC): all matches complete; safe to repair — see repair SQL in CHANGELOG.
+
 **DB-backed audit handoff (2026-05-11 standalone Codex audit pass 2):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes
 - completion status: `PARTIAL_TIME_BUDGET`

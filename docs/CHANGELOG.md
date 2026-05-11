@@ -30,8 +30,31 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
-### Changed
-- **Audit workflow hardened to robust-audit-v2 — 2026-05-12** —
+- **Nightly H/H simulation lifecycle fix — 2026-05-13** —
+  fix(tasks): harden nightly scheduled H/H simulation lifecycle.
+
+  - `_run_scheduled_hh_async` now pre-creates the Simulation row with full metadata
+    (`user_deck_name="Dragapult"`, `matches_per_opponent=200`, `started_at`, etc.) before
+    calling `run_hh_batch`, so the History page shows correct deck/opponent names immediately.
+  - Wrapped batch run in try/except: any exception marks the simulation `failed` and sets
+    `error_message`; success marks it `complete` with `total_matches`, `rounds_completed`,
+    and `final_win_rate`.
+  - Creates a `SimulationOpponent` row for TR-Mewtwo on success so the History Opponent(s)
+    column shows the correct name (previously always blank).
+  - Non-overlap guard skips a new run if a scheduled H/H simulation is still active.
+    Marks any stale scheduled H/H run (> 1 h old, still running) as failed before
+    starting a fresh one.
+  - Added `SCHEDULED_HH_P1_NAME`, `SCHEDULED_HH_P2_NAME`, `SCHEDULED_HH_STALE_HOURS`
+    constants; moved DB/batch imports to module level for patchability.
+  - Extracted `_load_deck_fixture` and `_build_deck_from_list` as module-level functions
+    so tests can patch them without touching real DB fixtures.
+  - 7 new mock-based tests in `backend/tests/test_tasks/test_scheduled_hh.py`.
+  - Stuck nightly run (sim `1280be10-…`, 2026-05-11 02:00 UTC, 200 matches, status=running):
+    see STATUS.md for one-time repair SQL.
+  - Why: every nightly run was creating a stuck `running` simulation row that required
+    manual deletion. The History page was unusable for scheduled H/H diagnostics.
+
+
   ci: Harden card-effect audit workflow with machine-readable ledger and PR gate.
 
   - Replaced `.github/workflows/nightly-card-effect-audit.yml` with a v2 workflow
