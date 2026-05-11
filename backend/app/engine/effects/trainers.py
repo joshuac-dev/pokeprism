@@ -4206,7 +4206,7 @@ def _explorers_guidance_b19(state: GameState, action):
     req = ChoiceRequest(
         "choose_cards", player_id,
         "Explorer's Guidance: choose up to 2 cards from top 6 to put into your hand",
-        cards=top6, min_count=0, max_count=max_take,
+        cards=top6, min_count=max_take, max_count=max_take,
     )
     resp = yield req
     chosen_ids = set(resp.selected_cards if resp and resp.selected_cards else [])

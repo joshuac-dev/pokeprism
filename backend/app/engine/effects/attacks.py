@@ -129,6 +129,7 @@ def _apply_damage(
     bypass_wr: bool = False,
     bypass_defender_effects: bool = False,
     bypass_resistance_only: bool = False,
+    bypass_weakness_only: bool = False,
 ) -> int:
     """Apply base_damage through the standard pipeline and return final_damage.
 
@@ -137,6 +138,7 @@ def _apply_damage(
         bypass_defender_effects: Skip ability blocks and Payapa Berry
             (for Shred, Superb Scissors, Demolish).
         bypass_resistance_only: Skip only resistance, not weakness (for Rock Tumble etc.).
+        bypass_weakness_only: Skip only weakness, not resistance (for Raging Curse etc.).
     """
     player = state.get_player(action.player_id)
     opp = state.get_opponent(action.player_id)
@@ -239,7 +241,8 @@ def _apply_damage(
 
     if not bypass_wr:
         total = apply_weakness_resistance(total, attacker, defender, state, opp_id,
-                                          skip_resistance=bypass_resistance_only)
+                                          skip_resistance=bypass_resistance_only,
+                                          skip_weakness=bypass_weakness_only)
 
     if bypass_defender_effects:
         total += _attacker_tool_bonus(attacker, defender, state)
@@ -485,6 +488,20 @@ def _apply_damage(
         total = max(0, total - defender.incoming_damage_reduction)
     if attacker.attack_damage_reduction > 0:
         total = max(0, total - attacker.attack_damage_reduction)
+
+    # Curly Wall (sv07-119 / svp-136 Bouffalant): active Basic Colorless Pokémon take 60 less damage
+    if not bypass_defender_effects:
+        _BOUFFALANT_IDS_AD = frozenset({"sv07-119", "svp-136"})
+        _def_cdef_cw = card_registry.get(defender.card_def_id)
+        _is_basic_colorless_ad = (
+            _def_cdef_cw and _def_cdef_cw.stage
+            and _def_cdef_cw.stage.lower() == "basic"
+            and "Colorless" in (_def_cdef_cw.types or [])
+        )
+        if _is_basic_colorless_ad:
+            _opp_player_cw = state.get_player(opp_id)
+            if any(p.card_def_id in _BOUFFALANT_IDS_AD for p in _opp_player_cw.bench):
+                total = max(0, total - 60)
 
     # Player-level incoming reduction: Iron Defender (me01-118), Jasmine's Gaze (sv08-178)
     # These cover new Pokémon that came into play after the effect was set.
@@ -1178,9 +1195,48 @@ def _come_and_get_you(state, action):
     state.emit_event("discard_to_bench", player=action.player_id, count=placed)
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Category 5: Variable damage
-# ──────────────────────────────────────────────────────────────────────────────
+def _come_and_get_you_sfa(state, action):
+    """sv06.5-018 Duskull atk0 — Come and Get You: put up to 3 sv06.5-018 Duskull from discard to bench."""
+    player = state.get_player(action.player_id)
+    available_slots = 5 - len(player.bench)
+    if available_slots <= 0:
+        return
+
+    duskulls = [c for c in player.discard if c.card_def_id == "sv06.5-018"]
+    if not duskulls:
+        return
+
+    max_count = min(3, available_slots, len(duskulls))
+    req = ChoiceRequest(
+        "choose_cards",
+        action.player_id,
+        "Come and Get You: choose up to 3 Duskull from your discard to put on Bench",
+        cards=duskulls,
+        min_count=0,
+        max_count=max_count,
+    )
+    resp = yield req
+
+    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
+                  and resp.chosen_card_ids else [])
+    if not chosen_ids:
+        chosen_ids = [c.instance_id for c in duskulls[:max_count]]
+
+    placed = 0
+    for cid in chosen_ids:
+        if len(player.bench) >= 5:
+            break
+        card = next((c for c in player.discard if c.instance_id == cid), None)
+        if card:
+            player.discard.remove(card)
+            card.zone = Zone.BENCH
+            card.turn_played = state.turn_number
+            player.bench.append(card)
+            placed += 1
+    state.emit_event("discard_to_bench", player=action.player_id, count=placed)
+
+
+
 
 def _powerful_hand(state, action):
     """me01-056 Alakazam atk0 — Powerful Hand: place 2 damage counters per card in hand.
@@ -5499,7 +5555,7 @@ def _raging_curse(state, action):
         state.emit_event("attack_no_damage", attacker="Cynthia's Spiritomb",
                          attack_name="Raging Curse")
         return
-    _apply_damage(state, action, 10 * total_counters)
+    _apply_damage(state, action, 10 * total_counters, bypass_weakness_only=True)
 
 
 # ── Batch 3 attack handlers ──────────────────────────────────────────────────
@@ -18033,7 +18089,7 @@ def register_all(registry):
     registry.register_attack("sv06.5-002", 0, _shocking_web)                # Galvantula — Shocking Web
     registry.register_attack("sv06.5-003", 0, _add_on_b13)                  # Rowlet — Add On
     registry.register_attack("sv06.5-004", 0, _united_wings_flag)           # Dartrix — United Wings (FLAGGED)
-    registry.register_attack("sv06.5-005", 0, _stock_up_on_feathers_flag)   # Decidueye — Stock Up on Feathers (FLAGGED)
+    registry.register_attack("sv06.5-005", 0, _stock_up_on_feathers)          # Decidueye — Stock Up on Feathers
     registry.register_attack("sv06.5-005", 1, _power_shot)                  # Decidueye — Power Shot
     registry.register_attack("sv06.5-006", 0, _wood_hammer_b13)             # Tapu Bulu — Wood Hammer
     registry.register_attack("sv06.5-008", 1, _snarl)                       # Houndoom — Snarl
@@ -18041,7 +18097,7 @@ def register_all(registry):
     registry.register_attack("sv06.5-009", 1, _anachronism_repulsor_flag)   # Iron Moth — Anachronism Repulsor (FLAGGED)
     registry.register_attack("sv06.5-010", 0, _hold_still_b13)              # Horsea — Hold Still
     registry.register_attack("sv06.5-011", 0, _call_for_backup)              # Seadra — Call for Backup
-    registry.register_attack("sv06.5-012", 0, _kings_order_flag)            # Kingdra ex — King's Order (FLAGGED)
+    registry.register_attack("sv06.5-012", 0, _kings_order)                 # Kingdra ex — King's Order
     registry.register_attack("sv06.5-012", 1, _hydro_pump_sfa)              # Kingdra ex — Hydro Pump
     registry.register_attack("sv06.5-013", 1, _beset)                       # Sneasel — Beset
     registry.register_attack("sv06.5-014", 1, _hail_claw)                   # Weavile — Hail Claw (reuse)
@@ -18049,7 +18105,7 @@ def register_all(registry):
     registry.register_attack("sv06.5-015", 1, _shattering_speed)            # Revavroom ex — Shattering Speed
     registry.register_attack("sv06.5-016", 0, _eerie_gaze)                  # Drowzee — Eerie Gaze
     registry.register_attack("sv06.5-017", 0, _daydream_flag)               # Hypno — Daydream (FLAGGED)
-    registry.register_attack("sv06.5-018", 0, _come_and_get_you_flag)       # Duskull — Come and Get You (FLAGGED)
+    registry.register_attack("sv06.5-018", 0, _come_and_get_you_sfa)        # Duskull — Come and Get You
     registry.register_attack("sv06.5-020", 0, _shadow_bind_b13)             # Dusknoir — Shadow Bind
     registry.register_attack("sv06.5-021", 0, _healing_pirouette)           # Cresselia — Healing Pirouette
     registry.register_attack("sv06.5-021", 1, _crescent_purge_flag)         # Cresselia — Crescent Purge (FLAGGED)
@@ -19005,7 +19061,7 @@ def _zircon_road(state, action):
         "Zircon Road: do you want to draw 5 cards?",
         options=["Draw 5 cards", "Skip"])
     resp = yield req
-    if not (resp and resp.option == "Draw 5 cards"):
+    if not (resp and resp.selected_option == 0):
         return
     draw_cards(state, action.player_id, 5)
 
@@ -19146,6 +19202,28 @@ def _breezy_gift(state, action):
         return
     poke = player.active
     # Shuffle self + all attached cards into deck
+    from app.engine.state import CardInstance as _CI_BG
+    for att in list(poke.energy_attached):
+        e_cdef = card_registry.get(att.card_def_id)
+        if e_cdef:
+            player.deck.append(_CI_BG(
+                card_def_id=att.card_def_id,
+                card_name=e_cdef.name,
+                card_type="Energy",
+                card_subtype=getattr(e_cdef, "subcategory", "Basic"),
+                energy_provides=list(getattr(e_cdef, "energy_provides", [])),
+                zone=Zone.DECK,
+            ))
+    for tool_def_id in list(poke.tools_attached):
+        t_cdef = card_registry.get(tool_def_id)
+        if t_cdef:
+            player.deck.append(_CI_BG(
+                card_def_id=tool_def_id,
+                card_name=t_cdef.name,
+                card_type="Trainer",
+                card_subtype="Tool",
+                zone=Zone.DECK,
+            ))
     poke.energy_attached.clear()
     poke.tools_attached.clear()
     poke.status_conditions.clear()
@@ -20200,10 +20278,15 @@ def _united_wings_flag(state, action):
     _apply_damage(state, action, 20 * count)
 
 
-def _stock_up_on_feathers_flag(state, action):
-    """sv06.5-005 Decidueye atk0 — Stock Up on Feathers: FLAGGED (draw to 7)."""
-    state.emit_event("flagged_effect", attack="Stock Up on Feathers",
-                     reason="draw_to_hand_size_not_supported")
+def _stock_up_on_feathers(state, action):
+    """sv06.5-005 Decidueye atk0 — Stock Up on Feathers: draw cards until you have 7 in hand."""
+    player = state.get_player(action.player_id)
+    to_draw = max(0, 7 - len(player.hand))
+    if to_draw > 0:
+        drawn = draw_cards(state, action.player_id, to_draw)
+        state.emit_event("stock_up_on_feathers", player=action.player_id, drawn=drawn)
+    else:
+        state.emit_event("stock_up_on_feathers", player=action.player_id, drawn=0)
 
 
 def _power_shot(state, action):
@@ -20330,10 +20413,47 @@ def _call_for_backup_flag(state, action):
                      reason="search_deck_for_3_pokemon_not_supported")
 
 
-def _kings_order_flag(state, action):
-    """sv06.5-012 Kingdra ex atk0 — King's Order: FLAGGED (bench from discard)."""
-    state.emit_event("flagged_effect", attack="King's Order",
-                     reason="bench_water_pokemon_from_discard_not_supported")
+def _kings_order(state, action):
+    """sv06.5-012 Kingdra ex atk0 — King's Order: put up to 3 Water Pokémon from discard to bench."""
+    player = state.get_player(action.player_id)
+    available_slots = 5 - len(player.bench)
+    if available_slots <= 0:
+        return
+
+    water_pokes = [c for c in player.discard
+                   if c.card_type.lower() in ("pokémon", "pokemon")
+                   and "Water" in (getattr(card_registry.get(c.card_def_id), "types", None) or [])]
+    if not water_pokes:
+        return
+
+    max_count = min(3, available_slots, len(water_pokes))
+    req = ChoiceRequest(
+        "choose_cards",
+        action.player_id,
+        "King's Order: choose up to 3 Water Pokémon from your discard to put on Bench",
+        cards=water_pokes,
+        min_count=0,
+        max_count=max_count,
+    )
+    resp = yield req
+
+    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
+                  and resp.chosen_card_ids else [])
+    if not chosen_ids:
+        chosen_ids = [c.instance_id for c in water_pokes[:max_count]]
+
+    placed = 0
+    for cid in chosen_ids:
+        if len(player.bench) >= 5:
+            break
+        card = next((c for c in player.discard if c.instance_id == cid), None)
+        if card:
+            player.discard.remove(card)
+            card.zone = Zone.BENCH
+            card.turn_played = state.turn_number
+            player.bench.append(card)
+            placed += 1
+    state.emit_event("discard_to_bench", player=action.player_id, count=placed)
 
 
 def _hydro_pump_sfa(state, action):
@@ -20485,6 +20605,28 @@ def _mystical_return_flag(state, action):
     if target is None:
         target = opp.bench[0]
     opp.bench.remove(target)
+    from app.engine.state import CardInstance as _CI_MR
+    for att in list(target.energy_attached):
+        e_cdef = card_registry.get(att.card_def_id)
+        if e_cdef:
+            opp.deck.append(_CI_MR(
+                card_def_id=att.card_def_id,
+                card_name=e_cdef.name,
+                card_type="Energy",
+                card_subtype=getattr(e_cdef, "subcategory", "Basic"),
+                energy_provides=list(getattr(e_cdef, "energy_provides", [])),
+                zone=Zone.DECK,
+            ))
+    for tool_def_id in list(target.tools_attached):
+        t_cdef = card_registry.get(tool_def_id)
+        if t_cdef:
+            opp.deck.append(_CI_MR(
+                card_def_id=tool_def_id,
+                card_name=t_cdef.name,
+                card_type="Trainer",
+                card_subtype="Tool",
+                zone=Zone.DECK,
+            ))
     target.energy_attached.clear()
     target.tools_attached.clear()
     target.damage_counters = 0
@@ -21164,9 +21306,49 @@ def _mega_drain_30(state, action):
 
 
 def _quick_sign_flag(state, action):
-    """sv06-009 Volbeat atk0 — Quick Sign: FLAGGED (first-turn condition + deck search for 2 Basics)."""
-    state.emit_event("flagged_effect", attack="Quick Sign",
-                     reason="first_turn_condition_and_deck_search_not_supported")
+    """sv06-009 Volbeat atk0 — Quick Sign: only going first, only first turn; search deck for up to 2 Basic Pokémon and bench them."""
+    going_first = action.player_id == state.first_player
+    is_first_turn = state.turn_number == 1
+    if not (going_first and is_first_turn):
+        state.emit_event("attack_no_damage", attacker="Volbeat", attack_name="Quick Sign",
+                         reason="not_first_player_first_turn")
+        return
+    player = state.get_player(action.player_id)
+    available_slots = 5 - len(player.bench)
+    if available_slots <= 0 or not player.deck:
+        _shuffle_deck(player)
+        return
+    basics = [c for c in player.deck
+              if c.card_type.lower() in ("pokemon", "pokémon")
+              and c.card_subtype.lower() == "basic"]
+    if not basics:
+        _shuffle_deck(player)
+        state.emit_event("deck_search_bench", player=action.player_id,
+                         attack="Quick Sign", placed=0)
+        return
+    max_count = min(2, available_slots, len(basics))
+    req = ChoiceRequest(
+        "choose_cards", action.player_id,
+        f"Quick Sign: choose up to {max_count} Basic Pokémon from your deck to put on Bench",
+        cards=basics, min_count=0, max_count=max_count,
+    )
+    resp = yield req
+    chosen = (resp.selected_cards if resp and resp.selected_cards
+              else [c.instance_id for c in basics[:max_count]])
+    placed = 0
+    for cid in chosen[:max_count]:
+        if len(player.bench) >= 5:
+            break
+        card = next((c for c in player.deck if c.instance_id == cid), None)
+        if card:
+            player.deck.remove(card)
+            card.zone = Zone.BENCH
+            card.turn_played = state.turn_number
+            player.bench.append(card)
+            placed += 1
+    _shuffle_deck(player)
+    state.emit_event("deck_search_bench", player=action.player_id,
+                     attack="Quick Sign", placed=placed)
 
 
 def _coordinated_strike(state, action):
@@ -21207,6 +21389,28 @@ def _slowing_perfume(state, action):
     if target is None:
         target = opp.bench[0]
     opp.bench.remove(target)
+    from app.engine.state import CardInstance as _CI_SP
+    for att in list(target.energy_attached):
+        e_cdef = card_registry.get(att.card_def_id)
+        if e_cdef:
+            opp.deck.append(_CI_SP(
+                card_def_id=att.card_def_id,
+                card_name=e_cdef.name,
+                card_type="Energy",
+                card_subtype=getattr(e_cdef, "subcategory", "Basic"),
+                energy_provides=list(getattr(e_cdef, "energy_provides", [])),
+                zone=Zone.DECK,
+            ))
+    for tool_def_id in list(target.tools_attached):
+        t_cdef = card_registry.get(tool_def_id)
+        if t_cdef:
+            opp.deck.append(_CI_SP(
+                card_def_id=tool_def_id,
+                card_name=t_cdef.name,
+                card_type="Trainer",
+                card_subtype="Tool",
+                zone=Zone.DECK,
+            ))
     # Clear battle state before returning to deck
     target.status_conditions.clear()
     target.damage_counters = 0
@@ -22241,6 +22445,28 @@ def _homeward_chime_flag(state, action):
     if target is None:
         target = player.bench[0]
     player.bench.remove(target)
+    from app.engine.state import CardInstance as _CI_HC
+    for att in list(target.energy_attached):
+        e_cdef = card_registry.get(att.card_def_id)
+        if e_cdef:
+            player.deck.append(_CI_HC(
+                card_def_id=att.card_def_id,
+                card_name=e_cdef.name,
+                card_type="Energy",
+                card_subtype=getattr(e_cdef, "subcategory", "Basic"),
+                energy_provides=list(getattr(e_cdef, "energy_provides", [])),
+                zone=Zone.DECK,
+            ))
+    for tool_def_id in list(target.tools_attached):
+        t_cdef = card_registry.get(tool_def_id)
+        if t_cdef:
+            player.deck.append(_CI_HC(
+                card_def_id=tool_def_id,
+                card_name=t_cdef.name,
+                card_type="Trainer",
+                card_subtype="Tool",
+                zone=Zone.DECK,
+            ))
     target.energy_attached.clear()
     target.tools_attached.clear()
     target.damage_counters = 0
@@ -26480,8 +26706,34 @@ def _damage_collection_b3(state, action):
 
 
 def _perplexing_transfer_b3(state, action):
-    """sv08-096 Flutter Mane atk0 — Perplexing Transfer: move damage counters from opp bench to opp active."""
-    yield from _move_bench_counters_to_active(state, action, "Perplexing Transfer")
+    """sv08-096 Flutter Mane atk0 — Perplexing Transfer: move all damage counters from 1 own Benched Ancient Pokémon to opp Active."""
+    player = state.get_player(action.player_id)
+    opp = state.get_opponent(action.player_id)
+    opp_id = state.opponent_id(action.player_id)
+    if not opp.active:
+        return
+    ancient_bench = [p for p in player.bench if _is_ancient(p) and p.damage_counters > 0]
+    if not ancient_bench:
+        state.emit_event("perplexing_transfer_no_source", player=action.player_id,
+                         reason="no_ancient_bench_with_damage")
+        return
+    req = ChoiceRequest("choose_target", action.player_id,
+        "Perplexing Transfer: choose 1 of your Benched Ancient Pokémon to move all damage counters from",
+        targets=ancient_bench)
+    resp = yield req
+    source = None
+    if resp and resp.target_instance_id:
+        source = next((p for p in ancient_bench if p.instance_id == resp.target_instance_id), None)
+    if source is None:
+        source = ancient_bench[0]
+    counters = source.damage_counters
+    source.damage_counters = 0
+    source.current_hp = source.max_hp
+    opp.active.damage_counters += counters
+    opp.active.current_hp = max(0, opp.active.current_hp - counters * 10)
+    state.emit_event("perplexing_transfer", player=action.player_id,
+                     source=source.card_name, target=opp.active.card_name, counters=counters)
+    check_ko(state, opp.active, opp_id)
 
 
 def _tricolor_pump_b3(state, action):
@@ -26705,6 +26957,31 @@ def _angelite_b3(state, action):
         if target is None:
             target = opp.bench[0]
         opp.bench.remove(target)
+        # Shuffle attached Energy and Tools into opponent's deck
+        from app.engine.state import CardInstance as _CI_ANG
+        for att in list(target.energy_attached):
+            e_cdef = card_registry.get(att.card_def_id)
+            if e_cdef:
+                energy_card = _CI_ANG(
+                    card_def_id=att.card_def_id,
+                    card_name=e_cdef.name,
+                    card_type="Energy",
+                    card_subtype=getattr(e_cdef, "subcategory", "Basic"),
+                    energy_provides=list(getattr(e_cdef, "energy_provides", [])),
+                    zone=Zone.DECK,
+                )
+                opp.deck.append(energy_card)
+        for tool_def_id in list(target.tools_attached):
+            t_cdef = card_registry.get(tool_def_id)
+            if t_cdef:
+                tool_card = _CI_ANG(
+                    card_def_id=tool_def_id,
+                    card_name=t_cdef.name,
+                    card_type="Trainer",
+                    card_subtype="Tool",
+                    zone=Zone.DECK,
+                )
+                opp.deck.append(tool_card)
         target.energy_attached.clear()
         target.tools_attached.clear()
         target.damage_counters = 0
