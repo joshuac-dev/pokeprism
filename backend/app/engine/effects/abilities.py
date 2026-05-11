@@ -3887,11 +3887,12 @@ def _dig_dig_dig(state: GameState, action):
 
 # Torrential Heart (sv05-041 Feraligatr TEF) ─────────────────────────────────
 
+_TORRENTIAL_IDS = frozenset({"sv05-041", "svp-089"})
+
 def _torrential_heart(state: GameState, action):
     """sv05-041 / svp-089 Feraligatr — Torrential Heart: put 5 damage counters on this Pokémon;
     attacks do 120 more damage to opponent's Active Pokémon this turn."""
     from app.engine.effects.base import check_ko
-    _TORRENTIAL_IDS = frozenset({"sv05-041", "svp-089"})
     player_id = action.player_id
     player = state.get_player(player_id)
     target = None
@@ -5326,7 +5327,6 @@ def register_all(registry):
     registry.register_passive_ability("sv05-029", "Lava Zone")              # Magcargo (on-retreat burn: flag)
     registry.register_passive_ability("sv05-034", "Hustle Play")            # Incineroar ex (attack cost reduction: logic in actions.py)
     def _cond_torrential_heart(state, player_id):
-        _TORRENTIAL_IDS = frozenset({"sv05-041", "svp-089"})
         p = state.get_player(player_id)
         candidate = None
         if p.active and p.active.card_def_id in _TORRENTIAL_IDS:
