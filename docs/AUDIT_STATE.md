@@ -12,7 +12,7 @@ last_pr:
 last_issue: Nightly DB-backed card effect implementation audit - 2026-05-11
 last_first_card_audited: Ledyba | SCR | 2 | sv07-002
 last_card_fully_audited: Ledian | SCR | 3 | sv07-003
-notes: Full circular DB-backed pass from start cursor audited 1609 database cards and reached DB_EXHAUSTED with 0 implemented fixes and 0 documented engine gaps. TCGDex preflight was OK; two db-identity-gap rows returned 404 (`stale-12d72511-001`, `stale-c7202c59-001`). Tests: backend baseline 1337 passed / 7 skipped.
+notes: Full circular DB-backed pass from start cursor audited 1607 database cards and reached DB_EXHAUSTED with 0 implemented fixes and 0 documented engine gaps. TCGDex preflight was OK; all live card fetches resolved successfully and no current db-identity-gap rows were observed. Tests: backend baseline 1337 passed / 7 skipped.
 ```
 
 ## Cursor rules
