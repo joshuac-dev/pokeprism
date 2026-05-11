@@ -30,6 +30,40 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+### Changed
+- **Audit workflow hardened to robust-audit-v2 — 2026-05-12** —
+  ci: Harden card-effect audit workflow with machine-readable ledger and PR gate.
+
+  - Replaced `.github/workflows/nightly-card-effect-audit.yml` with a v2 workflow
+    that requires agents to commit `docs/audit_runs/<date>-card-effect-audit.json`
+    before opening a PR.
+  - Added `min_cards_before_partial` workflow input (default: 100) specifying the
+    minimum database cards that must be audited before `CONTINUATION_REQUIRED` is
+    acceptable.
+  - Added three new GitHub labels: `robust-audit-v2`, `audit-continuation-required`,
+    `audit-partial-merge-ok`.
+  - `PARTIAL_TIME_BUDGET` is no longer a valid completion status. Agents must use
+    `CONTINUATION_REQUIRED` (with `continuation_required=true` in the JSON) instead.
+  - `TARGET_REACHED` requires `fixes_implemented + engine_gaps_documented >= target_findings`.
+  - `DB_EXHAUSTED` and `FULL_CYCLE_COMPLETE` require `full_cycle_completed=true` and
+    `cards_audited >= db_card_count`.
+  - Created `.github/workflows/card-effect-audit-pr-gate.yml` to validate every PR
+    labeled `card-effect-audit` or `robust-audit-v2`. The gate rejects: missing or
+    invalid JSON reports; `TARGET_REACHED` with insufficient findings; `DB_EXHAUSTED`/
+    `FULL_CYCLE_COMPLETE` without a real full circular pass; `CONTINUATION_REQUIRED`
+    without the required PR label; cursor mismatch between JSON and `AUDIT_STATE.md`;
+    committed `frontend/node_modules`; committed raw logs or database dumps.
+  - Created `docs/audit_runs/.gitkeep` to track the audit report directory in git.
+  - Updated `docs/AUDIT_RULES.md` with robust-audit-v2 enforcement rules and replaced
+    the outdated `PARTIAL_TIME_BUDGET` guidance.
+  - Why: recent standalone Codex passes found multiple real card-effect bugs after the
+    nightly workflow had reported no issues. The previous workflow relied entirely on
+    self-reported completion status with no machine-readable evidence.
+  - Evidence: `.github/workflows/nightly-card-effect-audit.yml`;
+    `.github/workflows/card-effect-audit-pr-gate.yml`;
+    `docs/audit_runs/.gitkeep`; `docs/AUDIT_RULES.md`; `docs/STATUS.md`.
+  - Confidence: High.
+
 ### Fixed
 - **Standalone DB-backed card-effect audit pass 2 — 2026-05-11** —
   fix(engine): Correct Lillie's Pearl, Lillie's Comfey, Lillie's Ribombee, Linoone,

@@ -195,7 +195,9 @@ The target finding count is a target for implemented fixes and documented engine
 
 Unfixed candidate issues do not count toward the target.
 
-If the agent detects a time-budget warning, it must stop looking for new cards, finish only the current safe fix if practical, run focused tests, update `docs/AUDIT_STATE.md` with the next database cursor, and open the PR with status `PARTIAL_TIME_BUDGET`.
+If the agent detects a time-budget warning, it must stop looking for new cards, finish only the current safe fix if practical, run focused tests, update `docs/AUDIT_STATE.md` with the next database cursor, and open the PR with status `CONTINUATION_REQUIRED` (see **Robust audit v2 enforcement rules** below).
+
+`PARTIAL_TIME_BUDGET` is no longer a valid completion status. Use `CONTINUATION_REQUIRED` instead.
 
 ## What counts as a finding
 
@@ -392,4 +394,60 @@ The agent must not:
 - restart from the beginning of the alphabet when `docs/AUDIT_STATE.md` provides a later cursor;
 - create broad unrelated refactors;
 - create stub or placeholder handlers;
-- silently approximate precise card mechanics.
+- silently approximate precise card mechanics;
+- report `PARTIAL_TIME_BUDGET` (use `CONTINUATION_REQUIRED` instead);
+- omit `docs/audit_runs/<YYYY-MM-DD>-card-effect-audit.json` from the PR;
+- commit `frontend/node_modules`.
+
+## Robust audit v2 enforcement rules
+
+The nightly workflow (`.github/workflows/nightly-card-effect-audit.yml`) and the PR
+gate (`.github/workflows/card-effect-audit-pr-gate.yml`) enforce the following rules
+starting with the `robust-audit-v2` label.
+
+### Machine-readable audit report required
+
+Every audit PR must include a committed file at:
+
+```
+docs/audit_runs/<YYYY-MM-DD>-card-effect-audit.json
+```
+
+The PR gate will reject any PR that does not include a valid JSON report with all
+required fields and a valid completion status.
+
+### Completion status rules
+
+| Status | Requirements |
+|---|---|
+| `TARGET_REACHED` | `fixes_implemented + engine_gaps_documented >= target_findings` |
+| `DB_EXHAUSTED` | `full_cycle_completed = true` AND `cards_audited >= db_card_count` |
+| `FULL_CYCLE_COMPLETE` | Same as `DB_EXHAUSTED`; use when the target was also reached during the full cycle |
+| `BLOCKED_TCGDEX` | TCGDex unavailable; no minimum findings required |
+| `BLOCKED_DB_ACCESS` | DB unreachable; no minimum findings required |
+| `CONTINUATION_REQUIRED` | `continuation_required = true`; PR must have `audit-continuation-required` or `audit-partial-merge-ok` label |
+
+`PARTIAL_TIME_BUDGET` is **rejected**. The PR gate will fail any PR that uses it.
+
+### Cursor consistency rule
+
+When `cards_audited > 0`, the `next_resume_cursor` field in the JSON report must
+match the `next_start_cursor` field in `docs/AUDIT_STATE.md`. The PR gate will
+reject PRs where these values do not match.
+
+### Continuation rule
+
+A `CONTINUATION_REQUIRED` PR is only valid if:
+
+1. `continuation_required = true` in the JSON;
+2. The PR has either the `audit-continuation-required` or `audit-partial-merge-ok` label;
+3. At least `min_cards_before_partial` database cards were audited (default: 100).
+
+### Prohibited artifacts
+
+The PR gate also rejects PRs that commit any of the following:
+
+- `frontend/node_modules`
+- `tmp/*.log` files
+- database dump files (`.sql`, `*.dump`)
+- `observed_play/import_candidates/*.{txt,md,log}` files (other than the existing README)

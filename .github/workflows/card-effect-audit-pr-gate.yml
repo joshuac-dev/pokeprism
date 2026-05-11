@@ -1,0 +1,240 @@
+name: Card Effect Audit PR Gate
+
+"on":
+  pull_request:
+    types: [opened, synchronize, labeled, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  validate-audit-pr:
+    name: Validate audit report
+    runs-on: ubuntu-latest
+    if: >
+      contains(github.event.pull_request.labels.*.name, 'card-effect-audit') ||
+      contains(github.event.pull_request.labels.*.name, 'robust-audit-v2')
+
+    steps:
+      - name: Check out PR branch
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.base_ref }} --depth=1
+
+      - name: Write validator script
+        run: |
+          cat > /tmp/validate_audit.py << 'VALIDATOR_EOF'
+          import json
+          import os
+          import re
+          import subprocess
+          import sys
+          import glob as _glob
+
+          errors = []
+          warnings = []
+
+          def fail(msg):
+              errors.append(msg)
+
+          def warn(msg):
+              warnings.append(msg)
+
+          base_ref = os.environ.get("GITHUB_BASE_REF", "main")
+
+          # 1a. Check for frontend/node_modules in all tracked files (never acceptable)
+          result = subprocess.run(
+              ["git", "ls-files", "frontend/node_modules"],
+              capture_output=True, text=True
+          )
+          nm_count = len([l for l in result.stdout.splitlines() if l.strip()])
+          if nm_count > 0:
+              fail(f"frontend/node_modules is tracked in git ({nm_count} files). Remove it.")
+
+          # 1b. Check for unsafe artifacts in files ADDED by this PR
+          result = subprocess.run(
+              ["git", "diff", "--name-only", "--diff-filter=A",
+               f"origin/{base_ref}...HEAD"],
+              capture_output=True, text=True
+          )
+          added_files = result.stdout.splitlines()
+          unsafe_patterns = [
+              re.compile(r"tmp/.*\.log$", re.IGNORECASE),
+              re.compile(r"battle.*\.log$", re.IGNORECASE),
+              re.compile(r".*\.dump$", re.IGNORECASE),
+              re.compile(r"(^|/)database[^/]*\.sql$"),
+              re.compile(r"observed_play/import_candidates/.*\.(txt|log)$", re.IGNORECASE),
+          ]
+          for f in added_files:
+              for pat in unsafe_patterns:
+                  if pat.search(f):
+                      fail(f"Unsafe artifact committed: {f}")
+                      break
+
+          # 2. Find audit report
+          reports = sorted(_glob.glob("docs/audit_runs/*-card-effect-audit.json"))
+          if not reports:
+              fail("No docs/audit_runs/*-card-effect-audit.json found. A machine-readable audit report is required.")
+              for e in errors:
+                  print(f"ERROR: {e}")
+              sys.exit(1)
+
+          report_path = reports[-1]
+          print(f"Found audit report: {report_path}")
+
+          # 3. Parse JSON
+          try:
+              with open(report_path) as fh:
+                  data = json.load(fh)
+          except json.JSONDecodeError as exc:
+              fail(f"Invalid JSON in {report_path}: {exc}")
+              for e in errors:
+                  print(f"ERROR: {e}")
+              sys.exit(1)
+
+          # 4. Required fields
+          required = [
+              "run_date_utc", "completion_status", "target_findings",
+              "fixes_implemented", "engine_gaps_documented", "total_findings",
+              "cards_audited", "db_card_count", "full_cycle_completed",
+              "continuation_required", "start_cursor_used",
+              "first_card_audited", "last_card_fully_audited",
+              "next_resume_cursor", "traversal_wrapped", "audit_ledger",
+          ]
+          for field in required:
+              if field not in data:
+                  fail(f"Missing required field in audit report: {field}")
+
+          if errors:
+              for e in errors:
+                  print(f"ERROR: {e}")
+              sys.exit(1)
+
+          status = data["completion_status"]
+          fixes = int(data.get("fixes_implemented", 0))
+          gaps = int(data.get("engine_gaps_documented", 0))
+          total = fixes + gaps
+          target = int(data.get("target_findings", 0))
+          cards_audited = int(data.get("cards_audited", 0))
+          db_card_count = int(data.get("db_card_count", 0))
+          full_cycle = bool(data.get("full_cycle_completed", False))
+          continuation = bool(data.get("continuation_required", False))
+          next_cursor = data.get("next_resume_cursor", "")
+          ledger = data.get("audit_ledger", [])
+
+          print(f"completion_status:  {status}")
+          print(f"target_findings:    {target}")
+          print(f"fixes_implemented:  {fixes}")
+          print(f"engine_gaps:        {gaps}")
+          print(f"total_findings:     {total}")
+          print(f"cards_audited:      {cards_audited}")
+          print(f"db_card_count:      {db_card_count}")
+          print(f"full_cycle:         {full_cycle}")
+          print(f"continuation:       {continuation}")
+
+          # 5. Audit ledger validation
+          ALLOWED_RESULTS = {
+              "fixed", "engine-gap", "no-issue", "tcgdex-unresolved",
+              "db-identity-gap", "blocked-tcgdex", "blocked-db-access",
+              "continuation-required",
+          }
+          for i, entry in enumerate(ledger):
+              if not isinstance(entry, dict):
+                  fail(f"audit_ledger[{i}] is not an object")
+                  continue
+              for ef in ("seq", "card_name", "result"):
+                  if ef not in entry:
+                      fail(f"audit_ledger[{i}] missing field: {ef}")
+              r = entry.get("result", "")
+              if r not in ALLOWED_RESULTS:
+                  fail(f"audit_ledger[{i}] has unknown result: {r!r}")
+
+          # 6. Completion status rules
+          TERMINAL_STATUSES = {
+              "TARGET_REACHED", "DB_EXHAUSTED", "FULL_CYCLE_COMPLETE",
+              "BLOCKED_TCGDEX", "BLOCKED_DB_ACCESS", "CONTINUATION_REQUIRED",
+          }
+
+          if status not in TERMINAL_STATUSES:
+              if status == "PARTIAL_TIME_BUDGET":
+                  fail("PARTIAL_TIME_BUDGET is not a valid completion status under robust-audit-v2. Use CONTINUATION_REQUIRED instead.")
+              else:
+                  fail(f"Unknown completion_status: {status!r}. Must be one of: {', '.join(sorted(TERMINAL_STATUSES))}")
+
+          if status == "TARGET_REACHED":
+              if total < target:
+                  fail(
+                      f"TARGET_REACHED requires fixes_implemented + engine_gaps_documented >= target_findings. "
+                      f"Got {total} < {target}."
+                  )
+
+          if status in ("DB_EXHAUSTED", "FULL_CYCLE_COMPLETE"):
+              if not full_cycle:
+                  fail(f"{status} requires full_cycle_completed=true in the audit report.")
+              if db_card_count > 0 and cards_audited < db_card_count:
+                  fail(
+                      f"{status} requires cards_audited >= db_card_count. "
+                      f"Got {cards_audited} < {db_card_count}."
+                  )
+
+          if status == "CONTINUATION_REQUIRED":
+              if not continuation:
+                  fail("CONTINUATION_REQUIRED requires continuation_required=true in the audit report.")
+              pr_labels_raw = os.environ.get("PR_LABELS", "[]")
+              try:
+                  pr_labels = json.loads(pr_labels_raw)
+              except Exception:
+                  pr_labels = []
+              has_continuation_label = "audit-continuation-required" in pr_labels
+              has_partial_ok_label = "audit-partial-merge-ok" in pr_labels
+              if not (has_continuation_label or has_partial_ok_label):
+                  fail(
+                      "CONTINUATION_REQUIRED PRs must have either the audit-continuation-required or "
+                      "audit-partial-merge-ok label. Add one of these labels to allow partial merge."
+                  )
+
+          # 7. Cursor consistency
+          if cards_audited > 0 and next_cursor:
+              state_cursor = ""
+              try:
+                  with open("docs/AUDIT_STATE.md") as fh:
+                      for line in fh:
+                          m = re.match(r"^next_start_cursor:\s*(.*)", line)
+                          if m:
+                              state_cursor = m.group(1).strip()
+                              break
+              except FileNotFoundError:
+                  warn("docs/AUDIT_STATE.md not found; cannot verify cursor consistency.")
+
+              if state_cursor and state_cursor != next_cursor:
+                  fail(
+                      f"Cursor mismatch: next_resume_cursor in audit JSON is {next_cursor!r} "
+                      f"but next_start_cursor in docs/AUDIT_STATE.md is {state_cursor!r}. "
+                      "Update docs/AUDIT_STATE.md to match the JSON or vice versa."
+                  )
+              elif state_cursor == next_cursor:
+                  print(f"Cursor consistent: {next_cursor!r}")
+
+          # 8. Report
+          for w in warnings:
+              print(f"WARNING: {w}")
+
+          if errors:
+              print()
+              for e in errors:
+                  print(f"ERROR: {e}")
+              sys.exit(1)
+
+          print()
+          print("Audit report validation PASSED.")
+          VALIDATOR_EOF
+
+      - name: Validate audit report
+        env:
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+        run: python3 /tmp/validate_audit.py

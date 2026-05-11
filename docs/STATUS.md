@@ -16,6 +16,13 @@ post-phase development:
 - Card-effect correctness, handler registration, and simulation validation.
 - AI/coach hardening and decision-quality follow-up.
 - Operational refinement for Docker, Celery, CI, and local workflows.
+- **Audit workflow hardened to robust-audit-v2 (2026-05-12):** nightly workflow now
+  requires a machine-readable `docs/audit_runs/<date>-card-effect-audit.json` report;
+  `PARTIAL_TIME_BUDGET` is rejected; early stops must use `CONTINUATION_REQUIRED`;
+  `TARGET_REACHED` requires `fixes+gaps >= target`; `DB_EXHAUSTED`/`FULL_CYCLE_COMPLETE`
+  require a real full circular DB pass; PR gate at
+  `.github/workflows/card-effect-audit-pr-gate.yml` validates every audit PR labeled
+  `card-effect-audit` or `robust-audit-v2`.
 
 **DB-backed audit handoff (2026-05-11 standalone Codex audit pass 2):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes
