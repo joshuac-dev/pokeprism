@@ -377,14 +377,15 @@
         {
           "effect_name": "trainer",
           "registry_key": "me03-077",
-          "handler_symbol": "_noop",
+          "handler_symbol": "_lumiose_city",
           "handler_file": "backend/app/engine/effects/trainers.py",
           "handler_found": true,
           "source_evidence": "registry._trainer_effects['me03-077']",
           "semantic_checks": [
-            "stadium-action-missing",
-            "deck-search-missing",
             "bench-placement-missing",
+            "deck-search-missing",
+            "stadium-action-missing",
+            "trainer-handler-reviewed",
             "turn-end-after-search-missing"
           ]
         }
@@ -14324,14 +14325,15 @@
         {
           "effect_name": "trainer",
           "registry_key": "sv06.5-063",
-          "handler_symbol": "_noop",
+          "handler_symbol": "_powerglass",
           "handler_file": "backend/app/engine/effects/trainers.py",
           "handler_found": true,
           "source_evidence": "registry._trainer_effects['sv06.5-063']",
           "semantic_checks": [
-            "optional-choice-missing",
             "discard-selection-missing",
-            "end-turn-tool-trigger-partial"
+            "end-turn-tool-trigger-partial",
+            "optional-choice-missing",
+            "trainer-handler-reviewed"
           ]
         }
       ],
@@ -23644,15 +23646,16 @@
         {
           "effect_name": "trainer",
           "registry_key": "sv10-169",
-          "handler_symbol": "_noop",
+          "handler_symbol": "_spikemuth_gym",
           "handler_file": "backend/app/engine/effects/trainers.py",
           "handler_found": true,
           "source_evidence": "registry._trainer_effects['sv10-169']",
           "semantic_checks": [
-            "stadium-action-missing",
             "deck-search-missing",
             "reveal-to-hand-missing",
-            "shuffle-after-search-missing"
+            "shuffle-after-search-missing",
+            "stadium-action-missing",
+            "trainer-handler-reviewed"
           ]
         }
       ],
@@ -24625,15 +24628,16 @@
         {
           "effect_name": "trainer",
           "registry_key": "me01-128",
-          "handler_symbol": "_noop",
+          "handler_symbol": "_strange_timepiece",
           "handler_file": "backend/app/engine/effects/trainers.py",
           "handler_found": true,
           "source_evidence": "registry._trainer_effects['me01-128']",
           "semantic_checks": [
+            "cannot-evolve-this-turn-flag-missing",
             "devolution-missing",
             "psychic-target-filter-missing",
             "return-evolution-cards-to-hand-missing",
-            "cannot-evolve-this-turn-flag-missing"
+            "trainer-handler-reviewed"
           ]
         }
       ],
@@ -25140,15 +25144,16 @@
         {
           "effect_name": "trainer",
           "registry_key": "me01-129",
-          "handler_symbol": "_noop",
+          "handler_symbol": "_surfing_beach",
           "handler_file": "backend/app/engine/effects/trainers.py",
           "handler_found": true,
           "source_evidence": "registry._trainer_effects['me01-129']",
           "semantic_checks": [
             "stadium-action-missing",
+            "switch-action-missing",
+            "trainer-handler-reviewed",
             "water-active-filter-missing",
-            "water-bench-target-filter-missing",
-            "switch-action-missing"
+            "water-bench-target-filter-missing"
           ]
         }
       ],
@@ -40469,14 +40474,15 @@
         {
           "effect_name": "trainer",
           "registry_key": "sv06.5-054",
-          "handler_symbol": "_noop",
+          "handler_symbol": "_academy_at_night",
           "handler_file": "backend/app/engine/effects/trainers.py",
           "handler_found": true,
           "source_evidence": "registry._trainer_effects['sv06.5-054']",
           "semantic_checks": [
-            "stadium-action-missing",
             "hand-selection-missing",
-            "topdeck-placement-missing"
+            "stadium-action-missing",
+            "topdeck-placement-missing",
+            "trainer-handler-reviewed"
           ]
         }
       ],
@@ -42176,14 +42182,15 @@
         {
           "effect_name": "trainer",
           "registry_key": "me02.5-182",
-          "handler_symbol": "_noop",
+          "handler_symbol": "_anthea_concordia",
           "handler_file": "backend/app/engine/effects/trainers.py",
           "handler_found": true,
           "source_evidence": "registry._trainer_effects['me02.5-182']",
           "semantic_checks": [
             "board-state-gate-missing",
+            "extra-prize-award-missing",
             "n-pokemon-knockout-filter-missing",
-            "extra-prize-award-missing"
+            "trainer-handler-reviewed"
           ]
         }
       ],
@@ -43353,15 +43360,16 @@
         {
           "effect_name": "trainer",
           "registry_key": "sv08.5-094",
-          "handler_symbol": "_noop",
+          "handler_symbol": "_area_zero_underdepths",
           "handler_file": "backend/app/engine/effects/trainers.py",
           "handler_found": true,
           "source_evidence": "registry._trainer_effects['sv08.5-094']",
           "semantic_checks": [
             "bench-capacity-expansion-missing",
-            "tera-in-play-gate-missing",
             "bench-prune-on-loss-missing",
-            "stadium-leave-play-prune-missing"
+            "stadium-leave-play-prune-missing",
+            "tera-in-play-gate-missing",
+            "trainer-handler-reviewed"
           ]
         }
       ],
@@ -43399,15 +43407,16 @@
         {
           "effect_name": "trainer",
           "registry_key": "sv07-131",
-          "handler_symbol": "_noop",
+          "handler_symbol": "_area_zero_underdepths",
           "handler_file": "backend/app/engine/effects/trainers.py",
           "handler_found": true,
           "source_evidence": "registry._trainer_effects['sv07-131']",
           "semantic_checks": [
             "bench-capacity-expansion-missing",
-            "tera-in-play-gate-missing",
             "bench-prune-on-loss-missing",
-            "stadium-leave-play-prune-missing"
+            "stadium-leave-play-prune-missing",
+            "tera-in-play-gate-missing",
+            "trainer-handler-reviewed"
           ]
         }
       ],
@@ -48506,7 +48515,7 @@
         {
           "effect_name": "trainer",
           "registry_key": "me02.5-185",
-          "handler_symbol": "_noop",
+          "handler_symbol": "_canari",
           "handler_file": "backend/app/engine/effects/trainers.py",
           "handler_found": true,
           "source_evidence": "registry._trainer_effects['me02.5-185']",
@@ -48515,7 +48524,8 @@
             "deck-search-missing",
             "lightning-filter-missing",
             "reveal-to-hand-missing",
-            "shuffle-after-search-missing"
+            "shuffle-after-search-missing",
+            "trainer-handler-reviewed"
           ]
         }
       ],
@@ -49178,13 +49188,14 @@
         {
           "effect_name": "trainer",
           "registry_key": "mep-028",
-          "handler_symbol": "_noop",
+          "handler_symbol": "_celebratory_fanfare",
           "handler_file": "backend/app/engine/effects/trainers.py",
           "handler_found": true,
           "source_evidence": "registry._trainer_effects['mep-028']",
           "semantic_checks": [
-            "stadium-action-missing",
             "optional-heal-choice-missing",
+            "stadium-action-missing",
+            "trainer-handler-reviewed",
             "turn-ends-if-healed-partial"
           ]
         }
@@ -51655,14 +51666,15 @@
         {
           "effect_name": "trainer",
           "registry_key": "sv06-146",
-          "handler_symbol": "_noop",
+          "handler_symbol": "_community_center",
           "handler_file": "backend/app/engine/effects/trainers.py",
           "handler_found": true,
           "source_evidence": "registry._trainer_effects['sv06-146']",
           "semantic_checks": [
+            "optional-heal-choice-missing",
             "stadium-action-missing",
             "supporter-played-gate-partial",
-            "optional-heal-choice-missing"
+            "trainer-handler-reviewed"
           ]
         }
       ],
