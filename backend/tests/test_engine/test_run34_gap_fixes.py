@@ -401,13 +401,13 @@ def test_cynthias_power_weight_and_anthea_concordia_and_strange_timepiece():
 
 
 def test_anthea_concordia_awards_three_extra_prizes_on_active_ko():
-    attacker_def = _make_card("ns-reshiram", "N's Reshiram", attacks=[AttackDef(name="Burst", damage="100", cost=[])])
+    attacker_def = _make_card("ns_reshiram", "N's Reshiram", attacks=[AttackDef(name="Burst", damage="100", cost=[])])
     defender_def = _make_card("defender", "Defender", hp=60)
     bench_def = _make_card("bench", "Bench")
     for c in (attacker_def, defender_def, bench_def):
         card_registry.register(c)
 
-    attacker = _inst(attacker_def, "ns-reshiram")
+    attacker = _inst(attacker_def, "ns_reshiram")
     defender = _inst(defender_def, "defender")
     state = _state(
         p1_active=attacker,
@@ -440,7 +440,7 @@ def test_rescue_board_and_area_zero_alt_prints_match_primary_behavior():
     assert any(a.action_type == ActionType.RETREAT for a in legal)
 
     tera_active = _inst(tera, "tera-active")
-    benches = [_inst(bench, f"ab{i}", zone=Zone.BENCH) for i in range(6)]
+    benches = [_inst(bench, f"bench-slot-{i}", zone=Zone.BENCH) for i in range(6)]
     state2 = _state(p1_active=tera_active, p1_bench=benches, p2_active=_inst(bench, "opp2-alt"))
     state2.active_stadium = CardInstance(instance_id="az-alt", card_def_id="sv07-131", card_name="Area Zero Underdepths", zone=Zone.STADIUM)
     assert get_bench_limit(state2, "p1") == 8
