@@ -128,9 +128,10 @@ def test_alt_binding_mochi_and_new_berries_apply_tool_modifiers():
     attacker = _make_card("atk-1", "Attacker", types=["Water"], attacks=[AttackDef(name="Hit", damage="50", cost=[])])
     attacker_dark = _make_card("atk-2", "Dark Attacker", types=["Darkness"], attacks=[AttackDef(name="Hit", damage="50", cost=[])], abilities=[AbilityDef(name="Ability", effect="")])
     attacker_grass = _make_card("atk-3", "Grass Attacker", types=["Grass"], attacks=[AttackDef(name="Hit", damage="50", cost=[])])
+    attacker_metal = _make_card("atk-4", "Metal Attacker", types=["Metal"], attacks=[AttackDef(name="Hit", damage="50", cost=[])])
     dragon = _make_card("def-1", "Dragon Defender", types=["Dragon"])
     basic = _make_card("def-2", "Basic Defender", types=["Colorless"])
-    for c in (attacker, attacker_dark, attacker_grass, dragon, basic):
+    for c in (attacker, attacker_dark, attacker_grass, attacker_metal, dragon, basic):
         card_registry.register(c)
 
     atk_inst = _inst(attacker, "atk")
@@ -149,6 +150,15 @@ def test_alt_binding_mochi_and_new_berries_apply_tool_modifiers():
     sacred_def = _inst(basic, "sacred-def")
     sacred_def.tools_attached = ["me02-093"]
     assert get_tool_damage_bonus(dark_atk_inst, sacred_def, 0, dark_state, "p1") == -30
+
+    metal_atk_inst = _inst(attacker_metal, "metal-atk")
+    babiri_def = _inst(basic, "babiri-def")
+    babiri_def.tools_attached = ["sv08-163"]
+    assert get_tool_damage_bonus(metal_atk_inst, babiri_def, 0, _state(p1_active=metal_atk_inst, p2_active=babiri_def), "p1") == -60
+
+    colbur_def = _inst(basic, "colbur-def")
+    colbur_def.tools_attached = ["sv08-168"]
+    assert get_tool_damage_bonus(dark_atk_inst, colbur_def, 0, dark_state, "p1") == -60
 
     grass_atk_inst = _inst(attacker_grass, "grass-atk")
     thick_def = _inst(dragon, "dragon-def")
@@ -189,9 +199,13 @@ def test_retreat_tools_and_counter_gain_alt_and_nighttime_mine_modify_actions():
 
 def test_punk_helmet_tr_hypnotizer_and_berry_discard_trigger_on_damage():
     atk_def = _make_card("atk-fire", "Fire Attacker", types=["Fire"], attacks=[AttackDef(name="Burn", damage="100", cost=[])])
+    atk_water_def = _make_card("atk-water", "Water Attacker", types=["Water"], attacks=[AttackDef(name="Splash", damage="100", cost=[])])
+    atk_metal_def = _make_card("atk-metal", "Metal Attacker", types=["Metal"], attacks=[AttackDef(name="Clang", damage="100", cost=[])])
+    atk_dark_def = _make_card("atk-dark", "Dark Attacker", types=["Darkness"], attacks=[AttackDef(name="Bite", damage="100", cost=[])])
     dark_def = _make_card("def-dark", "Dark Holder", types=["Darkness"])
     tr_def = _make_card("def-tr", "Team Rocket's Holder", types=["Psychic"])
-    for c in (atk_def, dark_def, tr_def):
+    basic_def = _make_card("def-basic", "Basic Holder", types=["Colorless"])
+    for c in (atk_def, atk_water_def, atk_metal_def, atk_dark_def, dark_def, tr_def, basic_def):
         card_registry.register(c)
 
     attacker = _inst(atk_def, "atk")
@@ -209,6 +223,18 @@ def test_punk_helmet_tr_hypnotizer_and_berry_discard_trigger_on_damage():
     state2 = _state(p1_active=attacker2, p2_active=defender2)
     _apply_damage(state2, Action(ActionType.ATTACK, "p1", attack_index=0), 60)
     assert StatusCondition.ASLEEP in attacker2.status_conditions
+
+    for attacker_def, tool_id in (
+        (atk_water_def, "sv08-184"),
+        (atk_metal_def, "sv08-163"),
+        (atk_dark_def, "sv08-168"),
+    ):
+        berry_attacker = _inst(attacker_def, f"{tool_id}-atk")
+        berry_defender = _inst(basic_def, f"{tool_id}-def")
+        berry_defender.tools_attached = [tool_id]
+        berry_state = _state(p1_active=berry_attacker, p2_active=berry_defender)
+        _apply_damage(berry_state, Action(ActionType.ATTACK, "p1", attack_index=0), 100)
+        assert tool_id not in berry_defender.tools_attached
 
 
 @pytest.mark.parametrize(
