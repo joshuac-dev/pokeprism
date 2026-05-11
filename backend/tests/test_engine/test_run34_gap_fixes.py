@@ -400,6 +400,53 @@ def test_cynthias_power_weight_and_anthea_concordia_and_strange_timepiece():
     assert any(c.instance_id == "stage1" for c in state3.p1.hand)
 
 
+def test_anthea_concordia_awards_three_extra_prizes_on_active_ko():
+    attacker_def = _make_card("n-attacker", "N's Reshiram", attacks=[AttackDef(name="Burst", damage="100", cost=[])])
+    defender_def = _make_card("defender", "Defender", hp=60)
+    bench_def = _make_card("bench", "Bench")
+    for c in (attacker_def, defender_def, bench_def):
+        card_registry.register(c)
+
+    attacker = _inst(attacker_def, "n-attacker")
+    defender = _inst(defender_def, "defender", hp=60)
+    state = _state(
+        p1_active=attacker,
+        p2_active=defender,
+        p2_bench=[_inst(bench_def, "bench", zone=Zone.BENCH)],
+    )
+    state.p1.prizes = [_inst(bench_def, f"prize-{i}", zone=Zone.PRIZES) for i in range(6)]
+    state.p1.prizes_remaining = 6
+    state.anthea_concordia_active = True
+
+    _apply_damage(state, Action(ActionType.ATTACK, "p1", attack_index=0), 100)
+
+    assert state.p1.prizes_remaining == 2
+
+
+def test_rescue_board_and_area_zero_alt_prints_match_primary_behavior():
+    tera = _make_card("tera-alt", "Tera Alt", is_tera=True, retreat_cost=2)
+    bench = _make_card("bench-alt", "Bench Alt")
+    card_registry.register(tera)
+    card_registry.register(bench)
+
+    active = _inst(tera, "active-alt")
+    active.tools_attached = ["sv05-159"]
+    state = _state(p1_active=active, p2_active=_inst(bench, "opp-alt"))
+    assert get_retreat_cost_reduction(active, state, "p1") == 1
+    active.current_hp = 30
+    assert get_retreat_cost_reduction(active, state, "p1") >= 9999
+
+    tera_active = _inst(tera, "tera-active")
+    benches = [_inst(bench, f"ab{i}", zone=Zone.BENCH) for i in range(6)]
+    state2 = _state(p1_active=tera_active, p1_bench=benches, p2_active=_inst(bench, "opp2-alt"))
+    state2.active_stadium = CardInstance(instance_id="az-alt", card_def_id="sv07-131", card_name="Area Zero Underdepths", zone=Zone.STADIUM)
+    assert get_bench_limit(state2, "p1") == 8
+
+    state2.p1.active = _inst(bench, "not-tera-alt")
+    enforce_area_zero_underdepths(state2)
+    assert len(state2.p1.bench) == 5
+
+
 def test_area_zero_bench_limit_and_prune_and_dizzying_valley_confusion_persists():
     tera = _make_card("tera", "Tera Mon", is_tera=True)
     bench = _make_card("bench", "Bench")
