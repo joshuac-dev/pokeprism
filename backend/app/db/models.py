@@ -132,6 +132,39 @@ class Simulation(Base):
                                         cascade="all, delete-orphan")
 
 
+class NightlyHHRerunHistory(Base):
+    """Tracks round-robin rerun history for the nightly H/H benchmark.
+
+    Each row represents one attempt to create a nightly rerun simulation.
+    Only rows with status='created' count toward cycle advancement.
+    """
+    __tablename__ = "nightly_hh_rerun_history"
+    __table_args__ = (
+        Index("idx_rerun_history_source_sim", "source_simulation_id"),
+        Index("idx_rerun_history_generated_sim", "generated_simulation_id"),
+        Index("idx_rerun_history_cycle", "cycle_number"),
+        Index("idx_rerun_history_created_at", "created_at"),
+    )
+
+    id                        = Column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    source_simulation_id      = Column(UUID(as_uuid=True),
+                                       ForeignKey("simulations.id"), nullable=False)
+    generated_simulation_id   = Column(UUID(as_uuid=True),
+                                       ForeignKey("simulations.id"), nullable=True)
+    cycle_number              = Column(Integer, nullable=False)
+    source_user_deck_id       = Column(UUID(as_uuid=True),
+                                       ForeignKey("decks.id"), nullable=False)
+    source_user_deck_name     = Column(Text)
+    source_opponent_deck_ids  = Column(JSONB)   # list[str]
+    source_opponent_deck_names = Column(JSONB)  # list[str | None]
+    status                    = Column(Text, nullable=False)   # created | failed | skipped
+    triggered_by              = Column(Text, nullable=False)   # nightly | manual_admin
+    error_message             = Column(Text)
+    created_at                = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at                = Column(TIMESTAMP(timezone=True), server_default=func.now(),
+                                       onupdate=func.now())
+
+
 class SimulationOpponent(Base):
     __tablename__ = "simulation_opponents"
 

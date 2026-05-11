@@ -1,8 +1,16 @@
 """Periodic Celery tasks.
 
 Scheduled via Celery Beat (see celery_app.py for the crontab definitions).
-The nightly H/H task re-runs the canonical Dragapult vs TR Mewtwo matchup
-with persist=True so historical data grows over time.
+
+The nightly H/H task (``pokeprism.run_scheduled_hh``) previously ran the
+static Dragapult vs TR-Mewtwo benchmark.  It now selects from prior completed
+manual single-round H/H simulations in round-robin order and creates one
+queued simulation with fixed multi-round coaching parameters.  The normal
+simulation worker processes the generated run.
+
+The static deck constants below are retained for backward compatibility and
+in case a direct batch run is ever re-enabled, but they are NOT used by the
+nightly scheduler anymore.
 """
 
 from __future__ import annotations
@@ -23,15 +31,13 @@ from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
-# Canonical deck/player names for the scheduled H/H benchmark.
+# Retained for backward compatibility — no longer used by nightly scheduler.
 SCHEDULED_HH_P1_NAME = "Dragapult"
 SCHEDULED_HH_P2_NAME = "TR-Mewtwo"
 
-# Maximum wall-clock hours a scheduled H/H run may remain in "running" state
-# before the next nightly invocation treats it as stale and marks it failed.
 SCHEDULED_HH_STALE_HOURS = 1
 
-# Canonical deck lists (mirrors tests/conftest.py & scripts/run_hh.py)
+# Deck lists retained for reference / manual re-use; not used by nightly.
 DRAGAPULT_DECK_LIST: list[tuple[str, str, int]] = [
     ("TWM", "128", 4), ("TWM", "129", 3), ("TWM", "130", 3),
     ("PRE", "35",  4), ("PRE", "36",  2), ("PRE", "37",  2),
@@ -119,177 +125,43 @@ def advance_simulation_queue() -> dict:
 
 @celery_app.task(name="pokeprism.run_scheduled_hh")
 def run_scheduled_hh(num_games: int = 200) -> dict:
-    """Run the nightly H/H benchmark and persist results to the DB.
+    """Nightly H/H round-robin rerun scheduler.
 
-    Uses the Dragapult ex / Dusknoir deck vs. TR Mewtwo ex (canonical test
-    matchup). Results feed into historical card performance data which the
-    Coach uses for swap candidate selection.
+    Selects one completed manual single-round H/H simulation via round-robin
+    and creates a new queued simulation with fixed multi-round coaching
+    parameters.  The normal simulation worker processes the run.
+
+    The ``num_games`` parameter is kept for backward compatibility but is
+    ignored; the rerun service uses RERUN_MATCHES_PER_OPPONENT (25).
     """
-    # The Neo4j AsyncDriver singleton is bound to whichever loop first called
-    # get_driver(). Reusing it across nightly runs (each with a fresh loop)
-    # causes stale-connection errors after the first run. Nil it here so it is
-    # recreated inside the new loop, matching the pattern in run_simulation.
     from app.db import graph as _graph_module
     _graph_module._driver = None
 
     loop = asyncio.new_event_loop()
     try:
-        return loop.run_until_complete(_run_scheduled_hh_async(num_games))
+        return loop.run_until_complete(_run_scheduled_hh_async())
     finally:
         loop.close()
         _graph_module._driver = None
 
 
-async def _run_scheduled_hh_async(num_games: int) -> dict:
-    from app.cards import registry as card_registry
-
-    # ── Non-overlap guard and stale recovery ─────────────────────────────────
-    # Scheduled H/H runs are identified by deck_mode="none" + game_mode="hh"
-    # + user_deck_name=SCHEDULED_HH_P1_NAME, which distinguishes them from
-    # user-created simulations that always have deck_mode="full".
-    now = datetime.now(timezone.utc)
-    stale_cutoff = now - timedelta(hours=SCHEDULED_HH_STALE_HOURS)
+async def _run_scheduled_hh_async() -> dict:
+    from app.services.nightly_hh_rerun import create_rerun
+    from app.tasks.simulation import run_simulation
 
     async with AsyncSessionLocal() as db:
-        existing_rows = (await db.execute(
-            select(Simulation).where(
-                Simulation.status.in_(["running", "pending", "queued"]),
-                Simulation.game_mode == "hh",
-                Simulation.deck_mode == "none",
-                Simulation.user_deck_name == SCHEDULED_HH_P1_NAME,
-            )
-        )).scalars().all()
+        result = await create_rerun(triggered_by="nightly", db=db)
 
-        for prior_sim in existing_rows:
-            reference_ts = prior_sim.started_at or prior_sim.created_at
-            if reference_ts is not None and reference_ts < stale_cutoff:
-                prior_sim.status = "failed"
-                prior_sim.completed_at = now
-                prior_sim.error_message = (
-                    f"Scheduled H/H run exceeded maximum runtime of "
-                    f"{SCHEDULED_HH_STALE_HOURS}h; marked failed by next nightly invocation."
-                )
-                logger.warning(
-                    "Scheduled H/H: marked stale sim %s as failed (started=%s)",
-                    prior_sim.id,
-                    reference_ts,
-                )
-            else:
-                logger.info(
-                    "Scheduled H/H: sim %s is still active (started=%s); skipping.",
-                    prior_sim.id,
-                    reference_ts,
-                )
-                return {
-                    "status": "skipped",
-                    "reason": f"scheduled H/H simulation {prior_sim.id} is already running",
-                }
-
-        await db.commit()
-
-    # ── Load decks ────────────────────────────────────────────────────────────
-    logger.info("Scheduled H/H: loading decks")
-    p1_deck = _build_deck_from_list(DRAGAPULT_DECK_LIST)
-    p2_deck = _build_deck_from_list(TR_MEWTWO_DECK_LIST)
-
-    if not p1_deck or not p2_deck:
-        msg = "Scheduled H/H failed: card fixtures missing"
-        logger.error(msg)
-        return {"status": "error", "error": msg}
-
-    for cdef in {c.tcgdex_id: c for c in p1_deck + p2_deck}.values():
-        if not card_registry.get(cdef.tcgdex_id):
-            card_registry.register(cdef)
-
-    # ── Pre-create simulation row with full metadata ───────────────────────────
-    # Written before run_hh_batch so History shows correct deck/params immediately.
-    # ensure_simulation() inside batch.py is a no-op when the row already exists.
-    simulation_id = uuid.uuid4()
-    async with AsyncSessionLocal() as db:
-        db.add(Simulation(
-            id=simulation_id,
-            status="running",
-            game_mode="hh",
-            deck_mode="none",
-            user_deck_name=SCHEDULED_HH_P1_NAME,
-            matches_per_opponent=num_games,
-            num_rounds=1,
-            target_win_rate=60,
-            started_at=now,
-        ))
-        await db.commit()
-
-    # ── Run batch ────────────────────────────────────────────────────────────
-    logger.info(
-        "Scheduled H/H: running %d games (sim=%s)", num_games, simulation_id
-    )
-    try:
-        batch_result = await run_hh_batch(
-            p1_deck=p1_deck,
-            p2_deck=p2_deck,
-            num_games=num_games,
-            p1_deck_name=SCHEDULED_HH_P1_NAME,
-            p2_deck_name=SCHEDULED_HH_P2_NAME,
-            persist=True,
-            verbose=False,
-            simulation_id=simulation_id,
+    if result["status"] == "created":
+        run_simulation.delay(result["generated_simulation_id"])
+        logger.info(
+            "Scheduled H/H: queued rerun sim=%s from source=%s cycle=%s",
+            result["generated_simulation_id"],
+            result["source_simulation_id"],
+            result["cycle_number"],
         )
-    except Exception as exc:
-        logger.exception(
-            "Scheduled H/H simulation %s failed during batch run", simulation_id
-        )
-        try:
-            async with AsyncSessionLocal() as db:
-                row = (await db.execute(
-                    select(Simulation).where(Simulation.id == simulation_id)
-                )).scalar_one_or_none()
-                if row is not None:
-                    row.status = "failed"
-                    row.completed_at = datetime.now(timezone.utc)
-                    row.error_message = str(exc)[:1000]
-                    await db.commit()
-        except Exception:
-            logger.exception(
-                "Could not mark scheduled H/H simulation %s as failed", simulation_id
-            )
-        raise
+    else:
+        logger.info("Scheduled H/H: %s (%s)", result["status"],
+                    result.get("reason") or result.get("error", ""))
 
-    # ── Mark complete and record opponent ────────────────────────────────────
-    completed_at = datetime.now(timezone.utc)
-    p1_win_rate_pct = int(batch_result.p1_win_rate * 100)
-
-    async with AsyncSessionLocal() as db:
-        # Create the SimulationOpponent row so History displays the opponent name.
-        p2_deck_row = (await db.execute(
-            select(Deck).where(Deck.name == SCHEDULED_HH_P2_NAME)
-        )).scalars().first()
-        if p2_deck_row is not None:
-            db.add(SimulationOpponent(
-                simulation_id=simulation_id,
-                deck_id=p2_deck_row.id,
-                deck_name=SCHEDULED_HH_P2_NAME,
-            ))
-
-        sim_row = (await db.execute(
-            select(Simulation).where(Simulation.id == simulation_id)
-        )).scalar_one()
-        sim_row.status = "complete"
-        sim_row.completed_at = completed_at
-        sim_row.total_matches = batch_result.total_games
-        sim_row.rounds_completed = 1
-        sim_row.final_win_rate = p1_win_rate_pct
-        await db.commit()
-
-    logger.info(
-        "Scheduled H/H complete: sim=%s p1_win_rate=%d%% avg_turns=%.1f",
-        simulation_id,
-        p1_win_rate_pct,
-        batch_result.avg_turns,
-    )
-    return {
-        "status": "ok",
-        "simulation_id": str(simulation_id),
-        "total_games": batch_result.total_games,
-        "p1_win_rate": batch_result.p1_win_rate,
-        "avg_turns": batch_result.avg_turns,
-    }
+    return result
