@@ -6801,3 +6801,128 @@ def test_excited_dash_switches_benched_linoone_with_active():
     assert old_active in state.p1.bench
     assert state.p1.deck[0].instance_id == "deck-pass2"
     assert linoone.ability_used_this_turn is True
+
+
+def _lively_stadium_card(instance_id: str = "lively-pass2") -> CardInstance:
+    return CardInstance(
+        instance_id=instance_id,
+        card_def_id="sv08-180",
+        card_name="Lively Stadium",
+        card_type="Trainer",
+        card_subtype="Stadium",
+        zone=Zone.STADIUM,
+    )
+
+
+def test_lively_stadium_trainer_handler_registered_and_does_not_mutate_hp():
+    """sv08-180 is continuous +30 HP for Basics, not a one-shot HP mutation."""
+    from app.engine.effects.trainers import _lively_stadium
+
+    reg = EffectRegistry.instance()
+    assert reg._trainer_effects.get("sv08-180") is _lively_stadium
+
+    basic_def = _make_card("tst-lively-basic", "Basic Target", hp=70)
+    card_registry.register(basic_def)
+    basic = _make_instance(basic_def, hp=70)
+    state = _make_state(p1_active=basic)
+
+    _lively_stadium(state, Action(player_id="p1", action_type=ActionType.PLAY_STADIUM))
+
+    assert basic.max_hp == 70
+    assert basic.current_hp == 70
+    assert any(e.get("event_type") == "lively_stadium_active" for e in state.events)
+
+
+def test_lively_stadium_continuous_hp_applies_to_current_and_future_basics_only():
+    """Basic Pokémon in play survive with up to 30 excess damage while Lively Stadium is active."""
+    from app.engine.effects.base import check_ko
+
+    basic_def = _make_card("tst-lively-basic-2", "Basic Target", hp=70)
+    stage1_def = _make_card("tst-lively-stage1", "Stage 1 Target", hp=90, stage="Stage 1")
+    attacker_def = _make_card("tst-lively-attacker", "Attacker", hp=100)
+    card_registry.register(basic_def)
+    card_registry.register(stage1_def)
+    card_registry.register(attacker_def)
+
+    attacker = _make_instance(attacker_def, hp=100)
+    basic = _make_instance(basic_def, hp=-20)
+    stage1 = _make_instance(stage1_def, zone=Zone.BENCH, hp=-20)
+    stage1.evolution_stage = 1
+    state = _make_state(p1_active=attacker, p2_active=basic, p2_bench=[stage1])
+    state.active_stadium = _lively_stadium_card()
+
+    check_ko(state, basic, "p2")
+    assert state.p2.active is basic
+
+    check_ko(state, stage1, "p2")
+    assert stage1 in state.p2.discard
+    assert stage1 not in state.p2.bench
+
+
+def test_lively_stadium_removed_rechecks_basic_pokemon_kos():
+    """Losing sv08-180 immediately KOs Basics that only survived from its +30 HP."""
+    from app.engine.effects.base import check_lively_stadium_removed
+
+    basic_def = _make_card("tst-lively-basic-3", "Basic Target", hp=70)
+    attacker_def = _make_card("tst-lively-attacker-2", "Attacker", hp=100)
+    card_registry.register(basic_def)
+    card_registry.register(attacker_def)
+
+    attacker = _make_instance(attacker_def, hp=100)
+    target = _make_instance(basic_def, hp=-20)
+    state = _make_state(p1_active=attacker, p2_active=target)
+    state.p1.prizes = [
+        CardInstance(instance_id=f"lively-prize-{i}", card_def_id="prize",
+                     card_name="Prize", zone=Zone.PRIZES)
+        for i in range(6)
+    ]
+    state.p1.prizes_remaining = 6
+    previous_stadium = _lively_stadium_card()
+    state.active_stadium = None
+
+    check_lively_stadium_removed(state, previous_stadium)
+
+    assert state.p2.active is None
+    assert target in state.p2.discard
+    assert state.p1.prizes_remaining == 5
+
+
+@pytest.mark.asyncio
+async def test_lively_stadium_replacement_rechecks_basic_pokemon_kos():
+    """Replacing Lively Stadium removes the continuous HP boost before the new Stadium resolves."""
+    from app.engine.transitions import _play_stadium
+
+    basic_def = _make_card("tst-lively-basic-4", "Basic Target", hp=70)
+    attacker_def = _make_card("tst-lively-attacker-3", "Attacker", hp=100)
+    card_registry.register(basic_def)
+    card_registry.register(attacker_def)
+
+    attacker = _make_instance(attacker_def, hp=100)
+    target = _make_instance(basic_def, hp=-20)
+    state = _make_state(p1_active=attacker, p2_active=target)
+    state.p1.prizes = [
+        CardInstance(instance_id=f"lively-replace-prize-{i}", card_def_id="prize",
+                     card_name="Prize", zone=Zone.PRIZES)
+        for i in range(6)
+    ]
+    state.p1.prizes_remaining = 6
+    state.active_stadium = _lively_stadium_card("old-lively-pass2")
+    risky_ruins = CardInstance(
+        instance_id="new-risky-ruins-pass2",
+        card_def_id="me01-127",
+        card_name="Risky Ruins",
+        card_type="Trainer",
+        card_subtype="Stadium",
+        zone=Zone.HAND,
+    )
+    state.p1.hand = [risky_ruins]
+
+    await _play_stadium(
+        state,
+        Action(player_id="p1", action_type=ActionType.PLAY_STADIUM,
+               card_instance_id=risky_ruins.instance_id),
+    )
+
+    assert state.active_stadium is risky_ruins
+    assert state.p2.active is None
+    assert target in state.p2.discard

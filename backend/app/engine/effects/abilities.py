@@ -34,7 +34,12 @@ from app.engine.state import (
     StatusCondition,
     Zone,
 )
-from app.engine.effects.base import ChoiceRequest, check_ko, draw_cards
+from app.engine.effects.base import (
+    ChoiceRequest,
+    check_ko,
+    check_lively_stadium_removed,
+    draw_cards,
+)
 from app.engine.effects.registry import EffectRegistry
 from app.cards import registry as card_registry
 
@@ -429,11 +434,13 @@ def _snow_sink(state: GameState, action):
         return
 
     stadium_name = state.active_stadium.card_name
+    discarded_stadium = state.active_stadium
     state.active_stadium.zone = Zone.DISCARD
     # Put in active player's discard (we don't track who played the stadium)
     state.get_player(player_id).discard.append(state.active_stadium)
     state.active_stadium = None
     state.emit_event("snow_sink", player=player_id, discarded=stadium_name)
+    check_lively_stadium_removed(state, discarded_stadium)
 
 
 # Battle-Hardened (sv08.5-054 Bloodmoon Ursaluna) ────────────────────────────

@@ -29,6 +29,7 @@ from app.engine.state import (
     Zone,
 )
 from app.engine.actions import Action, ActionType
+from app.engine.effects.base import check_lively_stadium_removed
 from app.engine.effects.registry import EffectRegistry
 from app.cards import registry as card_registry
 
@@ -309,13 +310,15 @@ async def _play_stadium(state: GameState, action: Action, get_player=None) -> Ga
     player.hand.remove(card)
 
     # Discard old stadium if present
-    if state.active_stadium:
-        state.active_stadium.zone = Zone.DISCARD
+    old_stadium = state.active_stadium
+    if old_stadium:
+        old_stadium.zone = Zone.DISCARD
         # Return to whoever played it (we don't track that; put in active player's discard)
-        state.get_player(action.player_id).discard.append(state.active_stadium)
+        state.get_player(action.player_id).discard.append(old_stadium)
 
     card.zone = Zone.STADIUM
     state.active_stadium = card
+    check_lively_stadium_removed(state, old_stadium)
 
     state.emit_event(
         "play_stadium",

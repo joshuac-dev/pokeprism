@@ -32,7 +32,8 @@ merged PR history support that it actually landed.
 
 ### Fixed
 - **Standalone DB-backed card-effect audit pass 2 — 2026-05-11** —
-  fix(engine): Correct Lillie's Pearl, Lillie's Comfey, Lillie's Ribombee, and Linoone effects.
+  fix(engine): Correct Lillie's Pearl, Lillie's Comfey, Lillie's Ribombee, Linoone,
+  and Lively Stadium effects.
 
   - **Lillie's Pearl (sv09-151)** — Prize reduction now applies only when the
     attached Pokémon is a Lillie's Pokémon, matching the Tool text.
@@ -45,22 +46,23 @@ merged PR history support that it actually landed.
   - **Linoone (me02-082) Excited Dash** — Ability now requires Linoone to be on
     the Bench with a Mega Evolution Pokémon ex in play, then switches Linoone
     with the Active Pokémon. The previous implementation incorrectly drew 2 cards.
-  - **Documented true engine gap:** Lively Stadium (sv08-180) is a continuous
-    Stadium HP modifier for all Basic Pokémon in play. The current engine has
-    on-play mutation support but lacks robust continuous Stadium HP-modifier
-    handling and KO recalculation when the Stadium leaves play.
+  - **Lively Stadium (sv08-180)** — Post-pass gap repair implements the continuous
+    +30 HP modifier for all Basic Pokémon in play through dynamic KO checks,
+    prevents one-shot HP mutation on Stadium play, and rechecks KOs when Lively
+    Stadium leaves play or is replaced.
   - Why: pass 2 resumed the DB-backed audit from `Lightning Energy | MEE | 4 | mee-004`
     after TCGDex recovery and compared live TCGDex text against the effect layer.
   - Evidence: `backend/app/engine/effects/base.py`;
     `backend/app/engine/effects/attacks.py`;
     `backend/app/engine/effects/abilities.py`;
+    `backend/app/engine/effects/trainers.py`;
+    `backend/app/engine/transitions.py`;
     `backend/tests/test_engine/test_audit_fixes.py`;
     `docs/AUDIT_STATE.md`; `docs/STATUS.md`.
-  - Validation: backend container
-    `python3 -m pytest tests/test_engine/test_audit_fixes.py -q`
-    passed 199 tests with one pytest cache permission warning. Full backend
-    suite with `OBSERVED_PLAY_MEMORY_ENABLED=false` passed 1350 tests / 5
-    skipped with one pytest cache permission warning.
+  - Validation: `.venv/bin/python -m pytest tests/test_engine/test_audit_fixes.py -q`
+    passed 203 tests after the Lively Stadium gap repair. The backend-container
+    full suite with `OBSERVED_PLAY_MEMORY_ENABLED=false` passed 1354 tests / 5
+    skipped with two pytest cache permission warnings.
   - Confidence: High.
 
 - **Standalone DB-backed card-effect audit fixes — 2026-05-11** —

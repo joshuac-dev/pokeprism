@@ -24,7 +24,8 @@ from app.engine.state import (
     Zone,
 )
 from app.engine.effects.base import (
-    ChoiceRequest, check_ko, draw_cards, is_recoverable_from_discard,
+    ChoiceRequest, check_ko, check_lively_stadium_removed, draw_cards,
+    is_recoverable_from_discard,
 )
 from app.engine.effects.registry import EffectRegistry
 from app.cards import registry as card_registry
@@ -2506,16 +2507,9 @@ def _lively_stadium(state: GameState, action) -> None:
     """Lively Stadium (sv08-180)
 
     Each Basic Pokémon in play (both yours and your opponent's) gets +30 HP.
-    Applied when the stadium enters play.
+    Continuous HP is resolved by base.check_ko().
     """
-    for pid in ("p1", "p2"):
-        p = state.get_player(pid)
-        for poke in list(_find_in_play(p)):
-            if poke.evolution_stage == 0:
-                poke.max_hp += 30
-                poke.current_hp += 30
-                state.emit_event("lively_stadium_boost", player=pid,
-                                 card=poke.card_name)
+    state.emit_event("lively_stadium_active", player=action.player_id)
 
 
 def _tr_factory_on_play(state: GameState, action) -> None:
@@ -3133,8 +3127,10 @@ def _blowtorch_b18(state: GameState, action):
         state.emit_event("energy_discarded", player=player_id, card_def_id=data.card_def_id,
                          pokemon=target.card_name, reason="blowtorch")
     elif otype == "stadium":
+        discarded_stadium = state.active_stadium
         state.active_stadium = None
         state.emit_event("stadium_discarded", player=player_id, reason="blowtorch")
+        check_lively_stadium_removed(state, discarded_stadium)
 
 
 def _firebreather_b18(state: GameState, action):
