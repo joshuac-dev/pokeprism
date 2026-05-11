@@ -320,7 +320,7 @@ def check_ko(
 
     # Lillie's Pearl (sv09-151): take 1 fewer prize (per KO, not once per game)
     _LILLIES_PEARL_ID = "sv09-151"
-    if _LILLIES_PEARL_ID in target.tools_attached:
+    if _LILLIES_PEARL_ID in target.tools_attached and "Lillie's" in target.card_name:
         prizes_to_take = max(0, prizes_to_take - 1)
         state.emit_event("lillies_pearl_triggered",
                          ko_player=target_player_id,

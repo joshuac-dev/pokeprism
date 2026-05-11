@@ -12345,15 +12345,19 @@ def _inviting_flowers(state, action):
         cards=lillies, min_count=0, max_count=max_count,
     )
     resp = yield req
-    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
-                  and resp.chosen_card_ids else [])
-    if not chosen_ids:
+    if resp is None:
         chosen_ids = [c.instance_id for c in lillies[:max_count]]
+    else:
+        chosen_ids = list(resp.chosen_card_ids or [])
     placed = 0
+    seen: set[str] = set()
     for cid in chosen_ids:
+        if cid in seen:
+            continue
+        seen.add(cid)
         if len(player.bench) >= 5:
             break
-        card = next((c for c in player.deck if c.instance_id == cid), None)
+        card = next((c for c in lillies if c.instance_id == cid and c in player.deck), None)
         if card:
             player.deck.remove(card)
             card.zone = Zone.BENCH
