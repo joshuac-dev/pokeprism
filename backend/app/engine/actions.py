@@ -22,6 +22,7 @@ from app.engine.state import (
     Zone,
 )
 from app.cards import registry as card_registry
+from app.engine.effects.base import get_bench_limit
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +119,15 @@ def _in_play(player: PlayerState) -> list[CardInstance]:
         result.append(player.active)
     result.extend(player.bench)
     return result
+
+
+def _apply_counter_gain_reduction(cost: list[str], player: PlayerState, opp: PlayerState, active: CardInstance | None) -> None:
+    """Mutate ``cost`` in place for Counter Gain's single-{C} reduction when active."""
+    if (active
+            and any(t in active.tools_attached for t in ("sv08-169", "me02.5-186"))
+            and player.prizes_remaining > opp.prizes_remaining
+            and "Colorless" in cost):
+        cost.remove("Colorless")
 
 
 def _can_pay_energy_cost(pokemon: CardInstance, cost: list[str],
@@ -387,8 +397,8 @@ class ActionValidator:
                     )
             return actions
 
-        # Active is set; may place up to MAX_BENCH_SIZE bench Pokémon
-        if len(player.bench) < ActionValidator.MAX_BENCH_SIZE:
+        # Active is set; may place up to the current bench limit
+        if len(player.bench) < get_bench_limit(state, player_id):
             for b in basics:
                 actions.append(
                     Action(ActionType.PLACE_BENCH, player_id,
@@ -404,7 +414,7 @@ class ActionValidator:
         state: GameState, player: PlayerState, player_id: str
     ) -> list[Action]:
         """Play a Basic Pokémon to the bench (rule 9: max 5)."""
-        if len(player.bench) >= ActionValidator.MAX_BENCH_SIZE:
+        if len(player.bench) >= get_bench_limit(state, player_id):
             return []
         opp = state.get_opponent(player_id)
         # Potent Glare (sv10-113 TR Arbok): opp cannot play Pokémon with abilities from hand
@@ -719,6 +729,12 @@ class ActionValidator:
         """
         _MYSTERY_GARDEN_IDS = {"me02.5-194", "me01-122"}
         _LEVINICIA_ID = "sv09-150"
+        _LUMIOSE_CITY_ID = "me03-077"
+        _SPIKEMUTH_GYM_ID = "sv10-169"
+        _SURFING_BEACH_ID = "me01-129"
+        _ACADEMY_AT_NIGHT_ID = "sv06.5-054"
+        _COMMUNITY_CENTER_ID = "sv06-146"
+        _CELEBRATORY_FANFARE_ID = "mep-028"
         if not state.active_stadium:
             return []
         sid = state.active_stadium.card_def_id
@@ -742,6 +758,44 @@ class ActionValidator:
             if not basic_lightning:
                 return []
             return [Action(ActionType.USE_STADIUM, player_id)]
+        if sid == _LUMIOSE_CITY_ID:
+            if player.lumiose_city_used_this_turn or len(player.bench) >= get_bench_limit(state, player_id):
+                return []
+            if any(c.card_type.lower() == "pokemon" and c.evolution_stage == 0 for c in player.deck):
+                return [Action(ActionType.USE_STADIUM, player_id)]
+            return []
+        if sid == _SPIKEMUTH_GYM_ID:
+            if player.spikemuth_gym_used_this_turn:
+                return []
+            if any(c.card_type.lower() == "pokemon" and c.card_name.startswith("Marnie's") for c in player.deck):
+                return [Action(ActionType.USE_STADIUM, player_id)]
+            return []
+        if sid == _SURFING_BEACH_ID:
+            if player.surfing_beach_used_this_turn or not player.active:
+                return []
+            active_def = card_registry.get(player.active.card_def_id)
+            if not active_def or "Water" not in (active_def.types or []):
+                return []
+            if any("Water" in ((card_registry.get(b.card_def_id).types or []) if card_registry.get(b.card_def_id) else [])
+                   for b in player.bench):
+                return [Action(ActionType.USE_STADIUM, player_id)]
+            return []
+        if sid == _ACADEMY_AT_NIGHT_ID:
+            if player.academy_at_night_used_this_turn or not player.hand:
+                return []
+            return [Action(ActionType.USE_STADIUM, player_id)]
+        if sid == _COMMUNITY_CENTER_ID:
+            if player.community_center_used_this_turn or not player.supporter_played_this_turn:
+                return []
+            if any(p.damage_counters > 0 for p in _in_play(player)):
+                return [Action(ActionType.USE_STADIUM, player_id)]
+            return []
+        if sid == _CELEBRATORY_FANFARE_ID:
+            if player.celebratory_fanfare_used_this_turn:
+                return []
+            if any(p.damage_counters > 0 for p in _in_play(player)):
+                return [Action(ActionType.USE_STADIUM, player_id)]
+            return []
         return []
 
     # ── Attack phase ──────────────────────────────────────────────────────────
@@ -830,6 +884,12 @@ class ActionValidator:
                     and "Hop's" in (player.active.card_name or "")):
                 if "Colorless" in effective_cost:
                     effective_cost.remove("Colorless")
+            # Counter Gain (sv08-169 / me02.5-186): costs {C} less if behind on prizes
+            _apply_counter_gain_reduction(effective_cost, player, opp, player.active)
+            # Nighttime Mine (me02.5-197): Tera Pokémon attacks cost {C} more
+            if state.active_stadium and state.active_stadium.card_def_id == "me02.5-197":
+                if cdef and getattr(cdef, "is_tera", False):
+                    effective_cost.append("Colorless")
             if _can_pay_energy_cost(player.active, effective_cost, state, player_id):
                 actions.append(
                     Action(ActionType.ATTACK, player_id, attack_index=i)
@@ -842,6 +902,11 @@ class ActionValidator:
                 continue
             for _tm_atk_idx, _tm_attack in enumerate(_tm_cdef.attacks):
                 _tm_cost = list(_tm_attack.cost) if _tm_attack.cost else []
+                _apply_counter_gain_reduction(_tm_cost, player, opp, player.active)
+                if state.active_stadium and state.active_stadium.card_def_id == "me02.5-197":
+                    _active_def = card_registry.get(player.active.card_def_id) if player.active else None
+                    if _active_def and getattr(_active_def, "is_tera", False):
+                        _tm_cost.append("Colorless")
                 if _can_pay_energy_cost(player.active, _tm_cost, state, player_id):
                     actions.append(
                         Action(ActionType.ATTACK, player_id,

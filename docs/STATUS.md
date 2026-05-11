@@ -61,6 +61,24 @@ post-phase development:
 - Stuck nightly run `1280be10-fc27-457b-b45d-dd5439c3bfc1` (200 matches, created 2026-05-11 02:00
   UTC): all matches complete; safe to repair — see repair SQL in CHANGELOG.
 
+**DB-backed audit handoff (2026-05-11 nightly robust-audit-v2 run 34):**
+- current workstream: DB-backed card-effect audits and cursor-based handler fixes
+- completion status: `TARGET_REACHED`
+- target findings: 25
+- implemented fixes: 25
+- documented engine gaps: 0
+- database cards audited: 1035
+- first card audited: `Lucario ex | PRE | 51 | sv08.5-051`
+- last card fully audited: `Counter Gain | ASC | 186 | me02.5-186`
+- next resume cursor: `Counter Gain | SSP | 169 | sv08-169`
+- AUDIT_STATE.md update status: updated
+- focused checks run: TCGDex preflight succeeded (`GET https://api.tcgdex.net/v2/en/cards/sv08.5-051` → HTTP 200); local audit report validation passed; `python3 -m pytest tests/test_scripts/test_validate_card_audit_report.py -q` (`29 passed`)
+- full tests run: `python3 -m pytest tests/ -x -q` (`1421 passed, 7 skipped`)
+- implemented fixes: Lumiose City, Nighttime Mine, Passho/Babiri/Colbur Berry, Powerglass, Punk Helmet, Rescue Board (PRE/TEF), Sacred Charm, Spikemuth Gym, Strange Timepiece, Surfing Beach, Team Rocket's Hypnotizer, Thick Scale, Academy at Night, Air Balloon alt-print coverage, Anthea & Concordia, Area Zero Underdepths (PRE/SCR), Binding Mochi alt-print coverage, Canari, Celebratory Fanfare, Community Center, and Counter Gain alt-print coverage
+- documented engine gaps: none remaining from run 34
+- known issues / follow-up: resume from `Counter Gain | SSP | 169 | sv08-169` for the next audit slice
+- operational notes: machine-readable v3 report updated at `docs/audit_runs/2026-05-11-34-card-effect-audit.json`; backend engine/test files changed to implement all 25 findings from the run-34 ledger
+
 **DB-backed audit handoff (2026-05-11 nightly robust-audit-v2 run 33):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes
 - completion status: `BLOCKED_TCGDEX`

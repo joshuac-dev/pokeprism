@@ -674,6 +674,40 @@ def _apply_damage(
         state.emit_event("lucky_helmet_triggered", player=opp_id,
                          card=defender.card_name)
 
+    defender_def = card_registry.get(defender.card_def_id)
+    attacker_def = card_registry.get(attacker.card_def_id)
+
+    # Punk Helmet (me02-092): Dark-type holder places 4 damage counters on attacker when damaged
+    if (total > 0 and "me02-092" in defender.tools_attached and attacker.current_hp > 0
+            and defender_def and "Darkness" in (defender_def.types or [])):
+        attacker.current_hp = max(0, attacker.current_hp - 40)
+        attacker.damage_counters += 4
+        state.emit_event("punk_helmet_triggered", player=opp_id, attacker=attacker.card_name)
+        check_ko(state, attacker, action.player_id)
+        if state.phase == Phase.GAME_OVER:
+            return total
+
+    # Team Rocket's Hypnotizer (me02.5-206): Team Rocket's holder makes attacker Asleep when damaged
+    if (total > 0 and "me02.5-206" in defender.tools_attached
+            and defender.card_name.startswith("Team Rocket's")):
+        attacker.status_conditions.add(StatusCondition.ASLEEP)
+        state.emit_event("tr_hypnotizer_triggered", player=opp_id, attacker=attacker.card_name)
+
+    # Matching berries: reduce damage and discard after being triggered by the correct type
+    if total > 0 and attacker_def:
+        berry_type_map = {
+            "sv07-140": "Fire",
+            "sv07-141": "Psychic",
+            "sv08-163": "Metal",
+            "sv08-168": "Darkness",
+            "sv08-184": "Water",
+        }
+        for tool_id, type_name in berry_type_map.items():
+            if tool_id in defender.tools_attached and type_name in (attacker_def.types or []):
+                defender.tools_attached.remove(tool_id)
+                state.emit_event("berry_discarded", player=opp_id, card=defender.card_name, tool=tool_id)
+                break
+
     check_ko(state, defender, opp_id)
     return total
 
@@ -693,7 +727,7 @@ def _attacker_tool_bonus(attacker, defender, state) -> int:
             and attacker_cdef and not attacker_cdef.has_rule_box
             and defender_cdef and defender_cdef.is_ex):
         bonus += 30
-    if (has_tool(attacker, "sv08.5-095")
+    if ((has_tool(attacker, "sv08.5-095") or has_tool(attacker, "sv06.5-055"))
             and StatusCondition.POISONED in attacker.status_conditions):
         bonus += 40
     return bonus

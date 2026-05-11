@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 PRIZE_COUNT = 6
 MAX_BENCH_SIZE = 5
+_POWERGLASS_ID = "sv06.5-063"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -371,12 +372,25 @@ class MatchRunner:
                                     if state.phase == Phase.GAME_OVER:
                                         return state
 
+        state = await self._resolve_end_of_turn_optional_effects(state)
+        if state.phase == Phase.GAME_OVER:
+            return state
+
         # ── BETWEEN TURNS ─────────────────────────────────────────────────────
         state = self._handle_between_turns(state)
         if state.phase == Phase.GAME_OVER:
             return state
 
         state = self._end_turn(state)
+        return state
+
+    async def _resolve_end_of_turn_optional_effects(self, state: GameState) -> GameState:
+        """Resolve optional end-of-turn effects that need player choice."""
+        player = state.get_player(state.active_player)
+        if player.active and _POWERGLASS_ID in player.active.tools_attached:
+            from app.engine.effects.registry import EffectRegistry
+            action = Action(ActionType.END_TURN, state.active_player)
+            await EffectRegistry.instance().resolve_trainer(_POWERGLASS_ID, state, action, self._get_player)
         return state
 
     async def _resolve_ko_aftermath(self, state: GameState) -> GameState:
@@ -575,6 +589,12 @@ class MatchRunner:
             player.daydream_active = False
             player.mystery_garden_used_this_turn = False
             player.levincia_used_this_turn = False
+            player.lumiose_city_used_this_turn = False
+            player.spikemuth_gym_used_this_turn = False
+            player.surfing_beach_used_this_turn = False
+            player.academy_at_night_used_this_turn = False
+            player.community_center_used_this_turn = False
+            player.celebratory_fanfare_used_this_turn = False
             player.quick_search_used_this_turn = False
             # items_locked_this_turn is set by the opponent on this player for the upcoming
             # turn. Only clear it at the end of THIS player's own turn so the effect persists
@@ -659,6 +679,7 @@ class MatchRunner:
         state.active_player_damage_bonus = 0
         state.active_player_damage_bonus_vs_ex = 0
         state.briar_active = False
+        state.anthea_concordia_active = False
         state.sunny_day_active = False
         state.force_end_turn = False
         # Reset festival_lead_pending for all players
@@ -667,19 +688,6 @@ class MatchRunner:
         # Clear Retaliate window for the player whose turn just ended
         state.get_player(state.active_player).ko_taken_last_turn = False
         state.get_player(state.active_player).ethans_pokemon_ko_last_turn = False
-
-        # Community Center (sv06-146): if supporter was played this turn, heal 10 from each of your Pokémon
-        if (state.active_stadium
-                and state.active_stadium.card_def_id == "sv06-146"):
-            _cc_player = state.get_player(state.active_player)
-            if _cc_player.supporter_played_this_turn:
-                _cc_all = ([_cc_player.active] if _cc_player.active else []) + list(_cc_player.bench)
-                for _cc_poke in _cc_all:
-                    if _cc_poke.damage_counters > 0:
-                        _cc_poke.damage_counters = max(0, _cc_poke.damage_counters - 1)
-                        _cc_poke.current_hp = min(_cc_poke.max_hp, _cc_poke.current_hp + 10)
-                state.emit_event("community_center_heal",
-                                 player=state.active_player)
 
         # Process deferred effects (Permeating Chill, Corrosive Sludge) that fire after current player's turn
         for pe in list(state.pending_effects):
@@ -724,36 +732,6 @@ class MatchRunner:
                     _amarys_player.discard.append(_hcard)
                 _amarys_player.hand.clear()
                 state.emit_event("amarys_discard", player=state.active_player)
-
-        # Powerglass (sv06.5-063): end of your turn, if active has Powerglass, attach Basic Energy from discard
-        _pg_player = state.get_player(state.active_player)
-        if (_pg_player.active
-                and "sv06.5-063" in _pg_player.active.tools_attached):
-            from app.engine.effects.trainers import _is_basic_energy_card, _make_energy_attachment
-            _pg_basic = [c for c in _pg_player.discard if _is_basic_energy_card(c)]
-            if _pg_basic:
-                _pg_ec = _pg_basic[0]
-                _pg_att = _make_energy_attachment(_pg_ec)
-                _pg_player.discard.remove(_pg_ec)
-                _pg_ec.zone = _pg_player.active.zone
-                _pg_player.active.energy_attached.append(_pg_att)
-                state.emit_event("powerglass_triggered", player=state.active_player,
-                                 energy=_pg_ec.card_name)
-
-        # Celebratory Fanfare (mep-028): heal 10 from each of current player's Pokémon
-        if (state.active_stadium
-                and state.active_stadium.card_def_id == "mep-028"):
-            _cf_player = state.get_player(state.active_player)
-            _cf_all = (([_cf_player.active] if _cf_player.active else [])
-                       + list(_cf_player.bench))
-            _cf_healed = False
-            for _cf_poke in _cf_all:
-                if _cf_poke.damage_counters > 0:
-                    _cf_poke.damage_counters = max(0, _cf_poke.damage_counters - 1)
-                    _cf_poke.current_hp = min(_cf_poke.max_hp, _cf_poke.current_hp + 10)
-                    _cf_healed = True
-            if _cf_healed:
-                state.emit_event("celebratory_fanfare_heal", player=state.active_player)
 
         # Discard TM tools at end of owner's turn
         _TM_DISCARD_TOOL_IDS = {"sv08-188"}

@@ -5,14 +5,14 @@ This file stores the rotating cursor for the DB-backed card effect audit workflo
 It does not define card text. It does not define the audit candidate set. The database defines audit scope, and TCGDex defines card behavior.
 
 ```text
-next_start_cursor: Lucario ex | PRE | 51 | sv08.5-051
-last_run_status: BLOCKED_TCGDEX
+next_start_cursor: Counter Gain | SSP | 169 | sv08-169
+last_run_status: TARGET_REACHED
 last_run_date_utc: 2026-05-11
 last_pr:
 last_issue: Nightly DB-backed card effect implementation audit - 2026-05-11
-last_first_card_audited:
-last_card_fully_audited:
-notes: Run 33 (2026-05-11): BLOCKED_TCGDEX — TCGDex API timed out during preflight (GET https://api.tcgdex.net/v2/en/cards/sv08.5-051 timed out after 5 s; network unreachable in sandbox environment). Per AUDIT_RULES.md, no cards were audited and the cursor is unchanged. Machine-readable report committed at docs/audit_runs/2026-05-11-33-card-effect-audit.json with completion_status BLOCKED_TCGDEX. Next run should resume from Lucario ex | PRE | 51 | sv08.5-051.
+last_first_card_audited: Lucario ex | PRE | 51 | sv08.5-051
+last_card_fully_audited: Counter Gain | ASC | 186 | me02.5-186
+notes: Run 34 (2026-05-11): TARGET_REACHED — TCGDex preflight succeeded and 1035 DB cards were audited in deterministic circular order from Lucario ex | PRE | 51 | sv08.5-051 through Counter Gain | ASC | 186 | me02.5-186, wrapping once. Implemented 25 fixes (0 remaining documented engine gaps) in docs/audit_runs/2026-05-11-34-card-effect-audit.json. Next run should resume from Counter Gain | SSP | 169 | sv08-169.
 ```
 
 ## Cursor rules

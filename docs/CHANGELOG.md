@@ -30,6 +30,33 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+- **DB-backed card audit run 34 — 2026-05-11 — TARGET_REACHED** —
+  Nightly robust-audit-v2 card-effect implementation audit (run 34).
+
+  - TCGDex preflight recovered: `GET https://api.tcgdex.net/v2/en/cards/sv08.5-051`
+    succeeded (HTTP 200), so the DB-backed audit resumed from
+    `Lucario ex | PRE | 51 | sv08.5-051`.
+  - Audited 1035 cards in deterministic circular
+    `name/set_abbrev/set_number/tcgdex_id` order and wrapped once.
+  - Reached the target with **25 implemented fixes** and **0 remaining documented engine gaps**.
+  - Added machine-readable v3-schema report at
+    `docs/audit_runs/2026-05-11-34-card-effect-audit.json`
+    (`completion_status: TARGET_REACHED`, `cards_audited: 1035`).
+  - Updated `docs/AUDIT_STATE.md` to advance the next cursor to
+    `Counter Gain | SSP | 169 | sv08-169`.
+  - Fixed run-34 findings include Lumiose City, Nighttime Mine, Passho/Babiri/Colbur
+    Berry, Powerglass, Punk Helmet, Rescue Board (PRE/TEF), Sacred Charm,
+    Spikemuth Gym, Strange Timepiece, Surfing Beach, Team Rocket's Hypnotizer,
+    Thick Scale, Academy at Night, Air Balloon alt-print coverage,
+    Anthea & Concordia, Area Zero Underdepths (PRE/SCR), Binding Mochi
+    alt-print coverage, Canari, Celebratory Fanfare, Community Center, and
+    Counter Gain alt-print coverage.
+  - Validation: `python3 backend/scripts/validate_card_audit_report.py docs/audit_runs/2026-05-11-34-card-effect-audit.json`
+    passed; `cd backend && python3 -m pytest tests/test_scripts/test_validate_card_audit_report.py -q`
+    passed (`29 passed`); `cd backend && python3 -m pytest tests/ -x -q`
+    passed (`1421 passed, 7 skipped`).
+  - Confidence: High.
+
 - **DB-backed card audit run 33 — 2026-05-11 — BLOCKED_TCGDEX** —
   Nightly robust-audit-v2 card-effect implementation audit (run 33).
 
