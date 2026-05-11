@@ -401,13 +401,13 @@ def test_cynthias_power_weight_and_anthea_concordia_and_strange_timepiece():
 
 
 def test_anthea_concordia_awards_three_extra_prizes_on_active_ko():
-    attacker_def = _make_card("n-attacker", "N's Reshiram", attacks=[AttackDef(name="Burst", damage="100", cost=[])])
+    attacker_def = _make_card("ns-reshiram", "N's Reshiram", attacks=[AttackDef(name="Burst", damage="100", cost=[])])
     defender_def = _make_card("defender", "Defender", hp=60)
     bench_def = _make_card("bench", "Bench")
     for c in (attacker_def, defender_def, bench_def):
         card_registry.register(c)
 
-    attacker = _inst(attacker_def, "n-attacker")
+    attacker = _inst(attacker_def, "ns-reshiram")
     defender = _inst(defender_def, "defender", hp=60)
     state = _state(
         p1_active=attacker,
@@ -421,6 +421,7 @@ def test_anthea_concordia_awards_three_extra_prizes_on_active_ko():
     _apply_damage(state, Action(ActionType.ATTACK, "p1", attack_index=0), 100)
 
     assert state.p1.prizes_remaining == 2
+    assert len(state.p1.prizes) == 2
 
 
 def test_rescue_board_and_area_zero_alt_prints_match_primary_behavior():
@@ -431,10 +432,12 @@ def test_rescue_board_and_area_zero_alt_prints_match_primary_behavior():
 
     active = _inst(tera, "active-alt")
     active.tools_attached = ["sv05-159"]
-    state = _state(p1_active=active, p2_active=_inst(bench, "opp-alt"))
+    bench_target = _inst(bench, "bench-target", zone=Zone.BENCH)
+    state = _state(p1_active=active, p1_bench=[bench_target], p2_active=_inst(bench, "opp-alt"))
     assert get_retreat_cost_reduction(active, state, "p1") == 1
     active.current_hp = 30
-    assert get_retreat_cost_reduction(active, state, "p1") >= 9999
+    legal = ActionValidator.get_legal_actions(state, "p1")
+    assert any(a.action_type == ActionType.RETREAT for a in legal)
 
     tera_active = _inst(tera, "tera-active")
     benches = [_inst(bench, f"ab{i}", zone=Zone.BENCH) for i in range(6)]
