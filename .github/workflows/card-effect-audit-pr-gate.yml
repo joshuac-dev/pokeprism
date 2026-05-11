@@ -25,9 +25,14 @@ jobs:
       - name: Fetch base branch
         run: git fetch origin ${{ github.base_ref }} --depth=1
 
-      - name: Write validator script
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Write gate script
         run: |
-          cat > /tmp/validate_audit.py << 'VALIDATOR_EOF'
+          cat > /tmp/gate_checks.py << 'GATE_EOF'
           import json
           import os
           import re
@@ -117,7 +122,7 @@ jobs:
                   print(f"ERROR: {e}")
               sys.exit(1)
 
-          # ── 4. Required fields ────────────────────────────────────────────────────────
+          # ── 4. Completion status and cursor checks (structural gate) ──────────────────
           required = [
               "run_date_utc", "completion_status", "target_findings",
               "fixes_implemented", "engine_gaps_documented", "total_findings",
@@ -145,45 +150,19 @@ jobs:
           full_cycle = bool(data.get("full_cycle_completed", False))
           continuation = bool(data.get("continuation_required", False))
           next_cursor = data.get("next_resume_cursor", "")
-          ledger = data.get("audit_ledger", [])
-          # min_cards_before_partial: use value from JSON if present, else 100
           min_cards = int(data.get("min_cards_before_partial", 100))
 
-          print(f"completion_status:       {status}")
-          print(f"target_findings:         {target}")
-          print(f"fixes_implemented:       {fixes}")
-          print(f"engine_gaps:             {gaps}")
-          print(f"total_findings:          {total}")
-          print(f"cards_audited:           {cards_audited}")
-          print(f"db_card_count:           {db_card_count}")
-          print(f"full_cycle:              {full_cycle}")
-          print(f"continuation:            {continuation}")
+          print(f"completion_status:        {status}")
+          print(f"target_findings:          {target}")
+          print(f"fixes_implemented:        {fixes}")
+          print(f"engine_gaps:              {gaps}")
+          print(f"total_findings:           {total}")
+          print(f"cards_audited:            {cards_audited}")
+          print(f"db_card_count:            {db_card_count}")
+          print(f"full_cycle:               {full_cycle}")
+          print(f"continuation:             {continuation}")
           print(f"min_cards_before_partial: {min_cards}")
 
-          # ── 5. Audit ledger validation ────────────────────────────────────────────────
-          ALLOWED_RESULTS = {
-              "fixed", "engine-gap", "no-issue", "tcgdex-unresolved",
-              "db-identity-gap", "blocked-tcgdex", "blocked-db-access",
-              "continuation-required",
-          }
-          for i, entry in enumerate(ledger):
-              if not isinstance(entry, dict):
-                  fail(f"audit_ledger[{i}] is not an object")
-                  continue
-              for ef in ("seq", "card_name", "result"):
-                  if ef not in entry:
-                      fail(f"audit_ledger[{i}] missing field: {ef}")
-              r = entry.get("result", "")
-              if r not in ALLOWED_RESULTS:
-                  if r == "partial-time-budget":
-                      fail(
-                          f"audit_ledger[{i}] uses invalid result 'partial-time-budget'. "
-                          "Use 'continuation-required' instead."
-                      )
-                  else:
-                      fail(f"audit_ledger[{i}] has unknown result: {r!r}")
-
-          # ── 6. Completion status rules ────────────────────────────────────────────────
           TERMINAL_STATUSES = {
               "TARGET_REACHED", "DB_EXHAUSTED", "FULL_CYCLE_COMPLETE",
               "BLOCKED_TCGDEX", "BLOCKED_DB_ACCESS", "CONTINUATION_REQUIRED",
@@ -220,8 +199,6 @@ jobs:
           if status == "CONTINUATION_REQUIRED":
               if not continuation:
                   fail("CONTINUATION_REQUIRED requires continuation_required=true in the audit report.")
-
-              # min_cards_before_partial check (not applied to blocked statuses)
               if cards_audited < min_cards:
                   fail(
                       f"CONTINUATION_REQUIRED requires at least {min_cards} cards audited "
@@ -229,22 +206,19 @@ jobs:
                       "Continue auditing until the minimum is reached or another terminal "
                       "status is reached."
                   )
-
-              # PR label check
               pr_labels_raw = os.environ.get("PR_LABELS", "[]")
               try:
                   pr_labels = json.loads(pr_labels_raw)
               except Exception:
                   pr_labels = []
-              has_continuation_label = "audit-continuation-required" in pr_labels
-              has_partial_ok_label = "audit-partial-merge-ok" in pr_labels
-              if not (has_continuation_label or has_partial_ok_label):
+              if not ("audit-continuation-required" in pr_labels or
+                      "audit-partial-merge-ok" in pr_labels):
                   fail(
                       "CONTINUATION_REQUIRED PRs must have either the audit-continuation-required "
                       "or audit-partial-merge-ok label. Add one of these labels to allow partial merge."
                   )
 
-          # ── 7. Cursor consistency ─────────────────────────────────────────────────────
+          # ── 5. Cursor consistency ─────────────────────────────────────────────────────
           if cards_audited > 0 and next_cursor:
               state_cursor = ""
               try:
@@ -266,7 +240,6 @@ jobs:
               elif state_cursor == next_cursor:
                   print(f"Cursor consistent: {next_cursor!r}")
 
-          # ── 8. Final report ───────────────────────────────────────────────────────────
           for w in warnings:
               print(f"WARNING: {w}")
 
@@ -277,11 +250,44 @@ jobs:
               sys.exit(1)
 
           print()
-          print("Audit report validation PASSED.")
-          VALIDATOR_EOF
+          print(f"Gate checks PASSED. Proceeding to ledger quality validation.")
+          # Export the report path for the next step
+          with open(os.environ.get("GITHUB_ENV", "/dev/null"), "a") as env_file:
+              env_file.write(f"AUDIT_REPORT={report_path}\n")
+          GATE_EOF
 
-      - name: Validate audit report
+      - name: Run gate checks
         env:
           PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
           GITHUB_BASE_REF: ${{ github.base_ref }}
-        run: python3 /tmp/validate_audit.py
+        run: python3 /tmp/gate_checks.py
+
+      - name: Validate ledger quality (evidence schema v3)
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+        run: |
+          # Find the audit report (same logic as gate_checks.py)
+          REPORT="$(git diff --name-only --diff-filter=AM \
+            "origin/$GITHUB_BASE_REF...HEAD" \
+            -- 'docs/audit_runs/*-card-effect-audit.json' | head -n1)"
+
+          if [ -z "$REPORT" ]; then
+            echo "ERROR: No audit report found; gate_checks should have caught this."
+            exit 1
+          fi
+
+          echo "Running ledger quality validation on: $REPORT"
+          python3 backend/scripts/validate_card_audit_report.py "$REPORT" || {
+            echo ""
+            echo "ERROR: Audit report uses legacy shallow ledger format."
+            echo "Re-run audit with evidence-bearing ledger schema (v3)."
+            echo "Each no-issue entry must include:"
+            echo "  - tcgdex_effects_extracted (exact effects from TCGDex)"
+            echo "  - implementation_evidence (registry key, handler symbol, source file)"
+            echo "  - semantic_checks (mechanics verified)"
+            echo "  - confidence (high | medium | low)"
+            echo "  - tcgdex_text_hash"
+            echo "Generic notes such as 'TCGDex text fetched and compared to current"
+            echo "handler coverage' are not acceptable."
+            exit 1
+          }

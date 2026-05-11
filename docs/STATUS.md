@@ -23,6 +23,13 @@ post-phase development:
   require a real full circular DB pass; PR gate at
   `.github/workflows/card-effect-audit-pr-gate.yml` validates every audit PR labeled
   `card-effect-audit` or `robust-audit-v2`.
+- **Audit quality hardened to evidence schema v3 (2026-05-11):** Generic no-issue
+  ledger entries are now rejected by the PR gate. Each entry must record `tcgdex_effects_extracted`,
+  `implementation_evidence` (registry key, handler symbol, source file), `semantic_checks`,
+  `mechanic_flags`, `confidence`, and specific notes. Validator:
+  `backend/scripts/validate_card_audit_report.py`. Probe helper:
+  `backend/scripts/card_effect_audit_probe.py`. Old shallow-format reports are
+  no longer acceptable for new runs.
 
 **Nightly H/H simulation lifecycle fix (2026-05-13):**
 - Root cause: `_run_scheduled_hh_async` called `run_hh_batch(persist=True)` which created a bare
