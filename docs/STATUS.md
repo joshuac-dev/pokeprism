@@ -61,6 +61,24 @@ post-phase development:
 - Stuck nightly run `1280be10-fc27-457b-b45d-dd5439c3bfc1` (200 matches, created 2026-05-11 02:00
   UTC): all matches complete; safe to repair — see repair SQL in CHANGELOG.
 
+**DB-backed audit handoff (2026-05-11 nightly robust-audit-v2 run 34):**
+- current workstream: DB-backed card-effect audits and cursor-based handler fixes
+- completion status: `TARGET_REACHED`
+- target findings: 25
+- implemented fixes: 0
+- documented engine gaps: 25
+- database cards audited: 1035
+- first card audited: `Lucario ex | PRE | 51 | sv08.5-051`
+- last card fully audited: `Counter Gain | ASC | 186 | me02.5-186`
+- next resume cursor: `Counter Gain | SSP | 169 | sv08-169`
+- AUDIT_STATE.md update status: updated
+- focused checks run: TCGDex preflight succeeded (`GET https://api.tcgdex.net/v2/en/cards/sv08.5-051` → HTTP 200); local audit report validation passed; `python3 -m pytest tests/test_scripts/test_validate_card_audit_report.py -q` (`29 passed`)
+- full tests run: baseline `python3 -m pytest tests/ -x -q` (`1405 passed, 7 skipped`)
+- implemented fixes: none in this run
+- documented engine gaps: 25 precise trainer/tool/stadium coverage gaps recorded in `docs/audit_runs/2026-05-11-34-card-effect-audit.json`
+- known issues / follow-up: resume from `Counter Gain | SSP | 169 | sv08-169`; highest-priority documented gaps include Lumiose City, Nighttime Mine, Rescue Board (both prints), Area Zero Underdepths (both prints), and Counter Gain alt-print coverage
+- operational notes: machine-readable v3 report added at `docs/audit_runs/2026-05-11-34-card-effect-audit.json`; no engine code files changed in this run
+
 **DB-backed audit handoff (2026-05-11 nightly robust-audit-v2 run 33):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes
 - completion status: `BLOCKED_TCGDEX`
