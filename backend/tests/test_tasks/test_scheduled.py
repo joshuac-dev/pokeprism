@@ -81,7 +81,7 @@ async def _seed_stale_sim(db: AsyncSession, *, status: str = "running", minutes_
     """Insert a minimal simulation with started_at in the past."""
     writer = MatchMemoryWriter()
     suffix = uuid.uuid4().hex[:8]
-    cards = [await _get_or_fallback_card_def(db, "sv07-002")]
+    cards = [await _fetch_card_definition_or_fallback(db, "sv07-002")]
     deck_id = await writer.ensure_deck(f"Stale Deck {suffix}", cards * 60, db)
     sim = Simulation(
         status=status,
@@ -112,7 +112,7 @@ async def _add_checkpoint(
     """Insert a SimulationOpponentResult for a simulation and backdate its updated_at."""
     writer = MatchMemoryWriter()
     suffix = uuid.uuid4().hex[:8]
-    cards = [await _get_or_fallback_card_def(db, "sv07-003")]
+    cards = [await _fetch_card_definition_or_fallback(db, "sv07-003")]
     opp_deck_id = await writer.ensure_deck(f"Opp Deck {suffix}", cards * 60, db)
 
     # We need a round row
@@ -155,7 +155,7 @@ async def _add_checkpoint(
     return cp
 
 
-async def _get_or_fallback_card_def(db: AsyncSession, preferred_tcgdex_id: str):
+async def _fetch_card_definition_or_fallback(db: AsyncSession, preferred_tcgdex_id: str):
     from app.cards.models import CardDefinition
 
     existing_card = (await db.execute(
