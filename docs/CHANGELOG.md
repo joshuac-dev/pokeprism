@@ -30,6 +30,20 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+- **DB-backed card audit run 33 — 2026-05-11 — BLOCKED_TCGDEX** —
+  Nightly robust-audit-v2 card-effect implementation audit (run 33).
+
+  - TCGDex API unavailable: preflight fetch of `sv08.5-051` timed out after 5 s
+    (network unreachable in sandbox environment).
+  - Per `AUDIT_RULES.md`, audit was stopped before the first card; cursor unchanged.
+  - Audit cursor remains at `Lucario ex | PRE | 51 | sv08.5-051`.
+  - Machine-readable v3-schema report committed at
+    `docs/audit_runs/2026-05-11-33-card-effect-audit.json`
+    (`completion_status: BLOCKED_TCGDEX`, `cards_audited: 0`).
+  - `docs/AUDIT_STATE.md` updated with `last_run_status: BLOCKED_TCGDEX`.
+  - No engine code files changed in this run.
+  - Confidence: High (block confirmed by timeout; no data relied upon from TCGDex).
+
 - **Audit quality hardened to evidence schema v3 — 2026-05-11** —
   ci: require evidence-bearing card audit reports.
 
