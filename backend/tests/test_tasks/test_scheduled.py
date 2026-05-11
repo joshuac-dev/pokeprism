@@ -81,7 +81,7 @@ async def _seed_stale_sim(db: AsyncSession, *, status: str = "running", minutes_
     """Insert a minimal simulation with started_at in the past."""
     writer = MatchMemoryWriter()
     suffix = uuid.uuid4().hex[:8]
-    cards = [await _seed_card_def(db, "sv07-002")]
+    cards = [await _get_or_fallback_card_def(db, "sv07-002")]
     deck_id = await writer.ensure_deck(f"Stale Deck {suffix}", cards * 60, db)
     sim = Simulation(
         status=status,
@@ -112,7 +112,7 @@ async def _add_checkpoint(
     """Insert a SimulationOpponentResult for a simulation and backdate its updated_at."""
     writer = MatchMemoryWriter()
     suffix = uuid.uuid4().hex[:8]
-    cards = [await _seed_card_def(db, "sv07-003")]
+    cards = [await _get_or_fallback_card_def(db, "sv07-003")]
     opp_deck_id = await writer.ensure_deck(f"Opp Deck {suffix}", cards * 60, db)
 
     # We need a round row
@@ -155,14 +155,16 @@ async def _add_checkpoint(
     return cp
 
 
-async def _seed_card_def(db: AsyncSession, preferred_tcgdex_id: str):
+async def _get_or_fallback_card_def(db: AsyncSession, preferred_tcgdex_id: str):
     from app.cards.models import CardDefinition
 
     existing_card = (await db.execute(
         select(Card).where(Card.tcgdex_id == preferred_tcgdex_id)
     )).scalar_one_or_none()
     if existing_card is None:
-        existing_card = (await db.execute(select(Card).limit(1))).scalar_one_or_none()
+        existing_card = (await db.execute(
+            select(Card).order_by(Card.tcgdex_id).limit(1)
+        )).scalar_one_or_none()
     assert existing_card is not None, "cards seed is required for DB scheduled-task tests"
     return CardDefinition(
         tcgdex_id=existing_card.tcgdex_id,
