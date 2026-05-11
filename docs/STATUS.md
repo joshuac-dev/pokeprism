@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-11 (Nightly DB-backed audit: full circular pass, DB_EXHAUSTED)
+Last updated: 2026-05-11 (Nightly DB-backed audit verification rerun: full circular pass, DB_EXHAUSTED)
 
 ## Current Workstream
 
@@ -23,7 +23,7 @@ post-phase development:
 - target findings: 25
 - implemented fixes: 0
 - documented engine gaps: 0
-- database cards audited: 1609
+- database cards audited: 1607
 - first card audited: `Ledyba | SCR | 2 | sv07-002`
 - last card fully audited: `Ledian | SCR | 3 | sv07-003`
 - next resume cursor: `Ledyba | SCR | 2 | sv07-002`
@@ -32,7 +32,7 @@ post-phase development:
 - full tests run: `python3 -m pytest tests/ -x -q` (1337 passed, 7 skipped)
 - implemented fixes: none
 - documented engine gaps: none
-- known issues / follow-up: two `db-identity-gap` rows (`Stale Card | TST | 1 | stale-12d72511-001`, `Stale Card | TST | 1 | stale-c7202c59-001`) returned TCGDex 404 during full-pass audit; continue from `Ledyba | SCR | 2 | sv07-002`
+- known issues / follow-up: TCGDex preflight and full 1607-card circular traversal completed cleanly with no implementation fixes, engine gaps, or current `db-identity-gap` rows; continue from `Ledyba | SCR | 2 | sv07-002`
 - operational notes: effects files changed: no; celery-worker rebuild required locally: no
 
 **Active planning branch:** `phase-7-observed-play-planning` — Observed-Play Intelligence Planning
