@@ -33,7 +33,7 @@ import logging
 import uuid
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import (
@@ -44,6 +44,12 @@ from app.db.session import AsyncSessionLocal
 logger = logging.getLogger(__name__)
 
 # ── Fixed generated-simulation parameters ──────────────────────────────────────
+
+# Stable advisory lock key for pg_try_advisory_xact_lock.
+# Held for the duration of the create_rerun transaction so two concurrent
+# callers (nightly cron + manual admin trigger) cannot both pass the
+# queue-busy / source-selection critical section simultaneously.
+_RERUN_ADVISORY_LOCK_KEY = 987_654_321
 
 RERUN_GAME_MODE               = "hh"
 RERUN_DECK_MODE               = "full"
@@ -136,6 +142,14 @@ async def create_rerun(triggered_by: str, db: AsyncSession) -> dict:
     Returns a dict with 'status': 'created' | 'skipped' | 'failed'.
     The caller is responsible for dispatching the Celery task when status='created'.
     """
+    # 0. Advisory lock — prevents concurrent duplicate reruns
+    lock_result = await db.execute(
+        text("SELECT pg_try_advisory_xact_lock(:key)"),
+        {"key": _RERUN_ADVISORY_LOCK_KEY},
+    )
+    if not lock_result.scalar():
+        return {"status": "skipped", "reason": "nightly H/H rerun already in progress"}
+
     # 1. Queue-busy guard
     active_count: int = (await db.execute(
         select(func.count(Simulation.id)).where(

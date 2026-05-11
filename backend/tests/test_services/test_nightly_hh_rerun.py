@@ -97,6 +97,20 @@ def _make_history_row(
     return r
 
 
+def _lock_acquired_res():
+    """Mock execute result for pg_try_advisory_xact_lock → lock acquired."""
+    r = MagicMock()
+    r.scalar.return_value = True
+    return r
+
+
+def _lock_busy_res():
+    """Mock execute result for pg_try_advisory_xact_lock → lock already held."""
+    r = MagicMock()
+    r.scalar.return_value = False
+    return r
+
+
 def _build_execute_mock(*return_values):
     """Build an AsyncMock for db.execute that returns results in order."""
     db = AsyncMock()
@@ -354,6 +368,8 @@ class TestCreateRerun:
         generated_sim = _make_sim(sim_id=generated_sim_id)
 
         call_results = [
+            # advisory lock acquired
+            MagicMock(**{"scalar.return_value": True}),
             # active_count
             MagicMock(**{"scalar.return_value": 0}),
             # get_eligible_sources: generated IDs
@@ -416,7 +432,7 @@ class TestCreateRerun:
         db = AsyncMock()
         active_res = MagicMock(); active_res.scalar.return_value = 0
         opp_res = MagicMock(); opp_res.scalars.return_value.all.return_value = [opp]
-        db.execute = AsyncMock(side_effect=[active_res, opp_res])
+        db.execute = AsyncMock(side_effect=[_lock_acquired_res(), active_res, opp_res])
         db.add = MagicMock(side_effect=track_add)
         db.flush = AsyncMock(side_effect=mock_flush)
         db.commit = AsyncMock()
@@ -465,7 +481,7 @@ class TestCreateRerun:
         db = AsyncMock()
         active_res = MagicMock(); active_res.scalar.return_value = 0
         opp_res = MagicMock(); opp_res.scalars.return_value.all.return_value = [opp]
-        db.execute = AsyncMock(side_effect=[active_res, opp_res])
+        db.execute = AsyncMock(side_effect=[_lock_acquired_res(), active_res, opp_res])
         db.add = MagicMock(side_effect=track_add)
         db.flush = AsyncMock(side_effect=mock_flush)
         db.commit = AsyncMock()
@@ -495,7 +511,7 @@ class TestCreateRerun:
 
         db = AsyncMock()
         active_res = MagicMock(); active_res.scalar.return_value = 1
-        db.execute = AsyncMock(side_effect=[active_res])
+        db.execute = AsyncMock(side_effect=[_lock_acquired_res(), active_res])
 
         result = await create_rerun(triggered_by="nightly", db=db)
         assert result["status"] == "skipped"
@@ -510,12 +526,77 @@ class TestCreateRerun:
                    new=AsyncMock(return_value=[])):
             db = AsyncMock()
             active_res = MagicMock(); active_res.scalar.return_value = 0
-            db.execute = AsyncMock(side_effect=[active_res])
+            db.execute = AsyncMock(side_effect=[_lock_acquired_res(), active_res])
 
             result = await create_rerun(triggered_by="nightly", db=db)
 
         assert result["status"] == "skipped"
         assert "no eligible" in result["reason"]
+
+    @pytest.mark.asyncio
+    async def test_advisory_lock_unavailable_returns_skipped(self):
+        """Lock already held → returns skipped with 'already in progress' reason."""
+        from app.services.nightly_hh_rerun import create_rerun
+
+        db = AsyncMock()
+        db.execute = AsyncMock(side_effect=[_lock_busy_res()])
+        db.add = MagicMock()
+
+        result = await create_rerun(triggered_by="nightly", db=db)
+        assert result["status"] == "skipped"
+        assert result["reason"] == "nightly H/H rerun already in progress"
+
+    @pytest.mark.asyncio
+    async def test_advisory_lock_unavailable_creates_no_rows(self):
+        """Lock already held → no Simulation or NightlyHHRerunHistory row created."""
+        from app.services.nightly_hh_rerun import create_rerun
+
+        db = AsyncMock()
+        db.execute = AsyncMock(side_effect=[_lock_busy_res()])
+        db.add = MagicMock()
+
+        await create_rerun(triggered_by="manual_admin", db=db)
+        db.add.assert_not_called()
+        db.commit.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_advisory_lock_acquired_creates_simulation_and_history(self):
+        """Lock acquired → full creation path produces one sim and one history row."""
+        from app.services import nightly_hh_rerun as svc
+        from app.db.models import Simulation as RealSimulation
+
+        source_sim = _make_sim(user_deck_name="LockTest")
+        opp = _make_opp(sim_id=source_sim.id, deck_name="LockOpp")
+        added_objects = []
+        gen_sim_id = uuid.uuid4()
+
+        async def mock_flush():
+            for obj in added_objects:
+                if isinstance(obj, RealSimulation) and not getattr(obj, "id", None):
+                    obj.id = gen_sim_id
+
+        db = AsyncMock()
+        active_res = MagicMock(); active_res.scalar.return_value = 0
+        opp_res = MagicMock(); opp_res.scalars.return_value.all.return_value = [opp]
+        db.execute = AsyncMock(side_effect=[_lock_acquired_res(), active_res, opp_res])
+        db.add = MagicMock(side_effect=added_objects.append)
+        db.flush = AsyncMock(side_effect=mock_flush)
+        db.commit = AsyncMock()
+
+        with patch("app.services.nightly_hh_rerun.NightlyHHRerunHistory") as MockHistory, \
+             patch("app.services.nightly_hh_rerun.get_eligible_sources",
+                   new=AsyncMock(return_value=[source_sim])), \
+             patch("app.services.nightly_hh_rerun._get_cycle_info",
+                   new=AsyncMock(return_value=(1, set()))):
+            MockHistory.return_value = MagicMock()
+            result = await svc.create_rerun(triggered_by="nightly", db=db)
+
+        assert result["status"] == "created"
+        sim_added = next(o for o in added_objects if isinstance(o, RealSimulation))
+        assert sim_added.game_mode == "hh"
+        assert sim_added.user_deck_id == source_sim.user_deck_id
+        db.commit.assert_awaited_once()
+        MockHistory.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
