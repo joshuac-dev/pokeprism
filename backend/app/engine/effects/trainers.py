@@ -2628,8 +2628,6 @@ def _community_center(state: GameState, action):
     player.community_center_used_this_turn = True
     if healed:
         state.emit_event("community_center_heal", player=player_id)
-        state.force_end_turn = True
-        state.emit_event("force_end_turn", player=player_id, reason="community_center")
 
 
 def _celebratory_fanfare(state: GameState, action):

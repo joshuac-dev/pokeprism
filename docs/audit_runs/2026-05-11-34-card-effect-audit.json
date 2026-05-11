@@ -51684,7 +51684,7 @@
       "confidence": "high",
       "result": "fixed",
       "finding_counted": true,
-      "notes": "Fixed: Community Center now uses a USE_STADIUM action gated on Supporter play, heals damaged Pok\u00e9mon, and force-ends the turn only after healing."
+      "notes": "Fixed: Community Center now uses a USE_STADIUM action gated on Supporter play and heals each damaged Pok\u00e9mon without incorrectly ending the turn."
     },
     {
       "seq": 1021,

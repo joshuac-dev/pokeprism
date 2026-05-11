@@ -304,7 +304,7 @@ def test_spikemuth_gym_surfing_beach_and_academy_handlers():
     assert state.p1.deck[0].instance_id == "hand"
 
 
-def test_community_center_and_celebratory_fanfare_heal_and_end_turn():
+def test_community_center_and_celebratory_fanfare_heal_behavior():
     active_def = _make_card("active-1", "Active")
     card_registry.register(active_def)
     active = _inst(active_def, "active", hp=100)
@@ -314,11 +314,10 @@ def test_community_center_and_celebratory_fanfare_heal_and_end_turn():
     state.p1.supporter_played_this_turn = True
     _community_center(state, Action(ActionType.USE_STADIUM, "p1"))
     assert active.damage_counters == 2
-    assert state.force_end_turn is True
+    assert state.force_end_turn is False
 
     active.damage_counters = 3
     active.current_hp = 70
-    state.force_end_turn = False
     _celebratory_fanfare(state, Action(ActionType.USE_STADIUM, "p1"))
     assert active.damage_counters == 2
     assert state.force_end_turn is True
