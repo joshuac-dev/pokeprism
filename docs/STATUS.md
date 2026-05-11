@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-11 (Standalone Codex DB-backed card-effect audit pass 2: PARTIAL_TIME_BUDGET after 36 cards, 5 fixes, 0 gaps)
+Last updated: 2026-05-14 (Round-robin nightly H/H rerun from manual simulations)
 
 ## Current Workstream
 
@@ -38,6 +38,19 @@ post-phase development:
   marks stale runs (> 1 h) as failed before starting a new one.
 - 7 new lifecycle tests in `backend/tests/test_tasks/test_scheduled_hh.py` (mock-based, no DB).
 - Module-level imports added to `scheduled.py` so tests can patch them cleanly.
+
+**Round-robin nightly H/H rerun (2026-05-14):**
+- Static Dragapult vs TR-Mewtwo nightly replaced by round-robin reruns of completed manual
+  single-round H/H simulations.
+- New `nightly_hh_rerun_history` table (migration `j6k7l8m9o0p1`) tracks source/generated pairs
+  and cycle number for durable round-robin selection.
+- New shared service `backend/app/services/nightly_hh_rerun.py`; Celery task now delegates to it.
+- Fixed generated parameters: 25 matches/opponent, 3 rounds, target_win_rate=60%,
+  target_consecutive_rounds=3, target_mode=per_opponent, deck_locked=false.
+- Admin API: `GET/POST /api/admin/nightly-hh-rerun/{status,preview,trigger}`.
+- Administration UI at `/admin` with Preview/Trigger buttons.
+- To manually trigger: open `/admin` → click "Trigger Nightly H/H Rerun Now".
+- Post-deploy migration required: `docker compose exec -T backend alembic upgrade head`.
 - Stuck nightly run `1280be10-fc27-457b-b45d-dd5439c3bfc1` (200 matches, created 2026-05-11 02:00
   UTC): all matches complete; safe to repair — see repair SQL in CHANGELOG.
 

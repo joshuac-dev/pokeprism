@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api import decks, cards, history, memory, coverage, observed_play
+from app.api import admin, decks, cards, history, memory, coverage, observed_play
 from app.api.simulations import router as simulations_router
 
 api_router = APIRouter()
@@ -14,3 +14,4 @@ api_router.include_router(history.router, prefix="", tags=["history"])
 api_router.include_router(memory.router, prefix="", tags=["memory"])
 api_router.include_router(coverage.router, prefix="/coverage", tags=["coverage"])
 api_router.include_router(observed_play.router, prefix="/observed-play", tags=["observed-play"])
+api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
