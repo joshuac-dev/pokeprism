@@ -34,7 +34,12 @@ from app.engine.state import (
     StatusCondition,
     Zone,
 )
-from app.engine.effects.base import ChoiceRequest, check_ko, draw_cards
+from app.engine.effects.base import (
+    ChoiceRequest,
+    check_ko,
+    check_lively_stadium_removed,
+    draw_cards,
+)
 from app.engine.effects.registry import EffectRegistry
 from app.cards import registry as card_registry
 
@@ -429,11 +434,13 @@ def _snow_sink(state: GameState, action):
         return
 
     stadium_name = state.active_stadium.card_name
+    discarded_stadium = state.active_stadium
     state.active_stadium.zone = Zone.DISCARD
     # Put in active player's discard (we don't track who played the stadium)
     state.get_player(player_id).discard.append(state.active_stadium)
     state.active_stadium = None
     state.emit_event("snow_sink", player=player_id, discarded=stadium_name)
+    check_lively_stadium_removed(state, discarded_stadium)
 
 
 # Battle-Hardened (sv08.5-054 Bloodmoon Ursaluna) ────────────────────────────
@@ -2140,22 +2147,33 @@ def _cond_solar_transfer(state, player_id):
 # Excited Dash (me02-082 Linoone) ─────────────────────────────────────────────
 
 def _excited_dash(state: GameState, action):
-    """me02-082 Linoone — Excited Dash: if Mega ex in play, draw 2 cards."""
+    """me02-082 Linoone — Excited Dash: if Benched and Mega ex in play, switch Active."""
     player_id = action.player_id
     player = state.get_player(player_id)
+    linoone = _find_in_play(player, action.card_instance_id)
+    if linoone is None or linoone.zone != Zone.BENCH:
+        state.emit_event("ability_no_targets", player=player_id,
+                         card="Linoone", reason="not_on_bench")
+        return
+    if linoone.ability_used_this_turn:
+        state.emit_event("ability_already_used", player=player_id,
+                         card=linoone.card_name)
+        return
     has_mega = any(
         "ex" in pk.card_name.lower() and pk.evolution_stage >= 2
         for pk in _in_play(player)
     )
     if not has_mega:
         return
-    drawn = draw_cards(state, player_id, 2)
-    state.emit_event("excited_dash", player=player_id, cards_drawn=drawn)
+    linoone.ability_used_this_turn = True
+    _switch_active_with_bench(player, linoone)
+    state.emit_event("excited_dash", player=player_id,
+                     new_active=linoone.card_name)
 
 
-def _cond_excited_dash(state, player_id):
+def _cond_excited_dash(state, player_id, poke=None):
     p = state.get_player(player_id)
-    if not any(pk for pk in _in_play(p) if pk.card_def_id == "me02-082"):
+    if poke is None or poke.card_def_id != "me02-082" or poke.zone != Zone.BENCH:
         return False
     return any(
         "ex" in pk.card_name.lower() and pk.evolution_stage >= 2
@@ -3640,10 +3658,14 @@ def _wafting_heal(state: GameState, action):
 # Inviting Wink (sv09-067, svp-183 Lillie's Ribombee) ────────────────────────
 
 def _inviting_wink(state: GameState, action):
-    """On-evolve: opponent reveals their hand; they may put any number of Basic Pokémon onto their Bench."""
+    """On-evolve: reveal opponent's hand; you may put any Basic Pokémon onto their Bench."""
     player_id = action.player_id
     opp_id = state.opponent_id(player_id)
     opp = state.get_player(opp_id)
+
+    state.emit_event("hand_revealed", player=opp_id,
+                     cards=[c.card_name for c in opp.hand],
+                     ability="Inviting Wink")
 
     opp_basics = [c for c in opp.hand
                   if c.card_type.lower() == "pokemon" and c.evolution_stage == 0]
@@ -3655,18 +3677,25 @@ def _inviting_wink(state: GameState, action):
         return
 
     req = ChoiceRequest(
-        "choose_cards", opp_id,
-        "Inviting Wink: Choose any number of your Basic Pokémon to place onto your Bench.",
+        "choose_cards", player_id,
+        "Inviting Wink: choose opponent's Basic Pokémon to place onto their Bench.",
         cards=opp_basics, min_count=0, max_count=min(len(opp_basics), bench_space),
     )
     resp = yield req
-    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+    if resp is None:
+        chosen_ids = [c.instance_id for c in opp_basics[:bench_space]]
+    else:
+        chosen_ids = list(resp.selected_cards or [])
 
     placed = 0
+    seen: set[str] = set()
     for iid in chosen_ids:
+        if iid in seen:
+            continue
+        seen.add(iid)
         if len(opp.bench) >= 5:
             break
-        card = next((c for c in opp.hand if c.instance_id == iid), None)
+        card = next((c for c in opp_basics if c.instance_id == iid and c in opp.hand), None)
         if card:
             opp.hand.remove(card)
             card.zone = Zone.BENCH

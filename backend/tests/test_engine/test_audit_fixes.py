@@ -6633,3 +6633,296 @@ async def test_drive_effect_none_guard_prevents_crash_on_unknown_choice_type():
 
     completed = [e for e in state.events if e.get("event_type") == "bad_handler_completed"]
     assert completed, "_drive_effect should complete the generator via default_choice fallback"
+
+
+def test_lillies_pearl_only_reduces_prizes_for_lillies_pokemon():
+    """sv09-151 Lillie's Pearl must not reduce prizes for non-Lillie's Pokémon."""
+    from app.engine.effects.base import check_ko
+
+    attacker_def = CardDefinition(
+        tcgdex_id="tst-attacker-pass2", name="Attacker", set_abbrev="TST",
+        set_number="p2a", category="pokemon", stage="Basic", hp=100,
+    )
+    lillie_def = CardDefinition(
+        tcgdex_id="tst-lillie-ex-pass2", name="Lillie's Clefairy ex",
+        set_abbrev="TST", set_number="p2b", category="pokemon", stage="Basic",
+        hp=190,
+    )
+    generic_def = CardDefinition(
+        tcgdex_id="tst-generic-ex-pass2", name="Generic ex",
+        set_abbrev="TST", set_number="p2c", category="pokemon", stage="Basic",
+        hp=190,
+    )
+    card_registry.register(attacker_def)
+    card_registry.register(lillie_def)
+    card_registry.register(generic_def)
+
+    for target_def, expected_remaining in ((lillie_def, 5), (generic_def, 4)):
+        state = GameState()
+        state.p1.player_id = "p1"
+        state.p2.player_id = "p2"
+        state.active_player = "p1"
+        state.p1.active = CardInstance(
+            instance_id="atk-" + target_def.tcgdex_id,
+            card_def_id=attacker_def.tcgdex_id,
+            card_name="Attacker",
+            current_hp=100,
+            max_hp=100,
+            zone=Zone.ACTIVE,
+        )
+        state.p1.prizes = [
+            CardInstance(instance_id=f"prize-{i}-{target_def.tcgdex_id}",
+                         card_def_id="prize", card_name="Prize", zone=Zone.PRIZES)
+            for i in range(6)
+        ]
+        state.p1.prizes_remaining = 6
+        target = CardInstance(
+            instance_id="target-" + target_def.tcgdex_id,
+            card_def_id=target_def.tcgdex_id,
+            card_name=target_def.name,
+            current_hp=0,
+            max_hp=190,
+            zone=Zone.ACTIVE,
+            tools_attached=["sv09-151"],
+        )
+        state.p2.active = target
+
+        check_ko(state, target, "p2")
+
+        assert state.p1.prizes_remaining == expected_remaining
+        pearl_events = [e for e in state.events
+                        if e.get("event_type") == "lillies_pearl_triggered"]
+        assert bool(pearl_events) is ("Lillie's" in target_def.name)
+
+
+def test_inviting_flowers_honors_explicit_empty_selection():
+    """sv09-068 Inviting Flowers is optional; [] must not fall back to deck order."""
+    from app.engine.effects.attacks import _inviting_flowers
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.p1.active = CardInstance(
+        instance_id="comfey-pass2", card_def_id="sv09-068",
+        card_name="Lillie's Comfey", current_hp=70, max_hp=70,
+        zone=Zone.ACTIVE,
+    )
+    state.p1.deck = [
+        CardInstance(instance_id="basic-lillie-1", card_def_id="sv09-066",
+                     card_name="Lillie's Cutiefly", card_type="Pokemon",
+                     card_subtype="Basic", zone=Zone.DECK),
+        CardInstance(instance_id="basic-lillie-2", card_def_id="sv09-056",
+                     card_name="Lillie's Clefairy ex", card_type="Pokemon",
+                     card_subtype="Basic", zone=Zone.DECK),
+    ]
+
+    gen = _inviting_flowers(state, Action(player_id="p1", action_type=ActionType.ATTACK))
+    req = next(gen)
+    assert req.choice_type == "choose_cards"
+    assert req.min_count == 0
+    with pytest.raises(StopIteration):
+        gen.send(Action(player_id="p1", action_type=ActionType.CHOOSE_CARDS,
+                        selected_cards=[]))
+
+    assert state.p1.bench == []
+    assert len(state.p1.deck) == 2
+
+
+def test_inviting_wink_owner_chooses_opponent_hand_basics():
+    """sv09-067 Inviting Wink lets the ability owner choose Basics from opponent hand."""
+    from app.engine.effects.abilities import _inviting_wink
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.p1.active = CardInstance(
+        instance_id="ribombee-pass2", card_def_id="sv09-067",
+        card_name="Lillie's Ribombee", current_hp=90, max_hp=90,
+        zone=Zone.ACTIVE,
+    )
+    basic = CardInstance(instance_id="opp-basic-pass2", card_def_id="basic",
+                         card_name="Opponent Basic", card_type="Pokemon",
+                         card_subtype="Basic", evolution_stage=0, zone=Zone.HAND)
+    stage1 = CardInstance(instance_id="opp-stage1-pass2", card_def_id="stage1",
+                          card_name="Opponent Stage1", card_type="Pokemon",
+                          card_subtype="Stage1", evolution_stage=1, zone=Zone.HAND)
+    state.p2.hand = [basic, stage1]
+
+    gen = _inviting_wink(state, Action(player_id="p1", action_type=ActionType.USE_ABILITY))
+    req = next(gen)
+    assert req.player_id == "p1"
+    assert req.choice_type == "choose_cards"
+    assert [c.instance_id for c in req.cards] == [basic.instance_id]
+
+    with pytest.raises(StopIteration):
+        gen.send(Action(player_id="p1", action_type=ActionType.CHOOSE_CARDS,
+                        selected_cards=[basic.instance_id, basic.instance_id,
+                                        stage1.instance_id]))
+
+    assert state.p2.bench == [basic]
+    assert state.p2.hand == [stage1]
+    assert basic.zone == Zone.BENCH
+
+
+def test_excited_dash_switches_benched_linoone_with_active():
+    """me02-082 Excited Dash switches Linoone active; it does not draw cards."""
+    from app.engine.effects.abilities import _excited_dash
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    old_active = CardInstance(
+        instance_id="active-pass2", card_def_id="active",
+        card_name="Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    linoone = CardInstance(
+        instance_id="linoone-pass2", card_def_id="me02-082",
+        card_name="Linoone", current_hp=100, max_hp=100, zone=Zone.BENCH,
+    )
+    mega_ex = CardInstance(
+        instance_id="mega-pass2", card_def_id="mega-ex",
+        card_name="Mega Test ex", current_hp=300, max_hp=300,
+        zone=Zone.BENCH, evolution_stage=2,
+    )
+    state.p1.active = old_active
+    state.p1.bench = [linoone, mega_ex]
+    state.p1.deck = [
+        CardInstance(instance_id="deck-pass2", card_def_id="deck",
+                     card_name="Deck Card", zone=Zone.DECK)
+    ]
+
+    _excited_dash(
+        state,
+        Action(player_id="p1", action_type=ActionType.USE_ABILITY,
+               card_instance_id=linoone.instance_id),
+    )
+
+    assert state.p1.active is linoone
+    assert old_active in state.p1.bench
+    assert state.p1.deck[0].instance_id == "deck-pass2"
+    assert linoone.ability_used_this_turn is True
+
+
+def _lively_stadium_card(instance_id: str = "lively-pass2") -> CardInstance:
+    return CardInstance(
+        instance_id=instance_id,
+        card_def_id="sv08-180",
+        card_name="Lively Stadium",
+        card_type="Trainer",
+        card_subtype="Stadium",
+        zone=Zone.STADIUM,
+    )
+
+
+def test_lively_stadium_trainer_handler_registered_and_does_not_mutate_hp():
+    """sv08-180 is continuous +30 HP for Basics, not a one-shot HP mutation."""
+    from app.engine.effects.trainers import _lively_stadium
+
+    reg = EffectRegistry.instance()
+    assert reg._trainer_effects.get("sv08-180") is _lively_stadium
+
+    basic_def = _make_card("tst-lively-basic", "Basic Target", hp=70)
+    card_registry.register(basic_def)
+    basic = _make_instance(basic_def, hp=70)
+    state = _make_state(p1_active=basic)
+
+    _lively_stadium(state, Action(player_id="p1", action_type=ActionType.PLAY_STADIUM))
+
+    assert basic.max_hp == 70
+    assert basic.current_hp == 70
+    assert any(e.get("event_type") == "lively_stadium_active" for e in state.events)
+
+
+def test_lively_stadium_continuous_hp_applies_to_current_and_future_basics_only():
+    """Basic Pokémon in play survive with up to 30 excess damage while Lively Stadium is active."""
+    from app.engine.effects.base import check_ko
+
+    basic_def = _make_card("tst-lively-basic-2", "Basic Target", hp=70)
+    stage1_def = _make_card("tst-lively-stage1", "Stage 1 Target", hp=90, stage="Stage 1")
+    attacker_def = _make_card("tst-lively-attacker", "Attacker", hp=100)
+    card_registry.register(basic_def)
+    card_registry.register(stage1_def)
+    card_registry.register(attacker_def)
+
+    attacker = _make_instance(attacker_def, hp=100)
+    basic = _make_instance(basic_def, hp=-20)
+    stage1 = _make_instance(stage1_def, zone=Zone.BENCH, hp=-20)
+    stage1.evolution_stage = 1
+    state = _make_state(p1_active=attacker, p2_active=basic, p2_bench=[stage1])
+    state.active_stadium = _lively_stadium_card()
+
+    check_ko(state, basic, "p2")
+    assert state.p2.active is basic
+
+    check_ko(state, stage1, "p2")
+    assert stage1 in state.p2.discard
+    assert stage1 not in state.p2.bench
+
+
+def test_lively_stadium_removed_rechecks_basic_pokemon_kos():
+    """Losing sv08-180 immediately KOs Basics that only survived from its +30 HP."""
+    from app.engine.effects.base import check_lively_stadium_removed
+
+    basic_def = _make_card("tst-lively-basic-3", "Basic Target", hp=70)
+    attacker_def = _make_card("tst-lively-attacker-2", "Attacker", hp=100)
+    card_registry.register(basic_def)
+    card_registry.register(attacker_def)
+
+    attacker = _make_instance(attacker_def, hp=100)
+    target = _make_instance(basic_def, hp=-20)
+    state = _make_state(p1_active=attacker, p2_active=target)
+    state.p1.prizes = [
+        CardInstance(instance_id=f"lively-prize-{i}", card_def_id="prize",
+                     card_name="Prize", zone=Zone.PRIZES)
+        for i in range(6)
+    ]
+    state.p1.prizes_remaining = 6
+    previous_stadium = _lively_stadium_card()
+    state.active_stadium = None
+
+    check_lively_stadium_removed(state, previous_stadium)
+
+    assert state.p2.active is None
+    assert target in state.p2.discard
+    assert state.p1.prizes_remaining == 5
+
+
+@pytest.mark.asyncio
+async def test_lively_stadium_replacement_rechecks_basic_pokemon_kos():
+    """Replacing Lively Stadium removes the continuous HP boost before the new Stadium resolves."""
+    from app.engine.transitions import _play_stadium
+
+    basic_def = _make_card("tst-lively-basic-4", "Basic Target", hp=70)
+    attacker_def = _make_card("tst-lively-attacker-3", "Attacker", hp=100)
+    card_registry.register(basic_def)
+    card_registry.register(attacker_def)
+
+    attacker = _make_instance(attacker_def, hp=100)
+    target = _make_instance(basic_def, hp=-20)
+    state = _make_state(p1_active=attacker, p2_active=target)
+    state.p1.prizes = [
+        CardInstance(instance_id=f"lively-replace-prize-{i}", card_def_id="prize",
+                     card_name="Prize", zone=Zone.PRIZES)
+        for i in range(6)
+    ]
+    state.p1.prizes_remaining = 6
+    state.active_stadium = _lively_stadium_card("old-lively-pass2")
+    risky_ruins = CardInstance(
+        instance_id="new-risky-ruins-pass2",
+        card_def_id="me01-127",
+        card_name="Risky Ruins",
+        card_type="Trainer",
+        card_subtype="Stadium",
+        zone=Zone.HAND,
+    )
+    state.p1.hand = [risky_ruins]
+
+    await _play_stadium(
+        state,
+        Action(player_id="p1", action_type=ActionType.PLAY_STADIUM,
+               card_instance_id=risky_ruins.instance_id),
+    )
+
+    assert state.active_stadium is risky_ruins
+    assert state.p2.active is None
+    assert target in state.p2.discard

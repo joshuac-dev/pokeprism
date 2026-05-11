@@ -30,6 +30,7 @@ from app.engine.effects.base import (
     ChoiceRequest,
     apply_weakness_resistance,
     check_ko,
+    check_lively_stadium_removed,
     draw_cards,
     get_tool_damage_bonus,
     has_tool,
@@ -1292,6 +1293,7 @@ def _ground_melter(state, action):
         state.active_stadium = None
         state.emit_event("stadium_discarded", card=discarded_stadium.card_name,
                          reason="Ground Melter")
+        check_lively_stadium_removed(state, discarded_stadium)
     _apply_damage(state, action, base_damage)
 
 
@@ -5187,6 +5189,7 @@ def _somersault_dive(state, action):
         state.active_stadium = None
         state.emit_event("stadium_discarded", stadium=stadium.card_name,
                          reason="somersault_dive")
+        check_lively_stadium_removed(state, stadium)
     _apply_damage(state, action, 120 + bonus)
 
 
@@ -6222,8 +6225,10 @@ def _wreck(state, action):
     bonus = 0
     if state.active_stadium is not None:
         bonus = 120
+        stadium = state.active_stadium
         state.active_stadium = None
         state.emit_event("stadium_discarded", reason="wreck")
+        check_lively_stadium_removed(state, stadium)
     _apply_damage(state, action, 120 + bonus)
 
 
@@ -6577,9 +6582,11 @@ def _shatter_stadium(state, action):
     if state.phase == Phase.GAME_OVER:
         return
     if state.active_stadium is not None:
-        discarded = state.active_stadium.card_name
+        discarded_stadium = state.active_stadium
+        discarded = discarded_stadium.card_name
         state.active_stadium = None
         state.emit_event("stadium_discarded", card=discarded, reason="shatter")
+        check_lively_stadium_removed(state, discarded_stadium)
 
 
 def _dazzle_blast(state, action):
@@ -7222,10 +7229,12 @@ def _scorching_earth(state, action):
         return
     if state.active_stadium is not None:
         opp_id = state.opponent_id(action.player_id)
-        discarded = state.active_stadium.card_name
+        discarded_stadium = state.active_stadium
+        discarded = discarded_stadium.card_name
         state.active_stadium = None
         state.emit_event("stadium_discarded", card=discarded, reason="scorching_earth",
                          player=opp_id)
+        check_lively_stadium_removed(state, discarded_stadium)
 
 
 def _riptide(state, action):
@@ -9914,9 +9923,11 @@ def _trimming_mower(state, action):
     """sv10-009 Mow Rotom atk0 — Trimming Mower: 20 + discard the Stadium in play."""
     _do_default_damage(state, action)
     if state.active_stadium:
-        state.emit_event("stadium_discarded", card=state.active_stadium.card_name,
+        discarded_stadium = state.active_stadium
+        state.emit_event("stadium_discarded", card=discarded_stadium.card_name,
                          reason="trimming_mower")
         state.active_stadium = None
+        check_lively_stadium_removed(state, discarded_stadium)
 
 
 def _lurantis_petal_blade(state, action):
@@ -10516,9 +10527,11 @@ def _crushing_press(state, action):
     resp = yield req
     discard_stadium = getattr(resp, "confirmed", True)
     if discard_stadium and state.active_stadium:
-        state.emit_event("stadium_discarded", card=state.active_stadium.card_name,
+        discarded_stadium = state.active_stadium
+        state.emit_event("stadium_discarded", card=discarded_stadium.card_name,
                          reason="crushing_press")
         state.active_stadium = None
+        check_lively_stadium_removed(state, discarded_stadium)
         _apply_damage(state, action, 280)
     else:
         _apply_damage(state, action, 140)
@@ -12345,15 +12358,19 @@ def _inviting_flowers(state, action):
         cards=lillies, min_count=0, max_count=max_count,
     )
     resp = yield req
-    chosen_ids = (resp.chosen_card_ids if resp and hasattr(resp, "chosen_card_ids")
-                  and resp.chosen_card_ids else [])
-    if not chosen_ids:
+    if resp is None:
         chosen_ids = [c.instance_id for c in lillies[:max_count]]
+    else:
+        chosen_ids = list(resp.chosen_card_ids or [])
     placed = 0
+    seen: set[str] = set()
     for cid in chosen_ids:
+        if cid in seen:
+            continue
+        seen.add(cid)
         if len(player.bench) >= 5:
             break
-        card = next((c for c in player.deck if c.instance_id == cid), None)
+        card = next((c for c in lillies if c.instance_id == cid and c in player.deck), None)
         if card:
             player.deck.remove(card)
             card.zone = Zone.BENCH
@@ -18668,9 +18685,11 @@ def _world_ender(state, action):
         state.emit_event("attack_no_damage", attacker="Eternatus",
                          attack_name="World Ender", reason="no_stadium_in_play")
         return
-    discarded = state.active_stadium.card_name
+    discarded_stadium = state.active_stadium
+    discarded = discarded_stadium.card_name
     state.active_stadium = None
     state.emit_event("stadium_discarded", card=discarded, reason="World Ender")
+    check_lively_stadium_removed(state, discarded_stadium)
     _do_default_damage(state, action)
 
 
@@ -20087,6 +20106,7 @@ def _knock_over_flag(state, action):
         discarded = state.active_stadium
         state.active_stadium = None
         state.emit_event("stadium_discarded", card=discarded.card_name, reason="Knock Over")
+        check_lively_stadium_removed(state, discarded)
 
 
 def _unified_beatdown_scr(state, action):
@@ -22318,6 +22338,7 @@ def _blazing_destruction(state, action):
         state.active_stadium = None
         state.emit_event("stadium_discarded", stadium=discarded,
                          attack="Blazing Destruction")
+        check_lively_stadium_removed(state, discarded)
     state.emit_event("attack_no_damage", attacker="Hisuian Growlithe",
                      attack_name="Blazing Destruction")
 
@@ -22476,6 +22497,7 @@ def _ground_crasher(state, action):
     state.active_stadium = None
     state.emit_event("stadium_discarded", card=discarded_stadium.card_name,
                      reason="Ground Crasher")
+    check_lively_stadium_removed(state, discarded_stadium)
     opp = state.get_opponent(action.player_id)
     opp_id = state.opponent_id(action.player_id)
     for target in list(opp.bench):
@@ -22554,6 +22576,7 @@ def _big_storm(state, action):
         discarded = state.active_stadium
         state.active_stadium = None
         state.emit_event("stadium_discarded", stadium=discarded, attack="Big Storm")
+        check_lively_stadium_removed(state, discarded)
 
 
 # ── sv06-122 Aggron ──────────────────────────────────────────────────────────
@@ -28477,6 +28500,7 @@ def _blustery_wind(state, action):
         state.active_stadium = None
         state.emit_event("stadium_discarded", stadium=stadium.card_name,
                          reason="blustery_wind")
+        check_lively_stadium_removed(state, stadium)
 
 
 def register_flagged_batch6_attacks(registry):

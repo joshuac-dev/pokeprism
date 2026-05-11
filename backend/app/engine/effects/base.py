@@ -246,6 +246,15 @@ def _get_effective_hp_bonus(target: "CardInstance", state: "GameState", target_p
     if any(p.card_def_id == "sv09-037" for p in in_play):
         bonus += 40
 
+    # Lively Stadium: sv08-180 — each Basic Pokémon in play gets +30 HP
+    if state.active_stadium and state.active_stadium.card_def_id == "sv08-180":
+        cdef = card_registry.get(target.card_def_id)
+        is_basic_pokemon = bool(
+            cdef and cdef.category.lower() == "pokemon" and cdef.stage.lower() == "basic"
+        )
+        if is_basic_pokemon:
+            bonus += 30
+
     # Resilient Soul: sv05-021 Brambleghast TEF — +50 HP per prize opp has taken
     if target.card_def_id == "sv05-021":
         opp = state.get_opponent(target_player_id)
@@ -253,6 +262,21 @@ def _get_effective_hp_bonus(target: "CardInstance", state: "GameState", target_p
         bonus += prizes_taken * 50
 
     return bonus
+
+
+def check_lively_stadium_removed(state: GameState, previous_stadium: Optional[CardInstance]) -> None:
+    """Recheck in-play KOs after Lively Stadium's continuous HP boost is lost."""
+    if not previous_stadium or previous_stadium.card_def_id != "sv08-180":
+        return
+    if state.active_stadium and state.active_stadium.card_def_id == "sv08-180":
+        return
+
+    for pid in ("p1", "p2"):
+        player = state.get_player(pid)
+        for poke in list(([player.active] if player.active else []) + list(player.bench)):
+            check_ko(state, poke, pid)
+            if state.phase == Phase.GAME_OVER:
+                return
 
 
 def check_ko(
@@ -320,7 +344,7 @@ def check_ko(
 
     # Lillie's Pearl (sv09-151): take 1 fewer prize (per KO, not once per game)
     _LILLIES_PEARL_ID = "sv09-151"
-    if _LILLIES_PEARL_ID in target.tools_attached:
+    if _LILLIES_PEARL_ID in target.tools_attached and "Lillie's" in target.card_name:
         prizes_to_take = max(0, prizes_to_take - 1)
         state.emit_event("lillies_pearl_triggered",
                          ko_player=target_player_id,

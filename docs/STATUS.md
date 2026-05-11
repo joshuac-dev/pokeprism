@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-11 (Standalone Codex DB-backed card-effect audit: BLOCKED_TCGDEX after 7 cards, 2 fixes)
+Last updated: 2026-05-11 (Standalone Codex DB-backed card-effect audit pass 2: PARTIAL_TIME_BUDGET after 36 cards, 5 fixes, 0 gaps)
 
 ## Current Workstream
 
@@ -17,22 +17,22 @@ post-phase development:
 - AI/coach hardening and decision-quality follow-up.
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
-**DB-backed audit handoff (2026-05-11 standalone Codex audit):**
+**DB-backed audit handoff (2026-05-11 standalone Codex audit pass 2):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes
-- completion status: `BLOCKED_TCGDEX`
+- completion status: `PARTIAL_TIME_BUDGET`
 - target findings: 25
-- implemented fixes: 2
+- implemented fixes: 5
 - documented engine gaps: 0
-- database cards audited: 7
-- first card audited: `Ledyba | SCR | 2 | sv07-002`
-- last card fully audited: `Light Ball | ASC | 191 | me02.5-191`
-- next resume cursor: `Lightning Energy | MEE | 4 | mee-004`
+- database cards audited: 36
+- first card audited: `Lightning Energy | MEE | 4 | mee-004`
+- last card fully audited: `Lt. Surge's Bargain | MEG | 120 | me01-120`
+- next resume cursor: `Lucario ex | PRE | 51 | sv08.5-051`
 - AUDIT_STATE.md update status: updated
-- focused tests run: backend container `python3 -m pytest tests/test_engine/test_audit_fixes.py -q` (195 passed; pytest cache permission warning)
-- full tests run: backend container `python3 -m pytest tests/ -x -q` initially failed because local env had `OBSERVED_PLAY_MEMORY_ENABLED=true`; rerun with `OBSERVED_PLAY_MEMORY_ENABLED=false` passed (1346 passed, 5 skipped; pytest cache permission warning)
-- implemented fixes: `sv09-150` Levincia now resolves as an explicit once-per-turn `USE_STADIUM` action and no longer auto-recovers Basic Lightning Energy at end of turn; `me02.5-191` Light Ball now applies +50 damage for Pikachu ex attacking an opponent's Active Pokémon ex before Weakness/Resistance
-- documented engine gaps: none
-- known issues / follow-up: TCGDex preflight succeeded (`sv07-002`, `sv06-167`), but later live fetches timed out (`sv09-067` single-card retry returned curl 28 / HTTP 000). Resume at `Lightning Energy | MEE | 4 | mee-004` after TCGDex recovers. Local DB count was 2223 cards. Local backend container has observed-play memory enabled, which breaks the default-config assertion unless overridden for tests.
+- focused tests run: `.venv/bin/python -m pytest tests/test_engine/test_audit_fixes.py -q` (203 passed) after Lively Stadium gap repair; original pass-2 backend-container focused run passed 199 tests with one pytest cache permission warning
+- full tests run: backend container `OBSERVED_PLAY_MEMORY_ENABLED=false python3 -m pytest tests/ -x -q` (1354 passed, 5 skipped; 2 pytest cache permission warnings) after Lively Stadium gap repair
+- implemented fixes: `sv09-151` Lillie's Pearl now only reduces prizes for Lillie's Pokémon; `sv09-068` Lillie's Comfey `Inviting Flowers` now honors explicit empty selection; `sv09-067` / `svp-183` Lillie's Ribombee `Inviting Wink` now lets the ability owner choose opponent-hand Basics and ignores duplicate/non-eligible selections; `me02-082` Linoone `Excited Dash` now switches Benched Linoone with the Active Pokémon instead of drawing cards; `sv08-180` Lively Stadium post-pass gap repair now implements the continuous +30 HP modifier for Basic Pokémon in play and KO recalculation when the Stadium leaves play
+- documented engine gaps: none remaining from this pass
+- known issues / follow-up: TCGDex recovered for this pass. Continue audit from `Lucario ex | PRE | 51 | sv08.5-051`; no additional DB cards were audited while repairing Lively Stadium. Local DB count was 2223 cards. Local backend container has observed-play memory enabled, so full-suite validation should use `OBSERVED_PLAY_MEMORY_ENABLED=false`.
 - operational notes: effects files changed: yes; celery-worker rebuild required locally after merge: yes (`docker compose build celery-worker && docker compose up -d celery-worker`)
 
 **Active planning branch:** `phase-7-observed-play-planning` — Observed-Play Intelligence Planning

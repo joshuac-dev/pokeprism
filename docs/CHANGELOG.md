@@ -31,6 +31,40 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Fixed
+- **Standalone DB-backed card-effect audit pass 2 — 2026-05-11** —
+  fix(engine): Correct Lillie's Pearl, Lillie's Comfey, Lillie's Ribombee, Linoone,
+  and Lively Stadium effects.
+
+  - **Lillie's Pearl (sv09-151)** — Prize reduction now applies only when the
+    attached Pokémon is a Lillie's Pokémon, matching the Tool text.
+  - **Lillie's Comfey (sv09-068) Inviting Flowers** — Explicit empty selection
+    is now honored for the optional deck search instead of falling back to
+    benching cards from deck order.
+  - **Lillie's Ribombee (sv09-067 / svp-183) Inviting Wink** — The ability owner
+    now chooses eligible Basic Pokémon from the opponent's revealed hand; duplicate
+    and non-eligible selected IDs are ignored safely.
+  - **Linoone (me02-082) Excited Dash** — Ability now requires Linoone to be on
+    the Bench with a Mega Evolution Pokémon ex in play, then switches Linoone
+    with the Active Pokémon. The previous implementation incorrectly drew 2 cards.
+  - **Lively Stadium (sv08-180)** — Post-pass gap repair implements the continuous
+    +30 HP modifier for all Basic Pokémon in play through dynamic KO checks,
+    prevents one-shot HP mutation on Stadium play, and rechecks KOs when Lively
+    Stadium leaves play or is replaced.
+  - Why: pass 2 resumed the DB-backed audit from `Lightning Energy | MEE | 4 | mee-004`
+    after TCGDex recovery and compared live TCGDex text against the effect layer.
+  - Evidence: `backend/app/engine/effects/base.py`;
+    `backend/app/engine/effects/attacks.py`;
+    `backend/app/engine/effects/abilities.py`;
+    `backend/app/engine/effects/trainers.py`;
+    `backend/app/engine/transitions.py`;
+    `backend/tests/test_engine/test_audit_fixes.py`;
+    `docs/AUDIT_STATE.md`; `docs/STATUS.md`.
+  - Validation: `.venv/bin/python -m pytest tests/test_engine/test_audit_fixes.py -q`
+    passed 203 tests after the Lively Stadium gap repair. The backend-container
+    full suite with `OBSERVED_PLAY_MEMORY_ENABLED=false` passed 1354 tests / 5
+    skipped with two pytest cache permission warnings.
+  - Confidence: High.
+
 - **Standalone DB-backed card-effect audit fixes — 2026-05-11** —
   fix(engine): Correct Levincia Stadium activation and Light Ball damage bonus.
 
