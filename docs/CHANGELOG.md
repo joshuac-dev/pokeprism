@@ -84,6 +84,21 @@ merged PR history support that it actually landed.
   - Why: every nightly run was creating a stuck `running` simulation row that required
     manual deletion. The History page was unusable for scheduled H/H diagnostics.
 
+- **Nightly DB-backed card-effect implementation audit — 2026-05-11 (run 30)** —
+  audit(db-backed): completed robust-audit-v2 full-cycle verification from
+  `Lucario ex | PRE | 51 | sv08.5-051` with status `DB_EXHAUSTED`.
+
+  - Audited all 1607 cards from the local database in deterministic
+    `name/set_abbrev/set_number/tcgdex_id` order and wrapped back to the start cursor.
+  - Live TCGDex preflight and per-card fetches succeeded for the full pass.
+  - No new implementation fixes or engine gaps were identified in this run.
+  - Added machine-readable audit report:
+    `docs/audit_runs/2026-05-11-30-card-effect-audit.json`.
+  - Updated `docs/AUDIT_STATE.md` to record the run with `DB_EXHAUSTED` and keep
+    `next_start_cursor` at `Lucario ex | PRE | 51 | sv08.5-051` for the next cycle.
+  - Validation: `cd backend && python3 -m pytest tests/ -x -q` (`1376 passed, 7 skipped`).
+  - Confidence: High.
+
 
   ci: Harden card-effect audit workflow with machine-readable ledger and PR gate.
 

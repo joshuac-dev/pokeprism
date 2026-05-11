@@ -54,23 +54,23 @@ post-phase development:
 - Stuck nightly run `1280be10-fc27-457b-b45d-dd5439c3bfc1` (200 matches, created 2026-05-11 02:00
   UTC): all matches complete; safe to repair — see repair SQL in CHANGELOG.
 
-**DB-backed audit handoff (2026-05-11 standalone Codex audit pass 2):**
+**DB-backed audit handoff (2026-05-11 nightly robust-audit-v2 run 30):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes
-- completion status: `PARTIAL_TIME_BUDGET`
+- completion status: `DB_EXHAUSTED`
 - target findings: 25
-- implemented fixes: 5
+- implemented fixes: 0
 - documented engine gaps: 0
-- database cards audited: 36
-- first card audited: `Lightning Energy | MEE | 4 | mee-004`
+- database cards audited: 1607
+- first card audited: `Lucario ex | PRE | 51 | sv08.5-051`
 - last card fully audited: `Lt. Surge's Bargain | MEG | 120 | me01-120`
 - next resume cursor: `Lucario ex | PRE | 51 | sv08.5-051`
 - AUDIT_STATE.md update status: updated
-- focused tests run: `.venv/bin/python -m pytest tests/test_engine/test_audit_fixes.py -q` (203 passed) after Lively Stadium gap repair; original pass-2 backend-container focused run passed 199 tests with one pytest cache permission warning
-- full tests run: backend container `OBSERVED_PLAY_MEMORY_ENABLED=false python3 -m pytest tests/ -x -q` (1354 passed, 5 skipped; 2 pytest cache permission warnings) after Lively Stadium gap repair
-- implemented fixes: `sv09-151` Lillie's Pearl now only reduces prizes for Lillie's Pokémon; `sv09-068` Lillie's Comfey `Inviting Flowers` now honors explicit empty selection; `sv09-067` / `svp-183` Lillie's Ribombee `Inviting Wink` now lets the ability owner choose opponent-hand Basics and ignores duplicate/non-eligible selections; `me02-082` Linoone `Excited Dash` now switches Benched Linoone with the Active Pokémon instead of drawing cards; `sv08-180` Lively Stadium post-pass gap repair now implements the continuous +30 HP modifier for Basic Pokémon in play and KO recalculation when the Stadium leaves play
-- documented engine gaps: none remaining from this pass
-- known issues / follow-up: TCGDex recovered for this pass. Continue audit from `Lucario ex | PRE | 51 | sv08.5-051`; no additional DB cards were audited while repairing Lively Stadium. Local DB count was 2223 cards. Local backend container has observed-play memory enabled, so full-suite validation should use `OBSERVED_PLAY_MEMORY_ENABLED=false`.
-- operational notes: effects files changed: yes; celery-worker rebuild required locally after merge: yes (`docker compose build celery-worker && docker compose up -d celery-worker`)
+- focused checks run: backend full-cycle audit script with live TCGDex fetches for all DB cards (TCGDEX_PREFLIGHT=ok, no unresolved fetches) and local backend baseline `.venv/bin/python -m pytest tests/ -x -q` (`1376 passed, 7 skipped`)
+- full tests run: `.venv/bin/python -m pytest tests/ -x -q` (`1376 passed, 7 skipped`)
+- implemented fixes: none in this pass
+- documented engine gaps: none in this pass
+- known issues / follow-up: continue next run from `Lucario ex | PRE | 51 | sv08.5-051` per DB_EXHAUSTED full-cycle behavior
+- operational notes: machine-readable report added at `docs/audit_runs/2026-05-11-30-card-effect-audit.json`; no engine code files changed in this run
 
 **Active planning branch:** `phase-7-observed-play-planning` — Observed-Play Intelligence Planning
 **Phase 1 through Phase 6.2b are COMPLETE and manually validated.** Both phases validated 2026-05-08.
