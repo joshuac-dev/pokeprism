@@ -15,7 +15,7 @@ import pytest
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
-from app.db.models import Deck, Round, Simulation, SimulationOpponentResult
+from app.db.models import Card, Deck, Round, Simulation, SimulationOpponentResult
 from app.memory.postgres import MatchMemoryWriter
 from app.tasks.simulation import (
     SIMULATION_STALE_RUNNING_MINUTES,
@@ -81,15 +81,7 @@ async def _seed_stale_sim(db: AsyncSession, *, status: str = "running", minutes_
     """Insert a minimal simulation with started_at in the past."""
     writer = MatchMemoryWriter()
     suffix = uuid.uuid4().hex[:8]
-    from app.cards.models import CardDefinition
-    cards = [CardDefinition(
-        tcgdex_id=f"stale-{suffix}-001",
-        name="Stale Card",
-        set_abbrev="TST",
-        set_number="1",
-        category="Pokemon",
-    )]
-    await writer.ensure_cards(cards, db)
+    cards = [await _fetch_card_definition_or_fallback(db, "sv07-002")]
     deck_id = await writer.ensure_deck(f"Stale Deck {suffix}", cards * 60, db)
     sim = Simulation(
         status=status,
@@ -120,15 +112,7 @@ async def _add_checkpoint(
     """Insert a SimulationOpponentResult for a simulation and backdate its updated_at."""
     writer = MatchMemoryWriter()
     suffix = uuid.uuid4().hex[:8]
-    from app.cards.models import CardDefinition
-    cards = [CardDefinition(
-        tcgdex_id=f"opp-{suffix}-001",
-        name="Opp Card",
-        set_abbrev="TST",
-        set_number="1",
-        category="Pokemon",
-    )]
-    await writer.ensure_cards(cards, db)
+    cards = [await _fetch_card_definition_or_fallback(db, "sv07-003")]
     opp_deck_id = await writer.ensure_deck(f"Opp Deck {suffix}", cards * 60, db)
 
     # We need a round row
@@ -169,6 +153,26 @@ async def _add_checkpoint(
     await db.commit()
     await db.refresh(cp)
     return cp
+
+
+async def _fetch_card_definition_or_fallback(db: AsyncSession, preferred_tcgdex_id: str):
+    from app.cards.models import CardDefinition
+
+    existing_card = (await db.execute(
+        select(Card).where(Card.tcgdex_id == preferred_tcgdex_id)
+    )).scalar_one_or_none()
+    if existing_card is None:
+        existing_card = (await db.execute(
+            select(Card).order_by(Card.tcgdex_id).limit(1)
+        )).scalar_one_or_none()
+    assert existing_card is not None, "cards seed is required for DB scheduled-task tests"
+    return CardDefinition(
+        tcgdex_id=existing_card.tcgdex_id,
+        name=existing_card.name,
+        set_abbrev=existing_card.set_abbrev,
+        set_number=existing_card.set_number,
+        category=existing_card.category,
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -31,6 +31,27 @@ merged PR history support that it actually landed.
 ## [Unreleased]
 
 ### Added
+- **Nightly DB-backed audit session — 2026-05-11** —
+  audit(db-backed): Completed one full circular traversal from
+  `Ledyba | SCR | 2 | sv07-002` with completion status `DB_EXHAUSTED`.
+
+  - TCGDex preflight succeeded (`/cards/sv07-002`, `/cards/sv06-167` returned 200).
+  - Database traversal audited 1609 cards in deterministic order
+    (`name`, `set_abbrev`, `set_number`, `tcgdex_id`) and wrapped back to the
+    start cursor.
+  - No implementation mismatches requiring code changes were found in this pass.
+  - Two database rows were recorded as `db-identity-gap` because their
+    `tcgdex_id` values returned 404 from TCGDex:
+    - `stale-12d72511-001` (`Stale Card | TST | 1`)
+    - `stale-c7202c59-001` (`Stale Card | TST | 1`)
+  - Why: nightly audit workflow requires DB-backed circular traversal with
+    live TCGDex verification and explicit run-status reporting even when no
+    code fixes are needed.
+  - Evidence: `docs/AUDIT_STATE.md`; `docs/STATUS.md`; run output capturing
+    `DB_BOOTSTRAP_CARD_COUNT=1609`, full-pass summary (`AUDITED=1609`), and
+    TCGDex 404 identity-gap rows.
+  - Confidence: High.
+
 - **Nightly DB-backed audit session (partial) — 2026-05-10** —
   fix(engine): Continue the rotating DB-backed card audit from `Lapras | SCR | 31 | sv07-031`.
 
