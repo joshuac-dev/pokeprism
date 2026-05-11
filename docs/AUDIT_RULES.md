@@ -416,7 +416,7 @@ starting with the `robust-audit-v2` label.
 Every audit PR must include a committed file at:
 
 ```
-docs/audit_runs/<YYYY-MM-DD>-card-effect-audit.json
+docs/audit_runs/<YYYY-MM-DD>-<run-number>-card-effect-audit.json
 ```
 
 The PR gate will reject any PR that does not include a valid JSON report with all
