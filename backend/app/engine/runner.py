@@ -574,6 +574,7 @@ class MatchRunner:
             player.xerosics_machinations_played_this_turn = False
             player.daydream_active = False
             player.mystery_garden_used_this_turn = False
+            player.levincia_used_this_turn = False
             player.quick_search_used_this_turn = False
             # items_locked_this_turn is set by the opponent on this player for the upcoming
             # turn. Only clear it at the end of THIS player's own turn so the effect persists
@@ -666,22 +667,6 @@ class MatchRunner:
         # Clear Retaliate window for the player whose turn just ended
         state.get_player(state.active_player).ko_taken_last_turn = False
         state.get_player(state.active_player).ethans_pokemon_ko_last_turn = False
-
-        # Levincia (sv09-150): once during each player's turn, retrieve up to 2 Basic Lightning from discard to hand
-        if (state.active_stadium
-                and state.active_stadium.card_def_id == "sv09-150"):
-            _lev_player = state.get_player(state.active_player)
-            _lev_disc = [c for c in _lev_player.discard
-                         if c.card_type.lower() == "energy"
-                         and c.card_subtype.lower() == "basic"
-                         and any("Lightning" in (ep or "") for ep in (c.energy_provides or []))]
-            for _lev_card in _lev_disc[:2]:
-                _lev_player.discard.remove(_lev_card)
-                _lev_card.zone = Zone.HAND
-                _lev_player.hand.append(_lev_card)
-                state.emit_event("levincia_recovery",
-                                 player=state.active_player,
-                                 card=_lev_card.card_name)
 
         # Community Center (sv06-146): if supporter was played this turn, heal 10 from each of your Pokémon
         if (state.active_stadium

@@ -2438,6 +2438,50 @@ def _mystery_garden(state: GameState, action):
     player.mystery_garden_used_this_turn = True
 
 
+def _levincia(state: GameState, action):
+    """Levincia (sv09-150) — once-per-turn USE_STADIUM effect."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+
+    candidates = [
+        c for c in player.discard
+        if c.card_type.lower() == "energy"
+        and c.card_subtype.lower() == "basic"
+        and any("Lightning" in (ep or "") for ep in (c.energy_provides or []))
+    ]
+    if not candidates:
+        return
+
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Levincia: choose up to 2 Basic Lightning Energy from discard to put into your hand",
+        cards=candidates, min_count=0, max_count=min(2, len(candidates)),
+    )
+    resp = yield req
+
+    if resp is None:
+        chosen_ids = [c.instance_id for c in candidates[:2]]
+    else:
+        chosen_ids = list(resp.selected_cards or [])
+
+    moved = 0
+    seen: set[str] = set()
+    for cid in chosen_ids:
+        if cid in seen or moved >= 2:
+            continue
+        seen.add(cid)
+        card = next((c for c in candidates if c.instance_id == cid and c in player.discard), None)
+        if card is None:
+            continue
+        player.discard.remove(card)
+        card.zone = Zone.HAND
+        player.hand.append(card)
+        moved += 1
+        state.emit_event("levincia_recovery", player=player_id, card=card.card_name)
+
+    player.levincia_used_this_turn = True
+
+
 def _gravity_mountain(state: GameState, action) -> None:
     """Gravity Mountain (sv08-177)
 
@@ -6076,7 +6120,7 @@ def register_all(registry: EffectRegistry) -> None:
 
     # Flagged — complex effects not yet modelled in engine
     registry.register_trainer("sv10-172", _bother_bot)   # TR Bother-Bot
-    registry.register_trainer("sv09-150", _noop)   # Levincia (per-turn energy recovery — flagged)
+    registry.register_trainer("sv09-150", _levincia)   # Levincia (USE_STADIUM)
     registry.register_trainer("sv09-156", _redeemable_ticket)  # Redeemable Ticket
     registry.register_trainer("sv08.5-093", _amarys) # Amarys (draw 4, discard hand at end of turn if 5+)
     registry.register_trainer("sv08.5-118", _ogres_mask)  # Ogre's Mask

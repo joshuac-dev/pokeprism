@@ -223,6 +223,15 @@ def _apply_damage(
             state.emit_event("cobalt_command_bonus", player=action.player_id,
                              attacker=attacker.card_name)
 
+    # Light Ball (me02.5-191): Pikachu ex does +50 to opponent's Active ex
+    # before Weakness and Resistance.
+    if has_tool(attacker, "me02.5-191") and attacker.card_name == "Pikachu ex":
+        defender_def = card_registry.get(defender.card_def_id)
+        if defender_def and getattr(defender_def, "is_ex", False):
+            total += 50
+            state.emit_event("light_ball_bonus", player=action.player_id,
+                             attacker=attacker.card_name, amount=50)
+
     # Azure Seas (sv05-050 / svp-127 Walking Wake ex): bypass ALL effects on opp Active
     if attacker.card_def_id in ("sv05-050", "svp-127"):
         bypass_defender_effects = True

@@ -30,6 +30,38 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+### Fixed
+- **Standalone DB-backed card-effect audit fixes — 2026-05-11** —
+  fix(engine): Correct Levincia Stadium activation and Light Ball damage bonus.
+
+  - **Levincia (sv09-150)** — Replaced the no-op trainer registration and
+    automatic end-turn Basic Lightning Energy recovery with an explicit
+    once-per-turn `USE_STADIUM` handler. The action is only offered when the
+    active player has Basic Lightning Energy in discard; explicit zero-card
+    selection is honored, no-response fallback takes up to two valid cards,
+    duplicate selections are ignored, and end-turn no longer moves cards
+    automatically.
+  - **Light Ball (me02.5-191)** — Added the missing passive damage modifier:
+    attacks used by Pikachu ex with Light Ball attached do 50 more damage to
+    the opponent's Active Pokémon ex before Weakness and Resistance.
+  - Why: a standalone DB-backed audit from `Ledyba | SCR | 2 | sv07-002`
+    compared live TCGDex text against the existing engine implementation and
+    found these two safe, narrow mismatches before TCGDex timed out.
+  - Evidence: `backend/app/engine/actions.py`;
+    `backend/app/engine/effects/attacks.py`;
+    `backend/app/engine/effects/trainers.py`;
+    `backend/app/engine/runner.py`; `backend/app/engine/state.py`;
+    `backend/tests/test_engine/test_audit_fixes.py`; `docs/AUDIT_STATE.md`;
+    `docs/STATUS.md`.
+  - Validation: backend container
+    `python3 -m pytest tests/test_engine/test_audit_fixes.py -q`
+    passed 195 tests with one pytest cache permission warning. Full backend
+    suite initially failed because the local container environment had
+    `OBSERVED_PLAY_MEMORY_ENABLED=true`; rerun with
+    `OBSERVED_PLAY_MEMORY_ENABLED=false` passed 1346 tests / 5 skipped with
+    one pytest cache permission warning.
+  - Confidence: High.
+
 ### Added
 - **Nightly DB-backed audit verification rerun — 2026-05-11** —
   audit(db-backed): Re-verified the full circular traversal from

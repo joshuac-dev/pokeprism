@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-11 (Nightly DB-backed audit verification rerun #2: full circular pass, DB_EXHAUSTED)
+Last updated: 2026-05-11 (Standalone Codex DB-backed card-effect audit: BLOCKED_TCGDEX after 7 cards, 2 fixes)
 
 ## Current Workstream
 
@@ -17,23 +17,23 @@ post-phase development:
 - AI/coach hardening and decision-quality follow-up.
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
-**DB-backed audit handoff (2026-05-11 verification rerun #2):**
+**DB-backed audit handoff (2026-05-11 standalone Codex audit):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes
-- completion status: `DB_EXHAUSTED`
+- completion status: `BLOCKED_TCGDEX`
 - target findings: 25
-- implemented fixes: 0
+- implemented fixes: 2
 - documented engine gaps: 0
-- database cards audited: 1607
+- database cards audited: 7
 - first card audited: `Ledyba | SCR | 2 | sv07-002`
-- last card fully audited: `Ledian | SCR | 3 | sv07-003`
-- next resume cursor: `Ledyba | SCR | 2 | sv07-002`
+- last card fully audited: `Light Ball | ASC | 191 | me02.5-191`
+- next resume cursor: `Lightning Energy | MEE | 4 | mee-004`
 - AUDIT_STATE.md update status: updated
-- focused tests run: none (no implementation changes in this run)
-- full tests run: `python3 -m pytest tests/ -x -q` (1337 passed, 7 skipped)
-- implemented fixes: none
+- focused tests run: backend container `python3 -m pytest tests/test_engine/test_audit_fixes.py -q` (195 passed; pytest cache permission warning)
+- full tests run: backend container `python3 -m pytest tests/ -x -q` initially failed because local env had `OBSERVED_PLAY_MEMORY_ENABLED=true`; rerun with `OBSERVED_PLAY_MEMORY_ENABLED=false` passed (1346 passed, 5 skipped; pytest cache permission warning)
+- implemented fixes: `sv09-150` Levincia now resolves as an explicit once-per-turn `USE_STADIUM` action and no longer auto-recovers Basic Lightning Energy at end of turn; `me02.5-191` Light Ball now applies +50 damage for Pikachu ex attacking an opponent's Active Pokémon ex before Weakness/Resistance
 - documented engine gaps: none
-- known issues / follow-up: TCGDex preflight and full 1607-card circular traversal completed cleanly again with no implementation fixes, engine gaps, or current `db-identity-gap` rows; continue from `Ledyba | SCR | 2 | sv07-002`
-- operational notes: effects files changed: no; celery-worker rebuild required locally: no
+- known issues / follow-up: TCGDex preflight succeeded (`sv07-002`, `sv06-167`), but later live fetches timed out (`sv09-067` single-card retry returned curl 28 / HTTP 000). Resume at `Lightning Energy | MEE | 4 | mee-004` after TCGDex recovers. Local DB count was 2223 cards. Local backend container has observed-play memory enabled, which breaks the default-config assertion unless overridden for tests.
+- operational notes: effects files changed: yes; celery-worker rebuild required locally after merge: yes (`docker compose build celery-worker && docker compose up -d celery-worker`)
 
 **Active planning branch:** `phase-7-observed-play-planning` — Observed-Play Intelligence Planning
 **Phase 1 through Phase 6.2b are COMPLETE and manually validated.** Both phases validated 2026-05-08.
