@@ -36,6 +36,15 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_ANTHEA_CONCORDIA_REQUIRED_POKEMON = frozenset({
+    "N's Darmanitan",
+    "N's Zoroark ex",
+    "N's Vanilluxe",
+    "N's Klinklang",
+    "N's Reshiram",
+    "N's Zekrom",
+})
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Shared helpers
@@ -55,6 +64,10 @@ def _find_pokemon_in_play(player, instance_id):
     if player.active and player.active.instance_id == instance_id:
         return player.active
     return next((c for c in player.bench if c.instance_id == instance_id), None)
+
+
+def _is_use_stadium_action(action) -> bool:
+    return getattr(action.action_type, "name", None) == "USE_STADIUM"
 
 
 def _switch_active_with_bench(player, bench_poke) -> None:
@@ -2397,7 +2410,7 @@ def _mystery_garden(state: GameState, action):
     their hand in order to draw cards until they have as many cards in their hand
     as they have {P} Pokémon in play.
     """
-    if getattr(action.action_type, "name", None) != "USE_STADIUM":
+    if not _is_use_stadium_action(action):
         return
     player_id = action.player_id
     player = state.get_player(player_id)
@@ -2444,7 +2457,7 @@ def _mystery_garden(state: GameState, action):
 
 def _levincia(state: GameState, action):
     """Levincia (sv09-150) — once-per-turn USE_STADIUM effect."""
-    if getattr(action.action_type, "name", None) != "USE_STADIUM":
+    if not _is_use_stadium_action(action):
         return
     player_id = action.player_id
     player = state.get_player(player_id)
@@ -2490,7 +2503,7 @@ def _levincia(state: GameState, action):
 
 def _lumiose_city(state: GameState, action):
     """Lumiose City (me03-077) — once-per-turn bench a Basic from deck and end turn."""
-    if getattr(action.action_type, "name", None) != "USE_STADIUM":
+    if not _is_use_stadium_action(action):
         return
     player_id = action.player_id
     player = state.get_player(player_id)
@@ -2522,7 +2535,7 @@ def _lumiose_city(state: GameState, action):
 
 def _spikemuth_gym(state: GameState, action):
     """Spikemuth Gym (sv10-169) — once-per-turn search a Marnie's Pokémon."""
-    if getattr(action.action_type, "name", None) != "USE_STADIUM":
+    if not _is_use_stadium_action(action):
         return
     player_id = action.player_id
     player = state.get_player(player_id)
@@ -2549,7 +2562,7 @@ def _spikemuth_gym(state: GameState, action):
 
 def _surfing_beach(state: GameState, action):
     """Surfing Beach (me01-129) — once-per-turn switch Active Water with Benched Water."""
-    if getattr(action.action_type, "name", None) != "USE_STADIUM":
+    if not _is_use_stadium_action(action):
         return
     player_id = action.player_id
     player = state.get_player(player_id)
@@ -2575,7 +2588,7 @@ def _surfing_beach(state: GameState, action):
 
 def _academy_at_night(state: GameState, action):
     """Academy at Night (sv06.5-054) — once-per-turn put a card from hand on top of deck."""
-    if getattr(action.action_type, "name", None) != "USE_STADIUM":
+    if not _is_use_stadium_action(action):
         return
     player_id = action.player_id
     player = state.get_player(player_id)
@@ -2600,7 +2613,7 @@ def _academy_at_night(state: GameState, action):
 
 def _community_center(state: GameState, action):
     """Community Center (sv06-146) — optional once-per-turn heal if Supporter played."""
-    if getattr(action.action_type, "name", None) != "USE_STADIUM":
+    if not _is_use_stadium_action(action):
         return
     player_id = action.player_id
     player = state.get_player(player_id)
@@ -2621,7 +2634,7 @@ def _community_center(state: GameState, action):
 
 def _celebratory_fanfare(state: GameState, action):
     """Celebratory Fanfare (mep-028) — optional once-per-turn heal and end turn if healed."""
-    if getattr(action.action_type, "name", None) != "USE_STADIUM":
+    if not _is_use_stadium_action(action):
         return
     player_id = action.player_id
     player = state.get_player(player_id)
@@ -2668,16 +2681,8 @@ def _powerglass(state: GameState, action):
 def _anthea_concordia(state: GameState, action) -> None:
     """Anthea & Concordia (me02.5-182) — N's Pokémon take 3 more prizes on Active KO this turn."""
     player = state.get_player(action.player_id)
-    required = {
-        "N's Darmanitan",
-        "N's Zoroark ex",
-        "N's Vanilluxe",
-        "N's Klinklang",
-        "N's Reshiram",
-        "N's Zekrom",
-    }
     in_play_names = {p.card_name for p in _find_in_play(player)}
-    if not required.issubset(in_play_names):
+    if not _ANTHEA_CONCORDIA_REQUIRED_POKEMON.issubset(in_play_names):
         return
     state.anthea_concordia_active = True
     state.emit_event("anthea_concordia_active", player=action.player_id)
@@ -2761,19 +2766,12 @@ def _strange_timepiece(state: GameState, action):
     resp = yield req
     target_id = resp.target_instance_id if resp and resp.target_instance_id else targets[0].instance_id
     current = next((p for p in targets if p.instance_id == target_id), None)
-    if current is None:
-        return
-    while current.evolved_from:
-        old_id = current.instance_id
+    while current is not None and current.evolved_from:
+        next_instance_id = current.evolved_from
         _devolve_pokemon(state, player_id, current, "hand")
-        current = _find_pokemon_in_play(player, current.evolved_from) or _find_pokemon_in_play(player, old_id)
-        if current is None:
-            current = player.active if player.active else None
-            if current is None:
-                break
+        current = _find_pokemon_in_play(player, next_instance_id)
+    if current is not None:
         current.turn_played = state.turn_number
-        if not current.evolved_from:
-            break
     state.emit_event("strange_timepiece_used", player=player_id)
 
 

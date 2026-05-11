@@ -121,6 +121,15 @@ def _in_play(player: PlayerState) -> list[CardInstance]:
     return result
 
 
+def _apply_counter_gain_reduction(cost: list[str], player: PlayerState, opp: PlayerState, active: CardInstance | None) -> None:
+    """Mutate ``cost`` in place for Counter Gain's single-{C} reduction when active."""
+    if (active
+            and any(t in active.tools_attached for t in ("sv08-169", "me02.5-186"))
+            and player.prizes_remaining > opp.prizes_remaining
+            and "Colorless" in cost):
+        cost.remove("Colorless")
+
+
 def _can_pay_energy_cost(pokemon: CardInstance, cost: list[str],
                          state=None, player_id: str = None) -> bool:
     """Return True if the attached energy satisfies the attack's energy cost.
@@ -876,11 +885,7 @@ class ActionValidator:
                 if "Colorless" in effective_cost:
                     effective_cost.remove("Colorless")
             # Counter Gain (sv08-169 / me02.5-186): costs {C} less if behind on prizes
-            if (player.active
-                    and any(t in player.active.tools_attached for t in ("sv08-169", "me02.5-186"))
-                    and player.prizes_remaining > opp.prizes_remaining):
-                if "Colorless" in effective_cost:
-                    effective_cost.remove("Colorless")
+            _apply_counter_gain_reduction(effective_cost, player, opp, player.active)
             # Nighttime Mine (me02.5-197): Tera Pokémon attacks cost {C} more
             if state.active_stadium and state.active_stadium.card_def_id == "me02.5-197":
                 if cdef and getattr(cdef, "is_tera", False):
@@ -897,11 +902,7 @@ class ActionValidator:
                 continue
             for _tm_atk_idx, _tm_attack in enumerate(_tm_cdef.attacks):
                 _tm_cost = list(_tm_attack.cost) if _tm_attack.cost else []
-                if (player.active
-                        and any(t in player.active.tools_attached for t in ("sv08-169", "me02.5-186"))
-                        and player.prizes_remaining > opp.prizes_remaining):
-                    if "Colorless" in _tm_cost:
-                        _tm_cost.remove("Colorless")
+                _apply_counter_gain_reduction(_tm_cost, player, opp, player.active)
                 if state.active_stadium and state.active_stadium.card_def_id == "me02.5-197":
                     _active_def = card_registry.get(player.active.card_def_id) if player.active else None
                     if _active_def and getattr(_active_def, "is_tera", False):

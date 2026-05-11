@@ -790,8 +790,10 @@ def get_bench_limit(state: "GameState", player_id: str) -> int:
     if state.active_stadium and state.active_stadium.card_def_id in {"sv08.5-094", "sv07-131"}:
         player = state.get_player(player_id)
         in_play = ([player.active] if player.active else []) + list(player.bench)
-        if any(card_registry.get(p.card_def_id) and getattr(card_registry.get(p.card_def_id), "is_tera", False)
-               for p in in_play):
+        if any(
+            (cdef := card_registry.get(p.card_def_id)) and getattr(cdef, "is_tera", False)
+            for p in in_play
+        ):
             return 8
     return 5
 

@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 PRIZE_COUNT = 6
 MAX_BENCH_SIZE = 5
+_POWERGLASS_ID = "sv06.5-063"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -371,7 +372,7 @@ class MatchRunner:
                                     if state.phase == Phase.GAME_OVER:
                                         return state
 
-        state = await self._resolve_end_of_turn_optional_effects(state, player_obj)
+        state = await self._resolve_end_of_turn_optional_effects(state)
         if state.phase == Phase.GAME_OVER:
             return state
 
@@ -383,13 +384,13 @@ class MatchRunner:
         state = self._end_turn(state)
         return state
 
-    async def _resolve_end_of_turn_optional_effects(self, state: GameState, player_obj) -> GameState:
+    async def _resolve_end_of_turn_optional_effects(self, state: GameState) -> GameState:
         """Resolve optional end-of-turn effects that need player choice."""
         player = state.get_player(state.active_player)
-        if player.active and "sv06.5-063" in player.active.tools_attached:
+        if player.active and _POWERGLASS_ID in player.active.tools_attached:
             from app.engine.effects.registry import EffectRegistry
             action = Action(ActionType.END_TURN, state.active_player)
-            await EffectRegistry.instance().resolve_trainer("sv06.5-063", state, action, self._get_player)
+            await EffectRegistry.instance().resolve_trainer(_POWERGLASS_ID, state, action, self._get_player)
         return state
 
     async def _resolve_ko_aftermath(self, state: GameState) -> GameState:
