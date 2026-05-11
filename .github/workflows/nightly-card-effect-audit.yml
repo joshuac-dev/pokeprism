@@ -356,46 +356,47 @@ jobs:
           path.write_text(text, encoding="utf-8")
           PY
 
-          JQ_FILTER='
-            {
-              title: $title,
-              body: $body,
-              labels: ["card-effect-audit", "card-effect-fix", "copilot-agent-task", "automated", "docs-sync", "robust-audit-v2"],
-              assignees: ["copilot-swe-agent[bot]"],
-              agent_assignment: {
-                target_repo: $repo,
-                base_branch: "main",
-                custom_instructions: (
-                  "Read docs/STATUS.md, docs/CHANGELOG.md, docs/AUDIT_RULES.md, docs/AUDIT_STATE.md, README.md, and then docs/PROJECT.md before doing any work. " +
-                  "This is a DB-backed rotating implementation audit. Use the database to determine cards in scope. Use TCGDex as the only source of truth for card text. " +
-                  "Start at this DB cursor: " + $cursor + ". Traverse the DB card list circularly until TARGET_REACHED, DB_EXHAUSTED/FULL_CYCLE_COMPLETE, TCGDex block, DB block, or CONTINUATION_REQUIRED. " +
-                  "Do not use CARD_EXPANSION_RULES.md, CARDLIST.md, or POKEMON_MASTER_LIST.md as audit candidate sources. " +
-                  "Target " + $target + " implemented fixes/documented engine gaps. " +
-                  "PARTIAL_TIME_BUDGET is NOT a valid completion status under robust-audit-v2. Use CONTINUATION_REQUIRED (continuation_required=true in JSON) instead. " +
-                  "TARGET_REACHED requires fixes_implemented + engine_gaps_documented >= target_findings. DB_EXHAUSTED and FULL_CYCLE_COMPLETE require full_cycle_completed=true and cards_audited >= db_card_count. " +
-                  "Minimum " + $mincards + " cards must be audited before CONTINUATION_REQUIRED is acceptable. " +
-                  "Commit docs/audit_runs/<YYYY-MM-DD>-<run-number>-card-effect-audit.json before opening the PR. The PR gate will reject PRs without a valid report or with invalid status. " +
-                  "AUDIT QUALITY v3 REQUIRED: Every ledger entry must record: (1) database identity (db_id); (2) exact TCGDex effects extracted (tcgdex_effects_extracted with kind/name/raw_text/requires_handler); (3) registry lookup result for each effect (implementation_evidence with registry_key, handler_symbol, handler_file, handler_found); (4) semantic checks performed (semantic_checks list); (5) mechanic_flags; (6) confidence (high/medium/low); (7) specific notes naming the handler and what was verified. " +
-                  "Do NOT write generic notes like 'TCGDex text fetched and compared to current handler coverage; no missing required effect handlers detected.' — such notes will be rejected by the PR gate validator. " +
-                  "A no-issue result must include concrete implementation evidence explaining why the card is correctly implemented. " +
-                  "For cards with deck-search, choice-request, damage-modifier-pre-wr, passive-stadium, once-per-turn, or other complex mechanics, list the relevant mechanic_flags and semantic_checks in the ledger entry. " +
-                  "Use backend/scripts/card_effect_audit_probe.py to generate skeleton ledger rows from live registry data: cd backend && python3 -m scripts.card_effect_audit_probe --tcgdex-id <id>. " +
-                  "cards_audited must equal the length of audit_ledger. " +
-                  "The next_resume_cursor in the JSON must match next_start_cursor in docs/AUDIT_STATE.md when cards were audited. " +
-                  "Update docs/STATUS.md with a concise current-state handoff. Update docs/CHANGELOG.md if meaningful completed work occurred. " +
-                  "Update docs/AUDIT_STATE.md with the next DB cursor only if an actual database-card audit occurred. " +
-                  "If TCGDex is unavailable, stop gracefully with BLOCKED_TCGDEX and do not use local fallback card data. " +
-                  "If time budget warnings appear or you must stop early, set completion_status=CONTINUATION_REQUIRED with continuation_required=true in JSON, update docs/AUDIT_STATE.md, commit all changes including the JSON report, add label audit-continuation-required, and open the PR if at least " + $mincards + " cards were audited. " +
-                  "Do not commit frontend/node_modules."
-                ),
-                custom_agent: ""
-              }
+          JQ_FILTER_FILE="$(mktemp)"
+          cat > "$JQ_FILTER_FILE" <<'JQEOF'
+          {
+            title: $title,
+            body: $body,
+            labels: ["card-effect-audit", "card-effect-fix", "copilot-agent-task", "automated", "docs-sync", "robust-audit-v2"],
+            assignees: ["copilot-swe-agent[bot]"],
+            agent_assignment: {
+              target_repo: $repo,
+              base_branch: "main",
+              custom_instructions: (
+                "Read docs/STATUS.md, docs/CHANGELOG.md, docs/AUDIT_RULES.md, docs/AUDIT_STATE.md, README.md, and then docs/PROJECT.md before doing any work. " +
+                "This is a DB-backed rotating implementation audit. Use the database to determine cards in scope. Use TCGDex as the only source of truth for card text. " +
+                "Start at this DB cursor: " + $cursor + ". Traverse the DB card list circularly until TARGET_REACHED, DB_EXHAUSTED/FULL_CYCLE_COMPLETE, TCGDex block, DB block, or CONTINUATION_REQUIRED. " +
+                "Do not use CARD_EXPANSION_RULES.md, CARDLIST.md, or POKEMON_MASTER_LIST.md as audit candidate sources. " +
+                "Target " + $target + " implemented fixes/documented engine gaps. " +
+                "PARTIAL_TIME_BUDGET is NOT a valid completion status under robust-audit-v2. Use CONTINUATION_REQUIRED (continuation_required=true in JSON) instead. " +
+                "TARGET_REACHED requires fixes_implemented + engine_gaps_documented >= target_findings. DB_EXHAUSTED and FULL_CYCLE_COMPLETE require full_cycle_completed=true and cards_audited >= db_card_count. " +
+                "Minimum " + $mincards + " cards must be audited before CONTINUATION_REQUIRED is acceptable. " +
+                "Commit docs/audit_runs/<YYYY-MM-DD>-<run-number>-card-effect-audit.json before opening the PR. The PR gate will reject PRs without a valid report or with invalid status. " +
+                "AUDIT QUALITY v3 REQUIRED: Every ledger entry must record: (1) database identity (db_id); (2) exact TCGDex effects extracted (tcgdex_effects_extracted with kind/name/raw_text/requires_handler); (3) registry lookup result for each effect (implementation_evidence with registry_key, handler_symbol, handler_file, handler_found); (4) semantic checks performed (semantic_checks list); (5) mechanic_flags; (6) confidence (high/medium/low); (7) specific notes naming the handler and what was verified. " +
+                "Do NOT write generic notes like \"TCGDex text fetched and compared to current handler coverage; no missing required effect handlers detected.\" -- such notes will be rejected by the PR gate validator. " +
+                "A no-issue result must include concrete implementation evidence explaining why the card is correctly implemented. " +
+                "For cards with deck-search, choice-request, damage-modifier-pre-wr, passive-stadium, once-per-turn, or other complex mechanics, list the relevant mechanic_flags and semantic_checks in the ledger entry. " +
+                "Use backend/scripts/card_effect_audit_probe.py to generate skeleton ledger rows from live registry data: cd backend && python3 -m scripts.card_effect_audit_probe --tcgdex-id <id>. " +
+                "cards_audited must equal the length of audit_ledger. " +
+                "The next_resume_cursor in the JSON must match next_start_cursor in docs/AUDIT_STATE.md when cards were audited. " +
+                "Update docs/STATUS.md with a concise current-state handoff. Update docs/CHANGELOG.md if meaningful completed work occurred. " +
+                "Update docs/AUDIT_STATE.md with the next DB cursor only if an actual database-card audit occurred. " +
+                "If TCGDex is unavailable, stop gracefully with BLOCKED_TCGDEX and do not use local fallback card data. " +
+                "If time budget warnings appear or you must stop early, set completion_status=CONTINUATION_REQUIRED with continuation_required=true in JSON, update docs/AUDIT_STATE.md, commit all changes including the JSON report, add label audit-continuation-required, and open the PR if at least " + $mincards + " cards were audited. " +
+                "Do not commit frontend/node_modules."
+              ),
+              custom_agent: ""
             }
-            | if ($model | length) > 0
-              then .agent_assignment.model = $model
-              else .
-              end
-          '
+          }
+          | if ($model | length) > 0
+            then .agent_assignment.model = $model
+            else .
+            end
+          JQEOF
 
           ISSUE_JSON="$(
             jq -n \
@@ -406,7 +407,7 @@ jobs:
               --arg target "$TARGET_FINDINGS" \
               --arg cursor "$START_CURSOR" \
               --arg mincards "$MIN_CARDS_BEFORE_PARTIAL" \
-              "$JQ_FILTER"
+              -f "$JQ_FILTER_FILE"
           )"
 
           ISSUE_URL="$(
