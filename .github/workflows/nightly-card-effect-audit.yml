@@ -23,6 +23,10 @@ name: Nightly Copilot Card Effect Fixes
         description: "Optional Copilot coding agent model. Leave blank for Copilot Auto."
         required: false
         default: ""
+      min_cards_before_partial:
+        description: "Minimum database cards audited before CONTINUATION_REQUIRED is acceptable"
+        required: false
+        default: "100"
 
 permissions:
   contents: read
@@ -48,12 +52,14 @@ jobs:
           START_CURSOR_OVERRIDE: ${{ github.event_name == 'workflow_dispatch' && inputs.start_cursor_override || '' }}
           FORCE_NEW_ISSUE: ${{ github.event_name == 'workflow_dispatch' && inputs.force_new_issue || false }}
           COPILOT_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.copilot_model || '' }}
+          MIN_CARDS_BEFORE_PARTIAL: ${{ github.event_name == 'workflow_dispatch' && inputs.min_cards_before_partial || '100' }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: |
           set -euo pipefail
 
           DATE_UTC="$(date -u +%Y-%m-%d)"
+          REPORT_FILE="docs/audit_runs/${DATE_UTC}-${GITHUB_RUN_NUMBER}-card-effect-audit.json"
           TITLE_BASE="Nightly DB-backed card effect implementation audit - ${DATE_UTC}"
           STATE_FILE="docs/AUDIT_STATE.md"
           STATE_CURSOR=""
@@ -101,13 +107,20 @@ jobs:
           gh label create copilot-agent-task --description "Task intended for GitHub Copilot coding agent" --color 0969da || true
           gh label create automated --description "Created by automated workflow" --color cfd3d7 || true
           gh label create docs-sync --description "Documentation must be kept in sync with implementation state" --color f9d0c4 || true
+          gh label create robust-audit-v2 --description "Robust audit v2: machine-readable ledger required" --color e4e669 || true
+          gh label create audit-continuation-required --description "Audit stopped early; continuation required before merge" --color d93f0b || true
+          gh label create audit-partial-merge-ok --description "Partial audit merge approved by maintainer" --color 0e8a16 || true
 
           BODY_FILE="$(mktemp)"
 
-          cat > "$BODY_FILE" <<EOF
-          # DB-BACKED CARD IMPLEMENTATION AUDIT AND FIX TASK
+          cat > "$BODY_FILE" <<ROBUSTAUDITEOF
+          # DB-BACKED CARD IMPLEMENTATION AUDIT AND FIX TASK (ROBUST-AUDIT-v2)
 
           This is a scheduled task for GitHub Copilot coding agent.
+          This task runs under robust-audit-v2 enforcement rules.
+
+          The PR gate at .github/workflows/card-effect-audit-pr-gate.yml validates the
+          machine-readable audit report and rejects PRs that do not meet enforcement criteria.
 
           ## Required reading order
 
@@ -123,238 +136,173 @@ jobs:
 
           ## Documentation hierarchy
 
-          The project documentation hierarchy has changed.
-
           - docs/STATUS.md is the current-state operational handoff. Its top/current section is authoritative.
-          - docs/CHANGELOG.md is the evidence-based historical record of what changed, why, and with what confidence.
-          - docs/AUDIT_RULES.md and docs/AUDIT_STATE.md define the active DB-backed card-effect audit workflow.
-          - docs/PROJECT.md is historical architecture context and original blueprint material. It is no longer the active "gospel" for current implementation state.
+          - docs/CHANGELOG.md is the evidence-based historical record.
+          - docs/AUDIT_RULES.md and docs/AUDIT_STATE.md define the active DB-backed audit workflow.
+          - docs/PROJECT.md is historical architecture context.
           - README.md is onboarding/public overview. If it conflicts with docs/STATUS.md, docs/STATUS.md wins.
-          - docs/CARD_EXPANSION_RULES.md, docs/CARDLIST.md, and docs/POKEMON_MASTER_LIST.md are historical/supporting expansion-era documents. Do not use them as active audit authority.
+          - docs/CARD_EXPANSION_RULES.md, docs/CARDLIST.md, and docs/POKEMON_MASTER_LIST.md are
+            historical/supporting documents. Do not use them as active audit authority.
 
-          ## Required documentation maintenance
+          ## Machine-readable audit report (REQUIRED)
 
-          This workflow must keep the cleaned-up documentation synchronized.
+          Before opening the PR, create and commit:
 
-          At the end of the run, update docs/STATUS.md with a concise current-state handoff that includes:
+              ${REPORT_FILE}
 
-          - current workstream;
-          - date of this run;
-          - completion status;
-          - target findings;
-          - implemented fixes;
-          - documented engine gaps;
-          - database cards audited;
-          - first card audited;
-          - last card fully audited;
-          - next resume cursor;
-          - AUDIT_STATE.md update status;
-          - focused tests run;
-          - full tests run, if any;
-          - known issues or follow-ups;
-          - operational notes, especially whether effects files changed and whether celery-worker rebuild is required locally.
+          This file is required. The PR gate will reject PRs without a valid report.
 
-          Update docs/CHANGELOG.md if this run produced meaningful completed work, including any of:
+              {
+                "run_date_utc": "YYYY-MM-DD",
+                "completion_status": "<status>",
+                "target_findings": ${TARGET_FINDINGS},
+                "fixes_implemented": 0,
+                "engine_gaps_documented": 0,
+                "total_findings": 0,
+                "cards_audited": 0,
+                "db_card_count": 0,
+                "full_cycle_completed": false,
+                "continuation_required": false,
+                "start_cursor_used": "",
+                "first_card_audited": "",
+                "last_card_fully_audited": "",
+                "next_resume_cursor": "",
+                "traversal_wrapped": false,
+                "audit_ledger": [
+                  {
+                    "seq": 1,
+                    "db_id": 0,
+                    "card_name": "",
+                    "set_id": "",
+                    "card_number": "",
+                    "tcgdex_id": "",
+                    "tcgdex_fetch": "ok",
+                    "effects_checked": [],
+                    "result": "no-issue",
+                    "finding_counted": false,
+                    "notes": ""
+                  }
+                ]
+              }
 
-          - implementation fixes;
-          - new or corrected card handlers;
-          - documented true engine gaps;
-          - audit workflow changes;
-          - test baseline changes;
-          - important operational findings.
+          Every card examined must have a ledger entry.
 
-          The CHANGELOG entry should be evidence-based and include why the change was made, relevant files/PR/issue references where available, and confidence.
+          Allowed audit_ledger result values:
+            fixed, engine-gap, no-issue, tcgdex-unresolved, db-identity-gap,
+            blocked-tcgdex, blocked-db-access, continuation-required
 
-          Do not update docs/PROJECT.md unless this run changes documentation governance or architecture context. PROJECT.md is historical context.
+          ## Allowed completion statuses (robust-audit-v2)
 
-          Do not advance docs/AUDIT_STATE.md unless an actual DB-backed audit was performed and at least one database card was audited.
+          TARGET_REACHED:
+            fixes_implemented + engine_gaps_documented >= ${TARGET_FINDINGS}.
+            Set full_cycle_completed appropriately and continuation_required=false.
 
-          ## Copilot environment
+          DB_EXHAUSTED:
+            Every database card was audited in one complete circular pass.
+            full_cycle_completed MUST be true. cards_audited MUST be >= db_card_count.
 
-          The Copilot coding-agent environment should be prepared by .github/workflows/copilot-setup-steps.yml before you start work. That setup provisions PostgreSQL on localhost:5433, runs migrations, and seeds the cards table using the repository's backend/scripts/seed_cards.py script.
+          FULL_CYCLE_COMPLETE:
+            Equivalent to DB_EXHAUSTED when target was also reached during the full cycle.
+            full_cycle_completed MUST be true. cards_audited MUST be >= db_card_count.
 
-          Expected database URL inside the Copilot environment:
+          BLOCKED_TCGDEX:
+            TCGDex was blocked, down, or unusable. No minimum findings required.
 
-          postgresql+asyncpg://pokeprism:changeme_postgres@localhost:5433/pokeprism
+          BLOCKED_DB_ACCESS:
+            The agent could not locate or query the application database. No minimum findings required.
 
-          If DB access fails, inspect:
+          CONTINUATION_REQUIRED:
+            The run stopped before reaching TARGET_REACHED or completing a full DB circular pass.
+            Set continuation_required=true in the JSON. Add label audit-continuation-required.
 
-          - .github/workflows/copilot-setup-steps.yml
-          - backend/app/config.py
-          - backend/alembic.ini
-          - docker-compose.yml
-          - backend/scripts/seed_cards.py
-          - backend/app/db/models.py
+          PARTIAL_TIME_BUDGET is NOT a valid completion status under robust-audit-v2.
+          Any PR reporting PARTIAL_TIME_BUDGET will be rejected by the PR gate.
+          Use CONTINUATION_REQUIRED instead.
 
-          before reporting BLOCKED_DB_ACCESS.
+          ## Early-stop and time-budget behavior (robust-audit-v2)
 
-          ## Hard prohibitions
+          If you must stop for any reason before TARGET_REACHED or DB_EXHAUSTED:
 
-          Do not use docs/CARD_EXPANSION_RULES.md, docs/CARDLIST.md, or docs/POKEMON_MASTER_LIST.md to choose audit candidates.
+          1. Stop auditing new cards.
+          2. Finish the current card fix if safe to complete.
+          3. Run the most relevant focused tests.
+          4. Commit all changes including ${REPORT_FILE}.
+          5. Set completion_status to CONTINUATION_REQUIRED and continuation_required=true in JSON.
+          6. Set next_resume_cursor to the next database card after the last fully audited card.
+          7. Update docs/AUDIT_STATE.md with that cursor.
+          8. Open the PR only if at least ${MIN_CARDS_BEFORE_PARTIAL} database cards were audited.
+          9. Add label audit-continuation-required to the PR.
 
-          Do not use markdown card lists as active audit scope.
+          Do NOT report PARTIAL_TIME_BUDGET. It is not accepted under robust-audit-v2.
 
-          Do not use local cached card data, database card text, generated fixtures, or old markdown docs as card-text authority.
+          ## Minimum cards before CONTINUATION_REQUIRED is acceptable
 
-          Do not guess card text.
-
-          Do not create placeholder handlers.
-
-          Do not create broad unrelated refactors.
-
-          Do not run a discovery-only pass.
-
-          Do not commit frontend/node_modules.
-
-          Do not run destructive database reset commands.
-
-          Do not advance docs/AUDIT_STATE.md unless an actual database card audit occurred.
-
-          ## Core intent
-
-          Audit cards that are already present in the application database.
-
-          The database determines which cards are in scope.
-          TCGDex is the only source of truth for card text and card behavior.
-          The codebase determines the current implementation.
-
-          The seeded database establishes audit scope only. The seed data is not card-text authority for behavior checks. For every audited card, fetch fresh TCGDex data and compare the implementation to TCGDex.
-
-          ## Target
-
-          Target implemented findings for this run: ${TARGET_FINDINGS}
-
-          Count only:
-
-          - implementation bugs fixed in code;
-          - missing handlers implemented and registered;
-          - wrong registrations fixed;
-          - documented true engine gaps.
-
-          Do not count unfixed candidate issues.
+          At least ${MIN_CARDS_BEFORE_PARTIAL} database cards must be audited before
+          CONTINUATION_REQUIRED is acceptable. If fewer cards were audited, continue
+          until the minimum is reached or another terminal status is reached.
 
           ## Start cursor
 
           Start cursor source: ${START_CURSOR_SOURCE}
+          Start cursor: ${START_CURSOR}
 
-          Start cursor:
+          ## Required state update (robust-audit-v2)
 
-          ${START_CURSOR}
-
-          This cursor identifies the first database card to attempt in this run. It is not a markdown-card-list position.
-
-          ## Circular traversal rule
-
-          Build the deterministic sorted database-card list by querying the cards table through the repository's SQLAlchemy Card model or an equivalent repository DB helper.
-
-          Start at the start cursor. Continue forward through database cards. If the end of the database list is reached before the target finding count is reached, wrap to the beginning and continue.
-
-          Keep auditing until one of the allowed completion statuses is reached:
-
-          - TARGET_REACHED: at least ${TARGET_FINDINGS} findings were fixed or documented as true engine gaps.
-          - DB_EXHAUSTED: every database card was audited in one circular pass from this run's start cursor and fewer than ${TARGET_FINDINGS} findings existed.
-          - BLOCKED_TCGDEX: TCGDex was blocked, down, or unusable. Stop gracefully. Do not use local fallback card text.
-          - BLOCKED_DB_ACCESS: the agent could not locate or query the application database after checking the setup workflow and repository DB config.
-          - PARTIAL_TIME_BUDGET: Copilot warned that its time budget was nearly exhausted before the target was reached.
-
-          ## Required execution behavior
-
-          Work card-by-card:
-
-          1. Query the next card from the database.
-          2. Fetch that exact card from TCGDex.
-          3. Compare TCGDex behavior to the implementation.
-          4. Fix safe implementation issues immediately.
-          5. Add or update focused tests immediately.
-          6. Record the card in the audit ledger.
-          7. Continue until a completion status is reached.
-
-          If TCGDex is unavailable, blocked, or down, stop and report BLOCKED_TCGDEX. Do not guess. Do not fall back to local card lists.
-
-          If Copilot warns that the time budget is nearly exhausted, stop auditing new cards, finish the current safe fix if practical, run focused tests, update docs/AUDIT_STATE.md with the next database cursor if at least one database card was audited, open the PR, and include the next resume cursor.
-
-          ## Required state update
-
-          Update docs/AUDIT_STATE.md in the PR unless no database card was audited.
-
-          On TARGET_REACHED or PARTIAL_TIME_BUDGET, set next_start_cursor to the next database card after the last fully audited card.
-
-          On BLOCKED_TCGDEX before any card is audited, do not advance next_start_cursor.
-
-          On BLOCKED_DB_ACCESS, do not advance next_start_cursor.
-
-          On DB_EXHAUSTED, keep or reset next_start_cursor according to docs/AUDIT_RULES.md.
-
-          ## Required validation
-
-          Run focused tests for every implemented fix where practical.
-
-          If files under backend/app/engine/effects/ changed, explicitly state in the PR that local operators must rebuild the celery worker:
-
-          docker compose build celery-worker && docker compose up -d celery-worker
-
-          If the Copilot environment can safely run the rebuild, do so. If not, document it as a required local operational step.
-
-          Run broader backend tests if practical. If full tests cannot be run because of time budget, state exactly which focused tests were run and which broader tests should be run next.
+          CRITICAL: The next_resume_cursor in ${REPORT_FILE}
+          MUST match next_start_cursor in docs/AUDIT_STATE.md whenever cards were audited.
+          The PR gate will reject PRs where these values do not match.
 
           ## Required PR report
 
-          Include:
+          Include in the PR description:
 
           - Completion status
-          - TCGDEX_PREFLIGHT
-          - DB_CARD_SOURCE
-          - DB_BOOTSTRAP_CARD_COUNT, if visible from setup output or verified directly
-          - Start cursor source
-          - Start cursor used
-          - Traversal wrapped: yes/no
-          - Target findings
+          - Target findings: ${TARGET_FINDINGS}
           - Implemented fixes
           - Documented engine gaps
-          - Unfixed candidate issues
           - Database cards audited
           - First card audited
           - Last card fully audited
           - Next resume cursor
           - AUDIT_STATE.md updated: yes/no
           - STATUS.md updated: yes/no
-          - CHANGELOG.md updated: yes/no, with reason
-          - Focused tests run
-          - Full tests run, if any
-          - Effects files changed: yes/no
-          - Celery-worker rebuild required: yes/no
-          - Per-card audit ledger
+          - CHANGELOG.md updated: yes/no
+          - Machine-readable report: ${REPORT_FILE} committed
 
-          Suggested PR title:
+          ## Hard prohibitions
 
-          Nightly DB-backed card effect implementation fixes - ${DATE_UTC}
-          EOF
+          Do not use CARD_EXPANSION_RULES.md, CARDLIST.md, or POKEMON_MASTER_LIST.md.
+          Do not guess card text.
+          Do not report PARTIAL_TIME_BUDGET.
+          Do not commit frontend/node_modules.
+          Do not omit ${REPORT_FILE}.
+          Do not advance docs/AUDIT_STATE.md unless an actual database-card audit occurred.
+          ROBUSTAUDITEOF
 
           JQ_FILTER='
             {
               title: $title,
               body: $body,
-              labels: ["card-effect-audit", "card-effect-fix", "copilot-agent-task", "automated", "docs-sync"],
+              labels: ["card-effect-audit", "card-effect-fix", "copilot-agent-task", "automated", "docs-sync", "robust-audit-v2"],
               assignees: ["copilot-swe-agent[bot]"],
               agent_assignment: {
                 target_repo: $repo,
                 base_branch: "main",
                 custom_instructions: (
                   "Read docs/STATUS.md, docs/CHANGELOG.md, docs/AUDIT_RULES.md, docs/AUDIT_STATE.md, README.md, and then docs/PROJECT.md before doing any work. " +
-                  "Documentation hierarchy: STATUS.md is current operational truth; CHANGELOG.md is evidence-based history; AUDIT_RULES.md/AUDIT_STATE.md define the active DB-backed audit workflow; PROJECT.md is historical architecture context, not current gospel. " +
-                  "The Copilot setup workflow should provision Postgres on localhost:5433, run migrations, and seed cards via backend/scripts/seed_cards.py. " +
-                  "This is a DB-backed rotating implementation audit, not a card-list expansion task. " +
-                  "Use the database to determine cards in scope. Use TCGDex as the only source of truth for card text. " +
-                  "Start at this DB cursor: " + $cursor + ". Traverse the DB card list circularly: after the end, wrap to the beginning until target, full-cycle exhaustion, TCGDex block, DB block, or time budget. " +
+                  "This is a DB-backed rotating implementation audit. Use the database to determine cards in scope. Use TCGDex as the only source of truth for card text. " +
+                  "Start at this DB cursor: " + $cursor + ". Traverse the DB card list circularly until TARGET_REACHED, DB_EXHAUSTED/FULL_CYCLE_COMPLETE, TCGDex block, DB block, or CONTINUATION_REQUIRED. " +
                   "Do not use CARD_EXPANSION_RULES.md, CARDLIST.md, or POKEMON_MASTER_LIST.md as audit candidate sources. " +
-                  "Do not run a discovery-only pass; fix and test issues card-by-card. " +
                   "Target " + $target + " implemented fixes/documented engine gaps. " +
+                  "PARTIAL_TIME_BUDGET is NOT a valid completion status under robust-audit-v2. Use CONTINUATION_REQUIRED (continuation_required=true in JSON) instead. " +
+                  "TARGET_REACHED requires fixes_implemented + engine_gaps_documented >= target_findings. DB_EXHAUSTED and FULL_CYCLE_COMPLETE require full_cycle_completed=true and cards_audited >= db_card_count. " +
+                  "Minimum " + $mincards + " cards must be audited before CONTINUATION_REQUIRED is acceptable. " +
+                  "Commit docs/audit_runs/<YYYY-MM-DD>-<run-number>-card-effect-audit.json before opening the PR. The PR gate will reject PRs without a valid report or with invalid status. " +
+                  "The next_resume_cursor in the JSON must match next_start_cursor in docs/AUDIT_STATE.md when cards were audited. " +
                   "Update docs/STATUS.md with a concise current-state handoff. Update docs/CHANGELOG.md if meaningful completed work occurred. " +
                   "Update docs/AUDIT_STATE.md with the next DB cursor only if an actual database-card audit occurred. " +
                   "If TCGDex is unavailable, stop gracefully with BLOCKED_TCGDEX and do not use local fallback card data. " +
-                  "If DB access fails, inspect copilot-setup-steps.yml and repository DB config before reporting BLOCKED_DB_ACCESS. " +
-                  "If time budget warnings appear, stop auditing new cards, finish the current safe fix, test, PR, and include the next DB resume cursor. " +
-                  "If backend/app/engine/effects/ changed, note that celery-worker must be rebuilt with: docker compose build celery-worker && docker compose up -d celery-worker. " +
+                  "If time budget warnings appear or you must stop early, set completion_status=CONTINUATION_REQUIRED with continuation_required=true in JSON, update docs/AUDIT_STATE.md, commit all changes including the JSON report, add label audit-continuation-required, and open the PR if at least " + $mincards + " cards were audited. " +
                   "Do not commit frontend/node_modules."
                 ),
                 custom_agent: ""
@@ -374,6 +322,7 @@ jobs:
               --arg model "$COPILOT_MODEL" \
               --arg target "$TARGET_FINDINGS" \
               --arg cursor "$START_CURSOR" \
+              --arg mincards "$MIN_CARDS_BEFORE_PARTIAL" \
               "$JQ_FILTER"
           )"
 

@@ -121,7 +121,7 @@ If the run ends with `BLOCKED_TCGDEX` before any card is audited, do not advance
 
 If the run ends with `BLOCKED_DB_ACCESS`, do not advance the cursor.
 
-If the run ends with `TARGET_REACHED` or `PARTIAL_TIME_BUDGET`, set `next_start_cursor` to the next database card after the last fully audited card.
+If the run ends with `TARGET_REACHED` or `CONTINUATION_REQUIRED`, set `next_start_cursor` to the next database card after the last fully audited card.
 
 If the run reaches the end of the sorted database list and still has not reached the target finding count, wrap to the beginning of the sorted database list and continue. If the run audits every database card in one circular pass without reaching the target, set completion status to `DB_EXHAUSTED` and set `next_start_cursor` to the same start cursor used for that full pass, or to `START_OF_DATABASE_CARD_LIST` if no concrete start cursor was available.
 
@@ -195,7 +195,9 @@ The target finding count is a target for implemented fixes and documented engine
 
 Unfixed candidate issues do not count toward the target.
 
-If the agent detects a time-budget warning, it must stop looking for new cards, finish only the current safe fix if practical, run focused tests, update `docs/AUDIT_STATE.md` with the next database cursor, and open the PR with status `PARTIAL_TIME_BUDGET`.
+If the agent detects a time-budget warning, it must stop looking for new cards, finish only the current safe fix if practical, run focused tests, update `docs/AUDIT_STATE.md` with the next database cursor, and open the PR with status `CONTINUATION_REQUIRED` (see **Robust audit v2 enforcement rules** below).
+
+`PARTIAL_TIME_BUDGET` is no longer a valid completion status. Use `CONTINUATION_REQUIRED` instead.
 
 ## What counts as a finding
 
@@ -321,10 +323,14 @@ When that happens:
 1. Stop auditing new cards.
 2. Finish the current card fix if it is already in progress and safe to complete.
 3. Run the most relevant focused tests.
-4. Commit the implemented changes.
-5. Open the PR with status `PARTIAL_TIME_BUDGET`.
-6. Include the next resume cursor.
-7. Put any discovered but unfixed candidates in `Unresolved candidates`.
+4. Commit the implemented changes including `docs/audit_runs/<date>-<run>-card-effect-audit.json`.
+5. Set `completion_status` to `CONTINUATION_REQUIRED` and `continuation_required=true` in the JSON.
+6. Include the next resume cursor in `next_resume_cursor` and update `docs/AUDIT_STATE.md`.
+7. Open the PR only if at least `min_cards_before_partial` database cards were audited.
+8. Add label `audit-continuation-required` to the PR.
+9. Put any discovered but unfixed candidates in `Unresolved candidates`.
+
+`PARTIAL_TIME_BUDGET` is **not a valid completion status** under robust-audit-v2. The PR gate will reject it.
 
 Do not spend the run building a large backlog of findings without implementing them.
 
@@ -354,13 +360,15 @@ Allowed result values:
 - `db-identity-gap`
 - `blocked-tcgdex`
 - `blocked-db-access`
-- `partial-time-budget`
+- `continuation-required`
+
+`partial-time-budget` is **not** a valid result value. Use `continuation-required` instead.
 
 ## Required PR summary
 
 The PR summary must include:
 
-- `Completion status`: `TARGET_REACHED`, `DB_EXHAUSTED`, `BLOCKED_TCGDEX`, `BLOCKED_DB_ACCESS`, or `PARTIAL_TIME_BUDGET`
+- `Completion status`: `TARGET_REACHED`, `DB_EXHAUSTED`, `FULL_CYCLE_COMPLETE`, `BLOCKED_TCGDEX`, `BLOCKED_DB_ACCESS`, or `CONTINUATION_REQUIRED`
 - `TCGDEX_PREFLIGHT`
 - `DB_CARD_SOURCE`
 - `Target findings`
@@ -392,4 +400,60 @@ The agent must not:
 - restart from the beginning of the alphabet when `docs/AUDIT_STATE.md` provides a later cursor;
 - create broad unrelated refactors;
 - create stub or placeholder handlers;
-- silently approximate precise card mechanics.
+- silently approximate precise card mechanics;
+- report `PARTIAL_TIME_BUDGET` (use `CONTINUATION_REQUIRED` instead);
+- omit `docs/audit_runs/<YYYY-MM-DD>-<run-number>-card-effect-audit.json` from the PR;
+- commit `frontend/node_modules`.
+
+## Robust audit v2 enforcement rules
+
+The nightly workflow (`.github/workflows/nightly-card-effect-audit.yml`) and the PR
+gate (`.github/workflows/card-effect-audit-pr-gate.yml`) enforce the following rules
+starting with the `robust-audit-v2` label.
+
+### Machine-readable audit report required
+
+Every audit PR must include a committed file at:
+
+```
+docs/audit_runs/<YYYY-MM-DD>-<run-number>-card-effect-audit.json
+```
+
+The PR gate will reject any PR that does not include a valid JSON report with all
+required fields and a valid completion status.
+
+### Completion status rules
+
+| Status | Requirements |
+|---|---|
+| `TARGET_REACHED` | `fixes_implemented + engine_gaps_documented >= target_findings` |
+| `DB_EXHAUSTED` | `full_cycle_completed = true` AND `cards_audited >= db_card_count` |
+| `FULL_CYCLE_COMPLETE` | Same as `DB_EXHAUSTED`; use when the target was also reached during the full cycle |
+| `BLOCKED_TCGDEX` | TCGDex unavailable; no minimum findings required |
+| `BLOCKED_DB_ACCESS` | DB unreachable; no minimum findings required |
+| `CONTINUATION_REQUIRED` | `continuation_required = true`; PR must have `audit-continuation-required` or `audit-partial-merge-ok` label |
+
+`PARTIAL_TIME_BUDGET` is **rejected**. The PR gate will fail any PR that uses it.
+
+### Cursor consistency rule
+
+When `cards_audited > 0`, the `next_resume_cursor` field in the JSON report must
+match the `next_start_cursor` field in `docs/AUDIT_STATE.md`. The PR gate will
+reject PRs where these values do not match.
+
+### Continuation rule
+
+A `CONTINUATION_REQUIRED` PR is only valid if:
+
+1. `continuation_required = true` in the JSON;
+2. The PR has either the `audit-continuation-required` or `audit-partial-merge-ok` label;
+3. At least `min_cards_before_partial` database cards were audited (default: 100).
+
+### Prohibited artifacts
+
+The PR gate also rejects PRs that commit any of the following:
+
+- `frontend/node_modules`
+- `tmp/*.log` files
+- database dump files (`.sql`, `*.dump`)
+- `observed_play/import_candidates/*.{txt,md,log}` files (other than the existing README)
