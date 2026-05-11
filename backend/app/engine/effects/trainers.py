@@ -25,7 +25,8 @@ from app.engine.state import (
 )
 from app.engine.effects.base import (
     ChoiceRequest, check_ko, check_lively_stadium_removed, draw_cards,
-    is_recoverable_from_discard,
+    enforce_area_zero_underdepths, get_bench_limit, is_recoverable_from_discard,
+    _devolve_pokemon,
 )
 from app.engine.effects.registry import EffectRegistry
 from app.cards import registry as card_registry
@@ -2396,6 +2397,8 @@ def _mystery_garden(state: GameState, action):
     their hand in order to draw cards until they have as many cards in their hand
     as they have {P} Pokémon in play.
     """
+    if getattr(action.action_type, "name", None) != "USE_STADIUM":
+        return
     player_id = action.player_id
     player = state.get_player(player_id)
 
@@ -2441,6 +2444,8 @@ def _mystery_garden(state: GameState, action):
 
 def _levincia(state: GameState, action):
     """Levincia (sv09-150) — once-per-turn USE_STADIUM effect."""
+    if getattr(action.action_type, "name", None) != "USE_STADIUM":
+        return
     player_id = action.player_id
     player = state.get_player(player_id)
 
@@ -2481,6 +2486,308 @@ def _levincia(state: GameState, action):
         state.emit_event("levincia_recovery", player=player_id, card=card.card_name)
 
     player.levincia_used_this_turn = True
+
+
+def _lumiose_city(state: GameState, action):
+    """Lumiose City (me03-077) — once-per-turn bench a Basic from deck and end turn."""
+    if getattr(action.action_type, "name", None) != "USE_STADIUM":
+        return
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if len(player.bench) >= get_bench_limit(state, player_id):
+        return
+    player.lumiose_city_used_this_turn = True
+    basics = [c for c in player.deck if c.card_type.lower() == "pokemon" and c.evolution_stage == 0]
+    if not basics:
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Lumiose City: choose a Basic Pokémon from your deck to put onto your Bench (optional)",
+        cards=basics, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_id = None
+    if resp and resp.selected_cards:
+        chosen_id = resp.selected_cards[0]
+    chosen = next((c for c in basics if c.instance_id == chosen_id), None)
+    if chosen is None:
+        return
+    player.deck.remove(chosen)
+    _bench_pokemon(state, player_id, chosen)
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="lumiose_city")
+    state.force_end_turn = True
+    state.emit_event("force_end_turn", player=player_id, reason="lumiose_city")
+
+
+def _spikemuth_gym(state: GameState, action):
+    """Spikemuth Gym (sv10-169) — once-per-turn search a Marnie's Pokémon."""
+    if getattr(action.action_type, "name", None) != "USE_STADIUM":
+        return
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    player.spikemuth_gym_used_this_turn = True
+    candidates = [c for c in player.deck if c.card_type.lower() == "pokemon" and c.card_name.startswith("Marnie's")]
+    if not candidates:
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Spikemuth Gym: choose a Marnie's Pokémon to reveal and put into your hand (optional)",
+        cards=candidates, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_id = resp.selected_cards[0] if resp and resp.selected_cards else None
+    chosen = next((c for c in candidates if c.instance_id == chosen_id), None)
+    if chosen is not None:
+        player.deck.remove(chosen)
+        chosen.zone = Zone.HAND
+        player.hand.append(chosen)
+        state.emit_event("spikemuth_gym_reveal", player=player_id, card=chosen.card_name)
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="spikemuth_gym")
+
+
+def _surfing_beach(state: GameState, action):
+    """Surfing Beach (me01-129) — once-per-turn switch Active Water with Benched Water."""
+    if getattr(action.action_type, "name", None) != "USE_STADIUM":
+        return
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    player.surfing_beach_used_this_turn = True
+    if player.active is None or not _pokemon_has_type(player.active, "Water"):
+        return
+    targets = [b for b in player.bench if _pokemon_has_type(b, "Water")]
+    if not targets:
+        return
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Surfing Beach: choose a Benched Water Pokémon to switch with your Active Water Pokémon",
+        targets=targets,
+    )
+    resp = yield req
+    target_id = resp.target_instance_id if resp and resp.target_instance_id else targets[0].instance_id
+    target = next((b for b in targets if b.instance_id == target_id), None)
+    if target is None:
+        return
+    _switch_active_with_bench(player, target)
+    state.emit_event("surfing_beach_switch", player=player_id, active=player.active.card_name)
+
+
+def _academy_at_night(state: GameState, action):
+    """Academy at Night (sv06.5-054) — once-per-turn put a card from hand on top of deck."""
+    if getattr(action.action_type, "name", None) != "USE_STADIUM":
+        return
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    player.academy_at_night_used_this_turn = True
+    if not player.hand:
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Academy at Night: choose a card from your hand to put on top of your deck (optional)",
+        cards=list(player.hand), min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_id = resp.selected_cards[0] if resp and resp.selected_cards else None
+    chosen = next((c for c in player.hand if c.instance_id == chosen_id), None)
+    if chosen is None:
+        return
+    player.hand.remove(chosen)
+    chosen.zone = Zone.DECK
+    player.deck.insert(0, chosen)
+    state.emit_event("academy_at_night_topdeck", player=player_id, card=chosen.card_name)
+
+
+def _community_center(state: GameState, action):
+    """Community Center (sv06-146) — optional once-per-turn heal if Supporter played."""
+    if getattr(action.action_type, "name", None) != "USE_STADIUM":
+        return
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.supporter_played_this_turn:
+        return
+    healed = False
+    for poke in _find_in_play(player):
+        if poke.damage_counters > 0:
+            poke.damage_counters = max(0, poke.damage_counters - 1)
+            poke.current_hp = min(poke.max_hp, poke.current_hp + 10)
+            healed = True
+    player.community_center_used_this_turn = True
+    if healed:
+        state.emit_event("community_center_heal", player=player_id)
+        state.force_end_turn = True
+        state.emit_event("force_end_turn", player=player_id, reason="community_center")
+
+
+def _celebratory_fanfare(state: GameState, action):
+    """Celebratory Fanfare (mep-028) — optional once-per-turn heal and end turn if healed."""
+    if getattr(action.action_type, "name", None) != "USE_STADIUM":
+        return
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    healed = False
+    for poke in _find_in_play(player):
+        if poke.damage_counters > 0:
+            poke.damage_counters = max(0, poke.damage_counters - 1)
+            poke.current_hp = min(poke.max_hp, poke.current_hp + 10)
+            healed = True
+    player.celebratory_fanfare_used_this_turn = True
+    if healed:
+        state.emit_event("celebratory_fanfare_heal", player=player_id)
+        state.force_end_turn = True
+        state.emit_event("force_end_turn", player=player_id, reason="celebratory_fanfare")
+
+
+def _powerglass(state: GameState, action):
+    """Powerglass (sv06.5-063) — optional end-of-turn Basic Energy attach from discard."""
+    if getattr(action.action_type, "name", None) != "END_TURN":
+        return
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.active or "sv06.5-063" not in player.active.tools_attached:
+        return
+    basic_energy = [c for c in player.discard if _is_basic_energy_card(c)]
+    if not basic_energy:
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Powerglass: choose a Basic Energy card from your discard pile to attach to your Active Pokémon (optional)",
+        cards=basic_energy, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_id = resp.selected_cards[0] if resp and resp.selected_cards else None
+    chosen = next((c for c in basic_energy if c.instance_id == chosen_id), None)
+    if chosen is None:
+        return
+    player.discard.remove(chosen)
+    chosen.zone = player.active.zone
+    player.active.energy_attached.append(_make_energy_attachment(chosen))
+    state.emit_event("powerglass_triggered", player=player_id, energy=chosen.card_name)
+
+
+def _anthea_concordia(state: GameState, action) -> None:
+    """Anthea & Concordia (me02.5-182) — N's Pokémon take 3 more prizes on Active KO this turn."""
+    player = state.get_player(action.player_id)
+    required = {
+        "N's Darmanitan",
+        "N's Zoroark ex",
+        "N's Vanilluxe",
+        "N's Klinklang",
+        "N's Reshiram",
+        "N's Zekrom",
+    }
+    in_play_names = {p.card_name for p in _find_in_play(player)}
+    if not required.issubset(in_play_names):
+        return
+    state.anthea_concordia_active = True
+    state.emit_event("anthea_concordia_active", player=action.player_id)
+
+
+def _canari(state: GameState, action):
+    """Canari (me02.5-185) — discard another card, search up to 4 Lightning Pokémon."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    discardable = [c for c in player.hand if c.instance_id != action.card_instance_id]
+    if not discardable:
+        return
+    req_cost = ChoiceRequest(
+        "choose_cards", player_id,
+        "Canari: discard another card from your hand",
+        cards=discardable, min_count=1, max_count=1,
+    )
+    resp_cost = yield req_cost
+    chosen_cost_id = resp_cost.selected_cards[0] if resp_cost and resp_cost.selected_cards else discardable[0].instance_id
+    cost_card = next((c for c in discardable if c.instance_id == chosen_cost_id), discardable[0])
+    player.hand.remove(cost_card)
+    cost_card.zone = Zone.DISCARD
+    player.discard.append(cost_card)
+
+    candidates = [
+        c for c in player.deck
+        if c.card_type.lower() == "pokemon" and _pokemon_has_type(c, "Lightning")
+    ]
+    if not candidates:
+        random.shuffle(player.deck)
+        state.emit_event("shuffle_deck", player=player_id, reason="canari")
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Canari: choose up to 4 Lightning Pokémon from your deck to put into your hand",
+        cards=candidates, min_count=0, max_count=min(4, len(candidates)),
+    )
+    resp = yield req
+    chosen_ids = list(resp.selected_cards or []) if resp else []
+    moved = 0
+    seen: set[str] = set()
+    for cid in chosen_ids:
+        if cid in seen or moved >= 4:
+            continue
+        seen.add(cid)
+        card = next((c for c in candidates if c.instance_id == cid and c in player.deck), None)
+        if card is None:
+            continue
+        player.deck.remove(card)
+        card.zone = Zone.HAND
+        player.hand.append(card)
+        moved += 1
+        state.emit_event("canari_reveal", player=player_id, card=card.card_name)
+    random.shuffle(player.deck)
+    state.emit_event("shuffle_deck", player=player_id, reason="canari")
+
+
+def _cynthias_power_weight(state: GameState, action) -> None:
+    """Cynthia's Power Weight (sv10-162) — attached Cynthia's Pokémon gets +70 HP."""
+    player = state.get_player(action.player_id)
+    poke = _find_pokemon_in_play(player, action.target_instance_id)
+    if poke is None or "Cynthia's" not in poke.card_name:
+        return
+    poke.max_hp += 70
+    poke.current_hp += 70
+    state.emit_event("cynthias_power_weight_attached", player=action.player_id, card=poke.card_name, hp_bonus=70)
+
+
+def _strange_timepiece(state: GameState, action):
+    """Strange Timepiece (me01-128) — devolve one evolved Psychic Pokémon, returning evolutions to hand."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    targets = [p for p in _find_in_play(player) if p.evolution_stage > 0 and _pokemon_has_type(p, "Psychic")]
+    if not targets:
+        return
+    req = ChoiceRequest(
+        "choose_target", player_id,
+        "Strange Timepiece: choose an evolved Psychic Pokémon to devolve",
+        targets=targets,
+    )
+    resp = yield req
+    target_id = resp.target_instance_id if resp and resp.target_instance_id else targets[0].instance_id
+    current = next((p for p in targets if p.instance_id == target_id), None)
+    if current is None:
+        return
+    while current.evolved_from:
+        old_id = current.instance_id
+        _devolve_pokemon(state, player_id, current, "hand")
+        current = _find_pokemon_in_play(player, current.evolved_from) or _find_pokemon_in_play(player, old_id)
+        if current is None:
+            current = player.active if player.active else None
+            if current is None:
+                break
+        current.turn_played = state.turn_number
+        if not current.evolved_from:
+            break
+    state.emit_event("strange_timepiece_used", player=player_id)
+
+
+def _area_zero_underdepths(state: GameState, action) -> None:
+    """Area Zero Underdepths — bench size/prune logic is enforced elsewhere."""
+    enforce_area_zero_underdepths(
+        state,
+        discard_first_player_id=state.active_stadium_owner or action.player_id,
+    )
+
+
+def _dizzying_valley(state: GameState, action) -> None:
+    """Dizzying Valley — Confused status persistence is enforced in evolve/devolve helpers."""
+    return
 
 
 def _gravity_mountain(state: GameState, action) -> None:
@@ -5923,10 +6230,10 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv08-177", _gravity_mountain)
     registry.register_trainer("sv08-180", _lively_stadium)
     # Stadiums requiring USE_STADIUM action (not yet implemented — future)
-    registry.register_trainer("sv07-131", _noop)   # Area Zero Underdepths
+    registry.register_trainer("sv07-131", _area_zero_underdepths)   # Area Zero Underdepths
     registry.register_trainer("sv07-136", _noop)   # Grand Tree
     registry.register_trainer("sv09-152", _noop)   # N's Royal Blades
-    registry.register_trainer("sv10-169", _noop)   # Spikemuth Gym
+    registry.register_trainer("sv10-169", _spikemuth_gym)   # Spikemuth Gym (USE_STADIUM)
     registry.register_trainer("sv10-173", _tr_factory_on_play)
     registry.register_trainer("sv10-180", _noop)   # Watchtower (passive — handled in actions.py)
     registry.register_trainer("me02.5-210", _noop) # Team Rocket's Watchtower alt (passive — handled in actions.py)
@@ -5974,8 +6281,8 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("me03-080", _poke_ball_b18)
     registry.register_trainer("me03-082", _pokemon_catcher_b18)
     registry.register_trainer("me03-083", _potion_b18)
-    registry.register_trainer("me02.5-182", _noop)  # Anthea & Concordia (complex passive)
-    registry.register_trainer("me02.5-185", _noop)  # Canari ({L} type search + discard cost)
+    registry.register_trainer("me02.5-182", _anthea_concordia)  # Anthea & Concordia
+    registry.register_trainer("me02.5-185", _canari)  # Canari ({L} type search + discard cost)
     registry.register_trainer("me02.5-187", _fighting_gong)           # Fighting Gong alt
     registry.register_trainer("me02.5-188", _noop)  # Forest of Vitality alt (passive)
     registry.register_trainer("me02.5-189", _glass_trumpet)           # Glass Trumpet alt
@@ -5988,11 +6295,11 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("me01-120", _lt_surges_bargain)  # Lt. Surge's Bargain
     registry.register_trainer("me01-122", _mystery_garden)  # Mystery Garden alt (USE_STADIUM)
     registry.register_trainer("me01-124", _premium_power_pro_b18)     # Premium Power Pro
-    registry.register_trainer("me01-128", _noop)   # Strange Timepiece (devolve — not supported)
-    registry.register_trainer("me01-129", _noop)   # Surfing Beach (passive stadium)
+    registry.register_trainer("me01-128", _strange_timepiece)   # Strange Timepiece
+    registry.register_trainer("me01-129", _surfing_beach)   # Surfing Beach (USE_STADIUM)
     registry.register_trainer("me01-130", _switch_b18)                # Switch
     registry.register_trainer("me02-086", _blowtorch_b18)             # Blowtorch
-    registry.register_trainer("me02-088", _noop)   # Dizzying Valley (passive stadium)
+    registry.register_trainer("me02-088", _dizzying_valley)   # Dizzying Valley (status persistence handled in transitions/base)
     registry.register_trainer("me02-089", _firebreather_b18)          # Firebreather
     registry.register_trainer("me02-090", _grimsleys_move_b18)        # Grimsley's Move
     registry.register_trainer("sv10.5b-079", _noop) # Air Balloon alt (passive tool)
@@ -6013,7 +6320,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("me02-093", _noop)    # Sacred Charm (-30 from Ability Pokémon)
 
     # Stadiums (passive — handled elsewhere)
-    registry.register_trainer("me03-077", _noop)   # Lumiose City (bench Basic per turn)
+    registry.register_trainer("me03-077", _lumiose_city)   # Lumiose City (USE_STADIUM)
     registry.register_trainer("me02.5-197", _noop) # Nighttime Mine (Tera cost +{C})
 
     # ── New handlers ─────────────────────────────────────────────────────────
@@ -6089,7 +6396,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv08-185", _precious_trolley)          # Precious Trolley (ACE SPEC Item)
 
     # Tools (passive — effects handled elsewhere in engine)
-    registry.register_trainer("sv10-162", _noop)   # Cynthia's Power Weight (+70HP for Cynthia's Pokémon)
+    registry.register_trainer("sv10-162", _cynthias_power_weight)   # Cynthia's Power Weight (+70HP for Cynthia's Pokémon)
     registry.register_trainer("sv09-148", _noop)   # Hop's Choice Band (damage/cost boost)
     registry.register_trainer("sv08.5-111", _noop) # Haban Berry (type-damage reduction)
     registry.register_trainer("sv08.5-126", _noop) # Rescue Board (retreat cost reduction)
@@ -6105,9 +6412,9 @@ def register_all(registry: EffectRegistry) -> None:
     # Stadiums (passive — effects handled elsewhere in engine)
     registry.register_trainer("sv10-166", _noop)   # Granite Cave (damage reduction for Steven's Pokémon)
     registry.register_trainer("sv09-154", _noop)   # Postwick (damage boost for Hop's Pokémon)
-    registry.register_trainer("sv08.5-094", _noop) # Area Zero Underdepths (Tera bench expansion)
+    registry.register_trainer("sv08.5-094", _area_zero_underdepths) # Area Zero Underdepths (Tera bench expansion)
     registry.register_trainer("sv08.5-108", _noop) # Festival Grounds (Special Condition immunity)
-    registry.register_trainer("sv06.5-054", _noop) # Academy at Night (per-turn optional topdeck)
+    registry.register_trainer("sv06.5-054", _academy_at_night) # Academy at Night (USE_STADIUM)
     registry.register_trainer("sv06.5-060", _noop) # Neutralization Zone (passive — damage prevention handled in _apply_damage)
 
     # Fossil Items (fossil mechanic not yet supported)
@@ -6123,7 +6430,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv08-178", _jasmine_gaze)   # Jasmine's Gaze (damage reduction next turn)
     registry.register_trainer("sv08-188", _noop)   # TM: Fluorite (Tera-wide full heal TM — flagged)
     registry.register_trainer("sv08-190", _tyme)   # Tyme
-    registry.register_trainer("sv06.5-063", _noop) # Powerglass (end-of-turn trigger tool — flagged)
+    registry.register_trainer("sv06.5-063", _powerglass) # Powerglass (end-of-turn trigger tool)
 
     # ── Batch 20 ─────────────────────────────────────────────────────────────
     # New handlers
@@ -6146,7 +6453,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv05-159", _noop)                    # Rescue Board (no-retreat tool — noop)
 
     # Flagged — complex effects not yet modelled in engine
-    registry.register_trainer("sv06-146", _noop)   # Community Center (Caretaker synergy — flagged)
+    registry.register_trainer("sv06-146", _community_center)   # Community Center (USE_STADIUM)
     registry.register_trainer("sv06-150", _handheld_fan)   # Handheld Fan (discard card → heal 90)
     registry.register_trainer("sv06-157", _lucian_b5)  # Lucian (draw 3 + attach Basic Energy)
     registry.register_trainer("sv06-158", _noop)   # Lucky Helmet (damage trigger — flagged)
@@ -6154,7 +6461,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv05-150", _hand_trimmer)   # Hand Trimmer (discard to 5 cards)
     registry.register_trainer("sv05-151", _noop)   # Heavy Baton (retreat-triggered tool — flagged)
     registry.register_trainer("sv05-156", _noop)   # Perilous Jungle (damage trigger stadium — flagged)
-    registry.register_trainer("mep-028", _noop)    # Celebratory Fanfare (stadium, prize-triggered — flagged)
+    registry.register_trainer("mep-028", _celebratory_fanfare)    # Celebratory Fanfare (USE_STADIUM)
     registry.register_trainer("svp-150", _noop)    # Paradise Resort (per-turn heal stadium — flagged)
     registry.register_trainer("svp-224", _noop)    # Paradise Resort (alt art — flagged)
     registry.register_trainer("sv09-159", _noop)   # Spiky Energy registered as energy in energies.py

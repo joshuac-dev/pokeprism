@@ -3,8 +3,8 @@
   "run_number": 34,
   "completion_status": "TARGET_REACHED",
   "target_findings": 25,
-  "fixes_implemented": 0,
-  "engine_gaps_documented": 25,
+  "fixes_implemented": 25,
+  "engine_gaps_documented": 0,
   "total_findings": 25,
   "cards_audited": 1035,
   "db_card_count": 1607,
@@ -395,9 +395,9 @@
         "shuffle-after-search"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "TCGDex requires a once-per-turn stadium action to search the deck for a Basic Pok\u00e9mon, bench it, shuffle, and end that player's turn. Registry evidence shows me03-077 is still mapped to _noop in trainers.py with no supporting Lumiose City action/search implementation elsewhere in backend/app."
+      "notes": "Fixed: Lumiose City now uses a USE_STADIUM action in trainers.py to choose a Basic Pok\u00e9mon from deck, bench it, shuffle, and force-end the turn after a successful search."
     },
     {
       "seq": 9,
@@ -7974,9 +7974,9 @@
       ],
       "mechanic_flags": [],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "TCGDex adds {C} to attacks used by each Tera Pok\u00e9mon in play. Registry evidence shows me02.5-197 is mapped to _noop and there is no Nighttime Mine attack-cost modifier path in actions.py or damage-cost helpers."
+      "notes": "Fixed: Nighttime Mine now adds {C} to attacks used by Tera Pok\u00e9mon through ActionValidator effective-cost calculation in actions.py."
     },
     {
       "seq": 159,
@@ -11856,9 +11856,9 @@
         "discard"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "TCGDex requires Passho Berry to reduce damage from opposing {W} Pok\u00e9mon by 60 after Weakness/Resistance and then discard itself. Registry evidence shows sv08-184 is still _noop and base.py only covers the Fire/Psychic berry prints, so this Water-print reduction/discard path is missing."
+      "notes": "Fixed: Passho Berry now reduces damage from Water attackers in base.py and discards itself after triggering in attacks.py."
     },
     {
       "seq": 233,
@@ -14340,9 +14340,9 @@
         "energy-type-filter"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "Powerglass is only partially implemented: runner.py auto-attaches the first Basic Energy found in discard at end of turn, but TCGDex requires an optional attachment choice from the discard pile to the Active holder. Missing player-choice / optional-flow semantics remain."
+      "notes": "Fixed: Powerglass now resolves as an optional end-of-turn discard-choice effect via MatchRunner end-of-turn resolution plus the Powerglass trainer handler."
     },
     {
       "seq": 285,
@@ -14956,9 +14956,9 @@
         "damage-counter"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "TCGDex requires Punk Helmet to place 4 damage counters on the Attacking Pok\u00e9mon when an Active {D} holder is damaged by an opponent's attack. Registry evidence shows me02-092 remains _noop with no retaliatory damage-counter trigger in the damage hooks."
+      "notes": "Fixed: Punk Helmet now retaliates with 4 damage counters when an Active Darkness holder is damaged by an opponent attack."
     },
     {
       "seq": 300,
@@ -16548,9 +16548,9 @@
         "switch"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "TCGDex Rescue Board reduces Retreat Cost by {C} and upgrades to free retreat when the holder has 30 HP or less remaining. Registry evidence shows sv08.5-126 remains _noop with no retreat-cost helper covering the low-HP free-retreat clause."
+      "notes": "Fixed: Rescue Board PRE now grants -1 retreat cost and free retreat at 30 HP or less via base.py retreat-cost reduction."
     },
     {
       "seq": 332,
@@ -16592,9 +16592,9 @@
         "switch"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "TCGDex Rescue Board reduces Retreat Cost by {C} and upgrades to free retreat when the holder has 30 HP or less remaining. Registry evidence shows sv05-159 remains _noop with no retreat-cost helper covering the low-HP free-retreat clause."
+      "notes": "Fixed: Rescue Board TEF now grants -1 retreat cost and free retreat at 30 HP or less via base.py retreat-cost reduction."
     },
     {
       "seq": 333,
@@ -18587,9 +18587,9 @@
       ],
       "mechanic_flags": [],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "TCGDex requires Sacred Charm to reduce damage by 30 from opposing Pok\u00e9mon that have an Ability. Registry evidence shows me02-093 is still _noop and no damage-modifier helper checks the attacker for an Ability before applying the reduction."
+      "notes": "Fixed: Sacred Charm now reduces damage from attackers that have an Ability through base.py passive tool damage reduction."
     },
     {
       "seq": 373,
@@ -23661,9 +23661,9 @@
         "shuffle-after-search"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "TCGDex requires a once-per-turn stadium action to search the deck for a Marnie's Pok\u00e9mon, reveal it, put it into hand, and shuffle. Registry evidence shows sv10-169 is still _noop with no Spikemuth Gym search/reveal handler in backend/app."
+      "notes": "Fixed: Spikemuth Gym now uses a USE_STADIUM action to search for a Marnie's Pok\u00e9mon, reveal it, add it to hand, and shuffle."
     },
     {
       "seq": 477,
@@ -24639,9 +24639,9 @@
       ],
       "mechanic_flags": [],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "Strange Timepiece remains an explicit unsupported mechanic: trainers.py registers me01-128 to _noop with the comment \"devolve \u2014 not supported\". TCGDex requires devolving an evolved {P} Pok\u00e9mon by returning any number of Evolution cards to hand and blocking re-evolution that turn."
+      "notes": "Fixed: Strange Timepiece now devolves an evolved Psychic Pok\u00e9mon by returning its evolution chain to hand and blocking re-evolution this turn."
     },
     {
       "seq": 497,
@@ -25157,9 +25157,9 @@
         "switch"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "TCGDex requires a once-per-turn stadium action to switch the Active {W} Pok\u00e9mon with a Benched {W} Pok\u00e9mon. Registry evidence shows me01-129 is still _noop with no Surfing Beach switch action in backend/app."
+      "notes": "Fixed: Surfing Beach now uses a USE_STADIUM action to switch an Active Water Pok\u00e9mon with a Benched Water Pok\u00e9mon."
     },
     {
       "seq": 508,
@@ -28609,9 +28609,9 @@
         "status-condition"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "TCGDex requires Team Rocket's Hypnotizer to inflict Asleep on the Attacking Pok\u00e9mon when an Active Team Rocket's holder is damaged by an opponent's attack. Registry evidence shows me02.5-206 is still _noop with no matching on-damage status hook."
+      "notes": "Fixed: Team Rocket's Hypnotizer now makes the Attacking Pok\u00e9mon Asleep when an Active Team Rocket's holder is damaged by an opponent attack."
     },
     {
       "seq": 573,
@@ -31506,9 +31506,9 @@
       ],
       "mechanic_flags": [],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "TCGDex requires Thick Scale to reduce damage by 50 from opposing {G}/{R}/{W}/{L} Pok\u00e9mon when attached to a {N} Pok\u00e9mon. Registry evidence shows me02.5-211 remains _noop with no type-filtered damage-reduction helper for this print."
+      "notes": "Fixed: Thick Scale now reduces damage by 50 from Grass/Fire/Water/Lightning attackers when attached to a Dragon Pok\u00e9mon."
     },
     {
       "seq": 627,
@@ -40482,9 +40482,9 @@
       ],
       "mechanic_flags": [],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "TCGDex requires a once-per-turn stadium action that lets the player choose a card from hand and put it on top of the deck. Registry evidence shows sv06.5-054 is still _noop with no Academy at Night hand-to-topdeck choice flow."
+      "notes": "Fixed: Academy at Night now uses a USE_STADIUM action to choose a card from hand and put it on top of the deck."
     },
     {
       "seq": 802,
@@ -40915,9 +40915,9 @@
         "switch"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "The BLK Air Balloon alt print is unhooked: base.py only applies the retreat-cost reduction for me02.5-181, while sv10.5b-079 remains registered to _noop. The alt print therefore misses the {C}{C} retreat reduction entirely."
+      "notes": "Fixed: the BLK Air Balloon alt print now shares the passive -2 retreat modifier in base.py."
     },
     {
       "seq": 811,
@@ -42191,9 +42191,9 @@
         "prize-manipulation"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "Anthea & Concordia requires a six-card board-state check plus a prize-bonus replacement effect when an N's Pok\u00e9mon KOs the opponent's Active Pok\u00e9mon. Registry evidence shows me02.5-182 is still _noop with no board-state gate or prize-award modifier."
+      "notes": "Fixed: Anthea & Concordia now validates the six-N's-Pok\u00e9mon board state and awards 3 extra prizes for qualifying Active KOs this turn."
     },
     {
       "seq": 834,
@@ -43370,9 +43370,9 @@
         "discard"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "Area Zero Underdepths requires dynamic bench-size expansion to 8 for players with Tera Pok\u00e9mon in play, plus forced discard-down-to-5 logic when Tera leaves play or the Stadium leaves play. Registry evidence shows sv08.5-094 is still _noop with no bench-capacity/bench-prune implementation."
+      "notes": "Fixed: Area Zero Underdepths PRE now expands bench capacity for players with Tera Pok\u00e9mon and prunes benches back to 5 when the effect stops applying."
     },
     {
       "seq": 856,
@@ -43416,9 +43416,9 @@
         "discard"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "Area Zero Underdepths requires dynamic bench-size expansion to 8 for players with Tera Pok\u00e9mon in play, plus forced discard-down-to-5 logic when Tera leaves play or the Stadium leaves play. Registry evidence shows sv07-131 is still _noop with no bench-capacity/bench-prune implementation."
+      "notes": "Fixed: Area Zero Underdepths SCR now expands bench capacity for players with Tera Pok\u00e9mon and prunes benches back to 5 when the effect stops applying."
     },
     {
       "seq": 857,
@@ -44551,9 +44551,9 @@
         "discard"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "TCGDex requires Babiri Berry to reduce damage from opposing {M} Pok\u00e9mon by 60 after Weakness/Resistance and then discard itself. Registry evidence shows sv08-163 is still _noop and no Metal-type berry reduction path exists in base.py."
+      "notes": "Fixed: Babiri Berry now reduces damage from Metal attackers in base.py and discards itself after triggering in attacks.py."
     },
     {
       "seq": 880,
@@ -45572,9 +45572,9 @@
         "status-condition"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "The SFA Binding Mochi alt print is unhooked: base.py only applies the poisoned-attacker +40 modifier for sv08.5-095, while sv06.5-055 remains _noop. The alt print therefore misses its damage bonus."
+      "notes": "Fixed: the SFA Binding Mochi alt print now shares the poisoned-holder +40 damage bonus in base.py/attacks.py."
     },
     {
       "seq": 900,
@@ -48525,9 +48525,9 @@
         "shuffle-after-search"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "TCGDex requires Canari to discard another card from hand as a play cost, then search the deck for up to 4 {L} Pok\u00e9mon, reveal them, add them to hand, and shuffle. Registry evidence shows me02.5-185 remains _noop with no discard-cost/search/reveal handler."
+      "notes": "Fixed: Canari now enforces the additional discard cost, searches up to 4 Lightning Pok\u00e9mon, reveals them, and shuffles the deck."
     },
     {
       "seq": 958,
@@ -49193,9 +49193,9 @@
         "heal"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "Celebratory Fanfare is only partially approximated in runner.py: the engine auto-heals at end of turn, but TCGDex requires an optional once-per-turn stadium action during the turn that heals 10 from each of that player's Pok\u00e9mon and ends the turn only if healing occurred. Missing player-choice / action-timing semantics remain."
+      "notes": "Fixed: Celebratory Fanfare now uses a USE_STADIUM action for optional team heal and force-ends the turn only when healing occurred."
     },
     {
       "seq": 972,
@@ -51438,9 +51438,9 @@
         "discard"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "TCGDex requires Colbur Berry to reduce damage from opposing {D} Pok\u00e9mon by 60 after Weakness/Resistance and then discard itself. Registry evidence shows sv08-168 is still _noop and no Darkness-type berry reduction path exists in base.py."
+      "notes": "Fixed: Colbur Berry now reduces damage from Darkness attackers in base.py and discards itself after triggering in attacks.py."
     },
     {
       "seq": 1016,
@@ -51670,9 +51670,9 @@
         "heal"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "Community Center is only partially approximated in runner.py: the engine auto-heals at end of turn if a Supporter was played, but TCGDex requires an optional once-per-turn stadium action during the turn. Missing player-choice / action-timing semantics remain."
+      "notes": "Fixed: Community Center now uses a USE_STADIUM action gated on Supporter play, heals damaged Pok\u00e9mon, and force-ends the turn only after healing."
     },
     {
       "seq": 1021,
@@ -52433,9 +52433,9 @@
         "prize-manipulation"
       ],
       "confidence": "high",
-      "result": "engine-gap",
+      "result": "fixed",
       "finding_counted": true,
-      "notes": "TCGDex requires Counter Gain to reduce attack costs by {C} when you have more Prize cards remaining than your opponent. Registry evidence shows me02.5-186 is still _noop and actions.py does not check this alt print when computing effective attack costs."
+      "notes": "Fixed: the ASC Counter Gain alt print now shares the prize-behind attack-cost reduction in ActionValidator."
     }
   ]
 }

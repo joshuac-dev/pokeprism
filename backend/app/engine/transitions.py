@@ -29,7 +29,11 @@ from app.engine.state import (
     Zone,
 )
 from app.engine.actions import Action, ActionType
-from app.engine.effects.base import check_lively_stadium_removed
+from app.engine.effects.base import (
+    check_lively_stadium_removed,
+    enforce_area_zero_underdepths,
+    get_bench_limit,
+)
 from app.engine.effects.registry import EffectRegistry
 from app.cards import registry as card_registry
 
@@ -155,10 +159,8 @@ def bench_pokemon_from_effect(
     Triggers Risky Ruins (me01-127) for Basic non-Darkness Pokémon exactly as
     the standard play_basic / place_bench paths do.
     """
-    from app.engine.actions import ActionValidator  # bench limit constant
-
     player = state.get_player(player_id)
-    if len(player.bench) >= ActionValidator.MAX_BENCH_SIZE:
+    if len(player.bench) >= get_bench_limit(state, player_id):
         return False
 
     cdef = card_registry.get(card.card_def_id)
@@ -216,6 +218,8 @@ async def _play_basic(state: GameState, action: Action, get_player=None) -> Game
     card = _find_in_hand(player, action.card_instance_id)
     if card is None:
         raise ValueError(f"Card {action.card_instance_id} not in hand")
+    if len(player.bench) >= get_bench_limit(state, action.player_id):
+        raise ValueError("Bench is full")
     player.hand.remove(card)
     card.zone = Zone.BENCH
     card.turn_played = state.turn_number
@@ -318,7 +322,10 @@ async def _play_stadium(state: GameState, action: Action, get_player=None) -> Ga
 
     card.zone = Zone.STADIUM
     state.active_stadium = card
+    state.active_stadium_owner = action.player_id
     check_lively_stadium_removed(state, old_stadium)
+    if old_stadium and old_stadium.card_def_id in {"sv08.5-094", "sv07-131"}:
+        enforce_area_zero_underdepths(state, discard_first_player_id=action.player_id)
 
     state.emit_event(
         "play_stadium",
@@ -518,6 +525,7 @@ async def _evolve(state: GameState, action: Action, get_player=None) -> GameStat
         from app.engine.effects.base import check_ko
         check_ko(state, evo_card, action.player_id)
 
+    enforce_area_zero_underdepths(state)
     return state
 
 

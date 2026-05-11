@@ -191,6 +191,12 @@ class PlayerState:
     wide_wall_protected: bool = False  # sv07-076 Rhyperior Wide Wall: prevents Supporter effects on this player's Pokémon
     mystery_garden_used_this_turn: bool = False  # Mystery Garden (me02.5-194 / me01-122): once-per-turn draw effect used
     levincia_used_this_turn: bool = False  # Levincia (sv09-150): once-per-turn Basic Lightning recovery
+    lumiose_city_used_this_turn: bool = False  # Lumiose City (me03-077): once-per-turn bench Basic + end turn
+    spikemuth_gym_used_this_turn: bool = False  # Spikemuth Gym (sv10-169): once-per-turn Marnie's search
+    surfing_beach_used_this_turn: bool = False  # Surfing Beach (me01-129): once-per-turn Water switch
+    academy_at_night_used_this_turn: bool = False  # Academy at Night (sv06.5-054): once-per-turn topdeck from hand
+    community_center_used_this_turn: bool = False  # Community Center (sv06-146): once-per-turn optional heal
+    celebratory_fanfare_used_this_turn: bool = False  # Celebratory Fanfare (mep-028): once-per-turn optional heal
     quick_search_used_this_turn: bool = False    # Pidgeot ex (sv03-164) Quick Search: global once-per-turn limit across all copies
     all_pokemon_cant_attack_next_turn: bool = False  # Unleash Lightning (sv07-047): all Pokémon can't attack next turn (incl. new ones)
     metal_type_damage_reduction: int = 0    # Iron Defender (me01-118): all Metal-type Pokémon take N less during opp's next turn (incl. new)
@@ -212,6 +218,7 @@ class GameState:
 
     # Global effects
     active_stadium: Optional[CardInstance] = None
+    active_stadium_owner: Optional[str] = None
 
     # One-time game flags
     legacy_prize_reduction_used: bool = False  # Legacy Energy: only once per game
@@ -222,6 +229,7 @@ class GameState:
     briar_active: bool = False                 # Briar (sv07-132): +1 prize on active KO
     sunny_day_active: bool = False             # Lilligant (sv09-007): Grass/Fire attacks +20
     force_end_turn: bool = False               # Boxed Order (sv05-143): end turn after item search
+    anthea_concordia_active: bool = False      # Anthea & Concordia: N's Pokémon take 3 more prizes on Active KO this turn
 
     # Event log
     events: list[dict] = field(default_factory=list)

@@ -380,6 +380,17 @@ def check_ko(
                              ko_player=target_player_id,
                              card_name=target.card_name)
 
+    # Anthea & Concordia (me02.5-182): N's Pokémon take 3 more Prize cards on Active KO this turn
+    if (state.anthea_concordia_active
+            and _is_attacking_active
+            and attacker_id == state.active_player
+            and attacker_player.active is not None
+            and attacker_player.active.card_name.startswith("N's")):
+        prizes_to_take += 3
+        state.emit_event("anthea_concordia_triggered",
+                         ko_player=target_player_id,
+                         card_name=target.card_name)
+
     # Wonder Kiss (me02.5-082 / sv08-072 Togekiss): when opp's active is KO'd, flip coin, heads = +1 prize
     if (_is_attacking_active
             and attacker_id == state.active_player):
@@ -557,6 +568,8 @@ def check_ko(
         state.phase = Phase.GAME_OVER
         state.emit_event("game_over", winner=attacker_id, condition="no_bench")
 
+    enforce_area_zero_underdepths(state)
+
 
 def _devolve_pokemon(state, opp_player_id, target, destination):
     """Devolve target (an evolved Pokémon in play) by one stage.
@@ -623,6 +636,7 @@ def _devolve_pokemon(state, opp_player_id, target, destination):
 
     # Check if pre_evo is KO'd due to damage
     check_ko(state, pre_evo, opp_player_id)
+    enforce_area_zero_underdepths(state)
 
 
 def _evolve_in_play_from_deck(state, player_id: str, target: "CardInstance",
@@ -682,6 +696,7 @@ def _evolve_in_play_from_deck(state, player_id: str, target: "CardInstance",
 
     # Check if evo_card is immediately KO'd due to carried damage
     check_ko(state, evo_card, player_id)
+    enforce_area_zero_underdepths(state)
 
 
 def _discard_attached_only(player: PlayerState, pokemon: CardInstance) -> None:
@@ -770,6 +785,38 @@ def has_tool(pokemon: CardInstance, tool_def_id: str) -> bool:
     return tool_def_id in pokemon.tools_attached
 
 
+def get_bench_limit(state: "GameState", player_id: str) -> int:
+    """Return the current bench limit for a player."""
+    if state.active_stadium and state.active_stadium.card_def_id in {"sv08.5-094", "sv07-131"}:
+        player = state.get_player(player_id)
+        in_play = ([player.active] if player.active else []) + list(player.bench)
+        if any(card_registry.get(p.card_def_id) and getattr(card_registry.get(p.card_def_id), "is_tera", False)
+               for p in in_play):
+            return 8
+    return 5
+
+
+def enforce_area_zero_underdepths(state: "GameState", discard_first_player_id: str | None = None) -> None:
+    """Prune benches back to 5 when Area Zero Underdepths stops applying."""
+    stadium_id = state.active_stadium.card_def_id if state.active_stadium else None
+    affected = stadium_id in {"sv08.5-094", "sv07-131"}
+    player_order = ["p1", "p2"]
+    if discard_first_player_id in {"p1", "p2"}:
+        player_order = [discard_first_player_id, state.opponent_id(discard_first_player_id)]
+    for pid in player_order:
+        player = state.get_player(pid)
+        limit = get_bench_limit(state, pid) if affected else 5
+        while len(player.bench) > limit:
+            removed = player.bench.pop()
+            _move_to_discard(player, removed)
+            state.emit_event(
+                "area_zero_underdepths_prune",
+                player=pid,
+                card=removed.card_name,
+                remaining_bench=len(player.bench),
+            )
+
+
 def get_tool_damage_bonus(
     attacker: CardInstance,
     defender: CardInstance,
@@ -785,10 +832,12 @@ def get_tool_damage_bonus(
     Tools checked:
       Attacker's tools:
         - Maximum Belt (sv05-154): +50 vs Pokémon ex
-        - Binding Mochi (sv08.5-095): +40 if attacker is Poisoned
+        - Binding Mochi (sv08.5-095 / sv06.5-055): +40 if attacker is Poisoned
         - Brave Bangle (sv10.5w-080): +30 vs Pokémon ex (non-rule-box attacker)
       Defender's tools:
-        - Payapa Berry (sv07-141): -60 from {P} attacks
+        - Payapa/Occa/Passho/Babiri/Colbur Berry: -60 from matching typed attacks
+        - Sacred Charm (me02-093): -30 from Pokémon with an Ability
+        - Thick Scale (me02.5-211): -50 from {G}/{R}/{W}/{L} attacks on Dragon Pokémon
       Jamming Tower neutralizes all tools.
     """
     # Jamming Tower (sv06-153): all tools have no effect
@@ -812,8 +861,8 @@ def get_tool_damage_bonus(
                 and defender_def and getattr(defender_def, "is_ex", False)):
             bonus += 30
 
-    # Binding Mochi (sv08.5-095): +40 if attacker is Poisoned
-    if has_tool(attacker, "sv08.5-095"):
+    # Binding Mochi (sv08.5-095 / sv06.5-055): +40 if attacker is Poisoned
+    if has_tool(attacker, "sv08.5-095") or has_tool(attacker, "sv06.5-055"):
         if StatusCondition.POISONED in attacker.status_conditions:
             bonus += 40
 
@@ -833,6 +882,39 @@ def get_tool_damage_bonus(
         if attacker_def and "Fire" in (attacker_def.types or []):
             bonus -= 60
 
+    # Passho Berry (sv08-184): -60 from Water attacks
+    if has_tool(defender, "sv08-184"):
+        attacker_def = card_registry.get(attacker.card_def_id)
+        if attacker_def and "Water" in (attacker_def.types or []):
+            bonus -= 60
+
+    # Babiri Berry (sv08-163): -60 from Metal attacks
+    if has_tool(defender, "sv08-163"):
+        attacker_def = card_registry.get(attacker.card_def_id)
+        if attacker_def and "Metal" in (attacker_def.types or []):
+            bonus -= 60
+
+    # Colbur Berry (sv08-168): -60 from Darkness attacks
+    if has_tool(defender, "sv08-168"):
+        attacker_def = card_registry.get(attacker.card_def_id)
+        if attacker_def and "Darkness" in (attacker_def.types or []):
+            bonus -= 60
+
+    # Sacred Charm (me02-093): -30 from Pokémon with an Ability
+    if has_tool(defender, "me02-093"):
+        attacker_def = card_registry.get(attacker.card_def_id)
+        if attacker_def and getattr(attacker_def, "abilities", None):
+            bonus -= 30
+
+    # Thick Scale (me02.5-211): Dragon Pokémon take 50 less from G/R/W/L attackers
+    if has_tool(defender, "me02.5-211"):
+        defender_def = card_registry.get(defender.card_def_id)
+        attacker_def = card_registry.get(attacker.card_def_id)
+        if (defender_def and "Dragon" in (defender_def.types or [])
+                and attacker_def
+                and any(t in (attacker_def.types or []) for t in ("Grass", "Fire", "Water", "Lightning"))):
+            bonus -= 50
+
     # Defiance Band (sv01-169): +30 when attacker's player has more prizes remaining than opponent
     if has_tool(attacker, "sv01-169"):
         atk_player = state.get_player(attacker_player_id)
@@ -847,7 +929,8 @@ def get_retreat_cost_reduction(pokemon: CardInstance, state: "GameState", player
     """Return the retreat cost reduction from tools and passive abilities.
 
     Tools checked:
-      - Air Balloon (me02.5-181): -2 retreat cost
+      - Air Balloon (me02.5-181 / sv10.5b-079): -2 retreat cost
+      - Rescue Board (sv08.5-126 / sv05-159): -1 retreat cost, or free retreat at 30 HP or less
       - N's Castle (sv09-152): N's Pokémon free retreat (full reduction)
     Passive abilities checked:
       - Skyliner (sv08-076 Latias ex): Basic Pokémon have free retreat
@@ -876,8 +959,13 @@ def get_retreat_cost_reduction(pokemon: CardInstance, state: "GameState", player
 
     reduction = 0
 
-    if has_tool(pokemon, "me02.5-181"):  # Air Balloon
+    if has_tool(pokemon, "me02.5-181") or has_tool(pokemon, "sv10.5b-079"):  # Air Balloon
         reduction += 2
+
+    if has_tool(pokemon, "sv08.5-126") or has_tool(pokemon, "sv05-159"):  # Rescue Board
+        if pokemon.current_hp <= 30:
+            return 9999
+        reduction += 1
 
     # N's Castle (sv09-152): free retreat for N's Pokémon
     if (state.active_stadium and state.active_stadium.card_def_id == "sv09-152"
