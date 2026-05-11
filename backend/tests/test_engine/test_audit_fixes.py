@@ -1676,6 +1676,200 @@ def test_mystery_garden_alt_print_also_offered():
     )
 
 
+def _basic_lightning_card(instance_id: str, zone: Zone = Zone.DISCARD) -> CardInstance:
+    return CardInstance(
+        instance_id=instance_id,
+        card_def_id="basic-lightning",
+        card_name="Lightning Energy",
+        card_type="Energy",
+        card_subtype="Basic",
+        energy_provides=["Lightning"],
+        zone=zone,
+    )
+
+
+def _levincia_state() -> GameState:
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.phase = Phase.MAIN
+    state.active_player = "p1"
+    state.p1.active = CardInstance(
+        instance_id="p1-active-lev", card_def_id="tst-p1-lev",
+        card_name="P1Active", current_hp=100, max_hp=100, zone=Zone.ACTIVE,
+    )
+    state.active_stadium = CardInstance(
+        instance_id="levincia-stadium", card_def_id="sv09-150",
+        card_name="Levincia", current_hp=0, max_hp=0,
+        card_type="Trainer", card_subtype="Stadium",
+    )
+    return state
+
+
+def test_levincia_use_stadium_offered_with_basic_lightning_in_discard():
+    from app.engine.actions import ActionValidator
+
+    state = _levincia_state()
+    state.p1.discard = [_basic_lightning_card("lightning-1")]
+
+    legal = ActionValidator.get_legal_actions(state, "p1")
+    stadium_actions = [a for a in legal if a.action_type == ActionType.USE_STADIUM]
+    assert len(stadium_actions) == 1
+
+
+def test_levincia_use_stadium_not_offered_after_use_or_without_basic_lightning():
+    from app.engine.actions import ActionValidator
+
+    state = _levincia_state()
+    state.p1.discard = [
+        CardInstance(
+            instance_id="fire-1", card_def_id="basic-fire",
+            card_name="Fire Energy", card_type="Energy", card_subtype="Basic",
+            energy_provides=["Fire"], zone=Zone.DISCARD,
+        )
+    ]
+    assert not [a for a in ActionValidator.get_legal_actions(state, "p1")
+                if a.action_type == ActionType.USE_STADIUM]
+
+    state.p1.discard = [_basic_lightning_card("lightning-2")]
+    state.p1.levincia_used_this_turn = True
+    assert not [a for a in ActionValidator.get_legal_actions(state, "p1")
+                if a.action_type == ActionType.USE_STADIUM]
+
+
+def test_levincia_handler_moves_selected_basic_lightning_and_honors_empty_selection():
+    from app.engine.effects.trainers import _levincia
+
+    state = _levincia_state()
+    e1 = _basic_lightning_card("lightning-3")
+    e2 = _basic_lightning_card("lightning-4")
+    state.p1.discard = [e1, e2]
+
+    action = Action(player_id="p1", action_type=ActionType.USE_STADIUM)
+    gen = _levincia(state, action)
+    req = next(gen)
+    assert req.choice_type == "choose_cards"
+    assert req.min_count == 0
+    assert req.max_count == 2
+
+    resp = Action(player_id="p1", action_type=ActionType.CHOOSE_CARDS,
+                  selected_cards=[])
+    with pytest.raises(StopIteration):
+        gen.send(resp)
+
+    assert state.p1.hand == []
+    assert state.p1.discard == [e1, e2]
+    assert state.p1.levincia_used_this_turn is True
+
+
+def test_levincia_handler_no_response_fallback_takes_first_two_only():
+    from app.engine.effects.trainers import _levincia
+
+    state = _levincia_state()
+    e1 = _basic_lightning_card("lightning-5")
+    e2 = _basic_lightning_card("lightning-6")
+    e3 = _basic_lightning_card("lightning-7")
+    state.p1.discard = [e1, e2, e3]
+
+    gen = _levincia(state, Action(player_id="p1", action_type=ActionType.USE_STADIUM))
+    next(gen)
+    with pytest.raises(StopIteration):
+        gen.send(None)
+
+    assert state.p1.hand == [e1, e2]
+    assert state.p1.discard == [e3]
+    assert e1.zone == Zone.HAND
+    assert e2.zone == Zone.HAND
+    assert state.p1.levincia_used_this_turn is True
+    assert len([e for e in state.events if e["event_type"] == "levincia_recovery"]) == 2
+
+
+def test_levincia_no_longer_recovers_energy_automatically_at_end_of_turn():
+    state = _levincia_state()
+    energy = _basic_lightning_card("lightning-8")
+    state.p1.discard = [energy]
+
+    runner = MatchRunner.__new__(MatchRunner)
+    runner._end_turn(state)
+
+    assert energy in state.p1.discard
+    assert energy not in state.p1.hand
+
+
+def test_light_ball_bonus_applies_before_weakness_and_resistance():
+    from app.engine.effects.attacks import _apply_damage
+
+    pikachu = CardDefinition(
+        tcgdex_id="tst-pikachu-ex", name="Pikachu ex", set_abbrev="TST",
+        set_number="191a", category="pokemon", stage="Basic", hp=190,
+        types=["Lightning"], is_ex=True,
+    )
+    defender = CardDefinition(
+        tcgdex_id="tst-defender-ex", name="Defender ex", set_abbrev="TST",
+        set_number="191b", category="pokemon", stage="Basic", hp=200,
+        types=["Colorless"], is_ex=True,
+        weaknesses=[{"type": "Lightning", "value": "×2"}],
+    )
+    card_registry.register(pikachu)
+    card_registry.register(defender)
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.p1.active = CardInstance(
+        instance_id="pikachu-ex", card_def_id=pikachu.tcgdex_id,
+        card_name="Pikachu ex", current_hp=190, max_hp=190,
+        zone=Zone.ACTIVE, tools_attached=["me02.5-191"],
+    )
+    state.p2.active = CardInstance(
+        instance_id="defender-ex", card_def_id=defender.tcgdex_id,
+        card_name="Defender ex", current_hp=200, max_hp=200,
+        zone=Zone.ACTIVE,
+    )
+
+    _apply_damage(state, Action(player_id="p1", action_type=ActionType.ATTACK), 10)
+
+    assert state.p2.active.damage_counters == 12
+    assert state.p2.active.current_hp == 80
+    assert any(e["event_type"] == "light_ball_bonus" for e in state.events)
+
+
+def test_light_ball_bonus_requires_pikachu_ex_and_ex_defender():
+    from app.engine.effects.attacks import _apply_damage
+
+    attacker_def = CardDefinition(
+        tcgdex_id="tst-raichu", name="Raichu", set_abbrev="TST",
+        set_number="191c", category="pokemon", stage="Stage1", hp=120,
+        types=["Lightning"],
+    )
+    defender_def = CardDefinition(
+        tcgdex_id="tst-non-ex", name="Defender", set_abbrev="TST",
+        set_number="191d", category="pokemon", stage="Basic", hp=100,
+        types=["Colorless"],
+    )
+    card_registry.register(attacker_def)
+    card_registry.register(defender_def)
+
+    state = GameState()
+    state.p1.player_id = "p1"
+    state.p2.player_id = "p2"
+    state.p1.active = CardInstance(
+        instance_id="raichu", card_def_id=attacker_def.tcgdex_id,
+        card_name="Raichu", current_hp=120, max_hp=120,
+        zone=Zone.ACTIVE, tools_attached=["me02.5-191"],
+    )
+    state.p2.active = CardInstance(
+        instance_id="defender", card_def_id=defender_def.tcgdex_id,
+        card_name="Defender", current_hp=100, max_hp=100,
+        zone=Zone.ACTIVE,
+    )
+
+    _apply_damage(state, Action(player_id="p1", action_type=ActionType.ATTACK), 10)
+
+    assert state.p2.active.damage_counters == 1
+    assert not any(e["event_type"] == "light_ball_bonus" for e in state.events)
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Session 2 fixes — Batch A
 # ──────────────────────────────────────────────────────────────────────────────

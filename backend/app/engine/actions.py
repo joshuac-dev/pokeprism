@@ -710,23 +710,39 @@ class ActionValidator:
     ) -> list[Action]:
         """Offer USE_STADIUM when an optional once-per-turn stadium effect is available.
 
-        Currently covers Mystery Garden (me02.5-194, me01-122):
+        Covers Mystery Garden (me02.5-194, me01-122):
           once during each player's turn, that player may discard an Energy card
           from their hand to draw cards up to the number of {P} Pokémon in play.
+        Also covers Levincia (sv09-150):
+          once during each player's turn, that player may put up to 2 Basic
+          {L} Energy cards from their discard pile into their hand.
         """
         _MYSTERY_GARDEN_IDS = {"me02.5-194", "me01-122"}
+        _LEVINICIA_ID = "sv09-150"
         if not state.active_stadium:
             return []
         sid = state.active_stadium.card_def_id
-        if sid not in _MYSTERY_GARDEN_IDS:
-            return []
-        if player.mystery_garden_used_this_turn:
-            return []
-        # Require at least one Energy card in hand to discard
-        energy_in_hand = any(c.card_type == "Energy" for c in player.hand)
-        if not energy_in_hand:
-            return []
-        return [Action(ActionType.USE_STADIUM, player_id)]
+        if sid in _MYSTERY_GARDEN_IDS:
+            if player.mystery_garden_used_this_turn:
+                return []
+            # Require at least one Energy card in hand to discard
+            energy_in_hand = any(c.card_type == "Energy" for c in player.hand)
+            if not energy_in_hand:
+                return []
+            return [Action(ActionType.USE_STADIUM, player_id)]
+        if sid == _LEVINICIA_ID:
+            if player.levincia_used_this_turn:
+                return []
+            basic_lightning = any(
+                c.card_type.lower() == "energy"
+                and c.card_subtype.lower() == "basic"
+                and any("Lightning" in (ep or "") for ep in (c.energy_provides or []))
+                for c in player.discard
+            )
+            if not basic_lightning:
+                return []
+            return [Action(ActionType.USE_STADIUM, player_id)]
+        return []
 
     # ── Attack phase ──────────────────────────────────────────────────────────
 
