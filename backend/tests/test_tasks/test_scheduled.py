@@ -15,7 +15,7 @@ import pytest
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
-from app.db.models import Deck, Round, Simulation, SimulationOpponentResult
+from app.db.models import Card, Deck, Round, Simulation, SimulationOpponentResult
 from app.memory.postgres import MatchMemoryWriter
 from app.tasks.simulation import (
     SIMULATION_STALE_RUNNING_MINUTES,
@@ -82,14 +82,19 @@ async def _seed_stale_sim(db: AsyncSession, *, status: str = "running", minutes_
     writer = MatchMemoryWriter()
     suffix = uuid.uuid4().hex[:8]
     from app.cards.models import CardDefinition
+    row = (await db.execute(
+        select(Card).where(Card.tcgdex_id == "sv07-002")
+    )).scalar_one_or_none()
+    if row is None:
+        row = (await db.execute(select(Card).limit(1))).scalar_one_or_none()
+    assert row is not None, "cards seed is required for DB scheduled-task tests"
     cards = [CardDefinition(
-        tcgdex_id=f"stale-{suffix}-001",
-        name="Stale Card",
-        set_abbrev="TST",
-        set_number="1",
-        category="Pokemon",
+        tcgdex_id=row.tcgdex_id,
+        name=row.name,
+        set_abbrev=row.set_abbrev,
+        set_number=row.set_number,
+        category=row.category,
     )]
-    await writer.ensure_cards(cards, db)
     deck_id = await writer.ensure_deck(f"Stale Deck {suffix}", cards * 60, db)
     sim = Simulation(
         status=status,
@@ -121,14 +126,19 @@ async def _add_checkpoint(
     writer = MatchMemoryWriter()
     suffix = uuid.uuid4().hex[:8]
     from app.cards.models import CardDefinition
+    row = (await db.execute(
+        select(Card).where(Card.tcgdex_id == "sv07-003")
+    )).scalar_one_or_none()
+    if row is None:
+        row = (await db.execute(select(Card).limit(1))).scalar_one_or_none()
+    assert row is not None, "cards seed is required for DB scheduled-task tests"
     cards = [CardDefinition(
-        tcgdex_id=f"opp-{suffix}-001",
-        name="Opp Card",
-        set_abbrev="TST",
-        set_number="1",
-        category="Pokemon",
+        tcgdex_id=row.tcgdex_id,
+        name=row.name,
+        set_abbrev=row.set_abbrev,
+        set_number=row.set_number,
+        category=row.category,
     )]
-    await writer.ensure_cards(cards, db)
     opp_deck_id = await writer.ensure_deck(f"Opp Deck {suffix}", cards * 60, db)
 
     # We need a round row
