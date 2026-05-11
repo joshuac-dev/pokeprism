@@ -6,13 +6,13 @@ It does not define card text. It does not define the audit candidate set. The da
 
 ```text
 next_start_cursor: Ledyba | SCR | 2 | sv07-002
-last_run_status: PARTIAL_TIME_BUDGET
-last_run_date_utc: 2026-05-10
+last_run_status: DB_EXHAUSTED
+last_run_date_utc: 2026-05-11
 last_pr:
-last_issue: Nightly DB-backed card effect implementation audit - 2026-05-10
-last_first_card_audited: Lapras | SCR | 31 | sv07-031
+last_issue: Nightly DB-backed card effect implementation audit - 2026-05-11
+last_first_card_audited: Ledyba | SCR | 2 | sv07-002
 last_card_fully_audited: Ledian | SCR | 3 | sv07-003
-notes: 4 findings (4 code fixes, 0 remaining gaps in this repaired window). S11-1 Larry's Skill explicit-empty; S11-2 Ledian Glittering Star Pattern; S11-3 Larimar Rain subset+target flow; S11-4 Lustrous Assist multi-donor any-amount flow. Tests: focused 4 passed, audit regressions 185 passed, backend 1334 passed / 7 skipped.
+notes: Full circular DB-backed pass from start cursor audited 1609 database cards and reached DB_EXHAUSTED with 0 implemented fixes and 0 documented engine gaps. TCGDex preflight was OK; two db-identity-gap rows returned 404 (`stale-12d72511-001`, `stale-c7202c59-001`). Tests: backend baseline 1337 passed / 7 skipped.
 ```
 
 ## Cursor rules

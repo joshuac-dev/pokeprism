@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-10 (Nightly DB-backed audit: EG14/EG15 repaired)
+Last updated: 2026-05-11 (Nightly DB-backed audit: full circular pass, DB_EXHAUSTED)
 
 ## Current Workstream
 
@@ -17,23 +17,23 @@ post-phase development:
 - AI/coach hardening and decision-quality follow-up.
 - Operational refinement for Docker, Celery, CI, and local workflows.
 
-**DB-backed audit handoff (2026-05-10):**
+**DB-backed audit handoff (2026-05-11):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes
-- completion status: `PARTIAL_TIME_BUDGET`
+- completion status: `DB_EXHAUSTED`
 - target findings: 25
-- implemented fixes: 4
+- implemented fixes: 0
 - documented engine gaps: 0
-- database cards audited: 21
-- first card audited: `Lapras | SCR | 31 | sv07-031`
+- database cards audited: 1609
+- first card audited: `Ledyba | SCR | 2 | sv07-002`
 - last card fully audited: `Ledian | SCR | 3 | sv07-003`
 - next resume cursor: `Ledyba | SCR | 2 | sv07-002`
 - AUDIT_STATE.md update status: updated
-- focused tests run: `python3 -m pytest tests/test_engine/test_audit_fixes.py -q -k 'EG14_larimar_rain or EG15_lustrous_assist'` (4 passed); `python3 -m pytest tests/test_engine/test_audit_fixes.py -q` (185 passed)
-- full tests run: `python3 -m pytest tests/ -x -q` (1334 passed, 7 skipped)
-- implemented fixes: `sv08.5-115` Larry's Skill explicit-empty handling; `sv07-003` / `svp-133` Ledian Glittering Star Pattern optional on-evolve gust; `sv07-032` Lapras ex Larimar Rain arbitrary subset selection from revealed top-20 Energy cards plus per-card attachments; `me01-101` Latios Lustrous Assist any-amount multi-donor Energy movement
-- documented engine gaps: none from this audited window after repair
-- known issues / follow-up: continue from `Ledyba | SCR | 2 | sv07-002`
-- operational notes: effects files changed: yes (`backend/app/engine/effects/abilities.py`, `backend/app/engine/effects/trainers.py`); celery-worker rebuild required locally: yes (`docker compose build celery-worker && docker compose up -d celery-worker`)
+- focused tests run: none (no implementation changes in this run)
+- full tests run: `python3 -m pytest tests/ -x -q` (1337 passed, 7 skipped)
+- implemented fixes: none
+- documented engine gaps: none
+- known issues / follow-up: two `db-identity-gap` rows (`Stale Card | TST | 1 | stale-12d72511-001`, `Stale Card | TST | 1 | stale-c7202c59-001`) returned TCGDex 404 during full-pass audit; continue from `Ledyba | SCR | 2 | sv07-002`
+- operational notes: effects files changed: no; celery-worker rebuild required locally: no
 
 **Active planning branch:** `phase-7-observed-play-planning` — Observed-Play Intelligence Planning
 **Phase 1 through Phase 6.2b are COMPLETE and manually validated.** Both phases validated 2026-05-08.
