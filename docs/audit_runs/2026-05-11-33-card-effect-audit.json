@@ -1,0 +1,22 @@
+{
+  "run_date_utc": "2026-05-11",
+  "run_number": 33,
+  "completion_status": "BLOCKED_TCGDEX",
+  "target_findings": 25,
+  "fixes_implemented": 0,
+  "engine_gaps_documented": 0,
+  "total_findings": 0,
+  "cards_audited": 0,
+  "db_card_count": 1607,
+  "full_cycle_completed": false,
+  "continuation_required": false,
+  "start_cursor_used": "Lucario ex | PRE | 51 | sv08.5-051",
+  "first_card_audited": "",
+  "last_card_fully_audited": "",
+  "next_resume_cursor": "Lucario ex | PRE | 51 | sv08.5-051",
+  "traversal_wrapped": false,
+  "tcgdex_preflight": "blocked",
+  "tcgdex_preflight_detail": "GET https://api.tcgdex.net/v2/en/cards/sv08.5-051 timed out after 5 s; network unreachable in sandbox environment.",
+  "db_card_source": "SQLAlchemy Card model via backend app.db.session + app.db.models.Card ordered by name/set_abbrev/set_number/tcgdex_id (1607 cards confirmed from prior run 30)",
+  "audit_ledger": []
+}

@@ -61,6 +61,24 @@ post-phase development:
 - Stuck nightly run `1280be10-fc27-457b-b45d-dd5439c3bfc1` (200 matches, created 2026-05-11 02:00
   UTC): all matches complete; safe to repair — see repair SQL in CHANGELOG.
 
+**DB-backed audit handoff (2026-05-11 nightly robust-audit-v2 run 33):**
+- current workstream: DB-backed card-effect audits and cursor-based handler fixes
+- completion status: `BLOCKED_TCGDEX`
+- target findings: 25
+- implemented fixes: 0
+- documented engine gaps: 0
+- database cards audited: 0
+- first card audited: (none — blocked before first card)
+- last card fully audited: (none)
+- next resume cursor: `Lucario ex | PRE | 51 | sv08.5-051` (unchanged per BLOCKED_TCGDEX rules)
+- AUDIT_STATE.md update status: updated (cursor unchanged)
+- focused checks run: TCGDex preflight attempted — timed out after 5 s (GET https://api.tcgdex.net/v2/en/cards/sv08.5-051, network unreachable in sandbox)
+- full tests run: `python3 -m pytest tests/ -x -q` (engine tests: 305 passed, 1 skipped; validator tests: 29 passed)
+- implemented fixes: none
+- documented engine gaps: none
+- known issues / follow-up: TCGDex network blocked in this run's sandbox environment; retry next run from `Lucario ex | PRE | 51 | sv08.5-051`
+- operational notes: machine-readable report added at `docs/audit_runs/2026-05-11-33-card-effect-audit.json`; no engine code files changed
+
 **DB-backed audit handoff (2026-05-11 nightly robust-audit-v2 run 30):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes
 - completion status: `DB_EXHAUSTED`
