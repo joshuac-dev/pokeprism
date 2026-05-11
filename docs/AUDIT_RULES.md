@@ -403,7 +403,11 @@ The agent must not:
 - silently approximate precise card mechanics;
 - report `PARTIAL_TIME_BUDGET` (use `CONTINUATION_REQUIRED` instead);
 - omit `docs/audit_runs/<YYYY-MM-DD>-<run-number>-card-effect-audit.json` from the PR;
-- commit `frontend/node_modules`.
+- commit `frontend/node_modules`;
+- write generic ledger notes such as "TCGDex text fetched and compared to current handler coverage";
+- omit `tcgdex_effects_extracted` for cards fetched from TCGDex;
+- omit `implementation_evidence` when any effect requires a handler;
+- claim `no-issue` without recording the registry key, handler symbol, and semantic checks.
 
 ## Robust audit v2 enforcement rules
 
@@ -457,3 +461,129 @@ The PR gate also rejects PRs that commit any of the following:
 - `tmp/*.log` files
 - database dump files (`.sql`, `*.dump`)
 - `observed_play/import_candidates/*.{txt,md,log}` files (other than the existing README)
+
+## Audit quality v3 evidence requirements
+
+Starting with the `harden-card-audit-quality-evidence` branch (2026-05-11), every
+audit ledger entry must include concrete implementation evidence. Generic no-issue
+claims are **rejected by the PR gate validator**.
+
+### Validator script
+
+The ledger quality validator lives at:
+
+```
+backend/scripts/validate_card_audit_report.py
+```
+
+Run it locally before opening a PR:
+
+```bash
+python3 backend/scripts/validate_card_audit_report.py docs/audit_runs/<file>.json
+```
+
+Exit code 0 = valid; exit code 1 = invalid. The PR gate runs this script
+automatically and fails the PR if the report does not meet quality requirements.
+
+### Required v3 ledger entry fields
+
+Every ledger entry must include:
+
+| Field | Requirement |
+|---|---|
+| `db_id` | Non-null unless `result=db-identity-gap` |
+| `tcgdex_text_hash` | Required when `tcgdex_fetch=ok` |
+| `tcgdex_effects_extracted` | Required when `tcgdex_fetch=ok` (empty list `[]` is valid for vanilla) |
+| `implementation_evidence` | Required when any extracted effect has `requires_handler=true` |
+| `mechanic_flags` | Required for cards with complex mechanics |
+| `confidence` | Required: `"high"`, `"medium"`, or `"low"` |
+| `notes` | Must be specific; generic phrases are rejected |
+
+### What `tcgdex_effects_extracted` must contain
+
+For every card fetched from TCGDex, extract all effects:
+
+```json
+{
+  "kind": "attack | ability | trainer | stadium | tool | energy | passive",
+  "name": "<effect name>",
+  "raw_text": "<exact TCGDex effect text>",
+  "cost": "<energy cost string>",
+  "damage": "<damage value>",
+  "requires_handler": true,
+  "reason": "<why handler is or isn't required>"
+}
+```
+
+An empty list `[]` is valid only for confirmed vanilla Pokémon with no effect text
+on any attack and no abilities.
+
+### What `implementation_evidence` must contain
+
+For each effect that `requires_handler=true`, record:
+
+```json
+{
+  "effect_name": "<attack name or 'trainer' or ability name>",
+  "registry_key": "<e.g. sv06-130:1 or sv06-175>",
+  "handler_symbol": "<function name or null>",
+  "handler_file": "<source file path or null>",
+  "handler_found": true,
+  "source_evidence": "<e.g. registry._attack_effects['sv06-130:1']>",
+  "semantic_checks": ["<mechanic verified>"]
+}
+```
+
+`handler_found=false` with `result=no-issue` is always invalid.
+
+### Required `semantic_checks` for effect-bearing cards
+
+For any `no-issue` entry with at least one `requires_handler=true` effect,
+at least one `implementation_evidence` entry must have a non-empty `semantic_checks`
+list naming the mechanics that were verified.
+
+### Sentinel mechanic flags
+
+For cards whose TCGDex text contains these mechanics, list the flags and checks:
+
+| Mechanic | `mechanic_flags` entry | `semantic_checks` entry |
+|---|---|---|
+| Passive Stadium continuous effect | `passive-stadium` | `passive-stadium` |
+| Pre-weakness/resistance damage mod | `damage-modifier-pre-wr` | `damage-modifier-pre-wr` |
+| Explicit `[]` vs `None` choice | `choice-request` | `none-vs-empty-selection` |
+| ChoiceRequest type field | `choice-request` | `choice-request-type` |
+| Same-name alt-print registration | — | `alt-print-registration` |
+| Optional effects after GAME_OVER | — | `post-game-over-effect` |
+| Zone updates on card movement | — | `zone-update` |
+| Basic Energy vs Special Energy | — | `energy-type-filter` |
+| Once-per-turn global vs per-instance | `once-per-turn` | `once-per-turn` |
+| Generated fallback vs explicit decline | `choice-request` | `generated-fallback` |
+| Deck search + shuffle | `deck-search` | `shuffle-after-search` |
+
+### Rejected generic note phrases
+
+The validator rejects any `no-issue` entry whose `notes` field contains phrases like:
+
+- "TCGDex text fetched and compared to current handler coverage"
+- "no missing required effect handlers detected"
+- "handler coverage"
+- "compared to current handler"
+- "no issues found" / "no issues detected"
+- "all handlers present/found/registered"
+- "implementation is correct/fine/ok"
+
+Write notes that name the specific handler, registry key, and mechanics verified.
+
+### Helper probe script
+
+To generate a skeleton v3 ledger row from live DB and registry data:
+
+```bash
+cd backend
+python3 -m scripts.card_effect_audit_probe --tcgdex-id sv06-130
+# List cards with coverage status:
+python3 -m scripts.card_effect_audit_probe --list --limit 20 --cursor "Dragapult ex"
+```
+
+The probe script emits a skeleton with `confidence: "low"` and empty `semantic_checks`.
+The auditor must verify semantic correctness, fill `semantic_checks`, and set `confidence`.

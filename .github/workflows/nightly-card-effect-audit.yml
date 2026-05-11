@@ -114,13 +114,21 @@ jobs:
           BODY_FILE="$(mktemp)"
 
           cat > "$BODY_FILE" <<ROBUSTAUDITEOF
-          # DB-BACKED CARD IMPLEMENTATION AUDIT AND FIX TASK (ROBUST-AUDIT-v2)
+          # DB-BACKED CARD IMPLEMENTATION AUDIT AND FIX TASK (ROBUST-AUDIT-v3)
 
           This is a scheduled task for GitHub Copilot coding agent.
-          This task runs under robust-audit-v2 enforcement rules.
+          This task runs under robust-audit-v2 enforcement rules with audit-quality-v3
+          evidence requirements.
 
           The PR gate at .github/workflows/card-effect-audit-pr-gate.yml validates the
-          machine-readable audit report and rejects PRs that do not meet enforcement criteria.
+          machine-readable audit report and rejects PRs that do not meet enforcement criteria,
+          including ledger quality. The validator script is at:
+
+              backend/scripts/validate_card_audit_report.py
+
+          You can run it locally to check your report before opening a PR:
+
+              python3 backend/scripts/validate_card_audit_report.py docs/audit_runs/<file>.json
 
           ## Required reading order
 
@@ -144,52 +152,100 @@ jobs:
           - docs/CARD_EXPANSION_RULES.md, docs/CARDLIST.md, and docs/POKEMON_MASTER_LIST.md are
             historical/supporting documents. Do not use them as active audit authority.
 
-          ## Machine-readable audit report (REQUIRED)
+          ## Machine-readable audit report (REQUIRED, audit-quality-v3 schema)
 
           Before opening the PR, create and commit:
 
               ${REPORT_FILE}
 
-          This file is required. The PR gate will reject PRs without a valid report.
+          This file is required. The PR gate will reject PRs without a valid report AND
+          will reject reports that use the old shallow ledger format.
+
+          Required schema for each audit_ledger entry (v3):
 
               {
-                "run_date_utc": "YYYY-MM-DD",
-                "completion_status": "<status>",
-                "target_findings": ${TARGET_FINDINGS},
-                "fixes_implemented": 0,
-                "engine_gaps_documented": 0,
-                "total_findings": 0,
-                "cards_audited": 0,
-                "db_card_count": 0,
-                "full_cycle_completed": false,
-                "continuation_required": false,
-                "start_cursor_used": "",
-                "first_card_audited": "",
-                "last_card_fully_audited": "",
-                "next_resume_cursor": "",
-                "traversal_wrapped": false,
-                "audit_ledger": [
+                "seq": 1,
+                "db_id": "<database primary key or tcgdex_id>",
+                "card_name": "",
+                "set_id": "",
+                "card_number": "",
+                "tcgdex_id": "",
+                "tcgdex_fetch": "ok",
+                "category": "pokemon | trainer | energy",
+                "tcgdex_text_hash": "<sha256[:16] of raw TCGDex JSON>",
+                "tcgdex_effects_extracted": [
                   {
-                    "seq": 1,
-                    "db_id": 0,
-                    "card_name": "",
-                    "set_id": "",
-                    "card_number": "",
-                    "tcgdex_id": "",
-                    "tcgdex_fetch": "ok",
-                    "effects_checked": [],
-                    "result": "no-issue",
-                    "finding_counted": false,
-                    "notes": ""
+                    "kind": "attack | ability | trainer | stadium | tool | energy | passive",
+                    "name": "",
+                    "raw_text": "<exact TCGDex effect text>",
+                    "cost": "",
+                    "damage": "",
+                    "requires_handler": true,
+                    "reason": "<why handler is/isn't required>"
                   }
-                ]
+                ],
+                "implementation_evidence": [
+                  {
+                    "effect_name": "",
+                    "registry_key": "<e.g. sv06-130:1 or sv06-175>",
+                    "handler_symbol": "<function name>",
+                    "handler_file": "<file path>",
+                    "handler_found": true,
+                    "source_evidence": "<e.g. registry._attack_effects['sv06-130:1']>",
+                    "semantic_checks": [
+                      "<mechanic verified, e.g. zone-update, choice-request-type>"
+                    ]
+                  }
+                ],
+                "mechanic_flags": ["<e.g. deck-search, choice-request, damage-counter>"],
+                "result": "fixed | engine-gap | no-issue | blocked-tcgdex | blocked-db-access | db-identity-gap | tcgdex-unresolved | continuation-required",
+                "finding_counted": false,
+                "confidence": "high | medium | low",
+                "notes": "<specific notes — NOT generic phrases>"
               }
 
+          CRITICAL EVIDENCE REQUIREMENTS FOR EVERY CARD:
+
+          1. Record the database identity (db_id must not be null unless result=db-identity-gap).
+          2. Record the exact TCGDex effects extracted (tcgdex_effects_extracted).
+          3. For each effect requiring a handler, record the registry lookup result
+             (implementation_evidence with registry_key, handler_symbol, handler_file).
+          4. Record which semantic mechanics were verified (semantic_checks).
+          5. Set mechanic_flags for cards with complex mechanics (deck-search, choice-request, etc.).
+          6. Set confidence (high | medium | low) for every entry.
+          7. Write specific notes that name the handler and mechanics checked.
+             Do NOT write generic notes like "TCGDex text fetched and compared to current
+             handler coverage; no missing required effect handlers detected."
+
+          A no-issue result must explain WHY with concrete implementation evidence.
+          The validator will reject entries that use generic notes or lack evidence fields.
+
+          Use backend/scripts/card_effect_audit_probe.py to generate skeleton ledger rows:
+
+              cd backend && python3 -m scripts.card_effect_audit_probe --tcgdex-id sv06-130
+
           Every card examined must have a ledger entry.
+          cards_audited in the report must equal the number of entries in audit_ledger.
 
           Allowed audit_ledger result values:
             fixed, engine-gap, no-issue, tcgdex-unresolved, db-identity-gap,
             blocked-tcgdex, blocked-db-access, continuation-required
+
+          ## Sentinel mechanic checks (required when applicable)
+
+          For any card whose TCGDex text contains these mechanics, list the relevant
+          mechanic_flags and semantic_checks in the ledger entry:
+
+          - passive Stadium effects vs activated USE_STADIUM → flag: passive-stadium
+          - pre-Weakness/Resistance damage modifiers → flag: damage-modifier-pre-wr
+          - explicit [] vs None choice handling → check: none-vs-empty-selection
+          - ChoiceRequest type mismatch → check: choice-request-type
+          - same-name alt-print registration → check: alt-print-registration
+          - optional effects after GAME_OVER → check: post-game-over-effect
+          - zone updates after deck/hand/bench/discard movement → check: zone-update
+          - Basic Energy vs Special Energy filtering → check: energy-type-filter
+          - global once-per-turn vs per-card-instance tracking → check: once-per-turn
+          - generated fallback choices vs explicit decline → check: generated-fallback
 
           ## Allowed completion statuses (robust-audit-v2)
 
@@ -298,6 +354,12 @@ jobs:
                   "TARGET_REACHED requires fixes_implemented + engine_gaps_documented >= target_findings. DB_EXHAUSTED and FULL_CYCLE_COMPLETE require full_cycle_completed=true and cards_audited >= db_card_count. " +
                   "Minimum " + $mincards + " cards must be audited before CONTINUATION_REQUIRED is acceptable. " +
                   "Commit docs/audit_runs/<YYYY-MM-DD>-<run-number>-card-effect-audit.json before opening the PR. The PR gate will reject PRs without a valid report or with invalid status. " +
+                  "AUDIT QUALITY v3 REQUIRED: Every ledger entry must record: (1) database identity (db_id); (2) exact TCGDex effects extracted (tcgdex_effects_extracted with kind/name/raw_text/requires_handler); (3) registry lookup result for each effect (implementation_evidence with registry_key, handler_symbol, handler_file, handler_found); (4) semantic checks performed (semantic_checks list); (5) mechanic_flags; (6) confidence (high/medium/low); (7) specific notes naming the handler and what was verified. " +
+                  "Do NOT write generic notes like 'TCGDex text fetched and compared to current handler coverage; no missing required effect handlers detected.' — such notes will be rejected by the PR gate validator. " +
+                  "A no-issue result must include concrete implementation evidence explaining why the card is correctly implemented. " +
+                  "For cards with deck-search, choice-request, damage-modifier-pre-wr, passive-stadium, once-per-turn, or other complex mechanics, list the relevant mechanic_flags and semantic_checks in the ledger entry. " +
+                  "Use backend/scripts/card_effect_audit_probe.py to generate skeleton ledger rows from live registry data: cd backend && python3 -m scripts.card_effect_audit_probe --tcgdex-id <id>. " +
+                  "cards_audited must equal the length of audit_ledger. " +
                   "The next_resume_cursor in the JSON must match next_start_cursor in docs/AUDIT_STATE.md when cards were audited. " +
                   "Update docs/STATUS.md with a concise current-state handoff. Update docs/CHANGELOG.md if meaningful completed work occurred. " +
                   "Update docs/AUDIT_STATE.md with the next DB cursor only if an actual database-card audit occurred. " +

@@ -30,7 +30,38 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
-- **Round-robin nightly H/H rerun from manual simulations — 2026-05-14** —
+- **Audit quality hardened to evidence schema v3 — 2026-05-11** —
+  ci: require evidence-bearing card audit reports.
+
+  - Added `backend/scripts/validate_card_audit_report.py`: standalone validator that
+    rejects shallow/generic audit reports. Enforces 14 quality checks including:
+    `tcgdex_effects_extracted` required for `tcgdex_fetch=ok` entries, `implementation_evidence`
+    required when any effect has `requires_handler=true`, `semantic_checks` required for
+    effect-bearing `no-issue` entries, `confidence` required on every entry, `db_id` non-null
+    unless `result=db-identity-gap`, `tcgdex_text_hash` required for `tcgdex_fetch=ok`,
+    `handler_found=false` incompatible with `result=no-issue`, generic note phrases rejected,
+    old legacy shallow format (`effects_checked` only) rejected.
+  - Added `backend/scripts/card_effect_audit_probe.py`: helper probe script that loads DB
+    card list, fetches TCGDex card text, inspects the effect registry, and emits a v3 skeleton
+    ledger row. Use `--tcgdex-id <id>` for a single card or `--list` for bulk coverage summary.
+  - Updated `.github/workflows/card-effect-audit-pr-gate.yml`: replaced the single inline
+    validator with a two-step gate — structural/completion checks (inline) followed by ledger
+    quality validation via the standalone script. Added specific failure message for old-format
+    reports. Requires Python 3.11 via `setup-python` action.
+  - Updated `.github/workflows/nightly-card-effect-audit.yml`: issue body now shows the v3
+    ledger entry schema, lists all evidence requirements, documents sentinel mechanic checks,
+    and instructs Copilot to use the probe script. `custom_instructions` updated with explicit
+    evidence requirements and rejection of generic notes.
+  - Updated `docs/AUDIT_RULES.md`: added "Audit quality v3 evidence requirements" section
+    documenting the validator, required ledger fields, `tcgdex_effects_extracted` schema,
+    `implementation_evidence` schema, sentinel mechanic flags/checks table, and rejected
+    generic note phrases.
+  - Added 29 tests in `backend/tests/test_scripts/test_validate_card_audit_report.py` covering
+    all 10 required test cases plus edge cases.
+  - Old shallow audit reports (with `effects_checked` but no v3 evidence fields) are no longer
+    acceptable for new runs. Existing historical reports (before this change) are unaffected.
+
+
   feat(tasks): schedule round-robin H/H reruns from manual simulations.
 
   - Replaced the static Dragapult vs TR-Mewtwo nightly benchmark with a round-robin
