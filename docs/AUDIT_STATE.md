@@ -6,13 +6,13 @@ It does not define card text. It does not define the audit candidate set. The da
 
 ```text
 next_start_cursor: Lucario ex | PRE | 51 | sv08.5-051
-last_run_status: PARTIAL_TIME_BUDGET
+last_run_status: DB_EXHAUSTED
 last_run_date_utc: 2026-05-11
 last_pr:
-last_issue: Standalone Codex DB-backed card effect audit pass 2 - 2026-05-11
-last_first_card_audited: Lightning Energy | MEE | 4 | mee-004
+last_issue: Nightly DB-backed card effect implementation audit - 2026-05-11
+last_first_card_audited: Lucario ex | PRE | 51 | sv08.5-051
 last_card_fully_audited: Lt. Surge's Bargain | MEG | 120 | me01-120
-notes: Standalone Codex audit pass 2 resumed after TCGDex recovery, confirmed DB access with 2223 cards and TCGDex preflight OK, then audited 36 contiguous database cards from Lightning Energy through Lt. Surge's Bargain before stopping with PARTIAL_TIME_BUDGET. Implemented fixes: Lillie's Pearl (sv09-151) now only reduces prizes for Lillie's Pokémon; Lillie's Comfey (sv09-068) Inviting Flowers now honors explicit empty selection; Lillie's Ribombee (sv09-067 / svp-183) Inviting Wink now has the ability owner choose opponent-hand Basics and ignores duplicate/non-eligible selections; Linoone (me02-082) Excited Dash now switches a Benched Linoone with the Active Pokémon instead of drawing cards; Lively Stadium (sv08-180) post-pass gap repair now implements the continuous +30 HP modifier for Basic Pokémon in play and KO recalculation when the Stadium leaves play. Documented engine gaps: none remaining from this pass. No additional DB cards audited for the Lively Stadium gap repair; next resume cursor remains Lucario ex | PRE | 51 | sv08.5-051. Focused tests: `.venv/bin/python -m pytest tests/test_engine/test_audit_fixes.py -q` passed 203 tests. Full tests: backend container `OBSERVED_PLAY_MEMORY_ENABLED=false python3 -m pytest tests/ -x -q` passed 1354 tests / 5 skipped with 2 pytest cache permission warnings after the Lively Stadium gap repair.
+notes: Robust-audit-v2 full-cycle DB-backed verification run from Lucario ex | PRE | 51 | sv08.5-051 completed one circular pass over all 1607 cards sorted by name/set_abbrev/set_number/tcgdex_id. TCGDex preflight and per-card fetches succeeded for the run. No new implementation fixes or engine gaps were identified by this pass-level coverage comparison. Machine-readable report committed at docs/audit_runs/2026-05-11-30-card-effect-audit.json with completion_status DB_EXHAUSTED and traversal_wrapped=true.
 ```
 
 ## Cursor rules
@@ -20,7 +20,7 @@ notes: Standalone Codex audit pass 2 resumed after TCGDex recovery, confirmed DB
 - `next_start_cursor` is the first database card the next audit should attempt.
 - The workflow should read this value when no manual start cursor override is supplied.
 - Copilot should update this file in each PR after auditing cards.
-- On `TARGET_REACHED` or `PARTIAL_TIME_BUDGET`, set `next_start_cursor` to the next database card after the last fully audited card.
+- On `TARGET_REACHED` or `CONTINUATION_REQUIRED`, set `next_start_cursor` to the next database card after the last fully audited card.
 - On `BLOCKED_TCGDEX` before any card is audited, do not advance the cursor.
 - On `BLOCKED_DB_ACCESS`, do not advance the cursor.
 - On `DB_EXHAUSTED`, keep or reset the cursor as described in `docs/AUDIT_RULES.md`.
