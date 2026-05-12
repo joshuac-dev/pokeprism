@@ -30,6 +30,36 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+- **Engine gap follow-up fixes — 2026-05-12 (post run 36)** —
+  Implemented all 12 engine gaps documented in run 36.
+
+  - **Big Net** (sv06-005 Ariados): opponent's Active Evolution Pokémon has +1 Retreat Cost.
+    Added check in `actions.py` `_get_retreat_actions()`.
+  - **Metal Bridge** (sv07-107 / sv08.5-070 Archaludon): ALL player Pokémon with Metal Energy
+    get free retreat. Fixed `get_retreat_cost_reduction()` in `base.py`; added `has_metal_bridge()`
+    helper in `abilities.py`.
+  - **Initialization** (sv06-077 Iron Thorns ex): extended existing sv08.5-032 check in
+    `actions.py` to also suppress Rule Box abilities when sv06-077 is Active.
+  - **Boom Boom Groove** (sv06-015 Thwackey / svp-115): added active ability handler to search
+    deck for any 1 card when Active has Festival Lead; changed registration from passive noop.
+  - **Wicked Tail** (sv06-138 Ambipom): implemented on-evolve trigger; flips 2 coins, each heads
+    shuffles a random card from opponent's hand into their deck. Added to `EVOLVE_TRIGGER_ABILITIES`.
+  - **ACE Nullifier** (sv06.5-040 Genesect): when Genesect has a Tool attached, opponent cannot
+    play ACE SPEC cards. Added `_ACE_SPEC_IDS` frozenset and guard in `_get_play_actions()`.
+  - **Massive Body** (sv06.5-042 Copperajah): when Active, opponent cannot play Stadium cards.
+    Added guard in `_get_play_actions()` stadium section.
+  - **Storehouse Hideaway** (sv06-020 Poltchageist): prevents all bench damage to this Pokémon.
+    Added check in `_apply_bench_damage()`.
+  - **Solar Transfer** (mep-013 Mega Venusaur ex): wired to same `_solar_transfer` handler as
+    me01-003; changed from passive noop to active ability.
+  - **Changing Seasons** (sv05-017 Sawsbuck): implemented active ability to search deck for a
+    Stadium card and put it into hand; condition gates on stadium in deck.
+  - **Unnerve** (sv06.5-045 Fraxure): added `has_unnerve_protection()` helper; Fraxure cannot
+    be targeted by Boss's Orders, Pokémon Catcher, or similar switch-targeting effects.
+  - Added 24 tests in `backend/tests/test_engine/test_run36_gap_fixes_impl.py`.
+  - Full test suite: `1466 passed, 7 skipped`.
+  - Confidence: High.
+
 - **DB-backed card audit run 36 — 2026-05-12 — TARGET_REACHED** —
   Nightly robust-audit-v2 card-effect implementation audit (run 36).
 

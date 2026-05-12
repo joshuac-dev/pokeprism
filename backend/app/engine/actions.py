@@ -28,6 +28,19 @@ logger = logging.getLogger(__name__)
 
 _INITIALIZATION_IDS = frozenset({"sv08.5-032", "sv06-077"})
 
+# ACE SPEC card IDs used by ACE Nullifier (sv06.5-040 Genesect) to block opponent plays
+_ACE_SPEC_IDS = frozenset({
+    "sv05-157",   # Prime Catcher
+    "sv05-162",   # Neo Upper Energy
+    "sv06-162",   # Scoop Up Cyclone
+    "sv06.5-060", # Neutralization Zone
+    "sv08-164",   # Brilliant Blender
+    "sv08-176",   # Energy Search Pro
+    "sv08-183",   # Miracle Headset
+    "sv08-185",   # Precious Trolley
+    "sv08.5-119", # Prime Catcher alt print
+})
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Action types (§6.2)
@@ -438,10 +451,6 @@ class ActionValidator:
         state: GameState, player: PlayerState, player_id: str
     ) -> list[Action]:
         # ACE Nullifier (sv06.5-040 Genesect): if Genesect has a Tool, opp can't play ACE SPEC cards
-        _ACE_SPEC_IDS = frozenset({
-            "sv05-157", "sv05-162", "sv06-162", "sv06.5-060",
-            "sv08-164", "sv08-176", "sv08-183", "sv08-185", "sv08.5-119",
-        })
         _opp_ace = state.get_opponent(player_id)
         _genesect_with_tool = any(
             p.card_def_id == "sv06.5-040" and p.tools_attached

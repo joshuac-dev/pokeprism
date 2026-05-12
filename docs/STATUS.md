@@ -61,23 +61,22 @@ post-phase development:
 - Stuck nightly run `1280be10-fc27-457b-b45d-dd5439c3bfc1` (200 matches, created 2026-05-11 02:00
   UTC): all matches complete; safe to repair — see repair SQL in CHANGELOG.
 
-**DB-backed audit handoff (2026-05-12 nightly robust-audit-v2 run 36):**
+**DB-backed audit handoff (2026-05-12 nightly robust-audit-v2 run 36 + gap-fix follow-up):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes
-- completion status: `TARGET_REACHED`
+- completion status: `TARGET_REACHED` + all 12 engine gaps subsequently implemented
 - target findings: 25
-- implemented fixes: 13
-- documented engine gaps: 12
+- implemented fixes (audit): 13
+- documented engine gaps (audit): 12 — all subsequently fixed in follow-up commit
 - database cards audited: 1132 (+ 7 supplemental out-of-range, ledger=1139)
 - first card audited: `Flutter Mane | TEF | 78 | sv05-078`
 - last card fully audited: `Zweilous | sv10.5w | 66 | sv10.5w-066`
 - next resume cursor: `Abomasnow | DRI | 60 | sv10-060` (last card was end of DB; wraps to first card)
 - AUDIT_STATE.md update status: updated
-- focused checks run: TCGDex preflight succeeded; local report validation passed; `python3 backend/scripts/validate_card_audit_report.py docs/audit_runs/2026-05-12-36-card-effect-audit.json` passed
-- full tests run: `python3 -m pytest tests/ -x -q` (`1442 passed, 7 skipped`)
-- implemented fixes: Compound Eyes scope (sv06.5-002 Galvantula), Psyduck Damp alt-prints (mep-007/mep-008), Froslass Shroud alt-print (svp-117), Sandy Flapping active handler (mep-016 Flygon), Primal Knowledge +30 vs Evolution (sv07-038 Carracosta), Soft Wool -30 (sv07-125 Dubwool), Thicket Body -30 (sv06-002 Tangrowth), Impervious Shell prevent ≥200 damage (sv07-044 Drednaw), Incandescent Body alt-print (sv06-123 Heatran), Poison Point alt-prints (sv05-008 Roselia, sv05-009 Roserade), Solid Shell -20 (sv05-010 Turtwig)
-- documented engine gaps: Big Net retreat-cost (sv06-005 Ariados), Initialization ability suppression (sv06-077 Iron Thorns ex), Boom Boom Groove stadium double-attack (sv06-015 Thwackey), Metal Bridge energy-conditional retreat (sv08.5-070 Archaludon ex), Wicked Tail on-evolve discard (sv06-138 Ambipom), ACE Nullifier (sv06.5-040 Genesect), Massive Body stadium prevention (sv06.5-042 Copperajah), Wild Growth energy doubling (mep-001 Meganium), Storehouse Hideaway per-Pokémon bench protection (sv06-020 Poltchageist), Solar Transfer energy movement (mep-013 Mega Venusaur ex), Changing Seasons count-based cost reduction (sv05-017 Sawsbuck), Unnerve opponent-evolve trigger (sv06.5-045 Fraxure)
-- known issues / follow-up: 12 engine gaps require new engine hooks; no code regressions
-- operational notes: machine-readable v3 report at `docs/audit_runs/2026-05-12-36-card-effect-audit.json`; test file `backend/tests/test_engine/test_run36_gap_fixes.py` added with 19 tests
+- focused checks run: TCGDex preflight succeeded; local report validation passed
+- full tests run: `python3 -m pytest tests/ -x -q` (`1466 passed, 7 skipped` after gap fixes)
+- implemented fixes (audit): Compound Eyes scope (sv06.5-002 Galvantula), Psyduck Damp alt-prints (mep-007/mep-008), Froslass Shroud alt-print (svp-117), Sandy Flapping active handler (mep-016 Flygon), Primal Knowledge +30 vs Evolution (sv07-038 Carracosta), Soft Wool -30 (sv07-125 Dubwool), Thicket Body -30 (sv06-002 Tangrowth), Impervious Shell prevent ≥200 damage (sv07-044 Drednaw), Incandescent Body alt-print (sv06-123 Heatran), Poison Point alt-prints (sv05-008 Roselia, sv05-009 Roserade), Solid Shell -20 (sv05-010 Turtwig)
+- engine gap fixes (follow-up): Big Net +1 retreat for Evolution (sv06-005), Metal Bridge free retreat for all Pokémon with Metal Energy (sv07-107/sv08.5-070), Initialization sv06-077 suppresses Rule Box abilities, Boom Boom Groove active handler with Festival Lead condition (sv06-015/svp-115), Wicked Tail on-evolve trigger (sv06-138), ACE Nullifier blocks ACE SPEC when Genesect has Tool (sv06.5-040), Massive Body blocks Stadium play when Active (sv06.5-042), Storehouse Hideaway blocks bench damage to Poltchageist (sv06-020), Solar Transfer active handler for mep-013, Changing Seasons stadium search once per turn (sv05-017), Unnerve protection from Boss/Catcher targeting (sv06.5-045)
+- operational notes: v3 report at `docs/audit_runs/2026-05-12-36-card-effect-audit.json`; tests in `test_run36_gap_fixes.py` (19) and `test_run36_gap_fixes_impl.py` (24)
 
 **DB-backed audit handoff (2026-05-11 nightly robust-audit-v2 run 34):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes

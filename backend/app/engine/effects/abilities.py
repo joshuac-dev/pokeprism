@@ -2208,10 +2208,10 @@ def _boom_boom_groove(state: GameState, action):
         cards=list(player.deck), min_count=0, max_count=1,
     )
     resp = yield req
-    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+    # Default to first deck card if player declines or response is empty
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [player.deck[0].instance_id])
     card = next((c for c in player.deck if c.instance_id in chosen_ids), None)
-    if card is None and player.deck:
-        card = player.deck[0]
     if card:
         player.deck.remove(card)
         player.hand.append(card)
@@ -2226,7 +2226,7 @@ def _wicked_tail(state: GameState, action):
     player_id = action.player_id
     opp_id = state.opponent_id(player_id)
     opp = state.get_player(opp_id)
-    heads = sum(1 for _ in range(2) if random.random() < 0.5)
+    heads = sum(1 for _ in range(2) if random.choice([True, False]))
     if heads == 0:
         state.emit_event("wicked_tail_no_heads", player=player_id)
         return
@@ -2263,7 +2263,9 @@ def _changing_seasons(state: GameState, action):
         cards=stadiums, min_count=0, max_count=1,
     )
     resp = yield req
-    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+    # Default to first available stadium if player declines or response is empty
+    chosen_ids = (resp.selected_cards if resp and resp.selected_cards
+                  else [stadiums[0].instance_id])
     card = next((c for c in stadiums if c.instance_id in chosen_ids), None)
     if card is None:
         card = stadiums[0]
