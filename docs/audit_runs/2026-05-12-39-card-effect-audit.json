@@ -1,0 +1,1403 @@
+{
+  "run_date_utc": "2026-05-12",
+  "run_number": 39,
+  "completion_status": "TARGET_REACHED",
+  "target_findings": 25,
+  "fixes_implemented": 0,
+  "engine_gaps_documented": 25,
+  "total_findings": 25,
+  "cards_audited": 28,
+  "db_card_count": 1607,
+  "full_cycle_completed": false,
+  "continuation_required": false,
+  "min_cards_before_partial": 100,
+  "start_cursor_used": "Cornerstone Mask Ogerpon | DRI | 111 | sv10-111",
+  "first_card_audited": "Cornerstone Mask Ogerpon | DRI | 111 | sv10-111",
+  "last_card_fully_audited": "Crustle | DRI | 12 | sv10-012",
+  "next_resume_cursor": "Cryogonal | BLK | 27 | sv10.5b-027",
+  "traversal_wrapped": false,
+  "tcgdex_preflight": "ok",
+  "tcgdex_preflight_detail": "TCGDex API reachable; probe fetch succeeded for start card.",
+  "db_card_source": "DB query ordered by name, set_abbrev, set_number, tcgdex_id",
+  "audit_ledger": [
+    {
+      "seq": 1,
+      "db_id": "sv10-111",
+      "card_name": "Cornerstone Mask Ogerpon",
+      "set_id": "DRI",
+      "card_number": "111",
+      "tcgdex_id": "sv10-111",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "9202e41c1606affd",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Rock Kagura",
+          "raw_text": "Search your deck for a Basic {F} Energy card and attach it to 1 of your Pok\u00e9mon. Then, shuffle your deck.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Mountain Ramming",
+          "raw_text": "Discard the top card of your opponent's deck.",
+          "cost": "Fighting Fighting Colorless",
+          "damage": "100",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Rock Kagura",
+          "registry_key": "sv10-111:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv10-111:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Mountain Ramming",
+          "registry_key": "sv10-111:1",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv10-111:1']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard",
+        "shuffle-after-search"
+      ],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv10-111:0; sv10-111:1."
+    },
+    {
+      "seq": 2,
+      "db_id": "sv08.5-058",
+      "card_name": "Cornerstone Mask Ogerpon ex",
+      "set_id": "PRE",
+      "card_number": "58",
+      "tcgdex_id": "sv08.5-058",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "042a1a8eac1bdc12",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Demolish",
+          "raw_text": "This attack's damage isn't affected by Weakness or Resistance, or by any effects on your opponent's Active Pok\u00e9mon.",
+          "cost": "Fighting Colorless Colorless",
+          "damage": "140",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Cornerstone Stance",
+          "raw_text": "Prevent all damage from attacks done to this Pok\u00e9mon by your opponent's Pok\u00e9mon that have an Ability.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Demolish",
+          "registry_key": "sv08.5-058:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv08.5-058:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Cornerstone Stance",
+          "registry_key": "sv08.5-058:Cornerstone Stance",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "not found in ability_effects or passive_abilities",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv08.5-058:0; sv08.5-058:Cornerstone Stance."
+    },
+    {
+      "seq": 3,
+      "db_id": "sv06-112",
+      "card_name": "Cornerstone Mask Ogerpon ex",
+      "set_id": "TWM",
+      "card_number": "112",
+      "tcgdex_id": "sv06-112",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "8a0dfbd480b5c07d",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Demolish",
+          "raw_text": "This attack's damage isn't affected by Weakness or Resistance, or by any effects on your opponent's Active Pok\u00e9mon.",
+          "cost": "Fighting Colorless Colorless",
+          "damage": "140",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Cornerstone Stance",
+          "raw_text": "Prevent all damage from attacks done to this Pok\u00e9mon by your opponent's Pok\u00e9mon that have an Ability.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Demolish",
+          "registry_key": "sv06-112:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv06-112:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Cornerstone Stance",
+          "registry_key": "sv06-112:Cornerstone Stance",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "not found in ability_effects or passive_abilities",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv06-112:0; sv06-112:Cornerstone Stance."
+    },
+    {
+      "seq": 4,
+      "db_id": "sv06-047",
+      "card_name": "Corphish",
+      "set_id": "TWM",
+      "card_number": "47",
+      "tcgdex_id": "sv06-047",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "79925544e774a1e6",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Vise Grip",
+          "raw_text": "",
+          "cost": "Water Water Colorless",
+          "damage": "60",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects; flat damage and/or no-effect text only."
+    },
+    {
+      "seq": 5,
+      "db_id": "mep-018",
+      "card_name": "Cottonee",
+      "set_id": "MEP",
+      "card_number": "18",
+      "tcgdex_id": "mep-018",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "426615e4f87a79e9",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Collect",
+          "raw_text": "Draw a card.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Collect",
+          "registry_key": "mep-018:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['mep-018:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: mep-018:0."
+    },
+    {
+      "seq": 6,
+      "db_id": "sv08.5-007",
+      "card_name": "Cottonee",
+      "set_id": "PRE",
+      "card_number": "7",
+      "tcgdex_id": "sv08.5-007",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "c3f3bad88af859ed",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Triple Spin",
+          "raw_text": "Flip 3 coins. This attack does 10 damage for each heads.",
+          "cost": "Grass",
+          "damage": "10\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Triple Spin",
+          "registry_key": "sv08.5-007:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv08.5-007:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv08.5-007:0."
+    },
+    {
+      "seq": 7,
+      "db_id": "sv05-014",
+      "card_name": "Cottonee",
+      "set_id": "TEF",
+      "card_number": "14",
+      "tcgdex_id": "sv05-014",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "cf28e93b94beca52",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Triple Spin",
+          "raw_text": "Flip 3 coins. This attack does 10 damage for each heads.",
+          "cost": "Grass",
+          "damage": "10\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Triple Spin",
+          "registry_key": "sv05-014:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv05-014:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv05-014:0."
+    },
+    {
+      "seq": 8,
+      "db_id": "sv10.5w-004",
+      "card_name": "Cottonee",
+      "set_id": "WHT",
+      "card_number": "4",
+      "tcgdex_id": "sv10.5w-004",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "97e70ec89dd54b53",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Absorb",
+          "raw_text": "Heal 10 damage from this Pok\u00e9mon.",
+          "cost": "Grass",
+          "damage": "10",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Absorb",
+          "registry_key": "sv10.5w-004:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv10.5w-004:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "heal"
+      ],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv10.5w-004:0."
+    },
+    {
+      "seq": 9,
+      "db_id": "me02.5-186",
+      "card_name": "Counter Gain",
+      "set_id": "ASC",
+      "card_number": "186",
+      "tcgdex_id": "me02.5-186",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "tcgdex_text_hash": "ed5d2e8f289af744",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Counter Gain",
+          "raw_text": "If you have more Prize cards remaining than your opponent, attacks used by the Pok\u00e9mon this card is attached to cost {C} less.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "me02.5-186",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._trainer_effects['me02.5-186']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "prize-manipulation"
+      ],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: me02.5-186."
+    },
+    {
+      "seq": 10,
+      "db_id": "sv08-169",
+      "card_name": "Counter Gain",
+      "set_id": "SSP",
+      "card_number": "169",
+      "tcgdex_id": "sv08-169",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "tcgdex_text_hash": "4684344f3579886c",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Counter Gain",
+          "raw_text": "If you have more Prize cards remaining than your opponent, attacks used by the Pok\u00e9mon this card is attached to cost {C} less.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv08-169",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._trainer_effects['sv08-169']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "prize-manipulation"
+      ],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv08-169."
+    },
+    {
+      "seq": 11,
+      "db_id": "svp-134",
+      "card_name": "Crabominable",
+      "set_id": "PR-SV",
+      "card_number": "134",
+      "tcgdex_id": "svp-134",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "933ca59d59d85927",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Haymaker",
+          "raw_text": "During your next turn, this Pok\u00e9mon can't use Haymaker.",
+          "cost": "Water Colorless Colorless Colorless Colorless",
+          "damage": "250",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Food Prep",
+          "raw_text": "Attacks used by this Pok\u00e9mon cost {C} less for each Kofu card in your discard pile.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Haymaker",
+          "registry_key": "svp-134:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['svp-134:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Food Prep",
+          "registry_key": "svp-134:Food Prep",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "not found in ability_effects or passive_abilities",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: svp-134:0; svp-134:Food Prep."
+    },
+    {
+      "seq": 12,
+      "db_id": "sv07-042",
+      "card_name": "Crabominable",
+      "set_id": "SCR",
+      "card_number": "42",
+      "tcgdex_id": "sv07-042",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "7393dca3cf8b50a6",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Haymaker",
+          "raw_text": "During your next turn, this Pok\u00e9mon can't use Haymaker.",
+          "cost": "Water Colorless Colorless Colorless Colorless",
+          "damage": "250",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Food Prep",
+          "raw_text": "Attacks used by this Pok\u00e9mon cost {C} less for each Kofu card in your discard pile.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Haymaker",
+          "registry_key": "sv07-042:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv07-042:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Food Prep",
+          "registry_key": "sv07-042:Food Prep",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "not found in ability_effects or passive_abilities",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv07-042:0; sv07-042:Food Prep."
+    },
+    {
+      "seq": 13,
+      "db_id": "sv07-087",
+      "card_name": "Crabrawler",
+      "set_id": "SCR",
+      "card_number": "87",
+      "tcgdex_id": "sv07-087",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "f4982151110eb47a",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Vise Grip",
+          "raw_text": "",
+          "cost": "Colorless Colorless",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Crabhammer",
+          "raw_text": "",
+          "cost": "Colorless Colorless Colorless",
+          "damage": "50",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects; flat damage and/or no-effect text only."
+    },
+    {
+      "seq": 14,
+      "db_id": "sv07-006",
+      "card_name": "Cradily",
+      "set_id": "SCR",
+      "card_number": "6",
+      "tcgdex_id": "sv07-006",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "8973e932788cbb41",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Miasma Wind",
+          "raw_text": "This attack does 100 damage for each Special Condition affecting your opponent's Active Pok\u00e9mon.",
+          "cost": "Grass",
+          "damage": "100\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Selective Slime",
+          "raw_text": "Once during your turn, you may flip a coin. If heads, choose Burned, Confused, or Poisoned. Your opponent's Active Pok\u00e9mon is now affected by that Special Condition.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Miasma Wind",
+          "registry_key": "sv07-006:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv07-006:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Selective Slime",
+          "registry_key": "sv07-006:Selective Slime",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "not found in ability_effects or passive_abilities",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "choice-request",
+        "once-per-turn",
+        "status-condition"
+      ],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv07-006:0; sv07-006:Selective Slime."
+    },
+    {
+      "seq": 15,
+      "db_id": "sv09-137",
+      "card_name": "Cramorant",
+      "set_id": "JTG",
+      "card_number": "137",
+      "tcgdex_id": "sv09-137",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "a9052bfd15601d82",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Ceaseless Spitting",
+          "raw_text": "Flip a coin until you get tails. This attack does 50 damage for each heads.",
+          "cost": "Colorless Colorless",
+          "damage": "50\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Ceaseless Spitting",
+          "registry_key": "sv09-137:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv09-137:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv09-137:0."
+    },
+    {
+      "seq": 16,
+      "db_id": "sv06-058",
+      "card_name": "Cramorant",
+      "set_id": "TWM",
+      "card_number": "58",
+      "tcgdex_id": "sv06-058",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "766e054cb49e035c",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Water Gun",
+          "raw_text": "",
+          "cost": "Water",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Spit Shot",
+          "raw_text": "Discard all Energy from this Pok\u00e9mon. This attack does 120 damage to 1 of your opponent's Pok\u00e9mon. (Don't apply Weakness and Resistance for Benched Pok\u00e9mon.)",
+          "cost": "Colorless Colorless Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Spit Shot",
+          "registry_key": "sv06-058:1",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv06-058:1']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect",
+        "discard"
+      ],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv06-058:1."
+    },
+    {
+      "seq": 17,
+      "db_id": "me01-085",
+      "card_name": "Crawdaunt",
+      "set_id": "MEG",
+      "card_number": "85",
+      "tcgdex_id": "me01-085",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "7ada35195b89201f",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Vise Grip",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Cutting Riposte",
+          "raw_text": "If this Pok\u00e9mon has any damage counters on it, this attack can be used for {D}.",
+          "cost": "Darkness Darkness Colorless",
+          "damage": "130",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Cutting Riposte",
+          "registry_key": "me01-085:1",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['me01-085:1']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-counter"
+      ],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: me01-085:1."
+    },
+    {
+      "seq": 18,
+      "db_id": "sv06-048",
+      "card_name": "Crawdaunt",
+      "set_id": "TWM",
+      "card_number": "48",
+      "tcgdex_id": "sv06-048",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "21f4bd91ae17a468",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Snip Snip",
+          "raw_text": "Flip 2 coins. For each heads, discard the top card of your opponent's deck.",
+          "cost": "Water Colorless",
+          "damage": "40",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Rampaging Hammer",
+          "raw_text": "During your next turn, this Pok\u00e9mon can't attack.",
+          "cost": "Water Water Colorless",
+          "damage": "180",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Snip Snip",
+          "registry_key": "sv06-048:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv06-048:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Rampaging Hammer",
+          "registry_key": "sv06-048:1",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv06-048:1']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv06-048:0; sv06-048:1."
+    },
+    {
+      "seq": 19,
+      "db_id": "sv06.5-021",
+      "card_name": "Cresselia",
+      "set_id": "SFA",
+      "card_number": "21",
+      "tcgdex_id": "sv06.5-021",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "6e9d3cdc42054b8a",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Healing Pirouette",
+          "raw_text": "Heal 20 damage from each of your Pok\u00e9mon.",
+          "cost": "Psychic",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Crescent Purge",
+          "raw_text": "You may turn 1 of your face-down Prize cards face up. If you do, this attack does 80 more damage. (That Prize card remains face up for the rest of the game.)",
+          "cost": "Psychic Psychic Psychic",
+          "damage": "80+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Healing Pirouette",
+          "registry_key": "sv06.5-021:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv06.5-021:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Crescent Purge",
+          "registry_key": "sv06.5-021:1",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv06.5-021:1']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "heal",
+        "prize-manipulation"
+      ],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv06.5-021:0; sv06.5-021:1."
+    },
+    {
+      "seq": 20,
+      "db_id": "sv07-133",
+      "card_name": "Crispin",
+      "set_id": "SCR",
+      "card_number": "133",
+      "tcgdex_id": "sv07-133",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "tcgdex_text_hash": "8db2a0ba54c1192f",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Crispin",
+          "raw_text": "Search your deck for up to 2 Basic Energy cards of different types, reveal them, and put 1 of them into your hand. Attach the other to 1 of your Pok\u00e9mon. Then, shuffle your deck.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv07-133",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._trainer_effects['sv07-133']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "energy-type-filter",
+        "shuffle-after-search"
+      ],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv07-133."
+    },
+    {
+      "seq": 21,
+      "db_id": "me01-078",
+      "card_name": "Croagunk",
+      "set_id": "MEG",
+      "card_number": "78",
+      "tcgdex_id": "me01-078",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "e5d7ec8961212089",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Smack",
+          "raw_text": "",
+          "cost": "Fighting",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects; flat damage and/or no-effect text only."
+    },
+    {
+      "seq": 22,
+      "db_id": "sv06.5-023",
+      "card_name": "Croagunk",
+      "set_id": "SFA",
+      "card_number": "23",
+      "tcgdex_id": "sv06.5-023",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "9f7c9f87304a6567",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Light Punch",
+          "raw_text": "",
+          "cost": "Fighting",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Frog Hop",
+          "raw_text": "Flip a coin. If heads, this attack does 20 more damage.",
+          "cost": "Fighting Colorless",
+          "damage": "20+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Frog Hop",
+          "registry_key": "sv06.5-023:1",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv06.5-023:1']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv06.5-023:1."
+    },
+    {
+      "seq": 23,
+      "db_id": "sv06.5-029",
+      "card_name": "Crobat",
+      "set_id": "SFA",
+      "card_number": "29",
+      "tcgdex_id": "sv06.5-029",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "956f3a2e55113621",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Poison Fang",
+          "raw_text": "Your opponent's Active Pok\u00e9mon is now Poisoned. During Pok\u00e9mon Checkup, put 2 damage counters on that Pok\u00e9mon instead of 1.",
+          "cost": "Darkness Colorless",
+          "damage": "120",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Shadowy Envoy",
+          "raw_text": "Once during your turn, if you played Janine's Secret Art from your hand this turn, you may draw cards until you have 8 cards in your hand.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Poison Fang",
+          "registry_key": "sv06.5-029:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv06.5-029:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Shadowy Envoy",
+          "registry_key": "sv06.5-029:Shadowy Envoy",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "not found in ability_effects or passive_abilities",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-counter",
+        "once-per-turn",
+        "status-condition"
+      ],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv06.5-029:0; sv06.5-029:Shadowy Envoy."
+    },
+    {
+      "seq": 24,
+      "db_id": "sv08-030",
+      "card_name": "Crocalor",
+      "set_id": "SSP",
+      "card_number": "30",
+      "tcgdex_id": "sv08-030",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "3f9d657804a595b9",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Heat Breath",
+          "raw_text": "Flip a coin. If heads, this attack does 50 more damage.",
+          "cost": "Fire Colorless",
+          "damage": "30+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Heat Breath",
+          "registry_key": "sv08-030:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv08-030:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv08-030:0."
+    },
+    {
+      "seq": 25,
+      "db_id": "sv05-040",
+      "card_name": "Croconaw",
+      "set_id": "TEF",
+      "card_number": "40",
+      "tcgdex_id": "sv05-040",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "a451108ffe33e386",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Reverse Thrust",
+          "raw_text": "Switch this Pok\u00e9mon with 1 of your Benched Pok\u00e9mon.",
+          "cost": "Water",
+          "damage": "30",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Reverse Thrust",
+          "registry_key": "sv05-040:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv05-040:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect",
+        "switch"
+      ],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv05-040:0."
+    },
+    {
+      "seq": 26,
+      "db_id": "me03-071",
+      "card_name": "Crushing Hammer",
+      "set_id": "POR",
+      "card_number": "71",
+      "tcgdex_id": "me03-071",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "tcgdex_text_hash": "1938eba6ef2c2223",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Crushing Hammer",
+          "raw_text": "Flip a coin. If heads, discard an Energy from 1 of your opponent's Pok\u00e9mon.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "me03-071",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._trainer_effects['me03-071']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: me03-071."
+    },
+    {
+      "seq": 27,
+      "db_id": "sv10.5b-052",
+      "card_name": "Crustle",
+      "set_id": "BLK",
+      "card_number": "52",
+      "tcgdex_id": "sv10.5b-052",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "905399599bff826d",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Stone Edge",
+          "raw_text": "Flip a coin. If heads, this attack does 60 more damage.",
+          "cost": "Fighting Colorless Colorless",
+          "damage": "80+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Sturdy",
+          "raw_text": "If this Pok\u00e9mon has full HP and would be Knocked Out by damage from an attack, it is not Knocked Out, and its remaining HP becomes 10.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Stone Edge",
+          "registry_key": "sv10.5b-052:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv10.5b-052:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Sturdy",
+          "registry_key": "sv10.5b-052:Sturdy",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "not found in ability_effects or passive_abilities",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv10.5b-052:0; sv10.5b-052:Sturdy."
+    },
+    {
+      "seq": 28,
+      "db_id": "sv10-012",
+      "card_name": "Crustle",
+      "set_id": "DRI",
+      "card_number": "12",
+      "tcgdex_id": "sv10-012",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "2fa5bdfeb502180d",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Superb Scissors",
+          "raw_text": "This attack's damage isn't affected by any effects on your opponent's Active Pok\u00e9mon.",
+          "cost": "Grass Colorless Colorless",
+          "damage": "120",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Mysterious Rock Inn",
+          "raw_text": "Prevent all damage done to this Pok\u00e9mon by attacks from your opponent's Pok\u00e9mon ex.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Superb Scissors",
+          "registry_key": "sv10-012:0",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "registry._attack_effects['sv10-012:0']",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Mysterious Rock Inn",
+          "registry_key": "sv10-012:Mysterious Rock Inn",
+          "handler_symbol": null,
+          "handler_file": null,
+          "handler_found": false,
+          "source_evidence": "not found in ability_effects or passive_abilities",
+          "semantic_checks": [
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "low",
+      "notes": "Missing handler evidence for one or more required effects. Investigate registry keys: sv10-012:0; sv10-012:Mysterious Rock Inn."
+    }
+  ]
+}
