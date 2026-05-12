@@ -28,7 +28,8 @@ logger = logging.getLogger(__name__)
 
 _INITIALIZATION_IDS = frozenset({"sv08.5-032", "sv06-077"})
 
-# ACE SPEC card IDs used by ACE Nullifier (sv06.5-040 Genesect) to block opponent plays
+# ACE SPEC card IDs — static fallback for cards not yet seeded in the DB.
+# Primary detection uses card_registry rarity metadata (rarity contains "ACE SPEC").
 _ACE_SPEC_IDS = frozenset({
     "sv05-157",   # Prime Catcher
     "sv05-162",   # Neo Upper Energy
@@ -40,6 +41,21 @@ _ACE_SPEC_IDS = frozenset({
     "sv08-185",   # Precious Trolley
     "sv08.5-119", # Prime Catcher alt print
 })
+
+
+_ACE_SPEC_RARITY = "ace spec rare"
+
+
+def _is_ace_spec_card(card_def_id: str) -> bool:
+    """Return True if the card is an ACE SPEC.
+
+    Primary: check card_registry rarity metadata (exact match to 'ACE SPEC Rare').
+    Fallback: check static _ACE_SPEC_IDS list (covers engine-registered cards not yet in DB).
+    """
+    if card_def_id in _ACE_SPEC_IDS:
+        return True
+    cdef = card_registry.get(card_def_id)
+    return bool(cdef and cdef.rarity and cdef.rarity.lower() == _ACE_SPEC_RARITY)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -463,7 +479,7 @@ class ActionValidator:
             csub = card.card_subtype.lower()
 
             # ACE Nullifier: block any ACE SPEC card if Genesect with tool is in play
-            if _genesect_with_tool and card.card_def_id in _ACE_SPEC_IDS:
+            if _genesect_with_tool and _is_ace_spec_card(card.card_def_id):
                 continue
 
             if ctype == "trainer":
