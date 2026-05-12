@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-12 (DB-backed card audit run 39 — TARGET_REACHED)
+Last updated: 2026-05-12 (DB-backed card audit run 39 — CONTINUATION_REQUIRED)
 
 ## Current Workstream
 
@@ -63,19 +63,19 @@ post-phase development:
 
 **DB-backed audit handoff (2026-05-12 nightly robust-audit-v2 run 39):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes
-- completion status: `TARGET_REACHED`
+- completion status: `CONTINUATION_REQUIRED`
 - target findings: 25
 - implemented fixes: 0
-- documented engine gaps: 25
-- database cards audited: 28
+- documented engine gaps: 0
+- database cards audited: 100
 - first card audited: `Cornerstone Mask Ogerpon | DRI | 111 | sv10-111`
-- last card fully audited: `Crustle | DRI | 12 | sv10-012`
-- next resume cursor: `Cryogonal | BLK | 27 | sv10.5b-027`
+- last card fully audited: `Drifblim | SCR | 61 | sv07-061`
+- next resume cursor: `Drifloon | MEP | 5 | mep-005`
 - AUDIT_STATE.md update status: updated
 - focused checks run: TCGDex preflight succeeded; local report validation passed
 - full tests run: `OBSERVED_PLAY_MEMORY_ENABLED=false python3 -m pytest tests/ -x -q` (`1488 passed, 7 skipped`)
 - implemented fixes: none in this slice
-- documented engine gaps: 25 handler-coverage gaps captured in the run-39 v3 ledger
+- documented engine gaps: none in this slice after hardening review corrected false-positive missing-handler evidence (including Counter Gain passive Tool logic)
 - operational notes: machine-readable v3 report at `docs/audit_runs/2026-05-12-39-card-effect-audit.json`
 
 **DB-backed audit handoff (2026-05-12 nightly robust-audit-v2 run 38):**

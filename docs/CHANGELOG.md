@@ -30,12 +30,17 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
-- **DB-backed card audit run 39 — 2026-05-12 — TARGET_REACHED** —
-  Audited 28 cards (Cornerstone Mask Ogerpon | DRI | 111 | sv10-111 through
-  Crustle | DRI | 12 | sv10-012, DB indices 230–257). TCGDex preflight OK.
-  Reached target with 25 documented engine gaps (fixes_implemented=0,
-  engine_gaps_documented=25). Next run resumes at
-  Cryogonal | BLK | 27 | sv10.5b-027. Report:
+- **DB-backed card audit run 39 — 2026-05-12 — CONTINUATION_REQUIRED** —
+  Hardening review corrected run-39 false-positive engine-gap classifications
+  caused by incorrect missing-handler evidence generation (notably Counter Gain
+  `me02.5-186` and `sv08-169`, which are passively registered via `_noop` and
+  enforced through shared attack-cost logic in `actions.py`).
+  Audited 100 cards (Cornerstone Mask Ogerpon | DRI | 111 | sv10-111 through
+  Drifblim | SCR | 61 | sv07-061, DB indices 230–329). TCGDex preflight OK.
+  Final run-39 findings after hardening: fixes_implemented=0,
+  engine_gaps_documented=0. Stopping with CONTINUATION_REQUIRED
+  (>=100 cards audited; target not reached). Next run resumes at
+  Drifloon | MEP | 5 | mep-005. Report:
   `docs/audit_runs/2026-05-12-39-card-effect-audit.json`.
   Confidence: High.
 
