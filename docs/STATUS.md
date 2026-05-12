@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-14 (Round-robin nightly H/H rerun from manual simulations)
+Last updated: 2026-05-12 (DB-backed card audit run 36 — TARGET_REACHED)
 
 ## Current Workstream
 
@@ -70,7 +70,7 @@ post-phase development:
 - database cards audited: 1132 (+ 7 supplemental out-of-range, ledger=1139)
 - first card audited: `Flutter Mane | TEF | 78 | sv05-078`
 - last card fully audited: `Zweilous | sv10.5w | 66 | sv10.5w-066`
-- next resume cursor: `Flutter Mane | TEF | 78 | sv05-078` (full cycle complete; wraps to start)
+- next resume cursor: `Abomasnow | DRI | 60 | sv10-060` (last card was end of DB; wraps to first card)
 - AUDIT_STATE.md update status: updated
 - focused checks run: TCGDex preflight succeeded; local report validation passed; `python3 backend/scripts/validate_card_audit_report.py docs/audit_runs/2026-05-12-36-card-effect-audit.json` passed
 - full tests run: `python3 -m pytest tests/ -x -q` (`1442 passed, 7 skipped`)
