@@ -1,0 +1,5119 @@
+{
+  "run_date_utc": "2026-05-12",
+  "run_number": 39,
+  "completion_status": "CONTINUATION_REQUIRED",
+  "target_findings": 25,
+  "fixes_implemented": 0,
+  "engine_gaps_documented": 0,
+  "total_findings": 0,
+  "cards_audited": 100,
+  "db_card_count": 1607,
+  "full_cycle_completed": false,
+  "continuation_required": true,
+  "min_cards_before_partial": 100,
+  "start_cursor_used": "Cornerstone Mask Ogerpon | DRI | 111 | sv10-111",
+  "first_card_audited": "Cornerstone Mask Ogerpon | DRI | 111 | sv10-111",
+  "last_card_fully_audited": "Drifblim | SCR | 61 | sv07-061",
+  "next_resume_cursor": "Drifloon | MEP | 5 | mep-005",
+  "traversal_wrapped": false,
+  "tcgdex_preflight": "ok",
+  "tcgdex_preflight_detail": "TCGDex API reachable; probe fetch succeeded for start card.",
+  "db_card_source": "DB query ordered by name, set_abbrev, set_number, tcgdex_id",
+  "continuation_reason": "100 cards audited (>= 100 minimum). Target of 25 findings not reached: fixes_implemented=0, engine_gaps_documented=0. Next run resumes at Drifloon | MEP | 5 | mep-005.",
+  "audit_ledger": [
+    {
+      "seq": 1,
+      "db_id": "sv10-111",
+      "card_name": "Cornerstone Mask Ogerpon",
+      "set_id": "DRI",
+      "card_number": "111",
+      "tcgdex_id": "sv10-111",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "9202e41c1606affd",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Rock Kagura",
+          "raw_text": "Search your deck for a Basic {F} Energy card and attach it to 1 of your Pok\u00e9mon. Then, shuffle your deck.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Mountain Ramming",
+          "raw_text": "Discard the top card of your opponent's deck.",
+          "cost": "Fighting Fighting Colorless",
+          "damage": "100",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Rock Kagura",
+          "registry_key": "sv10-111:0",
+          "handler_symbol": "_rock_kagura_attach",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-111:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard",
+            "shuffle-after-search"
+          ]
+        },
+        {
+          "effect_name": "Mountain Ramming",
+          "registry_key": "sv10-111:1",
+          "handler_symbol": "_cornerstone_mountain_ramming",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-111:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard",
+            "shuffle-after-search"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard",
+        "shuffle-after-search"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10-111:0 => _rock_kagura_attach; sv10-111:1 => _cornerstone_mountain_ramming"
+    },
+    {
+      "seq": 2,
+      "db_id": "sv08.5-058",
+      "card_name": "Cornerstone Mask Ogerpon ex",
+      "set_id": "PRE",
+      "card_number": "58",
+      "tcgdex_id": "sv08.5-058",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "042a1a8eac1bdc12",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Demolish",
+          "raw_text": "This attack's damage isn't affected by Weakness or Resistance, or by any effects on your opponent's Active Pok\u00e9mon.",
+          "cost": "Fighting Colorless Colorless",
+          "damage": "140",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Cornerstone Stance",
+          "raw_text": "Prevent all damage from attacks done to this Pok\u00e9mon by your opponent's Pok\u00e9mon that have an Ability.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Demolish",
+          "registry_key": "sv08.5-058:0",
+          "handler_symbol": "_demolish",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08.5-058:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Cornerstone Stance",
+          "registry_key": "sv08.5-058:Cornerstone Stance",
+          "handler_symbol": "passive",
+          "handler_file": null,
+          "handler_found": true,
+          "source_evidence": "registry._passive_abilities has 'sv08.5-058:Cornerstone Stance'",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08.5-058:0 => _demolish; sv08.5-058:Cornerstone Stance => passive"
+    },
+    {
+      "seq": 3,
+      "db_id": "sv06-112",
+      "card_name": "Cornerstone Mask Ogerpon ex",
+      "set_id": "TWM",
+      "card_number": "112",
+      "tcgdex_id": "sv06-112",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "8a0dfbd480b5c07d",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Demolish",
+          "raw_text": "This attack's damage isn't affected by Weakness or Resistance, or by any effects on your opponent's Active Pok\u00e9mon.",
+          "cost": "Fighting Colorless Colorless",
+          "damage": "140",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Cornerstone Stance",
+          "raw_text": "Prevent all damage from attacks done to this Pok\u00e9mon by your opponent's Pok\u00e9mon that have an Ability.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Demolish",
+          "registry_key": "sv06-112:0",
+          "handler_symbol": "_demolish",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-112:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Cornerstone Stance",
+          "registry_key": "sv06-112:Cornerstone Stance",
+          "handler_symbol": "passive",
+          "handler_file": null,
+          "handler_found": true,
+          "source_evidence": "registry._passive_abilities has 'sv06-112:Cornerstone Stance'",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv06-112:0 => _demolish; sv06-112:Cornerstone Stance => passive"
+    },
+    {
+      "seq": 4,
+      "db_id": "sv06-047",
+      "card_name": "Corphish",
+      "set_id": "TWM",
+      "card_number": "47",
+      "tcgdex_id": "sv06-047",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "79925544e774a1e6",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Vise Grip",
+          "raw_text": "",
+          "cost": "Water Water Colorless",
+          "damage": "60",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 5,
+      "db_id": "mep-018",
+      "card_name": "Cottonee",
+      "set_id": "MEP",
+      "card_number": "18",
+      "tcgdex_id": "mep-018",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "426615e4f87a79e9",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Collect",
+          "raw_text": "Draw a card.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Collect",
+          "registry_key": "mep-018:0",
+          "handler_symbol": "_collect",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['mep-018:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: mep-018:0 => _collect"
+    },
+    {
+      "seq": 6,
+      "db_id": "sv08.5-007",
+      "card_name": "Cottonee",
+      "set_id": "PRE",
+      "card_number": "7",
+      "tcgdex_id": "sv08.5-007",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "c3f3bad88af859ed",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Triple Spin",
+          "raw_text": "Flip 3 coins. This attack does 10 damage for each heads.",
+          "cost": "Grass",
+          "damage": "10\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Triple Spin",
+          "registry_key": "sv08.5-007:0",
+          "handler_symbol": "_triple_spin",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08.5-007:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08.5-007:0 => _triple_spin"
+    },
+    {
+      "seq": 7,
+      "db_id": "sv05-014",
+      "card_name": "Cottonee",
+      "set_id": "TEF",
+      "card_number": "14",
+      "tcgdex_id": "sv05-014",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "cf28e93b94beca52",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Triple Spin",
+          "raw_text": "Flip 3 coins. This attack does 10 damage for each heads.",
+          "cost": "Grass",
+          "damage": "10\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Triple Spin",
+          "registry_key": "sv05-014:0",
+          "handler_symbol": "_triple_spin",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv05-014:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv05-014:0 => _triple_spin"
+    },
+    {
+      "seq": 8,
+      "db_id": "sv10.5w-004",
+      "card_name": "Cottonee",
+      "set_id": "WHT",
+      "card_number": "4",
+      "tcgdex_id": "sv10.5w-004",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "97e70ec89dd54b53",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Absorb",
+          "raw_text": "Heal 10 damage from this Pok\u00e9mon.",
+          "cost": "Grass",
+          "damage": "10",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Absorb",
+          "registry_key": "sv10.5w-004:0",
+          "handler_symbol": "_absorb",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10.5w-004:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "heal"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "heal"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10.5w-004:0 => _absorb"
+    },
+    {
+      "seq": 9,
+      "db_id": "me02.5-186",
+      "card_name": "Counter Gain",
+      "set_id": "ASC",
+      "card_number": "186",
+      "tcgdex_id": "me02.5-186",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "tcgdex_text_hash": "ed5d2e8f289af744",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Counter Gain",
+          "raw_text": "If you have more Prize cards remaining than your opponent, attacks used by the Pok\u00e9mon this card is attached to cost {C} less.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "me02.5-186",
+          "handler_symbol": "_noop",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['me02.5-186']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "passive-tool-registration",
+            "prize-manipulation"
+          ]
+        },
+        {
+          "effect_name": "counter gain passive cost reduction",
+          "registry_key": "tool-cost-reduction:me02.5-186",
+          "handler_symbol": "_apply_counter_gain_reduction",
+          "handler_file": "backend/app/engine/actions.py",
+          "handler_found": true,
+          "source_evidence": "ActionValidator._get_attack_actions() calls _apply_counter_gain_reduction() for tools sv08-169/me02.5-186",
+          "semantic_checks": [
+            "cost-reduction",
+            "prize-state-gate",
+            "tool-attached-gate",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "prize-manipulation"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Counter Gain uses passive Tool registration (_noop marker in trainers registry) with shared attack-cost logic in ActionValidator._get_attack_actions via _apply_counter_gain_reduction (prize-state + tool-attachment gate)."
+    },
+    {
+      "seq": 10,
+      "db_id": "sv08-169",
+      "card_name": "Counter Gain",
+      "set_id": "SSP",
+      "card_number": "169",
+      "tcgdex_id": "sv08-169",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "tcgdex_text_hash": "4684344f3579886c",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Counter Gain",
+          "raw_text": "If you have more Prize cards remaining than your opponent, attacks used by the Pok\u00e9mon this card is attached to cost {C} less.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv08-169",
+          "handler_symbol": "_noop",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv08-169']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "passive-tool-registration",
+            "prize-manipulation"
+          ]
+        },
+        {
+          "effect_name": "counter gain passive cost reduction",
+          "registry_key": "tool-cost-reduction:sv08-169",
+          "handler_symbol": "_apply_counter_gain_reduction",
+          "handler_file": "backend/app/engine/actions.py",
+          "handler_found": true,
+          "source_evidence": "ActionValidator._get_attack_actions() calls _apply_counter_gain_reduction() for tools sv08-169/me02.5-186",
+          "semantic_checks": [
+            "cost-reduction",
+            "prize-state-gate",
+            "tool-attached-gate",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "prize-manipulation"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Counter Gain uses passive Tool registration (_noop marker in trainers registry) with shared attack-cost logic in ActionValidator._get_attack_actions via _apply_counter_gain_reduction (prize-state + tool-attachment gate)."
+    },
+    {
+      "seq": 11,
+      "db_id": "svp-134",
+      "card_name": "Crabominable",
+      "set_id": "PR-SV",
+      "card_number": "134",
+      "tcgdex_id": "svp-134",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "933ca59d59d85927",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Haymaker",
+          "raw_text": "During your next turn, this Pok\u00e9mon can't use Haymaker.",
+          "cost": "Water Colorless Colorless Colorless Colorless",
+          "damage": "250",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Food Prep",
+          "raw_text": "Attacks used by this Pok\u00e9mon cost {C} less for each Kofu card in your discard pile.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Haymaker",
+          "registry_key": "svp-134:0",
+          "handler_symbol": "_self_lock1_b16",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['svp-134:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        },
+        {
+          "effect_name": "Food Prep",
+          "registry_key": "svp-134:Food Prep",
+          "handler_symbol": "passive",
+          "handler_file": null,
+          "handler_found": true,
+          "source_evidence": "registry._passive_abilities has 'svp-134:Food Prep'",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: svp-134:0 => _self_lock1_b16; svp-134:Food Prep => passive"
+    },
+    {
+      "seq": 12,
+      "db_id": "sv07-042",
+      "card_name": "Crabominable",
+      "set_id": "SCR",
+      "card_number": "42",
+      "tcgdex_id": "sv07-042",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "7393dca3cf8b50a6",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Haymaker",
+          "raw_text": "During your next turn, this Pok\u00e9mon can't use Haymaker.",
+          "cost": "Water Colorless Colorless Colorless Colorless",
+          "damage": "250",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Food Prep",
+          "raw_text": "Attacks used by this Pok\u00e9mon cost {C} less for each Kofu card in your discard pile.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Haymaker",
+          "registry_key": "sv07-042:0",
+          "handler_symbol": "_haymaker_scr",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv07-042:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        },
+        {
+          "effect_name": "Food Prep",
+          "registry_key": "sv07-042:Food Prep",
+          "handler_symbol": "passive",
+          "handler_file": null,
+          "handler_found": true,
+          "source_evidence": "registry._passive_abilities has 'sv07-042:Food Prep'",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv07-042:0 => _haymaker_scr; sv07-042:Food Prep => passive"
+    },
+    {
+      "seq": 13,
+      "db_id": "sv07-087",
+      "card_name": "Crabrawler",
+      "set_id": "SCR",
+      "card_number": "87",
+      "tcgdex_id": "sv07-087",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "f4982151110eb47a",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Vise Grip",
+          "raw_text": "",
+          "cost": "Colorless Colorless",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Crabhammer",
+          "raw_text": "",
+          "cost": "Colorless Colorless Colorless",
+          "damage": "50",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 14,
+      "db_id": "sv07-006",
+      "card_name": "Cradily",
+      "set_id": "SCR",
+      "card_number": "6",
+      "tcgdex_id": "sv07-006",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "8973e932788cbb41",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Miasma Wind",
+          "raw_text": "This attack does 100 damage for each Special Condition affecting your opponent's Active Pok\u00e9mon.",
+          "cost": "Grass",
+          "damage": "100\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Selective Slime",
+          "raw_text": "Once during your turn, you may flip a coin. If heads, choose Burned, Confused, or Poisoned. Your opponent's Active Pok\u00e9mon is now affected by that Special Condition.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Miasma Wind",
+          "registry_key": "sv07-006:0",
+          "handler_symbol": "_miasma_wind",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv07-006:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "choice-request",
+            "once-per-turn",
+            "status-condition"
+          ]
+        },
+        {
+          "effect_name": "Selective Slime",
+          "registry_key": "sv07-006:Selective Slime",
+          "handler_symbol": "passive",
+          "handler_file": null,
+          "handler_found": true,
+          "source_evidence": "registry._passive_abilities has 'sv07-006:Selective Slime'",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "choice-request",
+            "once-per-turn",
+            "status-condition"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "choice-request",
+        "once-per-turn",
+        "status-condition"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv07-006:0 => _miasma_wind; sv07-006:Selective Slime => passive"
+    },
+    {
+      "seq": 15,
+      "db_id": "sv09-137",
+      "card_name": "Cramorant",
+      "set_id": "JTG",
+      "card_number": "137",
+      "tcgdex_id": "sv09-137",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "a9052bfd15601d82",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Ceaseless Spitting",
+          "raw_text": "Flip a coin until you get tails. This attack does 50 damage for each heads.",
+          "cost": "Colorless Colorless",
+          "damage": "50\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Ceaseless Spitting",
+          "registry_key": "sv09-137:0",
+          "handler_symbol": "_ceaseless_spitting",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv09-137:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv09-137:0 => _ceaseless_spitting"
+    },
+    {
+      "seq": 16,
+      "db_id": "sv06-058",
+      "card_name": "Cramorant",
+      "set_id": "TWM",
+      "card_number": "58",
+      "tcgdex_id": "sv06-058",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "766e054cb49e035c",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Water Gun",
+          "raw_text": "",
+          "cost": "Water",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Spit Shot",
+          "raw_text": "Discard all Energy from this Pok\u00e9mon. This attack does 120 damage to 1 of your opponent's Pok\u00e9mon. (Don't apply Weakness and Resistance for Benched Pok\u00e9mon.)",
+          "cost": "Colorless Colorless Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Spit Shot",
+          "registry_key": "sv06-058:1",
+          "handler_symbol": "_spit_shot",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-058:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect",
+            "discard"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect",
+        "discard"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv06-058:1 => _spit_shot"
+    },
+    {
+      "seq": 17,
+      "db_id": "me01-085",
+      "card_name": "Crawdaunt",
+      "set_id": "MEG",
+      "card_number": "85",
+      "tcgdex_id": "me01-085",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "7ada35195b89201f",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Vise Grip",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Cutting Riposte",
+          "raw_text": "If this Pok\u00e9mon has any damage counters on it, this attack can be used for {D}.",
+          "cost": "Darkness Darkness Colorless",
+          "damage": "130",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Cutting Riposte",
+          "registry_key": "me01-085:1",
+          "handler_symbol": "_cutting_riposte",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['me01-085:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "damage-counter"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-counter"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: me01-085:1 => _cutting_riposte"
+    },
+    {
+      "seq": 18,
+      "db_id": "sv06-048",
+      "card_name": "Crawdaunt",
+      "set_id": "TWM",
+      "card_number": "48",
+      "tcgdex_id": "sv06-048",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "21f4bd91ae17a468",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Snip Snip",
+          "raw_text": "Flip 2 coins. For each heads, discard the top card of your opponent's deck.",
+          "cost": "Water Colorless",
+          "damage": "40",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Rampaging Hammer",
+          "raw_text": "During your next turn, this Pok\u00e9mon can't attack.",
+          "cost": "Water Water Colorless",
+          "damage": "180",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Snip Snip",
+          "registry_key": "sv06-048:0",
+          "handler_symbol": "_snip_snip_flag",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-048:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        },
+        {
+          "effect_name": "Rampaging Hammer",
+          "registry_key": "sv06-048:1",
+          "handler_symbol": "_rampaging_hammer",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-048:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv06-048:0 => _snip_snip_flag; sv06-048:1 => _rampaging_hammer"
+    },
+    {
+      "seq": 19,
+      "db_id": "sv06.5-021",
+      "card_name": "Cresselia",
+      "set_id": "SFA",
+      "card_number": "21",
+      "tcgdex_id": "sv06.5-021",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "6e9d3cdc42054b8a",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Healing Pirouette",
+          "raw_text": "Heal 20 damage from each of your Pok\u00e9mon.",
+          "cost": "Psychic",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Crescent Purge",
+          "raw_text": "You may turn 1 of your face-down Prize cards face up. If you do, this attack does 80 more damage. (That Prize card remains face up for the rest of the game.)",
+          "cost": "Psychic Psychic Psychic",
+          "damage": "80+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Healing Pirouette",
+          "registry_key": "sv06.5-021:0",
+          "handler_symbol": "_healing_pirouette",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06.5-021:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "heal",
+            "prize-manipulation"
+          ]
+        },
+        {
+          "effect_name": "Crescent Purge",
+          "registry_key": "sv06.5-021:1",
+          "handler_symbol": "_crescent_purge_flag",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06.5-021:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "heal",
+            "prize-manipulation"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "heal",
+        "prize-manipulation"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv06.5-021:0 => _healing_pirouette; sv06.5-021:1 => _crescent_purge_flag"
+    },
+    {
+      "seq": 20,
+      "db_id": "sv07-133",
+      "card_name": "Crispin",
+      "set_id": "SCR",
+      "card_number": "133",
+      "tcgdex_id": "sv07-133",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "tcgdex_text_hash": "8db2a0ba54c1192f",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Crispin",
+          "raw_text": "Search your deck for up to 2 Basic Energy cards of different types, reveal them, and put 1 of them into your hand. Attach the other to 1 of your Pok\u00e9mon. Then, shuffle your deck.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv07-133",
+          "handler_symbol": "_crispin",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv07-133']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "energy-type-filter",
+            "shuffle-after-search"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "energy-type-filter",
+        "shuffle-after-search"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv07-133 => _crispin"
+    },
+    {
+      "seq": 21,
+      "db_id": "me01-078",
+      "card_name": "Croagunk",
+      "set_id": "MEG",
+      "card_number": "78",
+      "tcgdex_id": "me01-078",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "e5d7ec8961212089",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Smack",
+          "raw_text": "",
+          "cost": "Fighting",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 22,
+      "db_id": "sv06.5-023",
+      "card_name": "Croagunk",
+      "set_id": "SFA",
+      "card_number": "23",
+      "tcgdex_id": "sv06.5-023",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "9f7c9f87304a6567",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Light Punch",
+          "raw_text": "",
+          "cost": "Fighting",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Frog Hop",
+          "raw_text": "Flip a coin. If heads, this attack does 20 more damage.",
+          "cost": "Fighting Colorless",
+          "damage": "20+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Frog Hop",
+          "registry_key": "sv06.5-023:1",
+          "handler_symbol": "_frog_hop",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06.5-023:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv06.5-023:1 => _frog_hop"
+    },
+    {
+      "seq": 23,
+      "db_id": "sv06.5-029",
+      "card_name": "Crobat",
+      "set_id": "SFA",
+      "card_number": "29",
+      "tcgdex_id": "sv06.5-029",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "956f3a2e55113621",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Poison Fang",
+          "raw_text": "Your opponent's Active Pok\u00e9mon is now Poisoned. During Pok\u00e9mon Checkup, put 2 damage counters on that Pok\u00e9mon instead of 1.",
+          "cost": "Darkness Colorless",
+          "damage": "120",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Shadowy Envoy",
+          "raw_text": "Once during your turn, if you played Janine's Secret Art from your hand this turn, you may draw cards until you have 8 cards in your hand.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Poison Fang",
+          "registry_key": "sv06.5-029:0",
+          "handler_symbol": "_poison_fang_crobat",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06.5-029:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "damage-counter",
+            "once-per-turn",
+            "status-condition"
+          ]
+        },
+        {
+          "effect_name": "Shadowy Envoy",
+          "registry_key": "sv06.5-029:Shadowy Envoy",
+          "handler_symbol": "_shadowy_envoy",
+          "handler_file": "backend/app/engine/effects/abilities.py",
+          "handler_found": true,
+          "source_evidence": "registry._ability_effects['sv06.5-029:Shadowy Envoy']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "damage-counter",
+            "once-per-turn",
+            "status-condition"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-counter",
+        "once-per-turn",
+        "status-condition"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv06.5-029:0 => _poison_fang_crobat; sv06.5-029:Shadowy Envoy => _shadowy_envoy"
+    },
+    {
+      "seq": 24,
+      "db_id": "sv08-030",
+      "card_name": "Crocalor",
+      "set_id": "SSP",
+      "card_number": "30",
+      "tcgdex_id": "sv08-030",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "3f9d657804a595b9",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Heat Breath",
+          "raw_text": "Flip a coin. If heads, this attack does 50 more damage.",
+          "cost": "Fire Colorless",
+          "damage": "30+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Heat Breath",
+          "registry_key": "sv08-030:0",
+          "handler_symbol": "_crocalor_heat_breath",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-030:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08-030:0 => _crocalor_heat_breath"
+    },
+    {
+      "seq": 25,
+      "db_id": "sv05-040",
+      "card_name": "Croconaw",
+      "set_id": "TEF",
+      "card_number": "40",
+      "tcgdex_id": "sv05-040",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "a451108ffe33e386",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Reverse Thrust",
+          "raw_text": "Switch this Pok\u00e9mon with 1 of your Benched Pok\u00e9mon.",
+          "cost": "Water",
+          "damage": "30",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Reverse Thrust",
+          "registry_key": "sv05-040:0",
+          "handler_symbol": "_reverse_thrust",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv05-040:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect",
+            "switch"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect",
+        "switch"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv05-040:0 => _reverse_thrust"
+    },
+    {
+      "seq": 26,
+      "db_id": "me03-071",
+      "card_name": "Crushing Hammer",
+      "set_id": "POR",
+      "card_number": "71",
+      "tcgdex_id": "me03-071",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "tcgdex_text_hash": "1938eba6ef2c2223",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Crushing Hammer",
+          "raw_text": "Flip a coin. If heads, discard an Energy from 1 of your opponent's Pok\u00e9mon.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "me03-071",
+          "handler_symbol": "_crushing_hammer_b18",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['me03-071']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: me03-071 => _crushing_hammer_b18"
+    },
+    {
+      "seq": 27,
+      "db_id": "sv10.5b-052",
+      "card_name": "Crustle",
+      "set_id": "BLK",
+      "card_number": "52",
+      "tcgdex_id": "sv10.5b-052",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "905399599bff826d",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Stone Edge",
+          "raw_text": "Flip a coin. If heads, this attack does 60 more damage.",
+          "cost": "Fighting Colorless Colorless",
+          "damage": "80+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Sturdy",
+          "raw_text": "If this Pok\u00e9mon has full HP and would be Knocked Out by damage from an attack, it is not Knocked Out, and its remaining HP becomes 10.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Stone Edge",
+          "registry_key": "sv10.5b-052:0",
+          "handler_symbol": "_stone_edge",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10.5b-052:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Sturdy",
+          "registry_key": "sv10.5b-052:Sturdy",
+          "handler_symbol": "passive",
+          "handler_file": null,
+          "handler_found": true,
+          "source_evidence": "registry._passive_abilities has 'sv10.5b-052:Sturdy'",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10.5b-052:0 => _stone_edge; sv10.5b-052:Sturdy => passive"
+    },
+    {
+      "seq": 28,
+      "db_id": "sv10-012",
+      "card_name": "Crustle",
+      "set_id": "DRI",
+      "card_number": "12",
+      "tcgdex_id": "sv10-012",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "2fa5bdfeb502180d",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Superb Scissors",
+          "raw_text": "This attack's damage isn't affected by any effects on your opponent's Active Pok\u00e9mon.",
+          "cost": "Grass Colorless Colorless",
+          "damage": "120",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Mysterious Rock Inn",
+          "raw_text": "Prevent all damage done to this Pok\u00e9mon by attacks from your opponent's Pok\u00e9mon ex.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Superb Scissors",
+          "registry_key": "sv10-012:0",
+          "handler_symbol": "_superb_scissors",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-012:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Mysterious Rock Inn",
+          "registry_key": "sv10-012:Mysterious Rock Inn",
+          "handler_symbol": "passive",
+          "handler_file": null,
+          "handler_found": true,
+          "source_evidence": "registry._passive_abilities has 'sv10-012:Mysterious Rock Inn'",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10-012:0 => _superb_scissors; sv10-012:Mysterious Rock Inn => passive"
+    },
+    {
+      "seq": 29,
+      "db_id": "sv10.5b-027",
+      "card_name": "Cryogonal",
+      "set_id": "BLK",
+      "card_number": "27",
+      "tcgdex_id": "sv10.5b-027",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "7ac7dd6447be7f75",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Drag Off",
+          "raw_text": "Switch in 1 of your opponent's Benched Pok\u00e9mon to the Active Spot. This attack does 20 damage to the new Active Pok\u00e9mon.",
+          "cost": "Water",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Icicle",
+          "raw_text": "",
+          "cost": "Water",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Drag Off",
+          "registry_key": "sv10.5b-027:0",
+          "handler_symbol": "_drag_off",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10.5b-027:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect",
+            "switch"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect",
+        "switch"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10.5b-027:0 => _drag_off"
+    },
+    {
+      "seq": 30,
+      "db_id": "sv08-047",
+      "card_name": "Cryogonal",
+      "set_id": "SSP",
+      "card_number": "47",
+      "tcgdex_id": "sv08-047",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "9201a8f77d8a3031",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Call Sign",
+          "raw_text": "Search your deck for a Pok\u00e9mon, reveal it, and put it into your hand. Then, shuffle your deck.",
+          "cost": "Water",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Ice Beam",
+          "raw_text": "Flip a coin. If heads, your opponent's Active Pok\u00e9mon is now Paralyzed.",
+          "cost": "Water",
+          "damage": "30",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Call Sign",
+          "registry_key": "sv08-047:0",
+          "handler_symbol": "_cryogonal_call_sign",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-047:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "shuffle-after-search",
+            "status-condition"
+          ]
+        },
+        {
+          "effect_name": "Ice Beam",
+          "registry_key": "sv08-047:1",
+          "handler_symbol": "_ice_beam_b12",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-047:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "shuffle-after-search",
+            "status-condition"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "shuffle-after-search",
+        "status-condition"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08-047:0 => _cryogonal_call_sign; sv08-047:1 => _ice_beam_b12"
+    },
+    {
+      "seq": 31,
+      "db_id": "sv10.5b-025",
+      "card_name": "Cubchoo",
+      "set_id": "BLK",
+      "card_number": "25",
+      "tcgdex_id": "sv10.5b-025",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "6f0b9d9df90dc593",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Snotted Up",
+          "raw_text": "During your opponent's next turn, the Defending Pok\u00e9mon can't use attacks.",
+          "cost": "Water",
+          "damage": "10",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Snotted Up",
+          "registry_key": "sv10.5b-025:0",
+          "handler_symbol": "_snotted_up",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10.5b-025:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10.5b-025:0 => _snotted_up"
+    },
+    {
+      "seq": 32,
+      "db_id": "sv09-076",
+      "card_name": "Cubone",
+      "set_id": "JTG",
+      "card_number": "76",
+      "tcgdex_id": "sv09-076",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "633ea33e384fe8b5",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Stampede",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Light Punch",
+          "raw_text": "",
+          "cost": "Colorless Colorless",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 33,
+      "db_id": "sv07-072",
+      "card_name": "Cubone",
+      "set_id": "SCR",
+      "card_number": "72",
+      "tcgdex_id": "sv07-072",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "a6b03a8b12f0b2a1",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Reckless Charge",
+          "raw_text": "This Pok\u00e9mon also does 10 damage to itself.",
+          "cost": "Fighting",
+          "damage": "30",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Reckless Charge",
+          "registry_key": "sv07-072:0",
+          "handler_symbol": "_reckless_charge",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv07-072:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv07-072:0 => _reckless_charge"
+    },
+    {
+      "seq": 34,
+      "db_id": "sv09-109",
+      "card_name": "Cufant",
+      "set_id": "JTG",
+      "card_number": "109",
+      "tcgdex_id": "sv09-109",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "0af0deacf9d88fac",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Rollout",
+          "raw_text": "",
+          "cost": "Metal Metal Colorless",
+          "damage": "80",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 35,
+      "db_id": "sv06.5-041",
+      "card_name": "Cufant",
+      "set_id": "SFA",
+      "card_number": "41",
+      "tcgdex_id": "sv06.5-041",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "bab156821b1e97f6",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Tackle",
+          "raw_text": "",
+          "cost": "Metal Colorless",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Confront",
+          "raw_text": "",
+          "cost": "Metal Metal Colorless",
+          "damage": "70",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 36,
+      "db_id": "sv05-075",
+      "card_name": "Cutiefly",
+      "set_id": "TEF",
+      "card_number": "75",
+      "tcgdex_id": "sv05-075",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "7caff3d6459e5800",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Mini Drain",
+          "raw_text": "Heal 10 damage from this Pok\u00e9mon.",
+          "cost": "Colorless",
+          "damage": "10",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Mini Drain",
+          "registry_key": "sv05-075:0",
+          "handler_symbol": "_mini_drain",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv05-075:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "heal"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "heal"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv05-075:0 => _mini_drain"
+    },
+    {
+      "seq": 37,
+      "db_id": "sv07-127",
+      "card_name": "Cyclizar",
+      "set_id": "SCR",
+      "card_number": "127",
+      "tcgdex_id": "sv07-127",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "5f50d6c2df5d0713",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Tail Snap",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Speed Attack",
+          "raw_text": "",
+          "cost": "Colorless Colorless",
+          "damage": "50",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 38,
+      "db_id": "sv08-159",
+      "card_name": "Cyclizar ex",
+      "set_id": "SSP",
+      "card_number": "159",
+      "tcgdex_id": "sv08-159",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "dec7d1a5d4f5e6f7",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Break Through",
+          "raw_text": "This attack also does 30 damage to 1 of your opponent's Benched Pok\u00e9mon. (Don't apply Weakness and Resistance for Benched Pok\u00e9mon.)",
+          "cost": "Colorless Colorless Colorless",
+          "damage": "130",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Zircon Road",
+          "raw_text": "You may draw 5 cards.",
+          "cost": "Grass Fire Psychic",
+          "damage": "180",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Break Through",
+          "registry_key": "sv08-159:0",
+          "handler_symbol": "_break_through",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-159:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect"
+          ]
+        },
+        {
+          "effect_name": "Zircon Road",
+          "registry_key": "sv08-159:1",
+          "handler_symbol": "_zircon_road",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-159:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08-159:0 => _break_through; sv08-159:1 => _zircon_road"
+    },
+    {
+      "seq": 39,
+      "db_id": "sv10-052",
+      "card_name": "Cynthia's Feebas",
+      "set_id": "DRI",
+      "card_number": "52",
+      "tcgdex_id": "sv10-052",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "767df40798d7d8b7",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Undulate",
+          "raw_text": "Flip a coin. If heads, during your opponent's next turn, prevent all damage from and effects of attacks done to this Pok\u00e9mon.",
+          "cost": "Colorless",
+          "damage": "10",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Undulate",
+          "registry_key": "sv10-052:0",
+          "handler_symbol": "_undulate",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-052:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10-052:0 => _undulate"
+    },
+    {
+      "seq": 40,
+      "db_id": "sv10-103",
+      "card_name": "Cynthia's Gabite",
+      "set_id": "DRI",
+      "card_number": "103",
+      "tcgdex_id": "sv10-103",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "cdb4aa72b371a40c",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Dragonslice",
+          "raw_text": "",
+          "cost": "Fighting",
+          "damage": "40",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "ability",
+          "name": "Champion's Call",
+          "raw_text": "Once during your turn, you may search your deck for a Cynthia's Pok\u00e9mon, reveal it, and put it into your hand. Then, shuffle your deck.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Champion's Call",
+          "registry_key": "sv10-103:Champion's Call",
+          "handler_symbol": "_champions_call",
+          "handler_file": "backend/app/engine/effects/abilities.py",
+          "handler_found": true,
+          "source_evidence": "registry._ability_effects[\"sv10-103:Champion's Call\"]",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "once-per-turn",
+            "shuffle-after-search"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "once-per-turn",
+        "shuffle-after-search"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10-103:Champion's Call => _champions_call"
+    },
+    {
+      "seq": 41,
+      "db_id": "sv10-104",
+      "card_name": "Cynthia's Garchomp ex",
+      "set_id": "DRI",
+      "card_number": "104",
+      "tcgdex_id": "sv10-104",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "9f2090e557d9ddc0",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Corkscrew Dive",
+          "raw_text": "You may draw cards until you have 6 cards in your hand.",
+          "cost": "Fighting",
+          "damage": "100",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Draconic Buster",
+          "raw_text": "Discard all Energy from this Pok\u00e9mon.",
+          "cost": "Fighting Fighting",
+          "damage": "260",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Corkscrew Dive",
+          "registry_key": "sv10-104:0",
+          "handler_symbol": "_corkscrew_dive",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-104:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        },
+        {
+          "effect_name": "Draconic Buster",
+          "registry_key": "sv10-104:1",
+          "handler_symbol": "_draconic_buster",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-104:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10-104:0 => _corkscrew_dive; sv10-104:1 => _draconic_buster"
+    },
+    {
+      "seq": 42,
+      "db_id": "sv10-102",
+      "card_name": "Cynthia's Gible",
+      "set_id": "DRI",
+      "card_number": "102",
+      "tcgdex_id": "sv10-102",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "df5c9911c7787778",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Rock Hurl",
+          "raw_text": "This attack's damage isn't affected by Resistance.",
+          "cost": "Fighting",
+          "damage": "20",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Rock Hurl",
+          "registry_key": "sv10-102:0",
+          "handler_symbol": "_rock_hurl_gible",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-102:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10-102:0 => _rock_hurl_gible"
+    },
+    {
+      "seq": 43,
+      "db_id": "sv10-053",
+      "card_name": "Cynthia's Milotic",
+      "set_id": "DRI",
+      "card_number": "53",
+      "tcgdex_id": "sv10-053",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "baa7b6a75680b874",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Aqua Split",
+          "raw_text": "This attack also does 30 damage to 2 of your opponent's Benched Pok\u00e9mon. (Don't apply Weakness and Resistance for Benched Pok\u00e9mon.)",
+          "cost": "Water Colorless",
+          "damage": "60",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Aqua Split",
+          "registry_key": "sv10-053:0",
+          "handler_symbol": "_aqua_split",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-053:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10-053:0 => _aqua_split"
+    },
+    {
+      "seq": 44,
+      "db_id": "sv10-162",
+      "card_name": "Cynthia's Power Weight",
+      "set_id": "DRI",
+      "card_number": "162",
+      "tcgdex_id": "sv10-162",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "tcgdex_text_hash": "06ab28eaee5ddef3",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Cynthia's Power Weight",
+          "raw_text": "The Cynthia's Pok\u00e9mon this card is attached to gets +70 HP.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv10-162",
+          "handler_symbol": "_cynthias_power_weight",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv10-162']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10-162 => _cynthias_power_weight"
+    },
+    {
+      "seq": 45,
+      "db_id": "sv10-007",
+      "card_name": "Cynthia's Roselia",
+      "set_id": "DRI",
+      "card_number": "7",
+      "tcgdex_id": "sv10-007",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "9f44931e0dbb9c15",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Spike Sting",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 46,
+      "db_id": "sv10-008",
+      "card_name": "Cynthia's Roserade",
+      "set_id": "DRI",
+      "card_number": "8",
+      "tcgdex_id": "sv10-008",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "6824d892b7949fc1",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Leaf Step",
+          "raw_text": "",
+          "cost": "Grass Colorless Colorless",
+          "damage": "80",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "ability",
+          "name": "Cheer On to Glory",
+          "raw_text": "Attacks used by your Cynthia's Pok\u00e9mon do 30 more damage to your opponent's Active Pok\u00e9mon (before applying Weakness and Resistance).",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Cheer On to Glory",
+          "registry_key": "sv10-008:Cheer On to Glory",
+          "handler_symbol": "passive",
+          "handler_file": null,
+          "handler_found": true,
+          "source_evidence": "registry._passive_abilities has 'sv10-008:Cheer On to Glory'",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "damage-modifier-pre-wr"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-modifier-pre-wr"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10-008:Cheer On to Glory => passive"
+    },
+    {
+      "seq": 47,
+      "db_id": "sv10-129",
+      "card_name": "Cynthia's Spiritomb",
+      "set_id": "DRI",
+      "card_number": "129",
+      "tcgdex_id": "sv10-129",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "c66ce8711046e592",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Raging Curse",
+          "raw_text": "This attack does 10 damage for each damage counter on all of your Benched Cynthia's Pok\u00e9mon. This attack's damage isn't affected by Weakness.",
+          "cost": "Colorless",
+          "damage": "10\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Raging Curse",
+          "registry_key": "sv10-129:0",
+          "handler_symbol": "_raging_curse",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-129:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect",
+            "damage-counter"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect",
+        "damage-counter"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10-129:0 => _raging_curse"
+    },
+    {
+      "seq": 48,
+      "db_id": "sv08-170",
+      "card_name": "Cyrano",
+      "set_id": "SSP",
+      "card_number": "170",
+      "tcgdex_id": "sv08-170",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "tcgdex_text_hash": "bc10c30d83b26cb0",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Cyrano",
+          "raw_text": "Search your deck for up to 3 Pok\u00e9mon ex, reveal them, and put them into your hand. Then, shuffle your deck.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv08-170",
+          "handler_symbol": "_cyrano",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv08-170']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "shuffle-after-search"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "shuffle-after-search"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08-170 => _cyrano"
+    },
+    {
+      "seq": 49,
+      "db_id": "sv07-067",
+      "card_name": "Dachsbun ex",
+      "set_id": "SCR",
+      "card_number": "67",
+      "tcgdex_id": "sv07-067",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "489900493fa95d48",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Wonder Shine",
+          "raw_text": "Your opponent's Active Pok\u00e9mon is now Confused.",
+          "cost": "Colorless Colorless",
+          "damage": "130",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Time to Chow Down",
+          "raw_text": "When you play this Pok\u00e9mon from your hand to evolve 1 of your Pok\u00e9mon during your turn, you may heal all damage from each of your Evolution Pok\u00e9mon. If you healed any damage in this way, discard all Energy from those Pok\u00e9mon.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Wonder Shine",
+          "registry_key": "sv07-067:0",
+          "handler_symbol": "_wonder_shine",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv07-067:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard",
+            "heal",
+            "status-condition"
+          ]
+        },
+        {
+          "effect_name": "Time to Chow Down",
+          "registry_key": "sv07-067:Time to Chow Down",
+          "handler_symbol": "_time_to_chow_down",
+          "handler_file": "backend/app/engine/effects/abilities.py",
+          "handler_found": true,
+          "source_evidence": "registry._ability_effects['sv07-067:Time to Chow Down']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard",
+            "heal",
+            "status-condition"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard",
+        "heal",
+        "status-condition"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv07-067:0 => _wonder_shine; sv07-067:Time to Chow Down => _time_to_chow_down"
+    },
+    {
+      "seq": 50,
+      "db_id": "mee-007",
+      "card_name": "Darkness Energy",
+      "set_id": "MEE",
+      "card_number": "7",
+      "tcgdex_id": "mee-007",
+      "tcgdex_fetch": "ok",
+      "category": "Energy",
+      "tcgdex_text_hash": "65e88cf2fdd56a43",
+      "tcgdex_effects_extracted": [],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 51,
+      "db_id": "sve-015",
+      "card_name": "Darkness Energy",
+      "set_id": "SVE",
+      "card_number": "15",
+      "tcgdex_id": "sve-015",
+      "tcgdex_fetch": "ok",
+      "category": "Energy",
+      "tcgdex_text_hash": "6598c5a319da2621",
+      "tcgdex_effects_extracted": [],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 52,
+      "db_id": "sve-007",
+      "card_name": "Darkness Energy",
+      "set_id": "SVE",
+      "card_number": "7",
+      "tcgdex_id": "sve-007",
+      "tcgdex_fetch": "ok",
+      "category": "Energy",
+      "tcgdex_text_hash": "ea5c177c23f6d44b",
+      "tcgdex_effects_extracted": [],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 53,
+      "db_id": "svp-110",
+      "card_name": "Darkrai ex",
+      "set_id": "PR-SV",
+      "card_number": "110",
+      "tcgdex_id": "svp-110",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "e73ab84860dc95e8",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Wind of Darkness",
+          "raw_text": "",
+          "cost": "Darkness Colorless",
+          "damage": "40",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Night Impact",
+          "raw_text": "",
+          "cost": "Darkness Darkness Colorless",
+          "damage": "110",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 54,
+      "db_id": "sv10.5b-014",
+      "card_name": "Darmanitan",
+      "set_id": "BLK",
+      "card_number": "14",
+      "tcgdex_id": "sv10.5b-014",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "09633961d3e5bb91",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Searing Flame",
+          "raw_text": "Your opponent's Active Pok\u00e9mon is now Burned.",
+          "cost": "Fire Colorless",
+          "damage": "50",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Smashing Headbutt",
+          "raw_text": "Discard 2 Energy from this Pok\u00e9mon.",
+          "cost": "Fire Colorless Colorless Colorless",
+          "damage": "180",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Searing Flame",
+          "registry_key": "sv10.5b-014:0",
+          "handler_symbol": "_super_singe",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10.5b-014:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard",
+            "status-condition"
+          ]
+        },
+        {
+          "effect_name": "Smashing Headbutt",
+          "registry_key": "sv10.5b-014:1",
+          "handler_symbol": "_smashing_headbutt",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10.5b-014:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard",
+            "status-condition"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard",
+        "status-condition"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10.5b-014:0 => _super_singe; sv10.5b-014:1 => _smashing_headbutt"
+    },
+    {
+      "seq": 55,
+      "db_id": "sv06-035",
+      "card_name": "Darmanitan",
+      "set_id": "TWM",
+      "card_number": "35",
+      "tcgdex_id": "sv06-035",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "adaeca40e35763fa",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Rolling Tackle",
+          "raw_text": "",
+          "cost": "Fire Fire",
+          "damage": "60",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Inferno Onrush",
+          "raw_text": "This Pok\u00e9mon also does 70 damage to itself.",
+          "cost": "Fire Fire Fire",
+          "damage": "210",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Inferno Onrush",
+          "registry_key": "sv06-035:1",
+          "handler_symbol": "_inferno_onrush_70",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-035:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv06-035:1 => _inferno_onrush_70"
+    },
+    {
+      "seq": 56,
+      "db_id": "sv06.5-004",
+      "card_name": "Dartrix",
+      "set_id": "SFA",
+      "card_number": "4",
+      "tcgdex_id": "sv06.5-004",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "af38b4e4a57d4e12",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "United Wings",
+          "raw_text": "This attack does 20 damage for each Pok\u00e9mon in your discard pile that has the United Wings attack.",
+          "cost": "Colorless",
+          "damage": "20\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Cutting Wind",
+          "raw_text": "",
+          "cost": "Grass",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "United Wings",
+          "registry_key": "sv06.5-004:0",
+          "handler_symbol": "_united_wings_flag",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06.5-004:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv06.5-004:0 => _united_wings_flag"
+    },
+    {
+      "seq": 57,
+      "db_id": "sv10.5b-013",
+      "card_name": "Darumaka",
+      "set_id": "BLK",
+      "card_number": "13",
+      "tcgdex_id": "sv10.5b-013",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "5e10a5e946a978be",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Will-O-Wisp",
+          "raw_text": "",
+          "cost": "Fire Colorless",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 58,
+      "db_id": "sv06-034",
+      "card_name": "Darumaka",
+      "set_id": "TWM",
+      "card_number": "34",
+      "tcgdex_id": "sv06-034",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "5ef5316cfec5d280",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Strength",
+          "raw_text": "",
+          "cost": "Fire",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Fire Tackle",
+          "raw_text": "This Pok\u00e9mon also does 20 damage to itself.",
+          "cost": "Fire Fire",
+          "damage": "50",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Fire Tackle",
+          "registry_key": "sv06-034:1",
+          "handler_symbol": "_take_down_recoil",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-034:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv06-034:1 => _take_down_recoil"
+    },
+    {
+      "seq": 59,
+      "db_id": "me02-087",
+      "card_name": "Dawn",
+      "set_id": "PFL",
+      "card_number": "87",
+      "tcgdex_id": "me02-087",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "tcgdex_text_hash": "699b5edee6edb947",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Dawn",
+          "raw_text": "Search your deck for a Basic Pok\u00e9mon, a Stage 1 Pok\u00e9mon, and a Stage 2 Pok\u00e9mon, reveal them, and put them into your hand. Then, shuffle your deck.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "me02-087",
+          "handler_symbol": "_dawn",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['me02-087']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "shuffle-after-search"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "shuffle-after-search"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: me02-087 => _dawn"
+    },
+    {
+      "seq": 60,
+      "db_id": "sv06.5-005",
+      "card_name": "Decidueye",
+      "set_id": "SFA",
+      "card_number": "5",
+      "tcgdex_id": "sv06.5-005",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "3ad97e57acb41187",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Stock Up on Feathers",
+          "raw_text": "Draw cards until you have 7 cards in your hand.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Power Shot",
+          "raw_text": "Discard a Basic {G} Energy card from your hand. If you can't, this attack does nothing.",
+          "cost": "Grass",
+          "damage": "170",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Stock Up on Feathers",
+          "registry_key": "sv06.5-005:0",
+          "handler_symbol": "_stock_up_b5",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06.5-005:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        },
+        {
+          "effect_name": "Power Shot",
+          "registry_key": "sv06.5-005:1",
+          "handler_symbol": "_power_shot",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06.5-005:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv06.5-005:0 => _stock_up_b5; sv06.5-005:1 => _power_shot"
+    },
+    {
+      "seq": 61,
+      "db_id": "sv08-087",
+      "card_name": "Dedenne",
+      "set_id": "SSP",
+      "card_number": "87",
+      "tcgdex_id": "sv08-087",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "8cbe5c4e084ec6e9",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Electromagnetic Sonar",
+          "raw_text": "Put a Trainer card from your discard pile into your hand.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Gnaw",
+          "raw_text": "",
+          "cost": "Psychic",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Electromagnetic Sonar",
+          "registry_key": "sv08-087:0",
+          "handler_symbol": "_electromagnetic_sonar",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-087:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08-087:0 => _electromagnetic_sonar"
+    },
+    {
+      "seq": 62,
+      "db_id": "sv08-171",
+      "card_name": "Deduction Kit",
+      "set_id": "SSP",
+      "card_number": "171",
+      "tcgdex_id": "sv08-171",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "tcgdex_text_hash": "01f0bb99dc450fa5",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Deduction Kit",
+          "raw_text": "Look at the top 3 cards of your deck and put them back in any order, or shuffle them and put them on the bottom of your deck.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv08-171",
+          "handler_symbol": "_deduction_kit_b19",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv08-171']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "shuffle-after-search"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "shuffle-after-search"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08-171 => _deduction_kit_b19"
+    },
+    {
+      "seq": 63,
+      "db_id": "sv05-016",
+      "card_name": "Deerling",
+      "set_id": "TEF",
+      "card_number": "16",
+      "tcgdex_id": "sv05-016",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "96052ddd20ef4f2a",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Flop",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Leaf Litter Tackle",
+          "raw_text": "Discard a {G} Energy from this Pok\u00e9mon.",
+          "cost": "Grass Colorless Colorless",
+          "damage": "40",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Leaf Litter Tackle",
+          "registry_key": "sv05-016:1",
+          "handler_symbol": "_leaf_litter_tackle",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv05-016:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv05-016:1 => _leaf_litter_tackle"
+    },
+    {
+      "seq": 64,
+      "db_id": "sv10.5w-006",
+      "card_name": "Deerling",
+      "set_id": "WHT",
+      "card_number": "6",
+      "tcgdex_id": "sv10.5w-006",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "b9eab66736bb8e02",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Rear Kick",
+          "raw_text": "",
+          "cost": "Colorless Colorless",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 65,
+      "db_id": "sv08-117",
+      "card_name": "Deino",
+      "set_id": "SSP",
+      "card_number": "117",
+      "tcgdex_id": "sv08-117",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "6923279bc9ad3478",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Stomp Off",
+          "raw_text": "Discard the top card of your opponent's deck.",
+          "cost": "Darkness",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Bite",
+          "raw_text": "",
+          "cost": "Darkness Colorless",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Stomp Off",
+          "registry_key": "sv08-117:0",
+          "handler_symbol": "_burrow_b12",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-117:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08-117:0 => _burrow_b12"
+    },
+    {
+      "seq": 66,
+      "db_id": "sv10.5w-065",
+      "card_name": "Deino",
+      "set_id": "WHT",
+      "card_number": "65",
+      "tcgdex_id": "sv10.5w-065",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "a9d80e2d45dad1dc",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Body Slam",
+          "raw_text": "Flip a coin. If heads, your opponent's Active Pok\u00e9mon is now Paralyzed.",
+          "cost": "Colorless Colorless",
+          "damage": "20",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Darkness Fang",
+          "raw_text": "",
+          "cost": "Darkness Colorless Colorless",
+          "damage": "50",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Body Slam",
+          "registry_key": "sv10.5w-065:0",
+          "handler_symbol": "_body_slam_deino",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10.5w-065:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "status-condition"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "status-condition"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10.5w-065:0 => _body_slam_deino"
+    },
+    {
+      "seq": 67,
+      "db_id": "sv05-131",
+      "card_name": "Delcatty",
+      "set_id": "TEF",
+      "card_number": "131",
+      "tcgdex_id": "sv05-131",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "ace48adfbfdf304e",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Tail Trickery",
+          "raw_text": "Your opponent's Active Pok\u00e9mon is now Confused.",
+          "cost": "Colorless",
+          "damage": "30",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Energy Blender",
+          "raw_text": "You may move any amount of Energy from your Pok\u00e9mon to your other Pok\u00e9mon in any way you like.",
+          "cost": "Colorless Colorless Colorless",
+          "damage": "110",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Tail Trickery",
+          "registry_key": "sv05-131:0",
+          "handler_symbol": "_tail_trickery_b16",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv05-131:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "status-condition"
+          ]
+        },
+        {
+          "effect_name": "Energy Blender",
+          "registry_key": "sv05-131:1",
+          "handler_symbol": "_energy_blender",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv05-131:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "status-condition"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "status-condition"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv05-131:0 => _tail_trickery_b16; sv05-131:1 => _energy_blender"
+    },
+    {
+      "seq": 68,
+      "db_id": "me01-105",
+      "card_name": "Delibird",
+      "set_id": "MEG",
+      "card_number": "105",
+      "tcgdex_id": "me01-105",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "e02fffd0c37c13f9",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Quick Gift",
+          "raw_text": "If you go first, you can use this attack during your first turn. Search your deck for a card and put it into your hand. Then, shuffle your deck.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Gentle Slap",
+          "raw_text": "",
+          "cost": "Colorless Colorless",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Quick Gift",
+          "registry_key": "me01-105:0",
+          "handler_symbol": "_quick_gift",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['me01-105:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "shuffle-after-search"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "shuffle-after-search"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: me01-105:0 => _quick_gift"
+    },
+    {
+      "seq": 69,
+      "db_id": "sv10.5w-022",
+      "card_name": "Dewott",
+      "set_id": "WHT",
+      "card_number": "22",
+      "tcgdex_id": "sv10.5w-022",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "dbd345b619fda76a",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Energized Shell",
+          "raw_text": "This attack does 30 damage for each Energy attached to this Pok\u00e9mon.",
+          "cost": "Water",
+          "damage": "30\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Energized Shell",
+          "registry_key": "sv10.5w-022:0",
+          "handler_symbol": "_energized_shell",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10.5w-022:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10.5w-022:0 => _energized_shell"
+    },
+    {
+      "seq": 70,
+      "db_id": "sv09-070",
+      "card_name": "Dhelmise",
+      "set_id": "JTG",
+      "card_number": "70",
+      "tcgdex_id": "sv09-070",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "0d406282b3add4dd",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Bind Down",
+          "raw_text": "During your opponent's next turn, the Defending Pok\u00e9mon can't retreat.",
+          "cost": "Psychic Colorless Colorless",
+          "damage": "60",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Anchor Smash",
+          "raw_text": "",
+          "cost": "Psychic Psychic Colorless Colorless",
+          "damage": "130",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Bind Down",
+          "registry_key": "sv09-070:0",
+          "handler_symbol": "_clutch",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv09-070:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "switch"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "switch"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv09-070:0 => _clutch"
+    },
+    {
+      "seq": 71,
+      "db_id": "sv08-010",
+      "card_name": "Dhelmise",
+      "set_id": "SSP",
+      "card_number": "10",
+      "tcgdex_id": "sv08-010",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "1383efd9a9276176",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Rescue Kedge",
+          "raw_text": "Put up to 2 Pok\u00e9mon from your discard pile into your hand.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Annihilating Anchor",
+          "raw_text": "Before doing damage, discard all Pok\u00e9mon Tools from your opponent's Active Pok\u00e9mon.",
+          "cost": "Grass Colorless Colorless",
+          "damage": "80",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Rescue Kedge",
+          "registry_key": "sv08-010:0",
+          "handler_symbol": "_rescue_kedge",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-010:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        },
+        {
+          "effect_name": "Annihilating Anchor",
+          "registry_key": "sv08-010:1",
+          "handler_symbol": "_annihilating_anchor",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-010:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08-010:0 => _rescue_kedge; sv08-010:1 => _annihilating_anchor"
+    },
+    {
+      "seq": 72,
+      "db_id": "sv05-019",
+      "card_name": "Dhelmise",
+      "set_id": "TEF",
+      "card_number": "19",
+      "tcgdex_id": "sv05-019",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "d5f67b3ae77d2345",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Spinning Attack",
+          "raw_text": "",
+          "cost": "Colorless Colorless",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Steel Anchor",
+          "raw_text": "If you have any {M} Pok\u00e9mon on your Bench, this attack does 80 more damage.",
+          "cost": "Grass Grass Colorless",
+          "damage": "80+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Steel Anchor",
+          "registry_key": "sv05-019:1",
+          "handler_symbol": "_steel_anchor",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv05-019:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv05-019:1 => _steel_anchor"
+    },
+    {
+      "seq": 73,
+      "db_id": "me01-095",
+      "card_name": "Dialga",
+      "set_id": "MEG",
+      "card_number": "95",
+      "tcgdex_id": "me01-095",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "5dd9d99e5dbf4a9d",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Beam",
+          "raw_text": "",
+          "cost": "Metal",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Chrono Burst",
+          "raw_text": "You may shuffle all Energy attached to this Pok\u00e9mon into your deck and have this attack do 80 more damage.",
+          "cost": "Metal Metal Colorless",
+          "damage": "80+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Chrono Burst",
+          "registry_key": "me01-095:1",
+          "handler_symbol": "_chrono_burst",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['me01-095:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "shuffle-after-search"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "shuffle-after-search"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: me01-095:1 => _chrono_burst"
+    },
+    {
+      "seq": 74,
+      "db_id": "sv08-135",
+      "card_name": "Dialga",
+      "set_id": "SSP",
+      "card_number": "135",
+      "tcgdex_id": "sv08-135",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "1c604e840ee0fb20",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Time Manipulation",
+          "raw_text": "Search your deck for 2 cards, shuffle your deck, then put those cards on top of it in any order.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Buster Tail",
+          "raw_text": "",
+          "cost": "Psychic Metal Colorless",
+          "damage": "160",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Time Manipulation",
+          "registry_key": "sv08-135:0",
+          "handler_symbol": "_time_manipulation",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-135:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "shuffle-after-search"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "shuffle-after-search"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08-135:0 => _time_manipulation"
+    },
+    {
+      "seq": 75,
+      "db_id": "svp-180",
+      "card_name": "Dialga ex",
+      "set_id": "PR-SV",
+      "card_number": "180",
+      "tcgdex_id": "svp-180",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "a28e694cec251476",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Time Bellow",
+          "raw_text": "Draw a card.",
+          "cost": "Metal",
+          "damage": "20",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Metal Blast",
+          "raw_text": "This attack does 20 more damage for each {M} Energy attached to this Pok\u00e9mon.",
+          "cost": "Colorless Colorless Colorless",
+          "damage": "100+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Time Bellow",
+          "registry_key": "svp-180:0",
+          "handler_symbol": "_time_bellow_b17",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['svp-180:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Metal Blast",
+          "registry_key": "svp-180:1",
+          "handler_symbol": "_metal_blast_b17",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['svp-180:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: svp-180:0 => _time_bellow_b17; svp-180:1 => _metal_blast_b17"
+    },
+    {
+      "seq": 76,
+      "db_id": "sv07-086",
+      "card_name": "Diancie",
+      "set_id": "SCR",
+      "card_number": "86",
+      "tcgdex_id": "sv07-086",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "3d968fa48de9a560",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Diffuse Reflection",
+          "raw_text": "This attack does 40 damage for each Special Energy attached to all of your opponent's Pok\u00e9mon.",
+          "cost": "Colorless",
+          "damage": "40\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Power Gem",
+          "raw_text": "",
+          "cost": "Fighting Colorless",
+          "damage": "60",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Diffuse Reflection",
+          "registry_key": "sv07-086:0",
+          "handler_symbol": "_diffuse_reflection",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv07-086:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "energy-type-filter"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "energy-type-filter"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv07-086:0 => _diffuse_reflection"
+    },
+    {
+      "seq": 77,
+      "db_id": "sv10-017",
+      "card_name": "Dipplin",
+      "set_id": "DRI",
+      "card_number": "17",
+      "tcgdex_id": "sv10-017",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "e124c459f5975aa1",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Energy Loop",
+          "raw_text": "Put an Energy attached to this Pok\u00e9mon into your hand.",
+          "cost": "Grass",
+          "damage": "50",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Energy Loop",
+          "registry_key": "sv10-017:0",
+          "handler_symbol": "_energy_loop_steenee",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-017:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10-017:0 => _energy_loop_steenee"
+    },
+    {
+      "seq": 78,
+      "db_id": "sv08.5-010",
+      "card_name": "Dipplin",
+      "set_id": "PRE",
+      "card_number": "10",
+      "tcgdex_id": "sv08.5-010",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "d6722c48d78adf96",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Do the Wave",
+          "raw_text": "This attack does 20 damage for each of your Benched Pok\u00e9mon.",
+          "cost": "Grass",
+          "damage": "20\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Festival Lead",
+          "raw_text": "If Festival Grounds is in play, this Pok\u00e9mon may use an attack it has twice. If the first attack Knocks Out your opponent's Active Pok\u00e9mon, you may attack again after your opponent chooses a new Active Pok\u00e9mon.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Do the Wave",
+          "registry_key": "sv08.5-010:0",
+          "handler_symbol": "_do_the_wave_dipplin",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08.5-010:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect",
+            "choice-request"
+          ]
+        },
+        {
+          "effect_name": "Festival Lead",
+          "registry_key": "sv08.5-010:Festival Lead",
+          "handler_symbol": "passive",
+          "handler_file": null,
+          "handler_found": true,
+          "source_evidence": "registry._passive_abilities has 'sv08.5-010:Festival Lead'",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect",
+            "choice-request"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect",
+        "choice-request"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08.5-010:0 => _do_the_wave_dipplin; sv08.5-010:Festival Lead => passive"
+    },
+    {
+      "seq": 79,
+      "db_id": "sv07-013",
+      "card_name": "Dipplin",
+      "set_id": "SCR",
+      "card_number": "13",
+      "tcgdex_id": "sv07-013",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "a0a9ac77e75d6c53",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Coated Attack",
+          "raw_text": "During your opponent's next turn, prevent all damage done to this Pok\u00e9mon by attacks from Basic Pok\u00e9mon.",
+          "cost": "Grass",
+          "damage": "20",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Coated Attack",
+          "registry_key": "sv07-013:0",
+          "handler_symbol": "_coated_attack",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv07-013:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv07-013:0 => _coated_attack"
+    },
+    {
+      "seq": 80,
+      "db_id": "sv06-127",
+      "card_name": "Dipplin",
+      "set_id": "TWM",
+      "card_number": "127",
+      "tcgdex_id": "sv06-127",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "915dfbba7e7ba860",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Syrup Catcher",
+          "raw_text": "Switch in 1 of your opponent's Benched Pok\u00e9mon to the Active Spot. This attack does 70 damage to the new Active Pok\u00e9mon.",
+          "cost": "Grass Fire",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Syrup Catcher",
+          "registry_key": "sv06-127:0",
+          "handler_symbol": "_syrup_catcher_b3",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-127:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect",
+            "switch"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect",
+        "switch"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv06-127:0 => _syrup_catcher_b3"
+    },
+    {
+      "seq": 81,
+      "db_id": "sv06-018",
+      "card_name": "Dipplin",
+      "set_id": "TWM",
+      "card_number": "18",
+      "tcgdex_id": "sv06-018",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "290f033a2e779ef3",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Do the Wave",
+          "raw_text": "This attack does 20 damage for each of your Benched Pok\u00e9mon.",
+          "cost": "Grass",
+          "damage": "20\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Festival Lead",
+          "raw_text": "If Festival Grounds is in play, this Pok\u00e9mon may use an attack it has twice. If the first attack Knocks Out your opponent's Active Pok\u00e9mon, you may attack again after your opponent chooses a new Active Pok\u00e9mon.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Do the Wave",
+          "registry_key": "sv06-018:0",
+          "handler_symbol": "_do_the_wave_twm",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-018:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect",
+            "choice-request"
+          ]
+        },
+        {
+          "effect_name": "Festival Lead",
+          "registry_key": "sv06-018:Festival Lead",
+          "handler_symbol": "passive",
+          "handler_file": null,
+          "handler_found": true,
+          "source_evidence": "registry._passive_abilities has 'sv06-018:Festival Lead'",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect",
+            "choice-request"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect",
+        "choice-request"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv06-018:0 => _do_the_wave_twm; sv06-018:Festival Lead => passive"
+    },
+    {
+      "seq": 82,
+      "db_id": "me02-088",
+      "card_name": "Dizzying Valley",
+      "set_id": "PFL",
+      "card_number": "88",
+      "tcgdex_id": "me02-088",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "tcgdex_text_hash": "8896cb7ac6419bc8",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Dizzying Valley",
+          "raw_text": "Confused Pok\u00e9mon (both yours and your opponent's) don't recover from that Special Condition when they evolve or devolve.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "me02-088",
+          "handler_symbol": "_dizzying_valley",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['me02-088']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "status-condition"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "status-condition"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: me02-088 => _dizzying_valley"
+    },
+    {
+      "seq": 83,
+      "db_id": "sv10-022",
+      "card_name": "Dolliv",
+      "set_id": "DRI",
+      "card_number": "22",
+      "tcgdex_id": "sv10-022",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "7497824bc46813b8",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Nutrients",
+          "raw_text": "Heal 40 damage from 1 of your Pok\u00e9mon.",
+          "cost": "Grass",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Tackle",
+          "raw_text": "",
+          "cost": "Colorless Colorless",
+          "damage": "40",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Nutrients",
+          "registry_key": "sv10-022:0",
+          "handler_symbol": "_nutrients",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-022:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "heal"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "heal"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10-022:0 => _nutrients"
+    },
+    {
+      "seq": 84,
+      "db_id": "sv10-066",
+      "card_name": "Dondozo ex",
+      "set_id": "DRI",
+      "card_number": "66",
+      "tcgdex_id": "sv10-066",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "78cbe99c3a8081eb",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Avenging Billow",
+          "raw_text": "This attack does 10 more damage for each damage counter on this Pok\u00e9mon.",
+          "cost": "Water Colorless",
+          "damage": "30+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Dynamic Dive",
+          "raw_text": "You may do 120 more damage. If you do, this Pok\u00e9mon also does 50 damage to itself.",
+          "cost": "Water Water Colorless Colorless",
+          "damage": "120+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Avenging Billow",
+          "registry_key": "sv10-066:0",
+          "handler_symbol": "_avenging_billow",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-066:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "damage-counter"
+          ]
+        },
+        {
+          "effect_name": "Dynamic Dive",
+          "registry_key": "sv10-066:1",
+          "handler_symbol": "_dynamic_dive",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-066:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "damage-counter"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-counter"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv10-066:0 => _avenging_billow; sv10-066:1 => _dynamic_dive"
+    },
+    {
+      "seq": 85,
+      "db_id": "sv08-103",
+      "card_name": "Donphan",
+      "set_id": "SSP",
+      "card_number": "103",
+      "tcgdex_id": "sv08-103",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "1c68c261ff14f891",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Knock Flat",
+          "raw_text": "This attack's damage isn't affected by any effects on your opponent's Active Pok\u00e9mon.",
+          "cost": "Fighting",
+          "damage": "40",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Guarded Rolling",
+          "raw_text": "Discard 2 Energy from this Pok\u00e9mon. During your opponent's next turn, this Pok\u00e9mon takes 100 less damage from attacks (after applying Weakness and Resistance).",
+          "cost": "Fighting Colorless Colorless",
+          "damage": "120",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Knock Flat",
+          "registry_key": "sv08-103:0",
+          "handler_symbol": "_knock_flat",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-103:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        },
+        {
+          "effect_name": "Guarded Rolling",
+          "registry_key": "sv08-103:1",
+          "handler_symbol": "_guarded_rolling_b5",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-103:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "discard"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08-103:0 => _knock_flat; sv08-103:1 => _guarded_rolling_b5"
+    },
+    {
+      "seq": 86,
+      "db_id": "sv08.5-073",
+      "card_name": "Dragapult ex",
+      "set_id": "PRE",
+      "card_number": "73",
+      "tcgdex_id": "sv08.5-073",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "a564f485575f5a7f",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Jet Headbutt",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "70",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Phantom Dive",
+          "raw_text": "Put 6 damage counters on your opponent's Benched Pok\u00e9mon in any way you like.",
+          "cost": "Fire Psychic",
+          "damage": "200",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Phantom Dive",
+          "registry_key": "sv08.5-073:1",
+          "handler_symbol": "_phantom_dive",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08.5-073:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect",
+            "damage-counter"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect",
+        "damage-counter"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08.5-073:1 => _phantom_dive"
+    },
+    {
+      "seq": 87,
+      "db_id": "sv06-130",
+      "card_name": "Dragapult ex",
+      "set_id": "TWM",
+      "card_number": "130",
+      "tcgdex_id": "sv06-130",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "6449f8032cb87fc4",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Jet Headbutt",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "70",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Phantom Dive",
+          "raw_text": "Put 6 damage counters on your opponent's Benched Pok\u00e9mon in any way you like.",
+          "cost": "Fire Psychic",
+          "damage": "200",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Phantom Dive",
+          "registry_key": "sv06-130:1",
+          "handler_symbol": "_phantom_dive",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-130:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect",
+            "damage-counter"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect",
+        "damage-counter"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv06-130:1 => _phantom_dive"
+    },
+    {
+      "seq": 88,
+      "db_id": "sv08-172",
+      "card_name": "Dragon Elixir",
+      "set_id": "SSP",
+      "card_number": "172",
+      "tcgdex_id": "sv08-172",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "tcgdex_text_hash": "844b07533c3d06e1",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Dragon Elixir",
+          "raw_text": "Heal 60 damage from your Active {N} Pok\u00e9mon.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv08-172",
+          "handler_symbol": "_dragon_elixir_b19",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv08-172']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "heal"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "heal"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08-172 => _dragon_elixir_b19"
+    },
+    {
+      "seq": 89,
+      "db_id": "sv08.5-072",
+      "card_name": "Drakloak",
+      "set_id": "PRE",
+      "card_number": "72",
+      "tcgdex_id": "sv08.5-072",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "6cac9eb14fba1478",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Dragon Headbutt",
+          "raw_text": "",
+          "cost": "Fire Psychic",
+          "damage": "70",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "ability",
+          "name": "Recon Directive",
+          "raw_text": "Once during your turn, you may look at the top 2 cards of your deck and put 1 of them into your hand. Put the other card on the bottom of your deck.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Recon Directive",
+          "registry_key": "sv08.5-072:Recon Directive",
+          "handler_symbol": "_recon_directive",
+          "handler_file": "backend/app/engine/effects/abilities.py",
+          "handler_found": true,
+          "source_evidence": "registry._ability_effects['sv08.5-072:Recon Directive']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "once-per-turn"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "once-per-turn"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08.5-072:Recon Directive => _recon_directive"
+    },
+    {
+      "seq": 90,
+      "db_id": "sv06-129",
+      "card_name": "Drakloak",
+      "set_id": "TWM",
+      "card_number": "129",
+      "tcgdex_id": "sv06-129",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "0c1e644b2fb7da4e",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Dragon Headbutt",
+          "raw_text": "",
+          "cost": "Fire Psychic",
+          "damage": "70",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "ability",
+          "name": "Recon Directive",
+          "raw_text": "Once during your turn, you may look at the top 2 cards of your deck and put 1 of them into your hand. Put the other card on the bottom of your deck.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Recon Directive",
+          "registry_key": "sv06-129:Recon Directive",
+          "handler_symbol": "_recon_directive",
+          "handler_file": "backend/app/engine/effects/abilities.py",
+          "handler_found": true,
+          "source_evidence": "registry._ability_effects['sv06-129:Recon Directive']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "once-per-turn"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "once-per-turn"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv06-129:Recon Directive => _recon_directive"
+    },
+    {
+      "seq": 91,
+      "db_id": "sv09-130",
+      "card_name": "Drampa",
+      "set_id": "JTG",
+      "card_number": "130",
+      "tcgdex_id": "sv09-130",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "24bb07c7ba1de81a",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Ram",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Dragon Claw",
+          "raw_text": "",
+          "cost": "Colorless Colorless",
+          "damage": "50",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 92,
+      "db_id": "sv05-138",
+      "card_name": "Drampa",
+      "set_id": "TEF",
+      "card_number": "138",
+      "tcgdex_id": "sv05-138",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "4c5443b198c32bf0",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Gentle Slap",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Raging Cannon",
+          "raw_text": "If all of your Benched Pok\u00e9mon have at least 1 damage counter on them, this attack does 120 more damage.",
+          "cost": "Colorless Colorless Colorless",
+          "damage": "100+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Raging Cannon",
+          "registry_key": "sv05-138:1",
+          "handler_symbol": "_raging_cannon_b16",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv05-138:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect",
+            "damage-counter"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect",
+        "damage-counter"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv05-138:1 => _raging_cannon_b16"
+    },
+    {
+      "seq": 93,
+      "db_id": "sv08-173",
+      "card_name": "Drasna",
+      "set_id": "SSP",
+      "card_number": "173",
+      "tcgdex_id": "sv08-173",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "tcgdex_text_hash": "e66cb7450bb3b81f",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Drasna",
+          "raw_text": "Shuffle your hand into your deck. Then, flip a coin. If heads, draw 8 cards. If tails, draw 3 cards.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv08-173",
+          "handler_symbol": "_drasna_b19",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv08-173']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "shuffle-after-search"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "shuffle-after-search"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08-173 => _drasna_b19"
+    },
+    {
+      "seq": 94,
+      "db_id": "sv08-174",
+      "card_name": "Drayton",
+      "set_id": "SSP",
+      "card_number": "174",
+      "tcgdex_id": "sv08-174",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "tcgdex_text_hash": "b66a52f24caee1a3",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Drayton",
+          "raw_text": "Look at the top 7 cards of your deck. You may reveal a Pok\u00e9mon and a Trainer card you find there and put them into your hand. Shuffle the other cards back into your deck.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv08-174",
+          "handler_symbol": "_drayton_b19",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv08-174']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "shuffle-after-search"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "shuffle-after-search"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv08-174 => _drayton_b19"
+    },
+    {
+      "seq": 95,
+      "db_id": "sv07-044",
+      "card_name": "Drednaw",
+      "set_id": "SCR",
+      "card_number": "44",
+      "tcgdex_id": "sv07-044",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "35612e06adbcccb9",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Hard Crunch",
+          "raw_text": "If your opponent's Active Pok\u00e9mon already has any damage counters on it, this attack does 80 more damage.",
+          "cost": "Colorless Colorless Colorless",
+          "damage": "80+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Impervious Shell",
+          "raw_text": "Prevent all damage done to this Pok\u00e9mon by attacks from your opponent's Pok\u00e9mon if that damage is 200 or more.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Hard Crunch",
+          "registry_key": "sv07-044:0",
+          "handler_symbol": "_hard_crunch",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv07-044:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "damage-counter"
+          ]
+        },
+        {
+          "effect_name": "Impervious Shell",
+          "registry_key": "sv07-044:Impervious Shell",
+          "handler_symbol": "passive",
+          "handler_file": null,
+          "handler_found": true,
+          "source_evidence": "registry._passive_abilities has 'sv07-044:Impervious Shell'",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "damage-counter"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-counter"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv07-044:0 => _hard_crunch; sv07-044:Impervious Shell => passive"
+    },
+    {
+      "seq": 96,
+      "db_id": "sv08.5-071",
+      "card_name": "Dreepy",
+      "set_id": "PRE",
+      "card_number": "71",
+      "tcgdex_id": "sv08.5-071",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "60c820c3150e2460",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Petty Grudge",
+          "raw_text": "",
+          "cost": "Psychic",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Bite",
+          "raw_text": "",
+          "cost": "Fire Psychic",
+          "damage": "40",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 97,
+      "db_id": "sv06-128",
+      "card_name": "Dreepy",
+      "set_id": "TWM",
+      "card_number": "128",
+      "tcgdex_id": "sv06-128",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "00967783b487dab5",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Petty Grudge",
+          "raw_text": "",
+          "cost": "Psychic",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Bite",
+          "raw_text": "",
+          "cost": "Fire Psychic",
+          "damage": "40",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified card has no handler-required effects (vanilla/no-effect attack text only)."
+    },
+    {
+      "seq": 98,
+      "db_id": "mep-006",
+      "card_name": "Drifblim",
+      "set_id": "MEP",
+      "card_number": "6",
+      "tcgdex_id": "mep-006",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "2d4f5856d275eec7",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Disruptive Wind",
+          "raw_text": "Your opponent's Active Pok\u00e9mon is now Confused.",
+          "cost": "Psychic",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Balloon Return",
+          "raw_text": "Put this Pok\u00e9mon and all attached cards into your hand.",
+          "cost": "Psychic Psychic",
+          "damage": "110",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Disruptive Wind",
+          "registry_key": "mep-006:0",
+          "handler_symbol": "_disruptive_wind_b16",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['mep-006:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "status-condition"
+          ]
+        },
+        {
+          "effect_name": "Balloon Return",
+          "registry_key": "mep-006:1",
+          "handler_symbol": "_balloon_return_b5",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['mep-006:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "status-condition"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "status-condition"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: mep-006:0 => _disruptive_wind_b16; mep-006:1 => _balloon_return_b5"
+    },
+    {
+      "seq": 99,
+      "db_id": "svp-135",
+      "card_name": "Drifblim",
+      "set_id": "PR-SV",
+      "card_number": "135",
+      "tcgdex_id": "svp-135",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "0b9b79ac1cf04183",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Everyone Explode Now",
+          "raw_text": "This attack does 50 damage for each of your Drifloon and Drifblim in play. This attack also does 30 damage to each of your Drifloon and Drifblim. (Don't apply Weakness and Resistance for Benched Pok\u00e9mon.)",
+          "cost": "Psychic",
+          "damage": "50\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Everyone Explode Now",
+          "registry_key": "svp-135:0",
+          "handler_symbol": "_everyone_explode_now_b17",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['svp-135:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: svp-135:0 => _everyone_explode_now_b17"
+    },
+    {
+      "seq": 100,
+      "db_id": "sv07-061",
+      "card_name": "Drifblim",
+      "set_id": "SCR",
+      "card_number": "61",
+      "tcgdex_id": "sv07-061",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "tcgdex_text_hash": "9a2394c769bea918",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Everyone Explode Now",
+          "raw_text": "This attack does 50 damage for each of your Drifloon and Drifblim in play. This attack also does 30 damage to each of your Drifloon and Drifblim. (Don't apply Weakness and Resistance for Benched Pok\u00e9mon.)",
+          "cost": "Psychic",
+          "damage": "50\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Everyone Explode Now",
+          "registry_key": "sv07-061:0",
+          "handler_symbol": "_everyone_explode_now",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv07-061:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed",
+            "bench-effect"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect"
+      ],
+      "result": "no-issue",
+      "finding_counted": false,
+      "confidence": "medium",
+      "notes": "Verified TCGDex effects against concrete registry/shared-engine evidence: sv07-061:0 => _everyone_explode_now"
+    }
+  ]
+}

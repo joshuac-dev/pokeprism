@@ -5,14 +5,14 @@ This file stores the rotating cursor for the DB-backed card effect audit workflo
 It does not define card text. It does not define the audit candidate set. The database defines audit scope, and TCGDex defines card behavior.
 
 ```text
-next_start_cursor: Cornerstone Mask Ogerpon | DRI | 111 | sv10-111
+next_start_cursor: Drifloon | MEP | 5 | mep-005
 last_run_status: CONTINUATION_REQUIRED
 last_run_date_utc: 2026-05-12
 last_pr: 65
 last_issue: Nightly DB-backed card effect implementation audit - 2026-05-12
-last_first_card_audited: Boxed Order | TEF | 143 | sv05-143
-last_card_fully_audited: Core Memory | POR | 70 | me03-070
-notes: Run 38 (2026-05-12): CONTINUATION_REQUIRED — TCGDex preflight succeeded and 100 DB cards were audited from Boxed Order | TEF | 143 | sv05-143 through Core Memory | POR | 70 | me03-070. No fixable gaps found in this slice (fixes_implemented=0, engine_gaps_documented=0). Stopping with CONTINUATION_REQUIRED; next run resumes at Cornerstone Mask Ogerpon | DRI | 111 | sv10-111. Report at docs/audit_runs/2026-05-12-38-card-effect-audit.json.
+last_first_card_audited: Cornerstone Mask Ogerpon | DRI | 111 | sv10-111
+last_card_fully_audited: Drifblim | SCR | 61 | sv07-061
+notes: Run 39 (2026-05-12): CONTINUATION_REQUIRED — hardening review corrected false-positive engine-gap classifications (including Counter Gain me02.5-186 and sv08-169). TCGDex preflight succeeded and 100 DB cards were audited from Cornerstone Mask Ogerpon | DRI | 111 | sv10-111 through Drifblim | SCR | 61 | sv07-061. Findings: fixes_implemented=0, engine_gaps_documented=0. Next run resumes at Drifloon | MEP | 5 | mep-005. Report at docs/audit_runs/2026-05-12-39-card-effect-audit.json.
 ```
 
 ## Cursor rules
