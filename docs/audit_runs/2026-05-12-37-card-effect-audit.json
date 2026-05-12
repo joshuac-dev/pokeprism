@@ -18,7 +18,7 @@
   "traversal_wrapped": false,
   "tcgdex_preflight": "ok",
   "tcgdex_preflight_detail": "TCGDex API reachable; card fetch successful.",
-  "db_card_source": "docs/audit_runs/cards_list.txt (1607 cards, ordered by name/set_abbrev/set_number/tcgdex_id)",
+  "db_card_source": "DB query ordered by name, set_abbrev, set_number, tcgdex_id (1607 cards seeded)",
   "continuation_reason": "130 cards audited (>= 100 minimum). Target of 25 findings not reached: no fixable gaps found in this slice (fixes_implemented=0, engine_gaps_documented=0). Stopping with CONTINUATION_REQUIRED; next run resumes at Boxed Order | TEF | 143 | sv05-143.",
   "audit_ledger": [
     {
@@ -49,21 +49,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10-060",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10-060 found in registry: attack-registry",
+          "source_evidence": "card sv10-060 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Abomasnow (sv10-060) — DRI #60: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Abomasnow (sv10-060) — DRI #60: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 2,
@@ -88,21 +88,21 @@
           "effect_name": "all effects",
           "registry_key": "me01-054",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card me01-054 found in registry: attack-registry",
+          "source_evidence": "card me01-054 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Abra (me01-054) — MEG #54: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Abra (me01-054) — MEG #54: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 3,
@@ -132,21 +132,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06-080",
           "handler_symbol": "ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv06-080 found in registry: ability-registry",
+          "source_evidence": "card sv06-080 present in registry (exact handler symbol/file not resolved; registry-level evidence only): ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Abra (sv06-080) — TWM #80: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Abra (sv06-080) — TWM #80: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 4,
@@ -171,21 +171,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06.5-030",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv06.5-030 found in registry: attack-registry",
+          "source_evidence": "card sv06.5-030 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Absol (sv06.5-030) — SFA #30: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Absol (sv06.5-030) — SFA #30: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 5,
@@ -210,21 +210,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06.5-054",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv06.5-054 found in registry: trainer-registry",
+          "source_evidence": "card sv06.5-054 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Academy at Night (sv06.5-054) — SFA #54: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Academy at Night (sv06.5-054) — SFA #54: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 6,
@@ -249,21 +249,21 @@
           "effect_name": "all effects",
           "registry_key": "sv09-013",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv09-013 found in registry: attack-registry",
+          "source_evidence": "card sv09-013 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Accelgor (sv09-013) — JTG #13: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Accelgor (sv09-013) — JTG #13: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 7,
@@ -288,21 +288,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10.5w-009",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10.5w-009 found in registry: attack-registry",
+          "source_evidence": "card sv10.5w-009 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Accelgor (sv10.5w-009) — WHT #9: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Accelgor (sv10.5w-009) — WHT #9: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 8,
@@ -327,21 +327,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06-142",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv06-142 found in registry: trainer-registry",
+          "source_evidence": "card sv06-142 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Accompanying Flute (sv06-142) — TWM #142: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Accompanying Flute (sv06-142) — TWM #142: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 9,
@@ -366,21 +366,21 @@
           "effect_name": "all effects",
           "registry_key": "me02.5-180",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card me02.5-180 found in registry: trainer-registry",
+          "source_evidence": "card me02.5-180 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Acerola's Mischief (me02.5-180) — ASC #180: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Acerola's Mischief (me02.5-180) — ASC #180: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 10,
@@ -405,21 +405,21 @@
           "effect_name": "all effects",
           "registry_key": "me01-113",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card me01-113 found in registry: trainer-registry",
+          "source_evidence": "card me01-113 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Acerola's Mischief (me01-113) — MEG #113: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Acerola's Mischief (me01-113) — MEG #113: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 11,
@@ -450,21 +450,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06-122",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv06-122 found in registry: attack-registry",
+          "source_evidence": "card sv06-122 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Aggron (sv06-122) — TWM #122: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Aggron (sv06-122) — TWM #122: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 12,
@@ -518,21 +518,21 @@
           "effect_name": "all effects",
           "registry_key": "me02.5-181",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card me02.5-181 found in registry: trainer-registry",
+          "source_evidence": "card me02.5-181 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Air Balloon (me02.5-181) — ASC #181: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Air Balloon (me02.5-181) — ASC #181: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 14,
@@ -557,21 +557,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10.5b-079",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10.5b-079 found in registry: trainer-registry",
+          "source_evidence": "card sv10.5b-079 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Air Balloon (sv10.5b-079) — BLK #79: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Air Balloon (sv10.5b-079) — BLK #79: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 15,
@@ -602,22 +602,21 @@
           "effect_name": "all effects",
           "registry_key": "me01-056",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card me01-056 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Alakazam (me01-056) — MEG #56: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Alakazam (me01-056) — MEG #56: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 16,
@@ -648,22 +647,21 @@
           "effect_name": "all effects",
           "registry_key": "mep-003",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card mep-003 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Alakazam (mep-003) — MEP #3: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Alakazam (mep-003) — MEP #3: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 17,
@@ -694,22 +692,21 @@
           "effect_name": "all effects",
           "registry_key": "mep-009",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card mep-009 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Alakazam (mep-009) — MEP #9: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Alakazam (mep-009) — MEP #9: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 18,
@@ -740,22 +737,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06-082",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv06-082 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Alakazam (sv06-082) — TWM #82: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Alakazam (sv06-082) — TWM #82: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 19,
@@ -785,21 +781,21 @@
           "effect_name": "all effects",
           "registry_key": "sv07-065",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv07-065 found in registry: attack-registry",
+          "source_evidence": "card sv07-065 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Alcremie (sv07-065) — SCR #65: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Alcremie (sv07-065) — SCR #65: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 20,
@@ -829,22 +825,21 @@
           "effect_name": "all effects",
           "registry_key": "sv09-075",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv09-075 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Alcremie ex (sv09-075) — JTG #75: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Alcremie ex (sv09-075) — JTG #75: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 21,
@@ -869,21 +864,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08-122",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv08-122 found in registry: attack-registry",
+          "source_evidence": "card sv08-122 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Alolan Diglett (sv08-122) — SSP #122: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Alolan Diglett (sv08-122) — SSP #122: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 22,
@@ -908,21 +903,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08-123",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv08-123 found in registry: attack-registry",
+          "source_evidence": "card sv08-123 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Alolan Dugtrio (sv08-123) — SSP #123: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Alolan Dugtrio (sv08-123) — SSP #123: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 23,
@@ -953,21 +948,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08-133",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv08-133 found in registry: attack-registry",
+          "source_evidence": "card sv08-133 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Alolan Exeggutor ex (sv08-133) — SSP #133: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Alolan Exeggutor ex (sv08-133) — SSP #133: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 24,
@@ -1027,21 +1022,21 @@
           "effect_name": "all effects",
           "registry_key": "sv09-046",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv09-046 found in registry: attack-registry",
+          "source_evidence": "card sv09-046 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Alolan Golem (sv09-046) — JTG #46: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Alolan Golem (sv09-046) — JTG #46: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 26,
@@ -1100,21 +1095,21 @@
           "effect_name": "all effects",
           "registry_key": "sv09-057",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv09-057 found in registry: attack-registry",
+          "source_evidence": "card sv09-057 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Alolan Marowak (sv09-057) — JTG #57: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Alolan Marowak (sv09-057) — JTG #57: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 28,
@@ -1144,21 +1139,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10.5b-024",
           "handler_symbol": "ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10.5b-024 found in registry: ability-registry",
+          "source_evidence": "card sv10.5b-024 present in registry (exact handler symbol/file not resolved; registry-level evidence only): ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Alomomola (sv10.5b-024) — BLK #24: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Alomomola (sv10.5b-024) — BLK #24: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 29,
@@ -1189,21 +1184,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08-134",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv08-134 found in registry: attack-registry",
+          "source_evidence": "card sv08-134 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Altaria (sv08-134) — SSP #134: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Altaria (sv08-134) — SSP #134: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 30,
@@ -1228,21 +1223,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08.5-093",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv08.5-093 found in registry: trainer-registry",
+          "source_evidence": "card sv08.5-093 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Amarys (sv08.5-093) — PRE #93: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Amarys (sv08.5-093) — PRE #93: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 31,
@@ -1272,21 +1267,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06-138",
           "handler_symbol": "ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv06-138 found in registry: ability-registry",
+          "source_evidence": "card sv06-138 present in registry (exact handler symbol/file not resolved; registry-level evidence only): ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Ambipom (sv06-138) — TWM #138: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Ambipom (sv06-138) — TWM #138: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 32,
@@ -1316,21 +1311,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10.5b-011",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10.5b-011 found in registry: attack-registry",
+          "source_evidence": "card sv10.5b-011 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Amoonguss (sv10.5b-011) — BLK #11: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Amoonguss (sv10.5b-011) — BLK #11: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 33,
@@ -1361,21 +1356,21 @@
           "effect_name": "all effects",
           "registry_key": "sv09-011",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv09-011 found in registry: attack-registry",
+          "source_evidence": "card sv09-011 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Amoonguss ex (sv09-011) — JTG #11: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Amoonguss ex (sv09-011) — JTG #11: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 34,
@@ -1430,22 +1425,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10-092",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv10-092 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Annihilape (sv10-092) — DRI #92: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Annihilape (sv10-092) — DRI #92: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 36,
@@ -1476,21 +1470,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08-100",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv08-100 found in registry: attack-registry",
+          "source_evidence": "card sv08-100 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Annihilape (sv08-100) — SSP #100: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Annihilape (sv08-100) — SSP #100: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 37,
@@ -1515,21 +1509,21 @@
           "effect_name": "all effects",
           "registry_key": "me02.5-182",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card me02.5-182 found in registry: trainer-registry",
+          "source_evidence": "card me02.5-182 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Anthea & Concordia (me02.5-182) — ASC #182: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Anthea & Concordia (me02.5-182) — ASC #182: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 38,
@@ -1560,22 +1554,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10.5b-080",
           "handler_symbol": "ability-registry+trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv10.5b-080 found in registries: ability-registry, trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "ability-handler-verified",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Antique Cover Fossil (sv10.5b-080) — BLK #80: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Antique Cover Fossil (sv10.5b-080) — BLK #80: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 39,
@@ -1606,22 +1599,21 @@
           "effect_name": "all effects",
           "registry_key": "sv07-129",
           "handler_symbol": "ability-registry+trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv07-129 found in registries: ability-registry, trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "ability-handler-verified",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Antique Cover Fossil (sv07-129) — SCR #129: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Antique Cover Fossil (sv07-129) — SCR #129: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 40,
@@ -1652,22 +1644,21 @@
           "effect_name": "all effects",
           "registry_key": "me03-068",
           "handler_symbol": "ability-registry+trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card me03-068 found in registries: ability-registry, trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "ability-handler-verified",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Antique Jaw Fossil (me03-068) — POR #68: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Antique Jaw Fossil (me03-068) — POR #68: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 41,
@@ -1698,22 +1689,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10.5w-079",
           "handler_symbol": "ability-registry+trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv10.5w-079 found in registries: ability-registry, trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "ability-handler-verified",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Antique Plume Fossil (sv10.5w-079) — WHT #79: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Antique Plume Fossil (sv10.5w-079) — WHT #79: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 42,
@@ -1744,22 +1734,21 @@
           "effect_name": "all effects",
           "registry_key": "sv07-130",
           "handler_symbol": "ability-registry+trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv07-130 found in registries: ability-registry, trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "ability-handler-verified",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Antique Root Fossil (sv07-130) — SCR #130: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Antique Root Fossil (sv07-130) — SCR #130: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 43,
@@ -1790,22 +1779,21 @@
           "effect_name": "all effects",
           "registry_key": "me03-069",
           "handler_symbol": "ability-registry+trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card me03-069 found in registries: ability-registry, trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "ability-handler-verified",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Antique Sail Fossil (me03-069) — POR #69: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Antique Sail Fossil (me03-069) — POR #69: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 44,
@@ -1836,21 +1824,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08-140",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv08-140 found in registry: attack-registry",
+          "source_evidence": "card sv08-140 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Appletun (sv08-140) — SSP #140: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Appletun (sv08-140) — SSP #140: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 45,
@@ -1875,21 +1863,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10-016",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10-016 found in registry: attack-registry",
+          "source_evidence": "card sv10-016 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Applin (sv10-016) — DRI #16: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Applin (sv10-016) — DRI #16: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 46,
@@ -1968,21 +1956,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08-138",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv08-138 found in registry: attack-registry",
+          "source_evidence": "card sv08-138 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Applin (sv08-138) — SSP #138: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Applin (sv08-138) — SSP #138: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 49,
@@ -2012,21 +2000,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06-126",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv06-126 found in registry: attack-registry",
+          "source_evidence": "card sv06-126 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Applin (sv06-126) — TWM #126: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Applin (sv06-126) — TWM #126: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 50,
@@ -2051,21 +2039,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06-017",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv06-017 found in registry: attack-registry",
+          "source_evidence": "card sv06-017 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Applin (sv06-017) — TWM #17: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Applin (sv06-017) — TWM #17: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 51,
@@ -2095,21 +2083,21 @@
           "effect_name": "all effects",
           "registry_key": "sv05-101",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv05-101 found in registry: attack-registry",
+          "source_evidence": "card sv05-101 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Arbok (sv05-101) — TEF #101: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Arbok (sv05-101) — TEF #101: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 52,
@@ -2140,21 +2128,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10-023",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10-023 found in registry: attack-registry",
+          "source_evidence": "card sv10-023 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Arboliva ex (sv10-023) — DRI #23: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Arboliva ex (sv10-023) — DRI #23: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 53,
@@ -2184,21 +2172,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10-028",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10-028 found in registry: attack-registry",
+          "source_evidence": "card sv10-028 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Arcanine (sv10-028) — DRI #28: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Arcanine (sv10-028) — DRI #28: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 54,
@@ -2229,22 +2217,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08.5-070",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv08.5-070 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Archaludon (sv08.5-070) — PRE #70: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Archaludon (sv08.5-070) — PRE #70: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 55,
@@ -2275,22 +2262,21 @@
           "effect_name": "all effects",
           "registry_key": "sv07-107",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv07-107 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Archaludon (sv07-107) — SCR #107: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Archaludon (sv07-107) — SCR #107: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 56,
@@ -2321,22 +2307,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08-130",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv08-130 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Archaludon ex (sv08-130) — SSP #130: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Archaludon ex (sv08-130) — SSP #130: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 57,
@@ -2361,21 +2346,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10.5w-050",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10.5w-050 found in registry: attack-registry",
+          "source_evidence": "card sv10.5w-050 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Archen (sv10.5w-050) — WHT #50: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Archen (sv10.5w-050) — WHT #50: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 58,
@@ -2405,22 +2390,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10.5w-051",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv10.5w-051 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Archeops (sv10.5w-051) — WHT #51: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Archeops (sv10.5w-051) — WHT #51: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 59,
@@ -2445,21 +2429,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08.5-094",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv08.5-094 found in registry: trainer-registry",
+          "source_evidence": "card sv08.5-094 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Area Zero Underdepths (sv08.5-094) — PRE #94: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Area Zero Underdepths (sv08.5-094) — PRE #94: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 60,
@@ -2484,21 +2468,21 @@
           "effect_name": "all effects",
           "registry_key": "sv07-131",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv07-131 found in registry: trainer-registry",
+          "source_evidence": "card sv07-131 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Area Zero Underdepths (sv07-131) — SCR #131: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Area Zero Underdepths (sv07-131) — SCR #131: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 61,
@@ -2529,22 +2513,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06-005",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv06-005 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Ariados (sv06-005) — TWM #5: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Ariados (sv06-005) — TWM #5: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 62,
@@ -2574,21 +2557,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08-034",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv08-034 found in registry: attack-registry",
+          "source_evidence": "card sv08-034 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Armarouge (sv08-034) — SSP #34: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Armarouge (sv08-034) — SSP #34: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 63,
@@ -2613,21 +2596,21 @@
           "effect_name": "all effects",
           "registry_key": "svp-105",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card svp-105 found in registry: attack-registry",
+          "source_evidence": "card svp-105 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Armarouge ex (svp-105) — PR-SV #105: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Armarouge ex (svp-105) — PR-SV #105: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 64,
@@ -2652,21 +2635,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08.5-039",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv08.5-039 found in registry: attack-registry",
+          "source_evidence": "card sv08.5-039 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Aromatisse (sv08.5-039) — PRE #39: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Aromatisse (sv08.5-039) — PRE #39: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 65,
@@ -2691,21 +2674,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06-120",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv06-120 found in registry: attack-registry",
+          "source_evidence": "card sv06-120 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Aron (sv06-120) — TWM #120: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Aron (sv06-120) — TWM #120: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 66,
@@ -2730,21 +2713,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10-062",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10-062 found in registry: attack-registry",
+          "source_evidence": "card sv10-062 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Arrokuda (sv10-062) — DRI #62: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Arrokuda (sv10-062) — DRI #62: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 67,
@@ -2774,21 +2757,21 @@
           "effect_name": "all effects",
           "registry_key": "sv09-032",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv09-032 found in registry: attack-registry",
+          "source_evidence": "card sv09-032 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Articuno (sv09-032) — JTG #32: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Articuno (sv09-032) — JTG #32: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 68,
@@ -2818,22 +2801,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10-159",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv10-159 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Arven's Greedent (sv10-159) — DRI #159: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Arven's Greedent (sv10-159) — DRI #159: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 69,
@@ -2864,21 +2846,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10-139",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10-139 found in registry: attack-registry",
+          "source_evidence": "card sv10-139 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Arven's Mabosstiff ex (sv10-139) — DRI #139: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Arven's Mabosstiff ex (sv10-139) — DRI #139: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 70,
@@ -2932,21 +2914,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10-161",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10-161 found in registry: trainer-registry",
+          "source_evidence": "card sv10-161 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Arven's Sandwich (sv10-161) — DRI #161: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Arven's Sandwich (sv10-161) — DRI #161: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 72,
@@ -2971,21 +2953,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10-158",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10-158 found in registry: attack-registry",
+          "source_evidence": "card sv10-158 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Arven's Skwovet (sv10-158) — DRI #158: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Arven's Skwovet (sv10-158) — DRI #158: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 73,
@@ -3010,21 +2992,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10-109",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10-109 found in registry: attack-registry",
+          "source_evidence": "card sv10-109 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Arven's Toedscool (sv10-109) — DRI #109: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Arven's Toedscool (sv10-109) — DRI #109: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 74,
@@ -3055,21 +3037,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10-110",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10-110 found in registry: attack-registry",
+          "source_evidence": "card sv10-110 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Arven's Toedscruel (sv10-110) — DRI #110: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Arven's Toedscruel (sv10-110) — DRI #110: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 75,
@@ -3094,21 +3076,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10.5b-074",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10.5b-074 found in registry: attack-registry",
+          "source_evidence": "card sv10.5b-074 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Audino (sv10.5b-074) — BLK #74: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Audino (sv10.5b-074) — BLK #74: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 76,
@@ -3138,21 +3120,21 @@
           "effect_name": "all effects",
           "registry_key": "sv09-124",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv09-124 found in registry: attack-registry",
+          "source_evidence": "card sv09-124 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Audino (sv09-124) — JTG #124: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Audino (sv09-124) — JTG #124: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 77,
@@ -3177,21 +3159,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10.5b-068",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10.5b-068 found in registry: attack-registry",
+          "source_evidence": "card sv10.5b-068 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Axew (sv10.5b-068) — BLK #68: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Axew (sv10.5b-068) — BLK #68: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 78,
@@ -3245,21 +3227,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08-080",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv08-080 found in registry: attack-registry",
+          "source_evidence": "card sv08-080 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Azelf (sv08-080) — SSP #80: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Azelf (sv08-080) — SSP #80: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 80,
@@ -3284,21 +3266,21 @@
           "effect_name": "all effects",
           "registry_key": "sv07-034",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv07-034 found in registry: attack-registry",
+          "source_evidence": "card sv07-034 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Azumarill (sv07-034) — SCR #34: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Azumarill (sv07-034) — SCR #34: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 81,
@@ -3329,22 +3311,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08-074",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv08-074 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Azumarill (sv08-074) — SSP #74: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Azumarill (sv08-074) — SSP #74: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 82,
@@ -3375,21 +3356,21 @@
           "effect_name": "all effects",
           "registry_key": "sv05-065",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv05-065 found in registry: attack-registry",
+          "source_evidence": "card sv05-065 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Azumarill (sv05-065) — TEF #65: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Azumarill (sv05-065) — TEF #65: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 83,
@@ -3414,22 +3395,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08-163",
           "handler_symbol": "attack-registry+trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv08-163 found in registries: attack-registry, trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Babiri Berry (sv08-163) — SSP #163: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Babiri Berry (sv08-163) — SSP #163: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 84,
@@ -3459,21 +3439,21 @@
           "effect_name": "all effects",
           "registry_key": "sv09-112",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv09-112 found in registry: attack-registry",
+          "source_evidence": "card sv09-112 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bagon (sv09-112) — JTG #112: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bagon (sv09-112) — JTG #112: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 85,
@@ -3503,21 +3483,21 @@
           "effect_name": "all effects",
           "registry_key": "sv09-060",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv09-060 found in registry: attack-registry",
+          "source_evidence": "card sv09-060 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Banette (sv09-060) — JTG #60: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Banette (sv09-060) — JTG #60: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 86,
@@ -3547,21 +3527,21 @@
           "effect_name": "all effects",
           "registry_key": "me03-043",
           "handler_symbol": "ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card me03-043 found in registry: ability-registry",
+          "source_evidence": "card me03-043 present in registry (exact handler symbol/file not resolved; registry-level evidence only): ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Barbaracle (me03-043) — POR #43: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Barbaracle (me03-043) — POR #43: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 87,
@@ -3591,21 +3571,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10-063",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10-063 found in registry: attack-registry",
+          "source_evidence": "card sv10-063 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Barraskewda (sv10-063) — DRI #63: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Barraskewda (sv10-063) — DRI #63: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 88,
@@ -3635,21 +3615,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10.5w-024",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10.5w-024 found in registry: attack-registry",
+          "source_evidence": "card sv10.5w-024 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Basculin (sv10.5w-024) — WHT #24: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Basculin (sv10.5w-024) — WHT #24: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 89,
@@ -3674,22 +3654,21 @@
           "effect_name": "all effects",
           "registry_key": "me02-085",
           "handler_symbol": "ability-registry+trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card me02-085 found in registries: ability-registry, trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "ability-handler-verified",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Battle Cage (me02-085) — PFL #85: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Battle Cage (me02-085) — PFL #85: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 90,
@@ -3714,21 +3693,21 @@
           "effect_name": "all effects",
           "registry_key": "me01-009",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card me01-009 found in registry: attack-registry",
+          "source_evidence": "card me01-009 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bayleef (me01-009) — MEG #9: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bayleef (me01-009) — MEG #9: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 91,
@@ -3759,21 +3738,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10.5b-026",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10.5b-026 found in registry: attack-registry",
+          "source_evidence": "card sv10.5b-026 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Beartic (sv10.5b-026) — BLK #26: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Beartic (sv10.5b-026) — BLK #26: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 92,
@@ -3804,21 +3783,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10.5b-041",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10.5b-041 found in registry: attack-registry",
+          "source_evidence": "card sv10.5b-041 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Beheeyem (sv10.5b-041) — BLK #41: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Beheeyem (sv10.5b-041) — BLK #41: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 93,
@@ -3843,21 +3822,21 @@
           "effect_name": "all effects",
           "registry_key": "sv05-074",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv05-074 found in registry: attack-registry",
+          "source_evidence": "card sv05-074 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Beheeyem (sv05-074) — TEF #74: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Beheeyem (sv05-074) — TEF #74: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 94,
@@ -3916,21 +3895,21 @@
           "effect_name": "all effects",
           "registry_key": "sv05-113",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv05-113 found in registry: attack-registry",
+          "source_evidence": "card sv05-113 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Beldum (sv05-113) — TEF #113: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Beldum (sv05-113) — TEF #113: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 96,
@@ -3960,21 +3939,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06-074",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv06-074 found in registry: attack-registry",
+          "source_evidence": "card sv06-074 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bellibolt (sv06-074) — TWM #74: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bellibolt (sv06-074) — TWM #74: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 97,
@@ -4004,21 +3983,21 @@
           "effect_name": "all effects",
           "registry_key": "me01-112",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card me01-112 found in registry: attack-registry",
+          "source_evidence": "card me01-112 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bewear (me01-112) — MEG #112: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bewear (me01-112) — MEG #112: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 98,
@@ -4048,21 +4027,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06.5-053",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv06.5-053 found in registry: attack-registry",
+          "source_evidence": "card sv06.5-053 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bewear (sv06.5-053) — SFA #53: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bewear (sv06.5-053) — SFA #53: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 99,
@@ -4087,21 +4066,21 @@
           "effect_name": "all effects",
           "registry_key": "sv05-142",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv05-142 found in registry: trainer-registry",
+          "source_evidence": "card sv05-142 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bianca's Devotion (sv05-142) — TEF #142: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bianca's Devotion (sv05-142) — TEF #142: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 100,
@@ -4126,21 +4105,21 @@
           "effect_name": "all effects",
           "registry_key": "sv09-142",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv09-142 found in registry: trainer-registry",
+          "source_evidence": "card sv09-142 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Billy & O'Nare (sv09-142) — JTG #142: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Billy & O'Nare (sv09-142) — JTG #142: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 101,
@@ -4170,21 +4149,21 @@
           "effect_name": "all effects",
           "registry_key": "me03-042",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card me03-042 found in registry: attack-registry",
+          "source_evidence": "card me03-042 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Binacle (me03-042) — POR #42: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Binacle (me03-042) — POR #42: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 102,
@@ -4209,22 +4188,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08.5-095",
           "handler_symbol": "attack-registry+trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv08.5-095 found in registries: attack-registry, trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Binding Mochi (sv08.5-095) — PRE #95: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Binding Mochi (sv08.5-095) — PRE #95: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 103,
@@ -4249,22 +4227,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06.5-055",
           "handler_symbol": "attack-registry+trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv06.5-055 found in registries: attack-registry, trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Binding Mochi (sv06.5-055) — SFA #55: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Binding Mochi (sv06.5-055) — SFA #55: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 104,
@@ -4294,21 +4271,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10.5b-065",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10.5b-065 found in registry: attack-registry",
+          "source_evidence": "card sv10.5b-065 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bisharp (sv10.5b-065) — BLK #65: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bisharp (sv10.5b-065) — BLK #65: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 105,
@@ -4357,21 +4334,21 @@
           "effect_name": "all effects",
           "registry_key": "sv09-144",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv09-144 found in registry: trainer-registry",
+          "source_evidence": "card sv09-144 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Black Belt's Training (sv09-144) — JTG #144: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Black Belt's Training (sv09-144) — JTG #144: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 107,
@@ -4396,21 +4373,21 @@
           "effect_name": "all effects",
           "registry_key": "sv09-145",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv09-145 found in registry: trainer-registry",
+          "source_evidence": "card sv09-145 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Black Belt's Training (sv09-145) — JTG #145: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Black Belt's Training (sv09-145) — JTG #145: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 108,
@@ -4435,21 +4412,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08.5-096",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv08.5-096 found in registry: trainer-registry",
+          "source_evidence": "card sv08.5-096 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Black Belt's Training (sv08.5-096) — PRE #96: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Black Belt's Training (sv08.5-096) — PRE #96: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 109,
@@ -4480,21 +4457,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08-048",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv08-048 found in registry: attack-registry",
+          "source_evidence": "card sv08-048 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Black Kyurem ex (sv08-048) — SSP #48: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Black Kyurem ex (sv08-048) — SSP #48: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 110,
@@ -4524,21 +4501,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10-042",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10-042 found in registry: attack-registry",
+          "source_evidence": "card sv10-042 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Blaziken (sv10-042) — DRI #42: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Blaziken (sv10-042) — DRI #42: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 111,
@@ -4569,22 +4546,21 @@
           "effect_name": "all effects",
           "registry_key": "sv09-024",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv09-024 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Blaziken ex (sv09-024) — JTG #24: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Blaziken ex (sv09-024) — JTG #24: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 112,
@@ -4615,22 +4591,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06-134",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv06-134 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Blissey ex (sv06-134) — TWM #134: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Blissey ex (sv06-134) — TWM #134: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 113,
@@ -4660,21 +4635,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08-062",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv08-062 found in registry: attack-registry",
+          "source_evidence": "card sv08-062 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Blitzle (sv08-062) — SSP #62: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Blitzle (sv08-062) — SSP #62: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 114,
@@ -4734,22 +4709,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08.5-054",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv08.5-054 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bloodmoon Ursaluna (sv08.5-054) — PRE #54: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bloodmoon Ursaluna (sv08.5-054) — PRE #54: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 116,
@@ -4780,22 +4754,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06.5-025",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv06.5-025 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bloodmoon Ursaluna (sv06.5-025) — SFA #25: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bloodmoon Ursaluna (sv06.5-025) — SFA #25: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 117,
@@ -4826,22 +4799,21 @@
           "effect_name": "all effects",
           "registry_key": "svp-177",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card svp-177 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bloodmoon Ursaluna ex (svp-177) — PR-SV #177: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bloodmoon Ursaluna ex (svp-177) — PR-SV #177: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 118,
@@ -4872,22 +4844,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06-141",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv06-141 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bloodmoon Ursaluna ex (sv06-141) — TWM #141: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bloodmoon Ursaluna ex (sv06-141) — TWM #141: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 119,
@@ -4912,21 +4883,21 @@
           "effect_name": "all effects",
           "registry_key": "me02-086",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card me02-086 found in registry: trainer-registry",
+          "source_evidence": "card me02-086 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Blowtorch (me02-086) — PFL #86: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Blowtorch (me02-086) — PFL #86: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 120,
@@ -4956,21 +4927,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10.5w-047",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv10.5w-047 found in registry: attack-registry",
+          "source_evidence": "card sv10.5w-047 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Boldore (sv10.5w-047) — WHT #47: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Boldore (sv10.5w-047) — WHT #47: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 121,
@@ -4995,21 +4966,21 @@
           "effect_name": "all effects",
           "registry_key": "sv05-059",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv05-059 found in registry: attack-registry",
+          "source_evidence": "card sv05-059 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Boltund (sv05-059) — TEF #59: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Boltund (sv05-059) — TEF #59: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 122,
@@ -5039,21 +5010,21 @@
           "effect_name": "all effects",
           "registry_key": "sv09-101",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv09-101 found in registry: attack-registry",
+          "source_evidence": "card sv09-101 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bombirdier (sv09-101) — JTG #101: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bombirdier (sv09-101) — JTG #101: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 123,
@@ -5078,21 +5049,21 @@
           "effect_name": "all effects",
           "registry_key": "sv07-097",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv07-097 found in registry: attack-registry",
+          "source_evidence": "card sv07-097 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bombirdier (sv07-097) — SCR #97: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bombirdier (sv07-097) — SCR #97: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 124,
@@ -5117,21 +5088,21 @@
           "effect_name": "all effects",
           "registry_key": "sv06-166",
           "handler_symbol": "trainer-registry+energy-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv06-166 found in registries: trainer-registry, energy-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Boomerang Energy (sv06-166) — TWM #166: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Boomerang Energy (sv06-166) — TWM #166: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 125,
@@ -5156,21 +5127,21 @@
           "effect_name": "all effects",
           "registry_key": "me02.5-183",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card me02.5-183 found in registry: trainer-registry",
+          "source_evidence": "card me02.5-183 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Boss's Orders (me02.5-183) — ASC #183: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Boss's Orders (me02.5-183) — ASC #183: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 126,
@@ -5195,21 +5166,21 @@
           "effect_name": "all effects",
           "registry_key": "me01-114",
           "handler_symbol": "trainer-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card me01-114 found in registry: trainer-registry",
+          "source_evidence": "card me01-114 present in registry (exact handler symbol/file not resolved; registry-level evidence only): trainer-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "trainer-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Boss's Orders (me01-114) — MEG #114: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Boss's Orders (me01-114) — MEG #114: 1 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 127,
@@ -5240,22 +5211,21 @@
           "effect_name": "all effects",
           "registry_key": "svp-136",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card svp-136 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bouffalant (svp-136) — PR-SV #136: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bouffalant (svp-136) — PR-SV #136: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 128,
@@ -5286,22 +5256,21 @@
           "effect_name": "all effects",
           "registry_key": "sv07-119",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv07-119 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bouffalant (sv07-119) — SCR #119: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bouffalant (sv07-119) — SCR #119: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 129,
@@ -5332,21 +5301,21 @@
           "effect_name": "all effects",
           "registry_key": "sv08-151",
           "handler_symbol": "attack-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
-          "source_evidence": "card sv08-151 found in registry: attack-registry",
+          "source_evidence": "card sv08-151 present in registry (exact handler symbol/file not resolved; registry-level evidence only): attack-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bouffalant (sv08-151) — SSP #151: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bouffalant (sv08-151) — SSP #151: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     },
     {
       "seq": 130,
@@ -5377,22 +5346,21 @@
           "effect_name": "all effects",
           "registry_key": "sv10.5w-077",
           "handler_symbol": "attack-registry+ability-registry",
-          "handler_file": "backend/app/engine/effects/",
+          "handler_file": "backend/app/engine/effects/ (directory; exact file not resolved at registry level)",
           "handler_found": true,
           "source_evidence": "card sv10.5w-077 found in registries: attack-registry, ability-registry",
           "semantic_checks": [
             "tcgdex-text-reviewed",
             "registry-checked",
-            "attack-handler-verified",
-            "ability-handler-verified"
+            "registry-level-evidence-only"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "high",
-      "notes": "PASS: Bouffalant ex (sv10.5w-077) — WHT #77: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies."
+      "confidence": "medium",
+      "notes": "PASS: Bouffalant ex (sv10.5w-077) — WHT #77: 2 effect(s) cross-checked against TCGDex text; registry lookup confirmed; semantic review complete; no discrepancies. Note: confidence=medium; evidence is registry-level, exact handler file/symbol not resolved."
     }
   ]
 }
