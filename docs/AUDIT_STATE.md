@@ -5,14 +5,14 @@ This file stores the rotating cursor for the DB-backed card effect audit workflo
 It does not define card text. It does not define the audit candidate set. The database defines audit scope, and TCGDex defines card behavior.
 
 ```text
-next_start_cursor: Counter Gain | SSP | 169 | sv08-169
-last_run_status: TARGET_REACHED
-last_run_date_utc: 2026-05-11
+next_start_cursor: Flutter Mane | TEF | 78 | sv05-078
+last_run_status: CONTINUATION_REQUIRED
+last_run_date_utc: 2026-05-12
 last_pr:
 last_issue: Nightly DB-backed card effect implementation audit - 2026-05-11
-last_first_card_audited: Lucario ex | PRE | 51 | sv08.5-051
-last_card_fully_audited: Counter Gain | ASC | 186 | me02.5-186
-notes: Run 34 (2026-05-11): TARGET_REACHED — TCGDex preflight succeeded and 1035 DB cards were audited in deterministic circular order from Lucario ex | PRE | 51 | sv08.5-051 through Counter Gain | ASC | 186 | me02.5-186, wrapping once. Implemented 25 fixes (0 remaining documented engine gaps) in docs/audit_runs/2026-05-11-34-card-effect-audit.json. Next run should resume from Counter Gain | SSP | 169 | sv08-169.
+last_first_card_audited: Counter Gain | SSP | 169 | sv08-169
+last_card_fully_audited: Flutter Mane | SSP | 96 | sv08-096
+notes: Run 35 (2026-05-12): CONTINUATION_REQUIRED — TCGDex preflight succeeded and 242 DB cards were audited from Counter Gain | SSP | 169 | sv08-169 through Flutter Mane | SSP | 96 | sv08-096 (sequential rows 240–475 + 7 cross-reference cards). Implemented 17 fixes (0 documented engine gaps); target is 25. Report at docs/audit_runs/2026-05-12-35-card-effect-audit.json. Next run should resume from Flutter Mane | TEF | 78 | sv05-078.
 ```
 
 ## Cursor rules
