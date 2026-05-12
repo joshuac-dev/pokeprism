@@ -30,6 +30,14 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+- **DB-backed card audit run 38 — 2026-05-12 — CONTINUATION_REQUIRED** —
+  Audited 100 cards (Boxed Order | TEF | 143 | sv05-143 through Core Memory | POR | 70 | me03-070,
+  DB indices 130–229). TCGDex preflight OK. No fixable engine gaps found in this slice
+  (fixes_implemented=0, engine_gaps_documented=0). Stopping with CONTINUATION_REQUIRED (>= 100
+  cards audited; target of 25 findings not reached). Next run resumes at
+  Cornerstone Mask Ogerpon | DRI | 111 | sv10-111. Report: `docs/audit_runs/2026-05-12-38-card-effect-audit.json`.
+  Confidence: High.
+
 - **DB-backed card audit run 37 — 2026-05-12 — CONTINUATION_REQUIRED** —
   Audited 130 cards (Abomasnow | DRI | 60 | sv10-060 through Bouffalant ex | WHT | 77 | sv10.5w-077,
   DB indices 0–129). TCGDex preflight OK. No fixable engine gaps found in this slice
