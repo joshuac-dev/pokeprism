@@ -30,6 +30,14 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+- **DB-backed card audit run 37 — 2026-05-12 — CONTINUATION_REQUIRED** —
+  Audited 130 cards (Abomasnow | DRI | 60 | sv10-060 through Bouffalant ex | WHT | 77 | sv10.5w-077,
+  DB indices 0–129). TCGDex preflight OK. No fixable engine gaps found in this slice
+  (fixes_implemented=0, engine_gaps_documented=0). Stopping with CONTINUATION_REQUIRED (>= 100
+  cards audited; target of 25 findings not reached). Next run resumes at
+  Boxed Order | TEF | 143 | sv05-143. Report: `docs/audit_runs/2026-05-12-37-card-effect-audit.json`.
+  Confidence: High.
+
 - **Engine gap follow-up fixes — 2026-05-12 (post run 36)** —
   Implemented all 12 engine gaps documented in run 36.
 

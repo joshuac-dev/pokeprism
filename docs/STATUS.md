@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-12 (DB-backed card audit run 36 — TARGET_REACHED)
+Last updated: 2026-05-12 (DB-backed card audit run 37 — CONTINUATION_REQUIRED)
 
 ## Current Workstream
 

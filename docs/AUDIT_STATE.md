@@ -5,14 +5,14 @@ This file stores the rotating cursor for the DB-backed card effect audit workflo
 It does not define card text. It does not define the audit candidate set. The database defines audit scope, and TCGDex defines card behavior.
 
 ```text
-next_start_cursor: Abomasnow | DRI | 60 | sv10-060
-last_run_status: TARGET_REACHED
+next_start_cursor: Boxed Order | TEF | 143 | sv05-143
+last_run_status: CONTINUATION_REQUIRED
 last_run_date_utc: 2026-05-12
-last_pr:
+last_pr: 65
 last_issue: Nightly DB-backed card effect implementation audit - 2026-05-12
-last_first_card_audited: Flutter Mane | TEF | 78 | sv05-078
-last_card_fully_audited: Zweilous | WHT | 66 | sv10.5w-066
-notes: Run 36 (2026-05-12): TARGET_REACHED — TCGDex preflight succeeded and 1132 DB cards were audited from Flutter Mane | TEF | 78 | sv05-078 through Zweilous | WHT | 66 | sv10.5w-066 (indices 475–1606, DB tail). Implemented 13 code fixes + 12 engine gaps documented = 25 total findings. Report at docs/audit_runs/2026-05-12-36-card-effect-audit.json. Run reached end of DB; next_start_cursor wraps to first DB card (Abomasnow | DRI | 60 | sv10-060).
+last_first_card_audited: Abomasnow | DRI | 60 | sv10-060
+last_card_fully_audited: Bouffalant ex | WHT | 77 | sv10.5w-077
+notes: Run 37 (2026-05-12): CONTINUATION_REQUIRED — TCGDex preflight succeeded and 130 DB cards were audited from Abomasnow | DRI | 60 | sv10-060 through Bouffalant ex | WHT | 77 | sv10.5w-077 (indices 0–129). No fixable gaps found in this slice (fixes_implemented=0, engine_gaps_documented=0). Stopping with CONTINUATION_REQUIRED; next run resumes at Boxed Order | TEF | 143 | sv05-143. Report at docs/audit_runs/2026-05-12-37-card-effect-audit.json.
 ```
 
 ## Cursor rules
