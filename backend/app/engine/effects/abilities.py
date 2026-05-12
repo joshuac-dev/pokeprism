@@ -2007,6 +2007,7 @@ def _fan_call(state: GameState, action):
     colorless_small = [c for c in player.deck
                        if c.card_type.lower() == "pokemon"
                        and c.card_subtype.lower() == "basic"
+                       and "Colorless" in (getattr(card_registry.get(c.card_def_id), "types", None) or [])
                        and (getattr(card_registry.get(c.card_def_id), "hp", None) or 999) <= 100]
     if not colorless_small:
         state.emit_event("fan_call", player=player_id, found=0)
@@ -3550,7 +3551,7 @@ def _jewel_seeker(state: GameState, action):
     player = state.get_player(player_id)
     opp = state.get_opponent(player_id)
 
-    all_in_play = _in_play(player) + _in_play(opp)
+    all_in_play = _in_play(player)
     tera_in_play = any(
         getattr(card_registry.get(p.card_def_id), "is_tera", False)
         for p in all_in_play
@@ -3886,17 +3887,19 @@ def _dig_dig_dig(state: GameState, action):
 
 # Torrential Heart (sv05-041 Feraligatr TEF) ─────────────────────────────────
 
+_TORRENTIAL_IDS = frozenset({"sv05-041", "svp-089"})
+
 def _torrential_heart(state: GameState, action):
-    """sv05-041 Feraligatr — Torrential Heart: put 5 damage counters on this Pokémon;
+    """sv05-041 / svp-089 Feraligatr — Torrential Heart: put 5 damage counters on this Pokémon;
     attacks do 120 more damage to opponent's Active Pokémon this turn."""
     from app.engine.effects.base import check_ko
     player_id = action.player_id
     player = state.get_player(player_id)
     target = None
-    if player.active and player.active.card_def_id == "sv05-041":
+    if player.active and player.active.card_def_id in _TORRENTIAL_IDS:
         target = player.active
     else:
-        target = next((p for p in player.bench if p.card_def_id == "sv05-041"), None)
+        target = next((p for p in player.bench if p.card_def_id in _TORRENTIAL_IDS), None)
     if target is None:
         return
     target.current_hp = max(0, target.current_hp - 50)
@@ -5326,10 +5329,10 @@ def register_all(registry):
     def _cond_torrential_heart(state, player_id):
         p = state.get_player(player_id)
         candidate = None
-        if p.active and p.active.card_def_id == "sv05-041":
+        if p.active and p.active.card_def_id in _TORRENTIAL_IDS:
             candidate = p.active
         else:
-            candidate = next((pk for pk in p.bench if pk.card_def_id == "sv05-041"), None)
+            candidate = next((pk for pk in p.bench if pk.card_def_id in _TORRENTIAL_IDS), None)
         return candidate is not None and not candidate.ability_used_this_turn
     registry.register_ability("sv05-041", "Torrential Heart", _torrential_heart,
                                condition=_cond_torrential_heart)  # Feraligatr
@@ -5376,7 +5379,8 @@ def register_all(registry):
     registry.register_ability("mep-025", "Run Errand", _run_errand)                   # Mega Kangaskhan ex
 
     # New SVP passives
-    registry.register_passive_ability("svp-089", "Torrential Heart")        # Feraligatr (on-attach energy from discard: noop)
+    registry.register_ability("svp-089", "Torrential Heart", _torrential_heart,
+                               condition=_cond_torrential_heart)  # Feraligatr alt print
     registry.register_passive_ability("svp-117", "Freezing Shroud")         # Froslass (on-KO bench freeze: noop)
     registry.register_passive_ability("svp-129", "Toxic Subjugation")       # Pecharunt (svp-149 same ability, alt print)
     registry.register_ability("svp-152", "Snow Sink", _snow_sink)            # Chien-Pao alt (on-bench-play)

@@ -121,6 +121,7 @@ def apply_weakness_resistance(
     state: "GameState" = None,
     defender_player_id: str = None,
     skip_resistance: bool = False,
+    skip_weakness: bool = False,
 ) -> int:
     """Apply weakness and resistance to base damage.
 
@@ -148,19 +149,20 @@ def apply_weakness_resistance(
 
     # Weakness × 2
     weakness_applied = False
-    for weakness in defender_def.weaknesses:
-        if weakness.type.lower() in attacker_types:
-            mult_str = weakness.value  # e.g. "×2"
-            try:
-                mult = float(re.sub(r"[×x*]", "", mult_str)) if mult_str else 2.0
-            except ValueError:
-                mult = 2.0
-            damage = int(damage * mult)
-            weakness_applied = True
-            break
+    if not skip_weakness:
+        for weakness in defender_def.weaknesses:
+            if weakness.type.lower() in attacker_types:
+                mult_str = weakness.value  # e.g. "×2"
+                try:
+                    mult = float(re.sub(r"[×x*]", "", mult_str)) if mult_str else 2.0
+                except ValueError:
+                    mult = 2.0
+                damage = int(damage * mult)
+                weakness_applied = True
+                break
 
     # Fairy Zone (sv09-056 Lillie's Clefairy ex): Colorless Pokémon have Psychic × 2
-    if not weakness_applied and state is not None and defender_player_id is not None:
+    if not skip_weakness and not weakness_applied and state is not None and defender_player_id is not None:
         from app.engine.effects.abilities import has_fairy_zone
         attacker_player_id = state.opponent_id(defender_player_id)
         defender_types = {t.lower() for t in (defender_def.types or [])}
@@ -172,7 +174,7 @@ def apply_weakness_resistance(
             damage = int(damage * 2)
 
     # Double Type (sv08-037 Scovillain ex): is also Fire type → Water ×2 weakness
-    if defender.card_def_id == "sv08-037" and not weakness_applied:
+    if not skip_weakness and defender.card_def_id == "sv08-037" and not weakness_applied:
         if "water" in attacker_types:
             damage = int(damage * 2)
 
