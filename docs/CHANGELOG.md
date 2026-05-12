@@ -30,6 +30,47 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+- **DB-backed card audit run 36 — 2026-05-12 — TARGET_REACHED** —
+  Nightly robust-audit-v2 card-effect implementation audit (run 36).
+
+  - Resumed from cursor `Flutter Mane | TEF | 78 | sv05-078` (DB index 475).
+  - Audited 1132 cards through `Zweilous | sv10.5w | 66 | sv10.5w-066` (full DB tail).
+  - Reached target with **13 implemented code fixes** and **12 documented engine gaps**
+    (25 total findings ≥ target of 25).
+  - Code fixes:
+    - **Compound Eyes scope** (sv06.5-002 Galvantula): previously applied +50 to all
+      attacks when Galvantula was anywhere in play; now only activates when attacker IS
+      Galvantula AND defender has abilities.
+    - **Psyduck Damp alt-prints** (mep-007 / mep-008): extended `has_psyduck_damp` frozenset
+      to cover both alt-art prints alongside me02.5-039.
+    - **Froslass Shroud alt-print** (svp-117): extended `_FROSLASS_IDS` frozenset to cover
+      svp-117 alongside sv06-053.
+    - **Sandy Flapping active handler** (mep-016 Flygon): changed from passive noop to active
+      ability registration; ability now executes correctly.
+    - **Primal Knowledge +30 vs Evolution** (sv07-038 Carracosta): added damage bonus in
+      `_apply_damage` following the Powerful a-Salt block pattern.
+    - **Soft Wool -30** (sv07-125 Dubwool): added damage reduction in `_apply_damage`.
+    - **Thicket Body -30** (sv06-002 Tangrowth): added damage reduction in `_apply_damage`.
+    - **Impervious Shell** (sv07-044 Drednaw): prevent ALL damage from attacks ≥200.
+    - **Incandescent Body alt-print** (sv06-123 Heatran): extended `_INCANDESCENT_IDS`
+      frozenset to cover sv06-123 alongside me02.5-027.
+    - **Poison Point alt-prints** (sv05-008 Roselia, sv05-009 Roserade): extended
+      `_POISON_POINT_IDS` frozenset to cover both alongside sv10.5b-056.
+    - **Solid Shell -20** (sv05-010 Turtwig): added damage reduction in `_apply_damage`.
+  - Engine gaps documented: Big Net (retreat cost modifier), Initialization (ability
+    suppression), Boom Boom Groove (stadium double-attack), Metal Bridge (energy-conditional
+    retreat), Wicked Tail (on-evolve coin flip), ACE Nullifier, Massive Body (stadium play
+    prevention), Wild Growth (energy doubling), Storehouse Hideaway (per-Pokémon bench
+    protection), Solar Transfer (energy movement), Changing Seasons (count-based cost
+    reduction), Unnerve (opponent-evolve trigger).
+  - Added machine-readable v3-schema report at
+    `docs/audit_runs/2026-05-12-36-card-effect-audit.json`
+    (`completion_status: TARGET_REACHED`, `cards_audited: 1139`).
+  - Added 19 tests in `backend/tests/test_engine/test_run36_gap_fixes.py`.
+  - Updated `docs/AUDIT_STATE.md`: cursor wrapped to start of DB.
+  - Full test suite: `1442 passed, 7 skipped`.
+  - Confidence: High.
+
 - **DB-backed card audit run 34 — 2026-05-11 — TARGET_REACHED** —
   Nightly robust-audit-v2 card-effect implementation audit (run 34).
 

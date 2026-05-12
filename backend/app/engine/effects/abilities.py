@@ -198,22 +198,24 @@ def has_tundra_wall(state: GameState, player_id: str) -> bool:
 # Psyduck Damp (me02.5-039) ───────────────────────────────────────────────────
 
 def has_psyduck_damp(state: GameState) -> bool:
-    """True if either player has Psyduck in play. Prevents KO-self abilities."""
+    """True if either player has Psyduck or Golduck (any print) in play. Prevents KO-self abilities."""
+    _DAMP_IDS = frozenset({"me02.5-039", "mep-007", "mep-008"})
     for pid in ("p1", "p2"):
         player = state.get_player(pid)
-        if any(p.card_def_id == "me02.5-039" for p in _in_play(player)):
+        if any(p.card_def_id in _DAMP_IDS for p in _in_play(player)):
             return True
     return False
 
 
-# Froslass Freezing Shroud (sv06-053) ─────────────────────────────────────────
+_FROSLASS_IDS = frozenset({"sv06-053", "svp-117"})
+
 
 def get_froslass_players(state: GameState) -> list[str]:
-    """Return player IDs that have Froslass in play."""
+    """Return player IDs that have Froslass (any print) in play."""
     result = []
     for pid in ("p1", "p2"):
         player = state.get_player(pid)
-        if any(p.card_def_id == "sv06-053" for p in _in_play(player)):
+        if any(p.card_def_id in _FROSLASS_IDS for p in _in_play(player)):
             result.append(pid)
     return result
 
@@ -225,7 +227,7 @@ def apply_froslass_shroud(state: GameState) -> None:
     for pid in ("p1", "p2"):
         player = state.get_player(pid)
         for pokemon in list(_in_play(player)):
-            if pokemon.card_def_id == "sv06-053":
+            if pokemon.card_def_id in _FROSLASS_IDS:
                 continue
             cdef = card_registry.get(pokemon.card_def_id)
             if cdef and cdef.abilities:
@@ -5219,9 +5221,9 @@ def register_all(registry):
     registry.register_ability("sv07-003", "Glittering Star Pattern", _glittering_star_pattern)
     registry.register_passive_ability("sv07-006", "Selective Slime")        # Cradily (coin flip status choice: noop)
     registry.register_passive_ability("sv07-014", "Ripening Charge")        # Hydrapple ex (energy attach + heal: noop)
-    registry.register_passive_ability("sv07-038", "Primal Knowledge")       # Carracosta (global +30 vs Evo: noop)
+    registry.register_passive_ability("sv07-038", "Primal Knowledge")       # Carracosta (global +30 vs Evo: logic in _apply_damage)
     registry.register_passive_ability("sv07-042", "Food Prep")              # Crabominable (cost reduction: noop)
-    registry.register_passive_ability("sv07-044", "Impervious Shell")       # Drednaw (damage cap: noop)
+    registry.register_passive_ability("sv07-044", "Impervious Shell")       # Drednaw (damage cap: logic in _apply_damage)
     registry.register_passive_ability("sv07-045", "Food Prep")              # Veluza (cost reduction: noop)
 
     # ── Batch 13: sv07-060..128 (SCR) and sv06.5-001..034 (SFA) abilities ────
@@ -5257,7 +5259,7 @@ def register_all(registry):
     registry.register_passive_ability("sv07-110", "Pummeling Payback")      # Orthworm ex (counter-damage: noop)
     registry.register_ability("sv07-115", "Jewel Seeker", _jewel_seeker)  # Noctowl (on-evolve)
     registry.register_passive_ability("sv07-119", "Curly Wall")             # Bouffalant (-20 bench damage: implemented in _apply_bench_damage)
-    registry.register_passive_ability("sv07-125", "Soft Wool")              # Dubwool (damage reduction: noop)
+    registry.register_passive_ability("sv07-125", "Soft Wool")              # Dubwool (damage reduction: logic in _apply_damage)
 
     # Passive stubs for Batch 14: SFA sv06.5-035..053
     registry.register_passive_ability("sv06.5-037", "Oh No You Don't")      # Munkidori ex (on-KO trigger: noop)
@@ -5267,7 +5269,7 @@ def register_all(registry):
     registry.register_passive_ability("sv06.5-047", "Plasma Bane")          # Kyurem (discard pile condition: noop)
 
     # Passive stubs for Batch 14: TWM sv06-001..081
-    registry.register_passive_ability("sv06-002", "Thicket Body")           # Tangrowth (damage reduction: noop)
+    registry.register_passive_ability("sv06-002", "Thicket Body")           # Tangrowth (damage reduction: logic in _apply_damage)
     registry.register_passive_ability("sv06-005", "Big Net")                # Ariados (retreat cost modifier: noop)
     registry.register_passive_ability("sv06-015", "Boom Boom Groove")       # Thwackey (named ability double attack: noop)
     registry.register_passive_ability("sv06-018", "Festival Lead")          # Dipplin (stadium double attack: noop)
@@ -5302,7 +5304,7 @@ def register_all(registry):
     registry.register_ability("sv06-088", "Captivating Invitation", _captivating_invitation_b4,
                                condition=_cond_captivating_invitation) # Florges
     registry.register_passive_ability("sv06-089", "Festival Lead")          # Swirlix (stadium double attack: noop)
-    registry.register_passive_ability("sv06-123", "Incandescent Body")      # Heatran (damage redirect: noop)
+    registry.register_passive_ability("sv06-123", "Incandescent Body")      # Heatran (burn attacker: logic in _apply_damage)
     registry.register_ability("sv06-131", "Attract Customers", _attract_customers)    # Tatsugiri
     registry.register_ability("sv06-132", "Impromptu Carrier", _impromptu_carrier)  # Farfetch'd (on-bench-play)
     def _cond_happy_switch(state, player_id):
@@ -5318,9 +5320,9 @@ def register_all(registry):
     registry.register_ability("sv06-134", "Happy Switch", _happy_switch_b4,
                                condition=_cond_happy_switch)           # Blissey ex
     registry.register_passive_ability("sv06-138", "Wicked Tail")            # Ambipom (on-bench damage: noop)
-    registry.register_passive_ability("sv05-008", "Poison Point")           # Roselia (on-hit poison: noop)
-    registry.register_passive_ability("sv05-009", "Poison Point")           # Roserade (on-hit poison: noop)
-    registry.register_passive_ability("sv05-010", "Solid Shell")            # Turtwig (damage reduction: noop)
+    registry.register_passive_ability("sv05-008", "Poison Point")           # Roselia (on-hit poison: logic in _apply_damage)
+    registry.register_passive_ability("sv05-009", "Poison Point")           # Roserade (on-hit poison: logic in _apply_damage)
+    registry.register_passive_ability("sv05-010", "Solid Shell")            # Turtwig (damage reduction: logic in _apply_damage)
     registry.register_ability("sv05-015", "Wafting Heal", _wafting_heal)     # Whimsicott (on-evolve: heal all dmg from Active Grass + discard Energy)
     registry.register_passive_ability("sv05-017", "Changing Seasons")       # Sawsbuck (energy cost modifier: noop)
     registry.register_passive_ability("sv05-021", "Resilient Soul")         # Brambleghast (dynamic HP: logic in base.py)
@@ -5370,18 +5372,18 @@ def register_all(registry):
     registry.register_ability("mep-003", "Psychic Draw", _psychic_draw_alakazam)  # Alakazam (on-evolve draw)
     registry.register_ability("mep-004", "Lunar Cycle", _lunar_cycle,
                                condition=_cond_lunar_cycle)                  # Lunatone (same as me01-074)
-    registry.register_passive_ability("mep-007", "Damp")                    # Psyduck (suppress KO-trigger abilities: noop)
-    registry.register_passive_ability("mep-008", "Damp")                    # Golduck (suppress KO-trigger abilities: noop)
+    registry.register_passive_ability("mep-007", "Damp")                    # Psyduck (suppress KO-trigger abilities: logic in has_psyduck_damp)
+    registry.register_passive_ability("mep-008", "Damp")                    # Golduck (suppress KO-trigger abilities: logic in has_psyduck_damp)
     registry.register_ability("mep-009", "Psychic Draw", _psychic_draw_alakazam)  # Alakazam alt (on-evolve draw)
 
     registry.register_passive_ability("mep-013", "Solar Transfer")          # Mega Venusaur ex (heal on energy attach: noop)
-    registry.register_passive_ability("mep-016", "Sandy Flapping")          # Flygon (protect from attacks if low hp: noop)
+    registry.register_ability("mep-016", "Sandy Flapping", _sandy_flapping_ability)  # Flygon alt print
     registry.register_ability("mep-025", "Run Errand", _run_errand)                   # Mega Kangaskhan ex
 
     # New SVP passives
     registry.register_ability("svp-089", "Torrential Heart", _torrential_heart,
                                condition=_cond_torrential_heart)  # Feraligatr alt print
-    registry.register_passive_ability("svp-117", "Freezing Shroud")         # Froslass (on-KO bench freeze: noop)
+    registry.register_passive_ability("svp-117", "Freezing Shroud")         # Froslass alt (logic in apply_froslass_shroud)
     registry.register_passive_ability("svp-129", "Toxic Subjugation")       # Pecharunt (svp-149 same ability, alt print)
     registry.register_ability("svp-152", "Snow Sink", _snow_sink)            # Chien-Pao alt (on-bench-play)
     registry.register_passive_ability("svp-173", "Boosted Evolution")       # Eevee (first-turn evolution rule: noop, alt print)

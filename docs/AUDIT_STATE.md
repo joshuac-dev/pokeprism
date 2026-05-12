@@ -6,13 +6,13 @@ It does not define card text. It does not define the audit candidate set. The da
 
 ```text
 next_start_cursor: Flutter Mane | TEF | 78 | sv05-078
-last_run_status: CONTINUATION_REQUIRED
+last_run_status: TARGET_REACHED
 last_run_date_utc: 2026-05-12
 last_pr:
-last_issue: Nightly DB-backed card effect implementation audit - 2026-05-11
-last_first_card_audited: Counter Gain | SSP | 169 | sv08-169
-last_card_fully_audited: Flutter Mane | SSP | 96 | sv08-096
-notes: Run 35 (2026-05-12): CONTINUATION_REQUIRED — TCGDex preflight succeeded and 242 DB cards were audited from Counter Gain | SSP | 169 | sv08-169 through Flutter Mane | SSP | 96 | sv08-096 (sequential rows 240–475 + 7 cross-reference cards). Implemented 17 fixes (0 documented engine gaps); target is 25. Report at docs/audit_runs/2026-05-12-35-card-effect-audit.json. Next run should resume from Flutter Mane | TEF | 78 | sv05-078.
+last_issue: Nightly DB-backed card effect implementation audit - 2026-05-12
+last_first_card_audited: Flutter Mane | TEF | 78 | sv05-078
+last_card_fully_audited: Zweilous | sv10.5w | 66 | sv10.5w-066
+notes: Run 36 (2026-05-12): TARGET_REACHED — TCGDex preflight succeeded and 1132 DB cards were audited from Flutter Mane | TEF | 78 | sv05-078 through Zweilous | sv10.5w | 66 | sv10.5w-066 (indices 475–1607). Implemented 13 code fixes + 12 engine gaps documented = 25 total findings. Report at docs/audit_runs/2026-05-12-36-card-effect-audit.json. Run exhausted all remaining DB cards; next cursor wraps to start of DB.
 ```
 
 ## Cursor rules
