@@ -187,17 +187,41 @@
       ],
       "implementation_evidence": [
         {
-          "effect_name": "trainer",
+          "effect_name": "Brave Bangle passive tool modifier",
+          "registry_key": "tool-damage-bonus:sv10.5w-080",
+          "handler_symbol": "get_tool_damage_bonus",
+          "handler_file": "backend/app/engine/effects/base.py",
+          "handler_found": true,
+          "source_evidence": "base.get_tool_damage_bonus() applies +30 for sv10.5w-080 when attacker has no Rule Box and defender is Pokémon ex (pre-W/R path via attack pipeline)",
+          "semantic_checks": [
+            "damage-modifier-pre-wr",
+            "rule-box-gate",
+            "active-target-only",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Brave Bangle bypass-damage path",
+          "registry_key": "attacker-tool-bonus:sv10.5w-080",
+          "handler_symbol": "_attacker_tool_bonus",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "attacks._attacker_tool_bonus() mirrors +30 Brave Bangle condition for bypass-damage effects",
+          "semantic_checks": [
+            "damage-modifier-pre-wr",
+            "rule-box-gate",
+            "consistency-with-main-damage-pipeline"
+          ]
+        },
+        {
+          "effect_name": "tool registration marker",
           "registry_key": "sv10.5w-080",
           "handler_symbol": "_noop",
           "handler_file": "backend/app/engine/effects/trainers.py",
           "handler_found": true,
-          "source_evidence": "registry._trainer_effects['sv10.5w-080']",
+          "source_evidence": "registry._trainer_effects['sv10.5w-080'] registers passive tool card; effect logic implemented in base/attacks damage modifiers",
           "semantic_checks": [
-            "damage-modifier-pre-wr",
-            "handler-symbol-resolved",
-            "registry-key-resolved",
-            "tcgdex-text-reviewed"
+            "passive-tool-registration"
           ]
         }
       ],
@@ -206,8 +230,8 @@
       ],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "medium",
-      "notes": "Verified against TCGDex text and registry mapping. Evidence: sv10.5w-080 => _noop. Mechanic flags: damage-modifier-pre-wr."
+      "confidence": "high",
+      "notes": "Verified Brave Bangle via passive tool damage-modifier path, not trainer on-play execution. Implementation evidence: base.get_tool_damage_bonus (+30 vs Active Pokémon ex when attacker has no Rule Box), attacks._attacker_tool_bonus mirror path, and passive _noop trainer registration for attachment bookkeeping."
     },
     {
       "seq": 5,
@@ -4471,17 +4495,39 @@
       ],
       "implementation_evidence": [
         {
-          "effect_name": "trainer",
+          "effect_name": "Colbur Berry type reduction",
+          "registry_key": "tool-damage-bonus:sv08-168",
+          "handler_symbol": "get_tool_damage_bonus",
+          "handler_file": "backend/app/engine/effects/base.py",
+          "handler_found": true,
+          "source_evidence": "base.get_tool_damage_bonus() applies -60 when defender has sv08-168 and attacker type includes Darkness",
+          "semantic_checks": [
+            "damage-reduction-after-wr",
+            "energy-type-filter",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Colbur Berry discard after trigger",
+          "registry_key": "berry-discard:sv08-168",
+          "handler_symbol": "_apply_damage",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "attacks._apply_damage() berry_type_map includes sv08-168 and discards tool after matching-type damage is applied",
+          "semantic_checks": [
+            "discard-after-trigger",
+            "zone-update"
+          ]
+        },
+        {
+          "effect_name": "tool registration marker",
           "registry_key": "sv08-168",
           "handler_symbol": "_noop",
           "handler_file": "backend/app/engine/effects/trainers.py",
           "handler_found": true,
-          "source_evidence": "registry._trainer_effects['sv08-168']",
+          "source_evidence": "registry._trainer_effects['sv08-168'] registers passive tool card; reduction/discard logic lives in base/attacks",
           "semantic_checks": [
-            "discard",
-            "handler-symbol-resolved",
-            "registry-key-resolved",
-            "tcgdex-text-reviewed"
+            "passive-tool-registration"
           ]
         }
       ],
@@ -4490,8 +4536,8 @@
       ],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "medium",
-      "notes": "Verified against TCGDex text and registry mapping. Evidence: sv08-168 => _noop. Mechanic flags: discard."
+      "confidence": "high",
+      "notes": "Verified Colbur Berry via passive tool hooks: base.get_tool_damage_bonus applies -60 vs Darkness attackers (after W/R) and attacks._apply_damage discards sv08-168 after a matching-type trigger. Trainer registry _noop is attachment registration only."
     },
     {
       "seq": 90,
@@ -5035,24 +5081,47 @@
       ],
       "implementation_evidence": [
         {
-          "effect_name": "trainer",
+          "effect_name": "Core Memory granted attack availability",
+          "registry_key": "tool-attack-support:me03-070",
+          "handler_symbol": "_get_attack_actions",
+          "handler_file": "backend/app/engine/actions.py",
+          "handler_found": true,
+          "source_evidence": "actions._get_attack_actions() iterates active.tools_attached; if tool card has attacks, exposes TM/tool attack actions (100+ encoded indices)",
+          "semantic_checks": [
+            "tool-attack-grant",
+            "choice-request-type",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Geobuster attack execution",
+          "registry_key": "me03-070:0",
+          "handler_symbol": "_geobuster",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['me03-070:0'] executes Geobuster and discards all attached Energy after damage",
+          "semantic_checks": [
+            "energy-discard-all",
+            "zone-update"
+          ]
+        },
+        {
+          "effect_name": "tool registration marker",
           "registry_key": "me03-070",
           "handler_symbol": "_noop",
           "handler_file": "backend/app/engine/effects/trainers.py",
           "handler_found": true,
-          "source_evidence": "registry._trainer_effects['me03-070']",
+          "source_evidence": "registry._trainer_effects['me03-070'] marks Core Memory as passive Tool; actual granted attack flow handled in actions/attacks",
           "semantic_checks": [
-            "handler-symbol-resolved",
-            "registry-key-resolved",
-            "tcgdex-text-reviewed"
+            "passive-tool-registration"
           ]
         }
       ],
       "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
-      "confidence": "medium",
-      "notes": "Verified against TCGDex text and registry mapping. Evidence: me03-070 => _noop. Mechanic flags: none."
+      "confidence": "high",
+      "notes": "Verified Core Memory by tool-attack pipeline: actions._get_attack_actions surfaces tool attacks from attached Tools, and attacks registry me03-070:0 maps to _geobuster for execution. Trainer _noop registration is passive tool marker only."
     }
   ]
 }
