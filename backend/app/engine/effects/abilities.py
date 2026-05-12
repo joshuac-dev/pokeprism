@@ -19,6 +19,8 @@ Public passive helpers exported from this module:
   has_repelling_veil, repelling_veil_protects
   power_saver_blocks_attack
   has_tundra_wall
+  has_metal_bridge
+  has_unnerve_protection
 """
 
 from __future__ import annotations
@@ -193,6 +195,34 @@ def has_tundra_wall(state: GameState, player_id: str) -> bool:
     """
     player = state.get_player(player_id)
     return any(p.card_def_id == "me03-024" for p in _in_play(player))
+
+
+# Metal Bridge (sv07-107 Archaludon / sv08.5-070 Archaludon ex) ──────────────
+
+_METAL_BRIDGE_IDS = frozenset({"sv07-107", "sv08.5-070"})
+
+
+def has_metal_bridge(state: GameState, player_id: str) -> bool:
+    """True if player has Archaludon (sv07-107) or Archaludon ex (sv08.5-070) in play.
+
+    Metal Bridge: all of that player's Pokémon with Metal Energy attached have no Retreat Cost.
+    """
+    player = state.get_player(player_id)
+    return any(p.card_def_id in _METAL_BRIDGE_IDS for p in _in_play(player))
+
+
+# Unnerve (sv06.5-045 Fraxure) ────────────────────────────────────────────────
+
+_UNNERVE_IDS = frozenset({"sv06.5-045"})
+
+
+def has_unnerve_protection(pokemon) -> bool:
+    """True if the Pokémon has the Unnerve ability (sv06.5-045 Fraxure).
+
+    Unnerve: prevent all effects of opponent's Item/Supporter cards on this Pokémon.
+    Used to filter gust targets (Boss's Orders, Pokémon Catcher, etc.).
+    """
+    return pokemon.card_def_id in _UNNERVE_IDS
 
 
 # Psyduck Damp (me02.5-039) ───────────────────────────────────────────────────
@@ -1662,6 +1692,7 @@ EVOLVE_TRIGGER_ABILITIES: frozenset[str] = frozenset({
     "Wafting Heal",          # sv08.5-008 Whimsicott — heal all damage from Active Grass Pokémon
     "Inviting Wink",         # sv09-067 / svp-183 Lillie's Ribombee — put opp's Basics onto Bench
     "Spike-Clad",            # sv09-085 Lycanroc — attach up to 2 Spiky Energy from discard on evolve
+    "Wicked Tail",           # sv06-138 Ambipom — flip 2 coins; each heads → shuffle random opp hand card to deck
 })
 
 
@@ -2147,7 +2178,99 @@ def _cond_solar_transfer(state, player_id):
     )
 
 
-# Excited Dash (me02-082 Linoone) ─────────────────────────────────────────────
+# Boom Boom Groove (sv06-015 Thwackey / svp-115 alt) ─────────────────────────
+
+_FESTIVAL_LEAD_ABILITY_NAME = "Festival Lead"
+
+
+def _cond_boom_boom_groove(state, player_id, poke):
+    """True if player's Active Pokémon has the Festival Lead Ability."""
+    active = state.get_player(player_id).active
+    if not active:
+        return False
+    active_cdef = card_registry.get(active.card_def_id)
+    return bool(
+        active_cdef
+        and any(a.name == _FESTIVAL_LEAD_ABILITY_NAME
+                for a in (active_cdef.abilities or []))
+    )
+
+
+def _boom_boom_groove(state: GameState, action):
+    """sv06-015 Thwackey — Boom Boom Groove: if Active has Festival Lead, search deck for 1 card."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    if not player.deck:
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Boom Boom Groove: choose 1 card from your deck to put into your hand.",
+        cards=list(player.deck), min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+    card = next((c for c in player.deck if c.instance_id in chosen_ids), None)
+    if card is None and player.deck:
+        card = player.deck[0]
+    if card:
+        player.deck.remove(card)
+        player.hand.append(card)
+        state.emit_event("boom_boom_groove", player=player_id, card=card.card_name)
+    random.shuffle(player.deck)
+
+
+# Wicked Tail (sv06-138 Ambipom) ─────────────────────────────────────────────
+
+def _wicked_tail(state: GameState, action):
+    """sv06-138 Ambipom — Wicked Tail: on-evolve flip 2 coins; each heads → shuffle random opp hand card to deck."""
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    heads = sum(1 for _ in range(2) if random.random() < 0.5)
+    if heads == 0:
+        state.emit_event("wicked_tail_no_heads", player=player_id)
+        return
+    for _ in range(heads):
+        if not opp.hand:
+            break
+        target = random.choice(opp.hand)
+        opp.hand.remove(target)
+        opp.deck.append(target)
+        random.shuffle(opp.deck)
+        state.emit_event("wicked_tail_shuffle", player=player_id, card=target.card_name)
+
+
+# Changing Seasons (sv05-017 Sawsbuck) ────────────────────────────────────────
+
+def _cond_changing_seasons(state, player_id, poke):
+    """True if the player's deck has at least one Stadium card."""
+    return any(
+        c.card_subtype.lower() == "stadium"
+        for c in state.get_player(player_id).deck
+    )
+
+
+def _changing_seasons(state: GameState, action):
+    """sv05-017 Sawsbuck — Changing Seasons: search deck for a Stadium, put in hand, shuffle."""
+    player_id = action.player_id
+    player = state.get_player(player_id)
+    stadiums = [c for c in player.deck if c.card_subtype.lower() == "stadium"]
+    if not stadiums:
+        return
+    req = ChoiceRequest(
+        "choose_cards", player_id,
+        "Changing Seasons: choose a Stadium card from your deck to put into your hand.",
+        cards=stadiums, min_count=0, max_count=1,
+    )
+    resp = yield req
+    chosen_ids = resp.selected_cards if resp and resp.selected_cards else []
+    card = next((c for c in stadiums if c.instance_id in chosen_ids), None)
+    if card is None:
+        card = stadiums[0]
+    player.deck.remove(card)
+    player.hand.append(card)
+    random.shuffle(player.deck)
+    state.emit_event("changing_seasons", player=player_id, card=card.card_name)
 
 def _excited_dash(state: GameState, action):
     """me02-082 Linoone — Excited Dash: if Benched and Mega ex in play, switch Active."""
@@ -5271,7 +5394,8 @@ def register_all(registry):
     # Passive stubs for Batch 14: TWM sv06-001..081
     registry.register_passive_ability("sv06-002", "Thicket Body")           # Tangrowth (damage reduction: logic in _apply_damage)
     registry.register_passive_ability("sv06-005", "Big Net")                # Ariados (retreat cost modifier: noop)
-    registry.register_passive_ability("sv06-015", "Boom Boom Groove")       # Thwackey (named ability double attack: noop)
+    registry.register_ability("sv06-015", "Boom Boom Groove", _boom_boom_groove,
+                               condition=_cond_boom_boom_groove)  # Thwackey
     registry.register_passive_ability("sv06-018", "Festival Lead")          # Dipplin (stadium double attack: noop)
     registry.register_passive_ability("sv06-020", "Storehouse Hideaway")    # Poltchageist (bench ex damage prevention: noop)
     registry.register_passive_ability("sv06-038", "Alluring Light")         # Chandelure (active draw: noop)
@@ -5280,7 +5404,7 @@ def register_all(registry):
     registry.register_passive_ability("sv06-060", "Zero to Hero")           # Palafin (on-retreat placement: noop)
     registry.register_passive_ability("sv06-061", "Hero's Spirit")          # Palafin ex (placement restriction: noop)
     registry.register_ability("sv06-072", "Snack Seek", _snack_seek)          # Morpeko (top deck look: choose to discard)
-    registry.register_passive_ability("sv06-077", "Initialization")         # Iron Thorns ex (attack-lock active: noop)
+    registry.register_passive_ability("sv06-077", "Initialization")         # Iron Thorns ex (logic in actions.py)
     def _cond_teleporter(state, player_id, poke):
         p = state.get_player(player_id)
         return (
@@ -5319,12 +5443,13 @@ def register_all(registry):
         )
     registry.register_ability("sv06-134", "Happy Switch", _happy_switch_b4,
                                condition=_cond_happy_switch)           # Blissey ex
-    registry.register_passive_ability("sv06-138", "Wicked Tail")            # Ambipom (on-bench damage: noop)
+    registry.register_ability("sv06-138", "Wicked Tail", _wicked_tail)            # Ambipom (on-evolve)
     registry.register_passive_ability("sv05-008", "Poison Point")           # Roselia (on-hit poison: logic in _apply_damage)
     registry.register_passive_ability("sv05-009", "Poison Point")           # Roserade (on-hit poison: logic in _apply_damage)
     registry.register_passive_ability("sv05-010", "Solid Shell")            # Turtwig (damage reduction: logic in _apply_damage)
     registry.register_ability("sv05-015", "Wafting Heal", _wafting_heal)     # Whimsicott (on-evolve: heal all dmg from Active Grass + discard Energy)
-    registry.register_passive_ability("sv05-017", "Changing Seasons")       # Sawsbuck (energy cost modifier: noop)
+    registry.register_ability("sv05-017", "Changing Seasons", _changing_seasons,
+                               condition=_cond_changing_seasons)  # Sawsbuck
     registry.register_passive_ability("sv05-021", "Resilient Soul")         # Brambleghast (dynamic HP: logic in base.py)
     registry.register_passive_ability("sv05-029", "Lava Zone")              # Magcargo (on-retreat burn: flag)
     registry.register_passive_ability("sv05-034", "Hustle Play")            # Incineroar ex (attack cost reduction: logic in actions.py)
@@ -5376,7 +5501,8 @@ def register_all(registry):
     registry.register_passive_ability("mep-008", "Damp")                    # Golduck (suppress KO-trigger abilities: logic in has_psyduck_damp)
     registry.register_ability("mep-009", "Psychic Draw", _psychic_draw_alakazam)  # Alakazam alt (on-evolve draw)
 
-    registry.register_passive_ability("mep-013", "Solar Transfer")          # Mega Venusaur ex (heal on energy attach: noop)
+    registry.register_ability("mep-013", "Solar Transfer", _solar_transfer,
+                               condition=_cond_solar_transfer)  # Mega Venusaur ex
     registry.register_ability("mep-016", "Sandy Flapping", _sandy_flapping_ability)  # Flygon alt print
     registry.register_ability("mep-025", "Run Errand", _run_errand)                   # Mega Kangaskhan ex
 
@@ -5405,7 +5531,8 @@ def register_all(registry):
     # Same-name stubs (alternate prints)
     registry.register_passive_ability("svp-090", "Metal Maker")             # Metang (sv05-114 alt)
     registry.register_passive_ability("svp-097", "Midnight Fluttering")     # Flutter Mane (sv05-078 alt)
-    registry.register_passive_ability("svp-115", "Boom Boom Groove")        # Thwackey (sv06-015 alt)
+    registry.register_ability("svp-115", "Boom Boom Groove", _boom_boom_groove,
+                               condition=_cond_boom_boom_groove)  # Thwackey alt print
     registry.register_passive_ability("svp-116", "Pyro Dance")              # Infernape (sv06-033 alt)
     registry.register_ability("svp-118", "Attract Customers", _attract_customers)     # Tatsugiri alt print
     registry.register_passive_ability("svp-126", "Hero's Spirit")           # Palafin ex (sv06-061 alt)

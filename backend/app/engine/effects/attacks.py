@@ -805,6 +805,11 @@ def _apply_bench_damage(
         state.emit_event("bench_damage_blocked", reason="battle_cage",
                          card=target.card_name)
         return
+    # Storehouse Hideaway (sv06-020 Poltchageist): immune to all damage while on Bench
+    if target.card_def_id == "sv06-020":
+        state.emit_event("bench_damage_blocked", reason="storehouse_hideaway",
+                         card=target.card_name)
+        return
     if has_spherical_shield(state, target_player_id):
         state.emit_event("bench_damage_blocked", reason="spherical_shield",
                          card=target.card_name)
