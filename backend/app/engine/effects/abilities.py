@@ -2269,8 +2269,8 @@ def _changing_seasons(state: GameState, action):
         card = stadiums[0]
     player.deck.remove(card)
     player.hand.append(card)
-    random.shuffle(player.deck)
     state.emit_event("changing_seasons", player=player_id, card=card.card_name)
+    random.shuffle(player.deck)
 
 def _excited_dash(state: GameState, action):
     """me02-082 Linoone — Excited Dash: if Benched and Mega ex in play, switch Active."""

@@ -26,6 +26,8 @@ from app.engine.effects.base import get_bench_limit
 
 logger = logging.getLogger(__name__)
 
+_INITIALIZATION_IDS = frozenset({"sv08.5-032", "sv06-077"})
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Action types (§6.2)
@@ -698,8 +700,8 @@ class ActionValidator:
             # when Iron Thorns is active on either side.
             opp_init = state.get_opponent(player_id)
             if cdef.has_rule_box and (
-                (opp_init.active and opp_init.active.card_def_id in ("sv08.5-032", "sv06-077"))
-                or (player.active and player.active.card_def_id in ("sv08.5-032", "sv06-077"))
+                (opp_init.active and opp_init.active.card_def_id in _INITIALIZATION_IDS)
+                or (player.active and player.active.card_def_id in _INITIALIZATION_IDS)
             ):
                 continue
             # Midnight Fluttering (sv08.5-043 Flutter Mane): opp's active Pokémon can't use abilities
