@@ -356,6 +356,12 @@ def _bosss_orders(state: GameState, action):
             state.emit_event("snow_camouflage_blocked", player=opp_id,
                              card=target.card_name, blocked_by="Boss's Orders")
             return
+        # Unnerve (sv06.5-045 Fraxure): prevent effects of opponent's Supporter cards
+        from app.engine.effects.abilities import has_unnerve_protection
+        if has_unnerve_protection(target):
+            state.emit_event("unnerve_blocked", player=opp_id,
+                             card=target.card_name, blocked_by="Boss's Orders")
+            return
         _switch_active_with_bench(opp, target)
         state.emit_event("boss_orders", player=player_id,
                          forced_active=target.card_name)
@@ -3146,6 +3152,12 @@ def _pokemon_catcher_b18(state: GameState, action):
     if target:
         if _has_snow_camouflage(target):
             state.emit_event("snow_camouflage_blocked", player=opp_id,
+                             card=target.card_name, blocked_by="Pokémon Catcher")
+            return
+        # Unnerve (sv06.5-045 Fraxure): prevent effects of opponent's Item cards
+        from app.engine.effects.abilities import has_unnerve_protection
+        if has_unnerve_protection(target):
+            state.emit_event("unnerve_blocked", player=opp_id,
                              card=target.card_name, blocked_by="Pokémon Catcher")
             return
         _switch_active_with_bench(opp, target)

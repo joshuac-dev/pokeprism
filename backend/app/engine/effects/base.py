@@ -947,9 +947,12 @@ def get_retreat_cost_reduction(pokemon: CardInstance, state: "GameState", player
     if pokemon.card_def_id == "sv10-036" and not pokemon.energy_attached:
         return 9999
 
-    # Metal Bridge (sv07-107 Archaludon SCR / sv08.5-070 Archaludon ex PRE): free retreat if Metal Energy attached
-    if pokemon.card_def_id in ("sv07-107", "sv08.5-070"):
-        if any(att.energy_type == EnergyType.METAL for att in pokemon.energy_attached):
+    # Metal Bridge (sv07-107 Archaludon SCR / sv08.5-070 Archaludon ex PRE):
+    # all of that player's Pokémon with Metal Energy attached have no Retreat Cost.
+    if player_id is not None:
+        from app.engine.effects.abilities import has_metal_bridge
+        if (has_metal_bridge(state, player_id)
+                and any(att.energy_type == EnergyType.METAL for att in pokemon.energy_attached)):
             return 9999
 
     # Skyliner (sv08-076 Latias ex): Basic Pokémon have free retreat

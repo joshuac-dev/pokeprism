@@ -214,9 +214,13 @@ def _apply_damage(
         total += attacker.next_attack_damage_bonus
         attacker.next_attack_damage_bonus = 0
 
-    # Compound Eyes (sv06.5-002 Galvantula): +50 to attacks vs Active before W/R
-    if any(p.card_def_id == "sv06.5-002" for p in _in_play(player)):
-        total += 50
+    # Compound Eyes (sv06.5-002 Galvantula): +50 when Galvantula attacks a defender with an Ability
+    if attacker.card_def_id == "sv06.5-002":
+        _def_cdef_ce = card_registry.get(defender.card_def_id)
+        if _def_cdef_ce and _def_cdef_ce.abilities:
+            total += 50
+            state.emit_event("compound_eyes_bonus", player=action.player_id,
+                             attacker=attacker.card_name, defender=defender.card_name)
 
     # Cobalt Command (sv05-081 / svp-146 Iron Crown ex): Future Pokémon (excl. Iron Crown ex) do +20
     if attacker.card_def_id not in _IRON_CROWN_EX_IDS and _is_future(attacker):
@@ -357,6 +361,24 @@ def _apply_damage(
         if defender.card_def_id == "sv08.5-088":
             total = max(0, total - 20)
 
+        # Solid Shell (sv05-010 Turtwig): takes 20 less damage from attacks
+        if defender.card_def_id == "sv05-010":
+            total = max(0, total - 20)
+
+        # Thicket Body (sv06-002 Tangrowth): takes 30 less damage from attacks
+        if defender.card_def_id == "sv06-002":
+            total = max(0, total - 30)
+
+        # Soft Wool (sv07-125 Dubwool): takes 30 less damage from attacks
+        if defender.card_def_id == "sv07-125":
+            total = max(0, total - 30)
+
+        # Impervious Shell (sv07-044 Drednaw): prevent all damage from attacks of 200 or more
+        if defender.card_def_id == "sv07-044" and total >= 200:
+            state.emit_event("damage_prevented", card=defender.card_name,
+                             reason="impervious_shell")
+            return 0
+
         # Solid Body (sv08-054 Cetitan): takes 30 less damage from attacks
         if defender.card_def_id == "sv08-054":
             total = max(0, total - 30)
@@ -438,6 +460,17 @@ def _apply_damage(
             total += 30
             state.emit_event("powerful_a_salt_bonus", player=action.player_id,
                              attacker=attacker.card_name)
+
+    # Primal Knowledge (sv07-038 Carracosta): all attackers do +30 to opponent's Active Evolution Pokémon
+    _atk_player_pk = state.get_player(action.player_id)
+    _atk_in_play_pk = (([_atk_player_pk.active] if _atk_player_pk.active else [])
+                       + list(_atk_player_pk.bench))
+    if any(p.card_def_id == "sv07-038" for p in _atk_in_play_pk):
+        _def_cdef_pk = card_registry.get(defender.card_def_id)
+        if _def_cdef_pk and (_def_cdef_pk.stage or "").lower() not in ("basic", ""):
+            total += 30
+            state.emit_event("primal_knowledge_bonus", player=action.player_id,
+                             attacker=attacker.card_name, defender=defender.card_name)
 
     # Regal Cheer (sv10.5b-003 Serperior ex): +20 for all attackers on attacker's side
     _atk_player3 = state.get_player(action.player_id)
@@ -581,8 +614,10 @@ def _apply_damage(
                 if state.phase == Phase.GAME_OVER:
                     return total
 
-    # Poison Point (sv10.5b-056 Scolipede): when Scolipede takes damage, poison the attacker
-    if total > 0 and defender.card_def_id == "sv10.5b-056" and attacker.current_hp > 0:
+    # Poison Point (sv10.5b-056 Scolipede / sv05-008 Roselia / sv05-009 Roserade):
+    # when this Pokémon is in the Active Spot and takes damage, poison the attacker
+    _POISON_POINT_IDS = frozenset({"sv10.5b-056", "sv05-008", "sv05-009"})
+    if total > 0 and defender.card_def_id in _POISON_POINT_IDS and attacker.current_hp > 0:
         attacker.status_conditions.add(StatusCondition.POISONED)
         state.emit_event("poison_point_triggered", player=opp_id,
                          attacker=attacker.card_name)
@@ -628,8 +663,9 @@ def _apply_damage(
         if state.phase == Phase.GAME_OVER:
             return total
 
-    # Incandescent Body (me02.5-027 Numel): Burn attacker when Numel takes damage
-    if total > 0 and defender.card_def_id == "me02.5-027" and attacker.current_hp > 0:
+    # Incandescent Body (me02.5-027 Numel / sv06-123 Heatran): Burn attacker when Pokémon takes damage
+    _INCANDESCENT_IDS = frozenset({"me02.5-027", "sv06-123"})
+    if total > 0 and defender.card_def_id in _INCANDESCENT_IDS and attacker.current_hp > 0:
         attacker.status_conditions.add(StatusCondition.BURNED)
         state.emit_event("incandescent_body_triggered",
                          defender=defender.card_name, attacker=attacker.card_name)
@@ -767,6 +803,11 @@ def _apply_bench_damage(
         return
     if has_battle_cage(state):
         state.emit_event("bench_damage_blocked", reason="battle_cage",
+                         card=target.card_name)
+        return
+    # Storehouse Hideaway (sv06-020 Poltchageist): immune to all damage while on Bench
+    if target.card_def_id == "sv06-020":
+        state.emit_event("bench_damage_blocked", reason="storehouse_hideaway",
                          card=target.card_name)
         return
     if has_spherical_shield(state, target_player_id):

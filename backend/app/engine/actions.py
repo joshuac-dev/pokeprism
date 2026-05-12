@@ -26,6 +26,37 @@ from app.engine.effects.base import get_bench_limit
 
 logger = logging.getLogger(__name__)
 
+_INITIALIZATION_IDS = frozenset({"sv08.5-032", "sv06-077"})
+
+# ACE SPEC card IDs — static fallback for cards not yet seeded in the DB.
+# Primary detection uses card_registry rarity metadata (rarity contains "ACE SPEC").
+_ACE_SPEC_IDS = frozenset({
+    "sv05-157",   # Prime Catcher
+    "sv05-162",   # Neo Upper Energy
+    "sv06-162",   # Scoop Up Cyclone
+    "sv06.5-060", # Neutralization Zone
+    "sv08-164",   # Brilliant Blender
+    "sv08-176",   # Energy Search Pro
+    "sv08-183",   # Miracle Headset
+    "sv08-185",   # Precious Trolley
+    "sv08.5-119", # Prime Catcher alt print
+})
+
+
+_ACE_SPEC_RARITY = "ace spec rare"
+
+
+def _is_ace_spec_card(card_def_id: str) -> bool:
+    """Return True if the card is an ACE SPEC.
+
+    Primary: check card_registry rarity metadata (exact match to 'ACE SPEC Rare').
+    Fallback: check static _ACE_SPEC_IDS list (covers engine-registered cards not yet in DB).
+    """
+    if card_def_id in _ACE_SPEC_IDS:
+        return True
+    cdef = card_registry.get(card_def_id)
+    return bool(cdef and cdef.rarity and cdef.rarity.lower() == _ACE_SPEC_RARITY)
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Action types (§6.2)
@@ -435,10 +466,21 @@ class ActionValidator:
     def _get_play_actions(
         state: GameState, player: PlayerState, player_id: str
     ) -> list[Action]:
+        # ACE Nullifier (sv06.5-040 Genesect): if Genesect has a Tool, opp can't play ACE SPEC cards
+        _opp_ace = state.get_opponent(player_id)
+        _genesect_with_tool = any(
+            p.card_def_id == "sv06.5-040" and p.tools_attached
+            for p in ([_opp_ace.active] if _opp_ace.active else []) + _opp_ace.bench
+        )
+
         actions: list[Action] = []
         for card in player.hand:
             ctype = card.card_type.lower()
             csub = card.card_subtype.lower()
+
+            # ACE Nullifier: block any ACE SPEC card if Genesect with tool is in play
+            if _genesect_with_tool and _is_ace_spec_card(card.card_def_id):
+                continue
 
             if ctype == "trainer":
                 if csub == "supporter":
@@ -466,6 +508,11 @@ class ActionValidator:
                                    card_instance_id=card.instance_id)
                         )
                 elif csub == "stadium":
+                    # Massive Body (sv06.5-042 Copperajah): opp can't play Stadium while Copperajah is Active
+                    _opp_massive = state.get_opponent(player_id)
+                    if (_opp_massive.active
+                            and _opp_massive.active.card_def_id == "sv06.5-042"):
+                        continue
                     # Rule 10: cannot play same Stadium already in play
                     if (state.active_stadium is None
                             or state.active_stadium.card_def_id != card.card_def_id):
@@ -631,6 +678,12 @@ class ActionValidator:
                 and state.active_stadium.card_def_id in ("svp-150", "svp-224")
                 and player.active.card_def_id == "mep-007"):
             retreat_cost = max(0, retreat_cost - 1)
+        # Big Net (sv06-005 Ariados): opponent's active Evolution Pokémon has +1 Retreat Cost
+        opp_bignet = state.get_opponent(player_id)
+        if (player.active.evolution_stage > 0
+                and any(p.card_def_id == "sv06-005"
+                        for p in ([opp_bignet.active] if opp_bignet.active else []) + opp_bignet.bench)):
+            retreat_cost += 1
         if not _can_pay_retreat(player.active, retreat_cost, state, player_id):  # Rule 7
             return []
 
@@ -668,12 +721,12 @@ class ActionValidator:
                     and state.active_stadium.card_def_id in ("sv10-180", "me02.5-210")
                     and "Colorless" in (cdef.types or [])):
                 continue
-            # Initialization (sv08.5-032 Iron Thorns ex): rule-box Pokémon can't use abilities
+            # Initialization (sv08.5-032 Iron Thorns ex / sv06-077 Iron Thorns ex): rule-box Pokémon can't use abilities
             # when Iron Thorns is active on either side.
             opp_init = state.get_opponent(player_id)
             if cdef.has_rule_box and (
-                (opp_init.active and opp_init.active.card_def_id == "sv08.5-032")
-                or (player.active and player.active.card_def_id == "sv08.5-032")
+                (opp_init.active and opp_init.active.card_def_id in _INITIALIZATION_IDS)
+                or (player.active and player.active.card_def_id in _INITIALIZATION_IDS)
             ):
                 continue
             # Midnight Fluttering (sv08.5-043 Flutter Mane): opp's active Pokémon can't use abilities
