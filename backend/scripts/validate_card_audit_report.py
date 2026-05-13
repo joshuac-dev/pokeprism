@@ -198,7 +198,13 @@ def _infer_risky_mechanics_from_effect_text(entry: dict) -> set[str]:
             if "your opponent" in text:
                 add("force-switch")
                 add("gust")
-        if "benched pokemon with their active" in text:
+        if has_any(
+            text,
+            (
+                "benched pokemon with their active pokemon",
+                "switch their benched pokemon with their active pokemon",
+            ),
+        ):
             add("switch")
             add("force-switch")
             add("gust")
@@ -222,7 +228,15 @@ def _infer_risky_mechanics_from_effect_text(entry: dict) -> set[str]:
         if "prize card" in text or "prize cards" in text:
             add("prize-manipulation")
 
-        if has_any(text, ("once during your turn", "once during each player's turn", "once per turn")):
+        if has_any(
+            text,
+            (
+                "once during your turn",
+                "once during each player's turn",
+                "once during each of your turns",
+                "once per turn",
+            ),
+        ):
             add("once-per-turn")
 
         if "when you play this pokemon from your hand to evolve" in text:
@@ -255,20 +269,16 @@ def _infer_risky_mechanics_from_effect_text(entry: dict) -> set[str]:
         if has_any(text, ("heal", "remove damage")):
             add("heal")
 
-        if has_any(text, ("deck", "hand", "discard", "bench", "active", "prize")) and has_any(
-            text,
-            (
-                "put ",
-                "move ",
-                "switch",
-                "shuffle",
-                "attach",
-                "discard",
-                "return",
-                "take",
-                "reveal",
-            ),
-        ):
+        zone_terms = ("deck", "hand", "discard", "bench", "active", "prize")
+        zones_present = [z for z in zone_terms if z in text]
+        has_zone_move_verb = bool(re.search(r"\b(move|switch|attach|discard|return|put|take)\b", text))
+        has_from_to_zone = bool(
+            re.search(
+                r"\bfrom (?:your |the )?(deck|hand|discard|bench|active|prize)\b.*\bto (?:your |the )?(deck|hand|discard|bench|active|prize)\b",
+                text,
+            )
+        )
+        if has_zone_move_verb and (len(zones_present) >= 2 or has_from_to_zone):
             add("zone-update")
 
     # Infer passive mechanics from passive handler evidence.
