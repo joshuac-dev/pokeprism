@@ -30,6 +30,16 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+- **DB-backed card audit run 40 — 2026-05-13 — CONTINUATION_REQUIRED** —
+  Audited 100 cards (Drifloon | MEP | 5 | mep-005 through
+  Farigiraf | TWM | 84 | sv06-084). TCGDex preflight OK. No fixable engine
+  gaps found in this slice (fixes_implemented=0, engine_gaps_documented=0).
+  Stopping with CONTINUATION_REQUIRED (>=100 cards audited; target of 25
+  findings not reached). Next run resumes at
+  Farigiraf ex | TEF | 108 | sv05-108. Report:
+  `docs/audit_runs/2026-05-13-40-card-effect-audit.json`.
+  Confidence: High.
+
 - **DB-backed card audit run 39 — 2026-05-12 — CONTINUATION_REQUIRED** —
   Hardening review corrected run-39 false-positive engine-gap classifications
   caused by incorrect missing-handler evidence generation (notably Counter Gain
