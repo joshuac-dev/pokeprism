@@ -1,26 +1,16 @@
-"""Tests for backend/scripts/validate_card_audit_report.py.
+"""Tests for backend/scripts/validate_card_audit_report.py (audit-quality-v4).
 
-Uses small inline fixture dicts — does not require real DB or TCGDex access.
-
-Test cases:
-1.  Valid evidence-bearing DB_EXHAUSTED report passes.
-2.  Missing audit_ledger fails.
-3.  Generic no-issue note fails.
-4.  db_id null without db_identity_gap fails.
-5.  no-issue with requires_handler=true but no implementation_evidence fails.
-6.  handler_found=false with result=no-issue fails.
-7.  cards_audited != ledger length fails.
-8.  DB_EXHAUSTED without full_cycle_completed fails.
-9.  TARGET_REACHED without enough findings fails.
-10. Old shallow report format fails with clear message.
+Covers:
+- risky no-issue behavioral-proof requirements
+- behavioral evidence proof-type validation
+- top-level behavioral coverage accounting
+- completion-status gating with behavioral-unverified rows
+- retained v3 structural/evidence rejection behavior
 """
 
 from __future__ import annotations
 
 import copy
-import pytest
-
-# Import the validate function directly — no app startup required.
 import sys
 from pathlib import Path
 
@@ -28,78 +18,63 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from scripts.validate_card_audit_report import validate
 
 
-# ── Fixture helpers ────────────────────────────────────────────────────────────
+RISKY_FLAGS = {"deck-search", "draw", "discard", "energy-attach", "energy-move", "switch", "gust",
+               "force-switch", "status-condition", "damage-modifier-pre-wr", "damage-modifier-post-wr",
+               "bench-damage", "prize-manipulation", "once-per-turn", "evolution-trigger",
+               "on-play-trigger", "passive-tool", "passive-stadium", "passive-ability", "attack-lock",
+               "next-turn-effect", "choice-request", "explicit-empty-selection", "coin-flip",
+               "zone-update", "heal", "bench-effect"}
 
-def _v3_ledger_entry(**overrides) -> dict:
-    """Return a valid v3 ledger entry for a trainer (effect-bearing)."""
-    entry = {
-        "seq": 1,
-        "db_id": "sv06-130",
-        "card_name": "Dragapult ex",
-        "set_id": "OBF",
-        "card_number": "130",
-        "tcgdex_id": "sv06-130",
-        "tcgdex_fetch": "ok",
-        "category": "pokemon",
-        "tcgdex_text_hash": "abcdef1234567890",
-        "tcgdex_effects_extracted": [
-            {
-                "kind": "attack",
-                "name": "Phantom Dive",
-                "raw_text": "Put 6 damage counters on your opponent's Pokémon in any way you like.",
-                "cost": "Psychic Dragon",
-                "damage": "130",
-                "requires_handler": True,
-                "reason": "attack has effect text",
-            }
-        ],
-        "implementation_evidence": [
-            {
-                "effect_name": "Phantom Dive",
-                "registry_key": "sv06-130:1",
-                "handler_symbol": "phantom_dive",
-                "handler_file": "backend/app/engine/effects/attacks.py",
-                "handler_found": True,
-                "source_evidence": "registry._attack_effects['sv06-130:1']",
-                "semantic_checks": ["zone-update", "damage-counter", "bench-spread"],
-            }
-        ],
-        "mechanic_flags": ["damage-counter", "bench-effect"],
-        "result": "no-issue",
-        "finding_counted": False,
-        "confidence": "high",
-        "notes": "Phantom Dive handler sv06-130:1 registered; bench damage counter placement verified.",
+
+def _existing_test_ev() -> dict:
+    return {
+        "effect_name": "Search Effect",
+        "proof_type": "existing-test",
+        "test_file": "backend/tests/test_engine/test_audit_fixes.py",
+        "test_name": "test_search_effect",
+        "probe_name": None,
+        "assertions": ["searches deck", "updates state"],
+        "passed": True,
     }
-    entry.update(overrides)
-    return entry
 
 
-def _valid_exhausted_report(**overrides) -> dict:
-    """Return a valid DB_EXHAUSTED report with a single evidence-bearing entry."""
-    report = {
-        "run_date_utc": "2026-05-20",
-        "completion_status": "DB_EXHAUSTED",
-        "target_findings": 25,
-        "fixes_implemented": 0,
-        "engine_gaps_documented": 0,
-        "total_findings": 0,
-        "cards_audited": 1,
-        "db_card_count": 1,
-        "full_cycle_completed": True,
-        "continuation_required": False,
-        "start_cursor_used": "START_OF_DATABASE_CARD_LIST",
-        "first_card_audited": "Dragapult ex | OBF | 130 | sv06-130",
-        "last_card_fully_audited": "Dragapult ex | OBF | 130 | sv06-130",
-        "next_resume_cursor": "START_OF_DATABASE_CARD_LIST",
-        "traversal_wrapped": False,
-        "audit_ledger": [_v3_ledger_entry()],
+def _generated_probe_ev() -> dict:
+    return {
+        "effect_name": "Search Effect",
+        "proof_type": "generated-probe",
+        "test_file": None,
+        "test_name": None,
+        "probe_name": "probe_search_effect",
+        "assertions": ["searches deck", "updates state"],
+        "passed": True,
     }
-    report.update(overrides)
-    return report
 
 
-def _valid_trainer_entry(**overrides) -> dict:
-    """Trainer card ledger entry with full v3 evidence."""
+def _not_required_ev() -> dict:
+    return {
+        "effect_name": "flat-damage",
+        "proof_type": "not-required",
+        "test_file": None,
+        "test_name": None,
+        "probe_name": None,
+        "assertions": [],
+        "passed": None,
+    }
+
+
+def _behavioral_unverified_ev() -> dict:
+    return {
+        "effect_name": "Search Effect",
+        "proof_type": "behavioral-unverified",
+        "test_file": None,
+        "test_name": None,
+        "probe_name": None,
+        "assertions": [],
+        "passed": None,
+    }
+
+
+def _risky_entry(**overrides) -> dict:
     entry = {
         "seq": 1,
         "db_id": "sv06-175",
@@ -132,307 +107,18 @@ def _valid_trainer_entry(**overrides) -> dict:
                 "semantic_checks": ["deck-search", "bench-effect", "shuffle-after-search"],
             }
         ],
-        "mechanic_flags": ["deck-search"],
+        "mechanic_flags": ["deck-search", "bench-effect"],
+        "behavioral_evidence": [_existing_test_ev()],
         "result": "no-issue",
         "finding_counted": False,
-        "confidence": "high",
-        "notes": "Nest Ball handler sv06-175 registered; deck-search and bench placement verified.",
+        "confidence": "medium",
+        "notes": "Nest Ball handler and behavior validated by focused test.",
     }
     entry.update(overrides)
     return entry
 
 
-# ── Case 1: Valid evidence-bearing DB_EXHAUSTED report passes ─────────────────
-
-def test_valid_exhausted_report_passes():
-    report = _valid_exhausted_report()
-    errors = validate(report)
-    assert errors == [], f"Expected no errors but got: {errors}"
-
-
-def test_valid_target_reached_report_passes():
-    report = _valid_exhausted_report(
-        completion_status="TARGET_REACHED",
-        fixes_implemented=5,
-        engine_gaps_documented=0,
-        total_findings=5,
-        target_findings=5,
-        full_cycle_completed=False,
-    )
-    errors = validate(report)
-    assert errors == [], f"Expected no errors but got: {errors}"
-
-
-# ── Case 2: Missing audit_ledger fails ────────────────────────────────────────
-
-def test_missing_audit_ledger_fails():
-    report = _valid_exhausted_report()
-    del report["audit_ledger"]
-    errors = validate(report)
-    assert any("audit_ledger" in e for e in errors), f"Expected audit_ledger error, got: {errors}"
-
-
-def test_missing_required_field_fails():
-    report = _valid_exhausted_report()
-    del report["completion_status"]
-    errors = validate(report)
-    assert any("completion_status" in e for e in errors)
-
-
-# ── Case 3: Generic no-issue note fails ───────────────────────────────────────
-
-def test_generic_note_fails():
-    report = _valid_exhausted_report()
-    report["audit_ledger"][0]["notes"] = (
-        "TCGDex text fetched and compared to current handler coverage; "
-        "no missing required effect handlers detected."
-    )
-    errors = validate(report)
-    assert any("generic" in e.lower() for e in errors), f"Expected generic note error, got: {errors}"
-
-
-def test_generic_note_handler_coverage_fails():
-    report = _valid_exhausted_report()
-    report["audit_ledger"][0]["notes"] = "handler coverage was verified"
-    errors = validate(report)
-    assert any("generic" in e.lower() for e in errors)
-
-
-def test_nongeneric_specific_note_passes():
-    report = _valid_exhausted_report()
-    report["audit_ledger"][0]["notes"] = (
-        "Phantom Dive handler sv06-130:1 registered; bench damage counter placement verified."
-    )
-    errors = validate(report)
-    assert errors == [], f"Expected no errors, got: {errors}"
-
-
-# ── Case 4: db_id null without db_identity_gap fails ─────────────────────────
-
-def test_db_id_null_without_identity_gap_fails():
-    report = _valid_exhausted_report()
-    report["audit_ledger"][0]["db_id"] = None
-    errors = validate(report)
-    assert any("db_id" in e for e in errors), f"Expected db_id error, got: {errors}"
-
-
-def test_db_id_null_with_identity_gap_passes():
-    report = _valid_exhausted_report()
-    entry = _v3_ledger_entry(db_id=None, result="db-identity-gap")
-    report["audit_ledger"] = [entry]
-    report["cards_audited"] = 1
-    errors = validate(report)
-    # db-identity-gap skips deep checks; no db_id error
-    assert not any("db_id" in e for e in errors), f"Should not have db_id error, got: {errors}"
-
-
-# ── Case 5: no-issue with requires_handler=true but no implementation_evidence fails ──
-
-def test_no_implementation_evidence_for_effect_bearing_fails():
-    report = _valid_exhausted_report()
-    entry = _v3_ledger_entry(implementation_evidence=[])
-    report["audit_ledger"] = [entry]
-    errors = validate(report)
-    assert any("implementation_evidence" in e for e in errors), f"Expected impl_evidence error, got: {errors}"
-
-
-def test_no_impl_evidence_trainer_fails():
-    report = _valid_exhausted_report(
-        audit_ledger=[_valid_trainer_entry(implementation_evidence=[])]
-    )
-    errors = validate(report)
-    assert any("implementation_evidence" in e for e in errors)
-
-
-# ── Case 6: handler_found=false with result=no-issue fails ───────────────────
-
-def test_handler_not_found_no_issue_fails():
-    report = _valid_exhausted_report()
-    entry = copy.deepcopy(report["audit_ledger"][0])
-    entry["implementation_evidence"][0]["handler_found"] = False
-    report["audit_ledger"] = [entry]
-    errors = validate(report)
-    assert any("handler_found" in e for e in errors), f"Expected handler_found error, got: {errors}"
-
-
-# ── Case 7: cards_audited != ledger length fails ──────────────────────────────
-
-def test_cards_audited_mismatch_fails():
-    report = _valid_exhausted_report(cards_audited=5)
-    # ledger has 1 entry but cards_audited=5
-    errors = validate(report)
-    assert any("cards_audited" in e for e in errors), f"Expected mismatch error, got: {errors}"
-
-
-def test_cards_audited_matches_ledger_passes():
-    report = _valid_exhausted_report(
-        cards_audited=1,
-        db_card_count=1,
-        audit_ledger=[_v3_ledger_entry()],
-    )
-    errors = validate(report)
-    assert errors == [], f"Expected no errors, got: {errors}"
-
-
-# ── Case 8: DB_EXHAUSTED without full_cycle_completed fails ──────────────────
-
-def test_db_exhausted_without_full_cycle_fails():
-    report = _valid_exhausted_report(full_cycle_completed=False)
-    errors = validate(report)
-    assert any("full_cycle_completed" in e for e in errors), f"Expected full_cycle error, got: {errors}"
-
-
-def test_db_exhausted_cards_lt_db_count_fails():
-    report = _valid_exhausted_report(
-        full_cycle_completed=True,
-        cards_audited=5,
-        db_card_count=100,
-        audit_ledger=[_v3_ledger_entry(seq=i) for i in range(1, 6)],
-    )
-    errors = validate(report)
-    assert any("cards_audited" in e and "db_card_count" in e for e in errors), (
-        f"Expected cards_audited < db_card_count error, got: {errors}"
-    )
-
-
-# ── Case 9: TARGET_REACHED without enough findings fails ─────────────────────
-
-def test_target_reached_insufficient_findings_fails():
-    report = _valid_exhausted_report(
-        completion_status="TARGET_REACHED",
-        fixes_implemented=2,
-        engine_gaps_documented=1,
-        total_findings=3,
-        target_findings=25,
-        full_cycle_completed=False,
-    )
-    errors = validate(report)
-    assert any("TARGET_REACHED" in e for e in errors), f"Expected TARGET_REACHED error, got: {errors}"
-
-
-def test_target_reached_exactly_at_target_passes():
-    entry = _v3_ledger_entry(result="fixed", finding_counted=True)
-    report = _valid_exhausted_report(
-        completion_status="TARGET_REACHED",
-        fixes_implemented=5,
-        engine_gaps_documented=0,
-        total_findings=5,
-        target_findings=5,
-        full_cycle_completed=False,
-        audit_ledger=[entry],
-        cards_audited=1,
-        db_card_count=100,
-    )
-    errors = validate(report)
-    assert errors == [], f"Expected no errors, got: {errors}"
-
-
-# ── Case 10: Old shallow report format fails with clear message ───────────────
-
-def test_old_shallow_format_fails():
-    """Legacy entry with effects_checked but no v3 evidence fields must fail."""
-    report = _valid_exhausted_report()
-    report["audit_ledger"] = [
-        {
-            "seq": 1,
-            "db_id": 42,
-            "card_name": "Dragapult ex",
-            "tcgdex_id": "sv06-130",
-            "tcgdex_fetch": "ok",
-            "effects_checked": ["attacks:2"],
-            "result": "no-issue",
-            "finding_counted": False,
-            "notes": "Phantom Dive reviewed and implementation looks correct.",
-        }
-    ]
-    errors = validate(report)
-    assert errors, "Expected errors for old shallow format"
-    # Should mention legacy/shallow
-    assert any(
-        "legacy" in e.lower() or "shallow" in e.lower() for e in errors
-    ), f"Expected legacy/shallow mention in errors: {errors}"
-
-
-def test_old_shallow_format_generic_note_fails():
-    """Legacy entry with generic note should produce specific error messages."""
-    report = _valid_exhausted_report()
-    report["audit_ledger"] = [
-        {
-            "seq": 1,
-            "db_id": 42,
-            "card_name": "Dragapult ex",
-            "tcgdex_id": "sv06-130",
-            "tcgdex_fetch": "ok",
-            "effects_checked": ["attacks:2"],
-            "result": "no-issue",
-            "finding_counted": False,
-            "notes": (
-                "TCGDex text fetched and compared to current handler coverage; "
-                "no missing required effect handlers detected."
-            ),
-        }
-    ]
-    errors = validate(report)
-    assert errors, "Expected errors"
-    assert any(
-        "legacy" in e.lower() or "shallow" in e.lower() or "generic" in e.lower()
-        for e in errors
-    )
-
-
-# ── Additional edge cases ─────────────────────────────────────────────────────
-
-def test_partial_time_budget_status_fails():
-    report = _valid_exhausted_report(completion_status="PARTIAL_TIME_BUDGET")
-    errors = validate(report)
-    assert any("PARTIAL_TIME_BUDGET" in e for e in errors)
-
-
-def test_unknown_completion_status_fails():
-    report = _valid_exhausted_report(completion_status="MADE_UP_STATUS")
-    errors = validate(report)
-    assert any("MADE_UP_STATUS" in e or "Unknown" in e for e in errors)
-
-
-def test_missing_confidence_fails():
-    report = _valid_exhausted_report()
-    del report["audit_ledger"][0]["confidence"]
-    errors = validate(report)
-    assert any("confidence" in e for e in errors)
-
-
-def test_invalid_confidence_value_fails():
-    report = _valid_exhausted_report()
-    report["audit_ledger"][0]["confidence"] = "very-high"
-    errors = validate(report)
-    assert any("confidence" in e for e in errors)
-
-
-def test_missing_tcgdex_text_hash_fails():
-    report = _valid_exhausted_report()
-    report["audit_ledger"][0]["tcgdex_text_hash"] = ""
-    errors = validate(report)
-    assert any("tcgdex_text_hash" in e for e in errors)
-
-
-def test_missing_tcgdex_effects_extracted_fails():
-    report = _valid_exhausted_report()
-    del report["audit_ledger"][0]["tcgdex_effects_extracted"]
-    errors = validate(report)
-    assert any("tcgdex_effects_extracted" in e for e in errors)
-
-
-def test_empty_semantic_checks_for_effect_bearing_fails():
-    report = _valid_exhausted_report()
-    entry = copy.deepcopy(report["audit_ledger"][0])
-    entry["implementation_evidence"][0]["semantic_checks"] = []
-    report["audit_ledger"] = [entry]
-    errors = validate(report)
-    assert any("semantic_checks" in e for e in errors), f"Expected semantic_checks error, got: {errors}"
-
-
-def test_vanilla_pokemon_no_effects_passes():
-    """Vanilla Pokémon with no effects (empty tcgdex_effects_extracted) passes."""
+def _flat_entry(**overrides) -> dict:
     entry = {
         "seq": 1,
         "db_id": "sv06-001",
@@ -443,33 +129,378 @@ def test_vanilla_pokemon_no_effects_passes():
         "tcgdex_fetch": "ok",
         "category": "pokemon",
         "tcgdex_text_hash": "1234abcd5678efgh",
-        "tcgdex_effects_extracted": [],  # No effects — vanilla
+        "tcgdex_effects_extracted": [
+            {
+                "kind": "attack",
+                "name": "Tackle",
+                "raw_text": "",
+                "cost": "Colorless",
+                "damage": "10",
+                "requires_handler": False,
+                "reason": "flat-damage attack",
+            }
+        ],
         "implementation_evidence": [],
         "mechanic_flags": [],
+        "behavioral_evidence": [_not_required_ev()],
         "result": "no-issue",
         "finding_counted": False,
         "confidence": "high",
-        "notes": "Bulbasaur has no effect text. Flat damage only. No handler required.",
+        "notes": "Flat damage only; no behavior proof required.",
     }
-    report = _valid_exhausted_report(audit_ledger=[entry])
-    errors = validate(report)
-    assert errors == [], f"Expected no errors for vanilla Pokemon, got: {errors}"
+    entry.update(overrides)
+    return entry
 
 
-def test_blocked_tcgdex_entry_skips_deep_checks():
-    """blocked-tcgdex entries should not trigger evidence checks."""
-    entry = {
-        "seq": 1,
-        "db_id": None,
-        "card_name": "Dragapult ex",
-        "tcgdex_id": "sv06-130",
-        "tcgdex_fetch": "blocked",
-        "result": "blocked-tcgdex",
-        "confidence": "high",
-        "notes": "TCGDex returned 429 rate-limit error.",
+def _compute_behavioral_totals(entries: list[dict]) -> tuple[int, int, int, float]:
+    required = 0
+    verified = 0
+    unverified = 0
+    for entry in entries:
+        flags = {str(f).lower().replace("_", "-") for f in entry.get("mechanic_flags") or []}
+        risky = bool(flags & RISKY_FLAGS)
+        result = entry.get("result")
+        if risky and result in {"no-issue", "behavioral-unverified"}:
+            required += 1
+            ev = entry.get("behavioral_evidence") or []
+            has_verified = any(
+                isinstance(item, dict)
+                and item.get("proof_type") in {"existing-test", "generated-probe"}
+                and item.get("passed") is True
+                and item.get("assertions")
+                for item in ev
+            )
+            if has_verified:
+                verified += 1
+            elif result == "behavioral-unverified":
+                unverified += 1
+    coverage = 100.0 if required == 0 else round((verified / required) * 100.0, 2)
+    return required, verified, unverified, coverage
+
+
+def _report(entries: list[dict], **overrides) -> dict:
+    required, verified, unverified, coverage = _compute_behavioral_totals(entries)
+    report = {
+        "run_date_utc": "2026-05-20",
+        "completion_status": "DB_EXHAUSTED",
+        "target_findings": 25,
+        "fixes_implemented": 0,
+        "engine_gaps_documented": 0,
+        "total_findings": 0,
+        "cards_audited": len(entries),
+        "db_card_count": len(entries),
+        "full_cycle_completed": True,
+        "continuation_required": False,
+        "start_cursor_used": "START_OF_DATABASE_CARD_LIST",
+        "first_card_audited": "Nest Ball | OBF | 175 | sv06-175",
+        "last_card_fully_audited": "Nest Ball | OBF | 175 | sv06-175",
+        "next_resume_cursor": "START_OF_DATABASE_CARD_LIST",
+        "traversal_wrapped": False,
+        "behavioral_rows_required": required,
+        "behavioral_rows_verified": verified,
+        "behavioral_rows_unverified": unverified,
+        "behavioral_coverage_percent": coverage,
+        "audit_ledger": entries,
     }
-    report = _valid_exhausted_report(audit_ledger=[entry])
+    report.update(overrides)
+    return report
+
+
+def test_risky_no_issue_registry_only_fails():
+    report = _report([_risky_entry(behavioral_evidence=[])])
     errors = validate(report)
-    # db_id=None is OK for blocked entries; no evidence required
-    assert not any("db_id" in e for e in errors)
-    assert not any("tcgdex_effects_extracted" in e for e in errors)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_inferred_deck_search_without_flags_or_behavior_fails():
+    row = _risky_entry(mechanic_flags=[], behavioral_evidence=[])
+    report = _report(
+        [row],
+        behavioral_rows_required=1,
+        behavioral_rows_verified=0,
+        behavioral_rows_unverified=0,
+        behavioral_coverage_percent=0.0,
+    )
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_inferred_draw_without_flags_or_behavior_fails():
+    row = _risky_entry(
+        mechanic_flags=[],
+        behavioral_evidence=[],
+        tcgdex_effects_extracted=[{
+            "kind": "attack",
+            "name": "Draw Up",
+            "raw_text": "Draw 2 cards.",
+            "cost": "Colorless",
+            "damage": "",
+            "requires_handler": True,
+            "reason": "attack has effect text",
+        }],
+    )
+    report = _report([row], behavioral_rows_required=1, behavioral_rows_verified=0, behavioral_rows_unverified=0, behavioral_coverage_percent=0.0)
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_inferred_coin_flip_without_flags_or_behavior_fails():
+    row = _risky_entry(
+        mechanic_flags=[],
+        behavioral_evidence=[],
+        tcgdex_effects_extracted=[{
+            "kind": "attack",
+            "name": "Coin Toss",
+            "raw_text": "Flip a coin. If heads, this attack does 40 more damage.",
+            "cost": "Colorless",
+            "damage": "20",
+            "requires_handler": True,
+            "reason": "attack has effect text",
+        }],
+    )
+    report = _report([row], behavioral_rows_required=1, behavioral_rows_verified=0, behavioral_rows_unverified=0, behavioral_coverage_percent=0.0)
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_inferred_next_turn_effect_without_flags_or_behavior_fails():
+    row = _risky_entry(
+        mechanic_flags=[],
+        behavioral_evidence=[],
+        tcgdex_effects_extracted=[{
+            "kind": "attack",
+            "name": "Guard Stance",
+            "raw_text": "During your opponent's next turn, this Pokémon takes 30 less damage from attacks.",
+            "cost": "Colorless",
+            "damage": "",
+            "requires_handler": True,
+            "reason": "attack has effect text",
+        }],
+    )
+    report = _report([row], behavioral_rows_required=1, behavioral_rows_verified=0, behavioral_rows_unverified=0, behavioral_coverage_percent=0.0)
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_inferred_pre_wr_modifier_without_flags_or_behavior_fails():
+    row = _risky_entry(
+        mechanic_flags=[],
+        behavioral_evidence=[],
+        tcgdex_effects_extracted=[{
+            "kind": "attack",
+            "name": "Piercing Hit",
+            "raw_text": "This attack does 60 damage before applying Weakness and Resistance.",
+            "cost": "Colorless",
+            "damage": "",
+            "requires_handler": True,
+            "reason": "attack has effect text",
+        }],
+    )
+    report = _report([row], behavioral_rows_required=1, behavioral_rows_verified=0, behavioral_rows_unverified=0, behavioral_coverage_percent=0.0)
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_inferred_passive_tool_without_flags_or_behavior_fails():
+    row = _risky_entry(
+        category="pokemon",
+        mechanic_flags=[],
+        behavioral_evidence=[],
+        tcgdex_effects_extracted=[{
+            "kind": "tool",
+            "name": "Tool Text",
+            "raw_text": "As long as this card is attached to a Pokémon, that Pokémon has no Retreat Cost.",
+            "cost": "",
+            "damage": "",
+            "requires_handler": True,
+            "reason": "tool text requires handling",
+        }],
+        implementation_evidence=[{
+            "effect_name": "Tool Text",
+            "registry_key": "tool-001",
+            "handler_symbol": "passive",
+            "handler_file": None,
+            "handler_found": True,
+            "source_evidence": "registry._passive_abilities['tool-001']",
+            "semantic_checks": [],
+        }],
+    )
+    report = _report([row], behavioral_rows_required=1, behavioral_rows_verified=0, behavioral_rows_unverified=0, behavioral_coverage_percent=0.0)
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_risky_no_issue_existing_test_passes():
+    report = _report([_risky_entry()])
+    assert validate(report) == []
+
+
+def test_inferred_risky_with_existing_test_passes():
+    row = _risky_entry(
+        mechanic_flags=[],
+        tcgdex_effects_extracted=[{
+            "kind": "attack",
+            "name": "Research",
+            "raw_text": "Search your deck for a card and put it into your hand.",
+            "cost": "Colorless",
+            "damage": "",
+            "requires_handler": True,
+            "reason": "attack has effect text",
+        }],
+        behavioral_evidence=[_existing_test_ev()],
+    )
+    report = _report(
+        [row],
+        behavioral_rows_required=1,
+        behavioral_rows_verified=1,
+        behavioral_rows_unverified=0,
+        behavioral_coverage_percent=100.0,
+    )
+    assert validate(report) == []
+
+
+def test_risky_no_issue_generated_probe_passes():
+    report = _report([_risky_entry(behavioral_evidence=[_generated_probe_ev()])])
+    assert validate(report) == []
+
+
+def test_flat_no_effect_not_required_passes():
+    report = _report([_flat_entry()])
+    assert validate(report) == []
+
+
+def test_passive_tool_no_issue_without_behavioral_fails():
+    report = _report([_risky_entry(mechanic_flags=["passive Tool"], behavioral_evidence=[])])
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_passive_stadium_no_issue_without_behavioral_fails():
+    report = _report([_risky_entry(mechanic_flags=["passive_stadium"], behavioral_evidence=[])])
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_passive_ability_no_issue_without_behavioral_fails():
+    report = _report([_risky_entry(mechanic_flags=["passive ability"], behavioral_evidence=[])])
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_continuation_required_behavioral_unverified_accounted_passes():
+    row = _risky_entry(
+        result="behavioral-unverified",
+        confidence="medium",
+        behavioral_evidence=[_behavioral_unverified_ev()],
+    )
+    report = _report(
+        [row],
+        completion_status="CONTINUATION_REQUIRED",
+        full_cycle_completed=False,
+        continuation_required=True,
+        db_card_count=1607,
+    )
+    assert validate(report) == []
+
+
+def test_db_exhausted_with_behavioral_unverified_fails():
+    row = _risky_entry(
+        result="behavioral-unverified",
+        confidence="medium",
+        behavioral_evidence=[_behavioral_unverified_ev()],
+    )
+    report = _report([row], completion_status="DB_EXHAUSTED")
+    errors = validate(report)
+    assert any("DB_EXHAUSTED is not allowed" in e for e in errors)
+
+
+def test_missing_behavioral_top_level_counts_fails():
+    report = _report([_risky_entry()])
+    del report["behavioral_rows_required"]
+    errors = validate(report)
+    assert any("behavioral_rows_required" in e for e in errors)
+
+
+def test_mismatched_behavioral_counts_fail():
+    report = _report([_risky_entry()], behavioral_rows_verified=0)
+    errors = validate(report)
+    assert any("behavioral_rows_verified does not match" in e for e in errors)
+
+
+def test_incorrect_behavioral_coverage_percent_fails():
+    report = _report([_risky_entry()], behavioral_coverage_percent=0.0)
+    errors = validate(report)
+    assert any("behavioral_coverage_percent does not match" in e for e in errors)
+
+
+def test_existing_v3_style_risky_no_issue_without_behavioral_fails():
+    entry = _risky_entry()
+    del entry["behavioral_evidence"]
+    report = _report([entry])
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_existing_v3_style_flat_no_effect_can_pass():
+    entry = _flat_entry()
+    del entry["behavioral_evidence"]
+    report = _report([entry])
+    assert validate(report) == []
+
+
+def test_flat_damage_no_effect_with_empty_flags_still_passes():
+    report = _report([_flat_entry(mechanic_flags=[])])
+    assert validate(report) == []
+
+
+def test_existing_test_passed_false_fails():
+    bad_ev = _existing_test_ev()
+    bad_ev["passed"] = False
+    report = _report([_risky_entry(behavioral_evidence=[bad_ev])])
+    errors = validate(report)
+    assert any("existing-test evidence requires passed=true" in e for e in errors)
+
+
+def test_existing_test_empty_assertions_fails():
+    bad_ev = _existing_test_ev()
+    bad_ev["assertions"] = []
+    report = _report([_risky_entry(behavioral_evidence=[bad_ev])])
+    errors = validate(report)
+    assert any("existing-test evidence requires non-empty assertions" in e for e in errors)
+
+
+def test_generated_probe_missing_probe_name_fails():
+    bad_ev = _generated_probe_ev()
+    bad_ev["probe_name"] = None
+    report = _report([_risky_entry(behavioral_evidence=[bad_ev])])
+    errors = validate(report)
+    assert any("generated-probe evidence requires probe_name" in e for e in errors)
+
+
+def test_manual_reviewed_gap_cannot_support_no_issue():
+    manual_gap = {
+        "effect_name": "Search Effect",
+        "proof_type": "manual-reviewed-gap",
+        "test_file": None,
+        "test_name": None,
+        "probe_name": None,
+        "assertions": [],
+        "passed": None,
+    }
+    report = _report([_risky_entry(behavioral_evidence=[manual_gap])])
+    errors = validate(report)
+    assert any("manual-reviewed-gap is only valid" in e for e in errors)
+
+
+def test_generic_no_issue_note_still_fails():
+    report = _report([_risky_entry(notes="handler coverage was verified")])
+    errors = validate(report)
+    assert any("generic" in e.lower() for e in errors)
+
+
+def test_handler_not_found_no_issue_still_fails():
+    row = copy.deepcopy(_risky_entry())
+    row["implementation_evidence"][0]["handler_found"] = False
+    report = _report([row])
+    errors = validate(report)
+    assert any("handler_found=false" in e for e in errors)

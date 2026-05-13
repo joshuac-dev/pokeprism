@@ -116,10 +116,10 @@ jobs:
           export REPORT_FILE START_CURSOR START_CURSOR_SOURCE
 
           cat > "$BODY_FILE" <<'ROBUSTAUDITEOF'
-          # DB-BACKED CARD IMPLEMENTATION AUDIT AND FIX TASK (ROBUST-AUDIT-v3)
+          # DB-BACKED CARD IMPLEMENTATION AUDIT AND FIX TASK (ROBUST-AUDIT-v4)
 
           This is a scheduled task for GitHub Copilot coding agent.
-          This task runs under robust-audit-v2 enforcement rules with audit-quality-v3
+          This task runs under robust-audit-v2 enforcement rules with audit-quality-v4
           evidence requirements.
 
           The PR gate at .github/workflows/card-effect-audit-pr-gate.yml validates the
@@ -154,7 +154,7 @@ jobs:
           - docs/CARD_EXPANSION_RULES.md, docs/CARDLIST.md, and docs/POKEMON_MASTER_LIST.md are
             historical/supporting documents. Do not use them as active audit authority.
 
-          ## Machine-readable audit report (REQUIRED, audit-quality-v3 schema)
+          ## Machine-readable audit report (REQUIRED, audit-quality-v4 schema)
 
           Before opening the PR, create and commit:
 
@@ -163,7 +163,7 @@ jobs:
           This file is required. The PR gate will reject PRs without a valid report AND
           will reject reports that use the old shallow ledger format.
 
-          Required schema for each audit_ledger entry (v3):
+          Required schema for each audit_ledger entry (v4):
 
               {
                 "seq": 1,
@@ -200,11 +200,29 @@ jobs:
                   }
                 ],
                 "mechanic_flags": ["<e.g. deck-search, choice-request, damage-counter>"],
-                "result": "fixed | engine-gap | no-issue | blocked-tcgdex | blocked-db-access | db-identity-gap | tcgdex-unresolved | continuation-required",
+                "behavioral_evidence": [
+                  {
+                    "effect_name": "",
+                    "proof_type": "existing-test | generated-probe | manual-reviewed-gap | not-required | behavioral-unverified",
+                    "test_file": "<required for existing-test>",
+                    "test_name": "<required for existing-test>",
+                    "probe_name": "<required for generated-probe>",
+                    "assertions": ["<required for existing-test/generated-probe>"],
+                    "passed": true
+                  }
+                ],
+                "result": "fixed | engine-gap | no-issue | behavioral-unverified | blocked-tcgdex | blocked-db-access | db-identity-gap | tcgdex-unresolved | continuation-required",
                 "finding_counted": false,
                 "confidence": "high | medium | low",
                 "notes": "<specific notes — NOT generic phrases>"
               }
+
+          Required top-level behavioral coverage fields:
+
+              "behavioral_rows_required": 0,
+              "behavioral_rows_verified": 0,
+              "behavioral_rows_unverified": 0,
+              "behavioral_coverage_percent": 100.0
 
           CRITICAL EVIDENCE REQUIREMENTS FOR EVERY CARD:
 
@@ -214,13 +232,35 @@ jobs:
              (implementation_evidence with registry_key, handler_symbol, handler_file).
           4. Record which semantic mechanics were verified (semantic_checks).
           5. Set mechanic_flags for cards with complex mechanics (deck-search, choice-request, etc.).
-          6. Set confidence (high | medium | low) for every entry.
-          7. Write specific notes that name the handler and mechanics checked.
+             Omitting mechanic_flags does not bypass behavioral coverage; validator infers risky
+             mechanics from effect text, kind, semantic checks, and passive evidence.
+          6. For risky mechanics, add behavioral proof (existing focused test or generated probe).
+             Registry/handler lookup alone is not behavioral proof.
+          7. If risky mechanics cannot be behaviorally verified, mark engine-gap or
+             behavioral-unverified with explicit accounting in top-level behavioral counts.
+          8. Set confidence (high | medium | low) for every entry.
+          9. Write specific notes that name the handler and mechanics checked.
              Do NOT write generic notes like "TCGDex text fetched and compared to current
              handler coverage; no missing required effect handlers detected."
 
+          A risky no-issue result must include behavioral proof; registry evidence alone is insufficient.
           A no-issue result must explain WHY with concrete implementation evidence.
           The validator will reject entries that use generic notes or lack evidence fields.
+
+          For every audited card/effect:
+          1. Extract TCGDex text.
+          2. Identify risky mechanic flags.
+          3. Resolve registry/handler evidence.
+          4. For risky mechanics, locate behavioral proof (existing focused test or generated probe),
+             otherwise mark behavioral-unverified/engine-gap.
+          5. Do not claim no-issue for risky effects based on registry evidence alone.
+          6. Do not claim high confidence for registry-only risky effects.
+          7. Do not claim DB_EXHAUSTED/FULL_CYCLE_COMPLETE unless risky rows are behaviorally
+             verified or explicitly accounted for.
+
+          When searching for behavioral proof, search tests by card id, card name, effect name,
+          handler symbol, and mechanic keyword (examples: sv05-129, Run Away Draw,
+          _run_away_draw, once-per-turn, shuffle-after-search).
 
           Use backend/scripts/card_effect_audit_probe.py to generate skeleton ledger rows:
 
@@ -230,7 +270,7 @@ jobs:
           cards_audited in the report must equal the number of entries in audit_ledger.
 
           Allowed audit_ledger result values:
-            fixed, engine-gap, no-issue, tcgdex-unresolved, db-identity-gap,
+            fixed, engine-gap, no-issue, behavioral-unverified, tcgdex-unresolved, db-identity-gap,
             blocked-tcgdex, blocked-db-access, continuation-required
 
           ## Sentinel mechanic checks (required when applicable)
@@ -376,10 +416,13 @@ jobs:
                 "TARGET_REACHED requires fixes_implemented + engine_gaps_documented >= target_findings. DB_EXHAUSTED and FULL_CYCLE_COMPLETE require full_cycle_completed=true and cards_audited >= db_card_count. " +
                 "Minimum " + $mincards + " cards must be audited before CONTINUATION_REQUIRED is acceptable. " +
                 "Commit docs/audit_runs/<YYYY-MM-DD>-<run-number>-card-effect-audit.json before opening the PR. The PR gate will reject PRs without a valid report or with invalid status. " +
-                "AUDIT QUALITY v3 REQUIRED: Every ledger entry must record: (1) database identity (db_id); (2) exact TCGDex effects extracted (tcgdex_effects_extracted with kind/name/raw_text/requires_handler); (3) registry lookup result for each effect (implementation_evidence with registry_key, handler_symbol, handler_file, handler_found); (4) semantic checks performed (semantic_checks list); (5) mechanic_flags; (6) confidence (high/medium/low); (7) specific notes naming the handler and what was verified. " +
+                "AUDIT QUALITY v4 REQUIRED: Every ledger entry must record: (1) database identity (db_id); (2) exact TCGDex effects extracted (tcgdex_effects_extracted with kind/name/raw_text/requires_handler); (3) registry lookup result for each effect (implementation_evidence with registry_key, handler_symbol, handler_file, handler_found); (4) semantic checks performed (semantic_checks list); (5) mechanic_flags; (6) behavioral_evidence for risky mechanics; (7) confidence (high/medium/low); (8) specific notes naming the handler and what was verified. " +
                 "Do NOT write generic notes like \"TCGDex text fetched and compared to current handler coverage; no missing required effect handlers detected.\" -- such notes will be rejected by the PR gate validator. " +
-                "A no-issue result must include concrete implementation evidence explaining why the card is correctly implemented. " +
-                "For cards with deck-search, choice-request, damage-modifier-pre-wr, passive-stadium, once-per-turn, or other complex mechanics, list the relevant mechanic_flags and semantic_checks in the ledger entry. " +
+                "A no-issue result must include concrete implementation evidence explaining why the card is correctly implemented. Risky no-issue rows must also include behavioral evidence from an existing focused test or generated probe. Registry evidence alone is not behavioral proof. " +
+                "For cards with deck-search, draw, discard, energy-attach, energy-move, switch/force-switch, gust, status-condition, damage-modifier-pre-wr/post-wr, bench-damage, prize-manipulation, once-per-turn, evolution/on-play triggers, passive tool/stadium/ability, attack-lock, next-turn effects, choice-request, explicit-empty-selection, coin-flip, zone-update, heal, or other complex mechanics, list the relevant mechanic_flags and behavioral proof. Omitting mechanic_flags will not bypass the gate because risky mechanics are also inferred from TCGDex text and implementation evidence. " +
+                "If risky behavior cannot be verified, mark result=behavioral-unverified or engine-gap and account for it in top-level behavioral_rows_* counters. " +
+                "Do not claim DB_EXHAUSTED/FULL_CYCLE_COMPLETE while risky rows remain behaviorally unverified. " +
+                "Search existing tests by card id, card name, effect name, handler symbol, and mechanic keywords before marking unverified. " +
                 "Use backend/scripts/card_effect_audit_probe.py to generate skeleton ledger rows from live registry data: cd backend && python3 -m scripts.card_effect_audit_probe --tcgdex-id <id>. " +
                 "cards_audited must equal the length of audit_ledger. " +
                 "The next_resume_cursor in the JSON must match next_start_cursor in docs/AUDIT_STATE.md when cards were audited. " +

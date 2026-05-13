@@ -30,6 +30,40 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+- **Audit quality hardened to behavioral coverage v4 — 2026-05-13** —
+  ci: require behavioral coverage for risky card audit rows.
+
+  - Updated `backend/scripts/validate_card_audit_report.py` to enforce
+    audit-quality-v4 behavioral validation:
+    - Canonical risky mechanic set with alias normalization
+      (including passive Tool/Stadium/Ability naming variants).
+    - New `behavioral_evidence` proof-type validation (`existing-test`,
+      `generated-probe`, `manual-reviewed-gap`, `not-required`,
+      `behavioral-unverified`).
+    - New top-level required fields:
+      `behavioral_rows_required`, `behavioral_rows_verified`,
+      `behavioral_rows_unverified`, `behavioral_coverage_percent`.
+    - Risky `result=no-issue` rows now require behavioral proof; registry
+      evidence alone is rejected.
+    - `DB_EXHAUSTED` / `FULL_CYCLE_COMPLETE` are rejected when risky rows remain
+      behaviorally unverified; `CONTINUATION_REQUIRED` supports unverified risky
+      rows only with explicit accounting.
+  - Updated `backend/scripts/card_effect_audit_probe.py` to emit
+    `behavioral_evidence_candidates` from best-effort test discovery by card id,
+    card name, effect name, handler symbol, and mechanic keywords.
+  - Updated `.github/workflows/nightly-card-effect-audit.yml` prompt and custom
+    instructions for audit-quality-v4 behavioral proof requirements.
+  - Updated `.github/workflows/card-effect-audit-pr-gate.yml` messaging to
+    surface the v4 risky-row behavioral evidence requirement while continuing to
+    run `python3 backend/scripts/validate_card_audit_report.py "$REPORT"`.
+  - Updated `docs/AUDIT_RULES.md` and `docs/STATUS.md` with v4 behavioral gate
+    requirements and completion-status constraints.
+  - Updated validator unit coverage in
+    `backend/tests/test_scripts/test_validate_card_audit_report.py` for risky
+    registry-only rejection, valid behavioral proof acceptance, top-level
+    behavioral accounting, and behavioral-unverified completion-status rules.
+  - Confidence: High.
+
 - **DB-backed card audit run 40 — 2026-05-13 — CONTINUATION_REQUIRED** —
   Audited 100 cards (Drifloon | MEP | 5 | mep-005 through
   Farigiraf | TWM | 84 | sv06-084). TCGDex preflight OK. No fixable engine

@@ -30,6 +30,15 @@ post-phase development:
   `backend/scripts/validate_card_audit_report.py`. Probe helper:
   `backend/scripts/card_effect_audit_probe.py`. Old shallow-format reports are
   no longer acceptable for new runs.
+- **Audit quality hardened to behavioral coverage v4 (2026-05-13):** Risky
+  mechanic rows can no longer claim `result=no-issue` based on registry evidence
+  alone. Risky no-issue rows now require `behavioral_evidence` backed by an
+  existing focused test or generated probe. Reports must include top-level
+  `behavioral_rows_required`, `behavioral_rows_verified`,
+  `behavioral_rows_unverified`, and `behavioral_coverage_percent`. `DB_EXHAUSTED`
+  and `FULL_CYCLE_COMPLETE` are rejected when risky rows are behaviorally
+  unverified; `CONTINUATION_REQUIRED` may carry unverified risky rows only with
+  explicit behavioral accounting and non-high confidence.
 
 **Nightly H/H simulation lifecycle fix (2026-05-13):**
 - Root cause: `_run_scheduled_hh_async` called `run_hh_batch(persist=True)` which created a bare

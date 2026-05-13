@@ -27,6 +27,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -35,6 +36,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
+_TEST_NAME_PATTERN = re.compile(r"^\s*(?:async\s+)?def\s+(test_[a-zA-Z0-9_]+)\s*\(", flags=re.MULTILINE)
 
 
 # ---------------------------------------------------------------------------
@@ -246,6 +248,79 @@ def _mechanic_flags(tcgdex_effects_extracted: list[dict]) -> list[str]:
     return sorted(flags)
 
 
+def _behavioral_evidence_candidates(
+    tcgdex_id: str,
+    card_name: str,
+    effects: list[dict],
+    implementation_evidence: list[dict],
+    mechanic_flags: list[str],
+) -> list[dict]:
+    """Best-effort discovery of candidate existing tests for behavioral proof."""
+    base = Path(__file__).parent.parent
+    search_roots = [
+        base / "tests" / "test_engine",
+        base / "tests" / "test_scripts",
+    ]
+    terms = {
+        tcgdex_id.lower(),
+        (card_name or "").lower(),
+        *(str(fx.get("name", "")).lower() for fx in effects if isinstance(fx, dict)),
+        *(str(ev.get("handler_symbol", "")).lower() for ev in implementation_evidence if isinstance(ev, dict)),
+        *(str(flag).lower() for flag in mechanic_flags),
+    }
+    terms = {t.strip() for t in terms if t and t.strip()}
+    if not terms:
+        return []
+
+    candidates: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+
+    for root in search_roots:
+        if not root.exists():
+            continue
+        for test_file in root.rglob("test_*.py"):
+            try:
+                raw = test_file.read_text(encoding="utf-8")
+            except OSError:
+                continue
+
+            raw_lc = raw.lower()
+            matched = sorted(t for t in terms if t in raw_lc)
+            if not matched:
+                continue
+
+            rel_file = str(test_file.relative_to(base))
+            test_names = _TEST_NAME_PATTERN.findall(raw)
+            if not test_names:
+                key = (rel_file, "")
+                if key in seen:
+                    continue
+                seen.add(key)
+                candidates.append({
+                    "proof_type": "existing-test",
+                    "test_file": rel_file,
+                    "test_name": None,
+                    "matched_keywords": matched[:8],
+                })
+                continue
+
+            for test_name in test_names[:12]:
+                key = (rel_file, test_name)
+                if key in seen:
+                    continue
+                seen.add(key)
+                candidates.append({
+                    "proof_type": "existing-test",
+                    "test_file": rel_file,
+                    "test_name": test_name,
+                    "matched_keywords": matched[:8],
+                })
+                if len(candidates) >= 40:
+                    return candidates
+
+    return candidates
+
+
 async def _probe_single(tcgdex_id: str) -> dict:
     """Probe one card and return a v3 ledger skeleton."""
     from app.cards.tcgdex import TCGDexClient
@@ -323,6 +398,13 @@ async def _probe_single(tcgdex_id: str) -> dict:
     has_missing = any(not ev.get("handler_found") for ev in impl_evidence)
     result = "engine-gap" if has_missing else "no-issue"
     confidence = "low"  # Auditor must assess and upgrade
+    behavioral_candidates = _behavioral_evidence_candidates(
+        tcgdex_id=tcgdex_id,
+        card_name=card_name,
+        effects=tcgdex_effects_extracted,
+        implementation_evidence=impl_evidence,
+        mechanic_flags=flags,
+    )
 
     skeleton = {
         "seq": 0,  # Auditor must set correct sequence number
@@ -340,6 +422,7 @@ async def _probe_single(tcgdex_id: str) -> dict:
         "result": result,
         "finding_counted": has_missing,
         "confidence": confidence,
+        "behavioral_evidence_candidates": behavioral_candidates,
         "notes": (
             "PROBE: Registry coverage checked. "
             "Auditor must verify semantic correctness and fill semantic_checks."
