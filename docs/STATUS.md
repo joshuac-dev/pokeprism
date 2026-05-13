@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-13 (DB-backed card audit run 40 — CONTINUATION_REQUIRED)
+Last updated: 2026-05-13 (audit run 41 hardening — three engine fix regressions)
 
 ## Current Workstream
 
@@ -69,6 +69,17 @@ post-phase development:
 - Post-deploy migration required: `docker compose exec -T backend alembic upgrade head`.
 - Stuck nightly run `1280be10-fc27-457b-b45d-dd5439c3bfc1` (200 matches, created 2026-05-11 02:00
   UTC): all matches complete; safe to repair — see repair SQL in CHANGELOG.
+
+**Engine fix hardening (2026-05-13 — audit run 41 regression tests):**
+- Three bugs corrected in `backend/app/engine/actions.py` and `backend/app/engine/effects/abilities.py`:
+  - **Sticky Bind** (sv08-107 Gastrodon): `actions.py` was checking `opp_init.active` instead of
+    `opp_init.bench`; fixed to `any(b.card_def_id == "sv08-107" for b in opp_init.bench)`.
+  - **Forest of Vitality alt-print** (me02.5-188): same-turn Grass evolution check only matched
+    `me01-117`; fixed to `in ("me01-117", "me02.5-188")`.
+  - **Extra Helpings alt-print** (svp-184 Hop's Snorlax): `_EXTRA_HELPINGS_IDS` frozenset only
+    contained `sv09-117`; added `svp-184`.
+- 12 focused regression tests added in `backend/tests/test_engine/test_run41_fixes.py`.
+- full tests run: `OBSERVED_PLAY_MEMORY_ENABLED=false python3 -m pytest tests/ -x -q` (`1487 passed, 7 skipped`)
 
 **DB-backed audit handoff (2026-05-13 nightly robust-audit-v2 run 40):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes
