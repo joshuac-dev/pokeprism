@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-13 (audit run 41 hardening — three engine fix regressions)
+Last updated: 2026-05-13 (removed artificial 100-round simulation limit)
 
 ## Current Workstream
 

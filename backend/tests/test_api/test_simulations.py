@@ -89,7 +89,15 @@ class TestSimulationCreateValidation:
         with pytest.raises(Exception):
             SimulationCreate(**self._valid_payload(num_rounds=0))
         with pytest.raises(Exception):
-            SimulationCreate(**self._valid_payload(num_rounds=101))
+            SimulationCreate(**self._valid_payload(num_rounds=-1))
+
+    def test_num_rounds_large_value_accepted(self):
+        obj = SimulationCreate(**self._valid_payload(num_rounds=500))
+        assert obj.num_rounds == 500
+
+    def test_num_rounds_not_clamped_to_100(self):
+        obj = SimulationCreate(**self._valid_payload(num_rounds=500))
+        assert obj.num_rounds == 500, "500 rounds must not be clamped to 100"
 
     def test_matches_per_opponent_out_of_range_raises(self):
         with pytest.raises(Exception):
@@ -105,11 +113,11 @@ class TestSimulationCreateValidation:
 
     def test_boundary_values_accepted(self):
         obj = SimulationCreate(**self._valid_payload(
-            num_rounds=100,
+            num_rounds=500,
             matches_per_opponent=1000,
             target_win_rate=1.0,
         ))
-        assert obj.num_rounds == 100
+        assert obj.num_rounds == 500
         assert obj.matches_per_opponent == 1000
 
     def test_deck_locked_true_with_full_mode_accepted(self):

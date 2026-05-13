@@ -4,9 +4,15 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import SimulationSetup from './SimulationSetup';
 
-// Mock ParamForm to avoid card search API calls
+// Mock ParamForm to avoid card search API calls; exposes a button to drive onNumRoundsChange
 vi.mock('../components/simulation/ParamForm', () => ({
-  default: () => <div data-testid="param-form" />,
+  default: ({ onNumRoundsChange }: { onNumRoundsChange: (n: number) => void }) => (
+    <div data-testid="param-form">
+      <button data-testid="set-500-rounds" onClick={() => onNumRoundsChange(500)}>
+        Set 500 rounds
+      </button>
+    </div>
+  ),
 }));
 
 // Mock parsePTCGDeck to return a valid 60-card deck so form validation passes
@@ -185,5 +191,47 @@ describe('SimulationSetup — deck name overrides', () => {
   it('renders start simulation button', () => {
     renderSetup();
     expect(screen.getByTestId('start-simulation-button')).toBeInTheDocument();
+  });
+});
+
+describe('SimulationSetup — rounds validation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCreateSimulation.mockResolvedValue({ simulation_id: 'test-sim-1', status: 'pending' });
+  });
+
+  it('accepts 500 rounds and submits without validation error', async () => {
+    const user = userEvent.setup();
+    renderSetup();
+
+    // Set rounds to 500 via mock ParamForm callback
+    await user.click(screen.getByTestId('set-500-rounds'));
+
+    // Add one opponent so other validation passes
+    await user.click(screen.getByTestId('add-opponent-button'));
+
+    // Submit
+    await user.click(screen.getByTestId('start-simulation-button'));
+
+    await waitFor(() => {
+      expect(mockCreateSimulation).toHaveBeenCalledWith(
+        expect.objectContaining({ num_rounds: 500 })
+      );
+    });
+    expect(screen.queryByTestId('simulation-error')).not.toBeInTheDocument();
+  });
+
+  it('does not clamp 500 rounds to 100', async () => {
+    const user = userEvent.setup();
+    renderSetup();
+
+    await user.click(screen.getByTestId('set-500-rounds'));
+    await user.click(screen.getByTestId('add-opponent-button'));
+    await user.click(screen.getByTestId('start-simulation-button'));
+
+    await waitFor(() => {
+      const call = mockCreateSimulation.mock.calls[0]?.[0];
+      expect(call?.num_rounds).toBe(500);
+    });
   });
 });

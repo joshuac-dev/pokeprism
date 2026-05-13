@@ -113,7 +113,6 @@ export default function ParamForm({
         <input
           type="number"
           min={1}
-          max={100}
           value={numRounds}
           onChange={(e) => onNumRoundsChange(Number(e.target.value))}
           className={inputClass}

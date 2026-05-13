@@ -30,6 +30,16 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+- **Remove artificial 100-round simulation cap — 2026-05-13** —
+  The UI and API previously rejected any simulation with more than 100 rounds.
+  Removed the hard upper limit everywhere it existed:
+  `frontend/src/components/simulation/ParamForm.tsx` (`max={100}` HTML attribute),
+  `frontend/src/pages/SimulationSetup.tsx` (frontend validation guard),
+  `backend/app/api/simulations.py` (Pydantic `le=100` on `num_rounds`).
+  Minimum of 1 round is retained. Tests updated and added to confirm 500 rounds
+  is accepted end-to-end and not silently clamped.
+  Confidence: High.
+
 - **Engine fix hardening — 2026-05-13 (audit run 41 regression tests)** —
   Three engine bugs corrected; 12 focused regression tests added.
 
