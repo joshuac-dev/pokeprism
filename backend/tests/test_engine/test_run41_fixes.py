@@ -571,3 +571,76 @@ def test_extra_helpings_alt_print_bonus_does_not_apply_to_non_hops_pokemon():
     assert not bonus_would_apply, (
         "Extra Helpings +30 bonus must NOT apply to non-Hop's attackers even with svp-184 in play"
     )
+
+
+# ─── Fix 3 (behavioral) : Extra Helpings damage path ────────────────────────
+#
+# These tests call _apply_damage directly and assert the defender's HP delta,
+# proving the +30 bonus flows through the real damage pipeline.
+
+
+def test_extra_helpings_svp184_applies_30_bonus_to_hops_attacker_via_damage_path():
+    """With svp-184 in play, a Hop's Pokémon deals base_damage + 30 via _apply_damage."""
+    snorlax = _make_hops_snorlax_alt()
+    hops_attacker = _make_card("t41-hops-att", "Hop's Pokémon",
+                                types=["Colorless"])
+    defender_card = _make_card("t41-defender-eh5", "Defender5", hp=200)
+    card_registry.register(snorlax)
+    card_registry.register(hops_attacker)
+    card_registry.register(defender_card)
+
+    snorlax_inst = _inst(snorlax, "svp184-bench-3", zone=Zone.BENCH, evolution_stage=0)
+    attacker_inst = _inst(hops_attacker, "hops-act-1", evolution_stage=0)
+    defender_inst = _inst(defender_card, "def-eh5", evolution_stage=0)
+    defender_inst.current_hp = 200
+    defender_inst.max_hp = 200
+
+    state = _state(
+        p1_active=attacker_inst,
+        p1_bench=[snorlax_inst],
+        p2_active=defender_inst,
+    )
+
+    base_damage = 60
+    final_damage = _apply_damage(state, Action(ActionType.ATTACK, "p1", attack_index=0), base_damage)
+
+    assert final_damage == base_damage + 30, (
+        f"Expected {base_damage + 30} damage with svp-184 Extra Helpings bonus, got {final_damage}"
+    )
+    assert defender_inst.current_hp == 200 - (base_damage + 30), (
+        "Defender HP must reflect the +30 bonus from svp-184 Hop's Snorlax"
+    )
+
+
+def test_extra_helpings_hops_attacker_deals_base_damage_without_snorlax():
+    """A Hop's attacker without either Snorlax print deals only base damage."""
+    hops_attacker = _make_card("t41-hops-att2", "Hop's Pokémon",
+                                types=["Colorless"])
+    dummy_bench = _make_card("t41-dummy-eh6", "Dummy6")
+    defender_card = _make_card("t41-defender-eh6", "Defender6", hp=200)
+    card_registry.register(hops_attacker)
+    card_registry.register(dummy_bench)
+    card_registry.register(defender_card)
+
+    attacker_inst = _inst(hops_attacker, "hops-act-2", evolution_stage=0)
+    bench_inst = _inst(dummy_bench, "dummy-eh6-bench", zone=Zone.BENCH, evolution_stage=0)
+    defender_inst = _inst(defender_card, "def-eh6", evolution_stage=0)
+    defender_inst.current_hp = 200
+    defender_inst.max_hp = 200
+
+    state = _state(
+        p1_active=attacker_inst,
+        p1_bench=[bench_inst],
+        p2_active=defender_inst,
+    )
+
+    base_damage = 60
+    final_damage = _apply_damage(state, Action(ActionType.ATTACK, "p1", attack_index=0), base_damage)
+
+    assert not has_extra_helpings(state, "p1"), "No Snorlax in play — has_extra_helpings must be False"
+    assert final_damage == base_damage, (
+        f"Expected exactly {base_damage} damage without Hop's Snorlax in play, got {final_damage}"
+    )
+    assert defender_inst.current_hp == 200 - base_damage, (
+        "Defender HP must reflect only base damage when no Hop's Snorlax is present"
+    )
