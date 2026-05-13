@@ -30,6 +30,25 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+- **Engine fix hardening — 2026-05-13 (audit run 41 regression tests)** —
+  Three engine bugs corrected; 12 focused regression tests added.
+
+  - **Sticky Bind** (sv08-107 Gastrodon): `actions.py` ability-suppression check used
+    `opp_init.active.card_def_id == "sv08-107"` (Gastrodon in Active). TCGDex text says
+    "As long as this Pokémon is on your Bench". Fixed to
+    `any(b.card_def_id == "sv08-107" for b in opp_init.bench)`. Tests: benched Stage 2
+    ability blocked; Active Gastrodon does not block; Active Stage 2 unaffected; Stage 1 unaffected.
+  - **Forest of Vitality alt-print** (me02.5-188 ASC): same-turn Grass evolution bypass in
+    `actions.py` only matched `me01-117`; the ASC alt-print was silently ignored. Fixed to
+    `card_def_id in ("me01-117", "me02.5-188")`. Tests: alt-print allows same-turn Grass evo;
+    without stadium blocked; first-turn restriction enforced; non-Grass still blocked.
+  - **Extra Helpings alt-print** (svp-184 Hop's Snorlax): `_EXTRA_HELPINGS_IDS` frozenset in
+    `abilities.py` only contained `sv09-117`; svp-184 promo was excluded. Added `svp-184`.
+    Tests: svp-184 detected; sv09-117 still detected; absent when neither in play;
+    bonus does not apply to non-Hop's Pokémon.
+  - Regression tests: `backend/tests/test_engine/test_run41_fixes.py` (12 tests, all pass).
+  - Confidence: High.
+
 - **Audit quality hardened to behavioral coverage v4 — 2026-05-13** —
   ci: require behavioral coverage for risky card audit rows.
 
