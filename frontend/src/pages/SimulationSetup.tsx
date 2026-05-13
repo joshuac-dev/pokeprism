@@ -56,8 +56,8 @@ export default function SimulationSetup() {
     if (matchesPerOpponent < 1 || matchesPerOpponent > 1000) {
       return 'Matches per opponent must be between 1 and 1000.';
     }
-    if (numRounds < 1 || numRounds > 100) {
-      return 'Rounds must be between 1 and 100.';
+    if (numRounds < 1 || !Number.isInteger(numRounds)) {
+      return 'Rounds must be a positive integer (minimum 1).';
     }
     if (targetWinRatePct < 0 || targetWinRatePct > 100) {
       return 'Target win rate must be between 0% and 100%.';

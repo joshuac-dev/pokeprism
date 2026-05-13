@@ -184,7 +184,7 @@ class SimulationCreate(BaseModel):
     deck_mode: str = "full"
     game_mode: str = "hh"
     deck_locked: bool = False
-    num_rounds: int = Field(default=5, ge=1, le=100)
+    num_rounds: int = Field(default=5, ge=1)
     matches_per_opponent: int = Field(default=10, ge=1, le=1000)
     target_win_rate: float = Field(default=0.60, ge=0.0, le=1.0)
     target_consecutive_rounds: int = Field(default=1, ge=1, le=100)
