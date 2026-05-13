@@ -608,10 +608,10 @@ class ActionValidator:
             for target in in_play:
                 # Cannot evolve a card played or evolved this turn
                 if target.turn_played == state.turn_number:
-                    # Forest of Vitality (me01-117): Grass Pokémon may evolve same turn
+                    # Forest of Vitality (me01-117 / me02.5-188 alt-print): Grass Pokémon may evolve same turn
                     # they were played (except on the very first turn of the game)
                     if (state.active_stadium
-                            and state.active_stadium.card_def_id == "me01-117"
+                            and state.active_stadium.card_def_id in ("me01-117", "me02.5-188")
                             and not (state.turn_number == 1
                                      and state.active_player == state.first_player)):
                         tdef = card_registry.get(target.card_def_id)
@@ -737,8 +737,9 @@ class ActionValidator:
             if (opp_init.active and opp_init.active.card_def_id in ("sv05-078", "svp-097")
                     and poke is player.active):
                 continue
-            # Sticky Bind (sv08-107 Gastrodon): opp's Benched Stage-2 Pokémon can't use abilities
-            if (opp_init.active and opp_init.active.card_def_id == "sv08-107"
+            # Sticky Bind (sv08-107 Gastrodon): while Gastrodon is on YOUR Bench,
+            # Benched Stage-2 Pokémon (both sides) can't use Abilities.
+            if (any(b.card_def_id == "sv08-107" for b in opp_init.bench)
                     and poke is not player.active):
                 poke_cdef = card_registry.get(poke.card_def_id)
                 if poke_cdef and (poke_cdef.stage or "").lower() in ("stage2", "stage 2"):

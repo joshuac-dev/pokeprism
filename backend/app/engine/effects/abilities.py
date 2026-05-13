@@ -359,10 +359,13 @@ def has_cheer_on_to_glory(state, player_id: str) -> bool:
 
 # Extra Helpings (sv09-117 Hop's Snorlax) ─────────────────────────────────────
 
+_EXTRA_HELPINGS_IDS = frozenset({"sv09-117", "svp-184"})
+
+
 def has_extra_helpings(state, player_id: str) -> bool:
-    """True if the player has Hop's Snorlax (sv09-117) in play."""
+    """True if the player has Hop's Snorlax (sv09-117 or svp-184) in play."""
     player = state.get_player(player_id)
-    return any(p.card_def_id == "sv09-117" for p in _in_play(player))
+    return any(p.card_def_id in _EXTRA_HELPINGS_IDS for p in _in_play(player))
 
 
 # Secret Forest Path (sv09-089 Toedscruel) ────────────────────────────────────
@@ -5527,7 +5530,7 @@ def register_all(registry):
                    for att in kilowattrel.energy_attached)
     registry.register_ability("svp-182", "Flashing Draw", _flashing_draw,
                                condition=_cond_flashing_draw_svp182)   # Iono's Kilowattrel alt
-    registry.register_passive_ability("svp-184", "Extra Helpings")          # Hop's Snorlax (bench: hand size +3: noop)
+    registry.register_passive_ability("svp-184", "Extra Helpings")          # Hop's Snorlax alt (logic in has_extra_helpings → _apply_damage +30)
     registry.register_passive_ability("svp-205", "Power Saver")             # Team Rocket's Mewtwo ex (no abilities while on bench: noop)
 
     # Same-name stubs (alternate prints)
