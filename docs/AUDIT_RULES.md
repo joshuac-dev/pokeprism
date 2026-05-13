@@ -462,11 +462,16 @@ The PR gate also rejects PRs that commit any of the following:
 - database dump files (`.sql`, `*.dump`)
 - `observed_play/import_candidates/*.{txt,md,log}` files (other than the existing README)
 
-## Audit quality v3 evidence requirements
+## Audit quality v4 behavioral coverage requirements
 
-Starting with the `harden-card-audit-quality-evidence` branch (2026-05-11), every
-audit ledger entry must include concrete implementation evidence. Generic no-issue
-claims are **rejected by the PR gate validator**.
+Starting with the `harden-card-audit-behavioral-coverage` branch (2026-05-13), the
+audit gate enforces two levels of proof:
+
+1. **Evidence audit (v3 baseline):** TCGDex text + registry/handler evidence.
+2. **Behavioral audit (v4):** risky no-issue rows must include behavioral proof
+   from an existing focused test or generated probe.
+
+Registry evidence alone is not behavioral proof for risky mechanics.
 
 ### Validator script
 
@@ -485,7 +490,7 @@ python3 backend/scripts/validate_card_audit_report.py docs/audit_runs/<file>.jso
 Exit code 0 = valid; exit code 1 = invalid. The PR gate runs this script
 automatically and fails the PR if the report does not meet quality requirements.
 
-### Required v3 ledger entry fields
+### Required v4 ledger entry fields
 
 Every ledger entry must include:
 
@@ -496,8 +501,18 @@ Every ledger entry must include:
 | `tcgdex_effects_extracted` | Required when `tcgdex_fetch=ok` (empty list `[]` is valid for vanilla) |
 | `implementation_evidence` | Required when any extracted effect has `requires_handler=true` |
 | `mechanic_flags` | Required for cards with complex mechanics |
+| `behavioral_evidence` | Required for risky `result=no-issue` rows (`existing-test` or `generated-probe`) |
 | `confidence` | Required: `"high"`, `"medium"`, or `"low"` |
 | `notes` | Must be specific; generic phrases are rejected |
+
+Required top-level behavioral coverage fields:
+
+| Field | Requirement |
+|---|---|
+| `behavioral_rows_required` | Count of rows requiring behavioral proof |
+| `behavioral_rows_verified` | Required rows with valid `existing-test` or `generated-probe` proof |
+| `behavioral_rows_unverified` | Required rows explicitly left unverified |
+| `behavioral_coverage_percent` | `verified / required * 100` (or `100.0` when required is 0) |
 
 ### What `tcgdex_effects_extracted` must contain
 
@@ -535,6 +550,38 @@ For each effect that `requires_handler=true`, record:
 ```
 
 `handler_found=false` with `result=no-issue` is always invalid.
+
+### Risky mechanics (canonical v4 set)
+
+Risky mechanics include:
+
+- `deck-search`, `draw`, `discard`, `energy-attach`, `energy-move`
+- `switch`, `force-switch`, `gust`, `bench-effect`, `bench-damage`
+- `status-condition`, `damage-modifier-pre-wr`, `damage-modifier-post-wr`
+- `prize-manipulation`, `once-per-turn`, `evolution-trigger`, `on-play-trigger`
+- `passive-tool`, `passive-stadium`, `passive-ability`
+- `attack-lock`, `next-turn-effect`, `choice-request`, `explicit-empty-selection`
+- `coin-flip`, `zone-update`, `heal`
+
+Aliases such as `passive Tool`, `passive Stadium`, and `passive Ability` must
+normalize to the canonical v4 names during validation.
+
+### Behavioral evidence rules
+
+`behavioral_evidence` entries support:
+
+- `existing-test` (requires `test_file`, `test_name`, non-empty `assertions`, `passed=true`)
+- `generated-probe` (requires `probe_name`, non-empty `assertions`, `passed=true`)
+- `manual-reviewed-gap` (allowed only with `result=engine-gap` or `result=behavioral-unverified`)
+- `not-required` (allowed only for flat/no-effect non-risky rows)
+- `behavioral-unverified` (must be explicitly counted in top-level behavioral coverage fields)
+
+Additional gate rules:
+
+- Risky `result=no-issue` rows must include valid behavioral proof (`existing-test` or `generated-probe`).
+- `DB_EXHAUSTED` and `FULL_CYCLE_COMPLETE` are invalid if any risky row is behaviorally unverified.
+- `CONTINUATION_REQUIRED` may include behaviorally unverified rows only with accurate
+  `behavioral_rows_*` accounting and non-high confidence.
 
 ### Required `semantic_checks` for effect-bearing cards
 
@@ -585,5 +632,7 @@ python3 -m scripts.card_effect_audit_probe --tcgdex-id sv06-130
 python3 -m scripts.card_effect_audit_probe --list --limit 20 --cursor "Dragapult ex"
 ```
 
-The probe script emits a skeleton with `confidence: "low"` and empty `semantic_checks`.
-The auditor must verify semantic correctness, fill `semantic_checks`, and set `confidence`.
+The probe script emits a skeleton with `confidence: "low"`, empty `semantic_checks`,
+and `behavioral_evidence_candidates` to help locate existing behavioral tests.
+The auditor must verify semantic correctness, fill `semantic_checks`, add behavioral
+proof for risky rows, and set `confidence`.
