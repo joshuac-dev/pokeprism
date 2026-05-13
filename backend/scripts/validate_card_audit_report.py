@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -143,6 +144,12 @@ def _normalize_flag(flag: str) -> str:
     return norm
 
 
+def _normalize_effect_text(raw_text: str) -> str:
+    normalized = unicodedata.normalize("NFKD", raw_text or "")
+    ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
+    return ascii_text.lower()
+
+
 def _infer_risky_mechanics_from_effect_text(entry: dict) -> set[str]:
     inferred: set[str] = set()
 
@@ -173,7 +180,7 @@ def _infer_risky_mechanics_from_effect_text(entry: dict) -> set[str]:
             continue
         kind = (fx.get("kind") or "").strip().lower()
         raw_text = (fx.get("raw_text") or "")
-        text = raw_text.lower()
+        text = _normalize_effect_text(raw_text)
 
         if "search your deck" in text:
             add("deck-search")
@@ -191,7 +198,7 @@ def _infer_risky_mechanics_from_effect_text(entry: dict) -> set[str]:
             if "your opponent" in text:
                 add("force-switch")
                 add("gust")
-        if has_any(text, ("benched pokémon with their active", "benched pokemon with their active")):
+        if "benched pokemon with their active" in text:
             add("switch")
             add("force-switch")
             add("gust")
@@ -207,7 +214,7 @@ def _infer_risky_mechanics_from_effect_text(entry: dict) -> set[str]:
         if "after applying weakness and resistance" in text:
             add("damage-modifier-post-wr")
 
-        if has_any(text, ("benched pokémon", "benched pokemon")) and has_any(
+        if "benched pokemon" in text and has_any(
             text, ("damage", "damage counter", "damage counters", "put ")
         ):
             add("bench-damage")
@@ -218,10 +225,10 @@ def _infer_risky_mechanics_from_effect_text(entry: dict) -> set[str]:
         if has_any(text, ("once during your turn", "once during each player's turn", "once per turn")):
             add("once-per-turn")
 
-        if "when you play this pokémon from your hand to evolve" in text:
+        if "when you play this pokemon from your hand to evolve" in text:
             add("evolution-trigger")
             add("on-play-trigger")
-        elif "when you play this pokémon from your hand" in text:
+        elif "when you play this pokemon from your hand" in text:
             add("on-play-trigger")
 
         if kind == "tool" or (kind == "trainer" and "attached to" in text):
