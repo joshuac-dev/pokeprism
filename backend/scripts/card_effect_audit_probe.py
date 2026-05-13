@@ -36,6 +36,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
+_TEST_NAME_PATTERN = re.compile(r"^\s*(?:async\s+)?def\s+(test_[a-zA-Z0-9_]+)\s*\(", flags=re.MULTILINE)
 
 
 # ---------------------------------------------------------------------------
@@ -273,7 +274,6 @@ def _behavioral_evidence_candidates(
 
     candidates: list[dict] = []
     seen: set[tuple[str, str]] = set()
-    test_name_pattern = re.compile(r"^\s*(?:async\s+)?def\s+(test_[a-zA-Z0-9_]+)\s*\(", flags=re.MULTILINE)
 
     for root in search_roots:
         if not root.exists():
@@ -290,7 +290,7 @@ def _behavioral_evidence_candidates(
                 continue
 
             rel_file = str(test_file.relative_to(base))
-            test_names = test_name_pattern.findall(raw)
+            test_names = _TEST_NAME_PATTERN.findall(raw)
             if not test_names:
                 key = (rel_file, "")
                 if key in seen:

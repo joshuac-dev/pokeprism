@@ -100,7 +100,7 @@ def _risky_entry(**overrides) -> dict:
             {
                 "effect_name": "trainer",
                 "registry_key": "sv06-175",
-                "handler_symbol": "_nest_ball",
+                "handler_symbol": "nest_ball",
                 "handler_file": "backend/app/engine/effects/trainers.py",
                 "handler_found": True,
                 "source_evidence": "registry._trainer_effects['sv06-175']",

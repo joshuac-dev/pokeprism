@@ -138,8 +138,8 @@ def _entry_requires_handler(entry: dict) -> bool:
 
 def _normalize_flag(flag: str) -> str:
     norm = (flag or "").strip().lower().replace("_", "-")
-    norm = _MECHANIC_ALIASES.get(norm, norm)
-    norm = _MECHANIC_ALIASES.get(norm.replace("-", " "), norm)
+    # Support aliases entered with either dashes or spaces.
+    norm = _MECHANIC_ALIASES.get(norm, _MECHANIC_ALIASES.get(norm.replace("-", " "), norm))
     return norm
 
 
