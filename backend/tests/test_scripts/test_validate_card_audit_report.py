@@ -212,8 +212,150 @@ def test_risky_no_issue_registry_only_fails():
     assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
 
 
+def test_inferred_deck_search_without_flags_or_behavior_fails():
+    row = _risky_entry(mechanic_flags=[], behavioral_evidence=[])
+    report = _report(
+        [row],
+        behavioral_rows_required=1,
+        behavioral_rows_verified=0,
+        behavioral_rows_unverified=0,
+        behavioral_coverage_percent=0.0,
+    )
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_inferred_draw_without_flags_or_behavior_fails():
+    row = _risky_entry(
+        mechanic_flags=[],
+        behavioral_evidence=[],
+        tcgdex_effects_extracted=[{
+            "kind": "attack",
+            "name": "Draw Up",
+            "raw_text": "Draw 2 cards.",
+            "cost": "Colorless",
+            "damage": "",
+            "requires_handler": True,
+            "reason": "attack has effect text",
+        }],
+    )
+    report = _report([row], behavioral_rows_required=1, behavioral_rows_verified=0, behavioral_rows_unverified=0, behavioral_coverage_percent=0.0)
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_inferred_coin_flip_without_flags_or_behavior_fails():
+    row = _risky_entry(
+        mechanic_flags=[],
+        behavioral_evidence=[],
+        tcgdex_effects_extracted=[{
+            "kind": "attack",
+            "name": "Coin Toss",
+            "raw_text": "Flip a coin. If heads, this attack does 40 more damage.",
+            "cost": "Colorless",
+            "damage": "20",
+            "requires_handler": True,
+            "reason": "attack has effect text",
+        }],
+    )
+    report = _report([row], behavioral_rows_required=1, behavioral_rows_verified=0, behavioral_rows_unverified=0, behavioral_coverage_percent=0.0)
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_inferred_next_turn_effect_without_flags_or_behavior_fails():
+    row = _risky_entry(
+        mechanic_flags=[],
+        behavioral_evidence=[],
+        tcgdex_effects_extracted=[{
+            "kind": "attack",
+            "name": "Guard Stance",
+            "raw_text": "During your opponent's next turn, this Pokémon takes 30 less damage from attacks.",
+            "cost": "Colorless",
+            "damage": "",
+            "requires_handler": True,
+            "reason": "attack has effect text",
+        }],
+    )
+    report = _report([row], behavioral_rows_required=1, behavioral_rows_verified=0, behavioral_rows_unverified=0, behavioral_coverage_percent=0.0)
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_inferred_pre_wr_modifier_without_flags_or_behavior_fails():
+    row = _risky_entry(
+        mechanic_flags=[],
+        behavioral_evidence=[],
+        tcgdex_effects_extracted=[{
+            "kind": "attack",
+            "name": "Piercing Hit",
+            "raw_text": "This attack does 60 damage before applying Weakness and Resistance.",
+            "cost": "Colorless",
+            "damage": "",
+            "requires_handler": True,
+            "reason": "attack has effect text",
+        }],
+    )
+    report = _report([row], behavioral_rows_required=1, behavioral_rows_verified=0, behavioral_rows_unverified=0, behavioral_coverage_percent=0.0)
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_inferred_passive_tool_without_flags_or_behavior_fails():
+    row = _risky_entry(
+        category="pokemon",
+        mechanic_flags=[],
+        behavioral_evidence=[],
+        tcgdex_effects_extracted=[{
+            "kind": "tool",
+            "name": "Tool Text",
+            "raw_text": "As long as this card is attached to a Pokémon, that Pokémon has no Retreat Cost.",
+            "cost": "",
+            "damage": "",
+            "requires_handler": True,
+            "reason": "tool text requires handling",
+        }],
+        implementation_evidence=[{
+            "effect_name": "Tool Text",
+            "registry_key": "tool-001",
+            "handler_symbol": "passive",
+            "handler_file": None,
+            "handler_found": True,
+            "source_evidence": "registry._passive_abilities['tool-001']",
+            "semantic_checks": [],
+        }],
+    )
+    report = _report([row], behavioral_rows_required=1, behavioral_rows_verified=0, behavioral_rows_unverified=0, behavioral_coverage_percent=0.0)
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
 def test_risky_no_issue_existing_test_passes():
     report = _report([_risky_entry()])
+    assert validate(report) == []
+
+
+def test_inferred_risky_with_existing_test_passes():
+    row = _risky_entry(
+        mechanic_flags=[],
+        tcgdex_effects_extracted=[{
+            "kind": "attack",
+            "name": "Research",
+            "raw_text": "Search your deck for a card and put it into your hand.",
+            "cost": "Colorless",
+            "damage": "",
+            "requires_handler": True,
+            "reason": "attack has effect text",
+        }],
+        behavioral_evidence=[_existing_test_ev()],
+    )
+    report = _report(
+        [row],
+        behavioral_rows_required=1,
+        behavioral_rows_verified=1,
+        behavioral_rows_unverified=0,
+        behavioral_coverage_percent=100.0,
+    )
     assert validate(report) == []
 
 
@@ -303,6 +445,11 @@ def test_existing_v3_style_flat_no_effect_can_pass():
     entry = _flat_entry()
     del entry["behavioral_evidence"]
     report = _report([entry])
+    assert validate(report) == []
+
+
+def test_flat_damage_no_effect_with_empty_flags_still_passes():
+    report = _report([_flat_entry(mechanic_flags=[])])
     assert validate(report) == []
 
 

@@ -566,6 +566,17 @@ Risky mechanics include:
 Aliases such as `passive Tool`, `passive Stadium`, and `passive Ability` must
 normalize to the canonical v4 names during validation.
 
+Validator behavior is not limited to agent-supplied `mechanic_flags`. The gate
+also infers risky mechanics from:
+
+- `tcgdex_effects_extracted[*].raw_text`
+- `tcgdex_effects_extracted[*].kind`
+- `implementation_evidence[*].semantic_checks`
+- `implementation_evidence[*].handler_symbol == "passive"`
+
+Omitting or under-reporting `mechanic_flags` does not bypass behavioral coverage
+requirements for risky rows.
+
 ### Behavioral evidence rules
 
 `behavioral_evidence` entries support:

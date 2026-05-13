@@ -143,6 +143,148 @@ def _normalize_flag(flag: str) -> str:
     return norm
 
 
+def _infer_risky_mechanics_from_effect_text(entry: dict) -> set[str]:
+    inferred: set[str] = set()
+
+    extracted = entry.get("tcgdex_effects_extracted") or []
+    impl_ev = entry.get("implementation_evidence") or []
+
+    def add(flag: str) -> None:
+        if flag in _RISKY_MECHANICS:
+            inferred.add(flag)
+
+    def has_any(text: str, needles: tuple[str, ...]) -> bool:
+        return any(n in text for n in needles)
+
+    # Infer from semantic checks when auditors already recorded mechanics there.
+    for ev in impl_ev:
+        if not isinstance(ev, dict):
+            continue
+        for raw in ev.get("semantic_checks") or []:
+            if not isinstance(raw, str):
+                continue
+            norm = _normalize_flag(raw)
+            if norm in _RISKY_MECHANICS:
+                inferred.add(norm)
+
+    # Infer from extracted effect text and kinds.
+    for fx in extracted:
+        if not isinstance(fx, dict):
+            continue
+        kind = (fx.get("kind") or "").strip().lower()
+        raw_text = (fx.get("raw_text") or "")
+        text = raw_text.lower()
+
+        if "search your deck" in text:
+            add("deck-search")
+        if "draw" in text:
+            add("draw")
+        if "discard" in text:
+            add("discard")
+        if "attach" in text and "energy" in text:
+            add("energy-attach")
+        if "move" in text and "energy" in text:
+            add("energy-move")
+
+        if "switch" in text:
+            add("switch")
+            if "your opponent" in text:
+                add("force-switch")
+                add("gust")
+        if has_any(text, ("benched pokémon with their active", "benched pokemon with their active")):
+            add("switch")
+            add("force-switch")
+            add("gust")
+
+        if has_any(text, ("bench", "benched")):
+            add("bench-effect")
+
+        if has_any(text, ("burned", "confused", "poisoned", "paralyzed", "asleep")):
+            add("status-condition")
+
+        if "before applying weakness and resistance" in text:
+            add("damage-modifier-pre-wr")
+        if "after applying weakness and resistance" in text:
+            add("damage-modifier-post-wr")
+
+        if has_any(text, ("benched pokémon", "benched pokemon")) and has_any(
+            text, ("damage", "damage counter", "damage counters", "put ")
+        ):
+            add("bench-damage")
+
+        if "prize card" in text or "prize cards" in text:
+            add("prize-manipulation")
+
+        if has_any(text, ("once during your turn", "once during each player's turn", "once per turn")):
+            add("once-per-turn")
+
+        if "when you play this pokémon from your hand to evolve" in text:
+            add("evolution-trigger")
+            add("on-play-trigger")
+        elif "when you play this pokémon from your hand" in text:
+            add("on-play-trigger")
+
+        if kind == "tool" or (kind == "trainer" and "attached to" in text):
+            add("passive-tool")
+        if kind == "stadium":
+            add("passive-stadium")
+        if kind in {"ability", "passive"} and has_any(
+            text, ("as long as", "prevent", "can't", "cannot", "each of your", "all of your")
+        ):
+            add("passive-ability")
+
+        if has_any(text, ("can't attack", "cannot attack", "can't use", "cannot use")):
+            add("attack-lock")
+
+        if has_any(text, ("during your opponent's next turn", "during your next turn")):
+            add("next-turn-effect")
+
+        if "choose" in text:
+            add("choice-request")
+
+        if "flip a coin" in text:
+            add("coin-flip")
+
+        if has_any(text, ("heal", "remove damage")):
+            add("heal")
+
+        if has_any(text, ("deck", "hand", "discard", "bench", "active", "prize")) and has_any(
+            text,
+            (
+                "put ",
+                "move ",
+                "switch",
+                "shuffle",
+                "attach",
+                "discard",
+                "return",
+                "take",
+                "reveal",
+            ),
+        ):
+            add("zone-update")
+
+    # Infer passive mechanics from passive handler evidence.
+    has_passive_handler = any(
+        isinstance(ev, dict) and ev.get("handler_symbol") == "passive"
+        for ev in impl_ev
+    )
+    if has_passive_handler:
+        kinds = {
+            (fx.get("kind") or "").strip().lower()
+            for fx in extracted
+            if isinstance(fx, dict)
+        }
+        if "tool" in kinds:
+            add("passive-tool")
+        elif "stadium" in kinds:
+            add("passive-stadium")
+        else:
+            add("passive-ability")
+
+    return inferred
+
+
 def _entry_risky_mechanics(entry: dict) -> set[str]:
     risky: set[str] = set()
     for flag in entry.get("mechanic_flags") or []:
@@ -152,27 +294,7 @@ def _entry_risky_mechanics(entry: dict) -> set[str]:
         if norm in _RISKY_MECHANICS:
             risky.add(norm)
 
-    # Infer passive mechanics from passive handler evidence if not explicitly flagged.
-    impl_ev = entry.get("implementation_evidence") or []
-    has_passive = any(
-        isinstance(ev, dict) and (ev.get("handler_symbol") == "passive")
-        for ev in impl_ev
-    )
-    if has_passive:
-        extracted = entry.get("tcgdex_effects_extracted") or []
-        kinds = {
-            (fx.get("kind") or "").strip().lower()
-            for fx in extracted
-            if isinstance(fx, dict)
-        }
-        if "tool" in kinds:
-            risky.add("passive-tool")
-        elif "stadium" in kinds:
-            risky.add("passive-stadium")
-        elif "ability" in kinds or "passive" in kinds:
-            risky.add("passive-ability")
-        else:
-            risky.add("passive-ability")
+    risky.update(_infer_risky_mechanics_from_effect_text(entry))
 
     return risky
 
@@ -429,7 +551,15 @@ def validate(data: dict) -> list[str]:
             )
 
         # Remaining checks only apply to "no-issue" results
-        risky_mechanics = _entry_risky_mechanics(entry)
+        flagged_risky: set[str] = set()
+        for raw_flag in (entry.get("mechanic_flags") or []):
+            if not isinstance(raw_flag, str):
+                continue
+            normalized = _normalize_flag(raw_flag)
+            if normalized in _RISKY_MECHANICS:
+                flagged_risky.add(normalized)
+        inferred_risky = _infer_risky_mechanics_from_effect_text(entry)
+        risky_mechanics = flagged_risky | inferred_risky
         has_verified_behavior, has_unverified_marker, has_not_required = _validate_behavioral_evidence(
             entry=entry,
             label=label,
@@ -521,10 +651,16 @@ def validate(data: dict) -> list[str]:
                 )
 
         if risky_mechanics and not has_verified_behavior:
+            missing_flags = sorted(inferred_risky - flagged_risky)
+            missing_flag_hint = (
+                f" Inferred risky mechanics missing from mechanic_flags: {', '.join(missing_flags)}."
+                if missing_flags else ""
+            )
             fail(
                 f"{label}: risky no-issue rows require behavioral evidence with "
                 "proof_type existing-test or generated-probe (passed=true). "
                 "Registry evidence alone is not behavioral proof."
+                f"{missing_flag_hint}"
             )
 
         _ = has_not_required  # explicit not-required is optional for flat/no-effect rows.

@@ -232,6 +232,8 @@ jobs:
              (implementation_evidence with registry_key, handler_symbol, handler_file).
           4. Record which semantic mechanics were verified (semantic_checks).
           5. Set mechanic_flags for cards with complex mechanics (deck-search, choice-request, etc.).
+             Omitting mechanic_flags does not bypass behavioral coverage; validator infers risky
+             mechanics from effect text, kind, semantic checks, and passive evidence.
           6. For risky mechanics, add behavioral proof (existing focused test or generated probe).
              Registry/handler lookup alone is not behavioral proof.
           7. If risky mechanics cannot be behaviorally verified, mark engine-gap or
@@ -417,7 +419,7 @@ jobs:
                 "AUDIT QUALITY v4 REQUIRED: Every ledger entry must record: (1) database identity (db_id); (2) exact TCGDex effects extracted (tcgdex_effects_extracted with kind/name/raw_text/requires_handler); (3) registry lookup result for each effect (implementation_evidence with registry_key, handler_symbol, handler_file, handler_found); (4) semantic checks performed (semantic_checks list); (5) mechanic_flags; (6) behavioral_evidence for risky mechanics; (7) confidence (high/medium/low); (8) specific notes naming the handler and what was verified. " +
                 "Do NOT write generic notes like \"TCGDex text fetched and compared to current handler coverage; no missing required effect handlers detected.\" -- such notes will be rejected by the PR gate validator. " +
                 "A no-issue result must include concrete implementation evidence explaining why the card is correctly implemented. Risky no-issue rows must also include behavioral evidence from an existing focused test or generated probe. Registry evidence alone is not behavioral proof. " +
-                "For cards with deck-search, draw, discard, energy-attach, energy-move, switch/force-switch, gust, status-condition, damage-modifier-pre-wr/post-wr, bench-damage, prize-manipulation, once-per-turn, evolution/on-play triggers, passive tool/stadium/ability, attack-lock, next-turn effects, choice-request, explicit-empty-selection, coin-flip, zone-update, heal, or other complex mechanics, list the relevant mechanic_flags and behavioral proof. " +
+                "For cards with deck-search, draw, discard, energy-attach, energy-move, switch/force-switch, gust, status-condition, damage-modifier-pre-wr/post-wr, bench-damage, prize-manipulation, once-per-turn, evolution/on-play triggers, passive tool/stadium/ability, attack-lock, next-turn effects, choice-request, explicit-empty-selection, coin-flip, zone-update, heal, or other complex mechanics, list the relevant mechanic_flags and behavioral proof. Omitting mechanic_flags will not bypass the gate because risky mechanics are also inferred from TCGDex text and implementation evidence. " +
                 "If risky behavior cannot be verified, mark result=behavioral-unverified or engine-gap and account for it in top-level behavioral_rows_* counters. " +
                 "Do not claim DB_EXHAUSTED/FULL_CYCLE_COMPLETE while risky rows remain behaviorally unverified. " +
                 "Search existing tests by card id, card name, effect name, handler symbol, and mechanic keywords before marking unverified. " +
