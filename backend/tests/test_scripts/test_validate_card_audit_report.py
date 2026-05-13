@@ -1,4 +1,12 @@
-"""Tests for backend/scripts/validate_card_audit_report.py (audit-quality-v4)."""
+"""Tests for backend/scripts/validate_card_audit_report.py (audit-quality-v4).
+
+Covers:
+- risky no-issue behavioral-proof requirements
+- behavioral evidence proof-type validation
+- top-level behavioral coverage accounting
+- completion-status gating with behavioral-unverified rows
+- retained v3 structural/evidence rejection behavior
+"""
 
 from __future__ import annotations
 

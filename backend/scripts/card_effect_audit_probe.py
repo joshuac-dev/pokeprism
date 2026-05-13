@@ -273,6 +273,7 @@ def _behavioral_evidence_candidates(
 
     candidates: list[dict] = []
     seen: set[tuple[str, str]] = set()
+    test_name_pattern = re.compile(r"^\s*(?:async\s+)?def\s+(test_[a-zA-Z0-9_]+)\s*\(", flags=re.MULTILINE)
 
     for root in search_roots:
         if not root.exists():
@@ -289,7 +290,7 @@ def _behavioral_evidence_candidates(
                 continue
 
             rel_file = str(test_file.relative_to(base))
-            test_names = re.findall(r"^\s*(?:async\s+)?def\s+(test_[a-zA-Z0-9_]+)\s*\(", raw, flags=re.MULTILINE)
+            test_names = test_name_pattern.findall(raw)
             if not test_names:
                 key = (rel_file, "")
                 if key in seen:

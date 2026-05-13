@@ -92,10 +92,10 @@ _RISKY_MECHANICS = frozenset({
 })
 
 _MECHANIC_ALIASES = {
-    "force switch": "switch",
-    "force_switch": "switch",
-    "forced-switch": "switch",
-    "forced_switch": "switch",
+    "force switch": "force-switch",
+    "force_switch": "force-switch",
+    "forced-switch": "force-switch",
+    "forced_switch": "force-switch",
     "passive tool": "passive-tool",
     "passive_tool": "passive-tool",
     "passive stadium": "passive-stadium",
