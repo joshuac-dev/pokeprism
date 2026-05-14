@@ -12,7 +12,7 @@ last_pr: 66
 last_issue: Nightly DB-backed card effect implementation audit - 2026-05-14
 last_first_card_audited: Farigiraf ex | TEF | 108 | sv05-108
 last_card_fully_audited: Glimmora | SSP | 115 | sv08-115
-notes: Run 42 (2026-05-14): CONTINUATION_REQUIRED — TCGDex preflight succeeded and 100 DB cards were audited from Farigiraf ex | TEF | 108 | sv05-108 through Glimmora | SSP | 115 | sv08-115. Findings: fixes_implemented=0, engine_gaps_documented=0. Behavioral accounting: required=69, verified=0, unverified=69. Next run resumes at Glimmora | TWM | 109 | sv06-109. Report at docs/audit_runs/2026-05-14-42-card-effect-audit.json.
+notes: Run 42 (2026-05-14): CONTINUATION_REQUIRED — TCGDex preflight succeeded and 100 DB cards were audited from Farigiraf ex | TEF | 108 | sv05-108 through Glimmora | SSP | 115 | sv08-115. Findings: fixes_implemented=0, engine_gaps_documented=0. Behavioral accounting: required=71, verified=0, unverified=71. Next run resumes at Glimmora | TWM | 109 | sv06-109. Report at docs/audit_runs/2026-05-14-42-card-effect-audit.json.
 ```
 
 ## Cursor rules

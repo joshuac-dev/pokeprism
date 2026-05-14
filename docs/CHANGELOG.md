@@ -146,7 +146,7 @@ merged PR history support that it actually landed.
   (fixes_implemented=0, engine_gaps_documented=0). Stopping with
   CONTINUATION_REQUIRED (>=100 cards audited; target of 25 findings not
   reached). Next run resumes at Glimmora | TWM | 109 | sv06-109.
-  Behavioral accounting (v4): required=69, verified=0, unverified=69,
+  Behavioral accounting (v4): required=71, verified=0, unverified=71,
   coverage=0.0. Report:
   `docs/audit_runs/2026-05-14-42-card-effect-audit.json`.
   Confidence: High.

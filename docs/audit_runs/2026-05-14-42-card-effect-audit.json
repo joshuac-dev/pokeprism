@@ -20,9 +20,9 @@
   "tcgdex_preflight_detail": "TCGDex reachable for audit slice; fetched 100/100 cards from API.",
   "db_card_source": "SQLAlchemy AsyncSession query on cards ordered by name, set_abbrev, set_number, tcgdex_id",
   "continuation_reason": "100 cards audited (>= 100 minimum). Target of 25 findings not reached: fixes_implemented=0, engine_gaps_documented=0. Next run resumes at Glimmora | TWM | 109 | sv06-109.",
-  "behavioral_rows_required": 69,
+  "behavioral_rows_required": 71,
   "behavioral_rows_verified": 0,
-  "behavioral_rows_unverified": 69,
+  "behavioral_rows_unverified": 71,
   "behavioral_coverage_percent": 0.0,
   "audit_ledger": [
     {
@@ -142,12 +142,24 @@
           ]
         }
       ],
-      "mechanic_flags": [],
-      "behavioral_evidence": [],
-      "result": "no-issue",
+      "mechanic_flags": [
+        "coin-flip"
+      ],
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "result": "behavioral-unverified",
       "finding_counted": false,
       "confidence": "medium",
-      "notes": "Mapped TCGDex effect text for me01-103 to concrete registry handlers and semantic checks."
+      "notes": "Registry mapping validated for me01-103; risky mechanics (coin-flip) remain behaviorally unverified in this slice."
     },
     {
       "seq": 3,
@@ -636,7 +648,11 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "energy-attach",
+        "passive-stadium",
+        "status-condition"
+      ],
       "behavioral_evidence": [
         {
           "effect_name": "risky-mechanics",
@@ -651,7 +667,7 @@
       "result": "behavioral-unverified",
       "finding_counted": false,
       "confidence": "medium",
-      "notes": "Registry mapping validated for sv08.5-108; risky mechanics (energy-attach) remain behaviorally unverified in this slice."
+      "notes": "Registry mapping validated for sv08.5-108; risky mechanics (energy-attach, passive-stadium, status-condition) remain behaviorally unverified in this slice."
     },
     {
       "seq": 11,
@@ -690,7 +706,11 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "energy-attach",
+        "passive-stadium",
+        "status-condition"
+      ],
       "behavioral_evidence": [
         {
           "effect_name": "risky-mechanics",
@@ -705,7 +725,7 @@
       "result": "behavioral-unverified",
       "finding_counted": false,
       "confidence": "medium",
-      "notes": "Registry mapping validated for sv06-149; risky mechanics (energy-attach) remain behaviorally unverified in this slice."
+      "notes": "Registry mapping validated for sv06-149; risky mechanics (energy-attach, passive-stadium, status-condition) remain behaviorally unverified in this slice."
     },
     {
       "seq": 12,
@@ -3292,12 +3312,24 @@
           ]
         }
       ],
-      "mechanic_flags": [],
-      "behavioral_evidence": [],
-      "result": "no-issue",
+      "mechanic_flags": [
+        "coin-flip"
+      ],
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "result": "behavioral-unverified",
       "finding_counted": false,
       "confidence": "medium",
-      "notes": "Mapped TCGDex effect text for sv05-110 to concrete registry handlers and semantic checks."
+      "notes": "Registry mapping validated for sv05-110; risky mechanics (coin-flip) remain behaviorally unverified in this slice."
     },
     {
       "seq": 56,

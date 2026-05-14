@@ -263,7 +263,11 @@ def _infer_risky_mechanics_from_effect_text(entry: dict) -> set[str]:
         if "choose" in text:
             add("choice-request")
 
-        if "flip a coin" in text:
+        if (
+            re.search(r"\bflip\s+(?:a|\d+)\s+coins?\b", text)
+            or "for each heads" in text
+            or "for each tails" in text
+        ):
             add("coin-flip")
 
         if has_any(text, ("heal", "remove damage")):

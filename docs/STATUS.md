@@ -110,7 +110,7 @@ post-phase development:
 - full tests run: `OBSERVED_PLAY_MEMORY_ENABLED=false python3 -m pytest tests/ -x -q` (`1505 passed, 7 skipped`)
 - implemented fixes: none in this slice
 - documented engine gaps: none in this slice
-- behavioral accounting (v4): `behavioral_rows_required=69`, `behavioral_rows_verified=0`, `behavioral_rows_unverified=69`, `behavioral_coverage_percent=0.0`
+- behavioral accounting (v4): `behavioral_rows_required=71`, `behavioral_rows_verified=0`, `behavioral_rows_unverified=71`, `behavioral_coverage_percent=0.0`
 - operational notes: machine-readable v4 report at `docs/audit_runs/2026-05-14-42-card-effect-audit.json`
 
 **DB-backed audit handoff (2026-05-13 nightly robust-audit-v2 run 40):**

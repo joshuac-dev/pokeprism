@@ -263,6 +263,44 @@ def test_inferred_coin_flip_without_flags_or_behavior_fails():
     assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
 
 
+def test_inferred_flip_n_coins_without_flags_or_behavior_fails():
+    row = _risky_entry(
+        mechanic_flags=[],
+        behavioral_evidence=[],
+        tcgdex_effects_extracted=[{
+            "kind": "attack",
+            "name": "Repeating Drill",
+            "raw_text": "Flip 5 coins. This attack does 30 damage for each heads.",
+            "cost": "Colorless",
+            "damage": "30x",
+            "requires_handler": True,
+            "reason": "attack has effect text",
+        }],
+    )
+    report = _report([row], behavioral_rows_required=1, behavioral_rows_verified=0, behavioral_rows_unverified=0, behavioral_coverage_percent=0.0)
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
+def test_inferred_for_each_heads_without_flags_or_behavior_fails():
+    row = _risky_entry(
+        mechanic_flags=[],
+        behavioral_evidence=[],
+        tcgdex_effects_extracted=[{
+            "kind": "attack",
+            "name": "Heads Multiplier",
+            "raw_text": "This attack does 30 damage for each heads.",
+            "cost": "Colorless",
+            "damage": "",
+            "requires_handler": True,
+            "reason": "attack has effect text",
+        }],
+    )
+    report = _report([row], behavioral_rows_required=1, behavioral_rows_verified=0, behavioral_rows_unverified=0, behavioral_coverage_percent=0.0)
+    errors = validate(report)
+    assert any("risky no-issue rows require behavioral evidence" in e for e in errors)
+
+
 def test_inferred_next_turn_effect_without_flags_or_behavior_fails():
     row = _risky_entry(
         mechanic_flags=[],
