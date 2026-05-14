@@ -431,7 +431,7 @@ def test_haban_berry_non_dragon_attack_does_not_reduce_or_discard():
     assert "sv08.5-111" in defender.tools_attached
 
 
-def test_haban_berry_bench_damage_is_not_reduced_or_discarded_in_current_engine():
+def test_haban_berry_reduces_dragon_bench_damage_and_discards_tool():
     dragon_def = _make_card("t43-haban-007", "Dragon Attacker", types=["Dragon"], attacks=[AttackDef(name="Claw", damage="100", cost=[])])
     defender_def = _make_card("t43-haban-008", "Defender", hp=150)
     opp_def = _make_card("t43-haban-009", "Opponent", hp=150)
@@ -446,6 +446,76 @@ def test_haban_berry_bench_damage_is_not_reduced_or_discarded_in_current_engine(
         p2_active=_inst(opp_def, "opp"),
         p2_bench=[benched],
     )
+
+    _apply_bench_damage(state, "p2", benched, 100)
+
+    assert benched.damage_counters == 4
+    assert benched.current_hp == 110
+    assert "sv08.5-111" not in benched.tools_attached
+
+
+def test_haban_berry_bench_damage_clamps_at_zero_and_discards_tool():
+    dragon_def = _make_card("t43-haban-010", "Dragon Attacker", types=["Dragon"], attacks=[AttackDef(name="Claw", damage="50", cost=[])])
+    defender_def = _make_card("t43-haban-011", "Defender", hp=150)
+    opp_def = _make_card("t43-haban-012", "Opponent", hp=150)
+    card_registry.register(dragon_def)
+    card_registry.register(defender_def)
+    card_registry.register(opp_def)
+
+    benched = _inst(defender_def, "bench-target", zone=Zone.BENCH, hp=150)
+    benched.tools_attached = ["sv08.5-111"]
+    state = _state(
+        p1_active=_inst(dragon_def, "atk"),
+        p2_active=_inst(opp_def, "opp"),
+        p2_bench=[benched],
+    )
+
+    _apply_bench_damage(state, "p2", benched, 50)
+
+    assert benched.damage_counters == 0
+    assert benched.current_hp == 150
+    assert "sv08.5-111" not in benched.tools_attached
+
+
+def test_haban_berry_non_dragon_bench_damage_does_not_reduce_or_discard():
+    attacker_def = _make_card("t43-haban-013", "Water Attacker", types=["Water"], attacks=[AttackDef(name="Splash", damage="100", cost=[])])
+    defender_def = _make_card("t43-haban-014", "Defender", hp=150)
+    opp_def = _make_card("t43-haban-015", "Opponent", hp=150)
+    card_registry.register(attacker_def)
+    card_registry.register(defender_def)
+    card_registry.register(opp_def)
+
+    benched = _inst(defender_def, "bench-target", zone=Zone.BENCH, hp=150)
+    benched.tools_attached = ["sv08.5-111"]
+    state = _state(
+        p1_active=_inst(attacker_def, "atk"),
+        p2_active=_inst(opp_def, "opp"),
+        p2_bench=[benched],
+    )
+
+    _apply_bench_damage(state, "p2", benched, 100)
+
+    assert benched.damage_counters == 10
+    assert benched.current_hp == 50
+    assert "sv08.5-111" in benched.tools_attached
+
+
+def test_jamming_tower_disables_haban_berry_bench_reduction_and_discard():
+    dragon_def = _make_card("t43-haban-016", "Dragon Attacker", types=["Dragon"], attacks=[AttackDef(name="Claw", damage="100", cost=[])])
+    defender_def = _make_card("t43-haban-017", "Defender", hp=150)
+    opp_def = _make_card("t43-haban-018", "Opponent", hp=150)
+    card_registry.register(dragon_def)
+    card_registry.register(defender_def)
+    card_registry.register(opp_def)
+
+    benched = _inst(defender_def, "bench-target", zone=Zone.BENCH, hp=150)
+    benched.tools_attached = ["sv08.5-111"]
+    state = _state(
+        p1_active=_inst(dragon_def, "atk"),
+        p2_active=_inst(opp_def, "opp"),
+        p2_bench=[benched],
+    )
+    state.active_stadium = _stadium_inst("sv06-153", "Jamming Tower", "jam")
 
     _apply_bench_damage(state, "p2", benched, 100)
 

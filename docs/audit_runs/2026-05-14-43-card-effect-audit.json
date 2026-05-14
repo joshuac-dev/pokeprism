@@ -3278,11 +3278,11 @@
         },
         {
           "effect_name": "Haban Berry reduction/discard",
-          "registry_key": "base.get_tool_damage_bonus + attacks._apply_damage",
+          "registry_key": "base.get_tool_damage_bonus + attacks._apply_damage + attacks._apply_bench_damage",
           "handler_symbol": "haban_berry_reduction",
-          "handler_file": "backend/app/engine/effects/base.py",
+          "handler_file": "backend/app/engine/effects/base.py; backend/app/engine/effects/attacks.py",
           "handler_found": true,
-          "source_evidence": "Run 43 added Dragon matching in get_tool_damage_bonus and berry discard trigger handling in _apply_damage.",
+          "source_evidence": "Run 43 added Dragon matching in get_tool_damage_bonus plus berry discard handling in _apply_damage and _apply_bench_damage.",
           "semantic_checks": [
             "passive-tool",
             "damage-modifier-post-wr"
@@ -3308,36 +3308,72 @@
           "passed": true
         },
         {
-          "effect_name": "Haban Berry non-Dragon guard",
+          "effect_name": "Haban Berry non-Dragon active guard",
           "proof_type": "existing-test",
           "test_file": "backend/tests/test_engine/test_run43_fixes.py",
           "test_name": "test_haban_berry_non_dragon_attack_does_not_reduce_or_discard",
           "probe_name": null,
           "assertions": [
-            "non-Dragon damage is not reduced",
-            "the Berry is not discarded on non-Dragon damage"
+            "non-Dragon active damage is not reduced",
+            "the Berry is not discarded on non-Dragon active damage"
           ],
           "passed": true
         },
         {
-          "effect_name": "Haban Berry bench approximation",
+          "effect_name": "Haban Berry bench reduction",
           "proof_type": "existing-test",
           "test_file": "backend/tests/test_engine/test_run43_fixes.py",
-          "test_name": "test_haban_berry_bench_damage_is_not_reduced_or_discarded_in_current_engine",
+          "test_name": "test_haban_berry_reduces_dragon_bench_damage_and_discards_tool",
           "probe_name": null,
           "assertions": [
-            "current engine applies no Haban Berry reduction/discard on bench damage"
+            "reduces Dragon bench damage by 60",
+            "discards the Berry after Dragon bench damage"
           ],
           "passed": true
         },
         {
-          "effect_name": "Haban Berry Jamming Tower suppression",
+          "effect_name": "Haban Berry bench zero clamp",
+          "proof_type": "existing-test",
+          "test_file": "backend/tests/test_engine/test_run43_fixes.py",
+          "test_name": "test_haban_berry_bench_damage_clamps_at_zero_and_discards_tool",
+          "probe_name": null,
+          "assertions": [
+            "Dragon bench damage is clamped at 0",
+            "the Berry is discarded when the reduced bench damage reaches 0"
+          ],
+          "passed": true
+        },
+        {
+          "effect_name": "Haban Berry non-Dragon bench guard",
+          "proof_type": "existing-test",
+          "test_file": "backend/tests/test_engine/test_run43_fixes.py",
+          "test_name": "test_haban_berry_non_dragon_bench_damage_does_not_reduce_or_discard",
+          "probe_name": null,
+          "assertions": [
+            "non-Dragon bench damage is not reduced",
+            "the Berry is not discarded on non-Dragon bench damage"
+          ],
+          "passed": true
+        },
+        {
+          "effect_name": "Haban Berry Jamming Tower active suppression",
           "proof_type": "existing-test",
           "test_file": "backend/tests/test_engine/test_run43_fixes.py",
           "test_name": "test_jamming_tower_disables_haban_berry_reduction_and_discard",
           "probe_name": null,
           "assertions": [
-            "Jamming Tower prevents both reduction and discard trigger"
+            "Jamming Tower prevents both active reduction and discard trigger"
+          ],
+          "passed": true
+        },
+        {
+          "effect_name": "Haban Berry Jamming Tower bench suppression",
+          "proof_type": "existing-test",
+          "test_file": "backend/tests/test_engine/test_run43_fixes.py",
+          "test_name": "test_jamming_tower_disables_haban_berry_bench_reduction_and_discard",
+          "probe_name": null,
+          "assertions": [
+            "Jamming Tower prevents both bench reduction and discard trigger"
           ],
           "passed": true
         }
@@ -3345,7 +3381,7 @@
       "result": "fixed",
       "finding_counted": true,
       "confidence": "high",
-      "notes": "Haban Berry was registered to _noop but missing from the berry damage-reduction/discard hooks; run 43 added Dragon-type matching plus Jamming Tower-safe discard handling for the active-damage path. The current engine still treats passive Tool damage-reduction as an Active-only approximation, so Dragon bench damage does not reduce or discard Haban Berry; test coverage records that limitation explicitly."
+      "notes": "TCGDex effect text reviewed: 'If the Pok\u00e9mon this card is attached to is damaged by an attack from your opponent's {N} Pok\u00e9mon, it takes 60 less damage (after applying Weakness and Resistance), and discard this card.' Run 43 now applies Haban Berry to both active and bench damage from opponent Dragon Pok\u00e9mon, discards the Tool after bench or active triggering, clamps reduced bench damage at 0, and suppresses both effects under Jamming Tower."
     },
     {
       "seq": 52,
