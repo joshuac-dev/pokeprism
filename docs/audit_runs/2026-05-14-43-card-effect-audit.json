@@ -6630,5 +6630,5 @@
       "notes": "Registry mapping reviewed for svp-184; risky mechanics (damage-modifier-pre-wr, passive-ability) remain behaviorally unverified in this 100-card slice."
     }
   ],
-  "behavioral_accounting_note": "audit-quality-v4 behavioral_rows_verified counts only risky rows with result=no-issue or result=behavioral-unverified. The four fixed findings below include focused existing-test behavioral evidence, but they are intentionally excluded from the top-level behavioral coverage totals."
+  "behavioral_accounting_note": "audit-quality-v4 behavioral_rows_verified counts only risky rows with result=no-issue or result=behavioral-unverified. The fixed findings for Granite Cave, Gravity Gemstone, Haban Berry, and Hop's Choice Band include focused existing-test behavioral evidence, but they are intentionally excluded from the top-level behavioral coverage totals."
 }
