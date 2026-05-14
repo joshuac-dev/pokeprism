@@ -5,14 +5,14 @@ This file stores the rotating cursor for the DB-backed card effect audit workflo
 It does not define card text. It does not define the audit candidate set. The database defines audit scope, and TCGDex defines card behavior.
 
 ```text
-next_start_cursor: Farigiraf ex | TEF | 108 | sv05-108
+next_start_cursor: Glimmora | TWM | 109 | sv06-109
 last_run_status: CONTINUATION_REQUIRED
-last_run_date_utc: 2026-05-13
-last_pr: 65
-last_issue: Nightly DB-backed card effect implementation audit - 2026-05-13
-last_first_card_audited: Drifloon | MEP | 5 | mep-005
-last_card_fully_audited: Farigiraf | TWM | 84 | sv06-084
-notes: Run 40 (2026-05-13): CONTINUATION_REQUIRED — TCGDex preflight succeeded and 100 DB cards were audited from Drifloon | MEP | 5 | mep-005 through Farigiraf | TWM | 84 | sv06-084. Findings: fixes_implemented=0, engine_gaps_documented=0. Next run resumes at Farigiraf ex | TEF | 108 | sv05-108. Report at docs/audit_runs/2026-05-13-40-card-effect-audit.json.
+last_run_date_utc: 2026-05-14
+last_pr: 66
+last_issue: Nightly DB-backed card effect implementation audit - 2026-05-14
+last_first_card_audited: Farigiraf ex | TEF | 108 | sv05-108
+last_card_fully_audited: Glimmora | SSP | 115 | sv08-115
+notes: Run 42 (2026-05-14): CONTINUATION_REQUIRED — TCGDex preflight succeeded and 100 DB cards were audited from Farigiraf ex | TEF | 108 | sv05-108 through Glimmora | SSP | 115 | sv08-115. Findings: fixes_implemented=0, engine_gaps_documented=0. Behavioral accounting: required=69, verified=0, unverified=69. Next run resumes at Glimmora | TWM | 109 | sv06-109. Report at docs/audit_runs/2026-05-14-42-card-effect-audit.json.
 ```
 
 ## Cursor rules
