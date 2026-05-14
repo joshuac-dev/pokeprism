@@ -63,7 +63,7 @@ merged PR history support that it actually landed.
   SET status         = 'complete',
       rounds_completed = 100,
       total_matches    = 4900,
-      final_win_rate   = 22,
+      final_win_rate   = 29,
       error_message    = NULL,
       completed_at     = '2026-05-14 00:21:27+00'
   WHERE id = '6f79689d-4ea7-4c1a-819d-fdec34b37f8b'
