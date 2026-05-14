@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-13 (removed artificial 100-round simulation limit)
+Last updated: 2026-05-14 (fix simulation task re-delivery on long runs)
 
 ## Current Workstream
 
@@ -39,6 +39,20 @@ post-phase development:
   and `FULL_CYCLE_COMPLETE` are rejected when risky rows are behaviorally
   unverified; `CONTINUATION_REQUIRED` may carry unverified risky rows only with
   explicit behavioral accounting and non-high confidence.
+
+**Simulation task re-delivery fix (2026-05-14):**
+- Root cause: `task_acks_late=True` + Redis default visibility timeout (3600 s) + simulation
+  running >1 h caused the broker to redeliver the task while the original was still running
+  (or just completing). On redelivery the existing guards only skipped `"cancelled"` and
+  `"running"` states, so a sim row already in `"complete"` was silently reset to `"running"`,
+  had its rounds replayed, and was then marked `"failed"` when the coach-mutation guard fired
+  on round 2.
+- Fix 1: `_run_simulation_async` now returns immediately (`skipped_complete` / `skipped_failed`)
+  for any terminal-state simulation without touching DB data.
+- Fix 2: `celery_app.py` sets `broker_transport_options={"visibility_timeout": 86400}` (24 h).
+- 2 regression tests added to `test_simulation_task.py`.
+- Affected sim `6f79689d` — all 4900 matches intact; DB repair SQL in CHANGELOG.
+- Deploy: `docker compose up -d --build celery-worker celery-beat` after merging.
 
 **Nightly H/H simulation lifecycle fix (2026-05-13):**
 - Root cause: `_run_scheduled_hh_async` called `run_hh_batch(persist=True)` which created a bare

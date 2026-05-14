@@ -284,6 +284,71 @@ class TestRedisEventPublishing:
         assert channel == f"simulation:{simulation_id}"
         assert json.loads(raw_payload)["type"] == "simulation_cancelled"
 
+    async def _make_terminal_state_mocks(self, status: str, mock_engine_cls, mock_sm_cls):
+        """Helper: set up mocks so the sim row returns the given terminal status."""
+        mock_sim = MagicMock()
+        mock_sim.status = status
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_sim
+
+        mock_session = AsyncMock()
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=False)
+        mock_session.execute = AsyncMock(return_value=mock_result)
+        mock_session.commit = AsyncMock()
+        mock_sm_cls.return_value.return_value = mock_session
+
+        mock_eng_instance = MagicMock()
+        mock_eng_instance.dispose = AsyncMock()
+        mock_engine_cls.return_value = mock_eng_instance
+        return mock_sim, mock_session
+
+    async def test_complete_simulation_skips_redelivered_task(
+        self, simulation_id, mock_redis
+    ):
+        """Re-delivered task for an already-complete simulation must bail immediately.
+
+        Regression: task_acks_late=True + Redis visibility_timeout < sim duration
+        caused the broker to redeliver a task that had already completed.  The
+        re-delivery previously reset status to 'running', replayed rounds, found
+        persisted coach mutations, and marked the sim as 'failed'.
+        """
+        with patch("app.tasks.simulation.create_async_engine") as mock_engine, \
+             patch("app.tasks.simulation.async_sessionmaker") as mock_sm:
+
+            mock_sim, mock_session = await self._make_terminal_state_mocks(
+                "complete", mock_engine, mock_sm
+            )
+
+            from app.tasks.simulation import _run_simulation_async
+            result = await _run_simulation_async(None, simulation_id)
+
+        assert result == {"status": "skipped_complete"}
+        assert mock_sim.status == "complete", "status must not be overwritten to 'running'"
+        mock_session.commit.assert_not_awaited()
+
+    async def test_failed_simulation_skips_redelivered_task(
+        self, simulation_id, mock_redis
+    ):
+        """Re-delivered task for an already-failed simulation must bail immediately.
+
+        Prevents silent re-execution of a failed sim without explicit operator
+        action (creating a new simulation row).
+        """
+        with patch("app.tasks.simulation.create_async_engine") as mock_engine, \
+             patch("app.tasks.simulation.async_sessionmaker") as mock_sm:
+
+            mock_sim, mock_session = await self._make_terminal_state_mocks(
+                "failed", mock_engine, mock_sm
+            )
+
+            from app.tasks.simulation import _run_simulation_async
+            result = await _run_simulation_async(None, simulation_id)
+
+        assert result == {"status": "skipped_failed"}
+        assert mock_sim.status == "failed", "status must not be overwritten to 'running'"
+        mock_session.commit.assert_not_awaited()
+
     async def test_error_publishes_simulation_error_event(
         self, simulation_id, mock_redis
     ):

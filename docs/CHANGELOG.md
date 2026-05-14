@@ -30,6 +30,52 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+- **Fix simulation task re-delivery after long run — 2026-05-14** —
+  `task_acks_late=True` + Redis default visibility timeout (3600 s = 1 h) caused the
+  broker to redeliver a simulation task that had already completed when the run took
+  longer than 1 hour.  The re-delivered task found no guard for the `"complete"` status,
+  reset the row to `"running"`, replayed rounds 1–2, found persisted coach mutations on
+  round 2, and marked the simulation `"failed"` (corrupting `rounds_completed` and
+  `total_matches`).
+
+  Fixes:
+  - `backend/app/tasks/simulation.py`: added terminal-state guards in
+    `_run_simulation_async` — if the simulation row is already `"complete"` or
+    `"failed"` when the task starts, return immediately
+    (`{"status": "skipped_complete"}` / `{"status": "skipped_failed"}`) without
+    touching any data.
+  - `backend/app/tasks/celery_app.py`: set
+    `broker_transport_options={"visibility_timeout": 86400}` (24 h) so
+    long-running tasks are never redelivered before they finish and can be
+    acknowledged.
+  - 2 regression tests added:
+    `test_complete_simulation_skips_redelivered_task`,
+    `test_failed_simulation_skips_redelivered_task` in
+    `backend/tests/test_tasks/test_simulation_task.py`.
+  - Affected simulation `6f79689d-4ea7-4c1a-819d-fdec34b37f8b` ("Pikachu ex Deck",
+    100 rounds): all 4900 match records intact; DB repair SQL below.
+  - Confidence: High.
+
+  **DB repair SQL** (run once after deploying this fix):
+  ```sql
+  -- Restore the simulation row to its true completed state.
+  UPDATE simulations
+  SET status         = 'complete',
+      rounds_completed = 100,
+      total_matches    = 4900,
+      final_win_rate   = 22,
+      error_message    = NULL,
+      completed_at     = '2026-05-14 00:21:27+00'
+  WHERE id = '6f79689d-4ea7-4c1a-819d-fdec34b37f8b'
+    AND status = 'failed';
+
+  -- Remove the spurious round-1 DeckMutation created by the re-delivered run
+  -- (the original run produced no mutation for round 1).
+  DELETE FROM deck_mutations
+  WHERE simulation_id = '6f79689d-4ea7-4c1a-819d-fdec34b37f8b'
+    AND round_number  = 1;
+  ```
+
 - **Remove artificial 100-round simulation cap — 2026-05-13** —
   The UI and API previously rejected any simulation with more than 100 rounds.
   Removed the hard upper limit everywhere it existed:
