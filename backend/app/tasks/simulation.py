@@ -782,6 +782,26 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                 logger.info("Simulation %s was cancelled before worker start", simulation_id)
                 _publish({"type": "simulation_cancelled", "simulation_id": simulation_id})
                 return {"status": "cancelled"}
+            if sim.status == "complete":
+                # Task re-delivery: acks_late=True means the broker can redeliver a
+                # long-running task (e.g. >Redis visibility_timeout) before it is
+                # acknowledged.  The original run already finished successfully, so
+                # this re-delivery must not overwrite the completed state.
+                logger.warning(
+                    "Simulation %s is already complete — skipping re-delivered task "
+                    "(task_acks_late + broker visibility_timeout race)",
+                    simulation_id,
+                )
+                return {"status": "skipped_complete"}
+            if sim.status == "failed":
+                # Similarly, a failed simulation must not be silently re-run by a
+                # re-delivered task.  Explicit operator action (new simulation row)
+                # is required to retry a failed run.
+                logger.warning(
+                    "Simulation %s is already in failed state — skipping re-delivered task",
+                    simulation_id,
+                )
+                return {"status": "skipped_failed"}
             if sim.status == "running":
                 # Duplicate delivery: another worker (or Redis redelivery after stale
                 # recovery) started this task while the original was already running.

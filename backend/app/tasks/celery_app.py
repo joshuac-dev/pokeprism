@@ -20,6 +20,11 @@ celery_app.conf.update(
     task_track_started=True,
     task_acks_late=True,
     worker_prefetch_multiplier=1,
+    # Simulations can run for several hours.  The default Redis visibility
+    # timeout (3600 s) causes the broker to redeliver the task before it is
+    # acknowledged when acks_late=True.  Set a generous 24-hour window so
+    # long-running tasks are never redelivered while still running.
+    broker_transport_options={"visibility_timeout": 86400},
 )
 
 celery_app.conf.beat_schedule = {
