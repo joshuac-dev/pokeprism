@@ -671,6 +671,9 @@ class ActionValidator:
 
         cdef = card_registry.get(player.active.card_def_id)
         retreat_cost = cdef.retreat_cost if cdef else 0
+        tools_suppressed = bool(
+            state.active_stadium and state.active_stadium.card_def_id == "sv06-153"
+        )
         # Drum Beating (sv06-016): extra Colorless retreat cost from opponent's Drum Beating
         retreat_cost += player.active.extra_retreat_cost
         # Paradise Resort (svp-150 / svp-224): Psyduck retreat cost reduced by 1
@@ -684,6 +687,12 @@ class ActionValidator:
                 and any(p.card_def_id == "sv06-005"
                         for p in ([opp_bignet.active] if opp_bignet.active else []) + opp_bignet.bench)):
             retreat_cost += 1
+        if not tools_suppressed:
+            retreat_cost += sum(
+                1
+                for active in (state.p1.active, state.p2.active)
+                if active and "sv07-137" in active.tools_attached
+            )
         if not _can_pay_retreat(player.active, retreat_cost, state, player_id):  # Rule 7
             return []
 
@@ -934,7 +943,9 @@ class ActionValidator:
                 if player.active.status_conditions:
                     effective_cost = []
             # Hop's Choice Band (sv09-148): Hop's Pokémon attacks cost {C} less
-            if (player.active and "sv09-148" in player.active.tools_attached
+            if (player.active
+                    and not (state.active_stadium and state.active_stadium.card_def_id == "sv06-153")
+                    and "sv09-148" in player.active.tools_attached
                     and "Hop's" in (player.active.card_name or "")):
                 if "Colorless" in effective_cost:
                     effective_cost.remove("Colorless")

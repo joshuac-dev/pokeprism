@@ -214,6 +214,14 @@ def _apply_damage(
         total += attacker.next_attack_damage_bonus
         attacker.next_attack_damage_bonus = 0
 
+    # Hop's Choice Band (sv09-148): attached Hop's Pokémon do +30 damage to
+    # the opponent's Active before Weakness and Resistance.
+    if not (state.active_stadium and state.active_stadium.card_def_id == "sv06-153"):
+        if has_tool(attacker, "sv09-148") and "Hop's" in attacker.card_name:
+            total += 30
+            state.emit_event("hops_choice_band_bonus", player=action.player_id,
+                             attacker=attacker.card_name, amount=30)
+
     # Compound Eyes (sv06.5-002 Galvantula): +50 when Galvantula attacks a defender with an Ability
     if attacker.card_def_id == "sv06.5-002":
         _def_cdef_ce = card_registry.get(defender.card_def_id)
@@ -278,6 +286,12 @@ def _apply_damage(
                 state.emit_event("damage_prevented", card=defender.card_name,
                                  reason="armor_tail")
                 return 0
+
+    # Granite Cave (sv10-166): Steven's Pokémon take 30 less damage from attacks.
+    if (state.active_stadium
+            and state.active_stadium.card_def_id == "sv10-166"
+            and defender.card_name.startswith("Steven's")):
+        total = max(0, total - 30)
         # C.O.D.E.: Protect (sv08-069 Miraidon): Future Pokémon immune to ex damage next turn
         if (opp.future_effect_immunity and _is_future(defender)
                 and cdef and cdef.is_ex):
@@ -747,13 +761,15 @@ def _apply_damage(
         state.emit_event("tr_hypnotizer_triggered", player=opp_id, attacker=attacker.card_name)
 
     # Matching berries: reduce damage and discard after being triggered by the correct type
-    if total > 0 and attacker_def:
+    if (total > 0 and attacker_def
+            and not (state.active_stadium and state.active_stadium.card_def_id == "sv06-153")):
         berry_type_map = {
             "sv07-140": "Fire",
             "sv07-141": "Psychic",
             "sv08-163": "Metal",
             "sv08-168": "Darkness",
             "sv08-184": "Water",
+            "sv08.5-111": "Dragon",
         }
         for tool_id, type_name in berry_type_map.items():
             if tool_id in defender.tools_attached and type_name in (attacker_def.types or []):
@@ -841,6 +857,14 @@ def _apply_bench_damage(
         damage = max(0, damage - 60)
         if damage <= 0:
             state.emit_event("curly_wall_blocked", player=target_player_id,
+                             card=target.card_name)
+            return
+    if (state.active_stadium
+            and state.active_stadium.card_def_id == "sv10-166"
+            and target.card_name.startswith("Steven's")):
+        damage = max(0, damage - 30)
+        if damage <= 0:
+            state.emit_event("bench_damage_blocked", reason="granite_cave",
                              card=target.card_name)
             return
     # So Submerged (sv10-048 Misty's Magikarp): prevent all damage to this benched Magikarp

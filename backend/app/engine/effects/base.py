@@ -870,10 +870,6 @@ def get_tool_damage_bonus(
         if StatusCondition.POISONED in attacker.status_conditions:
             bonus += 40
 
-    # Hop's Choice Band (sv09-148): Hop's Pokémon do +30 damage to opponent's Active
-    if has_tool(attacker, "sv09-148") and "Hop's" in attacker.card_name:
-        bonus += 30
-
     # Payapa Berry (sv07-141): -60 from Psychic attacks
     if has_tool(defender, "sv07-141"):
         attacker_def = card_registry.get(attacker.card_def_id)
@@ -902,6 +898,12 @@ def get_tool_damage_bonus(
     if has_tool(defender, "sv08-168"):
         attacker_def = card_registry.get(attacker.card_def_id)
         if attacker_def and "Darkness" in (attacker_def.types or []):
+            bonus -= 60
+
+    # Haban Berry (sv08.5-111): -60 from Dragon attacks
+    if has_tool(defender, "sv08.5-111"):
+        attacker_def = card_registry.get(attacker.card_def_id)
+        if attacker_def and "Dragon" in (attacker_def.types or []):
             bonus -= 60
 
     # Sacred Charm (me02-093): -30 from Pokémon with an Ability
