@@ -534,9 +534,64 @@ async def _round_has_persisted_mutations(
         select(func.count(DeckMutation.id)).where(
             DeckMutation.simulation_id == simulation_id,
             DeckMutation.round_number == round_number,
+            DeckMutation.status == "applied",
         )
     )).scalar() or 0
     return count > 0
+
+
+async def _persist_applied_mutations(
+    session_factory: async_sessionmaker,
+    sim_uuid: uuid.UUID,
+    applied_mutations: list[dict],
+) -> None:
+    """Write only the mutations that _apply_mutations actually committed.
+
+    Each entry in *applied_mutations* must have at minimum:
+    ``round_number``, ``card_removed``, ``card_added``.
+    Status is set to ``'applied'`` unconditionally.
+    """
+    if not applied_mutations:
+        return
+    async with session_factory() as db:
+        db.add_all(
+            DeckMutation(
+                simulation_id=sim_uuid,
+                round_number=m["round_number"],
+                card_removed=m["card_removed"],
+                card_added=m["card_added"],
+                reasoning=m.get("reasoning"),
+                evidence=m.get("evidence"),
+                observed_play_meta=m.get("observed_play_meta"),
+                status="applied",
+            )
+            for m in applied_mutations
+        )
+        await db.commit()
+
+
+async def _mark_mutations_reverted(
+    session_factory: async_sessionmaker,
+    sim_uuid: uuid.UUID,
+    after_round: int,
+) -> None:
+    """Mark applied mutations from rounds after *after_round* as 'reverted'.
+
+    Called when the simulation rolls back to the best-known deck because of
+    two consecutive win-rate regressions.  Mutations persisted before the
+    best-deck checkpoint are unaffected.
+    """
+    async with session_factory() as db:
+        await db.execute(
+            update(DeckMutation)
+            .where(
+                DeckMutation.simulation_id == sim_uuid,
+                DeckMutation.round_number > after_round,
+                DeckMutation.status == "applied",
+            )
+            .values(status="reverted")
+        )
+        await db.commit()
 
 
 from app.tasks.celery_app import celery_app  # noqa: E402
@@ -870,6 +925,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
         prev_win_rate: int | None = None
         consecutive_regressions: int = 0
         best_win_rate: int = -1
+        best_win_rate_round: int = 0  # round whose pre-mutation deck produced best_win_rate
         best_deck_text: str = current_deck_text
         best_deck_cards: list = list(current_deck_cards)
         win_rate_history: list[int] = []       # one entry per completed round
@@ -1161,6 +1217,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
             # Capture best deck BEFORE coaching (deck that produced win_rate_pct)
             if win_rate_pct > best_win_rate:
                 best_win_rate = win_rate_pct
+                best_win_rate_round = round_number
                 best_deck_text = current_deck_text
                 best_deck_cards = list(current_deck_cards)
                 best_p1_deck_id = current_p1_deck_id
@@ -1223,6 +1280,10 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                         current_p1_deck_id = best_p1_deck_id
                         consecutive_regressions = 0
                         was_reverted = True
+                        # Mark applied mutations from after the best checkpoint as reverted
+                        await _mark_mutations_reverted(
+                            SessionFactory, sim_uuid, best_win_rate_round
+                        )
                         _publish({
                             "type": "deck_reverted",
                             "simulation_id": simulation_id,
@@ -1254,8 +1315,12 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                             await db.commit()
 
                         prev_deck_text = current_deck_text
-                        current_deck_cards, current_deck_text = _apply_mutations(
+                        current_deck_cards, current_deck_text, applied_mutations = _apply_mutations(
                             current_deck_cards, current_deck_text, mutations
+                        )
+                        # Persist only mutations that _apply_mutations actually committed
+                        await _persist_applied_mutations(
+                            SessionFactory, sim_uuid, applied_mutations
                         )
                         mutations_for_event = [
                             {
@@ -1264,7 +1329,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                                 "reasoning": m.get("reasoning"),
                                 "evidence": m.get("evidence", []),
                             }
-                            for m in mutations
+                            for m in applied_mutations
                         ]
                         # If mutations actually changed the deck, create a run-specific
                         # working deck clone so the original user deck remains immutable.
@@ -1689,20 +1754,27 @@ def _apply_mutations(
     current_deck: list,
     current_deck_text: str,
     mutations: list[dict],
-) -> tuple[list, str]:
-    """Apply analyst mutations to the in-memory deck and return updated (deck, deck_text).
+) -> tuple[list, str, list[dict]]:
+    """Apply analyst mutations to the in-memory deck and return updated state.
 
     Each mutation must carry a ``card_added_def`` (a real CardDefinition from the
     candidate pool).  Mutations with a missing or None def are skipped so that
     placeholder cards never enter the live deck.  When the original deck is
     exactly 60 cards the result is also validated for 60-card count and copy
     limits; if validation fails the original deck is returned unchanged.
+
+    Returns:
+        (new_deck, new_deck_text, applied_mutations) where ``applied_mutations``
+        is the subset of *mutations* that were actually committed to the deck.
+        Callers must persist **only** these rows to ``deck_mutations``; skipped
+        entries must never appear as applied in the DB.
     """
     import logging as _logging
     _log = _logging.getLogger(__name__)
 
     original_size = len(current_deck)
     new_deck = list(current_deck)
+    applied: list[dict] = []
     for mutation in mutations:
         remove_id = mutation.get("card_removed")
         add_id = mutation.get("card_added")
@@ -1736,6 +1808,7 @@ def _apply_mutations(
             )
             continue
         new_deck.append(new_card)
+        applied.append(mutation)
 
     # Validate legality when the original was a full 60-card deck
     if original_size == 60:
@@ -1745,7 +1818,7 @@ def _apply_mutations(
                 "Post-mutation deck failed legality (%s) — reverting to original deck.",
                 "; ".join(errors[:3]),
             )
-            return current_deck, current_deck_text
+            return current_deck, current_deck_text, []
 
     counts: dict[str, tuple[str, int]] = {}
     for card in new_deck:
@@ -1758,7 +1831,7 @@ def _apply_mutations(
     new_deck_text = "\n".join(
         f"{cnt} {name} {tid}" for tid, (name, cnt) in sorted(counts.items())
     )
-    return new_deck, new_deck_text
+    return new_deck, new_deck_text, applied
 
 
 def _get_player_classes(game_mode: str) -> tuple:

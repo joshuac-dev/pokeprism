@@ -334,6 +334,9 @@ class DeckMutation(Base):
     reasoning     = Column(Text)
     evidence      = Column(JSONB)
     observed_play_meta = Column(JSONB)
+    # 'applied'  – mutation changed the deck and survived to the final state.
+    # 'reverted' – mutation was applied temporarily but undone by a reversion.
+    status        = Column(Text, nullable=False, server_default="applied")
     created_at    = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
 

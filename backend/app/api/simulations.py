@@ -774,7 +774,12 @@ async def get_simulation_mutations(
     simulation_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> list[dict]:
-    """Return all deck mutations for a simulation."""
+    """Return applied deck mutations for a simulation.
+
+    Only rows with ``status='applied'`` are returned.  Reverted mutations
+    (deck rolled back due to consecutive regressions) are excluded so the
+    log reflects the actual net deck changes.
+    """
     try:
         sim_uuid = __import__("uuid").UUID(simulation_id)
     except ValueError:
@@ -782,7 +787,10 @@ async def get_simulation_mutations(
 
     rows = (await db.execute(
         select(DeckMutation)
-        .where(DeckMutation.simulation_id == sim_uuid)
+        .where(
+            DeckMutation.simulation_id == sim_uuid,
+            DeckMutation.status == "applied",
+        )
         .order_by(DeckMutation.round_number, DeckMutation.created_at)
     )).scalars().all()
 
@@ -810,6 +818,7 @@ async def get_simulation_mutations(
             "card_added": label(m.card_added),
             "reasoning": m.reasoning,
             "evidence": m.evidence or [],
+            "status": m.status,
             "created_at": m.created_at.isoformat() if m.created_at else None,
         }
         for m in rows
