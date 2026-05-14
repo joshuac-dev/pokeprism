@@ -139,6 +139,18 @@ merged PR history support that it actually landed.
     behavioral accounting, and behavioral-unverified completion-status rules.
   - Confidence: High.
 
+- **DB-backed card audit run 42 — 2026-05-14 — CONTINUATION_REQUIRED** —
+  Audited 100 cards (Farigiraf ex | TEF | 108 | sv05-108 through
+  Glimmora | SSP | 115 | sv08-115). TCGDex preflight OK (100/100 fetched).
+  No fixable engine gaps found in this slice
+  (fixes_implemented=0, engine_gaps_documented=0). Stopping with
+  CONTINUATION_REQUIRED (>=100 cards audited; target of 25 findings not
+  reached). Next run resumes at Glimmora | TWM | 109 | sv06-109.
+  Behavioral accounting (v4): required=71, verified=0, unverified=71,
+  coverage=0.0. Report:
+  `docs/audit_runs/2026-05-14-42-card-effect-audit.json`.
+  Confidence: High.
+
 - **DB-backed card audit run 40 — 2026-05-13 — CONTINUATION_REQUIRED** —
   Audited 100 cards (Drifloon | MEP | 5 | mep-005 through
   Farigiraf | TWM | 84 | sv06-084). TCGDex preflight OK. No fixable engine
