@@ -89,10 +89,12 @@ class CoachAnalyst:
         excluded_ids: list[str] | None = None,
         regression_info: dict | None = None,
     ) -> list[dict]:
-        """Analyze *round_results* and return a list of applied swap dicts.
+        """Analyze *round_results* and return a list of candidate swap dicts.
 
-        Each swap dict: {remove, add, reasoning, round_number, simulation_id}.
-        Mutations are written to the DB before returning.
+        Each swap dict: {card_removed, card_added, reasoning, round_number,
+        card_added_def, evidence, observed_play_meta}.
+        Mutations are NOT written to the DB here; the caller is responsible for
+        persisting only the mutations that _apply_mutations actually applies.
 
         Args:
             excluded_ids: Card IDs that must never be suggested as additions
@@ -223,8 +225,6 @@ class CoachAnalyst:
             mutations.append(mutation)
             await self._graph.record_swap(removed, added, round_number, reasoning)
 
-        if mutations:
-            await self._write_mutations(mutations, simulation_id)
         if op_meta is not None:
             await self._write_sim_observed_play_meta(
                 simulation_id=simulation_id,

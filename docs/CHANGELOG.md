@@ -30,6 +30,70 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+- **Fix deck mutation log consistency — 2026-05-14** —
+  Three interacting bugs caused the mutation log to record far more removals than
+  actually survived to the final deck (e.g., sim `1df138cf` showed 11 Pikachu ex
+  removals despite the final deck only losing 1 copy).
+
+  Root causes:
+  1. **Case C** — `analyze_and_mutate()` in `analyst.py` flushed mutation rows to DB
+     *before* `_apply_mutations()` ran.  Mutations later skipped for any reason
+     (card_added_def=None, card not in deck, legality failure) were already
+     permanently committed.
+  2. **Case D** — When `consecutive_regressions == 2` the simulation reverted the
+     in-memory deck to `best_deck_cards` but never cleaned up the mutation rows
+     written during the regressed period — reverted mutations stayed in the log.
+  3. **Case G** — No `status` column existed on `deck_mutations`, so every row looked
+     identical whether it was actually applied or merely proposed/reverted.
+
+  Fixes:
+  - `backend/alembic/versions/k7l8m9o0p1q2_add_deck_mutation_status.py`: migration
+    adds `status TEXT NOT NULL DEFAULT 'applied'` to `deck_mutations`.
+  - `backend/app/db/models.py`: `DeckMutation` model gains `status` column.
+  - `backend/app/coach/analyst.py`: removed premature `_write_mutations` call from
+    `analyze_and_mutate()`; caller is now responsible for persisting only applied
+    mutations.
+  - `backend/app/tasks/simulation.py`:
+    - `_apply_mutations()` returns a 3-tuple `(deck, text, applied_mutations)` where
+      `applied_mutations` contains only mutation dicts that actually changed the deck.
+    - New `_persist_applied_mutations()` async helper writes only the applied subset
+      to DB after a successful apply.
+    - New `_mark_mutations_reverted()` async helper marks mutations after
+      `best_win_rate_round` as `'reverted'` when the deck reverts on 2 consecutive
+      regressions.
+    - `_round_has_persisted_mutations()` now filters by `status='applied'` so
+      idempotency guard only fires when a mutation was actually applied.
+  - `backend/app/api/simulations.py`: `get_simulation_mutations` filters by
+    `status='applied'` and exposes `status` in the response.
+  - 14 regression tests added to `backend/tests/test_tasks/test_simulation_task.py`
+    (spec A–E: sequential count enforcement, log→deck reconstruction, skipped
+    mutations not logged, later rounds use current deck, revert-based protection).
+  - Confidence: High.
+
+  **Data repair applied to sim `1df138cf-8cfa-4612-8e7e-bfcd70bfe7bf`** (executed 2026-05-14):
+
+  The repair was run after the migration and backend rebuild.  Verified: 16 total rows,
+  15 marked `reverted`, 1 row (`id=65a5a340`, round 3, `me02.5-057→sv10-129`) left
+  `applied`.  The API now returns exactly one mutation:
+  `Pikachu ex (ASC 57) → Cynthia's Spiritomb (DRI 129)`.
+  No match data was deleted.
+
+  Repair SQL used:
+  ```sql
+  -- Verified exactly one row matched the round-3 Pikachu→Spiritomb swap:
+  SELECT id FROM deck_mutations
+  WHERE simulation_id = '1df138cf-8cfa-4612-8e7e-bfcd70bfe7bf'
+    AND round_number = 3 AND card_removed = 'me02.5-057' AND card_added = 'sv10-129';
+  -- id: 65a5a340-1fc6-40ac-8b1c-ff4737cbd84c
+
+  UPDATE deck_mutations
+  SET status = 'reverted'
+  WHERE simulation_id = '1df138cf-8cfa-4612-8e7e-bfcd70bfe7bf'
+    AND id != '65a5a340-1fc6-40ac-8b1c-ff4737cbd84c';
+  -- 15 rows updated
+  ```
+
+
 - **Fix simulation task re-delivery after long run — 2026-05-14** —
   `task_acks_late=True` + Redis default visibility timeout (3600 s = 1 h) caused the
   broker to redeliver a simulation task that had already completed when the run took

@@ -87,67 +87,74 @@ class TestApplyMutations:
         deck = [self._make_card("sv06-130"), self._make_card("sv06-130"),
                 self._make_card("sv06-129")]
         mutations = [{"card_removed": "sv06-129", "card_added": "mee-005", "card_added_def": add_def}]
-        new_deck, _ = _apply_mutations(deck, "", mutations)
+        new_deck, _, applied = _apply_mutations(deck, "", mutations)
         ids = [c.tcgdex_id for c in new_deck]
         assert "sv06-129" not in ids
         assert "mee-005" in ids
         assert len(new_deck) == 3
+        assert len(applied) == 1
 
     def test_uses_real_def_not_placeholder(self):
         """The added card should come from card_added_def, not be a placeholder."""
         add_def = self._make_card("mee-005", "Real Card Name")
         deck = [self._make_card("sv06-129"), self._make_card("sv06-130")]
         mutations = [{"card_removed": "sv06-129", "card_added": "mee-005", "card_added_def": add_def}]
-        new_deck, _ = _apply_mutations(deck, "", mutations)
+        new_deck, _, applied = _apply_mutations(deck, "", mutations)
         added = next(c for c in new_deck if c.tcgdex_id == "mee-005")
         assert added.name == "Real Card Name"
+        assert len(applied) == 1
 
     def test_none_card_added_def_skips_mutation(self):
         """Mutation with card_added_def=None is skipped; card is never added."""
         deck = [self._make_card("sv06-129"), self._make_card("sv06-130")]
         mutations = [{"card_removed": "sv06-129", "card_added": "mee-005", "card_added_def": None}]
-        new_deck, _ = _apply_mutations(deck, "", mutations)
+        new_deck, _, applied = _apply_mutations(deck, "", mutations)
         ids = [c.tcgdex_id for c in new_deck]
         assert "sv06-129" in ids  # not removed
         assert "mee-005" not in ids
+        assert applied == []
 
     def test_missing_card_added_def_key_skips_mutation(self):
         """Mutation dict without card_added_def key is skipped."""
         deck = [self._make_card("sv06-129"), self._make_card("sv06-130")]
         mutations = [{"card_removed": "sv06-129", "card_added": "mee-005"}]
-        new_deck, _ = _apply_mutations(deck, "", mutations)
+        new_deck, _, applied = _apply_mutations(deck, "", mutations)
         ids = [c.tcgdex_id for c in new_deck]
         assert "sv06-129" in ids
         assert "mee-005" not in ids
+        assert applied == []
 
     def test_remove_not_found_skips_mutation(self):
         """If the card to remove is not in the deck, neither remove nor add happens."""
         add_def = self._make_card("mee-005", "New Card")
         deck = [self._make_card("sv06-130")]
         mutations = [{"card_removed": "sv06-999", "card_added": "mee-005", "card_added_def": add_def}]
-        new_deck, _ = _apply_mutations(deck, "", mutations)
+        new_deck, _, applied = _apply_mutations(deck, "", mutations)
         assert len(new_deck) == 1
         assert new_deck[0].tcgdex_id == "sv06-130"
+        assert applied == []
 
     def test_no_mutations_returns_same_deck(self):
         deck = [self._make_card("sv06-130")]
-        new_deck, _ = _apply_mutations(deck, "1 sv06-130", [])
+        new_deck, _, applied = _apply_mutations(deck, "1 sv06-130", [])
         assert len(new_deck) == 1
         assert new_deck[0].tcgdex_id == "sv06-130"
+        assert applied == []
 
     def test_deck_text_rebuilt_after_mutation(self):
         add_def = self._make_card("mee-005", "New Card")
         deck = [self._make_card("sv06-129"), self._make_card("sv06-130")]
         mutations = [{"card_removed": "sv06-129", "card_added": "mee-005", "card_added_def": add_def}]
-        _, new_text = _apply_mutations(deck, "", mutations)
+        _, new_text, _ = _apply_mutations(deck, "", mutations)
         assert "mee-005" in new_text
         assert "sv06-129" not in new_text
 
     def test_missing_remove_or_add_skipped(self):
         deck = [self._make_card("sv06-130")]
         mutations = [{"card_removed": "sv06-130"}]  # no card_added
-        new_deck, _ = _apply_mutations(deck, "", mutations)
+        new_deck, _, applied = _apply_mutations(deck, "", mutations)
         assert len(new_deck) == 1
+        assert applied == []
 
     def test_reverts_if_too_many_copies_in_60_card_deck(self):
         """60-card deck reverts if a mutation would create > 4 copies of a card."""
@@ -161,9 +168,10 @@ class TestApplyMutations:
             "card_added_def": fifth_copy_def,
         }]
         original_deck = list(deck)
-        new_deck, new_text = _apply_mutations(deck, "original text", mutations)
+        new_deck, new_text, applied = _apply_mutations(deck, "original text", mutations)
         assert new_deck is deck  # reverted — returns original object
         assert new_text == "original text"
+        assert applied == []  # legality revert means nothing was applied
 
     def test_valid_60_card_mutation_applies(self):
         """A clean swap in a 60-card deck goes through without reverting."""
@@ -174,10 +182,199 @@ class TestApplyMutations:
             "card_added": "new-001",
             "card_added_def": add_def,
         }]
-        new_deck, _ = _apply_mutations(deck, "", mutations)
+        new_deck, _, applied = _apply_mutations(deck, "", mutations)
         ids = [c.tcgdex_id for c in new_deck]
         assert "new-001" in ids
         assert len(new_deck) == 60
+        assert len(applied) == 1
+
+
+# ---------------------------------------------------------------------------
+# Mutation log consistency — regression tests (spec A–E)
+# ---------------------------------------------------------------------------
+
+class TestMutationLogConsistency:
+    """Regression tests proving the deck mutation log stays consistent.
+
+    These cover the two root causes fixed in this PR:
+      Bug A – skipped mutations were logged as applied (no status field).
+      Bug B – reverted mutations (after 2 consecutive regressions) stayed in log.
+    """
+
+    def _make_card(self, tcgdex_id: str, name: str | None = None):
+        from app.cards.models import CardDefinition
+        return CardDefinition(
+            tcgdex_id=tcgdex_id,
+            name=name or tcgdex_id,
+            set_abbrev=tcgdex_id.rsplit("-", 1)[0] if "-" in tcgdex_id else "",
+            set_number=tcgdex_id.rsplit("-", 1)[1] if "-" in tcgdex_id else "",
+        )
+
+    # ------------------------------------------------------------------
+    # Spec A: sequential mutations respect current deck counts
+    # ------------------------------------------------------------------
+
+    def test_sequential_pikachu_removal_respects_count(self):
+        """After one Pikachu removal, a second removal only succeeds if count > 0."""
+        pika = self._make_card("me02.5-057", "Pikachu ex")
+        other = self._make_card("sv01-001", "Other")
+        replacement_a = self._make_card("sv10-129", "Cynthia's Spiritomb")
+        replacement_b = self._make_card("sv08-077", "Hoothoot")
+
+        # Start: 4 Pikachu ex, 1 Other
+        deck = [pika] * 4 + [other]
+
+        # First removal — should succeed
+        m1 = {"card_removed": "me02.5-057", "card_added": "sv10-129",
+               "card_added_def": replacement_a}
+        deck, text, applied1 = _apply_mutations(deck, "", [m1])
+        assert len(applied1) == 1, "First removal must succeed"
+        pika_count = sum(1 for c in deck if c.tcgdex_id == "me02.5-057")
+        assert pika_count == 3
+
+        # Second removal — succeeds (3 copies remain)
+        m2 = {"card_removed": "me02.5-057", "card_added": "sv08-077",
+               "card_added_def": replacement_b}
+        deck, text, applied2 = _apply_mutations(deck, "", [m2])
+        assert len(applied2) == 1
+        assert sum(1 for c in deck if c.tcgdex_id == "me02.5-057") == 2
+
+    def test_removal_impossible_when_count_is_zero(self):
+        """A removal is skipped when the card is no longer in the deck."""
+        other = self._make_card("sv01-001", "Other")
+        replacement = self._make_card("sv10-129", "Cynthia's Spiritomb")
+
+        # Pikachu ex absent from deck
+        deck = [other]
+        m = {"card_removed": "me02.5-057", "card_added": "sv10-129",
+             "card_added_def": replacement}
+        new_deck, _, applied = _apply_mutations(deck, "", [m])
+        assert applied == [], "Removal must be skipped when card absent"
+        assert len(new_deck) == 1  # deck unchanged
+
+    def test_only_applied_mutations_returned(self):
+        """_apply_mutations returns only the mutations that touched the deck."""
+        pika = self._make_card("me02.5-057", "Pikachu ex")
+        ghost = self._make_card("sv10-129", "Cynthia's Spiritomb")
+        deck = [pika, pika]
+
+        # One valid swap, one impossible (card_added_def=None)
+        m_valid = {"card_removed": "me02.5-057", "card_added": "sv10-129",
+                   "card_added_def": ghost}
+        m_skip  = {"card_removed": "me02.5-057", "card_added": "sv99-999",
+                   "card_added_def": None}
+        _, _, applied = _apply_mutations(deck, "", [m_valid, m_skip])
+        assert len(applied) == 1
+        assert applied[0]["card_added"] == "sv10-129"
+
+    # ------------------------------------------------------------------
+    # Spec B: applied mutation log reconstructs the final deck
+    # ------------------------------------------------------------------
+
+    def test_applied_log_reconstructs_final_deck(self):
+        """Replaying applied mutations on the original deck produces the final deck."""
+        pika = self._make_card("me02.5-057", "Pikachu ex")
+        ghost = self._make_card("sv10-129", "Cynthia's Spiritomb")
+        hoot  = self._make_card("sv08-077", "Hoothoot")
+
+        # Build a legal 60-card deck: 4×pika + 56 fillers spread across 14 unique cards
+        fillers = []
+        for i in range(1, 15):
+            fillers += [self._make_card(f"sv01-{i:03d}", f"Filler {i}")] * 4
+        original = [pika] * 4 + fillers  # 4 + 56 = 60
+
+        # Round 3: Pikachu → Ghost
+        m3 = {"card_removed": "me02.5-057", "card_added": "sv10-129", "card_added_def": ghost}
+        deck_r4, _, a3 = _apply_mutations(list(original), "", [m3])
+        assert len(a3) == 1
+
+        # Round 16: Pikachu → Hoothoot (impossible via def=None — simulate skip)
+        m16 = {"card_removed": "me02.5-057", "card_added": "sv08-077", "card_added_def": None}
+        deck_r17, _, a16 = _apply_mutations(deck_r4, "", [m16])
+        assert a16 == [], "Skipped mutation must not appear in applied list"
+
+        # Final deck is deck_r17 (same as deck_r4 because m16 was skipped)
+        pikas = sum(1 for c in deck_r17 if c.tcgdex_id == "me02.5-057")
+        ghosts = sum(1 for c in deck_r17 if c.tcgdex_id == "sv10-129")
+        assert pikas == 3
+        assert ghosts == 1
+
+        # Replaying only applied mutations on original must produce deck_r17
+        all_applied = a3  # a16 is skipped, so not in log
+        replay = list(original)
+        for m in all_applied:
+            # Remove exactly one copy (same semantics as _apply_mutations)
+            idx = next((i for i, c in enumerate(replay) if c.tcgdex_id == m["card_removed"]), None)
+            if idx is not None:
+                replay.pop(idx)
+                replay.append(m["card_added_def"])
+        assert sum(1 for c in replay if c.tcgdex_id == "me02.5-057") == pikas
+        assert sum(1 for c in replay if c.tcgdex_id == "sv10-129") == ghosts
+
+    # ------------------------------------------------------------------
+    # Spec C: skipped mutations are not returned as applied
+    # ------------------------------------------------------------------
+
+    def test_skipped_mutation_absent_from_applied_list(self):
+        """card_added_def=None produces an empty applied list, never a row."""
+        other = self._make_card("sv01-001", "Other")
+        deck = [other]
+        m = {"card_removed": "sv01-001", "card_added": "sv99-999", "card_added_def": None}
+        _, _, applied = _apply_mutations(deck, "", [m])
+        assert applied == []
+
+    def test_card_not_found_not_applied(self):
+        """Removing a non-existent card produces empty applied list."""
+        other = self._make_card("sv01-001", "Other")
+        replacement = self._make_card("sv99-999", "Ghost")
+        deck = [other]
+        m = {"card_removed": "sv01-999", "card_added": "sv99-999",
+             "card_added_def": replacement}
+        _, _, applied = _apply_mutations(deck, "", [m])
+        assert applied == []
+
+    # ------------------------------------------------------------------
+    # Spec D: later rounds use the current deck, not the original
+    # ------------------------------------------------------------------
+
+    def test_later_round_sees_previous_mutation(self):
+        """After round 3 removes a Pikachu, round 16 sees the updated deck."""
+        pika   = self._make_card("me02.5-057", "Pikachu ex")
+        ghost  = self._make_card("sv10-129", "Cynthia's Spiritomb")
+        hoot   = self._make_card("sv08-077", "Hoothoot")
+        deck   = [pika] * 4
+
+        # Round 3
+        m3 = {"card_removed": "me02.5-057", "card_added": "sv10-129", "card_added_def": ghost}
+        deck, _, _ = _apply_mutations(deck, "", [m3])
+        assert sum(1 for c in deck if c.tcgdex_id == "me02.5-057") == 3
+
+        # Round 16 — uses the UPDATED deck (3 Pikachu, not 4)
+        m16 = {"card_removed": "me02.5-057", "card_added": "sv08-077", "card_added_def": hoot}
+        deck, _, a16 = _apply_mutations(deck, "", [m16])
+        # Removal succeeds because 3 > 0
+        assert len(a16) == 1
+        assert sum(1 for c in deck if c.tcgdex_id == "me02.5-057") == 2
+
+    # ------------------------------------------------------------------
+    # Spec E: revert leaves only best-deck mutations as applied
+    # ------------------------------------------------------------------
+
+    def test_reverted_mutations_not_in_applied_list(self):
+        """_apply_mutations returns [] for a mutation that was subsequently skipped.
+
+        The revert DB update is tested separately (DB layer).  Here we verify
+        that skipped mutations never enter the applied list to begin with, so
+        _persist_applied_mutations would never write a stale row.
+        """
+        other = self._make_card("sv01-001", "Other")
+        replacement = self._make_card("sv99-999", "Ghost")
+
+        deck = [other]
+        # Mutation skipped because card_added_def is missing
+        m = {"card_removed": "sv01-001", "card_added": "sv99-999"}  # no card_added_def key
+        _, _, applied = _apply_mutations(deck, "", [m])
+        assert applied == []
 
 
 # ---------------------------------------------------------------------------

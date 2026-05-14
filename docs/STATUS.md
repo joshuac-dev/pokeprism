@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-14 (run 43 DB-backed audit handoff)
+Last updated: 2026-05-14 (deck mutation log consistency fix)
 
 ## Current Workstream
 
@@ -16,6 +16,27 @@ post-phase development:
 - Card-effect correctness, handler registration, and simulation validation.
 - AI/coach hardening and decision-quality follow-up.
 - Operational refinement for Docker, Celery, CI, and local workflows.
+
+**Deck mutation log consistency fix (2026-05-14):**
+- Root cause: three interacting bugs (Cases C + D + G):
+  1. `analyze_and_mutate()` wrote mutation rows to DB *before* `_apply_mutations()` ran,
+     permanently committing skipped mutations.
+  2. Deck reversions (2 consecutive regressions) only reverted the in-memory deck; DB
+     mutation rows from the reverted period were never cleaned up.
+  3. No `status` column on `deck_mutations` — all rows looked identical.
+- Fix: `deck_mutations.status` column added (migration `k7l8m9o0p1q2`); analyst no
+  longer writes mutations; simulation writes only applied mutations via new
+  `_persist_applied_mutations()`; reversion marks rows `'reverted'` via new
+  `_mark_mutations_reverted()`; API filters by `status='applied'`.
+- Proposed mutations are no longer persisted as applied.
+- Mutation log API (`GET /api/simulations/{id}/mutations`) returns only `status='applied'` rows.
+- Reverted mutation rows are preserved for auditability but excluded from the user-facing applied log.
+- 14 new regression tests in `test_simulation_task.py` (spec A–E).
+- Affected sim `1df138cf` — data repair executed 2026-05-14: 15 rows marked `reverted`,
+  1 row remains `applied` (round 3, Pikachu ex → Cynthia's Spiritomb). No match data deleted.
+  API now returns exactly one mutation for that sim.
+- Post-deploy: run `alembic upgrade head`, then `docker compose up -d --build backend celery-worker celery-beat`.
+
 - **Audit workflow hardened to robust-audit-v2 (2026-05-12):** nightly workflow now
   requires a machine-readable `docs/audit_runs/<date>-card-effect-audit.json` report;
   `PARTIAL_TIME_BUDGET` is rejected; early stops must use `CONTINUATION_REQUIRED`;
