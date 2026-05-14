@@ -28,9 +28,14 @@ post-phase development:
   longer writes mutations; simulation writes only applied mutations via new
   `_persist_applied_mutations()`; reversion marks rows `'reverted'` via new
   `_mark_mutations_reverted()`; API filters by `status='applied'`.
+- Proposed mutations are no longer persisted as applied.
+- Mutation log API (`GET /api/simulations/{id}/mutations`) returns only `status='applied'` rows.
+- Reverted mutation rows are preserved for auditability but excluded from the user-facing applied log.
 - 14 new regression tests in `test_simulation_task.py` (spec A–E).
-- Affected sim `1df138cf` — data repair SQL in CHANGELOG.
-- Post-deploy: run `alembic upgrade head`, then `docker compose up -d --build celery-worker celery-beat`.
+- Affected sim `1df138cf` — data repair executed 2026-05-14: 15 rows marked `reverted`,
+  1 row remains `applied` (round 3, Pikachu ex → Cynthia's Spiritomb). No match data deleted.
+  API now returns exactly one mutation for that sim.
+- Post-deploy: run `alembic upgrade head`, then `docker compose up -d --build backend celery-worker celery-beat`.
 
 - **Audit workflow hardened to robust-audit-v2 (2026-05-12):** nightly workflow now
   requires a machine-readable `docs/audit_runs/<date>-card-effect-audit.json` report;

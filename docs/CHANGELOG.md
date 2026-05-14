@@ -70,28 +70,29 @@ merged PR history support that it actually landed.
     mutations not logged, later rounds use current deck, revert-based protection).
   - Confidence: High.
 
-  **Data repair SQL for sim `1df138cf-8cfa-4612-8e7e-bfcd70bfe7bf`** (run once after
-  deploying this fix and the migration):
-  ```sql
-  -- Mark all but the first (round 3) mutation as reverted.
-  -- Verify the round-3 row id first:
-  SELECT id, round_number, removed_card_name, added_card_name
-  FROM deck_mutations
-  WHERE simulation_id = '1df138cf-8cfa-4612-8e7e-bfcd70bfe7bf'
-  ORDER BY round_number, created_at;
+  **Data repair applied to sim `1df138cf-8cfa-4612-8e7e-bfcd70bfe7bf`** (executed 2026-05-14):
 
-  -- Then run:
+  The repair was run after the migration and backend rebuild.  Verified: 16 total rows,
+  15 marked `reverted`, 1 row (`id=65a5a340`, round 3, `me02.5-057→sv10-129`) left
+  `applied`.  The API now returns exactly one mutation:
+  `Pikachu ex (ASC 57) → Cynthia's Spiritomb (DRI 129)`.
+  No match data was deleted.
+
+  Repair SQL used:
+  ```sql
+  -- Verified exactly one row matched the round-3 Pikachu→Spiritomb swap:
+  SELECT id FROM deck_mutations
+  WHERE simulation_id = '1df138cf-8cfa-4612-8e7e-bfcd70bfe7bf'
+    AND round_number = 3 AND card_removed = 'me02.5-057' AND card_added = 'sv10-129';
+  -- id: 65a5a340-1fc6-40ac-8b1c-ff4737cbd84c
+
   UPDATE deck_mutations
   SET status = 'reverted'
   WHERE simulation_id = '1df138cf-8cfa-4612-8e7e-bfcd70bfe7bf'
-    AND id NOT IN (
-      SELECT id FROM deck_mutations
-      WHERE simulation_id = '1df138cf-8cfa-4612-8e7e-bfcd70bfe7bf'
-      ORDER BY round_number, created_at
-      LIMIT 1
-    );
-  -- Expected: 15 rows updated (leaving 1 row with status='applied').
+    AND id != '65a5a340-1fc6-40ac-8b1c-ff4737cbd84c';
+  -- 15 rows updated
   ```
+
 
 - **Fix simulation task re-delivery after long run — 2026-05-14** —
   `task_acks_late=True` + Redis default visibility timeout (3600 s = 1 h) caused the
