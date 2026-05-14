@@ -92,11 +92,11 @@ def _state(
     return state
 
 
-def _stadium_inst(tcgdex_id: str, name: str, iid: str) -> CardInstance:
+def _stadium_inst(tcgdex_id: str, stadium_name: str, iid: str) -> CardInstance:
     return CardInstance(
         instance_id=iid,
         card_def_id=tcgdex_id,
-        card_name=name,
+        card_name=stadium_name,
         zone=Zone.STADIUM,
         current_hp=0,
         max_hp=0,
