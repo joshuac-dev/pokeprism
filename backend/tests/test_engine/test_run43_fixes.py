@@ -139,6 +139,87 @@ def test_hops_choice_band_bonus_applies_before_weakness_and_resistance():
     assert dmg == 100, f"Expected 100 damage ((20+30)×2), got {dmg}"
 
 
+def test_jamming_tower_disables_hops_choice_band_damage_bonus():
+    attacker_def = _make_card(
+        "sv09-108",
+        "Hop's Corviknight",
+        types=["Fighting"],
+        attacks=[AttackDef(name="Hit", damage="20", cost=[])],
+    )
+    defender_def = _make_card(
+        "t43-def-002",
+        "Defender",
+        hp=150,
+        types=["Colorless"],
+        weaknesses=[WeaknessDef(type="Fighting", value="×2")],
+    )
+    card_registry.register(attacker_def)
+    card_registry.register(defender_def)
+
+    attacker = _inst(attacker_def, "atk")
+    attacker.tools_attached = ["sv09-148"]
+    defender = _inst(defender_def, "def", hp=150)
+    state = _state(p1_active=attacker, p1_bench=[_inst(defender_def, "bench-a", zone=Zone.BENCH)], p2_active=defender)
+    state.active_stadium = _stadium_inst("sv06-153", "Jamming Tower", "jam")
+
+    dmg = _apply_damage(state, Action(ActionType.ATTACK, "p1", attack_index=0), 20)
+
+    assert dmg == 40, f"Expected only weakness damage under Jamming Tower, got {dmg}"
+
+
+def test_non_hops_pokemon_with_hops_choice_band_gets_no_damage_bonus():
+    attacker_def = _make_card(
+        "t43-hop-001",
+        "Plain Corviknight",
+        types=["Fighting"],
+        attacks=[AttackDef(name="Hit", damage="20", cost=[])],
+    )
+    defender_def = _make_card(
+        "t43-hop-002",
+        "Defender",
+        hp=150,
+        types=["Colorless"],
+        weaknesses=[WeaknessDef(type="Fighting", value="×2")],
+    )
+    card_registry.register(attacker_def)
+    card_registry.register(defender_def)
+
+    attacker = _inst(attacker_def, "atk")
+    attacker.tools_attached = ["sv09-148"]
+    defender = _inst(defender_def, "def", hp=150)
+    state = _state(p1_active=attacker, p1_bench=[_inst(defender_def, "bench-a", zone=Zone.BENCH)], p2_active=defender)
+
+    dmg = _apply_damage(state, Action(ActionType.ATTACK, "p1", attack_index=0), 20)
+
+    assert dmg == 40
+
+
+def test_hops_pokemon_without_hops_choice_band_gets_no_damage_bonus():
+    attacker_def = _make_card(
+        "sv09-108",
+        "Hop's Corviknight",
+        types=["Fighting"],
+        attacks=[AttackDef(name="Hit", damage="20", cost=[])],
+    )
+    defender_def = _make_card(
+        "t43-hop-003",
+        "Defender",
+        hp=150,
+        types=["Colorless"],
+        weaknesses=[WeaknessDef(type="Fighting", value="×2")],
+    )
+    card_registry.register(attacker_def)
+    card_registry.register(defender_def)
+
+    attacker = _inst(attacker_def, "atk")
+    defender = _inst(defender_def, "def", hp=150)
+    state = _state(p1_active=attacker, p1_bench=[_inst(defender_def, "bench-a", zone=Zone.BENCH)], p2_active=defender)
+
+    dmg = _apply_damage(state, Action(ActionType.ATTACK, "p1", attack_index=0), 20)
+
+    assert dmg == 40
+
+
 def test_jamming_tower_disables_hops_choice_band_cost_reduction():
     attacker_def = _make_card(
         "sv09-136",
@@ -183,6 +264,47 @@ def test_gravity_gemstone_adds_retreat_cost_for_both_actives():
     assert retreat_actions, "Jamming Tower should suppress Gravity Gemstone"
 
 
+def test_gravity_gemstone_holder_active_increases_own_retreat_cost():
+    active_def = _make_card("t43-ret-004", "Retreater", retreat_cost=1)
+    bench_def = _make_card("t43-ret-005", "BenchMon")
+    opp_def = _make_card("t43-ret-006", "Opponent", retreat_cost=1)
+    for cdef in (active_def, bench_def, opp_def):
+        card_registry.register(cdef)
+
+    active = _inst(active_def, "active")
+    active.tools_attached = ["sv07-137"]
+    active.energy_attached = [EnergyAttachment(EnergyType.COLORLESS, "e1", "e1", [EnergyType.COLORLESS])]
+    state = _state(p1_active=active, p1_bench=[_inst(bench_def, "bench")], p2_active=_inst(opp_def, "opp"), p2_bench=[_inst(bench_def, "opp-bench")])
+
+    retreat_actions = [a for a in ActionValidator.get_legal_actions(state, "p1") if a.action_type == ActionType.RETREAT]
+
+    assert not retreat_actions, "Active holder should also pay +1 retreat cost"
+
+
+def test_gravity_gemstone_holder_benched_does_not_increase_retreat_cost():
+    active_def = _make_card("t43-ret-007", "Retreater", retreat_cost=1)
+    bench_def = _make_card("t43-ret-008", "BenchMon")
+    holder_def = _make_card("t43-ret-009", "Holder", retreat_cost=1)
+    opp_def = _make_card("t43-ret-010", "Opponent", retreat_cost=1)
+    for cdef in (active_def, bench_def, holder_def, opp_def):
+        card_registry.register(cdef)
+
+    active = _inst(active_def, "active")
+    active.energy_attached = [EnergyAttachment(EnergyType.COLORLESS, "e1", "e1", [EnergyType.COLORLESS])]
+    benched_holder = _inst(holder_def, "holder", zone=Zone.BENCH)
+    benched_holder.tools_attached = ["sv07-137"]
+    state = _state(
+        p1_active=active,
+        p1_bench=[_inst(bench_def, "bench")],
+        p2_active=_inst(opp_def, "opp"),
+        p2_bench=[benched_holder],
+    )
+
+    retreat_actions = [a for a in ActionValidator.get_legal_actions(state, "p1") if a.action_type == ActionType.RETREAT]
+
+    assert retreat_actions, "Benched Gravity Gemstone holder should not tax retreat"
+
+
 def test_granite_cave_reduces_active_damage_to_stevens_pokemon():
     attacker_def = _make_card("t43-granite-001", "Attacker", attacks=[AttackDef(name="Strike", damage="100", cost=[])])
     defender_def = _make_card("t43-granite-002", "Steven's Metagross", hp=160)
@@ -199,6 +321,60 @@ def test_granite_cave_reduces_active_damage_to_stevens_pokemon():
     dmg = _apply_damage(state, Action(ActionType.ATTACK, "p1", attack_index=0), 100)
 
     assert dmg == 70
+
+
+def test_granite_cave_does_not_reduce_damage_for_non_stevens_pokemon():
+    attacker_def = _make_card("t43-granite-005", "Attacker", attacks=[AttackDef(name="Strike", damage="100", cost=[])])
+    defender_def = _make_card("t43-granite-006", "Metagross", hp=160)
+    card_registry.register(attacker_def)
+    card_registry.register(defender_def)
+
+    state = _state(
+        p1_active=_inst(attacker_def, "atk"),
+        p1_bench=[_inst(defender_def, "bench-a", zone=Zone.BENCH)],
+        p2_active=_inst(defender_def, "def", hp=160),
+    )
+    state.active_stadium = _stadium_inst("sv10-166", "Granite Cave", "granite")
+
+    dmg = _apply_damage(state, Action(ActionType.ATTACK, "p1", attack_index=0), 100)
+
+    assert dmg == 100
+
+
+def test_stevens_pokemon_gets_no_granite_cave_reduction_without_stadium():
+    attacker_def = _make_card("t43-granite-007", "Attacker", attacks=[AttackDef(name="Strike", damage="100", cost=[])])
+    defender_def = _make_card("t43-granite-008", "Steven's Metagross", hp=160)
+    card_registry.register(attacker_def)
+    card_registry.register(defender_def)
+
+    state = _state(
+        p1_active=_inst(attacker_def, "atk"),
+        p1_bench=[_inst(defender_def, "bench-a", zone=Zone.BENCH)],
+        p2_active=_inst(defender_def, "def", hp=160),
+    )
+
+    dmg = _apply_damage(state, Action(ActionType.ATTACK, "p1", attack_index=0), 100)
+
+    assert dmg == 100
+
+
+def test_granite_cave_reduction_clamps_at_zero():
+    attacker_def = _make_card("t43-granite-009", "Attacker", attacks=[AttackDef(name="Strike", damage="20", cost=[])])
+    defender_def = _make_card("t43-granite-010", "Steven's Beldum", hp=60)
+    card_registry.register(attacker_def)
+    card_registry.register(defender_def)
+
+    state = _state(
+        p1_active=_inst(attacker_def, "atk"),
+        p1_bench=[_inst(defender_def, "bench-a", zone=Zone.BENCH)],
+        p2_active=_inst(defender_def, "def", hp=60),
+    )
+    state.active_stadium = _stadium_inst("sv10-166", "Granite Cave", "granite")
+
+    dmg = _apply_damage(state, Action(ActionType.ATTACK, "p1", attack_index=0), 20)
+
+    assert dmg == 0
+    assert state.p2.active.damage_counters == 0
 
 
 def test_granite_cave_reduces_bench_damage_to_stevens_pokemon():
@@ -236,6 +412,46 @@ def test_haban_berry_reduces_dragon_damage_and_discards_tool():
 
     assert dmg == 40
     assert "sv08.5-111" not in defender.tools_attached
+
+
+def test_haban_berry_non_dragon_attack_does_not_reduce_or_discard():
+    attacker_def = _make_card("t43-haban-005", "Water Attacker", types=["Water"], attacks=[AttackDef(name="Splash", damage="100", cost=[])])
+    defender_def = _make_card("t43-haban-006", "Defender", hp=150)
+    card_registry.register(attacker_def)
+    card_registry.register(defender_def)
+
+    attacker = _inst(attacker_def, "atk")
+    defender = _inst(defender_def, "def", hp=150)
+    defender.tools_attached = ["sv08.5-111"]
+    state = _state(p1_active=attacker, p1_bench=[_inst(defender_def, "bench-a", zone=Zone.BENCH)], p2_active=defender)
+
+    dmg = _apply_damage(state, Action(ActionType.ATTACK, "p1", attack_index=0), 100)
+
+    assert dmg == 100
+    assert "sv08.5-111" in defender.tools_attached
+
+
+def test_haban_berry_bench_damage_is_not_reduced_or_discarded_in_current_engine():
+    dragon_def = _make_card("t43-haban-007", "Dragon Attacker", types=["Dragon"], attacks=[AttackDef(name="Claw", damage="100", cost=[])])
+    defender_def = _make_card("t43-haban-008", "Defender", hp=150)
+    opp_def = _make_card("t43-haban-009", "Opponent", hp=150)
+    card_registry.register(dragon_def)
+    card_registry.register(defender_def)
+    card_registry.register(opp_def)
+
+    benched = _inst(defender_def, "bench-target", zone=Zone.BENCH, hp=150)
+    benched.tools_attached = ["sv08.5-111"]
+    state = _state(
+        p1_active=_inst(dragon_def, "atk"),
+        p2_active=_inst(opp_def, "opp"),
+        p2_bench=[benched],
+    )
+
+    _apply_bench_damage(state, "p2", benched, 100)
+
+    assert benched.damage_counters == 10
+    assert benched.current_hp == 50
+    assert "sv08.5-111" in benched.tools_attached
 
 
 def test_jamming_tower_disables_haban_berry_reduction_and_discard():

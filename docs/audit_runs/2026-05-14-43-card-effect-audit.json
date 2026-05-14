@@ -1601,6 +1601,39 @@
           "passed": true
         },
         {
+          "effect_name": "Granite Cave non-Steven guard",
+          "proof_type": "existing-test",
+          "test_file": "backend/tests/test_engine/test_run43_fixes.py",
+          "test_name": "test_granite_cave_does_not_reduce_damage_for_non_stevens_pokemon",
+          "probe_name": null,
+          "assertions": [
+            "does not reduce damage for non-Steven's Pok\u00e9mon"
+          ],
+          "passed": true
+        },
+        {
+          "effect_name": "Granite Cave absent-stadium guard",
+          "proof_type": "existing-test",
+          "test_file": "backend/tests/test_engine/test_run43_fixes.py",
+          "test_name": "test_stevens_pokemon_gets_no_granite_cave_reduction_without_stadium",
+          "probe_name": null,
+          "assertions": [
+            "does not reduce damage when Granite Cave is not in play"
+          ],
+          "passed": true
+        },
+        {
+          "effect_name": "Granite Cave zero clamp",
+          "proof_type": "existing-test",
+          "test_file": "backend/tests/test_engine/test_run43_fixes.py",
+          "test_name": "test_granite_cave_reduction_clamps_at_zero",
+          "probe_name": null,
+          "assertions": [
+            "damage reduction is clamped at 0"
+          ],
+          "passed": true
+        },
+        {
           "effect_name": "Granite Cave bench reduction",
           "proof_type": "existing-test",
           "test_file": "backend/tests/test_engine/test_run43_fixes.py",
@@ -1615,7 +1648,7 @@
       "result": "fixed",
       "finding_counted": true,
       "confidence": "high",
-      "notes": "Granite Cave was registered to _noop only; run 43 added active and bench damage reduction paths in attacks.py and covered them with focused regression tests."
+      "notes": "Granite Cave was registered to _noop only; run 43 added active and bench damage reduction paths in attacks.py and now has focused regression coverage for Steven's Active/Bench reduction, non-Steven bypass, no-stadium bypass, and zero-clamp behavior."
     },
     {
       "seq": 24,
@@ -1815,14 +1848,36 @@
       ],
       "behavioral_evidence": [
         {
-          "effect_name": "Gravity Gemstone retreat tax",
+          "effect_name": "Gravity Gemstone opponent retreat tax",
           "proof_type": "existing-test",
           "test_file": "backend/tests/test_engine/test_run43_fixes.py",
           "test_name": "test_gravity_gemstone_adds_retreat_cost_for_both_actives",
           "probe_name": null,
           "assertions": [
-            "adds +1 retreat cost while attached holder is Active",
+            "adds +1 retreat cost to the opposing Active",
             "Jamming Tower suppresses the tool"
+          ],
+          "passed": true
+        },
+        {
+          "effect_name": "Gravity Gemstone holder self-tax",
+          "proof_type": "existing-test",
+          "test_file": "backend/tests/test_engine/test_run43_fixes.py",
+          "test_name": "test_gravity_gemstone_holder_active_increases_own_retreat_cost",
+          "probe_name": null,
+          "assertions": [
+            "active holder also pays +1 retreat cost"
+          ],
+          "passed": true
+        },
+        {
+          "effect_name": "Gravity Gemstone bench guard",
+          "proof_type": "existing-test",
+          "test_file": "backend/tests/test_engine/test_run43_fixes.py",
+          "test_name": "test_gravity_gemstone_holder_benched_does_not_increase_retreat_cost",
+          "probe_name": null,
+          "assertions": [
+            "benched holder does not increase retreat cost"
           ],
           "passed": true
         }
@@ -1830,7 +1885,7 @@
       "result": "fixed",
       "finding_counted": true,
       "confidence": "high",
-      "notes": "Gravity Gemstone was registered to _noop only; run 43 wired its +1 Retreat Cost effect for both Active Pok\u00e9mon in actions.py and verified Jamming Tower suppression."
+      "notes": "Gravity Gemstone was registered to _noop only; run 43 wired its +1 Retreat Cost effect for both Active Pok\u00e9mon in actions.py and now covers opponent-tax, holder-self-tax, benched-holder bypass, and Jamming Tower suppression."
     },
     {
       "seq": 29,
@@ -3241,7 +3296,7 @@
       ],
       "behavioral_evidence": [
         {
-          "effect_name": "Haban Berry reduction",
+          "effect_name": "Haban Berry active reduction",
           "proof_type": "existing-test",
           "test_file": "backend/tests/test_engine/test_run43_fixes.py",
           "test_name": "test_haban_berry_reduces_dragon_damage_and_discards_tool",
@@ -3249,6 +3304,29 @@
           "assertions": [
             "reduces Dragon attack damage by 60",
             "discards the Berry after it triggers"
+          ],
+          "passed": true
+        },
+        {
+          "effect_name": "Haban Berry non-Dragon guard",
+          "proof_type": "existing-test",
+          "test_file": "backend/tests/test_engine/test_run43_fixes.py",
+          "test_name": "test_haban_berry_non_dragon_attack_does_not_reduce_or_discard",
+          "probe_name": null,
+          "assertions": [
+            "non-Dragon damage is not reduced",
+            "the Berry is not discarded on non-Dragon damage"
+          ],
+          "passed": true
+        },
+        {
+          "effect_name": "Haban Berry bench approximation",
+          "proof_type": "existing-test",
+          "test_file": "backend/tests/test_engine/test_run43_fixes.py",
+          "test_name": "test_haban_berry_bench_damage_is_not_reduced_or_discarded_in_current_engine",
+          "probe_name": null,
+          "assertions": [
+            "current engine applies no Haban Berry reduction/discard on bench damage"
           ],
           "passed": true
         },
@@ -3267,7 +3345,7 @@
       "result": "fixed",
       "finding_counted": true,
       "confidence": "high",
-      "notes": "Haban Berry was registered to _noop but missing from the berry damage-reduction/discard hooks; run 43 added Dragon-type matching plus Jamming Tower-safe discard handling."
+      "notes": "Haban Berry was registered to _noop but missing from the berry damage-reduction/discard hooks; run 43 added Dragon-type matching plus Jamming Tower-safe discard handling for the active-damage path. The current engine still treats passive Tool damage-reduction as an Active-only approximation, so Dragon bench damage does not reduce or discard Haban Berry; test coverage records that limitation explicitly."
     },
     {
       "seq": 52,
@@ -5856,13 +5934,46 @@
       ],
       "behavioral_evidence": [
         {
-          "effect_name": "Hop's Choice Band damage bonus",
+          "effect_name": "Hop's Choice Band pre-W/R bonus",
           "proof_type": "existing-test",
           "test_file": "backend/tests/test_engine/test_run43_fixes.py",
           "test_name": "test_hops_choice_band_bonus_applies_before_weakness_and_resistance",
           "probe_name": null,
           "assertions": [
             "adds 30 damage before Weakness and Resistance"
+          ],
+          "passed": true
+        },
+        {
+          "effect_name": "Hop's Choice Band Jamming Tower damage suppression",
+          "proof_type": "existing-test",
+          "test_file": "backend/tests/test_engine/test_run43_fixes.py",
+          "test_name": "test_jamming_tower_disables_hops_choice_band_damage_bonus",
+          "probe_name": null,
+          "assertions": [
+            "Jamming Tower suppresses the +30 damage bonus"
+          ],
+          "passed": true
+        },
+        {
+          "effect_name": "Hop's Choice Band non-Hop guard",
+          "proof_type": "existing-test",
+          "test_file": "backend/tests/test_engine/test_run43_fixes.py",
+          "test_name": "test_non_hops_pokemon_with_hops_choice_band_gets_no_damage_bonus",
+          "probe_name": null,
+          "assertions": [
+            "non-Hop's Pok\u00e9mon do not receive the +30 bonus"
+          ],
+          "passed": true
+        },
+        {
+          "effect_name": "Hop's Choice Band no-tool guard",
+          "proof_type": "existing-test",
+          "test_file": "backend/tests/test_engine/test_run43_fixes.py",
+          "test_name": "test_hops_pokemon_without_hops_choice_band_gets_no_damage_bonus",
+          "probe_name": null,
+          "assertions": [
+            "Hop's Pok\u00e9mon without the Tool do not receive the +30 bonus"
           ],
           "passed": true
         },
@@ -5882,7 +5993,7 @@
       "result": "fixed",
       "finding_counted": true,
       "confidence": "high",
-      "notes": "Hop's Choice Band previously applied its +30 damage after Weakness/Resistance in base.py; run 43 moved the bonus to the pre-W/R damage path and added Jamming Tower-aware attack-cost reduction."
+      "notes": "Hop's Choice Band previously applied its +30 damage after Weakness/Resistance in base.py; run 43 moved the bonus to the pre-W/R damage path and now has focused regression coverage for the intended damage timing, Jamming Tower suppression of both damage and cost effects, non-Hop bypass, and no-tool bypass."
     },
     {
       "seq": 92,
@@ -6518,5 +6629,6 @@
       "confidence": "medium",
       "notes": "Registry mapping reviewed for svp-184; risky mechanics (damage-modifier-pre-wr, passive-ability) remain behaviorally unverified in this 100-card slice."
     }
-  ]
+  ],
+  "behavioral_accounting_note": "audit-quality-v4 behavioral_rows_verified counts only risky rows with result=no-issue or result=behavioral-unverified. The four fixed findings below include focused existing-test behavioral evidence, but they are intentionally excluded from the top-level behavioral coverage totals."
 }
