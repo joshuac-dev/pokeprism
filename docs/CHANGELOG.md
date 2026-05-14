@@ -139,6 +139,38 @@ merged PR history support that it actually landed.
     behavioral accounting, and behavioral-unverified completion-status rules.
   - Confidence: High.
 
+- **DB-backed card audit run 43 — 2026-05-14 — CONTINUATION_REQUIRED** —
+  Audited 100 cards (Glimmora | TWM | 109 | sv06-109 through Hop's Snorlax |
+  PR-SV | 184 | svp-184). TCGDex preflight OK (100/100 fetched). Implemented
+  4 fixes and documented 2 engine gaps in this slice:
+
+  - Fixes:
+    - Granite Cave (sv10-166): added active + bench damage reduction for
+      Steven's Pokémon.
+    - Gravity Gemstone (sv07-137): added +1 Retreat Cost for both Active
+      Pokémon while the attached holder is Active.
+    - Haban Berry (sv08.5-111): added Dragon-type damage reduction and discard
+      trigger handling, including Jamming Tower suppression.
+    - Hop's Choice Band (sv09-148): moved the +30 damage modifier to the
+      pre-Weakness/Resistance path and made the {C}-reduction Jamming
+      Tower-aware.
+  - Engine gaps:
+    - Grand Tree (sv07-136): still needs a USE_STADIUM deck-search evolution
+      flow with chained Stage 1/Stage 2 application and timing checks.
+    - Heavy Baton (sv05-151): current KO hook still hard-codes bench[0] instead
+      of supporting “move up to 3 Basic Energy … in any way you like”.
+  - Added regression coverage in `backend/tests/test_engine/test_run43_fixes.py`
+    (7 tests).
+  - Focused regression/validator suites: `69 passed`.
+  - Full backend suite: `1514 passed, 7 skipped`.
+  - Stopping with CONTINUATION_REQUIRED (>=100 cards audited; target of 25
+    findings not reached). Next run resumes at
+    `Hop's Wooloo | JTG | 135 | sv09-135`.
+  - Behavioral accounting (v4): required=73, verified=0, unverified=73,
+    coverage=0.0.
+  - Report: `docs/audit_runs/2026-05-14-43-card-effect-audit.json`.
+  - Confidence: High.
+
 - **DB-backed card audit run 42 — 2026-05-14 — CONTINUATION_REQUIRED** —
   Audited 100 cards (Farigiraf ex | TEF | 108 | sv05-108 through
   Glimmora | SSP | 115 | sv08-115). TCGDex preflight OK (100/100 fetched).

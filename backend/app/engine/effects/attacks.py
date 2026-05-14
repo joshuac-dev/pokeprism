@@ -55,6 +55,14 @@ from app.cards import registry as card_registry
 logger = logging.getLogger(__name__)
 
 _TR_ENERGY_ID = "sv10-182"  # Team Rocket's Energy (used by multiple handlers)
+_BERRY_TYPE_MAP = {
+    "sv07-140": "Fire",
+    "sv07-141": "Psychic",
+    "sv08-163": "Metal",
+    "sv08-168": "Darkness",
+    "sv08-184": "Water",
+    "sv08.5-111": "Dragon",
+}
 
 # Ancient and Future Pokémon card-def IDs (Paradox Rift / Temporal Forces era)
 _ANCIENT_CARD_IDS = frozenset({
@@ -214,6 +222,14 @@ def _apply_damage(
         total += attacker.next_attack_damage_bonus
         attacker.next_attack_damage_bonus = 0
 
+    # Hop's Choice Band (sv09-148): attached Hop's Pokémon do +30 damage to
+    # the opponent's Active before Weakness and Resistance.
+    if not (state.active_stadium and state.active_stadium.card_def_id == "sv06-153"):
+        if has_tool(attacker, "sv09-148") and "Hop's" in attacker.card_name:
+            total += 30
+            state.emit_event("hops_choice_band_bonus", player=action.player_id,
+                             attacker=attacker.card_name, amount=30)
+
     # Compound Eyes (sv06.5-002 Galvantula): +50 when Galvantula attacks a defender with an Ability
     if attacker.card_def_id == "sv06.5-002":
         _def_cdef_ce = card_registry.get(defender.card_def_id)
@@ -278,6 +294,12 @@ def _apply_damage(
                 state.emit_event("damage_prevented", card=defender.card_name,
                                  reason="armor_tail")
                 return 0
+
+    # Granite Cave (sv10-166): Steven's Pokémon take 30 less damage from attacks.
+    if (state.active_stadium
+            and state.active_stadium.card_def_id == "sv10-166"
+            and defender.card_name.startswith("Steven's")):
+        total = max(0, total - 30)
         # C.O.D.E.: Protect (sv08-069 Miraidon): Future Pokémon immune to ex damage next turn
         if (opp.future_effect_immunity and _is_future(defender)
                 and cdef and cdef.is_ex):
@@ -747,15 +769,9 @@ def _apply_damage(
         state.emit_event("tr_hypnotizer_triggered", player=opp_id, attacker=attacker.card_name)
 
     # Matching berries: reduce damage and discard after being triggered by the correct type
-    if total > 0 and attacker_def:
-        berry_type_map = {
-            "sv07-140": "Fire",
-            "sv07-141": "Psychic",
-            "sv08-163": "Metal",
-            "sv08-168": "Darkness",
-            "sv08-184": "Water",
-        }
-        for tool_id, type_name in berry_type_map.items():
+    if (total > 0 and attacker_def
+            and not (state.active_stadium and state.active_stadium.card_def_id == "sv06-153")):
+        for tool_id, type_name in _BERRY_TYPE_MAP.items():
             if tool_id in defender.tools_attached and type_name in (attacker_def.types or []):
                 defender.tools_attached.remove(tool_id)
                 state.emit_event("berry_discarded", player=opp_id, card=defender.card_name, tool=tool_id)
@@ -841,6 +857,31 @@ def _apply_bench_damage(
         damage = max(0, damage - 60)
         if damage <= 0:
             state.emit_event("curly_wall_blocked", player=target_player_id,
+                             card=target.card_name)
+            return
+    if (state.active_stadium
+            and state.active_stadium.card_def_id == "sv10-166"
+            and target.card_name.startswith("Steven's")):
+        damage = max(0, damage - 30)
+        if damage <= 0:
+            state.emit_event("bench_damage_blocked", reason="granite_cave",
+                             card=target.card_name)
+            return
+    attacker = state.get_player(state.active_player).active if state.active_player else None
+    attacker_def = card_registry.get(attacker.card_def_id) if attacker else None
+    haban_triggered = (
+        attacker_def is not None
+        and "sv08.5-111" in target.tools_attached
+        and "Dragon" in (attacker_def.types or [])
+        and not (state.active_stadium and state.active_stadium.card_def_id == "sv06-153")
+    )
+    if haban_triggered:
+        damage = max(0, damage - 60)
+        if "sv08.5-111" in target.tools_attached:
+            target.tools_attached.remove("sv08.5-111")
+            state.emit_event("berry_discarded", player=target_player_id, card=target.card_name, tool="sv08.5-111")
+        if damage <= 0:
+            state.emit_event("bench_damage_blocked", reason="haban_berry",
                              card=target.card_name)
             return
     # So Submerged (sv10-048 Misty's Magikarp): prevent all damage to this benched Magikarp

@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-14 (run 42 DB-backed audit handoff)
+Last updated: 2026-05-14 (run 43 DB-backed audit handoff)
 
 ## Current Workstream
 
@@ -95,23 +95,23 @@ post-phase development:
 - 12 focused regression tests added in `backend/tests/test_engine/test_run41_fixes.py`.
 - full tests run: `OBSERVED_PLAY_MEMORY_ENABLED=false python3 -m pytest tests/ -x -q` (`1487 passed, 7 skipped`)
 
-**DB-backed audit handoff (2026-05-14 nightly robust-audit-v2 run 42):**
+**DB-backed audit handoff (2026-05-14 nightly robust-audit-v2 run 43):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes
 - completion status: `CONTINUATION_REQUIRED`
 - target findings: 25
-- implemented fixes: 0
-- documented engine gaps: 0
+- implemented fixes: 4
+- documented engine gaps: 2
 - database cards audited: 100
-- first card audited: `Farigiraf ex | TEF | 108 | sv05-108`
-- last card fully audited: `Glimmora | SSP | 115 | sv08-115`
-- next resume cursor: `Glimmora | TWM | 109 | sv06-109`
+- first card audited: `Glimmora | TWM | 109 | sv06-109`
+- last card fully audited: `Hop's Snorlax | PR-SV | 184 | svp-184`
+- next resume cursor: `Hop's Wooloo | JTG | 135 | sv09-135`
 - AUDIT_STATE.md update status: updated
-- focused checks run: TCGDex preflight succeeded; local report validation passed
-- full tests run: `OBSERVED_PLAY_MEMORY_ENABLED=false python3 -m pytest tests/ -x -q` (`1505 passed, 7 skipped`)
-- implemented fixes: none in this slice
-- documented engine gaps: none in this slice
-- behavioral accounting (v4): `behavioral_rows_required=71`, `behavioral_rows_verified=0`, `behavioral_rows_unverified=71`, `behavioral_coverage_percent=0.0`
-- operational notes: machine-readable v4 report at `docs/audit_runs/2026-05-14-42-card-effect-audit.json`
+- focused checks run: TCGDex preflight succeeded; local report validation passed; `python3 -m pytest tests/test_engine/test_run43_fixes.py tests/test_engine/test_run34_gap_fixes.py tests/test_engine/test_run41_fixes.py tests/test_scripts/test_validate_card_audit_report.py -q` (`69 passed`)
+- full tests run: `OBSERVED_PLAY_MEMORY_ENABLED=false python3 -m pytest tests/ -x -q` (`1514 passed, 7 skipped`)
+- implemented fixes in this slice: Granite Cave, Gravity Gemstone, Haban Berry, Hop's Choice Band
+- documented engine gaps in this slice: Grand Tree, Heavy Baton
+- behavioral accounting (v4): `behavioral_rows_required=73`, `behavioral_rows_verified=0`, `behavioral_rows_unverified=73`, `behavioral_coverage_percent=0.0`
+- operational notes: machine-readable v4 report at `docs/audit_runs/2026-05-14-43-card-effect-audit.json`
 
 **DB-backed audit handoff (2026-05-13 nightly robust-audit-v2 run 40):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes
