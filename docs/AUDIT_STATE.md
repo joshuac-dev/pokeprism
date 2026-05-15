@@ -8,7 +8,7 @@ It does not define card text. It does not define the audit candidate set. The da
 next_start_cursor: Koffing | JTG | 91 | sv09-091
 last_run_status: CONTINUATION_REQUIRED
 last_run_date_utc: 2026-05-15
-last_pr: 81
+last_pr: 83
 last_issue: Nightly DB-backed card effect implementation audit - 2026-05-15
 last_first_card_audited: Hop's Wooloo | JTG | 135 | sv09-135
 last_card_fully_audited: Klinklang | SCR | 101 | sv07-101
