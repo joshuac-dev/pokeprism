@@ -6926,3 +6926,125 @@ async def test_lively_stadium_replacement_rechecks_basic_pokemon_kos():
     assert state.active_stadium is risky_ruins
     assert state.p2.active is None
     assert target in state.p2.discard
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Dangerous Laser (sv06.5-058) — ACE SPEC Item handler
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_dangerous_laser_registered():
+    """sv06.5-058 is registered as _dangerous_laser in the trainer effect registry."""
+    from app.engine.effects.trainers import _dangerous_laser
+    reg = EffectRegistry.instance()
+    handler = reg._trainer_effects.get("sv06.5-058")
+    assert handler is not None, "sv06.5-058 has no handler registered"
+    assert handler is _dangerous_laser, "sv06.5-058 is not registered as _dangerous_laser"
+
+
+def test_dangerous_laser_applies_burned_and_confused():
+    """Dangerous Laser: opponent's Active gains BURNED and CONFUSED."""
+    from app.engine.effects.trainers import _dangerous_laser
+
+    attacker_def = _make_card("dl-p1-001", "Player Pokémon", hp=100)
+    target_def = _make_card("dl-p2-001", "Target Pokémon", hp=120)
+    card_registry.register(attacker_def)
+    card_registry.register(target_def)
+
+    attacker = _make_instance(attacker_def)
+    target = _make_instance(target_def)
+    state = _make_state(p1_active=attacker, p2_active=target)
+    action = Action(player_id="p1", action_type=ActionType.PLAY_ITEM)
+
+    _dangerous_laser(state, action)
+
+    assert StatusCondition.BURNED in target.status_conditions
+    assert StatusCondition.CONFUSED in target.status_conditions
+
+
+def test_dangerous_laser_does_not_affect_own_active():
+    """Dangerous Laser: player's own Active Pokémon is not affected."""
+    from app.engine.effects.trainers import _dangerous_laser
+
+    attacker_def = _make_card("dl-p1-002", "Player Pokémon 2", hp=100)
+    target_def = _make_card("dl-p2-002", "Target Pokémon 2", hp=120)
+    card_registry.register(attacker_def)
+    card_registry.register(target_def)
+
+    attacker = _make_instance(attacker_def)
+    target = _make_instance(target_def)
+    state = _make_state(p1_active=attacker, p2_active=target)
+    action = Action(player_id="p1", action_type=ActionType.PLAY_ITEM)
+
+    _dangerous_laser(state, action)
+
+    assert StatusCondition.BURNED not in attacker.status_conditions
+    assert StatusCondition.CONFUSED not in attacker.status_conditions
+
+
+def test_dangerous_laser_noop_when_no_opponent_active():
+    """Dangerous Laser: no-ops safely when opponent has no Active Pokémon."""
+    from app.engine.effects.trainers import _dangerous_laser
+
+    attacker_def = _make_card("dl-p1-003", "Player Pokémon 3", hp=100)
+    card_registry.register(attacker_def)
+
+    attacker = _make_instance(attacker_def)
+    state = _make_state(p1_active=attacker)
+    action = Action(player_id="p1", action_type=ActionType.PLAY_ITEM)
+
+    # Should not raise
+    _dangerous_laser(state, action)
+
+    # No conditions on player's active
+    assert StatusCondition.BURNED not in attacker.status_conditions
+    assert StatusCondition.CONFUSED not in attacker.status_conditions
+
+
+def test_dangerous_laser_already_burned_stays_burned():
+    """Dangerous Laser: if opponent's Active is already Burned, it remains Burned (and gains Confused)."""
+    from app.engine.effects.trainers import _dangerous_laser
+
+    attacker_def = _make_card("dl-p1-004", "Player Pokémon 4", hp=100)
+    target_def = _make_card("dl-p2-004", "Target Pokémon 4", hp=120)
+    card_registry.register(attacker_def)
+    card_registry.register(target_def)
+
+    attacker = _make_instance(attacker_def)
+    target = _make_instance(target_def)
+    target.status_conditions.add(StatusCondition.BURNED)
+    state = _make_state(p1_active=attacker, p2_active=target)
+    action = Action(player_id="p1", action_type=ActionType.PLAY_ITEM)
+
+    _dangerous_laser(state, action)
+
+    assert StatusCondition.BURNED in target.status_conditions
+    assert StatusCondition.CONFUSED in target.status_conditions
+
+
+def test_dangerous_laser_unnerve_blocks_effect():
+    """Dangerous Laser: Unnerve on opponent's Active prevents the status from being applied."""
+    from app.engine.effects.trainers import _dangerous_laser
+    from app.engine.effects.abilities import _UNNERVE_IDS
+
+    # Build a card whose ID is in the Unnerve set
+    unnerve_id = next(iter(_UNNERVE_IDS))
+    unnerve_def = _make_card(unnerve_id, "Fraxure", hp=100,
+                             abilities=[AbilityDef(name="Unnerve", effect="")])
+    card_registry.register(unnerve_def)
+
+    attacker_def = _make_card("dl-p1-005", "Player Pokémon 5", hp=100)
+    card_registry.register(attacker_def)
+
+    attacker = _make_instance(attacker_def)
+    fraxure = _make_instance(unnerve_def)
+    state = _make_state(p1_active=attacker, p2_active=fraxure)
+    action = Action(player_id="p1", action_type=ActionType.PLAY_ITEM)
+
+    _dangerous_laser(state, action)
+
+    assert StatusCondition.BURNED not in fraxure.status_conditions
+    assert StatusCondition.CONFUSED not in fraxure.status_conditions
+    unnerve_blocked = any(
+        e.get("event_type") == "unnerve_blocked" for e in state.events
+    )
+    assert unnerve_blocked, "Expected unnerve_blocked event to be emitted"

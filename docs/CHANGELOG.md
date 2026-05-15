@@ -30,6 +30,16 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+- **Implement Dangerous Laser trainer handler — 2026-05-15** —
+  Added a handler for `Dangerous Laser` (sv06.5-058 / SFA 58), an ACE SPEC Item
+  that reads: *"Your opponent's Active Pokémon is now Burned and Confused."*
+  The handler applies `StatusCondition.BURNED` and `StatusCondition.CONFUSED` to
+  the opponent's Active Pokémon, respects Unnerve ability protection, and no-ops
+  safely when the opponent has no Active. Six focused regression tests were added
+  to `tests/test_engine/test_audit_fixes.py` covering registry, state mutation,
+  own-Active isolation, no-op edge, already-burned idempotency, and Unnerve
+  blocking. Full backend suite: 1547 passed, 1 skipped.
+
 - **Fix deck mutation log consistency — 2026-05-14** —
   Three interacting bugs caused the mutation log to record far more removals than
   actually survived to the final deck (e.g., sim `1df138cf` showed 11 Pikachu ex
