@@ -4850,6 +4850,31 @@ def _janines_secret_art_sfa_b19(state: GameState, action):
                          source="janines_secret_art_sfa")
 
 
+def _dangerous_laser(state: GameState, action):
+    """Dangerous Laser (sv06.5-058) — ACE SPEC Item
+
+    Your opponent's Active Pokémon is now Burned and Confused.
+    """
+    player_id = action.player_id
+    opp_id = state.opponent_id(player_id)
+    opp = state.get_player(opp_id)
+    if not opp.active:
+        return
+    from app.engine.effects.abilities import has_unnerve_protection
+    if has_unnerve_protection(opp.active):
+        state.emit_event("unnerve_blocked", player=opp_id,
+                         card=opp.active.card_name, blocked_by="Dangerous Laser")
+        return
+    opp.active.status_conditions.add(StatusCondition.BURNED)
+    state.emit_event("status_inflicted", player=opp_id,
+                     card=opp.active.card_name, status="BURNED",
+                     source="dangerous_laser")
+    opp.active.status_conditions.add(StatusCondition.CONFUSED)
+    state.emit_event("status_inflicted", player=opp_id,
+                     card=opp.active.card_name, status="CONFUSED",
+                     source="dangerous_laser")
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Batch 20 handlers
 # ──────────────────────────────────────────────────────────────────────────────
@@ -6379,6 +6404,7 @@ def register_all(registry: EffectRegistry) -> None:
     registry.register_trainer("sv08-179", _lisias_appeal_b19)         # Lisia's Appeal
     registry.register_trainer("sv06.5-056", _cassiopeia_b19)          # Cassiopeia
     registry.register_trainer("sv06.5-059", _janines_secret_art_sfa_b19)  # Janine's Secret Art SFA
+    registry.register_trainer("sv06.5-058", _dangerous_laser)             # Dangerous Laser (ACE SPEC Item)
 
     # New Item handlers
     registry.register_trainer("sv10-161", _arvens_sandwich_b19)       # Arven's Sandwich

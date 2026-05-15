@@ -505,6 +505,15 @@ Re-check them before making claims in user-facing docs.
 | Frontend unit tests | **339 passed (17 files)** — 2026-05-10 session 54. `cd frontend && npm test -- --run`. |
 | Playwright E2E inventory | 14 tests listed 2026-05-04 with `cd frontend && npm run test:e2e -- --list` |
 | Effect import smoke | Passed 2026-05-05. `docker compose exec backend python -c "import app.engine.effects.attacks; import app.engine.effects.trainers; import app.engine.effects.energies; import app.engine.effects.abilities; import app.engine.effects.base"` |
+| Backend test baseline | **1547 passed, 1 skipped** — 2026-05-15. `cd backend && OBSERVED_PLAY_MEMORY_ENABLED=false python3 -m pytest tests/ -x -q`. |
+
+## Dangerous Laser handler (2026-05-15)
+
+- `Dangerous Laser` (sv06.5-058 / SFA 58) — ACE SPEC Item handler implemented.
+- Exact card text: *"Your opponent's Active Pokémon is now Burned and Confused."*
+- Handler `_dangerous_laser` applies `StatusCondition.BURNED` and `StatusCondition.CONFUSED` to opponent's Active; respects Unnerve ability; no-ops when opponent has no Active.
+- Registered under key `sv06.5-058` in `backend/app/engine/effects/trainers.py`.
+- 6 focused regression tests added to `backend/tests/test_engine/test_audit_fixes.py`.
 
 ## Session 57 Work (2026-05-08) — Coach ack retry + fallback reason + flag control
 
