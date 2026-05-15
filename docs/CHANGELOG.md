@@ -203,6 +203,18 @@ merged PR history support that it actually landed.
     behavioral accounting, and behavioral-unverified completion-status rules.
   - Confidence: High.
 
+- **DB-backed card audit run 44 — 2026-05-15 — CONTINUATION_REQUIRED** —
+  Audited 100 cards (Hop's Wooloo | JTG | 135 | sv09-135 through
+  Klinklang | SCR | 101 | sv07-101). TCGDex preflight OK (100/100 fetched).
+  No fixable engine gaps found in this slice
+  (fixes_implemented=0, engine_gaps_documented=0). Stopping with
+  CONTINUATION_REQUIRED (>=100 cards audited; target of 25 findings not
+  reached). Next run resumes at Koffing | JTG | 91 | sv09-091.
+  Behavioral accounting (v4): required=88, verified=0, unverified=88,
+  coverage=0.0. Report:
+  `docs/audit_runs/2026-05-15-44-card-effect-audit.json`.
+  Confidence: High.
+
 - **DB-backed card audit run 43 — 2026-05-14 — CONTINUATION_REQUIRED** —
   Audited 100 cards (Glimmora | TWM | 109 | sv06-109 through Hop's Snorlax |
   PR-SV | 184 | svp-184). TCGDex preflight OK (100/100 fetched). Implemented
