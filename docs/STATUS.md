@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-15 (DB-backed audit run 44 handoff)
+Last updated: 2026-05-16 (DB-backed audit run 45 handoff)
 
 ## Current Workstream
 
@@ -115,6 +115,24 @@ post-phase development:
     contained `sv09-117`; added `svp-184`.
 - 12 focused regression tests added in `backend/tests/test_engine/test_run41_fixes.py`.
 - full tests run: `OBSERVED_PLAY_MEMORY_ENABLED=false python3 -m pytest tests/ -x -q` (`1487 passed, 7 skipped`)
+
+**DB-backed audit handoff (2026-05-16 nightly robust-audit-v2 run 45):**
+- current workstream: DB-backed card-effect audits and cursor-based handler fixes
+- completion status: `CONTINUATION_REQUIRED`
+- target findings: 25
+- implemented fixes: 0
+- documented engine gaps: 0
+- database cards audited: 100
+- first card audited: `Koffing | JTG | 91 | sv09-091`
+- last card fully audited: `Magearna | JTG | 107 | sv09-107`
+- next resume cursor: `Magmar | JTG | 20 | sv09-020`
+- AUDIT_STATE.md update status: updated
+- focused checks run: TCGDex preflight succeeded; local report validation passed (`python3 backend/scripts/validate_card_audit_report.py docs/audit_runs/2026-05-16-45-card-effect-audit.json`)
+- full tests run: `OBSERVED_PLAY_MEMORY_ENABLED=false python3 -m pytest tests/ -x -q` (`1541 passed, 7 skipped`)
+- implemented fixes in this slice: none
+- documented engine gaps in this slice: none
+- behavioral accounting (v4): `behavioral_rows_required=75`, `behavioral_rows_verified=0`, `behavioral_rows_unverified=75`, `behavioral_coverage_percent=0.0`
+- operational notes: machine-readable v4 report at `docs/audit_runs/2026-05-16-45-card-effect-audit.json`
 
 **DB-backed audit handoff (2026-05-15 nightly robust-audit-v2 run 44):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes
