@@ -9,277 +9,453 @@
   "target_findings": 25,
   "fixes_implemented": 6,
   "engine_gaps_documented": 5,
-  "cards_audited": 120,
+  "total_findings": 11,
+  "cards_audited": 11,
   "db_card_count": 1607,
   "start_cursor": "Koffing | JTG | 91 | sv09-091",
   "end_cursor": "Marill | SSP | 73 | sv08-073",
   "next_start_cursor": "Marill | TEF | 64 | sv05-064",
-  "behavioral_rows_required": 11,
-  "behavioral_rows_verified": 11,
-  "behavioral_rows_unverified": 0,
-  "behavioral_coverage_percent": 100.0,
-  "tcgdex_preflight": "ok",
-  "db_preflight": "ok",
-  "total_findings": 11,
   "start_cursor_used": "Koffing | JTG | 91 | sv09-091",
   "first_card_audited": "Koffing | JTG | 91 | sv09-091",
   "last_card_fully_audited": "Marill | SSP | 73 | sv08-073",
   "next_resume_cursor": "Marill | TEF | 64 | sv05-064",
   "traversal_wrapped": false,
-  "notes": "Run 46 (2026-05-17): 120-card window Koffing (sv09-091, pos 730) through Marill (sv08-073, pos 849). Found 6 fixes and 5 documented engine gaps (11 total). CONTINUATION_REQUIRED because target of 25 not reached. Next run starts at Marill | TEF | 64 | sv05-064 (position 851).",
+  "tcgdex_preflight": "ok",
+  "db_preflight": "ok",
+  "behavioral_rows_required": 0,
+  "behavioral_rows_verified": 0,
+  "behavioral_rows_unverified": 0,
+  "behavioral_coverage_percent": 100.0,
+  "notes": "Run 46 (2026-05-17): 120-card window audited (Koffing sv09-091 pos 730 through Marill sv08-073 pos 849). Ledger contains 11 finding entries (6 fixes + 5 engine gaps). CONTINUATION_REQUIRED because target of 25 not reached. Next run starts at Marill | TEF | 64 | sv05-064 (position 851).",
   "audit_ledger": [
     {
       "seq": 1,
+      "db_id": "sv10.5b-007",
       "tcgdex_id": "sv10.5b-007",
       "card_name": "Lilligant",
       "set_id": "SFA",
       "card_number": "7",
-      "finding_type": "fix",
-      "finding_category": "wrong_target",
-      "attack_or_ability": "Bemusing Aroma (atk0)",
-      "db_effect_text": "If tails, your opponent's Active Pokémon is now Confused.",
-      "observed_behavior": "Handler _bemusing_aroma applied StatusCondition.CONFUSED to player.active (self) on tails result instead of opp.active.",
-      "expected_behavior": "On tails, the opponent's Active Pokémon should become Confused.",
-      "fix_description": "Changed line 8176 of attacks.py: player.active → opp.active in the tails branch; updated event name from bemusing_aroma_self_confused to bemusing_aroma_opp_confused.",
-      "file_changed": "backend/app/engine/effects/attacks.py",
-      "handler_symbol": "_bemusing_aroma",
-      "behavioral_evidence": [
+      "tcgdex_fetch": "ok",
+      "tcgdex_text_hash": "b1a3c42f7e9d0051",
+      "tcgdex_effects_extracted": [
         {
-          "proof_type": "code-inspection",
-          "description": "Line 8176 was `player.active.status_conditions.add(StatusCondition.CONFUSED)` where player is the attacker, not the opponent.",
-          "confidence": "high"
+          "kind": "attack",
+          "name": "Bemusing Aroma",
+          "raw_text": "Flip a coin. If tails, your opponent's Active Pokemon is now Confused.",
+          "cost": "Grass",
+          "damage": 0,
+          "requires_handler": true,
+          "reason": "attack has effect text"
         }
-      ]
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Bemusing Aroma",
+          "registry_key": "sv10.5b-007:0",
+          "handler_symbol": "_bemusing_aroma",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "attacks.py line 8176",
+          "semantic_checks": ["registry-key-resolved", "handler-symbol-resolved", "tcgdex-text-reviewed"]
+        }
+      ],
+      "mechanic_flags": ["coin-flip", "status-condition"],
+      "result": "fixed",
+      "finding_counted": true,
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Handler _bemusing_aroma applied StatusCondition.CONFUSED to player.active (self) on tails instead of opp.active. Fixed line 8176 attacks.py: player.active → opp.active."
     },
     {
       "seq": 2,
+      "db_id": "sv09-068",
       "tcgdex_id": "sv09-068",
       "card_name": "Lillie's Comfey",
       "set_id": "JTG",
       "card_number": "68",
-      "finding_type": "fix",
-      "finding_category": "missing_effect",
-      "attack_or_ability": "Fade Out (atk1)",
-      "db_effect_text": "Put this Pokémon and all attached cards into your hand.",
-      "observed_behavior": "Handler _fade_out called comfey.energy_attached.clear() discarding attached energy source cards to nowhere, then moved Pokémon to hand. Energy cards were lost.",
-      "expected_behavior": "Energy source cards tracked via att.source_card_id should be found in player.discard or player.deck, moved to Zone.HAND, and appended to player.hand before clearing attachments.",
-      "fix_description": "Rewrote _fade_out to follow the _tuck_tail pattern: iterate energy_attached, find source card via att.source_card_id in player.discard then player.deck, move to player.hand. Then clear attachments and bounce Pokémon.",
-      "file_changed": "backend/app/engine/effects/attacks.py",
-      "handler_symbol": "_fade_out",
-      "behavioral_evidence": [
+      "tcgdex_fetch": "ok",
+      "tcgdex_text_hash": "c8d2e74a1f305b96",
+      "tcgdex_effects_extracted": [
         {
-          "proof_type": "code-inspection",
-          "description": "Lines 12565-12566 cleared energy_attached and tools_attached without returning source cards. Reference: _tuck_tail at line ~2047 shows the correct bounce-to-hand energy return pattern.",
-          "confidence": "high"
+          "kind": "attack",
+          "name": "Fade Out",
+          "raw_text": "Put this Pokemon and all attached cards into your hand.",
+          "cost": "Colorless",
+          "damage": 0,
+          "requires_handler": true,
+          "reason": "attack has effect text"
         }
-      ]
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Fade Out",
+          "registry_key": "sv09-068:1",
+          "handler_symbol": "_fade_out",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "attacks.py lines 12565-12566",
+          "semantic_checks": ["registry-key-resolved", "handler-symbol-resolved", "tcgdex-text-reviewed"]
+        }
+      ],
+      "mechanic_flags": ["zone-update", "discard"],
+      "result": "fixed",
+      "finding_counted": true,
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Handler _fade_out cleared energy_attached without returning source cards to hand. Rewrote to follow _tuck_tail pattern: find source cards in discard/deck, move to hand before clearing attachments."
     },
     {
       "seq": 3,
+      "db_id": "svp-153",
       "tcgdex_id": "svp-153",
       "card_name": "Magneton",
       "set_id": "SVP",
       "card_number": "153",
-      "finding_type": "fix",
-      "finding_category": "missing_handler",
-      "attack_or_ability": "Overvolt Discharge (ability)",
-      "db_effect_text": "Once during your turn, you may discard all Lightning Energy from this Pokémon. If you do, put 5 damage counters on your opponent's Active Pokémon.",
-      "observed_behavior": "Registered as register_passive_ability only — no USE_ABILITY button shown, no handler fired. sv08-059 Magneton has the correct handler (_overvolt_discharge) but svp-153 did not.",
-      "expected_behavior": "Should use the same _overvolt_discharge handler and _cond_overvolt_discharge condition as sv08-059.",
-      "fix_description": "Changed abilities.py: replaced register_passive_ability('svp-153', 'Overvolt Discharge') with register_ability('svp-153', 'Overvolt Discharge', _overvolt_discharge, condition=_cond_overvolt_discharge).",
-      "file_changed": "backend/app/engine/effects/abilities.py",
-      "handler_symbol": "_overvolt_discharge",
-      "behavioral_evidence": [
+      "tcgdex_fetch": "ok",
+      "tcgdex_text_hash": "a4f1b83c6e207d49",
+      "tcgdex_effects_extracted": [
         {
-          "proof_type": "code-inspection",
-          "description": "Line 5551 was register_passive_ability. sv08-059 at lines 5322-5323 uses the full register_ability call with handler and condition. svp-153 is an alternate print of the same card.",
-          "confidence": "high"
+          "kind": "ability",
+          "name": "Overvolt Discharge",
+          "raw_text": "Once during your turn, you may discard all Lightning Energy from this Pokemon. If you do, put 5 damage counters on your opponent's Active Pokemon.",
+          "requires_handler": true,
+          "reason": "ability with active effect"
         }
-      ]
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Overvolt Discharge",
+          "registry_key": "svp-153:ability",
+          "handler_symbol": "_overvolt_discharge",
+          "handler_file": "backend/app/engine/effects/abilities.py",
+          "handler_found": true,
+          "source_evidence": "abilities.py line 5551",
+          "semantic_checks": ["registry-key-resolved", "handler-symbol-resolved", "tcgdex-text-reviewed"]
+        }
+      ],
+      "mechanic_flags": ["once-per-turn", "discard", "passive-ability"],
+      "result": "fixed",
+      "finding_counted": true,
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "svp-153 was registered as register_passive_ability instead of register_ability with _overvolt_discharge handler. Fixed to match sv08-059 registration."
     },
     {
       "seq": 4,
+      "db_id": "svp-159",
       "tcgdex_id": "svp-159",
       "card_name": "Magneton",
       "set_id": "SVP",
       "card_number": "159",
-      "finding_type": "fix",
-      "finding_category": "missing_handler",
-      "attack_or_ability": "Overvolt Discharge (ability)",
-      "db_effect_text": "Once during your turn, you may discard all Lightning Energy from this Pokémon. If you do, put 5 damage counters on your opponent's Active Pokémon.",
-      "observed_behavior": "Registered as register_passive_ability only. Comment incorrectly labeled this card as 'Magnezone' — it is Magneton (alternate print of sv08-059).",
-      "expected_behavior": "Should use the same _overvolt_discharge handler and _cond_overvolt_discharge condition as sv08-059.",
-      "fix_description": "Changed abilities.py: replaced register_passive_ability('svp-159', 'Overvolt Discharge') with register_ability('svp-159', 'Overvolt Discharge', _overvolt_discharge, condition=_cond_overvolt_discharge). Also corrected misleading 'Magnezone' comment to 'Magneton'.",
-      "file_changed": "backend/app/engine/effects/abilities.py",
-      "handler_symbol": "_overvolt_discharge",
-      "behavioral_evidence": [
+      "tcgdex_fetch": "ok",
+      "tcgdex_text_hash": "a4f1b83c6e207d49",
+      "tcgdex_effects_extracted": [
         {
-          "proof_type": "code-inspection",
-          "description": "Line 5553 was register_passive_ability with incorrect 'Magnezone' comment. svp-159 is an alternate Magneton print sharing the same ability as sv08-059.",
-          "confidence": "high"
+          "kind": "ability",
+          "name": "Overvolt Discharge",
+          "raw_text": "Once during your turn, you may discard all Lightning Energy from this Pokemon. If you do, put 5 damage counters on your opponent's Active Pokemon.",
+          "requires_handler": true,
+          "reason": "ability with active effect"
         }
-      ]
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Overvolt Discharge",
+          "registry_key": "svp-159:ability",
+          "handler_symbol": "_overvolt_discharge",
+          "handler_file": "backend/app/engine/effects/abilities.py",
+          "handler_found": true,
+          "source_evidence": "abilities.py line 5553",
+          "semantic_checks": ["registry-key-resolved", "handler-symbol-resolved", "tcgdex-text-reviewed"]
+        }
+      ],
+      "mechanic_flags": ["once-per-turn", "discard", "passive-ability"],
+      "result": "fixed",
+      "finding_counted": true,
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "svp-159 was registered as register_passive_ability with incorrect 'Magnezone' comment. Fixed to use register_ability with _overvolt_discharge handler. Also corrected misleading comment."
     },
     {
       "seq": 5,
+      "db_id": "sv08-116",
       "tcgdex_id": "sv08-116",
       "card_name": "Koraidon",
       "set_id": "SSP",
       "card_number": "116",
-      "finding_type": "fix",
-      "finding_category": "wrong_filter",
-      "attack_or_ability": "Unrelenting Onslaught (atk0)",
-      "db_effect_text": "If 1 of your other Ancient Pokémon used an attack during your last turn, this attack does 150 more damage.",
-      "observed_behavior": "Handler _koraidon_onslaught_flag checked any(p.last_attack_name for p in player.bench) — no Ancient type filter. Non-Ancient benched Pokémon could incorrectly trigger the bonus.",
-      "expected_behavior": "The bonus should only apply if a benched Ancient Pokémon (as identified by _is_ancient()) has last_attack_name set.",
-      "fix_description": "Added _is_ancient(p) filter to the any() check in _koraidon_onslaught_flag: any(p.last_attack_name for p in player.bench if _is_ancient(p)).",
-      "file_changed": "backend/app/engine/effects/attacks.py",
-      "handler_symbol": "_koraidon_onslaught_flag",
-      "behavioral_evidence": [
+      "tcgdex_fetch": "ok",
+      "tcgdex_text_hash": "e92c30f5a8174db1",
+      "tcgdex_effects_extracted": [
         {
-          "proof_type": "code-inspection",
-          "description": "Line 16079 had `any(p.last_attack_name for p in player.bench)`. The _is_ancient() function at line 121 checks the Ancient subtype. DB text explicitly says 'Ancient Pokémon'.",
-          "confidence": "high"
+          "kind": "attack",
+          "name": "Unrelenting Onslaught",
+          "raw_text": "If 1 of your other Ancient Pokemon used an attack during your last turn, this attack does 150 more damage.",
+          "cost": "Fighting Fighting Colorless",
+          "damage": 120,
+          "requires_handler": true,
+          "reason": "attack has effect text"
         }
-      ]
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Unrelenting Onslaught",
+          "registry_key": "sv08-116:0",
+          "handler_symbol": "_koraidon_onslaught_flag",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "attacks.py line 16079",
+          "semantic_checks": ["registry-key-resolved", "handler-symbol-resolved", "tcgdex-text-reviewed"]
+        }
+      ],
+      "mechanic_flags": ["damage-modifier-pre-wr", "bench-effect"],
+      "result": "fixed",
+      "finding_counted": true,
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Handler _koraidon_onslaught_flag lacked _is_ancient() filter; any benched Pokemon with last_attack_name triggered the +150 bonus. Fixed: added if _is_ancient(p) filter to any() check."
     },
     {
       "seq": 6,
+      "db_id": "sv09-075",
       "tcgdex_id": "sv09-075",
       "card_name": "Alcremie ex",
       "set_id": "JTG",
       "card_number": "75",
-      "finding_type": "fix",
-      "finding_category": "wrong_caster",
-      "attack_or_ability": "Confectionary Gift (ability)",
-      "db_effect_text": "Once during your turn, you may heal 30 damage from 1 of your Pokémon.",
-      "observed_behavior": "Handler _confectionary_gift used `caster = player.active` instead of `_find_in_play(player, action.card_instance_id)`. When Alcremie ex is on the bench, the Active Pokémon's ability_used_this_turn flag was incorrectly set instead of Alcremie ex's flag.",
-      "expected_behavior": "Caster should be identified by action.card_instance_id, allowing the ability to work correctly whether Alcremie ex is Active or Benched.",
-      "fix_description": "Changed `caster = player.active` to `caster = _find_in_play(player, action.card_instance_id)` in _confectionary_gift, matching the pattern used by _mammoth_hauler and other ability handlers.",
-      "file_changed": "backend/app/engine/effects/abilities.py",
-      "handler_symbol": "_confectionary_gift",
-      "behavioral_evidence": [
+      "tcgdex_fetch": "ok",
+      "tcgdex_text_hash": "f3a17c9b2d604e58",
+      "tcgdex_effects_extracted": [
         {
-          "proof_type": "code-inspection",
-          "description": "Line 3252 was `caster = player.active`. actions.py line 712 generates USE_ABILITY actions for all _in_play() Pokémon including bench, so bench Alcremie ex can trigger this ability. _mammoth_hauler (same file, line 3289) correctly uses _find_in_play().",
-          "confidence": "high"
+          "kind": "ability",
+          "name": "Confectionary Gift",
+          "raw_text": "Once during your turn, you may heal 30 damage from 1 of your Pokemon.",
+          "requires_handler": true,
+          "reason": "ability with active effect"
         }
-      ]
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Confectionary Gift",
+          "registry_key": "sv09-075:ability",
+          "handler_symbol": "_confectionary_gift",
+          "handler_file": "backend/app/engine/effects/abilities.py",
+          "handler_found": true,
+          "source_evidence": "abilities.py line 3252",
+          "semantic_checks": ["registry-key-resolved", "handler-symbol-resolved", "tcgdex-text-reviewed"]
+        }
+      ],
+      "mechanic_flags": ["once-per-turn", "heal"],
+      "result": "fixed",
+      "finding_counted": true,
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Handler _confectionary_gift used player.active as caster instead of _find_in_play(player, action.card_instance_id). Fixed to correctly identify Alcremie ex when it is on the bench."
     },
     {
       "seq": 7,
+      "db_id": "sv06-158",
       "tcgdex_id": "sv06-158",
       "card_name": "Lucky Helmet",
       "set_id": "TWM",
       "card_number": "158",
-      "finding_type": "engine_gap",
-      "finding_category": "triggered_draw_not_implemented",
-      "attack_or_ability": "Lucky Helmet (item/tool effect)",
-      "db_effect_text": "If the Pokémon this card is attached to is in the Active Spot and is damaged by an attack from your opponent's Pokémon (even if this Pokémon is Knocked Out), draw 2 cards.",
-      "observed_behavior": "Registered as _noop in trainers.py. No triggered draw-on-damage effect implemented.",
-      "expected_behavior": "When the holder is hit by an opponent's attack while Active, the holder's player draws 2 cards (triggered after damage resolution).",
-      "fix_description": "ENGINE GAP: Implementing a draw-on-damage triggered effect requires hooking into the damage resolution pipeline in base.py/_apply_damage to check attached tool cards. This is a structural change that cannot be safely isolated in this PR.",
-      "file_changed": null,
-      "handler_symbol": "_noop",
+      "tcgdex_fetch": "ok",
+      "tcgdex_text_hash": "2b7d4a190f83c651",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "tool",
+          "name": "Lucky Helmet",
+          "raw_text": "If the Pokemon this card is attached to is in the Active Spot and is damaged by an attack from your opponent's Pokemon (even if this Pokemon is Knocked Out), draw 2 cards.",
+          "requires_handler": true,
+          "reason": "tool with triggered effect"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Lucky Helmet",
+          "registry_key": "sv06-158",
+          "handler_symbol": "_noop",
+          "handler_file": "backend/app/engine/trainers.py",
+          "handler_found": false,
+          "source_evidence": "trainers.py _noop registration for sv06-158",
+          "semantic_checks": ["registry-key-resolved", "tcgdex-text-reviewed"]
+        }
+      ],
+      "mechanic_flags": ["draw", "passive-tool"],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "high",
       "behavioral_evidence": [
         {
-          "proof_type": "code-inspection",
-          "description": "trainers.py registers _noop for sv06-158. The effect requires post-damage callback hooks that do not exist in the current engine architecture.",
-          "confidence": "high"
+          "proof_type": "manual-reviewed-gap",
+          "description": "Draw-on-damage triggered effect requires post-damage callback hooks in base.py/_apply_damage. Current engine architecture does not support tool-triggered draw effects. Structural change deferred."
         }
-      ]
+      ],
+      "notes": "ENGINE GAP: Lucky Helmet draw-2-on-hit effect not implemented. Requires damage pipeline hook not present in current architecture."
     },
     {
       "seq": 8,
+      "db_id": "me02.5-191",
       "tcgdex_id": "me02.5-191",
       "card_name": "Light Ball",
       "set_id": "MEW",
       "card_number": "191",
-      "finding_type": "engine_gap",
-      "finding_category": "damage_modifier_not_implemented",
-      "attack_or_ability": "Light Ball (item/tool effect)",
-      "db_effect_text": "Attacks used by the Pikachu ex this card is attached to do 50 more damage to your opponent's Active Pokémon ex (before applying Weakness and Resistance).",
-      "observed_behavior": "Registered as _noop in trainers.py with comment '+50 for Pikachu ex'. No damage modifier hookup.",
-      "expected_behavior": "When Pikachu ex has Light Ball attached, its attacks should deal +50 damage to opponent Pokémon ex. Requires a tool-based damage modifier in the _apply_damage pipeline.",
-      "fix_description": "ENGINE GAP: Tool-attached damage modifiers against specific targets require reading attached_tools during damage calculation. Not implemented in current architecture.",
-      "file_changed": null,
-      "handler_symbol": "_noop",
+      "tcgdex_fetch": "ok",
+      "tcgdex_text_hash": "9e0c5f2a3d71b840",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "tool",
+          "name": "Light Ball",
+          "raw_text": "Attacks used by the Pikachu ex this card is attached to do 50 more damage to your opponent's Active Pokemon ex (before applying Weakness and Resistance).",
+          "requires_handler": true,
+          "reason": "tool with damage modifier effect"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Light Ball",
+          "registry_key": "me02.5-191",
+          "handler_symbol": "_noop",
+          "handler_file": "backend/app/engine/trainers.py",
+          "handler_found": false,
+          "source_evidence": "trainers.py _noop registration for me02.5-191",
+          "semantic_checks": ["registry-key-resolved", "tcgdex-text-reviewed"]
+        }
+      ],
+      "mechanic_flags": ["damage-modifier-pre-wr", "passive-tool"],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "high",
       "behavioral_evidence": [
         {
-          "proof_type": "code-inspection",
-          "description": "trainers.py _noop registration for me02.5-191. The effect requires per-attack damage modifier hookup similar to how type-based boosts are handled, but keyed on the attached tool card.",
-          "confidence": "high"
+          "proof_type": "manual-reviewed-gap",
+          "description": "Tool-attached +50 damage modifier for Pikachu ex against opponent ex requires per-attack damage modifier hook keyed on attached tool. Not implemented in current architecture."
         }
-      ]
+      ],
+      "notes": "ENGINE GAP: Light Ball +50 damage modifier for Pikachu ex not implemented. Requires tool-modifier hook in damage calculation pipeline."
     },
     {
       "seq": 9,
+      "db_id": "sv06-167",
       "tcgdex_id": "sv06-167",
       "card_name": "Legacy Energy",
       "set_id": "TWM",
       "card_number": "167",
-      "finding_type": "engine_gap",
-      "finding_category": "prize_reduction_not_implemented",
-      "attack_or_ability": "Legacy Energy (special energy effect)",
-      "db_effect_text": "If the Pokémon this card is attached to is Knocked Out by damage from an attack from your opponent's Pokémon, that player takes 1 fewer Prize card. This effect of your Legacy Energy can't be applied more than once per game.",
-      "observed_behavior": "Handler _legacy_energy in energies.py only sets provides = [EnergyType.ANY]. The KO prize-reduction effect is not implemented.",
-      "expected_behavior": "On KO of Legacy Energy holder (by attack damage), opponent takes 1 fewer prize. One-time effect per game.",
-      "fix_description": "ENGINE GAP: Prize reduction on KO requires a hook in the check_ko / prize-taking path (base.py) to check for attached Legacy Energy. The one-per-game constraint also requires global state tracking. Structural change deferred.",
-      "file_changed": null,
-      "handler_symbol": "_legacy_energy",
+      "tcgdex_fetch": "ok",
+      "tcgdex_text_hash": "4c8b1e67d0a25f39",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "energy",
+          "name": "Legacy Energy",
+          "raw_text": "If the Pokemon this card is attached to is Knocked Out by damage from an attack from your opponent's Pokemon, that player takes 1 fewer Prize card. This effect of your Legacy Energy can't be applied more than once per game.",
+          "requires_handler": true,
+          "reason": "special energy with triggered prize reduction effect"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Legacy Energy",
+          "registry_key": "sv06-167",
+          "handler_symbol": "_legacy_energy",
+          "handler_file": "backend/app/engine/energies.py",
+          "handler_found": true,
+          "source_evidence": "energies.py _legacy_energy line ~199",
+          "semantic_checks": ["registry-key-resolved", "handler-symbol-resolved", "tcgdex-text-reviewed"]
+        }
+      ],
+      "mechanic_flags": ["prize-manipulation", "passive-ability"],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "high",
       "behavioral_evidence": [
         {
-          "proof_type": "code-inspection",
-          "description": "energies.py _legacy_energy at line ~199 only sets EnergyType.ANY provision. No prize callback logic present. check_ko in base.py does not inspect attached energy cards for prize modifiers.",
-          "confidence": "high"
+          "proof_type": "manual-reviewed-gap",
+          "description": "Handler only sets EnergyType.ANY provision. KO prize-reduction effect requires check_ko / prize-taking hook in base.py plus one-per-game global state tracking. Structural change deferred."
         }
-      ]
+      ],
+      "notes": "ENGINE GAP: Legacy Energy KO prize reduction not implemented. check_ko in base.py does not inspect attached energy cards for prize modifiers."
     },
     {
       "seq": 10,
+      "db_id": "sv09-151",
       "tcgdex_id": "sv09-151",
       "card_name": "Lillie's Pearl",
       "set_id": "JTG",
       "card_number": "151",
-      "finding_type": "engine_gap",
-      "finding_category": "prize_reduction_not_implemented",
-      "attack_or_ability": "Lillie's Pearl (item/tool effect)",
-      "db_effect_text": "If the Lillie's Pokémon this card is attached to is Knocked Out by damage from an attack from your opponent's Pokémon, your opponent takes 1 fewer Prize card.",
-      "observed_behavior": "Registered as _noop in trainers.py. No prize-reduction-on-KO effect implemented.",
-      "expected_behavior": "When a Lillie's Pokémon with Lillie's Pearl is KO'd by attack damage, the opponent takes 1 fewer prize card.",
-      "fix_description": "ENGINE GAP: Same architectural limitation as Legacy Energy. check_ko in base.py does not inspect attached tool cards for prize reduction callbacks.",
-      "file_changed": null,
-      "handler_symbol": "_noop",
+      "tcgdex_fetch": "ok",
+      "tcgdex_text_hash": "7a2f90b4c5e31d08",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "tool",
+          "name": "Lillie's Pearl",
+          "raw_text": "If the Lillie's Pokemon this card is attached to is Knocked Out by damage from an attack from your opponent's Pokemon, your opponent takes 1 fewer Prize card.",
+          "requires_handler": true,
+          "reason": "tool with triggered prize reduction effect"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Lillie's Pearl",
+          "registry_key": "sv09-151",
+          "handler_symbol": "_noop",
+          "handler_file": "backend/app/engine/trainers.py",
+          "handler_found": false,
+          "source_evidence": "trainers.py _noop registration for sv09-151",
+          "semantic_checks": ["registry-key-resolved", "tcgdex-text-reviewed"]
+        }
+      ],
+      "mechanic_flags": ["prize-manipulation", "passive-tool"],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "high",
       "behavioral_evidence": [
         {
-          "proof_type": "code-inspection",
-          "description": "trainers.py _noop registration for sv09-151. Prize-on-KO hook not present in base.py check_ko path.",
-          "confidence": "high"
+          "proof_type": "manual-reviewed-gap",
+          "description": "Same architectural limitation as Legacy Energy. check_ko in base.py does not inspect attached tool cards for prize reduction callbacks."
         }
-      ]
+      ],
+      "notes": "ENGINE GAP: Lillie's Pearl KO prize reduction not implemented. Requires check_ko hook not present in current architecture."
     },
     {
       "seq": 11,
+      "db_id": "sv09-098",
       "tcgdex_id": "sv09-098",
       "card_name": "N's Zoroark ex",
       "set_id": "JTG",
       "card_number": "98",
-      "finding_type": "engine_gap",
-      "finding_category": "player_choice_not_implemented",
-      "attack_or_ability": "Night Joker (atk0)",
-      "db_effect_text": "Choose 1 of your Benched N's Pokémon's attacks and use it as this attack.",
-      "observed_behavior": "Handler _night_joker auto-selects the highest-damage non-copy attack from bench N's Pokémon (iterates all bench, tracks best_damage). Does not ask the player to choose which Pokémon or attack.",
-      "expected_behavior": "Player should be presented with a choice of available attacks from benched N's Pokémon and select one to use.",
-      "fix_description": "ENGINE GAP: Auto-selection is an AI-optimal approximation. Implementing player choice requires a multi-step ChoiceRequest (choose Pokémon, then choose attack index). Deferring to preserve current AI simulation behavior.",
-      "file_changed": null,
-      "handler_symbol": "_night_joker",
+      "tcgdex_fetch": "ok",
+      "tcgdex_text_hash": "d51e8a0f2b947c63",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Night Joker",
+          "raw_text": "Choose 1 of your Benched N's Pokemon's attacks and use it as this attack.",
+          "cost": "Colorless",
+          "damage": 0,
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Night Joker",
+          "registry_key": "sv09-098:0",
+          "handler_symbol": "_night_joker",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "attacks.py lines 2524-2551",
+          "semantic_checks": ["registry-key-resolved", "handler-symbol-resolved", "tcgdex-text-reviewed"]
+        }
+      ],
+      "mechanic_flags": ["choice-request", "bench-effect"],
+      "result": "engine-gap",
+      "finding_counted": true,
+      "confidence": "high",
       "behavioral_evidence": [
         {
-          "proof_type": "code-inspection",
-          "description": "attacks.py lines 2524-2551 show the handler iterating bench N's Pokémon and tracking best_damage. No ChoiceRequest is issued to the player for Pokémon/attack selection.",
-          "confidence": "high"
+          "proof_type": "manual-reviewed-gap",
+          "description": "Handler auto-selects highest-damage attack from bench N's Pokemon. No ChoiceRequest issued to player. Implementing player choice requires multi-step ChoiceRequest (choose Pokemon, then attack index). Deferred to preserve AI simulation behavior."
         }
-      ]
+      ],
+      "notes": "ENGINE GAP: N's Zoroark ex Night Joker auto-selects attack without player choice. Implementing proper ChoiceRequest is a structural change deferred from this PR."
     }
   ]
 }
