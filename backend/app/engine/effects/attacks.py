@@ -8172,10 +8172,10 @@ def _bemusing_aroma(state, action):
                              target=opp.active.card_name)
     else:
         state.emit_event("coin_flip_result", attack="Bemusing Aroma", result="tails")
-        if player.active:
-            player.active.status_conditions.add(StatusCondition.CONFUSED)
-            state.emit_event("bemusing_aroma_self_confused", player=action.player_id,
-                             card=player.active.card_name)
+        if opp.active:
+            opp.active.status_conditions.add(StatusCondition.CONFUSED)
+            state.emit_event("bemusing_aroma_opp_confused", player=action.player_id,
+                             card=opp.active.card_name)
 
 
 def _dangerous_reaction(state, action):
@@ -12562,6 +12562,21 @@ def _fade_out(state, action):
     if not player.active:
         return
     comfey = player.active
+    # Return energy source cards to hand (same pattern as _tuck_tail)
+    for att in list(comfey.energy_attached):
+        energy_card = None
+        for zone_list in (player.discard, player.deck):
+            energy_card = next((c for c in zone_list
+                                if c.instance_id == att.source_card_id), None)
+            if energy_card:
+                break
+        if energy_card:
+            if energy_card in player.discard:
+                player.discard.remove(energy_card)
+            elif energy_card in player.deck:
+                player.deck.remove(energy_card)
+            energy_card.zone = Zone.HAND
+            player.hand.append(energy_card)
     comfey.energy_attached.clear()
     comfey.tools_attached.clear()
     player.active = None
@@ -16073,10 +16088,12 @@ def _raging_tentacles_flag(state, action):
 
 
 def _koraidon_onslaught_flag(state, action):
-    """sv08-116 Koraidon atk0 — Unrelenting Onslaught: 30 + 150 if another Pokémon attacked last turn."""
+    """sv08-116 Koraidon atk0 — Unrelenting Onslaught: 30 + 150 if another Ancient Pokémon attacked last turn."""
     player = state.get_player(action.player_id)
-    # Approximation: bonus if any bench Pokémon has a recorded last attack (attacked previously)
-    has_prior_attacker = any(p.last_attack_name for p in player.bench)
+    # Bonus if any bench Ancient Pokémon has a recorded last attack (attacked previously)
+    has_prior_attacker = any(
+        p.last_attack_name for p in player.bench if _is_ancient(p)
+    )
     bonus = 150 if has_prior_attacker else 0
     _apply_damage(state, action, 30 + bonus)
 

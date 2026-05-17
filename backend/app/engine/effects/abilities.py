@@ -3249,7 +3249,7 @@ def _scalding_steam(state, action):
 def _confectionary_gift(state: GameState, action):
     """sv09-075 Alcremie ex — Confectionary Gift: heal 30 from 1 of your Pokémon."""
     player = state.get_player(action.player_id)
-    caster = player.active
+    caster = _find_in_play(player, action.card_instance_id)
     if caster is None or caster.ability_used_this_turn:
         return
     caster.ability_used_this_turn = True
@@ -5548,9 +5548,11 @@ def register_all(registry):
     registry.register_passive_ability("svp-136", "Curly Wall")              # Bouffalant (sv07-119 alt)
     registry.register_ability("svp-141", "Jewel Seeker", _jewel_seeker)      # Noctowl (sv07-115 alt)
     registry.register_passive_ability("svp-146", "Cobalt Command")          # Iron Crown ex (sv05-081 alt)
-    registry.register_passive_ability("svp-153", "Overvolt Discharge")      # Magneton (sv08-059 alt)
+    registry.register_ability("svp-153", "Overvolt Discharge", _overvolt_discharge,
+                              condition=_cond_overvolt_discharge)           # Magneton (sv08-059 alt)
     registry.register_ability("svp-154", "Obliging Heal", _obliging_heal)    # Indeedee (sv08-093 alt)
-    registry.register_passive_ability("svp-159", "Overvolt Discharge")      # Magnezone (sv08-059 alt)
+    registry.register_ability("svp-159", "Overvolt Discharge", _overvolt_discharge,
+                              condition=_cond_overvolt_discharge)           # Magneton (sv08-059 alt)
     registry.register_ability("svp-183", "Inviting Wink", _inviting_wink)    # Lillie's Ribombee (sv09-067 alt)
     registry.register_passive_ability("svp-216", "Power Saver")             # TR Mewtwo ex (svp-205 alt)
 
