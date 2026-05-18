@@ -213,6 +213,26 @@ RE_GAME_END_CONCEDED = re.compile(
     re.IGNORECASE,
 )
 
+# Self-concede: "You conceded. WINNER wins."
+RE_GAME_END_YOU_CONCEDED = re.compile(
+    r"^You conceded\.\s*(?P<winner>.+?) wins\.",
+    re.IGNORECASE,
+)
+
+# Sweep: all opponent Pokémon knocked out simultaneously, all prizes taken
+# "Knocked Out all your opponent's Pokémon in play and took all your Prize cards. WINNER wins."
+RE_GAME_END_SWEEP = re.compile(
+    r"^Knocked Out all your opponent['\u2019]s Pok[e\u00e9]mon in play and took all your Prize cards\.\s*(?P<winner>.+?) wins\.",
+    re.IGNORECASE,
+)
+
+# Named Pokémon bounced to hand: "PLAYER moved OWNER's CARD to their hand."
+# Distinct from RE_CARDS_MOVED_TO_HAND which requires a numeric count.
+RE_POKEMON_MOVED_TO_HAND = re.compile(
+    r"^(?P<player>.+?) moved (?P<owner>.+?)['\u2019]s (?P<card>.+?) to their hand\.$",
+    re.IGNORECASE,
+)
+
 # Phase 2.3 patterns
 # Card/effect activation: "CARD was activated."
 RE_CARD_EFFECT_ACTIVATED = re.compile(
