@@ -5,14 +5,14 @@ This file stores the rotating cursor for the DB-backed card effect audit workflo
 It does not define card text. It does not define the audit candidate set. The database defines audit scope, and TCGDex defines card behavior.
 
 ```text
-next_start_cursor: Koffing | JTG | 91 | sv09-091
+next_start_cursor: Magmar | JTG | 20 | sv09-020
 last_run_status: CONTINUATION_REQUIRED
-last_run_date_utc: 2026-05-15
+last_run_date_utc: 2026-05-18
 last_pr: 83
-last_issue: Nightly DB-backed card effect implementation audit - 2026-05-15
-last_first_card_audited: Hop's Wooloo | JTG | 135 | sv09-135
-last_card_fully_audited: Klinklang | SCR | 101 | sv07-101
-notes: Run 44 (2026-05-15): CONTINUATION_REQUIRED — TCGDex preflight succeeded and 100 DB cards were audited from Hop's Wooloo | JTG | 135 | sv09-135 through Klinklang | SCR | 101 | sv07-101. Findings: fixes_implemented=0, engine_gaps_documented=0. Behavioral accounting: required=88, verified=0, unverified=88. Next run resumes at Koffing | JTG | 91 | sv09-091. Report at docs/audit_runs/2026-05-15-44-card-effect-audit.json.
+last_issue: Nightly DB-backed card effect implementation audit - 2026-05-18
+last_first_card_audited: Koffing | JTG | 91 | sv09-091
+last_card_fully_audited: Magearna | JTG | 107 | sv09-107
+notes: Run 47 (2026-05-18): CONTINUATION_REQUIRED — TCGDex preflight succeeded and 100 DB cards were audited from Koffing | JTG | 91 | sv09-091 through Magearna | JTG | 107 | sv09-107. Findings: fixes_implemented=0, engine_gaps_documented=0. Behavioral accounting: required=75, verified=0, unverified=75. Next run resumes at Magmar | JTG | 20 | sv09-020. Report at docs/audit_runs/2026-05-18-47-card-effect-audit.json.
 ```
 
 ## Cursor rules
