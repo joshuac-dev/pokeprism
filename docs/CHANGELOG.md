@@ -54,6 +54,18 @@ merged PR history support that it actually landed.
   Memory quality unchanged (no new low-confidence items). Scorecard after fix:
   `ready`, score 97.22/100, unknown_event_count=0, low_confidence_event_count=0.
 
+- **DB-backed card audit run 47 — 2026-05-18 — CONTINUATION_REQUIRED** —
+  Audited 100 cards (Miraidon | SSP | 69 | sv08-069 through
+  Palpitoad | BLK | 20 | sv10.5b-020). TCGDex preflight OK (100/100 fetched).
+  No fixable engine gaps found in this slice
+  (fixes_implemented=0, engine_gaps_documented=0). Stopping with
+  CONTINUATION_REQUIRED (>=100 cards audited; target of 25 findings not
+  reached). Next run resumes at Pancham | JTG | 83 | sv09-083.
+  Behavioral accounting (v4): required=77, verified=0, unverified=77,
+  coverage=0.0. Report:
+  `docs/audit_runs/2026-05-18-47-card-effect-audit.json`.
+  Confidence: High.
+
 - **Implement Dangerous Laser trainer handler — 2026-05-15** —
   Added a handler for `Dangerous Laser` (sv06.5-058 / SFA 58), an ACE SPEC Item
   that reads: *"Your opponent's Active Pokémon is now Burned and Confused."*
