@@ -225,13 +225,26 @@
           "test_file": "backend/tests/test_engine/test_run46_fixes.py",
           "test_name": "test_magneton_overvolt_discharge_registered_as_active_ability",
           "assertions": [
-            "'svp-153:Overvolt Discharge' in reg._ability_effects",
+            "svp-153:Overvolt Discharge in reg._ability_effects (active, not passive)",
             "handler callable"
+          ],
+          "passed": true
+        },
+        {
+          "proof_type": "existing-test",
+          "test_file": "backend/tests/test_engine/test_run46_fixes.py",
+          "test_name": "test_magneton_overvolt_discharge_behavioral",
+          "assertions": [
+            "resolve_ability invoked through normal ability path",
+            "up to 3 Basic Energy cards move from discard to Lightning Pokemon",
+            "non-Lightning Pokemon receive no energy",
+            "Magneton.current_hp == 0 after effect (self-KO verified)",
+            "condition returns False when no Basic Energy remain in discard"
           ],
           "passed": true
         }
       ],
-      "notes": "FIX: Magneton (svp-153) Overvolt Discharge was registered via register_passive_ability \u2014 handler was never wired and ability silently did nothing. Fixed to register_ability with _overvolt_discharge + _cond_overvolt_discharge (same as sv08-059). Regression test: test_magneton_overvolt_discharge_registered_as_active_ability."
+      "notes": "FIX: Magneton (svp-153) Overvolt Discharge was registered via register_passive_ability \u2014 handler was never wired and ability silently did nothing. Fixed to register_ability with _overvolt_discharge + _cond_overvolt_discharge (same as sv08-059). Regression test: test_magneton_overvolt_discharge_registered_as_active_ability. Also fixed _cond_overvolt_discharge to include svp-153 ID (was sv08-059-only check)."
     },
     {
       "seq": 5,
@@ -287,13 +300,26 @@
           "test_file": "backend/tests/test_engine/test_run46_fixes.py",
           "test_name": "test_magneton_overvolt_discharge_registered_as_active_ability",
           "assertions": [
-            "'svp-159:Overvolt Discharge' in reg._ability_effects",
+            "svp-159:Overvolt Discharge in reg._ability_effects (active, not passive)",
             "handler callable"
+          ],
+          "passed": true
+        },
+        {
+          "proof_type": "existing-test",
+          "test_file": "backend/tests/test_engine/test_run46_fixes.py",
+          "test_name": "test_magneton_overvolt_discharge_behavioral",
+          "assertions": [
+            "resolve_ability invoked through normal ability path",
+            "up to 3 Basic Energy cards move from discard to Lightning Pokemon",
+            "non-Lightning Pokemon receive no energy",
+            "Magneton.current_hp == 0 after effect (self-KO verified)",
+            "condition returns False when no Basic Energy remain in discard"
           ],
           "passed": true
         }
       ],
-      "notes": "FIX: Magneton (svp-159) Overvolt Discharge was registered via register_passive_ability \u2014 handler was never wired and ability silently did nothing. Fixed to register_ability with _overvolt_discharge + _cond_overvolt_discharge (same as sv08-059). Regression test: test_magneton_overvolt_discharge_registered_as_active_ability."
+      "notes": "FIX: Magneton (svp-159) Overvolt Discharge was registered via register_passive_ability \u2014 handler was never wired and ability silently did nothing. Fixed to register_ability with _overvolt_discharge + _cond_overvolt_discharge (same as sv08-059). Regression test: test_magneton_overvolt_discharge_registered_as_active_ability. Also fixed _cond_overvolt_discharge to include svp-159 ID (was sv08-059-only check)."
     },
     {
       "seq": 6,

@@ -258,6 +258,10 @@ def test_fade_out_returns_energy_source_cards_to_hand():
 # Fixes 4 & 5: Magneton svp-153 and svp-159 (Overvolt Discharge)
 # ──────────────────────────────────────────────────────────────────────────────
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Fixes 4 & 5: Magneton svp-153 and svp-159 (Overvolt Discharge)
+# ──────────────────────────────────────────────────────────────────────────────
+
 @pytest.mark.parametrize("card_id", ["svp-153", "svp-159"])
 def test_magneton_overvolt_discharge_registered_as_active_ability(card_id: str):
     """Fixes 3 & 4: svp-153 and svp-159 Magneton must use register_ability (not passive).
@@ -282,6 +286,154 @@ def test_magneton_overvolt_discharge_registered_as_active_ability(card_id: str):
     # Handler must be callable
     handler = reg._ability_effects[ability_key]
     assert callable(handler), f"Handler for {card_id} Overvolt Discharge must be callable"
+
+
+def _make_lightning_energy_card(instance_id: str, def_id: str = "basic-lightning-r46") -> CardInstance:
+    """Return a Basic Lightning Energy CardInstance in the discard pile."""
+    return CardInstance(
+        instance_id=instance_id,
+        card_def_id=def_id,
+        card_name="Lightning Energy",
+        current_hp=0,
+        max_hp=0,
+        zone=Zone.DISCARD,
+        card_type="Energy",
+        card_subtype="Basic",
+    )
+
+
+@pytest.mark.parametrize("card_id", ["svp-153", "svp-159"])
+@pytest.mark.asyncio
+async def test_magneton_overvolt_discharge_behavioral(card_id: str):
+    """Behavioral test for Overvolt Discharge (svp-153 and svp-159).
+
+    Verifies end-to-end through the normal ability resolution path:
+    - Up to 3 Basic Energy cards move from discard to Lightning Pokémon(s).
+    - Magneton itself is Knocked Out after the effect resolves.
+    - The condition rejects activation when no Basic Energy remain (once-per-turn).
+    - Non-Lightning Pokémon are not auto-targeted.
+    """
+    # Card defs -----------------------------------------------------------------
+    lightning_energy_def = CardDefinition(
+        tcgdex_id="basic-lightning-r46",
+        name="Lightning Energy",
+        set_abbrev="R46",
+        set_number="001",
+        category="Energy",
+        subcategory="Basic",
+        energy_provides=["Lightning"],
+    )
+    # Magneton is registered with its actual card_id; use no types so it is not
+    # included in lightning_pokes (only the bench Lightning target should be),
+    # keeping the test deterministic without a real player object for choices.
+    magneton_def = CardDefinition(
+        tcgdex_id=card_id,
+        name="Magneton",
+        set_abbrev="R46",
+        set_number="099",
+        category="Pokemon",
+        stage="Stage1",
+        hp=80,
+        types=[],                # intentionally empty — bench target is the Lightning Pokémon
+        abilities=[AbilityDef(name="Overvolt Discharge", type="Ability")],
+    )
+    lightning_target_def = CardDefinition(
+        tcgdex_id=f"r46-ltarget-{card_id}",
+        name="Raichu",
+        set_abbrev="R46",
+        set_number="050",
+        category="Pokemon",
+        stage="Basic",
+        hp=100,
+        types=["Lightning"],
+    )
+    non_lightning_def = CardDefinition(
+        tcgdex_id=f"r46-ntarget-{card_id}",
+        name="Charmander",
+        set_abbrev="R46",
+        set_number="004",
+        category="Pokemon",
+        stage="Basic",
+        hp=70,
+        types=["Fire"],
+    )
+    opp_def = CardDefinition(
+        tcgdex_id=f"r46-opp-ovd-{card_id}",
+        name="OppMon",
+        set_abbrev="R46",
+        set_number="099",
+        category="Pokemon",
+        stage="Basic",
+        hp=200,
+    )
+    card_registry.register(lightning_energy_def)
+    card_registry.register(magneton_def)
+    card_registry.register(lightning_target_def)
+    card_registry.register(non_lightning_def)
+    card_registry.register(opp_def)
+
+    # Game state ----------------------------------------------------------------
+    magneton = _inst(magneton_def, zone=Zone.ACTIVE, hp=80)
+    magneton.ability_used_this_turn = False
+
+    lightning_target = _inst(lightning_target_def, zone=Zone.BENCH, hp=100)
+    non_lightning_bench = _inst(non_lightning_def, zone=Zone.BENCH, hp=70)
+
+    opp_active = _inst(opp_def, zone=Zone.ACTIVE, hp=200)
+
+    gs = _state(
+        p1_active=magneton,
+        p1_bench=[lightning_target, non_lightning_bench],
+        p2_active=opp_active,
+    )
+
+    # Put 3 Basic Lightning Energy cards in discard
+    energy_cards = [
+        _make_lightning_energy_card(f"le-{card_id}-{i}") for i in range(3)
+    ]
+    gs.p1.discard = list(energy_cards)
+
+    action = _ability_action(player_id="p1", card_instance_id=magneton.instance_id)
+
+    # Invoke through normal ability resolution path ----------------------------
+    await EffectRegistry.instance().resolve_ability(card_id, "Overvolt Discharge", gs, action)
+
+    # Assertions ---------------------------------------------------------------
+    # 1. Magneton is knocked out
+    assert magneton.current_hp == 0, (
+        f"Magneton ({card_id}) must be knocked out after Overvolt Discharge. "
+        f"Got current_hp={magneton.current_hp}."
+    )
+
+    # 2. Basic Energy cards are attached to a Lightning Pokémon (not still in discard)
+    total_attached = len(lightning_target.energy_attached)
+    total_still_in_discard = sum(
+        1 for e in energy_cards if e in gs.p1.discard
+    )
+    assert total_attached > 0, (
+        f"At least one Basic Energy must be attached to the Lightning Pokémon after "
+        f"Overvolt Discharge ({card_id}). Found 0 attachments on the Lightning target."
+    )
+    assert total_still_in_discard == 0, (
+        f"All chosen Basic Energy cards must leave the discard pile after Overvolt "
+        f"Discharge ({card_id}). {total_still_in_discard} remain in discard."
+    )
+
+    # 3. Non-Lightning Pokémon received no energy
+    assert len(non_lightning_bench.energy_attached) == 0, (
+        f"Non-Lightning bench Pokémon must not receive energy from Overvolt Discharge "
+        f"({card_id}). Got {len(non_lightning_bench.energy_attached)} attachments."
+    )
+
+    # 4. Condition returns False after ability fires (no energy left in discard)
+    from app.engine.effects.registry import EffectRegistry as _ER
+    cond = _ER.instance()._ability_conditions.get(f"{card_id}:Overvolt Discharge")
+    assert cond is not None, f"Condition for {card_id} Overvolt Discharge must be registered"
+    # No basic energy in discard anymore → condition should be False
+    assert not cond(gs, "p1"), (
+        f"Condition for {card_id} Overvolt Discharge must return False when no "
+        "Basic Energy remain in discard."
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -346,6 +498,42 @@ def test_koraidon_onslaught_no_bonus_with_non_ancient_bench():
     assert opp_active.current_hp == expected_hp, (
         f"Expected {expected_hp} HP (30 flat, no bonus), got {opp_active.current_hp}. "
         "Non-Ancient bench Pokémon must NOT grant the +150 bonus."
+    )
+
+
+def test_koraidon_onslaught_no_bonus_from_self():
+    """Koraidon self-exclusion: Koraidon itself having last_attack_name must NOT trigger the bonus.
+
+    Card text says 'another Ancient Pokémon on your Bench attacked last turn'.
+    Koraidon is the active attacker, not on the bench, so it cannot trigger its own bonus.
+    This test ensures the active Koraidon (even if it has last_attack_name set) does NOT
+    contribute to the bonus condition.
+    """
+    from app.engine.effects import attacks as atk_mod
+
+    attacker_def = _card("sv08-116", "Koraidon", hp=130,
+                         attacks=[AttackDef(name="Unrelenting Onslaught", damage="30", cost=["Fighting"])])
+    opp_def = _card("r46-opp-kor-self", "OppMon", hp=400)
+    card_registry.register(attacker_def)
+    card_registry.register(opp_def)
+
+    # Koraidon is the active attacker with last_attack_name set (attacked last turn itself)
+    attacker = _inst(attacker_def, zone=Zone.ACTIVE)
+    attacker.last_attack_name = "Unrelenting Onslaught"  # Koraidon attacked last turn too
+
+    opp_active = _inst(opp_def, zone=Zone.ACTIVE, hp=400)
+
+    # No bench at all — only Koraidon itself is in play
+    gs = _state(p1_active=attacker, p2_active=opp_active)
+    action = _attack_action(player_id="p1", attack_index=0)
+
+    atk_mod._koraidon_onslaught_flag(gs, action)
+
+    # Only flat 30 — Koraidon cannot trigger its own bonus
+    expected_hp = 400 - 30
+    assert opp_active.current_hp == expected_hp, (
+        f"Expected {expected_hp} HP (30 flat), got {opp_active.current_hp}. "
+        "Koraidon must NOT grant +150 from its own last_attack_name (only bench Ancient counts)."
     )
 
 

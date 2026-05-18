@@ -5308,11 +5308,12 @@ def register_all(registry):
     registry.register_passive_ability("sv08-037", "Double Type")        # Scovillain ex (dual typing: noop)
     registry.register_passive_ability("sv08-049", "Counterattack")      # Bruxish (on-hit counter: noop)
     registry.register_passive_ability("sv08-057", "Resolute Heart")     # Pikachu ex (OHKO prevention: noop)
+    _OVERVOLT_IDS = frozenset({"sv08-059", "svp-153", "svp-159"})
     def _cond_overvolt_discharge(state, player_id):
         from app.engine.effects.trainers import _is_basic_energy_card
         from app.cards import registry as _cr
         p = state.get_player(player_id)
-        if not any(pk.card_def_id == "sv08-059" and not pk.ability_used_this_turn
+        if not any(pk.card_def_id in _OVERVOLT_IDS and not pk.ability_used_this_turn
                    for pk in _in_play(p)):
             return False
         has_basic_energy = any(_is_basic_energy_card(c) for c in p.discard)
