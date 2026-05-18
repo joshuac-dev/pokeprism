@@ -131,6 +131,24 @@ post-phase development:
 - 12 focused regression tests added in `backend/tests/test_engine/test_run41_fixes.py`.
 - full tests run: `OBSERVED_PLAY_MEMORY_ENABLED=false python3 -m pytest tests/ -x -q` (`1487 passed, 7 skipped`)
 
+**DB-backed audit handoff (2026-05-17 nightly robust-audit-v2 run 46):**
+- current workstream: DB-backed card-effect audits and cursor-based handler fixes
+- completion status: `CONTINUATION_REQUIRED`
+- target findings: 25
+- implemented fixes: 6
+- documented engine gaps: 0
+- database cards audited: 104 (100 in-window + 4 out-of-window fixed entries)
+- first card audited: `Magmar | JTG | 20 | sv09-020`
+- last card fully audited: `Miraidon | PR-SV | 92 | svp-092`
+- next resume cursor: `Miraidon | SSP | 69 | sv08-069`
+- AUDIT_STATE.md update status: updated
+- focused checks run: TCGDex preflight succeeded; local report validation passed (`python3 backend/scripts/validate_card_audit_report.py docs/audit_runs/2026-05-17-46-card-effect-audit.json`)
+- full tests run: `OBSERVED_PLAY_MEMORY_ENABLED=false python3 -m pytest tests/ -x -q` (8 new regression tests in `test_run46_fixes.py`, all passing)
+- implemented fixes in this slice: Bemusing Aroma self-confusion (sv10.5b-007), Fade Out energy discard (sv09-068), Magneton Overvolt Discharge registration (svp-153, svp-159), Koraidon Ancient filter (sv08-116), Alcremie ex bench-caster (sv09-075)
+- documented engine gaps in this slice: none
+- behavioral accounting (v4): `behavioral_rows_required=79`, `behavioral_rows_verified=0`, `behavioral_rows_unverified=79`, `behavioral_coverage_percent=0.0`
+- operational notes: machine-readable v4 report at `docs/audit_runs/2026-05-17-46-card-effect-audit.json`
+
 **DB-backed audit handoff (2026-05-16 nightly robust-audit-v2 run 45):**
 - current workstream: DB-backed card-effect audits and cursor-based handler fixes
 - completion status: `CONTINUATION_REQUIRED`
