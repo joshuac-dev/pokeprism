@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-16 (DB-backed audit run 45 handoff)
+Last updated: 2026-05-18 (observed-play parser quality fix)
 
 ## Current Workstream
 
@@ -16,6 +16,21 @@ post-phase development:
 - Card-effect correctness, handler registration, and simulation validation.
 - AI/coach hardening and decision-quality follow-up.
 - Operational refinement for Docker, Celery, CI, and local workflows.
+
+**Observed-play corpus readiness: READY (2026-05-18):**
+- Scorecard before fix: Not Ready, 77.2/100. Blockers: 3 unknown events, 3 events
+  below 80% confidence (same 3 events, confidence 0.30 each).
+- Root causes:
+  1. Sweep game-end ("Knocked Out all your opponent's Pokémon in play and took all
+     your Prize cards. WINNER wins.") — no pattern. Added `RE_GAME_END_SWEEP`.
+  2. Named Pokémon bounced to hand ("PLAYER moved OWNER's CARD to their hand.") —
+     existing pattern requires numeric count. Added `RE_POKEMON_MOVED_TO_HAND`.
+  3. Self-concede ("You conceded. WINNER wins.") — only opponent-concede covered.
+     Added `RE_GAME_END_YOU_CONCEDED`.
+- Affected logs reparsed: 3 (via `POST /api/observed-play/logs/{id}/reparse`).
+- 18 regression tests added (`TestParserBlockerFixes` in `test_parser.py`).
+- Scorecard after fix: **ready**, 97.22/100, unknown_event_count=0,
+  low_confidence_event_count=0, unresolved=0, ambiguous=0.
 
 **Deck mutation log consistency fix (2026-05-14):**
 - Root cause: three interacting bugs (Cases C + D + G):

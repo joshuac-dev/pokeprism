@@ -101,7 +101,11 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "attack-lock",
+        "draw",
+        "zone-update"
+      ],
       "result": "behavioral-unverified",
       "finding_counted": false,
       "confidence": "medium",
@@ -157,6 +161,7 @@
       ],
       "mechanic_flags": [
         "damage-modifier-pre-wr",
+        "next-turn-effect",
         "status-condition"
       ],
       "result": "behavioral-unverified",
@@ -451,8 +456,8 @@
         }
       ],
       "mechanic_flags": [
-        "bench-effect",
-        "damage-counter"
+        "bench-damage",
+        "bench-effect"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -529,9 +534,7 @@
           ]
         }
       ],
-      "mechanic_flags": [
-        "damage-counter"
-      ],
+      "mechanic_flags": [],
       "result": "no-issue",
       "finding_counted": false,
       "confidence": "high",
@@ -735,7 +738,10 @@
         "bench-effect",
         "choice-request",
         "discard",
-        "switch"
+        "force-switch",
+        "gust",
+        "switch",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -813,8 +819,11 @@
         }
       ],
       "mechanic_flags": [
+        "bench-damage",
         "bench-effect",
-        "discard"
+        "discard",
+        "passive-ability",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -879,6 +888,7 @@
         }
       ],
       "mechanic_flags": [
+        "bench-damage",
         "bench-effect",
         "prize-manipulation"
       ],
@@ -936,8 +946,8 @@
         }
       ],
       "mechanic_flags": [
-        "prize-manipulation",
-        "shuffle-after-search"
+        "draw",
+        "prize-manipulation"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -993,8 +1003,8 @@
         }
       ],
       "mechanic_flags": [
-        "prize-manipulation",
-        "shuffle-after-search"
+        "draw",
+        "prize-manipulation"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -1225,7 +1235,7 @@
       ],
       "mechanic_flags": [
         "discard",
-        "energy-type-filter"
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -1303,8 +1313,10 @@
         }
       ],
       "mechanic_flags": [
+        "bench-damage",
         "bench-effect",
-        "discard"
+        "discard",
+        "energy-attach"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -1382,7 +1394,8 @@
         }
       ],
       "mechanic_flags": [
-        "discard"
+        "discard",
+        "energy-attach"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -1460,7 +1473,8 @@
         }
       ],
       "mechanic_flags": [
-        "damage-counter",
+        "attack-lock",
+        "next-turn-effect",
         "status-condition"
       ],
       "result": "behavioral-unverified",
@@ -1578,7 +1592,7 @@
         }
       ],
       "mechanic_flags": [
-        "shuffle-after-search"
+        "energy-attach"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -1636,8 +1650,7 @@
       "mechanic_flags": [
         "deck-search",
         "discard",
-        "energy-type-filter",
-        "shuffle-after-search"
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -1693,7 +1706,8 @@
         }
       ],
       "mechanic_flags": [
-        "discard"
+        "discard",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -1818,7 +1832,9 @@
         }
       ],
       "mechanic_flags": [
-        "discard"
+        "coin-flip",
+        "discard",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -1912,7 +1928,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "draw"
+      ],
       "result": "behavioral-unverified",
       "finding_counted": false,
       "confidence": "medium",
@@ -1989,6 +2007,9 @@
         }
       ],
       "mechanic_flags": [
+        "attack-lock",
+        "next-turn-effect",
+        "passive-ability",
         "switch"
       ],
       "result": "behavioral-unverified",
@@ -2055,7 +2076,9 @@
       ],
       "mechanic_flags": [
         "bench-effect",
-        "once-per-turn"
+        "energy-move",
+        "once-per-turn",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -2120,6 +2143,7 @@
         }
       ],
       "mechanic_flags": [
+        "bench-damage",
         "bench-effect"
       ],
       "result": "behavioral-unverified",
@@ -2185,8 +2209,11 @@
         }
       ],
       "mechanic_flags": [
+        "bench-damage",
         "bench-effect",
-        "heal"
+        "energy-attach",
+        "heal",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -2251,8 +2278,11 @@
         }
       ],
       "mechanic_flags": [
+        "bench-damage",
         "bench-effect",
-        "heal"
+        "energy-attach",
+        "heal",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -2317,8 +2347,11 @@
         }
       ],
       "mechanic_flags": [
+        "bench-damage",
         "bench-effect",
-        "heal"
+        "energy-attach",
+        "heal",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -2396,7 +2429,9 @@
         }
       ],
       "mechanic_flags": [
+        "bench-damage",
         "bench-effect",
+        "energy-attach",
         "heal"
       ],
       "result": "behavioral-unverified",
@@ -2475,6 +2510,7 @@
         }
       ],
       "mechanic_flags": [
+        "coin-flip",
         "heal"
       ],
       "result": "behavioral-unverified",
@@ -2614,7 +2650,12 @@
       ],
       "mechanic_flags": [
         "bench-effect",
-        "switch"
+        "evolution-trigger",
+        "force-switch",
+        "gust",
+        "on-play-trigger",
+        "switch",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -2693,7 +2734,12 @@
       ],
       "mechanic_flags": [
         "bench-effect",
-        "switch"
+        "evolution-trigger",
+        "force-switch",
+        "gust",
+        "on-play-trigger",
+        "switch",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -2779,6 +2825,7 @@
         }
       ],
       "mechanic_flags": [
+        "energy-attach",
         "prize-manipulation"
       ],
       "result": "behavioral-unverified",
@@ -2835,7 +2882,9 @@
         }
       ],
       "mechanic_flags": [
-        "discard"
+        "discard",
+        "once-per-turn",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -2913,6 +2962,7 @@
         }
       ],
       "mechanic_flags": [
+        "coin-flip",
         "status-condition"
       ],
       "result": "behavioral-unverified",
@@ -2978,7 +3028,8 @@
         }
       ],
       "mechanic_flags": [
-        "bench-effect"
+        "bench-effect",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -3034,7 +3085,8 @@
         }
       ],
       "mechanic_flags": [
-        "discard"
+        "discard",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -3090,7 +3142,8 @@
         }
       ],
       "mechanic_flags": [
-        "damage-modifier-pre-wr"
+        "damage-modifier-pre-wr",
+        "passive-tool"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -3226,6 +3279,7 @@
         }
       ],
       "mechanic_flags": [
+        "next-turn-effect",
         "switch"
       ],
       "result": "behavioral-unverified",
@@ -3304,7 +3358,9 @@
         }
       ],
       "mechanic_flags": [
-        "bench-effect"
+        "bench-damage",
+        "bench-effect",
+        "passive-ability"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -3384,7 +3440,7 @@
       "mechanic_flags": [
         "bench-effect",
         "deck-search",
-        "shuffle-after-search"
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -3496,8 +3552,8 @@
         }
       ],
       "mechanic_flags": [
-        "prize-manipulation",
-        "shuffle-after-search"
+        "draw",
+        "prize-manipulation"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -3553,8 +3609,8 @@
         }
       ],
       "mechanic_flags": [
-        "prize-manipulation",
-        "shuffle-after-search"
+        "draw",
+        "prize-manipulation"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -3610,6 +3666,7 @@
         }
       ],
       "mechanic_flags": [
+        "passive-tool",
         "prize-manipulation"
       ],
       "result": "behavioral-unverified",
@@ -3675,7 +3732,10 @@
         }
       ],
       "mechanic_flags": [
-        "bench-effect"
+        "bench-effect",
+        "evolution-trigger",
+        "on-play-trigger",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -3740,7 +3800,10 @@
         }
       ],
       "mechanic_flags": [
-        "bench-effect"
+        "bench-effect",
+        "evolution-trigger",
+        "on-play-trigger",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -3805,6 +3868,7 @@
         }
       ],
       "mechanic_flags": [
+        "coin-flip",
         "status-condition"
       ],
       "result": "behavioral-unverified",
@@ -3925,7 +3989,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
       "result": "behavioral-unverified",
       "finding_counted": false,
       "confidence": "medium",
@@ -3981,8 +4047,11 @@
       ],
       "mechanic_flags": [
         "bench-effect",
+        "force-switch",
+        "gust",
         "status-condition",
-        "switch"
+        "switch",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -4077,6 +4146,7 @@
         }
       ],
       "mechanic_flags": [
+        "coin-flip",
         "status-condition"
       ],
       "result": "behavioral-unverified",
@@ -4144,7 +4214,7 @@
       "mechanic_flags": [
         "bench-effect",
         "deck-search",
-        "shuffle-after-search"
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -4200,7 +4270,8 @@
         }
       ],
       "mechanic_flags": [
-        "discard"
+        "discard",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -4359,7 +4430,10 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "attack-lock",
+        "next-turn-effect"
+      ],
       "result": "behavioral-unverified",
       "finding_counted": false,
       "confidence": "medium",
@@ -4423,6 +4497,7 @@
         }
       ],
       "mechanic_flags": [
+        "bench-damage",
         "bench-effect"
       ],
       "result": "behavioral-unverified",
@@ -4540,7 +4615,7 @@
       ],
       "mechanic_flags": [
         "deck-search",
-        "shuffle-after-search"
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -4596,6 +4671,7 @@
         }
       ],
       "mechanic_flags": [
+        "draw",
         "prize-manipulation"
       ],
       "result": "behavioral-unverified",
@@ -4661,7 +4737,8 @@
         }
       ],
       "mechanic_flags": [
-        "damage-modifier-pre-wr"
+        "damage-modifier-pre-wr",
+        "next-turn-effect"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -4756,7 +4833,9 @@
         }
       ],
       "mechanic_flags": [
-        "shuffle-after-search"
+        "coin-flip",
+        "draw",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -4772,7 +4851,7 @@
           "passed": null
         }
       ],
-      "notes": "Registry mapping reviewed for sv06-157; risky mechanics (draw, zone-update) remain behaviorally unverified in this 100-card slice."
+      "notes": "Registry mapping reviewed for sv06-157; risky mechanics (coin-flip, draw, zone-update) remain behaviorally unverified in this 100-card slice."
     },
     {
       "seq": 85,
@@ -4811,7 +4890,10 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "draw",
+        "passive-tool"
+      ],
       "result": "behavioral-unverified",
       "finding_counted": false,
       "confidence": "medium",
@@ -4874,7 +4956,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "passive-ability"
+      ],
       "result": "behavioral-unverified",
       "finding_counted": false,
       "confidence": "medium",
@@ -4929,7 +5013,9 @@
         }
       ],
       "mechanic_flags": [
-        "discard"
+        "coin-flip",
+        "discard",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -4993,7 +5079,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "draw"
+      ],
       "result": "behavioral-unverified",
       "finding_counted": false,
       "confidence": "medium",
@@ -5050,7 +5138,8 @@
       "mechanic_flags": [
         "bench-effect",
         "deck-search",
-        "shuffle-after-search"
+        "once-per-turn",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -5106,7 +5195,8 @@
         }
       ],
       "mechanic_flags": [
-        "heal"
+        "heal",
+        "status-condition"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -5122,7 +5212,7 @@
           "passed": null
         }
       ],
-      "notes": "Registry mapping reviewed for me03-078; risky mechanics (heal) remain behaviorally unverified in this 100-card slice."
+      "notes": "Registry mapping reviewed for me03-078; risky mechanics (heal, status-condition) remain behaviorally unverified in this 100-card slice."
     },
     {
       "seq": 91,
@@ -5171,8 +5261,12 @@
         }
       ],
       "mechanic_flags": [
+        "attack-lock",
         "discard",
-        "once-per-turn"
+        "draw",
+        "once-per-turn",
+        "passive-ability",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -5237,8 +5331,12 @@
         }
       ],
       "mechanic_flags": [
+        "attack-lock",
         "discard",
-        "once-per-turn"
+        "draw",
+        "once-per-turn",
+        "passive-ability",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -5303,7 +5401,8 @@
         }
       ],
       "mechanic_flags": [
-        "discard"
+        "discard",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -5359,6 +5458,7 @@
         }
       ],
       "mechanic_flags": [
+        "next-turn-effect",
         "switch"
       ],
       "result": "behavioral-unverified",
@@ -5437,7 +5537,8 @@
         }
       ],
       "mechanic_flags": [
-        "discard"
+        "discard",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -5515,8 +5616,11 @@
         }
       ],
       "mechanic_flags": [
-        "damage-counter",
-        "discard"
+        "discard",
+        "energy-attach",
+        "evolution-trigger",
+        "on-play-trigger",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -5573,7 +5677,9 @@
       ],
       "mechanic_flags": [
         "bench-effect",
-        "discard"
+        "discard",
+        "energy-attach",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -5639,6 +5745,7 @@
       ],
       "mechanic_flags": [
         "bench-effect",
+        "passive-ability",
         "status-condition"
       ],
       "result": "behavioral-unverified",
@@ -5718,7 +5825,8 @@
       ],
       "mechanic_flags": [
         "discard",
-        "status-condition"
+        "status-condition",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
@@ -5796,7 +5904,11 @@
         }
       ],
       "mechanic_flags": [
-        "heal"
+        "draw",
+        "energy-attach",
+        "heal",
+        "passive-ability",
+        "zone-update"
       ],
       "result": "behavioral-unverified",
       "finding_counted": false,
