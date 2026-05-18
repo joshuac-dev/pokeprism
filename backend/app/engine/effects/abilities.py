@@ -3249,7 +3249,7 @@ def _scalding_steam(state, action):
 def _confectionary_gift(state: GameState, action):
     """sv09-075 Alcremie ex — Confectionary Gift: heal 30 from 1 of your Pokémon."""
     player = state.get_player(action.player_id)
-    caster = player.active
+    caster = _find_in_play(player, action.card_instance_id)
     if caster is None or caster.ability_used_this_turn:
         return
     caster.ability_used_this_turn = True
@@ -5308,11 +5308,12 @@ def register_all(registry):
     registry.register_passive_ability("sv08-037", "Double Type")        # Scovillain ex (dual typing: noop)
     registry.register_passive_ability("sv08-049", "Counterattack")      # Bruxish (on-hit counter: noop)
     registry.register_passive_ability("sv08-057", "Resolute Heart")     # Pikachu ex (OHKO prevention: noop)
+    _OVERVOLT_IDS = frozenset({"sv08-059", "svp-153", "svp-159"})
     def _cond_overvolt_discharge(state, player_id):
         from app.engine.effects.trainers import _is_basic_energy_card
         from app.cards import registry as _cr
         p = state.get_player(player_id)
-        if not any(pk.card_def_id == "sv08-059" and not pk.ability_used_this_turn
+        if not any(pk.card_def_id in _OVERVOLT_IDS and not pk.ability_used_this_turn
                    for pk in _in_play(p)):
             return False
         has_basic_energy = any(_is_basic_energy_card(c) for c in p.discard)
@@ -5548,9 +5549,11 @@ def register_all(registry):
     registry.register_passive_ability("svp-136", "Curly Wall")              # Bouffalant (sv07-119 alt)
     registry.register_ability("svp-141", "Jewel Seeker", _jewel_seeker)      # Noctowl (sv07-115 alt)
     registry.register_passive_ability("svp-146", "Cobalt Command")          # Iron Crown ex (sv05-081 alt)
-    registry.register_passive_ability("svp-153", "Overvolt Discharge")      # Magneton (sv08-059 alt)
+    registry.register_ability("svp-153", "Overvolt Discharge", _overvolt_discharge,
+                              condition=_cond_overvolt_discharge)           # Magneton (sv08-059 alt)
     registry.register_ability("svp-154", "Obliging Heal", _obliging_heal)    # Indeedee (sv08-093 alt)
-    registry.register_passive_ability("svp-159", "Overvolt Discharge")      # Magnezone (sv08-059 alt)
+    registry.register_ability("svp-159", "Overvolt Discharge", _overvolt_discharge,
+                              condition=_cond_overvolt_discharge)           # Magneton (sv08-059 alt)
     registry.register_ability("svp-183", "Inviting Wink", _inviting_wink)    # Lillie's Ribombee (sv09-067 alt)
     registry.register_passive_ability("svp-216", "Power Saver")             # TR Mewtwo ex (svp-205 alt)
 

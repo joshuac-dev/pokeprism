@@ -5,14 +5,14 @@ This file stores the rotating cursor for the DB-backed card effect audit workflo
 It does not define card text. It does not define the audit candidate set. The database defines audit scope, and TCGDex defines card behavior.
 
 ```text
-next_start_cursor: Magmar | JTG | 20 | sv09-020
+next_start_cursor: Miraidon | SSP | 69 | sv08-069
 last_run_status: CONTINUATION_REQUIRED
-last_run_date_utc: 2026-05-16
-last_pr: 86
-last_issue: Nightly DB-backed card effect implementation audit - 2026-05-16
-last_first_card_audited: Koffing | JTG | 91 | sv09-091
-last_card_fully_audited: Magearna | JTG | 107 | sv09-107
-notes: Run 45 (2026-05-16): CONTINUATION_REQUIRED — TCGDex preflight succeeded and 100 DB cards were audited from Koffing | JTG | 91 | sv09-091 through Magearna | JTG | 107 | sv09-107. Findings: fixes_implemented=0, engine_gaps_documented=0. Behavioral accounting: required=75, verified=0, unverified=75. Next run resumes at Magmar | JTG | 20 | sv09-020. Report at docs/audit_runs/2026-05-16-45-card-effect-audit.json.
+last_run_date_utc: 2026-05-17
+last_pr: 88
+last_issue: Nightly DB-backed card effect implementation audit - 2026-05-17
+last_first_card_audited: Magmar | JTG | 20 | sv09-020
+last_card_fully_audited: Miraidon | PR-SV | 92 | svp-092
+notes: Run 46 (2026-05-17): CONTINUATION_REQUIRED — TCGDex preflight succeeded and 100 DB cards were audited from Magmar | JTG | 20 | sv09-020 through Miraidon | PR-SV | 92 | svp-092 (104 total ledger entries including 4 out-of-window fixed entries). Findings: fixes_implemented=6, engine_gaps_documented=0. Fixes: Bemusing Aroma self-confusion (sv10.5b-007), Fade Out energy discard (sv09-068), Magneton Overvolt Discharge registration x2 (svp-153, svp-159), Koraidon Ancient filter (sv08-116), Alcremie ex bench-caster (sv09-075). Behavioral accounting: required=79, verified=0, unverified=79. Next run resumes at Miraidon | SSP | 69 | sv08-069. Report at docs/audit_runs/2026-05-17-46-card-effect-audit.json.
 ```
 
 ## Cursor rules

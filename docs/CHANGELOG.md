@@ -237,6 +237,32 @@ merged PR history support that it actually landed.
     behavioral accounting, and behavioral-unverified completion-status rules.
   - Confidence: High.
 
+- **DB-backed card audit run 46 — 2026-05-17 — CONTINUATION_REQUIRED** —
+  Audited 100 in-window cards (Magmar | JTG | 20 | sv09-020 through
+  Miraidon | PR-SV | 92 | svp-092) plus 4 out-of-window fixed entries
+  (104 total ledger entries). TCGDex preflight OK (100/100 fetched).
+  6 engine fixes applied in this slice:
+  (1) Bemusing Aroma (sv10.5b-007) — tails branch applied Confused to self
+  instead of opponent's active; fixed in `_bemusing_aroma`.
+  (2) Fade Out (sv09-068) — energy_attached.clear() discarded energy source
+  cards instead of returning them to hand; fixed to follow _tuck_tail pattern.
+  (3–4) Magneton Overvolt Discharge (svp-153, svp-159) — registered via
+  register_passive_ability (handler never wired); fixed to register_ability
+  with _overvolt_discharge + _cond_overvolt_discharge.
+  (5) Koraidon Unrelenting Onslaught (sv08-116) — any bench Pokémon with
+  last_attack_name triggered +150 bonus; fixed with _is_ancient(p) guard.
+  (6) Alcremie ex Confectionary Gift (sv09-075) — caster resolved to
+  player.active, failing when Alcremie ex was on the bench; fixed to
+  _find_in_play(player, action.card_instance_id).
+  8 regression tests added in `backend/tests/test_engine/test_run46_fixes.py`.
+  Stopping with CONTINUATION_REQUIRED (>=100 cards audited; target of 25
+  findings not yet reached with 6 fixes). Next run resumes at
+  Miraidon | SSP | 69 | sv08-069.
+  Behavioral accounting (v4): required=79, verified=0, unverified=79,
+  coverage=0.0. Report:
+  `docs/audit_runs/2026-05-17-46-card-effect-audit.json`.
+  Confidence: High.
+
 - **DB-backed card audit run 45 — 2026-05-16 — CONTINUATION_REQUIRED** —
   Audited 100 cards (Koffing | JTG | 91 | sv09-091 through
   Magearna | JTG | 107 | sv09-107). TCGDex preflight OK (100/100 fetched).
