@@ -258,10 +258,6 @@ def test_fade_out_returns_energy_source_cards_to_hand():
 # Fixes 4 & 5: Magneton svp-153 and svp-159 (Overvolt Discharge)
 # ──────────────────────────────────────────────────────────────────────────────
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Fixes 4 & 5: Magneton svp-153 and svp-159 (Overvolt Discharge)
-# ──────────────────────────────────────────────────────────────────────────────
-
 @pytest.mark.parametrize("card_id", ["svp-153", "svp-159"])
 def test_magneton_overvolt_discharge_registered_as_active_ability(card_id: str):
     """Fixes 3 & 4: svp-153 and svp-159 Magneton must use register_ability (not passive).
