@@ -66,7 +66,8 @@ from .patterns import (
     RE_POKEMON_SWITCHED,
     RE_CARDS_DISCARDED, RE_CARDS_DISCARDED_FROM_POKEMON,
     RE_CARDS_MOVED_TO_HAND, RE_CARDS_SHUFFLED_INTO_DECK,
-    RE_GAME_END_CONCEDED,
+    RE_GAME_END_CONCEDED, RE_GAME_END_YOU_CONCEDED, RE_GAME_END_SWEEP,
+    RE_POKEMON_MOVED_TO_HAND,
     RE_PLAYER_TIMEOUT, RE_PLAYER_RECONNECTED,
 )
 from .confidence import event_confidence, log_confidence
@@ -305,6 +306,42 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
                 event_idx, current_turn, PHASE_GAME_END, ET_GAME_END, stripped,
                 player_raw=winner_raw, player_alias=alias, actor_type=actor,
                 event_payload={"winner": winner_raw, "win_condition": "opponent_conceded"},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
+        m = RE_GAME_END_YOU_CONCEDED.match(match_line)
+        if m:
+            winner_raw = m.group("winner").strip()
+            win_condition = "self_conceded"
+            alias, actor = get_alias(winner_raw)
+            winner_alias = alias
+            score, reasons = event_confidence(ET_GAME_END, ["winner_raw"])
+            current_phase = PHASE_GAME_END
+            events.append(_make_event(
+                event_idx, current_turn, PHASE_GAME_END, ET_GAME_END, stripped,
+                player_raw=winner_raw, player_alias=alias, actor_type=actor,
+                event_payload={"winner": winner_raw, "win_condition": "self_conceded"},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
+            continue
+
+        m = RE_GAME_END_SWEEP.match(match_line)
+        if m:
+            winner_raw = m.group("winner").strip()
+            win_condition = "prizes"
+            alias, actor = get_alias(winner_raw)
+            winner_alias = alias
+            score, reasons = event_confidence(ET_GAME_END, ["winner_raw"])
+            current_phase = PHASE_GAME_END
+            events.append(_make_event(
+                event_idx, current_turn, PHASE_GAME_END, ET_GAME_END, stripped,
+                player_raw=winner_raw, player_alias=alias, actor_type=actor,
+                event_payload={"winner": winner_raw, "win_condition": "prizes"},
                 confidence_score=score, confidence_reasons=reasons,
             ))
             event_idx += 1
@@ -1426,6 +1463,25 @@ def _parse_log_inner(raw_content: str) -> ParsedObservedLog:
                 confidence_score=score, confidence_reasons=reasons,
             ))
             event_idx += 1
+            continue
+
+        # ── Named Pokémon moved to hand: "PLAYER moved OWNER's CARD to their hand." ──
+        # Handles single named card (e.g. a bounce effect); no numeric count.
+        m = RE_POKEMON_MOVED_TO_HAND.match(match_line)
+        if m:
+            player = m.group("player").strip()
+            card = m.group("card").strip()
+            alias, actor = get_alias(player)
+            score, reasons = event_confidence(ET_CARDS_MOVED_TO_HAND, ["card_name_raw"])
+            events.append(_make_event(
+                event_idx, current_turn, current_phase, ET_CARDS_MOVED_TO_HAND, stripped,
+                player_raw=player, player_alias=alias, actor_type=actor,
+                card_name_raw=card, zone="hand",
+                event_payload={"card": card},
+                confidence_score=score, confidence_reasons=reasons,
+            ))
+            event_idx += 1
+            i += 1
             continue
 
         # ── Shuffle deck ──────────────────────────────────────────────────────
