@@ -1449,3 +1449,153 @@ class TestPlayerSystemEvents:
         timeout_events = [e for e in result.events if e.event_type == ET_PLAYER_TIMEOUT]
         assert len(timeout_events) == 1
 
+
+# ── Parser blocker regression tests (corpus-quality fixes) ─────────────────────
+
+class TestParserBlockerFixes:
+    """Regression tests for parser gaps that caused 'unknown' events in the corpus.
+
+    Each test corresponds to an exact raw line found in the DB as event_type='unknown'
+    (all three had confidence_score=0.30) before the fix.
+    """
+
+    def _parse_in_combat(self, raw_line: str) -> list:
+        """Parse a single line inside a combat phase (turn 12)."""
+        log = "Setup\nAlice's Turn 1\nBob's Turn 1\nAlice's Turn 2\nBob's Turn 2\n" + raw_line
+        return parse_log(log).events
+
+    def _parse_in_turn(self, raw_line: str) -> list:
+        """Parse a single line inside a turn phase."""
+        log = "Setup\nAlice's Turn 1\n" + raw_line
+        return parse_log(log).events
+
+    # ── Event 1: self-concede ──────────────────────────────────────────────────
+
+    def test_you_conceded_is_game_end(self):
+        """'You conceded. WINNER wins.' must be classified as game_end."""
+        events = self._parse_in_turn("You conceded. bigwalls79 wins.\n")
+        game_end = [e for e in events if e.event_type == ET_GAME_END]
+        assert len(game_end) == 1
+
+    def test_you_conceded_not_unknown(self):
+        events = self._parse_in_turn("You conceded. bigwalls79 wins.\n")
+        unknown = [e for e in events if e.event_type == EVENT_UNKNOWN]
+        assert not any("You conceded" in e.raw_line for e in unknown)
+
+    def test_you_conceded_confidence(self):
+        events = self._parse_in_turn("You conceded. bigwalls79 wins.\n")
+        game_end = [e for e in events if e.event_type == ET_GAME_END]
+        assert game_end and game_end[0].confidence_score >= 0.80
+
+    def test_you_conceded_win_condition(self):
+        events = self._parse_in_turn("You conceded. bigwalls79 wins.\n")
+        game_end = [e for e in events if e.event_type == ET_GAME_END]
+        assert game_end and game_end[0].event_payload.get("win_condition") == "self_conceded"
+
+    def test_you_conceded_winner_raw(self):
+        events = self._parse_in_turn("You conceded. bigwalls79 wins.\n")
+        game_end = [e for e in events if e.event_type == ET_GAME_END]
+        assert game_end and game_end[0].player_raw == "bigwalls79"
+
+    # ── Event 2: all-Pokémon-KO sweep game-end ────────────────────────────────
+
+    def test_sweep_game_end_is_game_end(self):
+        """PTCGL sweep line must be classified as game_end with win_condition='prizes'."""
+        raw = (
+            "Knocked Out all your opponent\u2019s Pok\u00e9mon in play "
+            "and took all your Prize cards. gehejo wins.\n"
+        )
+        events = self._parse_in_combat(raw)
+        game_end = [e for e in events if e.event_type == ET_GAME_END]
+        assert len(game_end) == 1
+
+    def test_sweep_game_end_not_unknown(self):
+        raw = (
+            "Knocked Out all your opponent\u2019s Pok\u00e9mon in play "
+            "and took all your Prize cards. gehejo wins.\n"
+        )
+        events = self._parse_in_combat(raw)
+        unknown = [e for e in events if e.event_type == EVENT_UNKNOWN]
+        assert not any("Knocked Out all" in e.raw_line for e in unknown)
+
+    def test_sweep_game_end_confidence(self):
+        raw = (
+            "Knocked Out all your opponent\u2019s Pok\u00e9mon in play "
+            "and took all your Prize cards. gehejo wins.\n"
+        )
+        events = self._parse_in_combat(raw)
+        game_end = [e for e in events if e.event_type == ET_GAME_END]
+        assert game_end and game_end[0].confidence_score >= 0.80
+
+    def test_sweep_game_end_win_condition(self):
+        raw = (
+            "Knocked Out all your opponent\u2019s Pok\u00e9mon in play "
+            "and took all your Prize cards. gehejo wins.\n"
+        )
+        events = self._parse_in_combat(raw)
+        game_end = [e for e in events if e.event_type == ET_GAME_END]
+        assert game_end and game_end[0].event_payload.get("win_condition") == "prizes"
+
+    def test_sweep_game_end_winner(self):
+        raw = (
+            "Knocked Out all your opponent\u2019s Pok\u00e9mon in play "
+            "and took all your Prize cards. gehejo wins.\n"
+        )
+        events = self._parse_in_combat(raw)
+        game_end = [e for e in events if e.event_type == ET_GAME_END]
+        assert game_end and game_end[0].player_raw == "gehejo"
+
+    # ASCII apostrophe variant of sweep line
+    def test_sweep_game_end_ascii_apostrophe(self):
+        raw = (
+            "Knocked Out all your opponent's Pokemon in play "
+            "and took all your Prize cards. gehejo wins.\n"
+        )
+        events = self._parse_in_combat(raw)
+        game_end = [e for e in events if e.event_type == ET_GAME_END]
+        assert len(game_end) == 1
+        assert game_end[0].event_payload.get("win_condition") == "prizes"
+
+    # ── Event 3: named Pokémon moved to hand (bounce) ────────────────────────
+
+    def test_pokemon_moved_to_hand_is_cards_moved_to_hand(self):
+        """'PLAYER moved OWNER's CARD to their hand.' must be cards_moved_to_hand."""
+        events = self._parse_in_combat("MikeyToxic moved MikeyToxic\u2019s Gengar to their hand.\n")
+        moved = [e for e in events if e.event_type == ET_CARDS_MOVED_TO_HAND]
+        assert len(moved) == 1
+
+    def test_pokemon_moved_to_hand_not_unknown(self):
+        events = self._parse_in_combat("MikeyToxic moved MikeyToxic\u2019s Gengar to their hand.\n")
+        unknown = [e for e in events if e.event_type == EVENT_UNKNOWN]
+        assert not any("Gengar" in e.raw_line for e in unknown)
+
+    def test_pokemon_moved_to_hand_confidence(self):
+        events = self._parse_in_combat("MikeyToxic moved MikeyToxic\u2019s Gengar to their hand.\n")
+        moved = [e for e in events if e.event_type == ET_CARDS_MOVED_TO_HAND]
+        assert moved and moved[0].confidence_score >= 0.80
+
+    def test_pokemon_moved_to_hand_card_name(self):
+        events = self._parse_in_combat("MikeyToxic moved MikeyToxic\u2019s Gengar to their hand.\n")
+        moved = [e for e in events if e.event_type == ET_CARDS_MOVED_TO_HAND]
+        assert moved and moved[0].card_name_raw == "Gengar"
+
+    def test_pokemon_moved_to_hand_zone(self):
+        events = self._parse_in_combat("MikeyToxic moved MikeyToxic\u2019s Gengar to their hand.\n")
+        moved = [e for e in events if e.event_type == ET_CARDS_MOVED_TO_HAND]
+        assert moved and moved[0].zone == "hand"
+
+    def test_pokemon_moved_to_hand_ascii_apostrophe(self):
+        """ASCII-apostrophe variant must also match."""
+        events = self._parse_in_combat("Alice moved Bob's Pikachu to their hand.\n")
+        moved = [e for e in events if e.event_type == ET_CARDS_MOVED_TO_HAND]
+        assert len(moved) == 1
+        assert moved[0].card_name_raw == "Pikachu"
+
+    def test_numeric_cards_moved_to_hand_unaffected(self):
+        """The existing numeric-count form must still work (no regression)."""
+        events = self._parse_in_combat("Alice moved Bob\u2019s 3 cards to their hand.\n")
+        moved = [e for e in events if e.event_type == ET_CARDS_MOVED_TO_HAND]
+        assert len(moved) == 1
+        assert moved[0].amount == 3
+        assert moved[0].card_name_raw is None
+

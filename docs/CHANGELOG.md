@@ -30,6 +30,30 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+- **Observed-play parser: fix 3 unknown-event blockers — 2026-05-18** —
+  Corpus readiness scorecard was blocked at 77.2/100 ("Not Ready") by
+  3 events classified as `unknown` (confidence 0.30 each), which also
+  counted as the 3 events below the 80% confidence threshold.
+  Root-cause analysis:
+  1. `"Knocked Out all your opponent's Pokémon in play and took all your Prize cards. WINNER wins."` —
+     Case A: sweep game-end phrasing not covered by any existing pattern. Fix: added
+     `RE_GAME_END_SWEEP` to `patterns.py` and a handler in the game-end block that maps
+     to `ET_GAME_END` with `win_condition="prizes"`.
+  2. `"PLAYER moved OWNER's CARD to their hand."` — Case B: `RE_CARDS_MOVED_TO_HAND`
+     requires a numeric count (`\d+`), so a named Pokémon being bounced to hand was
+     unrecognized. Fix: added `RE_POKEMON_MOVED_TO_HAND` and handler that maps to
+     `ET_CARDS_MOVED_TO_HAND` with `card_name_raw` captured (confidence 0.80).
+  3. `"You conceded. WINNER wins."` — Case A: only `RE_GAME_END_CONCEDED` (handles
+     "Opponent conceded") existed; self-concede phrasing had no pattern. Fix: added
+     `RE_GAME_END_YOU_CONCEDED` and handler mapping to `ET_GAME_END` with
+     `win_condition="self_conceded"`.
+  Affected logs: 3 (2026-05-12 00.17.md, 2026-05-12 17.46.md, 2026-05-16 23.49.md).
+  All 3 logs were reparsed via `POST /api/observed-play/logs/{id}/reparse`.
+  18 focused regression tests added to `tests/test_observed_play/test_parser.py`
+  (`TestParserBlockerFixes`). Card resolution unchanged (unresolved=0, ambiguous=0).
+  Memory quality unchanged (no new low-confidence items). Scorecard after fix:
+  `ready`, score 97.22/100, unknown_event_count=0, low_confidence_event_count=0.
+
 - **Implement Dangerous Laser trainer handler — 2026-05-15** —
   Added a handler for `Dangerous Laser` (sv06.5-058 / SFA 58), an ACE SPEC Item
   that reads: *"Your opponent's Active Pokémon is now Burned and Confused."*
@@ -212,6 +236,18 @@ merged PR history support that it actually landed.
     registry-only rejection, valid behavioral proof acceptance, top-level
     behavioral accounting, and behavioral-unverified completion-status rules.
   - Confidence: High.
+
+- **DB-backed card audit run 45 — 2026-05-16 — CONTINUATION_REQUIRED** —
+  Audited 100 cards (Koffing | JTG | 91 | sv09-091 through
+  Magearna | JTG | 107 | sv09-107). TCGDex preflight OK (100/100 fetched).
+  No fixable engine gaps found in this slice
+  (fixes_implemented=0, engine_gaps_documented=0). Stopping with
+  CONTINUATION_REQUIRED (>=100 cards audited; target of 25 findings not
+  reached). Next run resumes at Magmar | JTG | 20 | sv09-020.
+  Behavioral accounting (v4): required=75, verified=0, unverified=75,
+  coverage=0.0. Report:
+  `docs/audit_runs/2026-05-16-45-card-effect-audit.json`.
+  Confidence: High.
 
 - **DB-backed card audit run 44 — 2026-05-15 — CONTINUATION_REQUIRED** —
   Audited 100 cards (Hop's Wooloo | JTG | 135 | sv09-135 through
