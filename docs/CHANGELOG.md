@@ -30,6 +30,18 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+- **DB-backed card audit run 48 — 2026-05-19 — CONTINUATION_REQUIRED** —
+  Audited 100 cards (Pancham | JTG | 83 | sv09-083 through
+  Rare Candy | MEG | 125 | me01-125). TCGDex preflight OK (100/100 fetched).
+  No fixable engine gaps found in this slice
+  (fixes_implemented=0, engine_gaps_documented=0). Stopping with
+  CONTINUATION_REQUIRED (>=100 cards audited; target of 25 findings not
+  reached). Next run resumes at Redeemable Ticket | JTG | 156 | sv09-156.
+  Behavioral accounting (v4): required=76, verified=0, unverified=76,
+  coverage=0.0. Report:
+  `docs/audit_runs/2026-05-19-48-card-effect-audit.json`.
+  Confidence: High.
+
 - **Observed-play parser: fix 3 unknown-event blockers — 2026-05-18** —
   Corpus readiness scorecard was blocked at 77.2/100 ("Not Ready") by
   3 events classified as `unknown` (confidence 0.30 each), which also
