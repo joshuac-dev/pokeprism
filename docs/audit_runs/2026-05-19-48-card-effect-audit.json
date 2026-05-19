@@ -1,0 +1,5797 @@
+{
+  "run_date_utc": "2026-05-19",
+  "run_number": 48,
+  "completion_status": "CONTINUATION_REQUIRED",
+  "target_findings": 25,
+  "fixes_implemented": 0,
+  "engine_gaps_documented": 0,
+  "total_findings": 0,
+  "cards_audited": 100,
+  "db_card_count": 1607,
+  "full_cycle_completed": false,
+  "continuation_required": true,
+  "min_cards_before_partial": 100,
+  "start_cursor_used": "Pancham | JTG | 83 | sv09-083",
+  "first_card_audited": "Pancham | JTG | 83 | sv09-083",
+  "last_card_fully_audited": "Rare Candy | MEG | 125 | me01-125",
+  "next_resume_cursor": "Redeemable Ticket | JTG | 156 | sv09-156",
+  "traversal_wrapped": false,
+  "tcgdex_preflight": "ok",
+  "tcgdex_preflight_detail": "TCGDex reachable for audit slice; fetched 100/100 cards from API.",
+  "db_card_source": "SQLAlchemy AsyncSession query on cards ordered by name, set_abbrev, set_number, tcgdex_id",
+  "continuation_reason": "100 cards audited (>= 100 minimum). Target of 25 findings not reached: fixes_implemented=0, engine_gaps_documented=0. Next run resumes at Redeemable Ticket | JTG | 156 | sv09-156.",
+  "behavioral_rows_required": 76,
+  "behavioral_rows_verified": 0,
+  "behavioral_rows_unverified": 76,
+  "behavioral_coverage_percent": 0.0,
+  "audit_ledger": [
+    {
+      "seq": 1,
+      "db_id": "sv09-083",
+      "card_name": "Pancham",
+      "set_id": "JTG",
+      "card_number": "83",
+      "tcgdex_id": "sv09-083",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "d392c2f61ce384d8",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Corkscrew Punch",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Focus Fist",
+          "raw_text": "Flip a coin. If tails, this attack does nothing.",
+          "cost": "Colorless Colorless Colorless",
+          "damage": "50",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Focus Fist",
+          "registry_key": "sv09-083:1",
+          "handler_symbol": "_focus_fist",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv09-083:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv09-083; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 2,
+      "db_id": "sv07-085",
+      "card_name": "Pancham",
+      "set_id": "SCR",
+      "card_number": "85",
+      "tcgdex_id": "sv07-085",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "2daccf6dcf213945",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Leer",
+          "raw_text": "Flip a coin. If heads, your opponent's Active Pok\u00e9mon is now Paralyzed.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Low Kick",
+          "raw_text": "",
+          "cost": "Colorless Colorless",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Leer",
+          "registry_key": "sv07-085:0",
+          "handler_symbol": "_leer_b13",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv07-085:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip",
+        "status-condition"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv07-085; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 3,
+      "db_id": "sv09-099",
+      "card_name": "Pangoro",
+      "set_id": "JTG",
+      "card_number": "99",
+      "tcgdex_id": "sv09-099",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "66be340a2f47050e",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Torment",
+          "raw_text": "Choose 1 of your opponent's Active Pok\u00e9mon's attacks. During your opponent's next turn, that Pok\u00e9mon can't use that attack.",
+          "cost": "Darkness",
+          "damage": "30",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Power Tackle",
+          "raw_text": "During your next turn, this Pok\u00e9mon can't attack.",
+          "cost": "Darkness Darkness Colorless",
+          "damage": "160",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Torment",
+          "registry_key": "sv09-099:0",
+          "handler_symbol": "_torment_pangoro",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv09-099:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Power Tackle",
+          "registry_key": "sv09-099:1",
+          "handler_symbol": "_metal_slash",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv09-099:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "attack-lock",
+        "choice-request",
+        "next-turn-effect"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv09-099; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 4,
+      "db_id": "sv07-093",
+      "card_name": "Pangoro",
+      "set_id": "SCR",
+      "card_number": "93",
+      "tcgdex_id": "sv07-093",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "21718e6cc2f94120",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Pull",
+          "raw_text": "Switch in 1 of your opponent's Benched Pok\u00e9mon to the Active Spot.",
+          "cost": "Darkness",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Tantrum",
+          "raw_text": "This Pok\u00e9mon is now Confused.",
+          "cost": "Darkness Darkness Colorless",
+          "damage": "160",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Pull",
+          "registry_key": "sv07-093:0",
+          "handler_symbol": "_pull_bench_to_active",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv07-093:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Tantrum",
+          "registry_key": "sv07-093:1",
+          "handler_symbol": "_tantrum_b13",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv07-093:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect",
+        "force-switch",
+        "gust",
+        "status-condition",
+        "switch",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv07-093; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 5,
+      "db_id": "sv10.5b-017",
+      "card_name": "Panpour",
+      "set_id": "BLK",
+      "card_number": "17",
+      "tcgdex_id": "sv10.5b-017",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "1444e607f5c9d03a",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Collect",
+          "raw_text": "Draw a card.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Scratch",
+          "raw_text": "",
+          "cost": "Colorless Colorless",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Collect",
+          "registry_key": "sv10.5b-017:0",
+          "handler_symbol": "_collect",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10.5b-017:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "draw"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv10.5b-017; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 6,
+      "db_id": "sv10.5b-004",
+      "card_name": "Pansage",
+      "set_id": "BLK",
+      "card_number": "4",
+      "tcgdex_id": "sv10.5b-004",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "e8915578f039cc9a",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Collect",
+          "raw_text": "Draw a card.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Scratch",
+          "raw_text": "",
+          "cost": "Colorless Colorless",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Collect",
+          "registry_key": "sv10.5b-004:0",
+          "handler_symbol": "_collect",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10.5b-004:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "draw"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv10.5b-004; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 7,
+      "db_id": "sv08-022",
+      "card_name": "Pansear",
+      "set_id": "SSP",
+      "card_number": "22",
+      "tcgdex_id": "sv08-022",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "2ef1ce517d50b9f2",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Combustion",
+          "raw_text": "",
+          "cost": "Fire",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv08-022 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 8,
+      "db_id": "sv10.5w-014",
+      "card_name": "Pansear",
+      "set_id": "WHT",
+      "card_number": "14",
+      "tcgdex_id": "sv10.5w-014",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "928279e269650809",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Collect",
+          "raw_text": "Draw a card.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Scratch",
+          "raw_text": "",
+          "cost": "Colorless Colorless",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Collect",
+          "registry_key": "sv10.5w-014:0",
+          "handler_symbol": "_collect",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10.5w-014:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "draw"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv10.5w-014; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 9,
+      "db_id": "svp-150",
+      "card_name": "Paradise Resort",
+      "set_id": "PR-SV",
+      "card_number": "150",
+      "tcgdex_id": "svp-150",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Stadium",
+      "tcgdex_text_hash": "5923c2a8deb9df3e",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Paradise Resort",
+          "raw_text": "The Retreat Cost of each Psyduck in play (both yours and your opponent's) is {C} less.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "svp-150",
+          "handler_symbol": "_noop",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['svp-150']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "switch"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for svp-150; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 10,
+      "db_id": "svp-224",
+      "card_name": "Paradise Resort",
+      "set_id": "PR-SV",
+      "card_number": "224",
+      "tcgdex_id": "svp-224",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Item",
+      "tcgdex_text_hash": "197d7fc2cbdf1649",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Paradise Resort",
+          "raw_text": "The Retreat Cost of each Psyduck in play (both yours and your opponent's) is {C} less.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "svp-224",
+          "handler_symbol": "_noop",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['svp-224']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "switch"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for svp-224; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 11,
+      "db_id": "sv09-004",
+      "card_name": "Paras",
+      "set_id": "JTG",
+      "card_number": "4",
+      "tcgdex_id": "sv09-004",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "9e7e2fefde05496c",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Leech Life",
+          "raw_text": "Heal from this Pok\u00e9mon the same amount of damage you did to your opponent's Active Pok\u00e9mon.",
+          "cost": "Grass",
+          "damage": "10",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Leech Life",
+          "registry_key": "sv09-004:0",
+          "handler_symbol": "_leech_life",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv09-004:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "heal"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv09-004; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 12,
+      "db_id": "sv09-005",
+      "card_name": "Parasect",
+      "set_id": "JTG",
+      "card_number": "5",
+      "tcgdex_id": "sv09-005",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "cdd310bb496b24fb",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Spore",
+          "raw_text": "Your opponent's Active Pok\u00e9mon is now Asleep.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Scissor Swing",
+          "raw_text": "Flip 2 coins. This attack does 30 more damage for each heads.",
+          "cost": "Grass Colorless",
+          "damage": "60+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Spore",
+          "registry_key": "sv09-005:0",
+          "handler_symbol": "_spore_asleep",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv09-005:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Scissor Swing",
+          "registry_key": "sv09-005:1",
+          "handler_symbol": "_scissor_swing",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv09-005:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip",
+        "status-condition"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv09-005; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 13,
+      "db_id": "sv08-184",
+      "card_name": "Passho Berry",
+      "set_id": "SSP",
+      "card_number": "184",
+      "tcgdex_id": "sv08-184",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Tool",
+      "tcgdex_text_hash": "1fea436da8f51282",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Passho Berry",
+          "raw_text": "If the Pok\u00e9mon this card is attached to is damaged by an attack from your opponent's {W} Pok\u00e9mon, it takes 60 less damage (after applying Weakness and Resistance), and discard this card.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv08-184",
+          "handler_symbol": "_noop",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv08-184']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-modifier-post-wr",
+        "discard",
+        "passive-tool"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv08-184; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 14,
+      "db_id": "sv08-111",
+      "card_name": "Passimian",
+      "set_id": "SSP",
+      "card_number": "111",
+      "tcgdex_id": "sv08-111",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "b769439925e46f01",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Coordinated Throwing",
+          "raw_text": "This attack does 20 damage for each of your Basic Pok\u00e9mon in play.",
+          "cost": "Fighting Colorless",
+          "damage": "20\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Coordinated Throwing",
+          "registry_key": "sv08-111:0",
+          "handler_symbol": "_coordinated_throwing",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-111:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv08-111 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 15,
+      "db_id": "sv10.5w-072",
+      "card_name": "Patrat",
+      "set_id": "WHT",
+      "card_number": "72",
+      "tcgdex_id": "sv10.5w-072",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "6a5bf09246187121",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Procurement",
+          "raw_text": "Search your deck for an Item card, reveal it, and put it into your hand. Then, shuffle your deck.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Gnaw",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Procurement",
+          "registry_key": "sv10.5w-072:0",
+          "handler_symbol": "_patrat_procurement",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10.5w-072:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "deck-search",
+        "shuffle-after-search",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv10.5w-072; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 16,
+      "db_id": "sv07-056",
+      "card_name": "Pawmi",
+      "set_id": "SCR",
+      "card_number": "56",
+      "tcgdex_id": "sv07-056",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "818b11c0e5266239",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Targeted Spark",
+          "raw_text": "This attack does 20 damage to 1 of your opponent's Pok\u00e9mon. (Don't apply Weakness and Resistance for Benched Pok\u00e9mon.)",
+          "cost": "Lightning",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Targeted Spark",
+          "registry_key": "sv07-056:0",
+          "handler_symbol": "_targeted_spark",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv07-056:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-damage",
+        "bench-effect"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv07-056; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 17,
+      "db_id": "sv10.5b-064",
+      "card_name": "Pawniard",
+      "set_id": "BLK",
+      "card_number": "64",
+      "tcgdex_id": "sv10.5b-064",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "5a49fa2f603d7d2a",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Corner",
+          "raw_text": "During your opponent's next turn, the Defending Pok\u00e9mon can't retreat.",
+          "cost": "Metal",
+          "damage": "10",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Corner",
+          "registry_key": "sv10.5b-064:0",
+          "handler_symbol": "_gooey_thread",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10.5b-064:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "next-turn-effect",
+        "switch"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv10.5b-064; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 18,
+      "db_id": "svp-111",
+      "card_name": "Pawniard",
+      "set_id": "PR-SV",
+      "card_number": "111",
+      "tcgdex_id": "svp-111",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "007ca58619f2a4d0",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Pierce",
+          "raw_text": "",
+          "cost": "Darkness",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed svp-111 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 19,
+      "db_id": "sv07-141",
+      "card_name": "Payapa Berry",
+      "set_id": "SCR",
+      "card_number": "141",
+      "tcgdex_id": "sv07-141",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Tool",
+      "tcgdex_text_hash": "ab2921e4ba5d775f",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Payapa Berry",
+          "raw_text": "If the Pok\u00e9mon this card is attached to is damaged by an attack from your opponent's {P} Pok\u00e9mon, it takes 60 less damage (after applying Weakness and Resistance), and discard this card.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv07-141",
+          "handler_symbol": "_noop",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv07-141']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-modifier-post-wr",
+        "discard",
+        "passive-tool"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv07-141; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 20,
+      "db_id": "svp-129",
+      "card_name": "Pecharunt",
+      "set_id": "PR-SV",
+      "card_number": "129",
+      "tcgdex_id": "svp-129",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "9afd8b85ef5ca8e0",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Poison Chain",
+          "raw_text": "Your opponent's Active Pok\u00e9mon is now Poisoned. During your opponent's next turn, that Pok\u00e9mon can't retreat.",
+          "cost": "Darkness Colorless",
+          "damage": "10",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Toxic Subjugation",
+          "raw_text": "As long as this Pok\u00e9mon is in the Active Spot, put 5 more damage counters on your opponent's Poisoned Pok\u00e9mon during Pok\u00e9mon Checkup.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Poison Chain",
+          "registry_key": "svp-129:0",
+          "handler_symbol": "_poison_chain_b17",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['svp-129:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Toxic Subjugation",
+          "registry_key": "svp-129:Toxic Subjugation",
+          "handler_symbol": "passive",
+          "handler_file": null,
+          "handler_found": true,
+          "source_evidence": "registry._passive_abilities has 'svp-129:Toxic Subjugation'",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-counter",
+        "next-turn-effect",
+        "passive-ability",
+        "status-condition",
+        "switch"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for svp-129; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 21,
+      "db_id": "svp-149",
+      "card_name": "Pecharunt",
+      "set_id": "PR-SV",
+      "card_number": "149",
+      "tcgdex_id": "svp-149",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "731e5705d79fdd2f",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Poison Chain",
+          "raw_text": "Your opponent's Active Pok\u00e9mon is now Poisoned. During your opponent's next turn, that Pok\u00e9mon can't retreat.",
+          "cost": "Darkness Colorless",
+          "damage": "10",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Toxic Subjugation",
+          "raw_text": "As long as this Pok\u00e9mon is in the Active Spot, put 5 more damage counters on your opponent's Poisoned Pok\u00e9mon during Pok\u00e9mon Checkup.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Poison Chain",
+          "registry_key": "svp-149:0",
+          "handler_symbol": "_poison_chain_b17",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['svp-149:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Toxic Subjugation",
+          "registry_key": "svp-149:Toxic Subjugation",
+          "handler_symbol": "_toxic_subjugation",
+          "handler_file": "backend/app/engine/effects/abilities.py",
+          "handler_found": true,
+          "source_evidence": "registry._ability_effects['svp-149:Toxic Subjugation']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-counter",
+        "next-turn-effect",
+        "passive-ability",
+        "status-condition",
+        "switch"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for svp-149; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 22,
+      "db_id": "sv06.5-039",
+      "card_name": "Pecharunt ex",
+      "set_id": "SFA",
+      "card_number": "39",
+      "tcgdex_id": "sv06.5-039",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "9ea52ac14116bac0",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Irritated Outburst",
+          "raw_text": "This attack does 60 damage for each Prize card your opponent has taken.",
+          "cost": "Darkness Darkness",
+          "damage": "60\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Subjugating Chains",
+          "raw_text": "Once during your turn, you may switch 1 of your Benched {D} Pok\u00e9mon, except any Pecharunt ex, with your Active Pok\u00e9mon. If you do, the new Active Pok\u00e9mon is now Poisoned. You can't use more than 1 Subjugating Chains Ability each turn.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Irritated Outburst",
+          "registry_key": "sv06.5-039:0",
+          "handler_symbol": "_irritated_outburst",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06.5-039:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Subjugating Chains",
+          "registry_key": "sv06.5-039:Subjugating Chains",
+          "handler_symbol": "_subjugating_chains",
+          "handler_file": "backend/app/engine/effects/abilities.py",
+          "handler_found": true,
+          "source_evidence": "registry._ability_effects['sv06.5-039:Subjugating Chains']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "attack-lock",
+        "bench-effect",
+        "once-per-turn",
+        "passive-ability",
+        "prize-manipulation",
+        "status-condition",
+        "switch",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv06.5-039; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 23,
+      "db_id": "sv09-039",
+      "card_name": "Pelipper",
+      "set_id": "JTG",
+      "card_number": "39",
+      "tcgdex_id": "sv09-039",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "8f2d8af4e7679201",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Spit Up",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Speed Dive",
+          "raw_text": "",
+          "cost": "Water Colorless",
+          "damage": "70",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv09-039 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 24,
+      "db_id": "sv05-156",
+      "card_name": "Perilous Jungle",
+      "set_id": "TEF",
+      "card_number": "156",
+      "tcgdex_id": "sv05-156",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Stadium",
+      "tcgdex_text_hash": "0d4194a5c45a8bf6",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Perilous Jungle",
+          "raw_text": "During Pok\u00e9mon Checkup, put 2 more damage counters on each Poisoned non-{D} Pok\u00e9mon (both yours and your opponent's).",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv05-156",
+          "handler_symbol": "_noop",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv05-156']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-counter",
+        "status-condition"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv05-156; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 25,
+      "db_id": "sv06-160",
+      "card_name": "Perrin",
+      "set_id": "TWM",
+      "card_number": "160",
+      "tcgdex_id": "sv06-160",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Supporter",
+      "tcgdex_text_hash": "cf2539973e42a15b",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Perrin",
+          "raw_text": "Reveal up to 2 Pok\u00e9mon in your hand and put them into your deck. If you do, search your deck for up to that many Pok\u00e9mon, reveal them, and put them into your hand. Then, shuffle your deck.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv06-160",
+          "handler_symbol": "_perrin_b20",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv06-160']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "deck-search",
+        "shuffle-after-search",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv06-160; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 26,
+      "db_id": "sv06.5-049",
+      "card_name": "Persian",
+      "set_id": "SFA",
+      "card_number": "49",
+      "tcgdex_id": "sv06.5-049",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "4a97bdc03b20c8e2",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Fury Swipes",
+          "raw_text": "Flip 3 coins. This attack does 50 damage for each heads.",
+          "cost": "Colorless Colorless",
+          "damage": "50\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Slashing Claw",
+          "raw_text": "",
+          "cost": "Colorless Colorless Colorless",
+          "damage": "100",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Fury Swipes",
+          "registry_key": "sv06.5-049:0",
+          "handler_symbol": "_fury_swipes_50",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06.5-049:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv06.5-049; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 27,
+      "db_id": "sv10.5b-006",
+      "card_name": "Petilil",
+      "set_id": "BLK",
+      "card_number": "6",
+      "tcgdex_id": "sv10.5b-006",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "667ca59596ecd587",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Hide",
+          "raw_text": "Flip a coin. If heads, during your opponent's next turn, prevent all damage from and effects of attacks done to this Pok\u00e9mon.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Leafage",
+          "raw_text": "",
+          "cost": "Grass",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Hide",
+          "registry_key": "sv10.5b-006:0",
+          "handler_symbol": "_hide",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10.5b-006:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip",
+        "next-turn-effect"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv10.5b-006; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 28,
+      "db_id": "sv09-006",
+      "card_name": "Petilil",
+      "set_id": "JTG",
+      "card_number": "6",
+      "tcgdex_id": "sv09-006",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "d2b3afb6b71e3288",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Leaf Step",
+          "raw_text": "",
+          "cost": "Grass Colorless",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv09-006 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 29,
+      "db_id": "sv08-102",
+      "card_name": "Phanpy",
+      "set_id": "SSP",
+      "card_number": "102",
+      "tcgdex_id": "sv08-102",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "d6085abd6648b79d",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Headbutt",
+          "raw_text": "",
+          "cost": "Fighting",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv08-102 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 30,
+      "db_id": "sv06-012",
+      "card_name": "Phantump",
+      "set_id": "TWM",
+      "card_number": "12",
+      "tcgdex_id": "sv06-012",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "1fd170400a90afa9",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Leech Seed",
+          "raw_text": "Heal 20 damage from this Pok\u00e9mon.",
+          "cost": "Grass Colorless",
+          "damage": "20",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Leech Seed",
+          "registry_key": "sv06-012:0",
+          "handler_symbol": "_leech_seed_phantump",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-012:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "heal"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv06-012; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 31,
+      "db_id": "sv06-055",
+      "card_name": "Phione",
+      "set_id": "TWM",
+      "card_number": "55",
+      "tcgdex_id": "sv06-055",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "932e0ec89f69e0f2",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Beckon",
+          "raw_text": "Put a Supporter card from your discard pile into your hand.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Energy Press",
+          "raw_text": "This attack does 20 damage for each Energy attached to your opponent's Active Pok\u00e9mon.",
+          "cost": "Water",
+          "damage": "20\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Beckon",
+          "registry_key": "sv06-055:0",
+          "handler_symbol": "_beckon",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-055:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Energy Press",
+          "registry_key": "sv06-055:1",
+          "handler_symbol": "_energy_press",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-055:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard",
+        "energy-attach",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv06-055; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 32,
+      "db_id": "svp-114",
+      "card_name": "Picnicker",
+      "set_id": "PR-SV",
+      "card_number": "114",
+      "tcgdex_id": "svp-114",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Supporter",
+      "tcgdex_text_hash": "c7f5d134931f51c2",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Picnicker",
+          "raw_text": "Flip a coin. If heads, draw 4 cards. If tails, draw 2 cards.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "svp-114",
+          "handler_symbol": "_picnicker_b20",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['svp-114']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip",
+        "draw"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for svp-114; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 33,
+      "db_id": "sv10.5b-071",
+      "card_name": "Pidove",
+      "set_id": "BLK",
+      "card_number": "71",
+      "tcgdex_id": "sv10.5b-071",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "504151b5f2661294",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Scout",
+          "raw_text": "Your opponent reveals their hand.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Stampede",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Scout",
+          "registry_key": "sv10.5b-071:0",
+          "handler_symbol": "_scout",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10.5b-071:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv10.5b-071 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 34,
+      "db_id": "sv05-133",
+      "card_name": "Pidove",
+      "set_id": "TEF",
+      "card_number": "133",
+      "tcgdex_id": "sv05-133",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "e1c49873820f8081",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Gust",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "ability",
+          "name": "Emergency Evolution",
+          "raw_text": "Once during your turn, if this Pok\u00e9mon's remaining HP is 30 or less, you may search your deck for an Unfezant or Unfezant ex and put it onto this Pidove to evolve it. Then, shuffle your deck.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Emergency Evolution",
+          "registry_key": "sv05-133:Emergency Evolution",
+          "handler_symbol": "_emergency_evolution",
+          "handler_file": "backend/app/engine/effects/abilities.py",
+          "handler_found": true,
+          "source_evidence": "registry._ability_effects['sv05-133:Emergency Evolution']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "deck-search",
+        "once-per-turn",
+        "shuffle-after-search"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv05-133; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 35,
+      "db_id": "sv10.5w-012",
+      "card_name": "Pignite",
+      "set_id": "WHT",
+      "card_number": "12",
+      "tcgdex_id": "sv10.5w-012",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "3b5f814522e0d1d4",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Combustion",
+          "raw_text": "",
+          "cost": "Fire",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Heat Crash",
+          "raw_text": "",
+          "cost": "Fire Fire Colorless",
+          "damage": "80",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv10.5w-012 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 36,
+      "db_id": "svp-088",
+      "card_name": "Pikachu",
+      "set_id": "PR-SV",
+      "card_number": "88",
+      "tcgdex_id": "svp-088",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "aa3ca3e6bb1690b2",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Growl",
+          "raw_text": "During your opponent's next turn, attacks used by the Defending Pok\u00e9mon do 20 less damage (before applying Weakness and Resistance).",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Pika Bolt",
+          "raw_text": "",
+          "cost": "Lightning Colorless",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Growl",
+          "registry_key": "svp-088:0",
+          "handler_symbol": "_growl",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['svp-088:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-modifier-pre-wr",
+        "next-turn-effect"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for svp-088; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 37,
+      "db_id": "sv05-051",
+      "card_name": "Pikachu",
+      "set_id": "TEF",
+      "card_number": "51",
+      "tcgdex_id": "sv05-051",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "88aa9df710db8b7b",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Random Spark",
+          "raw_text": "This attack does 10 damage to 1 of your opponent's Pok\u00e9mon. (Don't apply Weakness and Resistance for Benched Pok\u00e9mon.)",
+          "cost": "Lightning",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Random Spark",
+          "registry_key": "sv05-051:0",
+          "handler_symbol": "_random_spark_flag",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv05-051:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-damage",
+        "bench-effect"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv05-051; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 38,
+      "db_id": "sv08.5-028",
+      "card_name": "Pikachu ex",
+      "set_id": "PRE",
+      "card_number": "28",
+      "tcgdex_id": "sv08.5-028",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "bbf0803334480ce0",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Tail Whap",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Thunder",
+          "raw_text": "This Pok\u00e9mon also does 30 damage to itself.",
+          "cost": "Lightning Lightning Colorless",
+          "damage": "220",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Thunder",
+          "registry_key": "sv08.5-028:1",
+          "handler_symbol": "_thunder_220",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08.5-028:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv08.5-028 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 39,
+      "db_id": "svp-106",
+      "card_name": "Pikachu ex",
+      "set_id": "PR-SV",
+      "card_number": "106",
+      "tcgdex_id": "svp-106",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "191b102eae90f354",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Thunderbolt",
+          "raw_text": "",
+          "cost": "Lightning Lightning Colorless",
+          "damage": "120",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed svp-106 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 40,
+      "db_id": "sv08-057",
+      "card_name": "Pikachu ex",
+      "set_id": "SSP",
+      "card_number": "57",
+      "tcgdex_id": "sv08-057",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "9825ca04d6e2a3c1",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Topaz Bolt",
+          "raw_text": "Discard 3 Energy from this Pok\u00e9mon.",
+          "cost": "Grass Lightning Metal",
+          "damage": "300",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "ability",
+          "name": "Resolute Heart",
+          "raw_text": "If this Pok\u00e9mon has full HP and would be Knocked Out by damage from an attack, it is not Knocked Out, and its remaining HP becomes 10.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Topaz Bolt",
+          "registry_key": "sv08-057:0",
+          "handler_symbol": "_topaz_bolt",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-057:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Resolute Heart",
+          "registry_key": "sv08-057:Resolute Heart",
+          "handler_symbol": "passive",
+          "handler_file": null,
+          "handler_found": true,
+          "source_evidence": "registry._passive_abilities has 'sv08-057:Resolute Heart'",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard",
+        "passive-ability"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv08-057; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 41,
+      "db_id": "sv09-078",
+      "card_name": "Piloswine",
+      "set_id": "JTG",
+      "card_number": "78",
+      "tcgdex_id": "sv09-078",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "16a63f9c364bfe83",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Strength",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Impaling Tusk",
+          "raw_text": "",
+          "cost": "Fighting Fighting",
+          "damage": "50",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv09-078 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 42,
+      "db_id": "sv10-004",
+      "card_name": "Pineco",
+      "set_id": "DRI",
+      "card_number": "4",
+      "tcgdex_id": "sv10-004",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "916547a6e1c4f3ed",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Hang Down",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv10-004 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 43,
+      "db_id": "sv05-002",
+      "card_name": "Pineco",
+      "set_id": "TEF",
+      "card_number": "2",
+      "tcgdex_id": "sv05-002",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "fc7a2f906f1cb658",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Ram",
+          "raw_text": "",
+          "cost": "Colorless Colorless Colorless",
+          "damage": "50",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv05-002 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 44,
+      "db_id": "sv08.5-003",
+      "card_name": "Pinsir",
+      "set_id": "PRE",
+      "card_number": "3",
+      "tcgdex_id": "sv08.5-003",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "45c114093f54c3f2",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Slash",
+          "raw_text": "",
+          "cost": "Grass Colorless",
+          "damage": "60",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv08.5-003 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 45,
+      "db_id": "sv06-003",
+      "card_name": "Pinsir",
+      "set_id": "TWM",
+      "card_number": "3",
+      "tcgdex_id": "sv06-003",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "dfe32122166d0e09",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Slow Crunch",
+          "raw_text": "Discard all Energy from this Pok\u00e9mon. At the end of your opponent's next turn, the Defending Pok\u00e9mon will be Knocked Out.",
+          "cost": "Grass Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Superpowered Horns",
+          "raw_text": "",
+          "cost": "Grass Colorless Colorless",
+          "damage": "100",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Slow Crunch",
+          "registry_key": "sv06-003:0",
+          "handler_symbol": "_slow_crunch_flag",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-003:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv06-003; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 46,
+      "db_id": "me03-080",
+      "card_name": "Pok\u00e9 Ball",
+      "set_id": "POR",
+      "card_number": "80",
+      "tcgdex_id": "me03-080",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Item",
+      "tcgdex_text_hash": "01d1f4d3dd275f08",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Pok\u00e9 Ball",
+          "raw_text": "Flip a coin. If heads, search your deck for a Pok\u00e9mon, reveal it, and put it into your hand. Then, shuffle your deck.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "me03-080",
+          "handler_symbol": "_poke_ball_b18",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['me03-080']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip",
+        "deck-search",
+        "shuffle-after-search",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for me03-080; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 47,
+      "db_id": "sv10.5b-084",
+      "card_name": "Pok\u00e9gear 3.0",
+      "set_id": "BLK",
+      "card_number": "84",
+      "tcgdex_id": "sv10.5b-084",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Item",
+      "tcgdex_text_hash": "fde0475685f2bf77",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Pok\u00e9gear 3.0",
+          "raw_text": "Look at the top 7 cards of your deck. You may reveal a Supporter card you find there and put it into your hand. Shuffle the other cards back into your deck.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv10.5b-084",
+          "handler_symbol": "_pokegear",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv10.5b-084']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "shuffle-after-search",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv10.5b-084; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 48,
+      "db_id": "sv01-186",
+      "card_name": "Pok\u00e9gear 3.0",
+      "set_id": "SVI",
+      "card_number": "186",
+      "tcgdex_id": "sv01-186",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Item",
+      "tcgdex_text_hash": "cad308143f70b69c",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Pok\u00e9gear 3.0",
+          "raw_text": "Look at the top 7 cards of your deck. You may reveal a Supporter card you find there and put it into your hand. Shuffle the other cards back into your deck.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv01-186",
+          "handler_symbol": "_pokegear",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv01-186']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "shuffle-after-search",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv01-186; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 49,
+      "db_id": "me03-082",
+      "card_name": "Pok\u00e9mon Catcher",
+      "set_id": "POR",
+      "card_number": "82",
+      "tcgdex_id": "me03-082",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Item",
+      "tcgdex_text_hash": "461fb052b581a24f",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Pok\u00e9mon Catcher",
+          "raw_text": "Flip a coin. If heads, switch in 1 of your opponent's Benched Pok\u00e9mon to the Active Spot.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "me03-082",
+          "handler_symbol": "_pokemon_catcher_b18",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['me03-082']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect",
+        "coin-flip",
+        "force-switch",
+        "gust",
+        "switch",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for me03-082; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 50,
+      "db_id": "me01-123",
+      "card_name": "Pok\u00e9mon Center Lady",
+      "set_id": "MEG",
+      "card_number": "123",
+      "tcgdex_id": "me01-123",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Supporter",
+      "tcgdex_text_hash": "a755d29423363241",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Pok\u00e9mon Center Lady",
+          "raw_text": "Heal 60 damage from 1 of your Pok\u00e9mon, and it recovers from all Special Conditions.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "me01-123",
+          "handler_symbol": "_pokemon_center_lady_b18",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['me01-123']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "heal"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for me01-123; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 51,
+      "db_id": "me02.5-198",
+      "card_name": "Pok\u00e9 Pad",
+      "set_id": "ASC",
+      "card_number": "198",
+      "tcgdex_id": "me02.5-198",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Item",
+      "tcgdex_text_hash": "12ec42b5a90172b3",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Pok\u00e9 Pad",
+          "raw_text": "Search your deck for a Pok\u00e9mon that doesn't have a Rule Box, reveal it, and put it into your hand. Then, shuffle your deck. (Pok\u00e9mon ex, Pok\u00e9mon V, etc. have Rule Boxes.)",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "me02.5-198",
+          "handler_symbol": "_poke_pad",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['me02.5-198']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "deck-search",
+        "shuffle-after-search",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for me02.5-198; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 52,
+      "db_id": "me03-081",
+      "card_name": "Pok\u00e9 Pad",
+      "set_id": "POR",
+      "card_number": "81",
+      "tcgdex_id": "me03-081",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Item",
+      "tcgdex_text_hash": "62b4d7ce857500f8",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Pok\u00e9 Pad",
+          "raw_text": "Search your deck for a Pok\u00e9mon that doesn't have a Rule Box, reveal it, and put it into your hand. Then, shuffle your deck. (Pok\u00e9mon ex, Pok\u00e9mon V, etc. have Rule Boxes.)",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "me03-081",
+          "handler_symbol": "_poke_pad",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['me03-081']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "deck-search",
+        "shuffle-after-search",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for me03-081; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 53,
+      "db_id": "sv06-041",
+      "card_name": "Poliwag",
+      "set_id": "TWM",
+      "card_number": "41",
+      "tcgdex_id": "sv06-041",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "b2da8602c561daec",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Stampede",
+          "raw_text": "",
+          "cost": "Water",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Tail Rap",
+          "raw_text": "Flip 2 coins. This attack does 20 damage for each heads.",
+          "cost": "Colorless Colorless",
+          "damage": "20\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Tail Rap",
+          "registry_key": "sv06-041:1",
+          "handler_symbol": "_tail_rap",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-041:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv06-041; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 54,
+      "db_id": "sv06-042",
+      "card_name": "Poliwhirl",
+      "set_id": "TWM",
+      "card_number": "42",
+      "tcgdex_id": "sv06-042",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "fb59660b39c3e20f",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Hypnosis",
+          "raw_text": "Your opponent's Active Pok\u00e9mon is now Asleep.",
+          "cost": "Water",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Double Slap",
+          "raw_text": "Flip 2 coins. This attack does 30 damage for each heads.",
+          "cost": "Colorless Colorless",
+          "damage": "30\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Hypnosis",
+          "registry_key": "sv06-042:0",
+          "handler_symbol": "_hypnosis_twm",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-042:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Double Slap",
+          "registry_key": "sv06-042:1",
+          "handler_symbol": "_double_slap",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-042:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip",
+        "status-condition"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv06-042; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 55,
+      "db_id": "sv06-043",
+      "card_name": "Poliwrath",
+      "set_id": "TWM",
+      "card_number": "43",
+      "tcgdex_id": "sv06-043",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "930ba308614fa860",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Hypnosis",
+          "raw_text": "Your opponent's Active Pok\u00e9mon is now Asleep.",
+          "cost": "Water",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Jumping Uppercut",
+          "raw_text": "You may do 120 more damage. If you do, shuffle this Pok\u00e9mon and all attached cards into your deck.",
+          "cost": "Colorless Colorless",
+          "damage": "120+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Hypnosis",
+          "registry_key": "sv06-043:0",
+          "handler_symbol": "_hypnosis_twm",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-043:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Jumping Uppercut",
+          "registry_key": "sv06-043:1",
+          "handler_symbol": "_jumping_uppercut",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-043:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "shuffle-after-search",
+        "status-condition"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv06-043; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 56,
+      "db_id": "sv06-020",
+      "card_name": "Poltchageist",
+      "set_id": "TWM",
+      "card_number": "20",
+      "tcgdex_id": "sv06-020",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "8aa45abf9da40ed8",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Hook",
+          "raw_text": "",
+          "cost": "Grass",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "ability",
+          "name": "Storehouse Hideaway",
+          "raw_text": "As long as this Pok\u00e9mon is on your Bench, prevent all damage from and effects of attacks from your opponent's Pok\u00e9mon done to this Pok\u00e9mon.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Storehouse Hideaway",
+          "registry_key": "sv06-020:Storehouse Hideaway",
+          "handler_symbol": "passive",
+          "handler_file": null,
+          "handler_found": true,
+          "source_evidence": "registry._passive_abilities has 'sv06-020:Storehouse Hideaway'",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect",
+        "passive-ability"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv06-020; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 57,
+      "db_id": "sv06-021",
+      "card_name": "Poltchageist",
+      "set_id": "TWM",
+      "card_number": "21",
+      "tcgdex_id": "sv06-021",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "385fba77c7490907",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Tea Server",
+          "raw_text": "Put a Basic {G} Energy card from your discard pile into your hand.",
+          "cost": "Grass",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Surprise Attack",
+          "raw_text": "Flip a coin. If tails, this attack does nothing.",
+          "cost": "Grass",
+          "damage": "30",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Tea Server",
+          "registry_key": "sv06-021:0",
+          "handler_symbol": "_tea_server_flag",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-021:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Surprise Attack",
+          "registry_key": "sv06-021:1",
+          "handler_symbol": "_surprise_attack_30",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-021:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip",
+        "discard",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv06-021; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 58,
+      "db_id": "sv10-029",
+      "card_name": "Ponyta",
+      "set_id": "DRI",
+      "card_number": "29",
+      "tcgdex_id": "sv10-029",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "39dace4d2249c244",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Double Headbutt",
+          "raw_text": "Flip 2 coins. This attack does 10 damage for each heads.",
+          "cost": "Colorless",
+          "damage": "10\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Double Headbutt",
+          "registry_key": "sv10-029:0",
+          "handler_symbol": "_double_headbutt",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-029:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv10-029; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 59,
+      "db_id": "sv07-019",
+      "card_name": "Ponyta",
+      "set_id": "SCR",
+      "card_number": "19",
+      "tcgdex_id": "sv07-019",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "f300f70997a9f7aa",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Flop",
+          "raw_text": "",
+          "cost": "Fire",
+          "damage": "10",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv07-019 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 60,
+      "db_id": "sv05-026",
+      "card_name": "Ponyta",
+      "set_id": "TEF",
+      "card_number": "26",
+      "tcgdex_id": "sv05-026",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "d2d103b0a9121042",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Charge Energy",
+          "raw_text": "Search your deck for a Basic Energy card, reveal it, and put it into your hand. Then, shuffle your deck.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Flame Tail",
+          "raw_text": "",
+          "cost": "Fire Colorless",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Charge Energy",
+          "registry_key": "sv05-026:0",
+          "handler_symbol": "_charge_energy_ponyta_b3",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv05-026:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "deck-search",
+        "energy-type-filter",
+        "shuffle-after-search",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv05-026; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 61,
+      "db_id": "sv05-105",
+      "card_name": "Poochyena",
+      "set_id": "TEF",
+      "card_number": "105",
+      "tcgdex_id": "sv05-105",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "6716037807b4f294",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Gnaw Off",
+          "raw_text": "Flip a coin. If heads, this attack does 20 more damage.",
+          "cost": "Darkness Colorless",
+          "damage": "30+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Gnaw Off",
+          "registry_key": "sv05-105:0",
+          "handler_symbol": "_gnaw_off_b16",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv05-105:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv05-105; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 62,
+      "db_id": "sv06-113",
+      "card_name": "Poochyena",
+      "set_id": "TWM",
+      "card_number": "113",
+      "tcgdex_id": "sv06-113",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "b48752ac0b3aa98d",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Continuous Steps",
+          "raw_text": "Flip a coin until you get tails. This attack does 10 damage for each heads.",
+          "cost": "Darkness",
+          "damage": "10\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Darkness Fang",
+          "raw_text": "",
+          "cost": "Darkness Colorless",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Continuous Steps",
+          "registry_key": "sv06-113:0",
+          "handler_symbol": "_continuous_steps",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-113:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv06-113; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 63,
+      "db_id": "sv09-154",
+      "card_name": "Postwick",
+      "set_id": "JTG",
+      "card_number": "154",
+      "tcgdex_id": "sv09-154",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Stadium",
+      "tcgdex_text_hash": "d08ce757af8f8aea",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Postwick",
+          "raw_text": "Attacks used by Hop's Pok\u00e9mon (both yours and your opponent's) do 30 more damage to the opponent's Active Pok\u00e9mon (before applying Weakness and Resistance).",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv09-154",
+          "handler_symbol": "_noop",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv09-154']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-modifier-pre-wr"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv09-154; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 64,
+      "db_id": "me03-083",
+      "card_name": "Potion",
+      "set_id": "POR",
+      "card_number": "83",
+      "tcgdex_id": "me03-083",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Item",
+      "tcgdex_text_hash": "315c1b643eb29efd",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Potion",
+          "raw_text": "Heal 30 damage from 1 of your Pok\u00e9mon.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "me03-083",
+          "handler_symbol": "_potion_b18",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['me03-083']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "heal"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for me03-083; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 65,
+      "db_id": "sv06.5-063",
+      "card_name": "Powerglass",
+      "set_id": "SFA",
+      "card_number": "63",
+      "tcgdex_id": "sv06.5-063",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Tool",
+      "tcgdex_text_hash": "7ff6b3018581843e",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Powerglass",
+          "raw_text": "At the end of your turn (after your attack), if the Pok\u00e9mon this card is attached to is in the Active Spot, you may attach a Basic Energy card from your discard pile to it.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv06.5-063",
+          "handler_symbol": "_powerglass",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv06.5-063']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard",
+        "energy-attach",
+        "energy-type-filter",
+        "passive-tool",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv06.5-063; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 66,
+      "db_id": "me02.5-199",
+      "card_name": "Premium Power Pro",
+      "set_id": "ASC",
+      "card_number": "199",
+      "tcgdex_id": "me02.5-199",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Item",
+      "tcgdex_text_hash": "57e50852b73b2713",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Premium Power Pro",
+          "raw_text": "During this turn, attacks used by your {F} Pok\u00e9mon do 30 more damage to your opponent's Active Pok\u00e9mon (before applying Weakness and Resistance).",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "me02.5-199",
+          "handler_symbol": "_premium_power_pro_b18",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['me02.5-199']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-modifier-pre-wr"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for me02.5-199; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 67,
+      "db_id": "me01-124",
+      "card_name": "Premium Power Pro",
+      "set_id": "MEG",
+      "card_number": "124",
+      "tcgdex_id": "me01-124",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Item",
+      "tcgdex_text_hash": "c28844fbb55313ad",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Premium Power Pro",
+          "raw_text": "During this turn, attacks used by your {F} Pok\u00e9mon do 30 more damage to your opponent's Active Pok\u00e9mon (before applying Weakness and Resistance).",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "me01-124",
+          "handler_symbol": "_premium_power_pro_b18",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['me01-124']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-modifier-pre-wr"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for me01-124; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 68,
+      "db_id": "sv10-091",
+      "card_name": "Primeape",
+      "set_id": "DRI",
+      "card_number": "91",
+      "tcgdex_id": "sv10-091",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "ab95c2b672c719fa",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Drag Off",
+          "raw_text": "Switch in 1 of your opponent's Benched Pok\u00e9mon to the Active Spot. This attack does 30 damage to the new Active Pok\u00e9mon.",
+          "cost": "Fighting",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Drag Off",
+          "registry_key": "sv10-091:0",
+          "handler_symbol": "_primeape_drag_off",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-091:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-damage",
+        "bench-effect",
+        "force-switch",
+        "gust",
+        "switch",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv10-091; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 69,
+      "db_id": "sv08-099",
+      "card_name": "Primeape",
+      "set_id": "SSP",
+      "card_number": "99",
+      "tcgdex_id": "sv08-099",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "03efb0dee80622a1",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Sweep the Leg",
+          "raw_text": "Flip a coin. If heads, discard an Energy from your opponent's Active Pok\u00e9mon.",
+          "cost": "Fighting",
+          "damage": "30",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Mega Punch",
+          "raw_text": "",
+          "cost": "Fighting Colorless",
+          "damage": "70",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Sweep the Leg",
+          "registry_key": "sv08-099:0",
+          "handler_symbol": "_sweep_the_leg",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-099:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip",
+        "discard",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv08-099; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 70,
+      "db_id": "sv05-157",
+      "card_name": "Prime Catcher",
+      "set_id": "TEF",
+      "card_number": "157",
+      "tcgdex_id": "sv05-157",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Item",
+      "tcgdex_text_hash": "bc85e21072c79f0a",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Prime Catcher",
+          "raw_text": "Switch in 1 of your opponent's Benched Pok\u00e9mon to the Active Spot. If you do, switch your Active Pok\u00e9mon with 1 of your Benched Pok\u00e9mon.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "sv05-157",
+          "handler_symbol": "_prime_catcher",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['sv05-157']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-effect",
+        "force-switch",
+        "gust",
+        "switch",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv05-157; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 71,
+      "db_id": "me02.5-216",
+      "card_name": "Prism Energy",
+      "set_id": "ASC",
+      "card_number": "216",
+      "tcgdex_id": "me02.5-216",
+      "tcgdex_fetch": "ok",
+      "category": "Energy",
+      "subcategory": "Special",
+      "tcgdex_text_hash": "6966ad1e52c55a14",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "energy",
+          "name": "Prism Energy",
+          "raw_text": "As long as this card is attached to a Pok\u00e9mon, it provides {C} Energy.\n\nIf this card is attached to a Basic Pok\u00e9mon, this card provides every type of Energy but provides only 1 Energy at a time.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "special energy always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "energy",
+          "registry_key": "me02.5-216",
+          "handler_symbol": "_prism_energy",
+          "handler_file": "backend/app/engine/effects/energies.py",
+          "handler_found": true,
+          "source_evidence": "registry._energy_effects['me02.5-216']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "energy-attach"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for me02.5-216; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 72,
+      "db_id": "sv10.5b-086",
+      "card_name": "Prism Energy",
+      "set_id": "BLK",
+      "card_number": "86",
+      "tcgdex_id": "sv10.5b-086",
+      "tcgdex_fetch": "ok",
+      "category": "Energy",
+      "subcategory": "Special",
+      "tcgdex_text_hash": "162c08381534953d",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "energy",
+          "name": "Prism Energy",
+          "raw_text": "As long as this card is attached to a Pok\u00e9mon, it provides {C} Energy.\n\nIf this card is attached to a Basic Pok\u00e9mon, this card provides every type of Energy but provides only 1 Energy at a time.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "special energy always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "energy",
+          "registry_key": "sv10.5b-086",
+          "handler_symbol": "_prism_energy",
+          "handler_file": "backend/app/engine/effects/energies.py",
+          "handler_found": true,
+          "source_evidence": "registry._energy_effects['sv10.5b-086']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "energy-attach"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv10.5b-086; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 73,
+      "db_id": "sv10-098",
+      "card_name": "Probopass",
+      "set_id": "DRI",
+      "card_number": "98",
+      "tcgdex_id": "sv10-098",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "5f0f666854ca6f45",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Power Gem",
+          "raw_text": "",
+          "cost": "Fighting",
+          "damage": "40",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Mountain Drop",
+          "raw_text": "If a Stadium is in play, this attack does 70 more damage.",
+          "cost": "Colorless Colorless Colorless",
+          "damage": "70+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Mountain Drop",
+          "registry_key": "sv10-098:1",
+          "handler_symbol": "_mountain_drop",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-098:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "passive-stadium"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv10-098; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 74,
+      "db_id": "sv06-102",
+      "card_name": "Probopass",
+      "set_id": "TWM",
+      "card_number": "102",
+      "tcgdex_id": "sv06-102",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "8b2f41c730208003",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Assault Laser",
+          "raw_text": "If your opponent's Active Pok\u00e9mon has a Pok\u00e9mon Tool attached, this attack does 80 more damage.",
+          "cost": "Colorless Colorless Colorless",
+          "damage": "80+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Land Crush",
+          "raw_text": "",
+          "cost": "Fighting Colorless Colorless Colorless",
+          "damage": "120",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Assault Laser",
+          "registry_key": "sv06-102:0",
+          "handler_symbol": "_assault_laser",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv06-102:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv06-102 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 75,
+      "db_id": "mee-005",
+      "card_name": "Psychic Energy",
+      "set_id": "MEE",
+      "card_number": "5",
+      "tcgdex_id": "mee-005",
+      "tcgdex_fetch": "ok",
+      "category": "Energy",
+      "subcategory": "Basic",
+      "tcgdex_text_hash": "124a54327ee6f03c",
+      "tcgdex_effects_extracted": [],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed mee-005 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 76,
+      "db_id": "sve-013",
+      "card_name": "Psychic Energy",
+      "set_id": "SVE",
+      "card_number": "13",
+      "tcgdex_id": "sve-013",
+      "tcgdex_fetch": "ok",
+      "category": "Energy",
+      "subcategory": "Basic",
+      "tcgdex_text_hash": "f9d01bd354e672a2",
+      "tcgdex_effects_extracted": [],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sve-013 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 77,
+      "db_id": "sve-005",
+      "card_name": "Psychic Energy",
+      "set_id": "SVE",
+      "card_number": "5",
+      "tcgdex_id": "sve-005",
+      "tcgdex_fetch": "ok",
+      "category": "Energy",
+      "subcategory": "Basic",
+      "tcgdex_text_hash": "ec91d7ca82d6c2e9",
+      "tcgdex_effects_extracted": [],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sve-005 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 78,
+      "db_id": "me02.5-039",
+      "card_name": "Psyduck",
+      "set_id": "ASC",
+      "card_number": "39",
+      "tcgdex_id": "me02.5-039",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "c9a288d46ff711ac",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Ram",
+          "raw_text": "",
+          "cost": "Colorless Colorless",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "ability",
+          "name": "Damp",
+          "raw_text": "Pok\u00e9mon in play (both yours and your opponent's) lose any Ability that requires the Pok\u00e9mon using it to Knock Out itself.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Damp",
+          "registry_key": "me02.5-039:Damp",
+          "handler_symbol": "passive",
+          "handler_file": null,
+          "handler_found": true,
+          "source_evidence": "registry._passive_abilities has 'me02.5-039:Damp'",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "passive-ability"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for me02.5-039; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 79,
+      "db_id": "mep-007",
+      "card_name": "Psyduck",
+      "set_id": "MEP",
+      "card_number": "7",
+      "tcgdex_id": "mep-007",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "8c1d4943b1addd25",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Collision",
+          "raw_text": "",
+          "cost": "Colorless Colorless",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "ability",
+          "name": "Damp",
+          "raw_text": "Pok\u00e9mon in play (both yours and your opponent's) lose all Abilities that require those Pok\u00e9mon to be Knocked Out.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Damp",
+          "registry_key": "mep-007:Damp",
+          "handler_symbol": "passive",
+          "handler_file": null,
+          "handler_found": true,
+          "source_evidence": "registry._passive_abilities has 'mep-007:Damp'",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "passive-ability"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for mep-007; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 80,
+      "db_id": "me02-092",
+      "card_name": "Punk Helmet",
+      "set_id": "PFL",
+      "card_number": "92",
+      "tcgdex_id": "me02-092",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Tool",
+      "tcgdex_text_hash": "cef2a92a981bc1cc",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Punk Helmet",
+          "raw_text": "If the {D} Pok\u00e9mon this card is attached to is in the Active Spot and is damaged by an attack from your opponent's Pok\u00e9mon (even if this Pok\u00e9mon is Knocked Out), place 4 damage counters on the Attacking Pok\u00e9mon.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "me02-092",
+          "handler_symbol": "_noop",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['me02-092']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "damage-counter",
+        "passive-tool"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for me02-092; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 81,
+      "db_id": "sv09-081",
+      "card_name": "Pupitar",
+      "set_id": "JTG",
+      "card_number": "81",
+      "tcgdex_id": "sv09-081",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "a0d804fce1324169",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Take Down",
+          "raw_text": "This Pok\u00e9mon also does 20 damage to itself.",
+          "cost": "Colorless Colorless",
+          "damage": "60",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Take Down",
+          "registry_key": "sv09-081:0",
+          "handler_symbol": "_take_down_recoil",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv09-081:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv09-081 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 82,
+      "db_id": "sv08.5-048",
+      "card_name": "Pupitar",
+      "set_id": "PRE",
+      "card_number": "48",
+      "tcgdex_id": "sv08.5-048",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "65406ad5c74577f4",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Sand Spray",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Hammer In",
+          "raw_text": "",
+          "cost": "Colorless Colorless Colorless",
+          "damage": "60",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv08.5-048 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 83,
+      "db_id": "sv10.5w-055",
+      "card_name": "Purrloin",
+      "set_id": "WHT",
+      "card_number": "55",
+      "tcgdex_id": "sv10.5w-055",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "80b929d138753504",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Invite Evil",
+          "raw_text": "Search your deck for up to 3 {D} Pok\u00e9mon, reveal them, and put them into your hand. Then, shuffle your deck.",
+          "cost": "Darkness",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Invite Evil",
+          "registry_key": "sv10.5w-055:0",
+          "handler_symbol": "_purrloin_invite_evil",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10.5w-055:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "deck-search",
+        "shuffle-after-search",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv10.5w-055; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 84,
+      "db_id": "sv07-117",
+      "card_name": "Purugly",
+      "set_id": "SCR",
+      "card_number": "117",
+      "tcgdex_id": "sv07-117",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "9457dfd4211ad142",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Nyan Roll",
+          "raw_text": "Flip a coin. If heads, during your opponent's next turn, prevent all damage from and effects of attacks done to this Pok\u00e9mon.",
+          "cost": "Colorless Colorless",
+          "damage": "80",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Nyan Roll",
+          "registry_key": "sv07-117:0",
+          "handler_symbol": "_nyan_roll",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv07-117:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip",
+        "next-turn-effect"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv07-117; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 85,
+      "db_id": "sv08.5-016",
+      "card_name": "Pyroar",
+      "set_id": "PRE",
+      "card_number": "16",
+      "tcgdex_id": "sv08.5-016",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "151132afda0e963a",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Fire Mane",
+          "raw_text": "",
+          "cost": "Fire Colorless",
+          "damage": "50",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Flame Tackle",
+          "raw_text": "During your next turn, this Pok\u00e9mon can't attack.",
+          "cost": "Fire Fire Colorless",
+          "damage": "160",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Flame Tackle",
+          "registry_key": "sv08.5-016:1",
+          "handler_symbol": "_metal_slash",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08.5-016:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "attack-lock",
+        "next-turn-effect"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv08.5-016; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 86,
+      "db_id": "svp-156",
+      "card_name": "Quagsire",
+      "set_id": "PR-SV",
+      "card_number": "156",
+      "tcgdex_id": "svp-156",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "2bacdfd94c840b68",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Rollout",
+          "raw_text": "",
+          "cost": "Water",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Drenched Headbutt",
+          "raw_text": "Discard the top 3 cards of your deck, and this attack does 80 damage for each Energy card you discarded in this way.",
+          "cost": "Water Colorless Colorless",
+          "damage": "80\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Drenched Headbutt",
+          "registry_key": "svp-156:1",
+          "handler_symbol": "_drenched_headbutt_b3",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['svp-156:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for svp-156; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 87,
+      "db_id": "sv08-052",
+      "card_name": "Quaquaval",
+      "set_id": "SSP",
+      "card_number": "52",
+      "tcgdex_id": "sv08-052",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "8857cd9d2d20b90c",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Hydro Splash",
+          "raw_text": "",
+          "cost": "Water Colorless",
+          "damage": "120",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "ability",
+          "name": "Up-Tempo",
+          "raw_text": "You must put a card from your hand on the bottom of your deck in order to use this Ability. Once during your turn, you may draw cards until you have 5 cards in your hand.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Up-Tempo",
+          "registry_key": "sv08-052:Up-Tempo",
+          "handler_symbol": "_up_tempo",
+          "handler_file": "backend/app/engine/effects/abilities.py",
+          "handler_found": true,
+          "source_evidence": "registry._ability_effects['sv08-052:Up-Tempo']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "draw",
+        "once-per-turn",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv08-052; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 88,
+      "db_id": "sv08-050",
+      "card_name": "Quaxly",
+      "set_id": "SSP",
+      "card_number": "50",
+      "tcgdex_id": "sv08-050",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "a637dece48205b20",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Aerial Ace",
+          "raw_text": "Flip a coin. If heads, this attack does 20 more damage.",
+          "cost": "Water",
+          "damage": "10+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Aerial Ace",
+          "registry_key": "sv08-050:0",
+          "handler_symbol": "_aerial_ace_10",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-050:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv08-050; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 89,
+      "db_id": "sv08-051",
+      "card_name": "Quaxwell",
+      "set_id": "SSP",
+      "card_number": "51",
+      "tcgdex_id": "sv08-051",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "62879e6a4f428cb4",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Aqua Edge",
+          "raw_text": "",
+          "cost": "Water",
+          "damage": "40",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv08-051 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 90,
+      "db_id": "sv07-027",
+      "card_name": "Raboot",
+      "set_id": "SCR",
+      "card_number": "27",
+      "tcgdex_id": "sv07-027",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "023fbae676d0c99b",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Low Sweep",
+          "raw_text": "",
+          "cost": "Fire",
+          "damage": "30",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Combustion",
+          "raw_text": "",
+          "cost": "Fire Colorless Colorless",
+          "damage": "60",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv07-027 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 91,
+      "db_id": "sv08-014",
+      "card_name": "Rabsca",
+      "set_id": "SSP",
+      "card_number": "14",
+      "tcgdex_id": "sv08-014",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "788a1e19fb579bce",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Triple Draw",
+          "raw_text": "Draw 3 cards.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Counterturn",
+          "raw_text": "If there are 3 or fewer cards in your deck, this attack does 200 more damage.",
+          "cost": "Grass",
+          "damage": "40+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Triple Draw",
+          "registry_key": "sv08-014:0",
+          "handler_symbol": "_add_on_draw3",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-014:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Counterturn",
+          "registry_key": "sv08-014:1",
+          "handler_symbol": "_counterturn",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv08-014:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "draw"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv08-014; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 92,
+      "db_id": "sv10-025",
+      "card_name": "Rabsca ex",
+      "set_id": "DRI",
+      "card_number": "25",
+      "tcgdex_id": "sv10-025",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "08d02df0fd9efac3",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Upside-Down Draw",
+          "raw_text": "Draw 3 cards from the bottom of your deck.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Psychic",
+          "raw_text": "This attack does 90 more damage for each Energy attached to your opponent's Active Pok\u00e9mon.",
+          "cost": "Grass Colorless Colorless",
+          "damage": "20+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Upside-Down Draw",
+          "registry_key": "sv10-025:0",
+          "handler_symbol": "_upside_down_draw",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-025:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Psychic",
+          "registry_key": "sv10-025:1",
+          "handler_symbol": "_rabsca_ex_psychic",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv10-025:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "draw",
+        "energy-attach"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv10-025; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 93,
+      "db_id": "sv07-111",
+      "card_name": "Raging Bolt",
+      "set_id": "SCR",
+      "card_number": "111",
+      "tcgdex_id": "sv07-111",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "e81d757aafeff3ce",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Thunderburst Storm",
+          "raw_text": "This attack does 30 damage to 1 of your opponent's Pok\u00e9mon for each Energy attached to this Pok\u00e9mon. (Don't apply Weakness and Resistance for Benched Pok\u00e9mon.)",
+          "cost": "Lightning Fighting",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Dragon Headbutt",
+          "raw_text": "",
+          "cost": "Lightning Fighting Colorless",
+          "damage": "130",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Thunderburst Storm",
+          "registry_key": "sv07-111:0",
+          "handler_symbol": "_thunderburst_storm",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv07-111:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-damage",
+        "bench-effect",
+        "energy-attach"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv07-111; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 94,
+      "db_id": "svp-145",
+      "card_name": "Raging Bolt ex",
+      "set_id": "PR-SV",
+      "card_number": "145",
+      "tcgdex_id": "svp-145",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "423f84aa131b8bff",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Burst Roar",
+          "raw_text": "Discard your hand and draw 6 cards.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Bellowing Thunder",
+          "raw_text": "You may discard any amount of Basic Energy from your Pok\u00e9mon. This attack does 70 damage for each card you discarded in this way.",
+          "cost": "Lightning Fighting",
+          "damage": "70\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Burst Roar",
+          "registry_key": "svp-145:0",
+          "handler_symbol": "_burst_roar",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['svp-145:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Bellowing Thunder",
+          "registry_key": "svp-145:1",
+          "handler_symbol": "_bellowing_thunder",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['svp-145:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard",
+        "draw",
+        "energy-type-filter",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for svp-145; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 95,
+      "db_id": "sv05-123",
+      "card_name": "Raging Bolt ex",
+      "set_id": "TEF",
+      "card_number": "123",
+      "tcgdex_id": "sv05-123",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "0b55ea08392c2e4c",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Burst Roar",
+          "raw_text": "Discard your hand and draw 6 cards.",
+          "cost": "Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Bellowing Thunder",
+          "raw_text": "You may discard any amount of Basic Energy from your Pok\u00e9mon. This attack does 70 damage for each card you discarded in this way.",
+          "cost": "Lightning Fighting",
+          "damage": "70\u00d7",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Burst Roar",
+          "registry_key": "sv05-123:0",
+          "handler_symbol": "_burst_roar",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv05-123:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        },
+        {
+          "effect_name": "Bellowing Thunder",
+          "registry_key": "sv05-123:1",
+          "handler_symbol": "_bellowing_thunder",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv05-123:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "discard",
+        "draw",
+        "energy-type-filter",
+        "zone-update"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv05-123; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 96,
+      "db_id": "sv05-052",
+      "card_name": "Raichu",
+      "set_id": "TEF",
+      "card_number": "52",
+      "tcgdex_id": "sv05-052",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "eec7cafaeb3d1588",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Collateral Bolts",
+          "raw_text": "This attack does 50 damage to each Pok\u00e9mon that has any damage counters on it (both yours and your opponent's), except for this Pok\u00e9mon. (Don't apply Weakness and Resistance for Benched Pok\u00e9mon.)",
+          "cost": "Lightning Colorless",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        },
+        {
+          "kind": "attack",
+          "name": "Electric Ball",
+          "raw_text": "",
+          "cost": "Lightning Colorless Colorless",
+          "damage": "120",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Collateral Bolts",
+          "registry_key": "sv05-052:0",
+          "handler_symbol": "_collateral_bolts_b3",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv05-052:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "bench-damage",
+        "bench-effect",
+        "damage-counter"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv05-052; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 97,
+      "db_id": "sv10-030",
+      "card_name": "Rapidash",
+      "set_id": "DRI",
+      "card_number": "30",
+      "tcgdex_id": "sv10-030",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "b626f0c9dbbc60fa",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Fire Mane",
+          "raw_text": "",
+          "cost": "Fire Colorless",
+          "damage": "60",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "ability",
+          "name": "Hurried Gait",
+          "raw_text": "Once during your turn, you may draw a card.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "ability always requires handler or passive registration"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Hurried Gait",
+          "registry_key": "sv10-030:Hurried Gait",
+          "handler_symbol": "_hurried_gait",
+          "handler_file": "backend/app/engine/effects/abilities.py",
+          "handler_found": true,
+          "source_evidence": "registry._ability_effects['sv10-030:Hurried Gait']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "draw",
+        "once-per-turn"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv10-030; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 98,
+      "db_id": "sv07-020",
+      "card_name": "Rapidash",
+      "set_id": "SCR",
+      "card_number": "20",
+      "tcgdex_id": "sv07-020",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "f39611fd15a675cd",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Burning Run",
+          "raw_text": "Flip a coin. If heads, this attack does 60 more damage.",
+          "cost": "Fire Colorless",
+          "damage": "60+",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Burning Run",
+          "registry_key": "sv07-020:0",
+          "handler_symbol": "_burning_run",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv07-020:0']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for sv07-020; risky mechanics require dedicated behavioral proof in a follow-up run."
+    },
+    {
+      "seq": 99,
+      "db_id": "sv05-027",
+      "card_name": "Rapidash",
+      "set_id": "TEF",
+      "card_number": "27",
+      "tcgdex_id": "sv05-027",
+      "tcgdex_fetch": "ok",
+      "category": "Pokemon",
+      "subcategory": "",
+      "tcgdex_text_hash": "f80b76f9f6060c86",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "attack",
+          "name": "Combustion",
+          "raw_text": "",
+          "cost": "Colorless",
+          "damage": "20",
+          "requires_handler": false,
+          "reason": "flat-damage attack"
+        },
+        {
+          "kind": "attack",
+          "name": "Inferno Onrush",
+          "raw_text": "This Pok\u00e9mon also does 30 damage to itself.",
+          "cost": "Fire Colorless",
+          "damage": "120",
+          "requires_handler": true,
+          "reason": "attack has effect text"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "Inferno Onrush",
+          "registry_key": "sv05-027:1",
+          "handler_symbol": "_inferno_onrush_30",
+          "handler_file": "backend/app/engine/effects/attacks.py",
+          "handler_found": true,
+          "source_evidence": "registry._attack_effects['sv05-027:1']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [],
+      "finding_counted": false,
+      "result": "no-issue",
+      "confidence": "high",
+      "behavioral_evidence": [],
+      "notes": "Reviewed sv05-027 with effect extraction and registry mapping; no risky mechanics inferred for this card."
+    },
+    {
+      "seq": 100,
+      "db_id": "me01-125",
+      "card_name": "Rare Candy",
+      "set_id": "MEG",
+      "card_number": "125",
+      "tcgdex_id": "me01-125",
+      "tcgdex_fetch": "ok",
+      "category": "Trainer",
+      "subcategory": "Item",
+      "tcgdex_text_hash": "49a747758caf8c95",
+      "tcgdex_effects_extracted": [
+        {
+          "kind": "trainer",
+          "name": "Rare Candy",
+          "raw_text": "Choose 1 of your Basic Pok\u00e9mon in play. If you have a Stage 2 card in your hand that evolves from that Pok\u00e9mon, put that card onto the Basic Pok\u00e9mon to evolve it, skipping the Stage 1. You can't use this card during your first turn or on a Basic Pok\u00e9mon that was put into play this turn.",
+          "cost": "",
+          "damage": "",
+          "requires_handler": true,
+          "reason": "trainer card always requires a handler"
+        }
+      ],
+      "implementation_evidence": [
+        {
+          "effect_name": "trainer",
+          "registry_key": "me01-125",
+          "handler_symbol": "_rare_candy",
+          "handler_file": "backend/app/engine/effects/trainers.py",
+          "handler_found": true,
+          "source_evidence": "registry._trainer_effects['me01-125']",
+          "semantic_checks": [
+            "registry-key-resolved",
+            "handler-symbol-resolved",
+            "tcgdex-text-reviewed"
+          ]
+        }
+      ],
+      "mechanic_flags": [
+        "attack-lock",
+        "choice-request"
+      ],
+      "finding_counted": false,
+      "result": "behavioral-unverified",
+      "confidence": "medium",
+      "behavioral_evidence": [
+        {
+          "effect_name": "risky-mechanics",
+          "proof_type": "behavioral-unverified",
+          "test_file": null,
+          "test_name": null,
+          "probe_name": null,
+          "assertions": [],
+          "passed": null
+        }
+      ],
+      "notes": "Registry mappings reviewed for me01-125; risky mechanics require dedicated behavioral proof in a follow-up run."
+    }
+  ]
+}
