@@ -30,6 +30,24 @@ merged PR history support that it actually landed.
 
 ## [Unreleased]
 
+- **Fix AI-vs-AI per-opponent target stop condition — 2026-05-19** —
+  The simulation runner (`backend/app/tasks/simulation.py`) was evaluating the
+  target stop condition using the *aggregate* round win rate even when
+  `target_mode = "per_opponent"` was configured.  This caused the simulation to
+  stop as soon as the aggregate hit count reached `rounds_to_confirm`, ignoring
+  whether every individual opponent had independently met the win-rate threshold
+  for the required consecutive rounds.  Example: with `target_win_rate=50%` and
+  `rounds_to_confirm=3`, a 3-round run with several opponents below 50% in their
+  final round (e.g. Dragapult Dudunsparce R3=33%) was incorrectly halted.
+  Fix: `target_mode` is now read from the `Simulation` row; a new helper
+  `_per_opponent_all_met()` tracks a per-opponent consecutive streak; the stop
+  condition checks all opponents independently for `per_opponent` mode, or the
+  existing aggregate streak for `aggregate` mode.  Added 23 regression tests in
+  `tests/test_tasks/test_simulation_task.py` covering the screenshot scenario,
+  streak-reset semantics, missing-opponent-data edge case, and an aggregate-vs-
+  per-opponent contrast test.  No card engine, deck mutation, parser, or audit
+  files were changed.
+
 - **Observed-play parser: fix 3 unknown-event blockers — 2026-05-18** —
   Corpus readiness scorecard was blocked at 77.2/100 ("Not Ready") by
   3 events classified as `unknown` (confidence 0.30 each), which also

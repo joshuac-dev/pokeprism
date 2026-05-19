@@ -229,6 +229,29 @@ def _check_regression(
     return 0
 
 
+def _per_opponent_all_met(
+    opponent_streaks: dict[str, int],
+    num_expected: int,
+    rounds_to_confirm: int,
+) -> bool:
+    """Return True only when every expected opponent has met the streak threshold.
+
+    An opponent with missing or incomplete round data (absent from
+    ``opponent_streaks``) never satisfies the condition.
+
+    Args:
+        opponent_streaks: Mapping of opponent key → current consecutive streak
+            of rounds where that opponent's win rate met the target.
+        num_expected: Total number of opponents in this simulation.
+        rounds_to_confirm: Required consecutive qualifying rounds.
+    """
+    if num_expected == 0 or rounds_to_confirm <= 0:
+        return False
+    if len(opponent_streaks) < num_expected:
+        return False
+    return all(s >= rounds_to_confirm for s in opponent_streaks.values())
+
+
 def _win_rate_pct(p1_wins: int, total: int) -> int:
     return int(round(p1_wins / total * 100)) if total > 0 else 0
 
@@ -871,6 +894,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
             matches_per_opponent = sim.matches_per_opponent
             target_win_rate = sim.target_win_rate  # integer percentage (e.g. 60)
             target_consecutive_rounds = sim.target_consecutive_rounds if sim.target_consecutive_rounds is not None else 1
+            target_mode = getattr(sim, "target_mode", "aggregate") or "aggregate"
             deck_locked = sim.deck_locked
             game_mode = sim.game_mode
             user_deck_id = sim.user_deck_id
@@ -920,6 +944,9 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
         final_win_rate = 0
         total_round_matches = 0
         consecutive_target_hits = 0
+        # Per-opponent streak tracking for target_mode="per_opponent".
+        # Maps str(opp_deck_id) → current consecutive rounds at or above target.
+        opponent_streaks: dict[str, int] = {}
 
         # Regression tracking state
         prev_win_rate: int | None = None
@@ -1016,6 +1043,8 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
             p1_wins_round = 0
             p1_total_round = 0
             skipped_checkpoint = False
+            # Per-round, per-opponent win counts for target_mode="per_opponent".
+            opp_wins_this_round: dict[str, tuple[int, int]] = {}
 
             for opp_deck_id, opp_name, opp_deck_text in opponent_decks:
                 opp_cards = await _deck_text_to_card_defs(opp_deck_text, SessionFactory)
@@ -1048,8 +1077,11 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                             db, sim_uuid, round_number, opp_deck_id
                         )
                     all_round_results.extend(skipped_results)
-                    p1_wins_round += sum(1 for result in skipped_results if result.winner == "p1")
-                    p1_total_round += len(skipped_results)
+                    _skipped_wins = sum(1 for r in skipped_results if r.winner == "p1")
+                    _skipped_total = len(skipped_results)
+                    p1_wins_round += _skipped_wins
+                    p1_total_round += _skipped_total
+                    opp_wins_this_round[str(opp_deck_id)] = (_skipped_wins, _skipped_total)
                     _publish({
                         "type": "opponent_batch_skipped",
                         "simulation_id": simulation_id,
@@ -1185,6 +1217,7 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                 all_round_results.extend(batch.results)
                 p1_wins_round += batch.p1_wins
                 p1_total_round += batch.total_games
+                opp_wins_this_round[str(opp_deck_id)] = (batch.p1_wins, batch.total_games)
 
             win_rate_pct = (
                 int(round(p1_wins_round / p1_total_round * 100))
@@ -1377,10 +1410,29 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
             # Persist Coach mutations for the next round's history context
             last_mutations_summary = list(mutations_for_event)
 
-            if win_rate_pct >= target_win_rate:
-                consecutive_target_hits += 1
+            # ── Target stop-condition (mode-aware) ──────────────────────────
+            if target_mode == "per_opponent":
+                # Update each opponent's consecutive streak independently.
+                for _opp_id, _, _ in opponent_decks:
+                    _key = str(_opp_id)
+                    _wins, _total = opp_wins_this_round.get(_key, (0, 0))
+                    _opp_rate = _win_rate_pct(_wins, _total)
+                    if _opp_rate >= target_win_rate:
+                        opponent_streaks[_key] = opponent_streaks.get(_key, 0) + 1
+                    else:
+                        opponent_streaks[_key] = 0
+                _target_met = _per_opponent_all_met(
+                    opponent_streaks, len(opponent_decks), target_consecutive_rounds
+                )
+                _consecutive_hits = target_consecutive_rounds if _target_met else 0
             else:
-                consecutive_target_hits = 0
+                # aggregate mode: track overall round win rate streak.
+                if win_rate_pct >= target_win_rate:
+                    consecutive_target_hits += 1
+                else:
+                    consecutive_target_hits = 0
+                _target_met = consecutive_target_hits >= target_consecutive_rounds
+                _consecutive_hits = consecutive_target_hits
 
             _publish({
                 "type": "round_end",
@@ -1392,13 +1444,13 @@ async def _run_simulation_async(task_self: Any, simulation_id: str) -> dict:
                 "mutations": mutations_for_event,
             })
 
-            if consecutive_target_hits >= target_consecutive_rounds:
+            if _target_met:
                 _publish({
                     "type": "target_reached",
                     "simulation_id": simulation_id,
                     "round_number": round_number,
                     "win_rate": win_rate_pct / 100.0,
-                    "consecutive_hits": consecutive_target_hits,
+                    "consecutive_hits": _consecutive_hits,
                 })
                 break
 

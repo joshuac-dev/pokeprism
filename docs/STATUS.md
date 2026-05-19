@@ -4,7 +4,7 @@
 > `docs/PROJECT.md` is historical architecture context, not the active source
 > of truth for implementation status.
 
-Last updated: 2026-05-18 (observed-play parser quality fix + DB-backed audit run 47 handoff)
+Last updated: 2026-05-19 (per-opponent target stop-condition fix)
 
 ## Current Workstream
 
@@ -16,6 +16,25 @@ post-phase development:
 - Card-effect correctness, handler registration, and simulation validation.
 - AI/coach hardening and decision-quality follow-up.
 - Operational refinement for Docker, Celery, CI, and local workflows.
+
+**Per-opponent target stop-condition fix (2026-05-19):**
+- Root cause: `target_mode` was never read from the `Simulation` row in
+  `backend/app/tasks/simulation.py`. The stop-condition check always used the
+  aggregate round win rate, so `per_opponent` mode behaved identically to
+  `aggregate` mode, causing early termination when the aggregate streak reached
+  `rounds_to_confirm` even if individual opponents had not met the threshold.
+- Fix: `target_mode` is now read alongside other sim params. A new helper
+  `_per_opponent_all_met()` tracks a per-opponent consecutive streak (keyed by
+  `str(opp_deck_id)`) and returns True only when every opponent has reached
+  `rounds_to_confirm` consecutive qualifying rounds. The stop-condition branch
+  is now mode-aware: `per_opponent` uses the per-opponent helper; `aggregate`
+  retains the existing streak counter.
+- Per-opponent streak resets to 0 if that opponent's round win rate falls
+  below `target_win_rate`; missing/incomplete opponent data never qualifies.
+- 23 new regression tests added to `tests/test_tasks/test_simulation_task.py`
+  covering the screenshot scenario, positive path, streak-reset semantics,
+  missing-data edge case, and aggregate-vs-per-opponent contrast.
+- No card engine, deck mutation, parser, or audit files changed.
 
 **Observed-play corpus readiness: READY (2026-05-18):**
 - Scorecard before fix: Not Ready, 77.2/100. Blockers: 3 unknown events, 3 events
