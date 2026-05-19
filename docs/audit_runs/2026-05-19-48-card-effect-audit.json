@@ -71,7 +71,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -135,6 +137,7 @@
         }
       ],
       "mechanic_flags": [
+        "coin-flip",
         "status-condition"
       ],
       "finding_counted": false,
@@ -213,7 +216,9 @@
         }
       ],
       "mechanic_flags": [
-        "choice-request"
+        "attack-lock",
+        "choice-request",
+        "next-turn-effect"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -292,8 +297,11 @@
       ],
       "mechanic_flags": [
         "bench-effect",
+        "force-switch",
+        "gust",
         "status-condition",
-        "switch"
+        "switch",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -357,7 +365,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "draw"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -420,7 +430,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "draw"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -513,7 +525,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "draw"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -758,6 +772,7 @@
         }
       ],
       "mechanic_flags": [
+        "coin-flip",
         "status-condition"
       ],
       "finding_counted": false,
@@ -814,7 +829,9 @@
         }
       ],
       "mechanic_flags": [
-        "discard"
+        "damage-modifier-post-wr",
+        "discard",
+        "passive-tool"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -924,7 +941,8 @@
       ],
       "mechanic_flags": [
         "deck-search",
-        "shuffle-after-search"
+        "shuffle-after-search",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -980,6 +998,7 @@
         }
       ],
       "mechanic_flags": [
+        "bench-damage",
         "bench-effect"
       ],
       "finding_counted": false,
@@ -1036,6 +1055,7 @@
         }
       ],
       "mechanic_flags": [
+        "next-turn-effect",
         "switch"
       ],
       "finding_counted": false,
@@ -1122,7 +1142,9 @@
         }
       ],
       "mechanic_flags": [
-        "discard"
+        "damage-modifier-post-wr",
+        "discard",
+        "passive-tool"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -1201,6 +1223,8 @@
       ],
       "mechanic_flags": [
         "damage-counter",
+        "next-turn-effect",
+        "passive-ability",
         "status-condition",
         "switch"
       ],
@@ -1281,6 +1305,8 @@
       ],
       "mechanic_flags": [
         "damage-counter",
+        "next-turn-effect",
+        "passive-ability",
         "status-condition",
         "switch"
       ],
@@ -1360,11 +1386,14 @@
         }
       ],
       "mechanic_flags": [
+        "attack-lock",
         "bench-effect",
         "once-per-turn",
+        "passive-ability",
         "prize-manipulation",
         "status-condition",
-        "switch"
+        "switch",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -1517,7 +1546,8 @@
       ],
       "mechanic_flags": [
         "deck-search",
-        "shuffle-after-search"
+        "shuffle-after-search",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -1581,7 +1611,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -1644,7 +1676,10 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "coin-flip",
+        "next-turn-effect"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -1837,7 +1872,9 @@
         }
       ],
       "mechanic_flags": [
-        "discard"
+        "discard",
+        "energy-attach",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -1892,7 +1929,10 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "coin-flip",
+        "draw"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -2115,7 +2155,8 @@
         }
       ],
       "mechanic_flags": [
-        "damage-modifier-pre-wr"
+        "damage-modifier-pre-wr",
+        "next-turn-effect"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -2171,6 +2212,7 @@
         }
       ],
       "mechanic_flags": [
+        "bench-damage",
         "bench-effect"
       ],
       "finding_counted": false,
@@ -2332,7 +2374,8 @@
         }
       ],
       "mechanic_flags": [
-        "discard"
+        "discard",
+        "passive-ability"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -2582,8 +2625,10 @@
         }
       ],
       "mechanic_flags": [
+        "coin-flip",
         "deck-search",
-        "shuffle-after-search"
+        "shuffle-after-search",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -2639,7 +2684,8 @@
         }
       ],
       "mechanic_flags": [
-        "shuffle-after-search"
+        "shuffle-after-search",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -2695,7 +2741,8 @@
         }
       ],
       "mechanic_flags": [
-        "shuffle-after-search"
+        "shuffle-after-search",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -2752,7 +2799,11 @@
       ],
       "mechanic_flags": [
         "bench-effect",
-        "switch"
+        "coin-flip",
+        "force-switch",
+        "gust",
+        "switch",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -2865,7 +2916,8 @@
       ],
       "mechanic_flags": [
         "deck-search",
-        "shuffle-after-search"
+        "shuffle-after-search",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -2922,7 +2974,8 @@
       ],
       "mechanic_flags": [
         "deck-search",
-        "shuffle-after-search"
+        "shuffle-after-search",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -2986,7 +3039,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -3063,6 +3118,7 @@
         }
       ],
       "mechanic_flags": [
+        "coin-flip",
         "status-condition"
       ],
       "finding_counted": false,
@@ -3207,7 +3263,8 @@
         }
       ],
       "mechanic_flags": [
-        "bench-effect"
+        "bench-effect",
+        "passive-ability"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -3285,7 +3342,9 @@
         }
       ],
       "mechanic_flags": [
-        "discard"
+        "coin-flip",
+        "discard",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -3340,7 +3399,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -3436,7 +3497,8 @@
       "mechanic_flags": [
         "deck-search",
         "energy-type-filter",
-        "shuffle-after-search"
+        "shuffle-after-search",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -3491,7 +3553,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -3554,7 +3618,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -3722,7 +3788,10 @@
       ],
       "mechanic_flags": [
         "discard",
-        "energy-type-filter"
+        "energy-attach",
+        "energy-type-filter",
+        "passive-tool",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -3890,8 +3959,12 @@
         }
       ],
       "mechanic_flags": [
+        "bench-damage",
         "bench-effect",
-        "switch"
+        "force-switch",
+        "gust",
+        "switch",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -3956,7 +4029,9 @@
         }
       ],
       "mechanic_flags": [
-        "discard"
+        "coin-flip",
+        "discard",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -4013,7 +4088,10 @@
       ],
       "mechanic_flags": [
         "bench-effect",
-        "switch"
+        "force-switch",
+        "gust",
+        "switch",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -4068,7 +4146,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "energy-attach"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -4122,7 +4202,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "energy-attach"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -4363,7 +4445,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "passive-ability"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -4426,7 +4510,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "passive-ability"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -4481,7 +4567,8 @@
         }
       ],
       "mechanic_flags": [
-        "damage-counter"
+        "damage-counter",
+        "passive-tool"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -4621,7 +4708,8 @@
       ],
       "mechanic_flags": [
         "deck-search",
-        "shuffle-after-search"
+        "shuffle-after-search",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -4676,7 +4764,10 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "coin-flip",
+        "next-turn-effect"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -4739,7 +4830,10 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "attack-lock",
+        "next-turn-effect"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -4803,7 +4897,8 @@
         }
       ],
       "mechanic_flags": [
-        "discard"
+        "discard",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -4868,7 +4963,9 @@
         }
       ],
       "mechanic_flags": [
-        "once-per-turn"
+        "draw",
+        "once-per-turn",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -4923,7 +5020,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -5068,7 +5167,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "draw"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -5144,7 +5245,10 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "draw",
+        "energy-attach"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -5208,7 +5312,9 @@
         }
       ],
       "mechanic_flags": [
-        "bench-effect"
+        "bench-damage",
+        "bench-effect",
+        "energy-attach"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -5287,7 +5393,9 @@
       ],
       "mechanic_flags": [
         "discard",
-        "energy-type-filter"
+        "draw",
+        "energy-type-filter",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -5366,7 +5474,9 @@
       ],
       "mechanic_flags": [
         "discard",
-        "energy-type-filter"
+        "draw",
+        "energy-type-filter",
+        "zone-update"
       ],
       "finding_counted": false,
       "result": "behavioral-unverified",
@@ -5431,6 +5541,7 @@
         }
       ],
       "mechanic_flags": [
+        "bench-damage",
         "bench-effect",
         "damage-counter"
       ],
@@ -5497,6 +5608,7 @@
         }
       ],
       "mechanic_flags": [
+        "draw",
         "once-per-turn"
       ],
       "finding_counted": false,
@@ -5552,7 +5664,9 @@
           ]
         }
       ],
-      "mechanic_flags": [],
+      "mechanic_flags": [
+        "coin-flip"
+      ],
       "finding_counted": false,
       "result": "behavioral-unverified",
       "confidence": "medium",
@@ -5660,6 +5774,7 @@
         }
       ],
       "mechanic_flags": [
+        "attack-lock",
         "choice-request"
       ],
       "finding_counted": false,

@@ -18,7 +18,9 @@ from app.tasks.simulation import (
     _get_player_classes,
     _parse_deck_text,
     _parse_ptcgl_deck_text,
+    _per_opponent_all_met,
     _validate_post_mutation_deck,
+    _win_rate_pct,
     count_deck_cards,
 )
 
@@ -1116,3 +1118,130 @@ class TestCheckRegression:
     def test_one_percent_drop_counts(self):
         """Even a 1% drop counts as a regression."""
         assert _check_regression(59, 60, 0) == 1
+
+
+# ---------------------------------------------------------------------------
+# _per_opponent_all_met — per-opponent target stop-condition helper
+# ---------------------------------------------------------------------------
+
+class TestPerOpponentAllMet:
+    """Unit tests for _per_opponent_all_met.
+
+    Reproduces the screenshot scenario from the bug report:
+      - target_win_rate=50, rounds_to_confirm=3
+      - Some opponents only have streaks of 0-2 after round 3.
+      - The simulation must NOT stop.
+    """
+
+    # ── negative cases (should NOT stop) ───────────────────────────────────
+
+    def test_screenshot_scenario_does_not_stop(self):
+        """Reproduces the real bug: mixed streaks after round 3 → must not stop."""
+        # After round 3, per the screenshot:
+        streaks = {
+            "alakazam-dudunsparce":     3,   # qualifies
+            "dragapult-dudunsparce":    0,   # R3 dropped below target
+            "festival-lead":            0,   # R2 & R3 below target
+            "lopunny-dudunsparce":      0,   # R3 below target
+            "ns-zoroark":               3,   # qualifies
+            "ogerpon-box":              3,   # qualifies
+            "ogerpon-meganium":         2,   # R1 below target, only 2-streak
+            "raging-bolt-ogerpon":      2,   # R1 below target, only 2-streak
+            "rockets-honchkrow":        3,   # qualifies
+            "starmie-froslass":         2,   # R1 below target, only 2-streak
+        }
+        assert _per_opponent_all_met(streaks, num_expected=10, rounds_to_confirm=3) is False
+
+    def test_some_opponents_below_target_does_not_stop(self):
+        """At least one opponent below threshold → must not stop."""
+        streaks = {"a": 3, "b": 2, "c": 3}
+        assert _per_opponent_all_met(streaks, num_expected=3, rounds_to_confirm=3) is False
+
+    def test_missing_opponent_data_does_not_stop(self):
+        """Fewer entries than expected opponents (incomplete data) → must not stop."""
+        streaks = {"a": 3}
+        assert _per_opponent_all_met(streaks, num_expected=3, rounds_to_confirm=3) is False
+
+    def test_empty_streaks_does_not_stop(self):
+        """No streaks at all → must not stop."""
+        assert _per_opponent_all_met({}, num_expected=3, rounds_to_confirm=3) is False
+
+    def test_zero_expected_does_not_stop(self):
+        """num_expected=0 is an edge case → must not stop."""
+        assert _per_opponent_all_met({}, num_expected=0, rounds_to_confirm=3) is False
+
+    def test_one_below_many_above_does_not_stop(self):
+        """Aggregate passes but one opponent hasn't → must not stop."""
+        streaks = {str(i): 3 for i in range(9)}
+        streaks["9"] = 1  # one opponent still at streak 1
+        assert _per_opponent_all_met(streaks, num_expected=10, rounds_to_confirm=3) is False
+
+    # ── positive cases (should stop) ───────────────────────────────────────
+
+    def test_all_opponents_met_exactly_stops(self):
+        """Every opponent has streak == rounds_to_confirm → must stop."""
+        streaks = {"a": 3, "b": 3, "c": 3}
+        assert _per_opponent_all_met(streaks, num_expected=3, rounds_to_confirm=3) is True
+
+    def test_all_opponents_exceeded_stops(self):
+        """Streaks above threshold also qualify."""
+        streaks = {"a": 5, "b": 4, "c": 10}
+        assert _per_opponent_all_met(streaks, num_expected=3, rounds_to_confirm=3) is True
+
+    def test_single_opponent_met_stops(self):
+        """Single-opponent simulation with exactly rounds_to_confirm streak."""
+        assert _per_opponent_all_met({"solo": 1}, num_expected=1, rounds_to_confirm=1) is True
+
+    def test_rounds_to_confirm_one_all_above(self):
+        """rounds_to_confirm=1, all at or above → stop."""
+        streaks = {"x": 1, "y": 2}
+        assert _per_opponent_all_met(streaks, num_expected=2, rounds_to_confirm=1) is True
+
+    # ── streak-reset semantics ──────────────────────────────────────────────
+
+    def test_streak_reset_after_below_target_round(self):
+        """Simulate: opponent had streak 3, then dropped → streak resets to 0."""
+        # After a qualifying run the opponent drops, then climbs back.
+        # Streak progression: 1 → 2 → 3 (stop?) → drop (reset to 0) → 1 → 2
+        # After the drop+2 rounds the streak is 2, which is < 3 → must not stop.
+        streaks = {"opp": 2}
+        assert _per_opponent_all_met(streaks, num_expected=1, rounds_to_confirm=3) is False
+
+    def test_aggregate_vs_per_opponent_distinct(self):
+        """Illustrates that aggregate and per_opponent are distinct.
+
+        In aggregate mode the caller would compute total_wins / total_games
+        across all opponents, which could be >= target even if some opponents
+        individually fail.  This test verifies the per-opponent helper only
+        looks at per-opponent streaks, not an aggregate figure.
+        """
+        # Two opponents:
+        # "good": 9/10 wins each round (90%) — streak 3
+        # "bad":  1/10 wins each round (10%) — streak 0
+        # Aggregate across 10+10 games per round: ~50%, might pass aggregate
+        # Per-opponent: "bad" never met 50% → must not stop.
+        streaks = {"good": 3, "bad": 0}
+        assert _per_opponent_all_met(streaks, num_expected=2, rounds_to_confirm=3) is False
+
+
+# ---------------------------------------------------------------------------
+# _win_rate_pct helper (used internally for per-opponent rate computation)
+# ---------------------------------------------------------------------------
+
+class TestWinRatePct:
+    def test_zero_games_gives_zero(self):
+        assert _win_rate_pct(0, 0) == 0
+
+    def test_all_wins(self):
+        assert _win_rate_pct(10, 10) == 100
+
+    def test_rounding(self):
+        # 2/3 ≈ 66.67 → rounds to 67
+        assert _win_rate_pct(2, 3) == 67
+
+    def test_one_third(self):
+        # 1/3 ≈ 33.33 → rounds to 33
+        assert _win_rate_pct(1, 3) == 33
+
+    def test_half(self):
+        assert _win_rate_pct(5, 10) == 50

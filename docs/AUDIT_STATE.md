@@ -8,7 +8,7 @@ It does not define card text. It does not define the audit candidate set. The da
 next_start_cursor: Redeemable Ticket | JTG | 156 | sv09-156
 last_run_status: CONTINUATION_REQUIRED
 last_run_date_utc: 2026-05-19
-last_pr: 90
+last_pr: 93
 last_issue: Nightly DB-backed card effect implementation audit - 2026-05-19
 last_first_card_audited: Pancham | JTG | 83 | sv09-083
 last_card_fully_audited: Rare Candy | MEG | 125 | me01-125
