@@ -48,6 +48,18 @@ merged PR history support that it actually landed.
   per-opponent contrast test.  No card engine, deck mutation, parser, or audit
   files were changed.
 
+- **DB-backed card audit run 49 — 2026-05-20 — CONTINUATION_REQUIRED** —
+  Audited 100 cards (Redeemable Ticket | JTG | 156 | sv09-156 through
+  Shellos | SSP | 46 | sv08-046). TCGDex preflight OK (100/100 fetched).
+  No fixable engine gaps found in this slice
+  (fixes_implemented=0, engine_gaps_documented=0). Stopping with
+  CONTINUATION_REQUIRED (>=100 cards audited; target of 25 findings not
+  reached). Next run resumes at Shelmet | JTG | 12 | sv09-012.
+  Behavioral accounting (v4): required=78, verified=0, unverified=78,
+  coverage=0.0. Report:
+  `docs/audit_runs/2026-05-20-49-card-effect-audit.json`.
+  Confidence: High.
+
 - **DB-backed card audit run 48 — 2026-05-19 — CONTINUATION_REQUIRED** —
   Audited 100 cards (Pancham | JTG | 83 | sv09-083 through
   Rare Candy | MEG | 125 | me01-125). TCGDex preflight OK (100/100 fetched).

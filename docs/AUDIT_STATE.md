@@ -5,14 +5,14 @@ This file stores the rotating cursor for the DB-backed card effect audit workflo
 It does not define card text. It does not define the audit candidate set. The database defines audit scope, and TCGDex defines card behavior.
 
 ```text
-next_start_cursor: Redeemable Ticket | JTG | 156 | sv09-156
+next_start_cursor: Shelmet | JTG | 12 | sv09-012
 last_run_status: CONTINUATION_REQUIRED
-last_run_date_utc: 2026-05-19
+last_run_date_utc: 2026-05-20
 last_pr: 93
-last_issue: Nightly DB-backed card effect implementation audit - 2026-05-19
-last_first_card_audited: Pancham | JTG | 83 | sv09-083
-last_card_fully_audited: Rare Candy | MEG | 125 | me01-125
-notes: Run 48 (2026-05-19): CONTINUATION_REQUIRED — TCGDex preflight succeeded and 100 DB cards were audited from Pancham | JTG | 83 | sv09-083 through Rare Candy | MEG | 125 | me01-125. Findings: fixes_implemented=0, engine_gaps_documented=0. Behavioral accounting: required=76, verified=0, unverified=76. Next run resumes at Redeemable Ticket | JTG | 156 | sv09-156. Report at docs/audit_runs/2026-05-19-48-card-effect-audit.json.
+last_issue: Nightly DB-backed card effect implementation audit - 2026-05-20
+last_first_card_audited: Redeemable Ticket | JTG | 156 | sv09-156
+last_card_fully_audited: Shellos | SSP | 46 | sv08-046
+notes: Run 49 (2026-05-20): CONTINUATION_REQUIRED — TCGDex preflight succeeded and 100 DB cards were audited from Redeemable Ticket | JTG | 156 | sv09-156 through Shellos | SSP | 46 | sv08-046. Findings: fixes_implemented=0, engine_gaps_documented=0. Behavioral accounting: required=78, verified=0, unverified=78. Next run resumes at Shelmet | JTG | 12 | sv09-012. Report at docs/audit_runs/2026-05-20-49-card-effect-audit.json.
 ```
 
 ## Cursor rules
