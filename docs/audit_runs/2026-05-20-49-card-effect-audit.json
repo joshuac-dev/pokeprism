@@ -1127,7 +1127,7 @@
         {
           "kind": "attack",
           "name": "Evo-Lariat",
-          "raw_text": "This attack foes 40 more damage for each of your Evolution Pok\u00e9mon in play.",
+          "raw_text": "This attack does 40 more damage for each of your Evolution Pok\u00e9mon in play.",
           "cost": "Colorless",
           "damage": "40+",
           "requires_handler": true,
